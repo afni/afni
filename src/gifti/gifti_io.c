@@ -237,8 +237,7 @@ static int copy_data_as_float(void * dest, int dtype, void * src, int stype,
                               long long nvals);
 static int DA_data_exists(gifti_image * gim, const int * dalist, int len);
 static int str2list_index(char *list[], int max, const char *str);
-static int permute_by_ind_order_cm2rm(void * dest, giiDataArray * da,
-                                      char * mesg);
+static int permute_by_index_order(void * dest, int new_ord, giiDataArray * da):
 
 /* ---------------------------------------------------------------------- */
 /*! giftilib globals */
@@ -1962,7 +1961,7 @@ int gifti_check_swap(void * data, int endian, long long nsets, int swapsize)
  *
  *  return 0 on success                        27 Apr 2017 [rickr]
 *//*-------------------------------------------------------------------*/
-int gifti_DA_convert_ind_ord(giiDataArray * da, int new_ord)
+int gifti_convert_DA_ind_ord(giiDataArray * da, int new_ord)
 {
    char * fname = "convert_ind_ord";
    void * newdata = NULL;
@@ -2013,8 +2012,7 @@ int gifti_DA_convert_ind_ord(giiDataArray * da, int new_ord)
    }
 
    /* actually permute the data */
-/* rcr - check the direction */
-   if( permute_by_ind_order_cm2rm(newdata, da, fname) ) {
+   if( permute_by_index_order(newdata, new_ord, da) ) {
       free(newdata);
       return 1;
    }
@@ -2193,16 +2191,26 @@ int gifti_DA_convert_ind_ord(giiDataArray * da, int new_ord)
 /*===========================================================================*/
 
 /* decisions... slow and steady or fast and dangerous?
- * let's change to slow and steady, since this should be uncommon */
-static int permute_by_ind_order_cm2rm(void * dest, giiDataArray * da,
-                                      char * mesg)
+ * let's change to slow and steady, since this should be uncommon
+ *
+ * return 0 on success
+ */
+static int permute_by_index_order(void * dest, int new_ord, giiDataArray * da)
 {
    long long m0, m1, m2, m3, m4, m5;
    long long i0, i1, i2, i3, i4, i5;
+   char    * mesg = "permute index order";
 
    /* avoid repetitive indexing (for speed) */
    m0 = da->dims[0]; m1 = da->dims[1]; m2 = da->dims[2];
    m3 = da->dims[3]; m4 = da->dims[4]; m5 = da->dims[5];
+
+   /* we checked before, but hey... */
+   if( new_ord != GIFTI_IND_ORD_ROW_MAJOR && 
+       new_ord != GIFTI_IND_ORD_COL_MAJOR )
+      fprintf(stderr,"** PBIO: invalid index order %d\n", new_ord);
+      return 1;
+   }
 
    switch( da->nbyper ) {
       default: {
@@ -2215,48 +2223,93 @@ static int permute_by_ind_order_cm2rm(void * dest, giiDataArray * da,
       case 1: { /* process as char (signed int8) */
          if( GIFTI_BAD_SIZEOF(mesg, char, 1) ) return 1;
 
-         switch( da->num_dim ) {
-            default: break; /* do nothing for 1 or unknown */
-            case 2: GIFTI_PBIO_C2R_2(char, da->data, dest); break;
-            case 3: GIFTI_PBIO_C2R_3(char, da->data, dest); break;
-            case 4: GIFTI_PBIO_C2R_4(char, da->data, dest); break;
-            case 5: GIFTI_PBIO_C2R_5(char, da->data, dest); break;
-            case 6: GIFTI_PBIO_C2R_6(char, da->data, dest); break;
+         if( new_ord == GIFTI_IND_ORD_ROW_MAJOR ) {
+            switch( da->num_dim ) {
+               default: break; /* do nothing for 1 or unknown */
+               case 2: GIFTI_PBIO_C2R_2(char, da->data, dest); break;
+               case 3: GIFTI_PBIO_C2R_3(char, da->data, dest); break;
+               case 4: GIFTI_PBIO_C2R_4(char, da->data, dest); break;
+               case 5: GIFTI_PBIO_C2R_5(char, da->data, dest); break;
+               case 6: GIFTI_PBIO_C2R_6(char, da->data, dest); break;
+            }
+         } else { /* to GIFTI_IND_ORD_COL_MAJOR */
+            switch( da->num_dim ) {
+               default: break; /* do nothing for 1 or unknown */
+               case 2: GIFTI_PBIO_R2C_2(char, da->data, dest); break;
+               case 3: GIFTI_PBIO_R2C_3(char, da->data, dest); break;
+               case 4: GIFTI_PBIO_R2C_4(char, da->data, dest); break;
+               case 5: GIFTI_PBIO_R2C_5(char, da->data, dest); break;
+               case 6: GIFTI_PBIO_R2C_6(char, da->data, dest); break;
+            }
          }
       }
       case 2: { /* process as short (signed int16) */
          if( GIFTI_BAD_SIZEOF(mesg, short, 2) ) return 1;
 
-         switch( da->num_dim ) {
-            default: break; /* do nothing for 1 or unknown */
-            case 2: GIFTI_PBIO_C2R_2(short, da->data, dest); break;
-            case 3: GIFTI_PBIO_C2R_3(short, da->data, dest); break;
-            case 4: GIFTI_PBIO_C2R_4(short, da->data, dest); break;
-            case 5: GIFTI_PBIO_C2R_5(short, da->data, dest); break;
-            case 6: GIFTI_PBIO_C2R_6(short, da->data, dest); break;
+         if( new_ord == GIFTI_IND_ORD_ROW_MAJOR ) {
+            switch( da->num_dim ) {
+               default: break; /* do nothing for 1 or unknown */
+               case 2: GIFTI_PBIO_C2R_2(short, da->data, dest); break;
+               case 3: GIFTI_PBIO_C2R_3(short, da->data, dest); break;
+               case 4: GIFTI_PBIO_C2R_4(short, da->data, dest); break;
+               case 5: GIFTI_PBIO_C2R_5(short, da->data, dest); break;
+               case 6: GIFTI_PBIO_C2R_6(short, da->data, dest); break;
+            }
+         } else { /* to GIFTI_IND_ORD_COL_MAJOR */
+            switch( da->num_dim ) {
+               default: break; /* do nothing for 1 or unknown */
+               case 2: GIFTI_PBIO_R2C_2(short, da->data, dest); break;
+               case 3: GIFTI_PBIO_R2C_3(short, da->data, dest); break;
+               case 4: GIFTI_PBIO_R2C_4(short, da->data, dest); break;
+               case 5: GIFTI_PBIO_R2C_5(short, da->data, dest); break;
+               case 6: GIFTI_PBIO_R2C_6(short, da->data, dest); break;
+            }
          }
       }
       case 4: { /* process as int (signed int32) */
          if( GIFTI_BAD_SIZEOF(mesg, int,   4) ) return 1;
 
-         switch( da->num_dim ) {
-            default: break; /* do nothing for 1 or unknown */
-            case 2: GIFTI_PBIO_C2R_2(int, da->data, dest); break;
-            case 3: GIFTI_PBIO_C2R_3(int, da->data, dest); break;
-            case 4: GIFTI_PBIO_C2R_4(int, da->data, dest); break;
-            case 5: GIFTI_PBIO_C2R_5(int, da->data, dest); break;
-            case 6: GIFTI_PBIO_C2R_6(int, da->data, dest); break;
+         if( new_ord == GIFTI_IND_ORD_ROW_MAJOR ) {
+            switch( da->num_dim ) {
+               default: break; /* do nothing for 1 or unknown */
+               case 2: GIFTI_PBIO_C2R_2(int, da->data, dest); break;
+               case 3: GIFTI_PBIO_C2R_3(int, da->data, dest); break;
+               case 4: GIFTI_PBIO_C2R_4(int, da->data, dest); break;
+               case 5: GIFTI_PBIO_C2R_5(int, da->data, dest); break;
+               case 6: GIFTI_PBIO_C2R_6(int, da->data, dest); break;
+            }
+         } else { /* to GIFTI_IND_ORD_COL_MAJOR */
+            switch( da->num_dim ) {
+               default: break; /* do nothing for 1 or unknown */
+               case 2: GIFTI_PBIO_R2C_2(int, da->data, dest); break;
+               case 3: GIFTI_PBIO_R2C_3(int, da->data, dest); break;
+               case 4: GIFTI_PBIO_R2C_4(int, da->data, dest); break;
+               case 5: GIFTI_PBIO_R2C_5(int, da->data, dest); break;
+               case 6: GIFTI_PBIO_R2C_6(int, da->data, dest); break;
+            }
          }
       }
       case 8: { /* process as long long (signed int64) */
          if( GIFTI_BAD_SIZEOF(mesg, long long, 8) ) return 1;
-         switch( da->num_dim ) {
-            default: break; /* do nothing for 1 or unknown */
-            case 2: GIFTI_PBIO_C2R_2(long long, da->data, dest); break;
-            case 3: GIFTI_PBIO_C2R_3(long long, da->data, dest); break;
-            case 4: GIFTI_PBIO_C2R_4(long long, da->data, dest); break;
-            case 5: GIFTI_PBIO_C2R_5(long long, da->data, dest); break;
-            case 6: GIFTI_PBIO_C2R_6(long long, da->data, dest); break;
+
+         if( new_ord == GIFTI_IND_ORD_ROW_MAJOR ) {
+            switch( da->num_dim ) {
+               default: break; /* do nothing for 1 or unknown */
+               case 2: GIFTI_PBIO_C2R_2(long long, da->data, dest); break;
+               case 3: GIFTI_PBIO_C2R_3(long long, da->data, dest); break;
+               case 4: GIFTI_PBIO_C2R_4(long long, da->data, dest); break;
+               case 5: GIFTI_PBIO_C2R_5(long long, da->data, dest); break;
+               case 6: GIFTI_PBIO_C2R_6(long long, da->data, dest); break;
+            }
+         } else { /* to GIFTI_IND_ORD_COL_MAJOR */
+            switch( da->num_dim ) {
+               default: break; /* do nothing for 1 or unknown */
+               case 2: GIFTI_PBIO_R2C_2(long long, da->data, dest); break;
+               case 3: GIFTI_PBIO_R2C_3(long long, da->data, dest); break;
+               case 4: GIFTI_PBIO_R2C_4(long long, da->data, dest); break;
+               case 5: GIFTI_PBIO_R2C_5(long long, da->data, dest); break;
+               case 6: GIFTI_PBIO_R2C_6(long long, da->data, dest); break;
+            }
          }
       }
    }
