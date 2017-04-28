@@ -1598,7 +1598,6 @@ int write_1D_file(giiDataArray ** dlist, int len, char * prefix, int add_suf)
         fprintf(stderr,"++ 1D write, RxC = %lld x %lld\n", rows, cols);
         /* no longer re-order output for column major order, which was */
         /* probably a mistake to begin with        25 Apr 2017 [rickr] */
-        fprintf(stderr,"-- writing data rows in normal order\n");
         for(c = 0; c < rows; c++ )
            ewrite_data_line(da->data, da->datatype, c, cols, 0, 0, fp);
     } else {            /* write da->nvals lines of 'num values */
@@ -1697,7 +1696,6 @@ int write_surf_file(giiDataArray * dc, giiDataArray * dt, char * prefix,
 
     /* no longer re-order output for column major order, which was */
     /* probably a mistake to begin with        25 Apr 2017 [rickr] */
-    fprintf(stderr,"-- writing coord rows in normal order\n");
     for(c = 0; c < rows; c++ )
        ewrite_data_line(da->data, da->datatype, c, cols, 0, 1, fp);
 
@@ -1707,7 +1705,6 @@ int write_surf_file(giiDataArray * dc, giiDataArray * dt, char * prefix,
     rows = trows;
     cols = tcols;
 
-    fprintf(stderr,"-- writing triangle rows in normal order\n");
     for(c = 0; c < rows; c++ )
        ewrite_data_line(da->data, da->datatype, c, cols, 0, 1, fp);
 

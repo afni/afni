@@ -178,6 +178,8 @@ int    gifti_set_zlevel         (int level);
 
 /* data copy routines */
 int     gifti_convert_to_float(gifti_image * gim);
+int     gifti_convert_ind_ord (gifti_image * gim, int new_ord);
+int     gifti_convert_DA_ind_ord(giiDataArray * da, int new_ord);
 char ** gifti_copy_char_list  (char ** list, int len);
 int     gifti_copy_all_DA_meta(giiDataArray *dest, giiDataArray *src);
 int     gifti_copy_DA_meta    (giiDataArray *dest, giiDataArray *src,
