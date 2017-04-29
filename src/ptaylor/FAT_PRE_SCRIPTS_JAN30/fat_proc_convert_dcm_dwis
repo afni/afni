@@ -38,9 +38,12 @@
 #set version = "2.9"; set rev_dat = "Apr 21, 2017"
 #   + no more automasking in 3dCM
 #
-set version = "3.0"; set rev_dat = "Apr 26, 2017"
+#set version = "3.0"; set rev_dat = "Apr 26, 2017"
 #   + dcm2niix -> dcm2niix_afni
 #   + new wdir convention
+#
+set version = "3.1"; set rev_dat = "Apr 26, 2017"
+#   + important: fixed matT -> matA error
 #
 # ----------------------------------------------------------------
 
@@ -317,7 +320,11 @@ endif
 if ( $output_cmd == 1 ) then
     echo "++ Echoing the command to: $cmd_file"
 
-    echo "### Executed from the directory location:"  > $cmd_file
+    set rec_afni_ver = `afni -ver`
+    echo "### AFNI version:"  > $cmd_file
+    echo "# $rec_afni_ver\n"            >> $cmd_file
+
+    echo "### Executed from the directory location:"  >> $cmd_file
     echo "# $here\n"            >> $cmd_file
     echo "### The command was:" >> $cmd_file
     echo "# $this_prog $argv"   >> $cmd_file
@@ -478,7 +485,7 @@ if ( 1 ) then
     1dDW_Grad_o_Mat++                          \
         -echo_edu                              \
         -in_col_vec       $all_cvecs           \
-        -out_col_matA     ../$fin_bmatT
+        -out_col_matT     ../$fin_bmatT
 
     echo "++ Bonus:  gradient col vec: $fin_cvec"
     1dDW_Grad_o_Mat++                          \
