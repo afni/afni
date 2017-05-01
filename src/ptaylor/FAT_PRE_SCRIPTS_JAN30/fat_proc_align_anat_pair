@@ -18,8 +18,11 @@
 #set version   = "1.2";    set rev_dat   = "Apr 12, 2017"
 #   + standardize I/O, helpfile, option names
 #
-set version   = "1.3";    set rev_dat   = "Apr 26, 2017"
+#set version   = "1.3";    set rev_dat   = "Apr 26, 2017"
 #   + newer wdir convention
+#
+set version   = "1.4";    set rev_dat   = "May 1, 2017"
+#   + Align t2w -> t1w and reverse (better masking/weighting)
 #
 # ---------------------------------------------------------------
 
@@ -312,23 +315,34 @@ echo ${v1[2]}
 set t1align   = $wdir/f05_t1align.nii
 if ( "$imtrx" == "" ) then
 
-    echo "++ Calculating alignment matrix."
+    echo "++ Calculating alignment (t2w -> t1w) matrix."
+
+    set mt_t2_t1 = $wdir/map_t2w_to_t1w.aff12.1D
+    set mt_t1_t2 = $wdir/map_t1w_to_t2w.aff12.1D
 
     set imtrx = $wdir/map_to_t2w.aff12.1D
 
     3dAllineate   -echo_edu               \
         -warp shift_rotate                \
-        -1Dmatrix_save  $imtrx            \
+        -1Dmatrix_save  $mt_t2_t1         \
         -prefix         "$t1align"        \
-        -base           "$it2w"           \
+        -source         "$it2w"           \
+        -base           "$t1thr"          \
         -twopass                          \
         -cost lpc                         \
         -cmass                            \
         -source_automask                  \
         -autoweight                       \
-        -source "$t1thr"                  \
         -final wsinc5                     \
         -overwrite
+
+    # get inverse
+    echo "++ Inverting alignment matrix (to get t1w -> t2w)."
+    cat_matvec -ONELINE                   \
+        $mt_t2_t1 -I                      \
+        >> $mt_t1_t2
+    
+    set imtrx = $mt_t1_t2
 endif
 
 echo "++ Apply alignment matrix."
@@ -411,7 +425,11 @@ set fres  = `3dinfo -ad3 ${T1TOCOPY}`
 
 echo "++ Done workin'.  Just need to copy the final dset."
 
-3dcopy $T1TOCOPY $odir/$ot1w
+3dcalc                         \
+    -overwrite                 \
+    -a $T1TOCOPY               \
+    -expr 'a'                  \
+    -prefix $odir/$ot1w
 
 if ( $DO_VIEWER == 1 ) then
 
