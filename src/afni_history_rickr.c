@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  1,  May, 2017, RCR, "@diff.files", MINOR, TYPE_NEW_OPT,
+   "add option -diff_prog, to use something besides xxdiff",
+   NULL
+ } ,
+
  { 25,  Apr, 2017, RCR, "suma", MICRO, TYPE_MODIFY,
    "SUMA_input.c: 'r'ecord with oversamle - use tcsh -c to delete files",
    "To be explicit about shell in system(), sending errors to /dev/null."
