@@ -545,11 +545,11 @@ void display_help_menu(void)
       "     variable.\n"
       "  ++ Also, '-BminusA' is turned on when FIXED_NUMBER is used, to give the\n"
       "     effect of a 1-sample test against a constant.  For example,\n"
-      "       '-singletonA 0.0 -set B x y z'\n"
+      "       -singletonA 0.0 -set B x y z\n"
       "     is equivalent to the 1-sample test with '-setA x y z'. The only advantage\n"
       "     of using '-singletonA FIXED_NUMBER' is that you can test against a\n"
       "     nonzero constant this way.\n"
-      "  ++ You cannot use covariates with this FIXED_NUMBER form of '-singletonA' :-(\n"
+      "  ++ You cannot use covariates with this FIXED_NUMBER form of '-singletonA' :(\n"
       "\n"
       "* The output dataset will have 2 sub-bricks:\n"
       "  ++ The difference (at each voxel) between the dataset_A value and the\n"
@@ -649,7 +649,7 @@ void display_help_menu(void)
       "  ++ e.g.,  Elvis.nii.gz     ==>  Elvis\n"
       "\n"
       "* '-covariates' can only be used with the short form '-setX' option\n"
-      "   if each input dataset has only 1 sub-brick (so that each label\n"
+      "   when each input dataset has only 1 sub-brick (so that each label\n"
       "   refers to exactly 1 volume of data).\n"
       "  ++ Duplicate labels in the dataset list or in the covariates file\n"
       "     will not work well!\n"
@@ -762,7 +762,7 @@ void display_help_menu(void)
       "\n"
       " ++ How to choose between '-center SAME' or '-center DIFF'?  You have\n"
       "    to understand what your model is and what effect the covariates\n"
-      "    are likely to have on the data.  You shouldn't just blindly us\n"
+      "    are likely to have on the data.  You shouldn't just blindly use\n"
       "    covariates 'just in case'.  That way lies statistical madness.\n"
       "  -- If the two samples don't differ much in the mean values of their\n"
       "      covariates, then the results with '-center SAME' and '-center DIFF'\n"
@@ -877,7 +877,6 @@ void display_help_menu(void)
       "                 because that would require more extensive re-thinking\n"
       "                 and then re-programming.\n"
       "             ++ You can't use -zskip with -paired, for obvious reasons.\n"
-      "             ++ [This option added 06 Oct 2010 -- RWCox]\n"
       "             ++ You can also put a decimal fraction between 0 and 1 in\n"
       "                 place of 'n' (e.g., '0.9', or '90%%').  Such a value\n"
       "                 indicates that at least 90%% (e.g.) of the values in each\n"
@@ -898,8 +897,8 @@ void display_help_menu(void)
       "             ++ Using '-rankize' also implies '-no1sam' (infra), since it\n"
       "                 doesn't make sense to do 1-sample t-tests on ranks.\n"
       "             ++ Don't use this option unless you understand what it does!\n"
-      "                 The use of ranks herein should be considered experimental\n"
-      "                 or speculative.\n"
+      "                 The use of ranks herein should be considered very\n"
+      "                 experimental or speculative!!\n"
 #endif
       "\n"
       " -no1sam   = When you input two samples (setA and setB), normally the\n"
@@ -1006,6 +1005,20 @@ void display_help_menu(void)
       " -ACF      = If residuals are saved, also compute the ACF parameters from\n"
       "             them using program 3dFHWMx -- for further use in 3dClustSim\n"
       "             (which must be run separately).\n"
+      "             ++ HOWEVER, the '-Clustsim' option below provides a resampling\n"
+      "                alternative to using the parameteric '-ACF' method in\n"
+      "                program 3dClustSim.\n"
+      "\n"
+      " -dupe_ok  = Duplicate dataset labels are OK.  Do not generate warnings\n"
+      "             for dataset pairs.\n"
+      "            ** This option must preceed the corresponding -setX options.\n"
+      "            ** Such warnings are issued only when '-covariates' is used\n"
+      "               -- when the labels are used to extract covariate values\n"
+      "               from the covariate table.\n"
+      "\n"
+      " -debug    = Prints out information about the analysis, which can\n"
+      "              be VERY lengthy -- not for general usage (or even for colonels).\n"
+      "             ++ Two copies of '-debug' will give even MORE output!\n"
       "\n"
       "----------------\n"
       "ClustSim Options\n"
@@ -1032,15 +1045,15 @@ void display_help_menu(void)
       "              ++ Since the simulations are done with '-toz' active, the program\n"
       "                 also turns on the '-toz' option for your output dataset. This\n"
       "                 means that the output statistics will be z-scores, not t-values.\n"
-      "              ++ If you have less than 14 datasets total (setA and setB combined),\n"
-      "                 this option will not work!\n"
+      "              ++ If you have less than 14 datasets total (setA & setB combined),\n"
+      "                 this option will not work! (There aren't enough random subsets.)\n"
       "               ** And it will not work with '-singletonA'.\n"
       "          -->>++ '-Clustsim' runs step (a) in multiple jobs, for speed.  By\n"
-      "                 default, it tries to auto-detect the number of CPUs on the system\n"
-      "                 and uses that many separate jobs.  If you put a positive integer\n"
-      "                 immediately following the option, as in '-Clustsim 12', it will\n"
-      "                 instead use that many jobs (e.g., 12).  This capability is to\n"
-      "                 be used when the CPU count is not auto-detected correctly.\n"
+      "                 default, it tries to auto-detect the number of CPUs on the \n"
+      "                 system and uses that many separate jobs.  If you put a positive\n"
+      "                 integer immediately following the option, as in '-Clustsim 12',\n"
+      "                 it will instead use that many jobs (e.g., 12).  This capability\n"
+      "                 is to be used when the CPU count is not auto-detected correctly.\n"
 #if 0
       "          -->>++ '-Clustsim' can use up all the memory on a computer, and even\n"
       "                 more -- causing the computer to freeze or crash.  The program\n"
@@ -1052,29 +1065,30 @@ void display_help_menu(void)
       "                 the number of gigabytes of memory to use.  This may help you\n"
       "                 prevent the 'Texas meltdown'.\n"
 #endif
-      "          -->>++ It is important to use the proper '-mask' option with '-Clustsim'.\n"
-      "                 Otherwise, the statistics of the clustering will be skewed (badly).\n"
-      "          -->>++ You can change the number of simulations from the default 10000 by\n"
-      "                 setting Unix environment variable AFNI_TTEST_NUMCSIM to a different\n"
-      "                 value (in the range 1000..1000000). Note that the 3dClustSim tables\n"
-      "                 go down to a cluster-corrected false positive rate of 0.01, so that\n"
-      "                 reducing the number of simulations below 10000 will produce notably\n"
-      "                 less accurate results for such small FPR (alpha) values.\n"
-      "          -->>++ The clever scripter can pick out a particular value from a particular\n"
-      "                 3dClustSim output .1D file using the '{row}[col]' syntax of AFNI,\n"
-      "                 as in the tcsh command\n"
+      "          -->>++ It is important to use a proper '-mask' option with '-Clustsim'.\n"
+      "                 Otherwise, the statistics of the clustering will be skewed.\n"
+      "          -->>++ You can change the number of simulations from the default 10000\n"
+      "                 by setting Unix environment variable AFNI_TTEST_NUMCSIM to a\n"
+      "                 different value (in the range 1000..1000000). Note that the\n"
+      "                 3dClustSim tables go down to a cluster-corrected false positive\n"
+      "                 rate of 0.01, so that reducing the number of simulations below\n"
+      "                 10000 will produce notably less accurate results for such small\n"
+      "                 FPR (alpha) values.\n"
+      "          -->>++ The clever scripter can pick out a particular value from a\n"
+      "                 particular 3dClustSim output .1D file using the '{row}[col]'\n"
+      "                 syntax of AFNI, as in the tcsh command\n"
       "                   set csize = `1dcat Fred.NN1_1sided.1D\"{10}[6]\"`\n"
-      "                 to pick out the number in the #10 row, #6 column (counting from #0),\n"
-      "                 which is the p=0.010 FPR=0.05 entry in the table.\n"
-      "                 (-: Further adventures in scripting mojo I leave to your whimsy :-)\n"
+      "                 to pick out the number in the #10 row, #6 column (counting\n"
+      "                 from #0), which is the p=0.010 FPR=0.05 entry in the table.\n"
+      "                 (-: Further adventures in scripting I leave to your whimsy :-)\n"
       "\n"
-      "        ---==>>> PLEASE NOTE: This option has been tested for 1- and 2-sample\n"
-      "        ---==>>> unpaired and paired tests vs. resting state data -- to see if the\n"
-      "        ---==>>> false positive rate (FPR) was near the nominal 5%% level (it was).\n"
-      "        ---==>>> The FPR for the covariate effects (as opposed to the main effect)\n"
-      "        ---==>>> is still somewhat biased away from the 5%% level :(\n"
+      "  ---==>>> PLEASE NOTE: This option has been tested for 1- and 2-sample\n"
+      "  ---==>>> unpaired and paired tests vs. resting state data -- to see if the\n"
+      "  ---==>>> false positive rate (FPR) was near the nominal 5%% level (it was).\n"
+      "  ---==>>> The FPR for the covariate effects (as opposed to the main effect)\n"
+      "  ---==>>> is still somewhat biased away from the 5%% level :(\n"
       "\n"
-      "****** The following options affect both '-Clustsim' and '-ETAC' ******\n"
+      " ****** The following options affect both '-Clustsim' and '-ETAC' ******\n"
       "\n"
       " -prefix_clustsim cc = Use 'cc' for the prefix for the '-Clustsim' temporary\n"
       "                       files, rather than a randomly generated prefix.\n"
@@ -1084,39 +1098,46 @@ void display_help_menu(void)
       "                         as in 'TT.Sv0Ghrn4uVg'.  To mimic this, you might\n"
       "                         use something like '-prefix_clustsim TT.Zhark'.\n"
       "                  -->>++ If you use option '-Clustsim', then the simulations\n"
-      "                         keep track of the maximum (in mask) voxelwise z-statistic,\n"
-      "                         compute the threshold for 5%% global FPR, and write\n"
-      "                         those values (for 1-sided and 2-sided thresholding)\n"
-      "                         to a file named 'cc'.5percent.txt -- where 'cc' is\n"
-      "                         the prefix given here. Using such a threshold in the\n"
-      "                         AFNI GUI will (presumably) give you a map with a 5%%\n"
-      "                         chance of false positive WITHOUT clustering. Of course,\n"
-      "                         these thresholds generally come with a stringent per-voxel\n"
+      "                         keep track of the maximum (in mask) voxelwise\n"
+      "                         z-statistic, compute the threshold for 5%% global FPR,\n"
+      "                         and write those values (for 1-sided and 2-sided\n"
+      "                         thresholding) to a file named 'cc'.5percent.txt --\n"
+      "                         where 'cc' is the prefix given here. Using such a\n"
+      "                         threshold in the AFNI GUI will (presumably) give you\n"
+      "                         a map with a 5%% chance of false positive WITHOUT\n"
+      "                         clustering. Of course, these thresholds generally come\n"
+      "                         with a very stringent per-voxel\n"
       "                         p-value.\n"
       "                        ** In one analysis, the 5%% 2-sided test FPR p-value was\n"
-      "                           about 7e-6 for a mask of 43000 voxels, which is bigger\n"
-      "                           (less strict) than the 1.2e-6 one would get from the\n"
-      "                           Bonferroni correction, but is still very stringent\n"
-      "                           for many purposes. This threshold value was also close\n"
-      "                           to the threshold at which the FDR q=1/43000, which may\n"
-      "                           not be a coincidence.\n"
+      "                           about 7e-6 for a mask of 43000 voxels, which is\n"
+      "                           bigger (less strict) than the 1.2e-6 one would get\n"
+      "                           from the Bonferroni correction, but is still very\n"
+      "                           stringent for many purposes. This threshold value\n"
+      "                           was also close to the threshold at which the FDR\n"
+      "                           q=1/43000, which may not be a coincidence.\n"
       "\n"
       " -tempdir ttt        = Store temporary files for '-Clustsim' in this directory,\n"
       "                       rather than in the current working directory: this option\n"
       "                       is for use when you have access to a fast local disk\n"
-      "                       (e.g., SSD) compared to general storage on a network RAID.\n"
-      "                       [NOTE: if you use '-CLUSTSIM', these files aren't deleted!]\n"
+      "                       (e.g., SSD) compared to general storage on a RAID.\n"
+      "                       [NOTE: with '-CLUSTSIM', these files aren't deleted!]\n"
       "\n"
-      " -seed X [Y] = This option is used to set the random number seed for '-randomsign'\n"
-      "               to the positive integer 'X'. If a second integer 'Y' follows, then\n"
-      "               that value is used for the random number seed for '-permute'.\n"
+      " -seed X [Y] = This option is used to set the random number seed for\n"
+      "               '-randomsign' to the positive integer 'X'. If a second integer\n"
+      "               'Y' follows, then that value is used for the random number seed\n"
+      "               for '-permute'.\n"
       "             ++ The purpose of setting seeds (rather than letting the program\n"
       "                pick them) is for reproducibility. It is not usually needed by\n"
       "                the ordinary user.\n"
+      "             ++ Option '-seed' is used by the multi-blur analysis possible\n"
+      "                with '-ETAC', so that the different blur levels use the same\n"
+      "                randomizations, to make their results compatible for multi-\n"
+      "                threshold combination.\n"
       "             ++ Example:  -seed 3217343 1830201\n"
       "\n"
-      " *** These options (below) are not usually directly used, but ***\n"
-      " *** are described here for completeness and for reference.   ***\n"
+      " ***** These options (below) are not often directly used, but *****\n"
+      " ***** are described here for completeness and for reference. *****\n"
+      " ***** They are invoked by options '-Clustsim' and '-ETAC'.   *****\n"
       "\n"
       " -randomsign = Randomize the signs of the datasets.  Intended to be used\n"
       "               with the output of '-resid' to generate null hypothesis\n"
@@ -1140,7 +1161,7 @@ void display_help_menu(void)
       "\n"
       " -permute    = With '-randomsign', and when both '-setA' and '-setB' are used,\n"
       "               this option will add inter-set permutation to the randomization.\n"
-      "             ++ If only '-setA' is used (1-sample test), there is no permutation!\n"
+      "             ++ If only '-setA' is used (1-sample test), there is no permutation.\n"
       "             ++ If '-randomsign' is NOT given, but '-Clustsim' is used, then\n"
       "                '-permute' will be passed for use with the '-Clustsim' tests\n"
       "                (again, only if '-setA' and '-setB' are both used).\n"
@@ -1154,7 +1175,7 @@ void display_help_menu(void)
       "         -->>++ You only NEED to use '-permute' if you want inter-set\n"
       "                permutation used AND you give at least one of '-unpooled' or\n"
       "                '-paired' or '-covariates'. Normally, you don't need '-permute'.\n"
-      "             ++ There is no option to do permutation WITHOUT sign randomization :(\n"
+      "             ++ There is no option to do permutation WITHOUT sign randomization.\n"
       "         -->>++ This option is also not usually used directly by the user;\n"
       "                it will be invoked by the '-Clustsim' or '-ETAC' operations.\n"
       "\n"
@@ -1171,7 +1192,7 @@ void display_help_menu(void)
       "method to provide a method for thresholding the results of 3dttest++.\n"
       "-ETAC uses randomization/permutation to generate null distributions,\n"
       "as does -Clustsim. The main difference is that ETAC allows:\n"
-      "  * use of multiple per-voxel p-value threshold simultaneously\n"
+      "  * use of multiple per-voxel p-value thresholds simultaneously\n"
       "  * use of cluster-size and/or cluster-square-sum as threshold parameters\n"
       "  * use of multiple amounts of blurring simultaneously\n"
       "\n"
@@ -1183,8 +1204,8 @@ void display_help_menu(void)
       "\n"
       "Differences between '-Clustsim' and '-ETAC':\n"
       " * -Clustsim produces a number: the cluster-size threshold to be used everywhere.\n"
-      " * -ETAC produces a map: the cluster figure of merit (FOM) to be used as\n"
-      "     a function of location.\n"
+      " * -ETAC produces a map: the cluster figure of merit (FOM) threshold to be\n"
+      "     used as a function of location.\n"
       " * -ETAC allows use of a FOM that is more general than the cluster-size.\n"
       " * -ETAC allows the use of multiple per-voxel p-value thresholds simultaneously.\n"
       " * -ETAC allows the use of multiple blur levels simultaneously.\n"
@@ -1220,25 +1241,27 @@ void display_help_menu(void)
       "                        have different thresholding cases computed. The 'params'\n"
       "                        string is one argument, with different parts separated\n"
       "                        by colon ':' characters. The parts are\n"
-      "                          NN=1 or NN=2 or NN=3 } spatial connectivity for clustering\n"
-      "                          sid=1 or sid=2       } 1-sided or 2-sided t-tests\n"
-      "                          pthr=p1,p2,...       } list of p-values to use\n"
-      "                          hpow=h1,h2,...       } list of H powers to use\n"
-      "                          name=Something       } a label to distinguish this case\n"
+      "                    NN=1 or NN=2 or NN=3 } spatial connectivity for clustering\n"
+      "                    sid=1 or sid=2       } 1-sided or 2-sided t-tests\n"
+      "                    pthr=p1,p2,...       } list of p-values to use\n"
+      "                    hpow=h1,h2,...       } list of H powers to use\n"
+      "                    name=Something       } a label to distinguish this case\n"
       "                        For example:\n"
-      "                          -ETAC_opt NN=2:sid=2:hpow=0,2:pthr=0.01,0.005,0.002,0.01:name=Fred\n"
-      "                        The H powers ('hpow') allowed are 0, 1, and/or 2; the clustering\n"
-      "                        figure of merit (FOM) is defined as the sum over voxels in\n"
-      "                        a cluster of the voxel absolute z-scores raised to the H power;\n"
-      "                        H=0 is the number of voxels (what 3dClustSim uses).\n"
-      "                       ++ You can use '-ETAC_opt' more than once, to make efficient\n"
-      "                          use of the randomized/permuted cases. Just give each use\n"
-      "                          within the same 3dttest++ run a different label after 'name='.\n"
+      "             -ETAC_opt NN=2:sid=2:hpow=0,2:pthr=0.01,0.005,0.002,0.01:name=Fred\n"
+      "                        The H powers ('hpow') allowed are 0, 1, and/or 2;\n"
+      "                        the clustering figure of merit (FOM) is defined as the\n"
+      "                        sum over voxels in a cluster of the voxel absolute\n"
+      "                        z-scores raised to the H power; H=0 is the number of\n"
+      "                        voxels in a cluster (what 3dClustSim uses).\n"
+      "                       ++ You can use '-ETAC_opt' more than once, to make\n"
+      "                          efficient re-use of the randomized/permuted cases.\n"
+      "                          Just give each use within the same 3dttest++ run a\n"
+      "                          different label after 'name='.\n"
       "\n"
-      " -ETAC_arg something  = This option is used to pass extra options to the 3dXClustSim\n"
-      "                        program (which is what implements ETAC). There is almost no\n"
-      "                        reason to use this option that I can think of, except perhaps\n"
-      "                        in this example:\n"
+      " -ETAC_arg something  = This option is used to pass extra options to the\n"
+      "                        3dXClustSim program (which is what implements ETAC).\n"
+      "                        There is almost no reason to use this option that I\n"
+      "                        can think of, except perhaps this example:\n"
       "                          -ETAC_arg -verb\n"
       "\n"
       "The output of the ETAC computations (in 3dXClustSim) is a set of multi-threshold\n"
@@ -1251,8 +1274,8 @@ void display_help_menu(void)
       "*** WARNING: ETAC consumes a lot of CPU time, and a lot of memory ***\n"
       "***         (especially if many -ETAC_blur cases are used)!       ***\n"
       "\n"
-      "+++ (: One of these days, I'll expand this section :) +++\n"
-      "--------------------------------------------------------------------------------\n"
+      "+++ (: One of these days, I'll expand this section and explain ETAC more :) +++\n"
+      "-------------------------------------------------------------------------------\n"
 
 #if 0 /*** hidden from user ***/
       "\n"
@@ -1261,24 +1284,12 @@ void display_help_menu(void)
 #endif
 
       "\n"
-      " -dupe_ok  = Duplicate dataset labels are OK.  Do not generate warnings\n"
-      "             for dataset pairs.\n"
-      "            ** This option must preceed the corresponding -setX options.\n"
-      "            ** Such warnings are issued only when '-covariates' is used\n"
-      "               -- when the labels are used to extract covariate values\n"
-      "               from the covariate table.\n"
-      "\n"
-      " -debug    = Prints out information about the analysis, which can\n"
-      "              be VERY lengthy -- not for general usage (or even for colonels).\n"
-      "             ++ Two copies of '-debug' will give even MORE output!\n"
-      "\n"
-
       "-------------------------------\n"
       "STRUCTURE OF THE OUTPUT DATASET\n"
       "-------------------------------\n"
       "\n"
       "* The output dataset is stored in float format; there is no option\n"
-      "   to store it in scaled short format :-)\n"
+      "   to store it in scaled short format :)\n"
       "\n"
       "* For each covariate, 2 sub-bricks are produced:\n"
       "  ++ The estimated slope of the beta values vs covariate\n"
@@ -1558,7 +1569,7 @@ void display_help_menu(void)
       "                     Subject age\n"
       "\n"
       "---------------------\n"
-      "A NOTE ABOUT p-VALUES (everyone's favorite subject :-)\n"
+      "A NOTE ABOUT p-VALUES (everyone's favorite subject :)\n"
       "---------------------\n"
       "\n"
       "The 2-sided p-value of a t-statistic value T is the likelihood (probability)\n"
@@ -1936,7 +1947,7 @@ int main( int argc , char *argv[] )
            zskip_AAA = zskip_BBB = (int)zzz ; zskip_fff = 0.0f ; do_zskip = 1 ;
          } else {
            if( zzz <= 0.0f || zzz > 1.0f ){
-             WARNING_message("Illegal value after '-zskip' -- ignoring this option :-(") ;
+             WARNING_message("Illegal value after '-zskip' -- ignoring this option :(") ;
              zskip_AAA = zskip_BBB = 0 ; zskip_fff = 0.0f ; do_zskip = 0 ;
            } else {
              zskip_AAA = zskip_BBB = 0 ; zskip_fff = zzz  ; do_zskip = 1 ;
@@ -2621,7 +2632,7 @@ int main( int argc , char *argv[] )
              }
          }
        }
-       if( nbad > 0 ){  /* duplicate labels :-( */
+       if( nbad > 0 ){  /* duplicate labels :( */
          if( have_cov )
            ERROR_message("Duplicate labels for datasets in option '%s'",onam) ;
          allow_cov = -1 ;
@@ -2681,7 +2692,7 @@ int main( int argc , char *argv[] )
        if( singletonA )
          ERROR_exit("Cannot use '-singletonA' twice!") ;
        if( brickwise )
-         ERROR_exit("Cannot use '-singletonA' and '-brickwise' together :-(") ;
+         ERROR_exit("Cannot use '-singletonA' and '-brickwise' together :(") ;
        if( ++nopt >= argc )
          ERROR_exit("Need argument after '%s'",argv[nopt-1]) ;
        if( HAS_WILDCARD(argv[nopt]) )
@@ -2819,7 +2830,7 @@ int main( int argc , char *argv[] )
          }
          LTRUNC(covlab->str[jj]) ;
        }
-       if( nbad > 0 ) ERROR_exit("Cannot continue past above ERROR%s :-(",
+       if( nbad > 0 ) ERROR_exit("Cannot continue past above ERROR%s :(",
                                   (nbad==1) ? "\0" : "s" ) ;
        if( mcov-num_covset_col > 0 )
          ININFO_message("Found %d numeric column%s: %s",
@@ -2874,7 +2885,7 @@ int main( int argc , char *argv[] )
      ERROR_exit("You can't use -brickwise and %s together!",clustsim_opt) ;
 
    if( do_ranks && (do_clustsim || do_Xclustsim ) )
-     ERROR_exit("Can't use -rankize and %s together :-(",clustsim_opt) ;
+     ERROR_exit("Can't use -rankize and %s together :(",clustsim_opt) ;
 
    if( do_randomsign && (do_clustsim || do_Xclustsim) )
      ERROR_exit("You can't use -randomsign and %s together!",clustsim_opt) ;
@@ -2915,7 +2926,7 @@ int main( int argc , char *argv[] )
    if( do_clustsim || do_Xclustsim ){
 
      if( DSET_NY(dset_AAA[0]) < 4 || DSET_NZ(dset_AAA[0]) < 4 )  /* 21 Jul 2016 */
-       ERROR_exit("You cannot use '%s' option except on 3D datasets :-(",clustsim_opt) ;
+       ERROR_exit("You cannot use '%s' option except on 3D datasets :(",clustsim_opt) ;
 
      do_resid = 1 ;
      if( prefix_resid == NULL ){
@@ -2982,10 +2993,10 @@ int main( int argc , char *argv[] )
      ERROR_exit("-mask doesn't match datasets number of voxels") ;
 
    if( do_zskip && mcov > 0 )
-     ERROR_exit("-zskip and -covariates cannot be used together [yet] :-(") ;
+     ERROR_exit("-zskip and -covariates cannot be used together [yet] :(") ;
 
    if( do_zskip && ttest_opcode == 2 )
-     ERROR_exit("-zskip and -paired cannot be used together :-(") ;
+     ERROR_exit("-zskip and -paired cannot be used together :(") ;
 
    if( do_zskip && zskip_fff > 0.0f && zskip_fff <= 1.0f ){
      zskip_AAA = (int)(zskip_fff*nval_AAA) ; if( zskip_AAA < 2 ) zskip_AAA = 2 ;
@@ -3043,16 +3054,16 @@ int main( int argc , char *argv[] )
    }
 
    if( brickwise && do_resid )               /* 07 Dec 2015 */
-     ERROR_exit("You can't use -brickwise and -resid together :-(") ;
+     ERROR_exit("You can't use -brickwise and -resid together :(") ;
 
    if( use_singleton_fixed_val && do_resid )
-     ERROR_exit("You can't use -singletonA with a fixed value and -resid together :-(") ;
+     ERROR_exit("You can't use -singletonA with a fixed value and -resid together :(") ;
 
    if( brickwise && do_savedata )            /* 19 Apr 2017 */
-     ERROR_exit("You can't use -brickwise and -savedata together :-(") ;
+     ERROR_exit("You can't use -brickwise and -savedata together :(") ;
 
    if( use_singleton_fixed_val && do_savedata )
-     ERROR_exit("You can't use -singletonA with a fixed value and -savedata together :-(") ;
+     ERROR_exit("You can't use -singletonA with a fixed value and -savedata together :(") ;
 
    if( do_ACF && !do_resid ){                /* 30 Dec 2016 */
      INFO_message("-ACF option is turned off because -resid wasn't also given") ;
@@ -3060,7 +3071,7 @@ int main( int argc , char *argv[] )
    }
 
    if( do_zskip && do_resid )  /* 31 Dec 2015 */
-     ERROR_exit("You can't use -resid and -zskip together :-(") ;
+     ERROR_exit("You can't use -resid and -zskip together :(") ;
 
    /* check lower limits on dataset counts if doing randomization stuff */
 
@@ -3315,7 +3326,7 @@ int main( int argc , char *argv[] )
 
      /*- Alas Babylon! -*/
 
-     if( nbad > 0 ) ERROR_exit("Cannot continue past above ERROR%s :-(",
+     if( nbad > 0 ) ERROR_exit("Cannot continue past above ERROR%s :(",
                                 (nbad==1) ? "\0" : "s" ) ;
 
      /*-- end of loading covariate vectors --*/
@@ -4578,7 +4589,7 @@ LABELS_ARE_DONE:  /* target for goto above */
      for( pp=0 ; pp < num_clustsim ; pp++ ) free(tfname[pp]) ;
      free(tfname) ;
 #endif
-     ININFO_message("=============== %s work is finished :-) ===============",clustsim_opt) ;
+     ININFO_message("=============== %s work is finished :) ===============",clustsim_opt) ;
 
    } /*--------------------- end of Cluster Simulation ----------------------*/
 
@@ -5352,7 +5363,7 @@ ENTRY("TT_matrix_setup") ;
 
    if( !singletonA ){
      imprA = mri_matrix_psinv_pair( Axxim , 0.0f ) ;
-     if( imprA == NULL ) ERROR_exit("Can't invert setA covariate matrix?! :-(") ;
+     if( imprA == NULL ) ERROR_exit("Can't invert setA covariate matrix?! :(") ;
      Axx_psinv  = MRI_FLOAT_PTR(IMARR_SUBIM(imprA,0)) ;
      Axx_xtxinv = MRI_FLOAT_PTR(IMARR_SUBIM(imprA,1)) ;
    } else {
@@ -5372,7 +5383,7 @@ ENTRY("TT_matrix_setup") ;
    if( twosam && ttest_opcode != 2 ){  /* un-paired 2-sample case */
      if( imprB != NULL ) DESTROY_IMARR(imprB) ;
      imprB = mri_matrix_psinv_pair( Bxxim , 0.0f ) ;
-     if( imprB == NULL ) ERROR_exit("Can't invert setB covariate matrix?! :-(") ;
+     if( imprB == NULL ) ERROR_exit("Can't invert setB covariate matrix?! :(") ;
      Bxx_psinv  = MRI_FLOAT_PTR(IMARR_SUBIM(imprB,0)) ;
      Bxx_xtxinv = MRI_FLOAT_PTR(IMARR_SUBIM(imprB,1)) ;
 
