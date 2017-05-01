@@ -471,7 +471,7 @@ cat << EOF
   This script has one required argument ('-inset ...'), and the rest are
     optional:
 
-    tcsh $this_prog  \
+    $this_prog  \
         -inset  T1_FILE                       \
         -prefix PPP                           \
         {-workdir WWW}                        \
