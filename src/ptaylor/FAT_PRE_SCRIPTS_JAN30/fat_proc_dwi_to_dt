@@ -830,7 +830,6 @@ cat << EOF
    {-mask         MASK}                           \
    {-in_struc_res STRUC}                          \
    {-in_ref_orig  REF}                            \
-   {-outdir       ODIR}                           \
    {-prefix_dti   PREFIX_D}                       \
    {-flip_x | -flip_y | -flip_z | -no_flip}       \
    {-no_scale_out_1000}                           \
@@ -887,7 +886,7 @@ cat << EOF
                       REF data set via ANAT: a version of the anatomical 
                       that has been resampled to match the DWI set (in 
                       both orientation and origin);  for example, in
-                      TORTOISE there is a 'structure.nii' file that should
+                      TORTOISE there is a 'structural.nii' file that should
                       match this description.  Both ANAT and DWI should 
                       then be well aligned to the original REF (and to  
                       each other). *Highly recommended to include!*
@@ -945,9 +944,20 @@ cat << EOF
     $this_prog \
         -in_dwi       DWI.nii                \
         -in_col_matA  BMTXT_AFNI.txt         \
-        -in_struc_res ../structure.nii       \
-        -in_ref_orig  t2w.nii.gz             \
-        -outdir       DTI 
+        -in_struc_res ../structural.nii      \
+        -in_ref_orig  t2w.nii                \
+        -prefix       OUTPUT/dwi
+
+    or
+
+
+    $this_prog \
+        -in_dwi        ap_proc_DRBUDDI_final.nii    \
+        -in_col_matT   ap_proc_DRBUDDI_final.bmtxt  \
+        -in_struc_res  structural.nii               \
+        -in_ref_orig   t2w.nii                      \
+        -prefix        dwi_03/dwi
+
 
 -------------------------------------------------------------------------
 

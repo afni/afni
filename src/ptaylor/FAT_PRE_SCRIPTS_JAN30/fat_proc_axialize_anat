@@ -848,7 +848,6 @@ cat << EOF
         -refset  REF_FILE                     \
         {-mode_t2w | -mode_t1w}               \
         -prefix PPP                           \
-        {-outdir DIR_NAME}                    \
         {-workdir  WWW}                       \
         {-out_match_ref}                      \
         {-extra_al_wtmask WT }                \
