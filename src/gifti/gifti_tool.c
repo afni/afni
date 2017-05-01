@@ -37,7 +37,7 @@ static char * g_history[] =
   "1.1  02 Oct, 2008: mention NITRC web site in help\n"
   "1.2  17 Apr, 2009: added -set_extern_filelist help and more examples\n",
   "1.3  24 Dec, 2009: added -approx_gifti option\n"
-  "1.4  28 Apr, 2017: added -mod_ind_iord, -perm_by_iord options\n"
+  "1.4  28 Apr, 2017: added -mod_ind_ord, -perm_by_iord options\n"
 };
 
 static char g_version[] = "gifti_tool version 1.4, 28 April 2017";
@@ -414,9 +414,13 @@ static int process_opts(int argc, char *argv[], gt_opts * opts)
         return 1;
     }
 
-    /* apply any XML user options
-     * (non-zero defaults: verb, zlevel -1)
-     */
+    /* for gifti_tool, non-writing functions will default to keeping the
+     * original Array Index Order (so we overwrite the gifti_xml library
+     * default), while writing functions default to rearranging
+     *                                                1 May 2017 [rickr] */
+    gifti_set_perm_by_iord(0);
+
+    /* apply any XML user options (non-zero defaults: verb, zlevel -1) */
     if( opts->verb      !=  1 ) gifti_set_verb(opts->verb);
     if( opts->indent    != -1 ) gifti_set_indent(opts->indent);
     if( opts->buf_size        ) gifti_set_xml_buf_size(opts->buf_size);
@@ -649,6 +653,11 @@ int gt_write(gt_opts * opts)
         fprintf(stderr,"** when writing, only one input dataset is allowed\n");
         return 1;
     }
+
+    /* since we plan to write a dataset, default to converting to RowMajor
+     * order, unless the user specified otherwise       1 May 2017 [rickr] */
+    if( opts->perm_by_iord == -1)
+       gifti_set_perm_by_iord(1);
 
     /* actually read the dataset */
     gim = gt_read_dataset(opts, opts->infiles.list[0]);
@@ -1316,8 +1325,20 @@ static int show_help()
     "\n"
     "           e.g. -perm_by_iord 0\n"
     "\n"
-    "           The default is to permute the data to match row major order\n"
-    "           (if it does not already).  Set to 0 to disable the operation.\n"
+    "           This option simply controls whether datasets are forced into\n"
+    "           row-major data storage order upon read.  It is typically\n"
+    "           desirable, since this is a C library, and so conversion of\n"
+    "           indices to data (D[a][b][c]) assumes row-major ordering.\n"
+    "           But Matlab and Fortran use column-major order.\n"
+    "\n"
+    "           For the GIFTI library, the default is to permute the data\n"
+    "           to row major order (if not already in it).\n"
+    "\n"
+    "           For gifti_tool, the default is to convert to row major order\n"
+    "           when any of the -write_* options are applied, but to leave\n"
+    "           the order unchanged otherwise (for inspection and such).\n"
+    "\n"
+    "           See also -mod_ind_ord.\n"
     "\n"
     "     -set_extern_filelist F1 F2 ... : store data in external files\n"
     "\n"
