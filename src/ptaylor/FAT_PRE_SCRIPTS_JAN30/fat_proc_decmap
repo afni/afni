@@ -572,7 +572,8 @@ cat << EOF
     $this_prog  \
         -in_fa DTI/DT_FA+orig.                    \
         -in_v1 DTI/DT_V1+orig.                    \
-        -mask  mask_DWI+orig 
+        -mask  mask_DWI+orig                      \
+        -prefix DEC
 
 -------------------------------------------------------------------------
 EOF
