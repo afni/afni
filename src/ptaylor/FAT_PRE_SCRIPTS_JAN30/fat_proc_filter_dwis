@@ -368,7 +368,7 @@ if ( 1 ) then
     3dcalc   -echo_edu                                           \
         -a     $idwi"[${KEEP}]"                                  \
         -expr "(a)"                                              \
-        -prefix $odir/${opref}.nii                               \
+        -prefix $odir/${opref}.nii.gz                            \
         -overwrite
 
     # Feb,2017: take images!
@@ -377,15 +377,15 @@ if ( 1 ) then
         set img_pref = "${opref}"
 
         $my_viewer_4d  \
-            -inset  $odir/${opref}.nii         \
+            -inset  $odir/${opref}.nii.gz      \
             -outdir "$odir"                    \
             -prefix "$img_pref" 
 
         if ( "$movie" != "" ) then
             $my_viewer_4d \
-                -inset  $odir/${opref}.nii     \
+                -inset  $odir/${opref}.nii.gz  \
                 -outdir "$odir"                \
-                -prefix "$img_pref"      \
+                -prefix "$img_pref"            \
                 $movie
         endif
     endif
@@ -414,7 +414,7 @@ cat << EOF
 
     The user has to input 
 
-        1) a 4D volumetric data sets of N DWIs (NAME.nii),
+        1) a 4D volumetric data sets of N DWIs (NAME.nii.gz),
 
         2) and accompanying bvalue/bmatrix/bvector values that they
            want to be parsed; this could be a unit-magn bvec file + a
@@ -506,7 +506,7 @@ cat << EOF
   EXAMPLE (again, note the single apostrophes around the selector!):
 
     $this_prog  \
-        -in_dwi       UNFILT_AP/AP.nii          \
+        -in_dwi       UNFILT_AP/AP.nii.gz       \
         -in_col_matT  UNFILT_AP/AP_bmatT.dat    \
         -select       '0..5,8,20..\$'           \
         -prefix       FILT_AP/AP 

@@ -204,9 +204,9 @@ endif
 
 # ========================= output fnames ==========================
 
-set ocmd   = "${opref}_cmd.txt"      # name for output command
+set ocmd   = "${opref}_cmd.txt"            # name for output command
 set ogoods = "$odir/${opref}_goods.txt"    # name 
-set ovol   = "${opref}.nii"    # name 
+set ovol   = "${opref}.nii.gz"             # name 
 
 if ( "$obads" == "" ) then
 
@@ -453,13 +453,13 @@ cat << EOF
   EXAMPLE
 
     $this_prog    \
-        -in_dwi DWI.nii               \
-        -in_img DWI_sepscl.sag.png    \
+        -in_dwi DWI.nii.gz               \
+        -in_img DWI_sepscl.sag.png       \
         -prefix DWI_trim
 
 
     $this_prog    \
-        -in_dwi DWI_ap.nii               \
+        -in_dwi DWI_ap.nii.gz            \
         -in_img DWI_ap_sepscl.sag.png    \
         -in_bads DWI_trim_bads.txt       \
         -prefix DWI_trim_both 

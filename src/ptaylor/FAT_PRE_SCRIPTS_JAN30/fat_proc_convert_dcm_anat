@@ -224,7 +224,7 @@ else
 endif
 
 set ocmd   = "${opref}_cmd.txt"      # name for output command
-set ofile  = "${opref}.nii"          # name for output command
+set ofile  = "${opref}.nii.gz"       # name for output command
 
 # =======================================================================
 # =========================== ** PROCESS ** =============================

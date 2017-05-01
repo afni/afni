@@ -448,9 +448,9 @@ end
 set all_cvecs = "${tpref}.cvec"
 
 # -> default:
-set fin_vols  = "${opref}.nii"
-set fin_rvec = "${opref}_rvec.dat"
-set fin_bval = "${opref}_bval.dat"
+set fin_vols  = "${opref}.nii.gz"
+set fin_rvec  = "${opref}_rvec.dat"
+set fin_bval  = "${opref}_bval.dat"
 # -> optional:
 set fin_bmatA = "${opref}_matA.dat"
 set fin_bmatT = "${opref}_matT.dat"
@@ -616,7 +616,7 @@ cat << EOF
                      entry, like: "file*".
 
     -prefix   PPP   :set prefix (and path) for output data; will be prefix
-                     for the *.nii, *.bvec and *.bval files. Required.
+                     for the *.nii.gz, *.bvec and *.bval files. Required.
 
     -orient  ORIENT :optional chance to reset orientation of the volume
                      files (default is currently '$ori_new').
@@ -671,7 +671,7 @@ cat << EOF
 
     For a given phase encoding set, the output files are:
 
-        PREFIX.nii        # a NIFTI file with N volumes;
+        PREFIX.nii.gz     # a NIFTI file with N volumes;
         PREFIX.rvec       # a row-wise (3xN) bvec file of 
                             the (unit-magnitude) gradient orientations;
         PREFIX.bval       # a row-wise (1xN) bval file of the
