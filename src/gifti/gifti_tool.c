@@ -2090,8 +2090,12 @@ int gt_modify_dset(gt_opts * opts, gifti_image * gim)
     /* for data manipulation functions, do not proceed if there there errors */
 
     /* if desired, convert the ArrayIndexingOrder to the given type */
-    if( !errs && opts->mod_ind_ord )
-        errs += gifti_convert_ind_ord(gim, opts->mod_ind_ord);
+    if( !errs && opts->mod_ind_ord ) {
+        c = gifti_convert_ind_ord(gim, opts->mod_ind_ord);
+        if( c > 0 ) fprintf(stderr,"++ converted data to %s\n",
+                            gifti_ind_ord2str(opts->mod_ind_ord));
+        if( c < 0 ) errs++;
+    }
 
     /* if desired, convert any existing data to float */
     if( !errs && opts->mod_to_float ) errs += gifti_convert_to_float(gim);

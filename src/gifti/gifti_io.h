@@ -206,6 +206,7 @@ int    gifti_check_swap         (void *data, int endian, long long nsets,
                                  int swapsize);
 int    gifti_datatype_sizes     (int datatype, int *nbyper, int *swapsize);
 char * gifti_datatype2str       (int type);
+char * gifti_ind_ord2str        (int ind_ord);
 char * gifti_get_meta_value     (const nvpairs * nvp, const char * name);
 int    gifti_get_this_endian    (void);
 int    gifti_image_has_data     (const gifti_image * gim);

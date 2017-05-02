@@ -322,8 +322,11 @@ gifti_image * gxml_read_image(const char * fname, int read_data,
     free_xd_data(xd);  /* free data buffers */
 
     /* if auto-permute, convert to row major order (appropriate for C) */
-    if( xd->perm_by_iord )
-       gifti_convert_ind_ord(xd->gim, GIFTI_IND_ORD_ROW_MAJOR);
+    if( xd->perm_by_iord && read_data ) {
+      if( gifti_convert_ind_ord(xd->gim, GIFTI_IND_ORD_ROW_MAJOR) > 0 )
+        if( xd->verb > 0 )
+          fprintf(stderr,"++ converted data to row major order: %s\n",fname);
+    }
 
     return xd->gim;
 }
