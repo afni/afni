@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 2, May , 2017 , PT , "@GradFlipTest" , MICRO , TYPE_MODIFY,
+   "If 'outdir' doesn't exist yet, create it (don't just exit with error).",
+   "Simplifies some other fat_proc scripting.\n"
+},
+
 { 27, Apr , 2017 , PT , "3dNetCorr" , MINOR , TYPE_NEW_OPT,
    "With '-output_mask_nonnull', user can output mask of non-null ts.",
    "This was made to help those who need to finnd null time series here.\n"
