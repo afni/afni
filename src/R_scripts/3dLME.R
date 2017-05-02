@@ -25,7 +25,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dLME ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.9.4, Feb 9, 2017
+Version 1.9.5, May 2, 2017
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/sscc/gangc/lme.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -906,8 +906,12 @@ runLME <- function(inData, dataframe, ModelForm) {
    #if(is.null(lop$resid)) Stat <- rep(0, lop$NoBrick) else Stat <- rep(0, lop$NoBrick+length(inData))
    Stat <- rep(0, lop$NoBrick)
    if(!is.null(lop$resid)) resid <- rep(0, length(inData))
+   #browser()
+   if(any(!is.na(lop$vQV))) {  # voxel-wise centering for voxel-wise covariate
+      dataframe <- assVV2(dataframe, lop$vQV, inData[(length(inData)/2+1):length(inData)], all(is.na(lop$vVarCenters)))
+   }
    if (!all(abs(inData) < 10e-8)) {        
-      dataframe$Beta<-inData
+      dataframe$Beta<-inData[1:nrow(dataframe)]
       fm <- NULL
       if(!is.na(lop$corStr[1]))
          try(fm <- lme(ModelForm, random = lop$ranEffList, dataframe, correlation=corAR1(0.3, form=lop$corStrList)), silent=TRUE)
@@ -1010,6 +1014,7 @@ runREMLb <- function(myData, ModelForm, dataframe, nBrk, tag) {
    return(myStat)
 }
 
+# for logistic modeling only
 assVV <- function(DF, vQV, value, c) {
       # centering - c: center; value: voxel-wise value; vQV: voxel-wise variable name; DF: dataframe
       if(is.na(c)) cvalue <- scale(value, center=TRUE, scale=F) else
@@ -1023,7 +1028,17 @@ assVV <- function(DF, vQV, value, c) {
      }
      DF[, vQV] <- as.numeric(DF[, vQV])
      return(DF)
-   }
+}
+
+# for LME only
+assVV2 <- function(DF, vQV, value, c) {
+      # centering - c: center; value: voxel-wise value; vQV: voxel-wise variable name; DF: dataframe
+   #browser()
+   if(is.na(c)) DF[, vQV] <- scale(value, center=TRUE, scale=F) else
+       DF[, vQV] <- scale(value, center=c, scale=F)
+   DF[, vQV] <- as.numeric(DF[, vQV])
+   return(DF)
+}
 
 runGLM <- function(inData, dataframe, ModelForm) {  
    Stat   <- rep(0, lop$NoBrick+2*(nlevels(lop$dataStr$Subj) + 1))
@@ -1398,17 +1413,19 @@ if(!lop$LOGIT & !is.na(lop$vQV)) {
    dimy <- tmpDat$dim[2]
    dimz <- tmpDat$dim[3]
    head <- tmpDat
-   for(ii in lop$vQV)
-   if(length(unique(lop$dataStr[,ii])) != nlevels(lop$dataStr$Subj))
-      errex.AFNI(c("Error with voxel-wise covariate ", ii, ": Each subject is only\n",
-                "allowed to have one volume; that is, the covariate has to be at the\n",
-                "subject level.")) else {  # currently consider one voxel-wise covariate only: may generalize later?
+   #for(ii in lop$vQV)
+   #if(length(unique(lop$dataStr[,ii])) != nlevels(lop$dataStr$Subj))
+   #   errex.AFNI(c("Error with voxel-wise covariate ", ii, ": Each subject is only\n",
+   #             "allowed to have one volume; that is, the covariate has to be at the\n",
+   #             "subject level.")) else {  # currently consider one voxel-wise covariate only: may generalize later?
       #vQV <- unlist(lapply(lapply(unique(lop$dataStr[,lop$vQV[1]]), read.AFNI, verb=lop$verb, meth=lop$iometh, forcedset = TRUE), '[[', 1))
-      vQV <- unlist(lapply(lapply(as.character(unique(lop$dataStr[,lop$vQV[1]])), read.AFNI, verb=lop$verb, meth=lop$iometh, forcedset = TRUE), '[[', 1))
-      dim(vQV) <- c(dimx, dimy, dimz, length(unique(lop$dataStr[,lop$vQV[1]])))
+      vQV <- unlist(lapply(lapply(as.character(lop$dataStr[,lop$vQV[1]]), read.AFNI, verb=lop$verb, meth=lop$iometh, forcedset = TRUE), '[[', 1))
+      #dim(vQV) <- c(dimx, dimy, dimz, length(unique(lop$dataStr[,lop$vQV[1]])))
+      dim(vQV) <- c(dimx, dimy, dimz, length(lop$dataStr[,lop$vQV[1]]))
       inData <- c(inData, vQV)
-      dim(inData) <- c(dimx, dimy, dimz, lop$nVVars+lop$nSubj)
-   }
+      #dim(inData) <- c(dimx, dimy, dimz, lop$nVVars+lop$nSubj)
+      dim(inData) <- c(dimx, dimy, dimz, 2*length(lop$dataStr[,lop$vQV[1]]))
+   #}
 } else vQV <- NULL
 
 
@@ -1533,10 +1550,13 @@ if(lop$ICC) {  # ICC part
    #for(n in 1:nRanEff) lop$ranEffList[[n]] <- as.formula(lop$ranEff[[n]])
    for(n in 1:nRanEff) lop$ranEffList[[n]] <-eval(parse(text=lop$ranEff[[n]]))
    if(!is.na(lop$corStr[1])) lop$corStrList <- as.formula(c('~', lop$corStr[1])) else lop$corStrList <- NA
+   if(any(!is.na(lop$vQV))) {
+     lop$dataStr <- assVV2(lop$dataStr, lop$vQV, inData[ii,jj,kk,(nrow(lop$dataStr)+1):(2*nrow(lop$dataStr))], all(is.na(lop$vVarCenters)))
+   }     
 
    while(is.null(fm)) {
       fm<-NULL
-      lop$dataStr$Beta<-inData[ii, jj, kk,]
+      lop$dataStr$Beta<-inData[ii, jj, kk,1:nrow(lop$dataStr)]
       options(warn=-1)     
       if(!is.na(lop$corStr[1])) try(fm <- lme(ModelForm, random=lop$ranEffList, data=lop$dataStr, 
          correlation=corAR1(0.3, form=lop$corStrList)), silent=TRUE) else try(fm <- lme(ModelForm, 
@@ -1730,7 +1750,7 @@ if(lop$ICC) {  # ICC part
       clusterEvalQ(cl, library(nlme))
       clusterEvalQ(cl, library(phia))
       clusterEvalQ(cl, options(contrasts = c("contr.sum", "contr.poly")))
-      clusterExport(cl, c("ModelForm", "lop"), envir=environment())
+      clusterExport(cl, c("ModelForm", "lop", "assVV2"), envir=environment())
       for(kk in 1:nSeg) {
          if(lop$NoBrick > 1) Stat[,kk,] <- aperm(parApply(cl, inData[,kk,], 1, runLME, dataframe=lop$dataStr,
                ModelForm=ModelForm), c(2,1)) else
@@ -1764,7 +1784,7 @@ if(lop$ICC) {  # ICC part
          clusterEvalQ(cl, library(nlme))
          clusterEvalQ(cl, library(phia))
          clusterEvalQ(cl, options(contrasts = c("contr.sum", "contr.poly")))
-         clusterExport(cl, c("ModelForm", "lop"), envir=environment())  # for some reason phia needs this for multiple CPUs
+         clusterExport(cl, c("ModelForm", "lop", "assVV2"), envir=environment())  # for some reason phia needs this for multiple CPUs
          for (kk in 1:dimz) {
             if(lop$NoBrick > 1) Stat[,,kk,] <- aperm(parApply(cl, inData[,,kk,], c(1,2), runLME, 
                   dataframe=lop$dataStr, ModelForm=ModelForm), c(2,3,1)) else
