@@ -187,6 +187,12 @@ if ( "$in_BVAL" != "" ) then
     echo "++ Full gradient info input: '$in_CMD' !"
 endif
 
+# default output dir, if nothing input.
+if ( ! -e "$odir" ) then
+    echo "+* Output directory didn't exist.  Trying to make '$odir' now."
+    mkdir "$odir"
+endif
+
 # in case user wants to change this loc
 set tmpdir = "$odir/$tmpdir"
 
@@ -196,6 +202,11 @@ if( -d "$tmpdir" ) then
 else
     printf "\n\nMaking the temporary directory '$tmpdir' for the files."
     mkdir $tmpdir
+endif
+
+if ( ! -e "$tmpdir" ) then
+    echo "+* ERROR: Couldn't make working dir '$tmpdir' for some reason."
+    goto BAD_EXIT
 endif
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
