@@ -715,7 +715,6 @@ cat << EOF
     $this_prog  \
         -source       brain.nii            \
         -base         dwi_dwi.nii.gz'[0]'  \
-        -outdir       SUB001               \
         -prefix       indti                \
         -followers_NN  aparc*_REN_*.nii.gz 
 
