@@ -175,9 +175,13 @@ int    gifti_get_update_ok      (void);
 int    gifti_set_update_ok      (int level);
 int    gifti_get_zlevel         (void);
 int    gifti_set_zlevel         (int level);
+int    gifti_get_perm_by_iord   (void);
+int    gifti_set_perm_by_iord   (int level);
 
 /* data copy routines */
 int     gifti_convert_to_float(gifti_image * gim);
+int     gifti_convert_ind_ord (gifti_image * gim, int new_ord);
+int     gifti_convert_DA_ind_ord(giiDataArray * da, int new_ord);
 char ** gifti_copy_char_list  (char ** list, int len);
 int     gifti_copy_all_DA_meta(giiDataArray *dest, giiDataArray *src);
 int     gifti_copy_DA_meta    (giiDataArray *dest, giiDataArray *src,
@@ -202,6 +206,7 @@ int    gifti_check_swap         (void *data, int endian, long long nsets,
                                  int swapsize);
 int    gifti_datatype_sizes     (int datatype, int *nbyper, int *swapsize);
 char * gifti_datatype2str       (int type);
+char * gifti_ind_ord2str        (int ind_ord);
 char * gifti_get_meta_value     (const nvpairs * nvp, const char * name);
 int    gifti_get_this_endian    (void);
 int    gifti_image_has_data     (const gifti_image * gim);
