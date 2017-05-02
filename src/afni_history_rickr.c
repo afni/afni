@@ -52,7 +52,7 @@ afni_history_struct rickr_history[] = {
 
  {  2,  May, 2017, RCR, "GIFTI", MINOR, TYPE_BUG_FIX,
    "properly handle column major order",
-   "Convert to row major order on read; can control with gifti_tool."
+   "Convert to row major order on read; can control with gifti_tool.\n"
    "Thanks to JH Lee for noting the problem."
  } ,
 
