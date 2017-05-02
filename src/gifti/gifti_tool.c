@@ -37,10 +37,10 @@ static char * g_history[] =
   "1.1  02 Oct, 2008: mention NITRC web site in help\n"
   "1.2  17 Apr, 2009: added -set_extern_filelist help and more examples\n",
   "1.3  24 Dec, 2009: added -approx_gifti option\n"
-  "1.4  28 Apr, 2017: added -mod_ind_ord, -perm_by_iord options\n"
+  "1.4  02 May, 2017: added -mod_ind_ord, -perm_by_iord options\n"
 };
 
-static char g_version[] = "gifti_tool version 1.4, 28 April 2017";
+static char g_version[] = "gifti_tool version 1.4, 2 May 2017";
 
 /* globals: verbosity, for now */
 typedef struct { int verb; } gt_globs;
