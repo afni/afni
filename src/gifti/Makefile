@@ -14,8 +14,7 @@ VER = 1.0.0
 
 # CFLAGS = -Wall -Wextra -g -pedantic -std=c99 $(APPLY_ZLIB)
 CFLAGS = -O3 $(APPLY_ZLIB)
-IFLAGS = -I$(NIFTI_DIR)/include
-LFLAGS = -L$(NIFTI_DIR)/lib
+IFLAGS = -I$(NIFTI_DIR)/niftilib -I$(NIFTI_DIR)/nifti2 -I$(NIFTI_DIR)/znzlib
 
 CC = gcc $(CFLAGS)
 
@@ -26,12 +25,16 @@ CC = gcc $(CFLAGS)
 gifti_tool: gifti_tool.o gifti_io.o gifti_xml.o
 	$(RM) $@
 	$(CC) -o $@ gifti_tool.o gifti_io.o gifti_xml.o \
-	      $(LFLAGS) -lexpat -lniftiio -lznz -lz -lm
+	      $(IFLAGS) \
+	      $(NIFTI_DIR)/nifti2/nifti2_io.c $(NIFTI_DIR)/znzlib/znzlib.c \
+	      -lexpat -lz -lm
 
 gifti_test: gifti_test.o gifti_io.o gifti_xml.o
 	$(RM) $@
 	$(CC) -o $@ gifti_test.o gifti_io.o gifti_xml.o \
-	      $(LFLAGS) -lexpat -lniftiio -lznz -lz -lm
+	      $(IFLAGS) \
+	      $(NIFTI_DIR)/nifti2/nifti2_io.c $(NIFTI_DIR)/znzlib/znzlib.c \
+	      -lexpat -lz -lm
 
 libgiftiio_la:
 	$(LIBTOOL) --mode=compile $(CC) $(IFLAGS) -o gifti_io.lo -c gifti_io.c
