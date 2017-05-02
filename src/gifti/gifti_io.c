@@ -1062,6 +1062,14 @@ int gifti_str2ind_ord( const char * str )
     return rv;
 }
 
+/*----------------------------------------------------------------------
+ *! return the GIFTI_IND_ORD_* string for the given index
+*//*-------------------------------------------------------------------*/
+char * gifti_ind_ord2str( int ind_ord )
+{
+    return gifti_list_index2string(gifti_index_order_list, ind_ord);
+}
+
 
 /*----------------------------------------------------------------------
  *! return the index for a GIFTI_ENDODING_* string
@@ -1957,39 +1965,41 @@ int gifti_check_swap(void * data, int endian, long long nsets, int swapsize)
 
 /*---------------------------------------------------------------------*/
 /*! Convert the ArrayIndexingOrder of the gifti_image DA elements to
- *  the given order.
+ *  the given order.                             28 Apr 2017 [rickr]
  *
  *  This is not just a tranpose, but a more general permutation of
  *  the data in memory, so allocate a new data pointer.
  *
  *  Terminate on first DA failure.
  *
- *  return 0 on success                        28 Apr 2017 [rickr]
+ *  return 1 if convertion occurred, 0 if not, -1 on error
 *//*-------------------------------------------------------------------*/
 int gifti_convert_ind_ord(gifti_image * gim, int new_ord)
 {
-   int dind;
+   int dind, rv, perm=0;
 
    if ( ! gim ) {
       fprintf(stderr,"** gifti_convert_ind_ord: no gifti_image\n");
       return 1;
    }
 
-   for( dind = 0; dind < gim->numDA; dind++ )
-      if( gifti_convert_DA_ind_ord(gim->darray[dind], new_ord) )
-         return 1;
+   for( dind = 0; dind < gim->numDA; dind++ ) {
+      rv = gifti_convert_DA_ind_ord(gim->darray[dind], new_ord);
+      if( rv < 0 ) return rv;   /* fail on any error */
+      if( rv > 0 ) perm = 1;    /* note that it happened */
+   }
 
-   return 0;
+   return perm;
 }
 
 /*---------------------------------------------------------------------*/
 /*! Convert the ArrayIndexingOrder of the DataArry element to the
- *  specified order.
+ *  specified order.                          27 Apr 2017 [rickr]
  *
  *  This is not just a tranpose, but a more general permutation of
  *  the data in memory, so allocate a new data pointer.
  *
- *  return 0 on success                        27 Apr 2017 [rickr]
+ *  return 1 if converted, 0 of not, -1 on error
 *//*-------------------------------------------------------------------*/
 int gifti_convert_DA_ind_ord(giiDataArray * da, int new_ord)
 {
@@ -1997,12 +2007,12 @@ int gifti_convert_DA_ind_ord(giiDataArray * da, int new_ord)
    void * newdata = NULL;
 
    if ( !gifti_valid_dims(da, 1) ) /* will whine */
-      return 1;
+      return -1;
 
    if( new_ord <= GIFTI_IND_ORD_UNDEF || new_ord > GIFTI_IND_ORD_MAX ) {
       if( G.verb )
          fprintf(stderr,"** %s: invalid order %d\n", fname, new_ord);
-      return 1;
+      return -1;
    }
 
    if( da->ind_ord == new_ord ) {
@@ -2038,13 +2048,13 @@ int gifti_convert_DA_ind_ord(giiDataArray * da, int new_ord)
    if( ! newdata ) {
       fprintf(stderr,"** %s: failed to alloc %lld bytes for DA\n",
               fname, da->nvals*da->nbyper);
-      return 1;
+      return -1;
    }
 
    /* actually permute the data */
    if( permute_by_index_order(newdata, new_ord, da) ) {
       free(newdata);
-      return 1;
+      return -1;
    }
 
    /* insert result and clean up */
@@ -2052,7 +2062,7 @@ int gifti_convert_DA_ind_ord(giiDataArray * da, int new_ord)
    da->data = newdata;
    da->ind_ord = new_ord;
 
-   return 0;
+   return 1;  /* change happened */
 }
 
 /*===========================================================================
