@@ -139,10 +139,10 @@ static char * gifti_history[] =
   "1.15 01 March, 2016:\n"
   "     - gifti_xml.c fix for Windows-style newline characters\n",
   "     - noticed and fixed by R Vincent\n"
-  "1.16 28 April, 2017: added control over array indexing order\n"
+  "1.16 02 May, 2017: added control over array indexing order\n"
 };
 
-static char gifti_version[] = "gifti library version 1.16, 28 April, 2017";
+static char gifti_version[] = "gifti library version 1.16, 2 May, 2017";
 
 /* ---------------------------------------------------------------------- */
 /*! global lists of XML strings */
