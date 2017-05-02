@@ -609,7 +609,7 @@ void display_help_menu(void)
       "  a voxel value in dataset_A is markedly different from the distribution of\n"
       "  values in setB.\n"
       "  ++ However, a statistician would caution you that when an elephant walks into\n"
-      "     the room, it might just be a 3000 standard deviation mouse, and you can't\n"
+      "     the room, it might be a 500,000 standard deviation mouse, so you can't\n"
       "     validly conclude it is a different species until you get some more data.\n"
       "\n"
       "* At present, '-singletonA' cannot be used with '-brickwise'.\n"
@@ -634,6 +634,9 @@ void display_help_menu(void)
       "\n"
       "* Rows in COVAR_FILE whose first column don't match a dataset label are\n"
       "   ignored (silently).\n"
+      "  ++ This feature allows you to analyze subsets of data collections while\n"
+      "     using the covariates file for a large group of subjects -- some of whom\n"
+      "     might not be in a given subset analysis.\n"
       "\n"
       "* An input dataset label that doesn't match a row in COVAR_FILE, on the other\n"
       "   hand, is a fatal error.\n"
@@ -842,6 +845,10 @@ void display_help_menu(void)
       "              setA and setB must have the same cardinality (duh).\n"
       "             ++ Recall that if '-paired' is used with '-covariates',\n"
       "                 the covariates for setB will be the same as for setA.\n"
+      "             ++ If you don't understand the difference between a\n"
+      "                paired and unpaired t-test, I'm not going to teach you\n"
+      "                in this help file. But please consult someone or you\n"
+      "                will undoubtedly come to grief.\n"
       "\n"
       " -unpooled = Specifies that the variance estimates for setA and\n"
       "              setB be computed separately (not pooled together).\n"
@@ -941,11 +948,11 @@ void display_help_menu(void)
       "             ++ If '-mask' is not used, all voxels will be tested.\n"
       "         -->>++ It is VERY important to use '-mask' when you use '-ClustSim'\n"
       "                or '-ETAC' to computed cluster-level thresholds.\n"
-      "             ++ HOWEVER: voxels whose input data is constant (in either set)\n"
+      "             ++ NOTE: voxels whose input data is constant (in either set)\n"
       "                 will NOT be processed and will get all zero outputs.  This\n"
       "                 inaction happens because the variance of a constant set of\n"
       "                 data is zero, and division by zero is forbidden by the\n"
-      "                 Deities of Mathematics -- e.g., http://www.math.ucla.edu/~tao/\n"
+      "                 Deities of Mathematics -- cf., http://www.math.ucla.edu/~tao/\n"
       "\n"
       " -brickwise = This option alters the way this program works with input\n"
       "               datasets that have multiple sub-bricks (cf. the SHORT FORM).\n"
@@ -1039,9 +1046,9 @@ void display_help_menu(void)
       "              be VERY lengthy -- not for general usage (or even for colonels).\n"
       "             ++ Two copies of '-debug' will give even MORE output!\n"
       "\n"
-      "----------------\n"
-      "ClustSim Options\n"
-      "----------------\n"
+      "-----------------------------------------------------------------------------\n"
+      "ClustSim Options -- for global cluster-level thresholding and FPR control\n"
+      "-----------------------------------------------------------------------------\n"
       "\n"
       "The following options are for using randomization/permutation to simulate\n"
       "noise-only generated t-tests, and then run those results through the\n"
@@ -1286,9 +1293,20 @@ void display_help_menu(void)
       "The output of the ETAC computations (in 3dXClustSim) is a set of multi-threshold\n"
       "maps that can be used with program 3dMultiThresh to be applied to the 3dttest++\n"
       "main statistical output. One such 'mthresh' map is computed for each blurring\n"
-      "case. If '-ETAC_blur' is also given, a combined mask dataset is also computed,\n"
-      "which is the voxel-wise union mask of the multi-threshold maps computed from\n"
-      "3dXClustSim and then applied to the 3dttest++ main statistical result.\n"
+      "case.\n"
+      "\n"
+      "A mask dataset is also computed, which is a dataset that is 0 except where\n"
+      "at least one of the multi-thresholding operations produced a result when\n"
+      "applied to the actual 3dttest++ main results. To be more complete in my\n"
+      "description, different mask datasets will be produced, depending on the\n"
+      "sided-ness of the t-tests specified in '-ETAC_opt'. In the filenames below,\n"
+      "'P' refers to '-prefix_clustsim' and 'N' refers to 'name' (in -ETAC_opt):\n"
+      "\n"
+      "  For sid=2 (2-sided t-test thresholding): P.N.ETACmask.nii.gz\n"
+      "\n"
+      "  For sid=1 (1-sided t-test thresholding): P.N.ETACmask.1pos.nii.gz\n"
+      "                                           P.N.ETACmask.1neg.nii.gz\n"
+      "        (for 1-sided positive and 1-sided negative thresholds, respectively)\n"
       "\n"
       "*** WARNING: ETAC consumes a lot of CPU time, and a lot of memory ***\n"
       "***         (especially if many -ETAC_blur cases are used)!       ***\n"
@@ -1691,19 +1709,19 @@ void display_help_menu(void)
       "then the program tests these datasets to see if their means are different,\n"
       "and finally prints out the average value of the estimated differences\n"
       "in their means, and the average value of the associated t-statistic:\n"
-      "   3dUndump -dimen 128 128 32 -prefix ZZ\n"
-      "   3dcalc -a ZZ+orig -b '1D: 14@0' -expr 'gran(1,1)' -prefix ZZ_1.nii -datum float\n"
-      "   3dcalc -a ZZ+orig -b '1D: 10@0' -expr 'gran(0,1)' -prefix ZZ_0.nii -datum float\n"
-      "   3dttest++ -setA ZZ_1.nii -setB ZZ_0.nii -prefix ZZtest.nii -no1sam\n"
-      "   echo '=== mean of mean estimates follows, should be about 1 ==='\n"
-      "   3dBrickStat -mean ZZtest.nii'[0]'\n"
-      "   echo '=== mean of t-statistics follows, should be about 2.50149 ==='\n"
-      "   3dBrickStat -mean ZZtest.nii'[1]'\n"
-      "   \\rm ZZ*\n"
+      " 3dUndump -dimen 128 128 32 -prefix ZZ\n"
+      " 3dcalc -a ZZ+orig -b '1D: 14@0' -expr 'gran(1,1)' -prefix ZZ_1.nii -datum float\n"
+      " 3dcalc -a ZZ+orig -b '1D: 10@0' -expr 'gran(0,1)' -prefix ZZ_0.nii -datum float\n"
+      " 3dttest++ -setA ZZ_1.nii -setB ZZ_0.nii -prefix ZZtest.nii -no1sam\n"
+      " echo '=== mean of mean estimates follows, should be about 1 ==='\n"
+      " 3dBrickStat -mean ZZtest.nii'[0]'\n"
+      " echo '=== mean of t-statistics follows, should be about 2.50149 ==='\n"
+      " 3dBrickStat -mean ZZtest.nii'[1]'\n"
+      " \\rm ZZ*\n"
       "The expected value of the t-statistic with 14 samples in setA and\n"
       "10 samples in setB is calculated below:\n"
-      "   delta_mean / sigma / sqrt( 1/NA + 1/NB ) / (1 - 3/(4*NA+4*NB-9) )\n"
-      " =      1     / 1     / sqrt( 1/14 + 1/10 ) / (1 - 3/87            ) = 2.50149\n"
+      "  delta_mean / sigma / sqrt( 1/NA + 1/NB ) / (1 - 3/(4*NA+4*NB-9) )\n"
+      " =     1     / 1     / sqrt( 1/14 + 1/10 ) / (1 - 3/87            ) = 2.50149\n"
       "where division by (1-3/(4*NA+4*NB-9)) is the correction factor\n"
       "for the skewness of the non-central t-distribution --\n"
       "see http://en.wikipedia.org/wiki/Noncentral_t-distribution .\n"
@@ -4323,13 +4341,16 @@ LABELS_ARE_DONE:  /* target for goto above */
      } /*----- end of loop over blur cases -----*/
 
      ct2 = COX_clock_time() ;
-     ININFO_message("===== simulation jobs have finished (%.1f s elapsed) =====",ct2-ct1) ;
+     if( !dryrun )
+       ININFO_message("===== simulation jobs have finished (%.1f s elapsed) =====",ct2-ct1) ;
      ct1 = ct2 ;
 
      /* read in the *.minmax.1D files from the above [16 Mar 2017],
         and gather statistics on them for the sake of amusement and mirth */
 
-     if( !dryrun ){
+     if( dryrun ){
+       ININFO_message("(At this point, would compute .5percent.txt file(s) from minmax.1D files)") ;
+     } else {
        MRI_IMAGE *inim , *allim ; MRI_IMARR *inar ; int nbad=0 ;
        INIT_IMARR(inar) ;
        for( pp=0 ; pp < num_clustsim*ncase ; pp++ ){ /* read one from each simulation */
@@ -4422,7 +4443,6 @@ LABELS_ARE_DONE:  /* target for goto above */
          if( strlen(ccc) > 8190 ) cmd = (char *)realloc(cmd,strlen(ccc)+2048) ;
 
          /* and run 3drefit */
-
 #if 0
          ININFO_message("===== 3drefit-ing 3dClustSim results into %s =====",DSET_HEADNAME(outset)) ;
 #endif
@@ -4493,14 +4513,16 @@ LABELS_ARE_DONE:  /* target for goto above */
 
          if( dryrun ){
            ININFO_message("3dXClustSim command:\n   %s",cmd) ;
+           ININFO_message("(would be followed by 3dMultiThresh and 3dmask_tool commands)") ;
          } else {
 #if 0
            ININFO_message("===== starting 3dXClustSim =====\n   %s",cmd) ;
 #else
            ININFO_message("===== starting 3dXClustSim =====") ;
 #endif
-           system(cmd) ;
-           if( ncase > 1 ){ /* use results to make a union mask */
+           system(cmd) ;  /* run 3dXClustSim here */
+
+           if( ncase >= 1 ){ /* use 3dXClustSim results to make a union mask */
              if( sid == 2 ){
                INFO_message("--- merging %d blur cases to make 2-sided activation mask ---",ncase) ;
                for( icase=0 ; icase < ncase ; icase++ ){

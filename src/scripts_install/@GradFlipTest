@@ -18,6 +18,10 @@
 #   + command line optioning
 #   + a real help output!
 #
+# May 2017, v2.5:
+#   + changed the way outdir works: can create a dir
+#   + also, make sure output text file goes into output dir
+#
 ########################################################################
 
 set version   = "2.4"
@@ -187,6 +191,12 @@ if ( "$in_BVAL" != "" ) then
     echo "++ Full gradient info input: '$in_CMD' !"
 endif
 
+# default output dir, if nothing input.
+if ( ! -e "$odir" ) then
+    echo "+* Output directory didn't exist.  Trying to make '$odir' now."
+    mkdir "$odir"
+endif
+
 # in case user wants to change this loc
 set tmpdir = "$odir/$tmpdir"
 
@@ -196,6 +206,11 @@ if( -d "$tmpdir" ) then
 else
     printf "\n\nMaking the temporary directory '$tmpdir' for the files."
     mkdir $tmpdir
+endif
+
+if ( ! -e "$tmpdir" ) then
+    echo "+* ERROR: Couldn't make working dir '$tmpdir' for some reason."
+    goto BAD_EXIT
 endif
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
@@ -379,12 +394,12 @@ foreach i ( `seq 1 1 $L` )
     printf "\n The number of tracks for '$FLIPS[$i]' was:    $ALL_ARR[$i]"
 end
 
-echo "$FLIPS[$MaxI]" > $out_ff
+echo "$FLIPS[$MaxI]" > $odir/$out_ff
 
 printf "\n\n -->"
 printf "Therefore, I *guess* that the best flip is:   "
 printf "'$FLIPS[$MaxI]'\n\n"
-printf "That recommendation is stored in '$out_ff'\n\n"
+printf "That recommendation is stored in '$odir/$out_ff'\n\n"
 printf "Volume + tracking results are in directory './$tmpdir/'\n"
 printf "You may check the tracking results to verify, e.g.:\n"
 printf "$SUMA_CALL\n"
