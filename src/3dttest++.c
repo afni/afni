@@ -1039,9 +1039,9 @@ void display_help_menu(void)
       "              be VERY lengthy -- not for general usage (or even for colonels).\n"
       "             ++ Two copies of '-debug' will give even MORE output!\n"
       "\n"
-      "----------------\n"
-      "ClustSim Options\n"
-      "----------------\n"
+      "-----------------------------------------------------------------------------\n"
+      "ClustSim Options -- for global cluster-level thresholding and FPR control\n"
+      "-----------------------------------------------------------------------------\n"
       "\n"
       "The following options are for using randomization/permutation to simulate\n"
       "noise-only generated t-tests, and then run those results through the\n"
@@ -1286,9 +1286,20 @@ void display_help_menu(void)
       "The output of the ETAC computations (in 3dXClustSim) is a set of multi-threshold\n"
       "maps that can be used with program 3dMultiThresh to be applied to the 3dttest++\n"
       "main statistical output. One such 'mthresh' map is computed for each blurring\n"
-      "case. If '-ETAC_blur' is also given, a combined mask dataset is also computed,\n"
-      "which is the voxel-wise union mask of the multi-threshold maps computed from\n"
-      "3dXClustSim and then applied to the 3dttest++ main statistical result.\n"
+      "case.\n"
+      "\n"
+      "A mask dataset is also computed, which is a dataset that is 0 except where\n"
+      "at least one of the multi-thresholding operations produced a result when\n"
+      "applied to the actual 3dttest++ main results. To be more complete in my\n"
+      "description, different mask datasets will be produced, depending on the\n"
+      "sided-ness of the t-tests specified in '-ETAC_opt'. In the filenames below,\n"
+      "'P' refers to '-prefix_clustsim' and 'N' refers to 'name' (in -ETAC_opt):\n"
+      "\n"
+      "  For sid=2 (2-sided t-test thresholding): P.N.ETACmask.nii.gz\n"
+      "\n"
+      "  For sid=1 (1-sided t-test thresholding): P.N.ETACmask.1pos.nii.gz\n"
+      "                                           P.N.ETACmask.1neg.nii.gz\n"
+      "           (for 1-sided positive and 1-sided negative, respectively)\n"
       "\n"
       "*** WARNING: ETAC consumes a lot of CPU time, and a lot of memory ***\n"
       "***         (especially if many -ETAC_blur cases are used)!       ***\n"
@@ -4499,8 +4510,9 @@ LABELS_ARE_DONE:  /* target for goto above */
 #else
            ININFO_message("===== starting 3dXClustSim =====") ;
 #endif
-           system(cmd) ;
-           if( ncase > 1 ){ /* use results to make a union mask */
+           system(cmd) ;  /* run 3dXClustSim here */
+
+           if( ncase >= 1 ){ /* use 3dXClustSim results to make a union mask */
              if( sid == 2 ){
                INFO_message("--- merging %d blur cases to make 2-sided activation mask ---",ncase) ;
                for( icase=0 ; icase < ncase ; icase++ ){
