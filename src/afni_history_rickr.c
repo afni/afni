@@ -49,9 +49,21 @@
 
 afni_history_struct rickr_history[] = {
 
+
+ {  2,  May, 2017, RCR, "GIFTI", MINOR, TYPE_BUG_FIX,
+   "properly handle column major order",
+   "Convert to row major order on read; can control with gifti_tool."
+   "Thanks to JH Lee for noting the problem."
+ } ,
+
  {  1,  May, 2017, RCR, "@diff.files", MINOR, TYPE_NEW_OPT,
    "add option -diff_prog, to use something besides xxdiff",
    NULL
+ } ,
+
+ { 25,  Apr, 2017, RCR, "GIFTI", MINOR, TYPE_MODIFY,
+   "no COL_MAJOR changes for gifti_DA_rows_cols, write_*_file",
+   "Also, init gifti_globs_t struct with verb=1."
  } ,
 
  { 25,  Apr, 2017, RCR, "suma", MICRO, TYPE_MODIFY,

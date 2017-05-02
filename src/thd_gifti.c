@@ -26,7 +26,7 @@ typedef struct {        /* put this in thd_gifti.h ? */
     int verb;
 } gifti_globs_t;
 
-gifti_globs_t gifti_globs = { 0, NI_BINARY_MODE, 1, 1 };
+gifti_globs_t gifti_globs = { 0, NI_BINARY_MODE, 1, 1, 1 };
 static gifti_globs_t * GP = &gifti_globs; /* for ease of access */
 
 /*--- read gifti routines ---*/
