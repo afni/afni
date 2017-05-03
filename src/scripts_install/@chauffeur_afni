@@ -30,9 +30,15 @@
 #
 #set version   = "2.1";   set rev_dat   = "Feb 27, 2017"
 #     + can have IJK labels -> DWImager
-set version   = "2.2";   set rev_dat   = "Mar 29, 2017"
+#
+#set version   = "2.2";   set rev_dat   = "Mar 29, 2017"
 #     + xvfb-run introduced: should work better/more generally
 #       on biowulf? [thanks D. Godlove for suggesting this fix]
+set version   = "2.3";   set rev_dat   = "May 3, 2017"
+#     + xvfb-run: new option to set colordepth to 24, so opacity works
+#       in the AFNI commands
+# 
+# =====================================================================
 
 # For more info about opts/fields, see:
 #
@@ -629,7 +635,7 @@ set OW = "OPEN_WINDOW"
 # -------------------------------------------------------------------
 # ---------------- The actual, driven command! ----------------------
 
-xvfb-run -a                                                         \
+xvfb-run --server-args="-screen 0 1024x768x24" -a  \
     afni -noplugins -no_detach  -echo_edu                           \
      -com "SWITCH_UNDERLAY ${read_ulay}"                            \
      -com "SWITCH_OVERLAY  ${read_olay}"                            \

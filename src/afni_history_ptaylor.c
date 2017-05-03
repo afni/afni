@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 3, May , 2017 , PT , "@chauffeur_afni" , MINOR , TYPE_MODIFY,
+   "The opacity in olays wasn't working with xvfb-run-- now it does.",
+   "Pixel depth was not useful by default, I think.\n"
+},
+
 { 2, May , 2017 , PT , "@GradFlipTest" , MICRO , TYPE_MODIFY,
    "If 'outdir' doesn't exist yet, create it (don't just exit with error).",
    "Simplifies some other fat_proc scripting.\n"
