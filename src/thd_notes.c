@@ -264,6 +264,12 @@ char * tross_Get_Notedate( THD_3dim_dataset * dset , int inote )
 /*! Add the history from the command line to the dataset.
 -----------------------------------------------------------------------------*/
 
+#undef  AFNI_VERSION_LABEL
+#define AFNI_VERSION_LABEL    "AFNI_17.1.03"
+#undef  AFNI_VERSION_PLATFORM
+#define AFNI_VERSION_PLATFORM "CoxPrivate_icc"
+
+
 void tross_Make_History( char *pname, int argc, char **argv, THD_3dim_dataset *dset )
 {
    char *ch ;
@@ -271,6 +277,17 @@ void tross_Make_History( char *pname, int argc, char **argv, THD_3dim_dataset *d
    if( argc < 2 || argv == NULL || !ISVALID_DSET(dset) ) return ;
 
    ch = tross_commandline( pname , argc , argv ) ; if( ch == NULL ) return ;
+
+   /* Prepend AFNI version information */
+
+#if defined(AFNI_VERSION_LABEL) && defined(AFNI_VERSION_PLATFORM)
+   { char cv[256] , *qh ;
+     sprintf(cv,"{%s:%s} ",AFNI_VERSION_LABEL,AFNI_VERSION_PLATFORM) ;
+     qh = (char *)malloc(sizeof(char)*(strlen(ch)+256)) ;
+     strcpy(qh,cv) ; strcat(qh,ch) ; free(ch) ; ch = qh ;
+   }
+#endif
+
    tross_Append_History( dset , ch ) ;
    free(ch) ; return ;
 }
