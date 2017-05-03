@@ -966,8 +966,12 @@ void display_help_menu(void)
       "              ++ Gaussian blurring is NOT additive in the FWHM parameter.\n"
       "                 If the inputs to 3dttest++ were blurred by FWHM=4 mm\n"
       "                 (e.g., via afni_proc.py), then giving an extra blur of\n"
-      "                 FWHM=6 mm is more-or-less equivalent to applying single\n"
+      "                 FWHM=6 mm is more-or-less equivalent to applying a single\n"
       "                 blur of sqrt(4*4+6*6)=7.2 mm, NOT to 4+6=10 mm!\n"
+      "              ++ '-exblur' does not work with '-brickwise'.\n"
+      "              ++ '-exblur' only works with 3D datasets.\n"
+      "              ++ If any covariates are datasets, you should be aware that the\n"
+      "                 covariate datasets are NOT blurred by the '-exblur' process.\n"
       "\n"
       " -brickwise = This option alters the way this program works with input\n"
       "               datasets that have multiple sub-bricks (cf. the SHORT FORM).\n"
@@ -1917,7 +1921,7 @@ int main( int argc , char *argv[] )
 
      if( debug ) INFO_message("=== argv[%d] = %s",nopt,argv[nopt]) ;
 
-     /*----- exblur bb [27 Mar 2017] -----*/   /* HIDDEN */
+     /*----- exblur bb [27 Mar 2017] -----*/
 
      if( strcasecmp(argv[nopt],"-exblur") == 0 ){
        if( ++nopt >= argc ) ERROR_exit("need 1 argument after '%s'",argv[nopt-1]) ;
