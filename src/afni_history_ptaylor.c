@@ -66,6 +66,16 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+   { 4, May , 2017 , PT , "3dDTtoDWI" , MINOR , TYPE_NEW_OPT,
+   "Added in '-scale_out_1000' option, to match 3dDWItoDT.",
+   "This allows it to be used with scaled tensors from 3dDWItoDT.\n"
+},
+
+{ 3, May , 2017 , PT , "@chauffeur_afni" , MINOR , TYPE_MODIFY,
+   "The opacity in olays wasn't working with xvfb-run-- now it does.",
+   "Pixel depth was not useful by default, I think.\n"
+},
+
 { 2, May , 2017 , PT , "@GradFlipTest" , MICRO , TYPE_MODIFY,
    "If 'outdir' doesn't exist yet, create it (don't just exit with error).",
    "Simplifies some other fat_proc scripting.\n"
