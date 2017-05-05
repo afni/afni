@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 3 , MAY , 2017 , RWC , "Historical Records" , MINOR , TYPE_ENHANCE ,
+   "Add the AFNI version to the History Note for new datasets" ,
+   "So the user can see (via 3dinfo) exactly what version created a dataset." } ,
+
  { 26 , APR , 2017 , RWC , "3dMultiThresh" , MICRO , TYPE_NEW_OPT ,
    "Add option to choose sign for 1-sided thresholding" ,
    NULL } ,

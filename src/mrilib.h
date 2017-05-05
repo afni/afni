@@ -1723,7 +1723,14 @@ extern float mri_scaled_diff( MRI_IMAGE *bim, MRI_IMAGE *nim, MRI_IMAGE *msk ) ;
  } while(0)
 
 #undef  PRINT_COMPILE_DATE
-#define PRINT_COMPILE_DATE printf("\n++ Compile date = " __DATE__ "\n\n")
+#if defined(AFNI_VERSION_LABEL) && defined(AFNI_VERSION_PLATFORM)
+# define PRINT_COMPILE_DATE                     \
+         printf("\n++ Compile date = " __DATE__ \
+                " {%s:%s}\n\n",AFNI_VERSION_LABEL,AFNI_VERSION_PLATFORM)
+#else
+# define PRINT_COMPILE_DATE  \
+         printf("\n++ Compile date = " __DATE__ "\n\n")
+#endif
 
 #undef  AUTHOR
 #define AUTHOR(aa) \
