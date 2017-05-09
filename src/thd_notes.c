@@ -264,11 +264,6 @@ char * tross_Get_Notedate( THD_3dim_dataset * dset , int inote )
 /*! Add the history from the command line to the dataset.
 -----------------------------------------------------------------------------*/
 
-#undef  AFNI_VERSION_LABEL
-#define AFNI_VERSION_LABEL    "AFNI_17.1.03"
-#undef  AFNI_VERSION_PLATFORM
-#define AFNI_VERSION_PLATFORM "biowulf_icc"
-
 #ifndef AFNI_VERSION_LABEL
 # include "AFNI_version.h"
 #endif
