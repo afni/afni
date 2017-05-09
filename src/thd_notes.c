@@ -267,10 +267,16 @@ char * tross_Get_Notedate( THD_3dim_dataset * dset , int inote )
 #undef  AFNI_VERSION_LABEL
 #define AFNI_VERSION_LABEL    "AFNI_17.1.03"
 #undef  AFNI_VERSION_PLATFORM
-#ifdef  SHSTRING
-#define AFNI_VERSION_PLATFORM SHSTRING
+
+#ifdef SHOWOFF
+# undef  SHSH
+# undef  SHSHSH
+# undef  SHSTRING
+# define SHSH(x)   #x
+# define SHSHSH(x) SHSH(x)
+# define AFNI_VERSION_PLATFORM  SHSHSH(SHOWOFF)   /* now in "quotes" */
 #else
-#define AFNI_VERSION_PLATFORM "unknown"
+# define AFNI_VERSION_PLATFORM "unknown"
 #endif
 
 void tross_Make_History( char *pname, int argc, char **argv, THD_3dim_dataset *dset )
