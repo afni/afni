@@ -49,8 +49,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  9,  May, 2017, RCR, "Dimon", MICRO, TYPE_BUG_FIX,
+   "if to3d_prefix is NIFTI, clear write_as_nifti",
+   "Thanks to A Nugent for noting the problem."
+ } ,
+
  {  9,  May, 2017, RCR, "make_random_timing.py", MINOR, TYPE_NEW_OPT,
-   "add option -diff_prog, to use something besides xxdiff",
+   "apply -offset for advanced case (remove from todo list)",
    NULL
  } ,
 
