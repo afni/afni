@@ -49,6 +49,10 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  9,  May, 2017, RCR, "make_random_timing.py", MINOR, TYPE_NEW_OPT,
+   "add option -diff_prog, to use something besides xxdiff",
+   NULL
+ } ,
 
  {  2,  May, 2017, RCR, "GIFTI", MINOR, TYPE_BUG_FIX,
    "properly handle column major order",
