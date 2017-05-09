@@ -150,6 +150,8 @@ static float farp_goal = FARP_GOAL ;
 
 #define FG_GOAL   (farp_goal*fgfac)
 
+#define MAXITE 13
+
 /*----------------------------------------------------------------------------*/
 /*! Threshold for upper tail probability of N(0,1) = 1-inverseCDF(pval) */
 
@@ -875,7 +877,7 @@ int main( int argc , char *argv[] )
    MRI_IMARR **cimar0=NULL , **cimar1=NULL , **cimar2=NULL ;
    float     ***car0 =NULL , ***car1 =NULL , ***car2 =NULL , **carHP ;
    float *farar=NULL ;
-   int nfomkeep , nfar , itrac , ithresh , hp,ibr;
+   int nfomkeep , nfar , itrac , ithresh , hp,ibr, ithresh_list[MAXITE] ;
    float tfrac , farperc,farcut , tfracold,farpercold,ttemp ;
 
    /*----- help me if you can (I'm feeling down) -----*/
@@ -1628,12 +1630,23 @@ FARP_LOOPBACK:
      itrac++ ;                                        /* number of iterations */
      nfar = 0 ;                                            /* total FAR count */
      nedge = nmin = 0 ;                               /* number of edge cases */
+
+     /* we take the ithresh-th largest FOM at each voxel as its FOM threshold */
 #if 0
      ithresh = (int)(tfrac*niter) ;                    /* FOM count threshold */
 #else
      ithresh = (int)rintf(tfrac*(niter-0.666f)+0.333f) ;
 #endif
-     /* we take the ithresh-th largest FOM at each voxel as its FOM threshold */
+
+     /* Check if trying to re-litigate a previous case [Cinco de Mayo 2017] */
+
+     ithresh_list[itrac-1] = ithresh ;
+     if( itrac > 3 &&
+         (ithresh_list[itrac-2] == ithresh || ithresh_list[itrac-3] == ithresh) ){
+       ININFO_message("     #%d: would re-iterate at %g ==> %d ; breaking out",
+                      itrac,tfrac,ithresh ) ;
+       goto FARP_BREAKOUT ;
+     }
 
      if( verb )
        ININFO_message("     #%d: Testing threshold images at %g ==> %d",itrac,tfrac,ithresh) ;
@@ -1760,10 +1773,11 @@ FARP_LOOPBACK:
 
      /* do we need to try another tfrac to get closer to our goal? */
 
-          if( itrac < 5 ) farcut = 0.111f ; /* precision of goal meeting */
-     else if( itrac < 9 ) farcut = 0.222f ;
-     else                 farcut = 0.333f ;
-     if( itrac < 13 && fabsf(farperc-FG_GOAL) > farcut ){
+          if( itrac < 5 ) farcut = 0.222f ; /* precision of goal meeting */
+     else if( itrac < 7 ) farcut = 0.444f ;
+     else if( itrac < 9 ) farcut = 0.666f ;
+     else                 farcut = 0.888f ;
+     if( itrac < MAXITE && fabsf(farperc-FG_GOAL) > farcut ){
        float fff ;
        if( itrac == 1 || (farperc-FG_GOAL)*(farpercold-FG_GOAL) > 0.0f ){ /* scale */
          fff = FG_GOAL/farperc ;
@@ -1775,10 +1789,11 @@ FARP_LOOPBACK:
        }
        tfracold = ttemp ;
             if( tfrac < min_tfrac ) tfrac = min_tfrac ;
-       else if( tfrac > 0.00666f    ) tfrac = 0.00666f ;
+       else if( tfrac > 0.00666f  ) tfrac = 0.00666f ;
        goto FARP_LOOPBACK ;
      }
 
+FARP_BREAKOUT: ;
    } /* end of iterations to find the ideal farperc */
 
    /*============================================*/

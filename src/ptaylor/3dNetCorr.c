@@ -641,7 +641,7 @@ int main(int argc, char *argv[]) {
 
       THD_load_statistics(MASK_nonnull);
       tross_Copy_History( insetTIME , MASK_nonnull ) ;
-      tross_Make_History( "3dNetcorr", argc, argv, MASK_nonnull );
+      tross_Make_History( "3dNetCorr", argc, argv, MASK_nonnull );
       if( !THD_ok_overwrite() && 
           THD_is_ondisk(DSET_HEADNAME(MASK_nonnull)) )
          ERROR_exit("Can't overwrite existing dataset '%s'",
