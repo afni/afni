@@ -2160,6 +2160,10 @@ thd_correlate.o:thd_correlate.c
 	$(RM) $@
 	$(CCFAST) -c thd_correlate.c $(INFLAGS)
 
+thd_notes.o:thd_notes.c
+	$(RM) $@
+	$(CC) -c thd_notes.c $(INFLAGS) $(SHOWOFF)
+
 thd_incorrelate.o:thd_incorrelate.c
 	$(RM) $@
 	$(CCFAST) -c thd_incorrelate.c $(INFLAGS)
