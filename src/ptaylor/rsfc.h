@@ -37,6 +37,9 @@ int CalcAveRTS(int *LIST, double *RAT, THD_3dim_dataset *T,
 */
 int IntSpherVol(int *RD, float *NR);
 int IntSpherSha(int **HS,int *RD, float *NR);
+// [PT: May, 2017]: for cubic 'box' neighborhoods
+int IntBoxVol(int *RD, float *NR);
+int IntBoxSha(int **HS,int *RD, float *NR);
 
 
 /*
