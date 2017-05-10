@@ -66,7 +66,12 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
-   { 4, May , 2017 , PT , "3dDTtoDWI" , MINOR , TYPE_NEW_OPT,
+{ 4, May , 2017 , PT , "3dReHo" , MINOR , TYPE_NEW_OPT,
+   "Allow box-y neighborhoods.",
+   "User can input values for cubic/prism neighborhoods now.\n"
+},
+
+{ 4, May , 2017 , PT , "3dDTtoDWI" , MINOR , TYPE_NEW_OPT,
    "Added in '-scale_out_1000' option, to match 3dDWItoDT.",
    "This allows it to be used with scaled tensors from 3dDWItoDT.\n"
 },
