@@ -229,6 +229,40 @@ int IntSpherSha(int **HS,int *RD, float *NR){
   return ct;
 }
 
+// [PT: May, 2017]: similar to above, but box-shaped
+int IntBoxVol(int *RD, float *NR){
+   int i,j,k;
+   int ct=0;
+
+   for ( i = 0 ; i <3 ; i++ ) 
+      RD[i] = (int) NR[i];
+   for( i=-RD[0] ; i<=RD[0] ; i++)
+      for( j=-RD[1] ; j<=RD[1] ; j++) 
+         for( k=-RD[2] ; k<=RD[2] ; k++) {
+            ct++;
+         }
+
+   return ct;
+}
+
+// ~silly near duplicate to fill array of values... expediency...
+int IntBoxSha(int **HS,int *RD, float *NR) {
+   int i,j,k;
+   int ct=0;
+
+   for ( i = 0 ; i <3 ; i++ ) 
+      RD[i] = (int) NR[i];
+   for( i=-RD[0] ; i<=RD[0] ; i++)
+      for( j=-RD[1] ; j<=RD[1] ; j++) 
+         for( k=-RD[2] ; k<=RD[2] ; k++) {
+            HS[ct][0]=i;
+            HS[ct][1]=j;
+            HS[ct][2]=k;
+            ct++;
+         }
+  
+   return ct;
+}
 
 
 int WB_netw_corr(int Do_r, 
