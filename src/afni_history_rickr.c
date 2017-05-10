@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10,  May, 2017, RCR, "model_conv_PRF_DOG", MINOR, TYPE_NEW_PROG,
+   "new model: same as PRF, but Difference of Gaussians",
+   "For E Silson and C Baker."
+ } ,
+
  {  9,  May, 2017, RCR, "Dimon", MICRO, TYPE_BUG_FIX,
    "if to3d_prefix is NIFTI, clear write_as_nifti",
    "Thanks to A Nugent for noting the problem."
