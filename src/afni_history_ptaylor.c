@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 11, May , 2017 , PT , "3dDTtoDWI" , MAJOR , TYPE_BUG_FIX,
+   "Fixed mismatch in multiplying DT and bmatrices.",
+   "Element indices hadn't been sync'ed, now they are.\n"
+},
+
 { 4, May , 2017 , PT , "3dReHo" , MINOR , TYPE_NEW_OPT,
    "Allow box-y neighborhoods.",
    "User can input values for cubic/prism neighborhoods now.\n"
