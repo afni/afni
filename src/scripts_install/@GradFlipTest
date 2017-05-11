@@ -18,14 +18,12 @@
 #   + command line optioning
 #   + a real help output!
 #
-# May 2017, v2.5:
+set version   = "2.5";    set rev_dat   = "May 5, 2017"
 #   + changed the way outdir works: can create a dir
 #   + also, make sure output text file goes into output dir
 #
 ########################################################################
 
-set version   = "2.4"
-set rev_dat   = "Jan, 2017"
 set this_prog = "@GradFlipTest"
 set here      = $PWD
 
