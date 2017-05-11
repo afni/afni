@@ -7,6 +7,9 @@
 // [May, 2017] input option to complement 3dDWItoDT's -scale_out_1000
 // option.  It has the same name, funnily enough!
 
+// [May, 2017] 
+// + bug fix: had been a mismatch between bmatrix and DT.  Now fixed.
+
 #include "thd_shear3d.h"
 # include "matrix.h"
 #include "afni.h"
@@ -239,6 +242,10 @@ main (int argc, char *argv[])
    }
 
    I0_ptr = mri_data_pointer(data_im) ; /* pointer to I0 data */
+   if( I0_ptr == NULL ) {
+      ERROR_exit("Null pointer when trying to make I0 set.");
+   }
+   
 
    nopt++;
 
@@ -347,6 +354,14 @@ main (int argc, char *argv[])
    Function that does the real work
 ***********************************************************************/
 
+/*
+  [PT: May, 2017] 
+  !! NB !! This has been copy/pasted *to* 3dDWItoDT.c, so if changes
+           happen there/here, likely make them here/there as well.
+           This inglorious route was chosen rather than deal with
+           compile-time issues with static variables.  I'm sure I'll
+           adjust this more properly later.  Definitely.
+*/
 static void
 DTtoDWI_tsfunc (double tzero, double tdelta,
                 int npts, float ts[],
@@ -354,7 +369,7 @@ DTtoDWI_tsfunc (double tzero, double tdelta,
                 void *ud, int nbriks, float *val)
 {
    int i;
-   static int nvox, ncall;
+   static int nvox2, ncall2;
    double I0, bq_d;
    double *bptr;
    float *tempptr;
@@ -370,46 +385,60 @@ DTtoDWI_tsfunc (double tzero, double tdelta,
    if (val == NULL)
       {
 
-         if (npts > 0)
-            {			/* the "start notification" */
-               nvox = npts;		/* keep track of   */
-               ncall = 0;		/* number of calls */
-            }
-         else
-            {			/* the "end notification" */
-
-               /* nothing to do here */
-            }
+         if (npts > 0) {			/* the "start notification" */
+            nvox2 = npts;		/* keep track of   */
+            ncall2 = 0;		/* number of calls */
+         }
+         else {			/* the "end notification" */
+            
+            /* nothing to do here */
+         }
          EXRETURN;
       }
 
-   ncall++;
+   ncall2++;
 
    if (automask)
       npts = npts - 1;
-
-   tempptr = I0_ptr+ncall-1;
+   
+   tempptr = I0_ptr+ncall2-1;
    I0 = *tempptr;
 
 
    val[0] = I0; /* the first sub-brik is the I0 sub-brik */
    bptr = bmatrix+6;   /* start at the first gradient */
 
-   //fprintf(stderr, "BMAT???: \n"
-   //       "%8.5f %8.5f %8.5f %8.5f %8.5f %8.5f\n\n", 
-   //       bmatrix[0],bmatrix[1],bmatrix[2],bmatrix[3],bmatrix[4],bmatrix[5]);
+   /* NB: what the ordering of bmatrix and DT are:
+   // bmatr
+   [0] *bptr++ = Gx * Gx / gscale; 
+   [1] *bptr++ = Gx * Gy / gscale;
+   [2] *bptr++ = Gx * Gz / gscale;
+   [3] *bptr++ = Gy * Gy / gscale;
+   [4] *bptr++ = Gy * Gz / gscale;
+   [5] *bptr++ = Gz * Gz / gscale;
 
+   [0] Dxx, 
+   [1] Dxy, 
+   [2] Dyy, 
+   [3] Dxz, 
+   [4] Dyz, 
+   [5] Dzz 
+   */
+
+   // Need to match bmatrix and DT orderings, which are different.
+   // Yay.
    for(i=1;i<nbriks;i++) {
-      bptr = bmatrix+(6*i);   /* start at the first gradient */
-      bq_d = *bptr++ * ts[0];           /* GxGxDxx  */
-      bq_d += *bptr++ * ts[1] * 2;      /* 2GxGyDxy */
-      bq_d += *bptr++ * ts[2];          /* GyGyDyy  */
-      bq_d += *bptr++ * ts[3] * 2;      /* 2GxGzDxz */
-      bq_d += *bptr++ * ts[4] * 2;      /* 2GyGzDyz */
-      bq_d += *bptr++ * ts[5];          /* GzGzDzz  */
+      bptr = bmatrix+(6*i);        // start at the first gradient 
+      bq_d = *bptr++ * ts[0];      // GxGxDxx  
+      bq_d += *bptr++ * ts[1] * 2; // 2GxGyDxy 
+      bq_d += *bptr++ * ts[3] * 2; // 2GxGzDxz 
+      bq_d += *bptr++ * ts[2];     // GyGyDyy  
+      bq_d += *bptr++ * ts[4] * 2; // 2GyGzDyz 
+      bq_d += *bptr++ * ts[5];     // GzGzDzz  
 
-      val[i] = I0 * exp(-bq_d);   /* for each gradient,q, Iq = J e -(bq.D) */
-      /* where bq.D is the large dot product of bq and D */
+      // for each gradient,q, Iq = J e -(bq.D) 
+      val[i] = I0 * exp(-bq_d);   
+      // where bq.D is the large dot product of bq and D 
    }
 
    EXRETURN;
