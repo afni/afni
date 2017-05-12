@@ -35,8 +35,11 @@
 #set version   = "1.9";    set rev_dat   = "Apr 26, 2017"
 #   + wdir update
 #
-set version   = "2.0";    set rev_dat   = "May 1, 2017"
+#set version   = "2.0";    set rev_dat   = "May 1, 2017"
 #   + add in ability to mask struc set
+#
+set version   = "2.1";    set rev_dat   = "May 12, 2017"
+#   + fixed error if no anat entered
 #
 # ----------------------------------------------------------------
 
@@ -657,12 +660,14 @@ else
         -expr 'a'            \
         -prefix $odir/$odwi
 
-    3dcalc                   \
-        -echo_edu            \
-        -overwrite           \
-        -a  "$istrc"         \
-        -expr 'a'            \
-        -prefix $odir/$oanat
+    if ( "$istrc" != "" ) then
+        3dcalc                   \
+            -echo_edu            \
+            -overwrite           \
+            -a  "$istrc"         \
+            -expr 'a'            \
+            -prefix $odir/$oanat
+    endif
 endif
 
 # ----------------- WB mask: make or copy -------------
