@@ -1,16 +1,19 @@
 .. _install_steps_windows10:
 
 
-*The essential system setup for:*  **Bash on Ubuntu on Windows**
-===================================================
+*The essential system setup for:*  **Windows 10 ('Bash on Ubuntu')**
+================================================================
+
+**UNDER CONSTRUCTION:  DO NOT USE!!**
 
 **DANIEL**: from below, does this mean that the Ubuntu version is
  necessarily 16.04?  Would be useful to state.
 
 Here we describe installation and system setup for the
 recently-available "Bash on Ubuntu" for Windows 10 systems. Some
-general background information information is provided `in their About
-page <https://msdn.microsoft.com/en-us/commandline/wsl/about>`_.
+general background information information is provided `in their
+'About' page
+<https://msdn.microsoft.com/en-us/commandline/wsl/about>`_.
 
 .. note:: This capability is a very recent development on Windows
           systems, and we are just starting to really test out running
@@ -60,7 +63,7 @@ the latter (as forewarned by its descriptive name...).
 
 #. **Install AFNI.**
 
-   * Do *this*: 
+   * Do *this*: ...
 
      **DANIEL**: what goes here? Unclear from your
      *description.  Just link to the AFNI install instructs for
@@ -140,6 +143,56 @@ the latter (as forewarned by its descriptive name...).
    process!**
 
    .. include:: substep_evaluate.rst
+
+#. **(optional) Other tips.**
+
+   * Installation Ubuntu fonts for the terminal is described on this
+     `help page
+     <https://www.howtogeek.com/249966/how-to-install-and-use-the-linux-bash-shell-on-windows-10/>`_.
+
+   * Install a different terminal than the default command window.
+     Choose from one of the following.  Note that copy+paste works
+     better in ``gnome-terminal`` than in either the default cmd
+     window or in ``xterm``.
+
+     #. ``xterm``.
+
+        Execute the following::
+
+          sudo apt-get install xterm
+
+        You may receive errors about "cannot load font," but it still
+        works after doing the following in the terminal:
+        ``ctrl-right-click``, select TrueType Fonts, and change font
+        size.
+
+        **DANIEL**: what are they changing font size to, above?
+
+     #. ``gnome-terminal``.
+
+        The following gets virtually every other ``gnome-xxxx``
+        function, too, so overall this is a pretty long
+        download+install::
+
+          sudo apt-get gnome-terminal
+
+        This odd patch is also required::
+
+          sudo sed -i 's/<listen>.*<\/listen>/<listen>tcp:host=localhost,port=0<\/listen>/' /etc/dbus-1/session.conf
+
+        Then, the ``gnome-terminal`` seems to work, but the default
+        profile "use colors from system theme" shows an all black
+        terminal.  To fix this: select the ``Edit`` tab, then
+        ``Profile``, turn **off** "use colors ...", and finally simply
+        pick a scheme+palette that you like.
+
+
+ 
+
+
+   **DANIEL**: and still do this?
+
+   .. include:: substep_rcfiles.rst
 
 
 #. **(optional) Niceifying interfaces: it's a magical terminal.**
