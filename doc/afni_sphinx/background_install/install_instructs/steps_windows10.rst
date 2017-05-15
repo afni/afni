@@ -4,16 +4,15 @@
 *The essential system setup for:*  **Windows 10 ('Bash on Ubuntu')**
 ================================================================
 
-**UNDER CONSTRUCTION:  DO NOT USE!!**
-
-**DANIEL**: from below, does this mean that the Ubuntu version is
- necessarily 16.04?  Would be useful to state.
+**INSTRUCTIONS UNDER CONSTRUCTIONS: DO NOT USE!! COULD LEAD TO
+DESTRUCTIONS (well, ok, probably not, just frustructions).**
 
 Here we describe installation and system setup for the
 recently-available "Bash on Ubuntu" for Windows 10 systems. Some
 general background information information is provided `in their
 'About' page
-<https://msdn.microsoft.com/en-us/commandline/wsl/about>`_.
+<https://msdn.microsoft.com/en-us/commandline/wsl/about>`_.  At
+present, the default version of Ubuntu appears to be 16.04.
 
 .. note:: This capability is a very recent development on Windows
           systems, and we are just starting to really test out running
@@ -22,34 +21,46 @@ general background information information is provided `in their
           can be slow.  We would still recommend Linux or Mac systems
           for large-scale processing at this time.
 
-At present, "copy+paste" functionality into the cmd window doesn't
-seem to work properly out of the box. One can paste with copy/paste
-control in the upper left window button.
+At present, "copy+paste" functionality into the command window doesn't
+seem to work properly out of the box. **CLARIFY->** One can paste with
+copy/paste control in the upper left window button.
 
-While other operating systems allow for either ``tcsh`` or ``bash``
-shells to be run in the terminal, this setup is presently limited to
-the latter (as forewarned by its descriptive name...).
+Other operating systems allow for either ``tcsh`` or ``bash`` shells
+to be run as default in the terminal. *However*, the Windows-Ubuntu
+presently does not appear to allow ``tcsh`` as default (perhaps as
+forewarned by its descriptive name...), and therefore we describe the
+system setup only for staying with ``bash``.
 
-**DANIEL**: is the above true?  Only bash?
+Importantly, as with other installation instructions, you are required
+to have administrator privileges on your operating system. 
 
 #. **Install prerequisite: "Bash on Windows."**
 
-   Follow instructions here to install "Bash on Windows" from
-   Microsoft, which are located `in their Installation Guide
-   <https://msdn.microsoft.com/en-us/commandline/wsl/install_guide>`_.
+   * First, follow `these instructions
+     <https://msdn.microsoft.com/en-us/commandline/wsl/install_guide>`_
+     to install "Bash on Windows" from Microsoft. (Here, in
+     particular, requires admin privileges to go into "developer
+     mode.")
+   
+   * To install ``bash`` and Ubuntu on Windows: in the lower left of
+     the Desktop, click on "Ask me anything" and type "cmd".
 
-   Install ``bash`` and Ubuntu on Windows by opening the command
-   prompt window ("cmd" in "Ask me anything").
+   * In the command window that opens up, type::
 
-   Type::
+       bash
 
-     bash
+     and the installation continues. Once installed, ``bash`` starts
+     the Linux shell.  
 
-   and the installation continues. Once installed, ``bash`` starts
-   the Linux shell.
+   From this point, your terminal behaves very similarly to how it would
+   on a normal (non-Windows) Linux system.
 
+   To open up a terminal, you can go to "Ask me
+   anything" and start typing "Bash on Ubuntu," and it will likely
+   autocomplete while typing.  Additionally, you can make a shortcut
+   on your Windows desktop.
 
-#. **Install prerequisite: "Xming X Server for Windows."**
+#. **Install prerequisite: Xming X Server for Windows.**
 
    Click on the following link to start automatic download:
    `https://sourceforge.net/projects/xming/files/latest/download
@@ -60,32 +71,92 @@ the latter (as forewarned by its descriptive name...).
 
      echo "export DISPLAY=:0.0" >> ~/.bashrc
 
+#. **Install prerequisite: More packages.**
+
+   There are several packages and libraries that are needed to run the
+   afni and shell programs::
+
+     sudo apt-get install -y tcsh xfonts-base python-qt4                    \
+                             libmotif4 libmotif-dev motif-clients           \
+                             gsl-bin netpbm gnome-tweak-tool libjpeg62
+     sudo apt-get update
+     sudo apt-get install -y libxp6 libglu1-mesa-dev \
+                             libxm4 build-essential
+
+   .. note to self: 
+      check on libmotif4* vs libxm4 here??
+
+#. **Install prerequisite: GSL.**
+
+   To install GSL::
+
+     sudo apt-get install -y libgsl0-dev gsl-bin
+
+   Setup link for GSL. Check the output of::
+
+     find /usr/lib -name "libgsl*"
+
+   If one of the things that shows up is::
+
+     /usr/lib/x86_64-linux-gnu/libgsl.so
+
+   Then you can enter the following::
+
+     sudo ln -s /usr/lib/x86_64-linux-gnu/libgsl.so /usr/lib/libgsl.so.0
+
+   And life should be good (we will validate package installations
+   using an AFNI system check command, below).
 
 #. **Install AFNI.**
 
-   * Do *this*: ...
+   The following will create a directory called ``$HOME/abin`` and
+   install the AFNI binaries there.
 
-     **DANIEL**: what goes here? Unclear from your
-     *description.  Just link to the AFNI install instructs for
-     *Ubuntu?  All, or a specific?
+   First, get the install script::
+      
+      curl -O https://afni.nimh.nih.gov/pub/dist/bin/linux_fedora_21_64/@update.afni.binaries
+      
+   Then install the appropriate AFNI package.  Note that most other
+   Linux systems will probably work with linux_openmp_64::
+
+     tcsh @update.afni.binaries -package linux_openmp_64 -do_extras
+
+   A comment: in trial runs, ``3dExtractGroupinCorr`` help was very,
+   very slow -- it took about 10 minutes.
+
+   .. check the above
+      see if that is a general property!
+
+   .. note:: If the binary package has already been downloaded, one
+             can use ``-local_package``, followed by the location+name
+             of the binary file, e.g.::
+               
+               tcsh @update.afni.binaries -local_package linux_openmp_64.tgz -do_extras
+
+   .. note:: Quick AFNI test. Run the following in a terminal::
+               
+               afni ~/abin/
+
+             -> that should open up the AFNI GUI with some
+             template data loaded.
+
+   .. note:: Running the uber_subject GUI should work::
+
+               uber_subject.py
+
+             -> there might be some terminal messages that look like
+             errors, but these should be non-fatal.
+              
 
 
-   * Additionally, execute the following to install libXp and OpenMP::
+.. probably this is unnecessary!:
 
-       sudo apt update
+   #. **Reboot.**
+      
+      Consider a 'reboot' at this point.  That would deal with
+      system updates, the change in login shell, and an updated path::
 
-       sudo apt-get install -y libxp6 libglu1-mesa-dev \
-                               libxm4 build-essential
-
-
-
-
-#. **Reboot.**
-
-   Consider a 'reboot' at this point.  That would deal with
-   system updates, the change in login shell, and an updated path::
-
-      reboot
+        reboot
 
 #. **Get R setup.**
 
@@ -126,23 +197,6 @@ the latter (as forewarned by its descriptive name...).
       update the rpository list; run that script; and finally run an
       AFNI command to (hopefully) get all the necessary R libraries for
       the modern package.
-
-
-   .. ---------- HERE/BELOW: copy for all installs --------------
-
-#. **Automatically set up AFNI/SUMA profiles.**
-
-   .. include:: substep_profiles.rst
-
-#. **(optional) Prepare for an AFNI Bootcamp.**
-
-   .. include:: substep_bootcamp.rst
-
-
-#. **EVALUATE THE SETUP: an important and useful step in this
-   process!**
-
-   .. include:: substep_evaluate.rst
 
 #. **(optional) Other tips.**
 
@@ -187,12 +241,21 @@ the latter (as forewarned by its descriptive name...).
         pick a scheme+palette that you like.
 
 
- 
+   .. ---------- HERE/BELOW: copy for all installs --------------
+
+#. **Automatically set up AFNI/SUMA profiles.**
+
+   .. include:: substep_profiles.rst
+
+#. **(optional) Prepare for an AFNI Bootcamp.**
+
+   .. include:: substep_bootcamp.rst
 
 
-   **DANIEL**: and still do this?
+#. **EVALUATE THE SETUP: an important and useful step in this
+   process!**
 
-   .. include:: substep_rcfiles.rst
+   .. include:: substep_evaluate.rst
 
 
 #. **(optional) Niceifying interfaces: it's a magical terminal.**
