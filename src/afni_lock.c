@@ -162,6 +162,17 @@ ENTRY("AFNI_lock_clear_CB") ;
      if( IM3D_VALID(qq3d) )
        MCW_set_bbox( qq3d->vwid->dmode->lock_bbox , 0 ) ;
    }
+   if( w != (Widget)NULL )
+    (void)MCW_popup_message( w ,
+                               " \n"
+                               "*** WARNING:             ***\n"
+                               "*** all AFNI controllers ***\n"
+                               "*** have been unlocked!  ***\n"
+                               "----------------------------\n"
+                               "*** The 'Set All' button ***\n"
+                               "*** can re-lock them :)  ***\n" ,
+                             MCW_USER_KILL | MCW_TIMER_KILL ) ;
+
    EXRETURN ;
 }
 
