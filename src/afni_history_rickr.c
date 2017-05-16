@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16,  May, 2017, RCR, "meica.py", MICRO, TYPE_GENERAL,
+   "cast floor/ceil functions to int when used as subscripts",
+   "Required by latest version of numpy."
+ } ,
+
  { 16,  May, 2017, RCR, "meica.py", MINOR, TYPE_ENHANCE,
    "sync with https://bitbucket.org/prantikk/me-ica/src",
    "Update from version 2.5 beta9 to 2.5 beta11."

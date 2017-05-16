@@ -62,9 +62,9 @@ def scoreatpercentile(a, per, limit=(), interpolation_method='lower'):
             score = _interpolate(values[int(idx)], values[int(idx) + 1],
                                  idx % 1)
         elif interpolation_method == 'lower':
-            score = values[np.floor(idx)]
+            score = values[int(np.floor(idx))]
         elif interpolation_method == 'higher':
-            score = values[np.ceil(idx)]
+            score = values[int(np.ceil(idx))]
         else:
             raise ValueError("interpolation_method can only be 'fraction', " \
                              "'lower' or 'higher'")
@@ -497,7 +497,7 @@ def writefeats(cbetas,comptable,mmix,suffix=''):
 	niwrite(cbetas[:,:,:,:],aff,'_'.join(['betas',suffix])+'.nii')
 	niwrite(cbetas[:,:,:,acc],aff,'_'.join(['betas_hik',suffix])+'.nii')
 	#Compute features (dS/S)
-	if options.e2d==None: e2d=np.floor(ne/2)+1
+	if options.e2d==None: e2d=int(np.floor(ne/2))+1
 	edm = fmask(catd[:,:,:,e2d-1,:],mask)
 	edms = edm/edm.std(-1)[:,np.newaxis]
 	edms[edm<1]=0
