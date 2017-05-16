@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """
 Process based scheduler for distribution across multiple CPU cores.
 """
