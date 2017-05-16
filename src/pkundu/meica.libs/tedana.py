@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-__version__="v2.5 beta8"
+__version__="v2.5 beta11"
 welcome_block="""
 # Multi-Echo ICA, Version %s
 #
@@ -32,8 +32,9 @@ import datetime
 if __name__=='__main__':
 	selfuncfile='%s/select_model.py' % os.path.dirname(argv[0])
 	execfile(selfuncfile)
-
+import cPickle as pickle
 #import ipdb
+import bz2
 
 F_MAX=500
 Z_MAX = 8
@@ -357,40 +358,65 @@ def tedpca(ste=0):
 		print "-Computing PCA of TE #%s" % ','.join([str(ee) for ee in ste])
 		d = np.float64(np.concatenate([fmask(catd[:,:,:,ee,:],mask)[:,np.newaxis,:] for ee in ste-1],axis=1))
 		eim = eimask(d)==1
-		d = d[eim]
+		eim = np.squeeze(eim)
+		d = np.squeeze(d[eim])
 
 	dz = ((d.T-d.T.mean(0))/d.T.std(0)).T #Variance normalize timeseries
 	dz = (dz-dz.mean())/dz.std() #Variance normalize everything
-	
-	##Do PC dimension selection
-	#Get eigenvalue cutoff
-	u,s,v = np.linalg.svd(dz,full_matrices=0)
-	sp = s/s.sum()
-	eigelb = sp[getelbow(sp)]
 
-	spdif = np.abs(sp[1:]-sp[:-1])
-	spdifh = spdif[spdif.shape[0]/2:]
-	spdmin = spdif.min()
-	spdthr = np.mean([spdifh.max(),spdmin])
-	spmin = sp[(spdif.shape[0]/2)+(np.arange(spdifh.shape[0])[spdifh>=spdthr][0])+1]
-	spcum = []
-	spcumv = 0
-	for sss in sp:
-		spcumv+=sss
-		spcum.append(spcumv)
-	spcum = np.array(spcum)
+	pcastate_fn = 'pcastate.pklbz'
+
+	if not os.path.exists(pcastate_fn):
+		##Do PC dimension selection
+		#Get eigenvalue cutoff
+		u,s,v = np.linalg.svd(dz,full_matrices=0)
+		sp = s/s.sum()
+		eigelb = sp[getelbow(sp)]
+
+		#ipdb.set_trace()
+
+		spdif = np.abs(sp[1:]-sp[:-1])
+		spdifh = spdif[spdif.shape[0]/2:]
+		spdmin = spdif.min()
+		spdthr = np.mean([spdifh.max(),spdmin])
+		spmin = sp[(spdif.shape[0]/2)+(np.arange(spdifh.shape[0])[spdifh>=spdthr][0])+1]
+		spcum = []
+		spcumv = 0
+		for sss in sp:
+			spcumv+=sss
+			spcum.append(spcumv)
+		spcum = np.array(spcum)
+			
+		#Compute K and Rho for PCA comps
 		
-	#Compute K and Rho for PCA comps
-	eimum = np.array(np.squeeze(unmask(np.array(np.atleast_2d(eim).T,dtype=np.int).prod(1),mask)),dtype=np.bool)
-	vTmix = v.T
-	vTmixN =((vTmix.T-vTmix.T.mean(0))/vTmix.T.std(0)).T
-	#ctb,KRd,betasv,v_T = fitmodels2(catd,v.T,eimum,t2s,tes,mmixN=vTmixN)
-	none,ctb,betasv,v_T = fitmodels_direct(catd,v.T,eimum,t2s,tes,mmixN=vTmixN,full_sel=False)
-	ctb = ctb[ctb[:,0].argsort(),:]
-	ctb = np.vstack([ctb.T[0:3],sp]).T
-	
+		#ipdb.set_trace()
+
+		eimum = np.atleast_2d(eim)
+		eimum = np.transpose(eimum,np.argsort(np.atleast_2d(eim).shape)[::-1])
+		eimum = np.array(np.squeeze(unmask(eimum.prod(1),mask)),dtype=np.bool)
+		vTmix = v.T
+		vTmixN =((vTmix.T-vTmix.T.mean(0))/vTmix.T.std(0)).T
+		#ctb,KRd,betasv,v_T = fitmodels2(catd,v.T,eimum,t2s,tes,mmixN=vTmixN)
+		none,ctb,betasv,v_T = fitmodels_direct(catd,v.T,eimum,t2s,tes,mmixN=vTmixN,full_sel=False)
+		ctb = ctb[ctb[:,0].argsort(),:]
+		ctb = np.vstack([ctb.T[0:3],sp]).T
+
+		#Save state
+		print "Saving PCA"
+		pcastate = {'u':u,'s':s,'v':v,'ctb':ctb,'eigelb':eigelb,'spmin':spmin,'spcum':spcum}
+		pcastate_f = bz2.BZ2File('pcastate.pklbz','wb')
+		pickle.dump(pcastate,pcastate_f)
+		pcastate_f.close()
+
+	else:
+		print "Loading PCA"
+		pcastate_f = bz2.BZ2File('pcastate.pklbz','rb')
+		pcastate = pickle.load(pcastate_f)
+		for key,val in pcastate.items(): exec(key + '=val')
+
 	np.savetxt('comp_table_pca.txt',ctb[ctb[:,1].argsort(),:][::-1])
 	np.savetxt('mepca_mix.1D',v[ctb[:,1].argsort()[::-1],:].T)
+	
 	kappas = ctb[ctb[:,1].argsort(),1]
 	rhos = ctb[ctb[:,2].argsort(),2]
 	fmin,fmid,fmax = getfbounds(ne)
@@ -412,6 +438,9 @@ def tedpca(ste=0):
 		pcscore = (np.array(ctb[:,1]>kappa_thr,dtype=np.int)+np.array(ctb[:,2]>rho_thr,dtype=np.int)+np.array(ctb[:,3]>eigelb,dtype=np.int))*np.array(ctb[:,3]>spmin,dtype=np.int)*np.array(ctb[:,1]!=F_MAX,dtype=np.int)*np.array(ctb[:,2]!=F_MAX,dtype=np.int)
 	pcsel = pcscore > 0 
 	pcrej = np.array(pcscore==0,dtype=np.int)*np.array(ctb[:,3]>spmin,dtype=np.int) > 0
+
+	#ipdb.set_trace()
+
 	dd = u.dot(np.diag(s*np.array(pcsel,dtype=np.int))).dot(v)
 	nc = s[pcsel].shape[0]
 	print pcsel
@@ -443,18 +472,24 @@ def write_split_ts(data,comptable,mmix,suffix=''):
 	dmdata = mdata.T-mdata.T.mean(0)
 	varexpl = (1-((dmdata.T-betas.dot(mmix.T))**2.).sum()/(dmdata**2.).sum())*100
 	print 'Variance explained: ', varexpl , '%'
-	niwrite(unmask(betas[:,acc].dot(mmix.T[acc,:]),mask),aff,'_'.join(['hik_ts',suffix])+'.nii')
 	midkts = betas[:,midk].dot(mmix.T[midk,:])
 	lowkts = betas[:,rej].dot(mmix.T[rej,:])
-	if len(midk)!=0: niwrite(unmask(midkts,mask),aff,'_'.join(['midk_ts',suffix])+'.nii')
-	niwrite(unmask(lowkts,mask),aff,'_'.join(['lowk_ts',suffix])+'.nii')
+	if len(acc)!=0:
+		niwrite(unmask(betas[:,acc].dot(mmix.T[acc,:]),mask),aff,'_'.join(['hik_ts',suffix])+'.nii')
+	if len(midk)!=0: 
+		niwrite(unmask(midkts,mask),aff,'_'.join(['midk_ts',suffix])+'.nii')
+	if len(rej)!=0: 
+		niwrite(unmask(lowkts,mask),aff,'_'.join(['lowk_ts',suffix])+'.nii')
 	niwrite(unmask(fmask(data,mask)-lowkts-midkts,mask),aff,'_'.join(['dn_ts',suffix])+'.nii')
 	return varexpl
 
 def split_ts(data,comptable,mmix):
 	cbetas = get_coeffs(data-data.mean(-1)[:,:,:,np.newaxis],mask,mmix)
 	betas = fmask(cbetas,mask)
-	hikts=unmask(betas[:,acc].dot(mmix.T[acc,:]),mask)
+	if len(acc)!=0:
+		hikts=unmask(betas[:,acc].dot(mmix.T[acc,:]),mask)
+	else:
+		hikts = None
 	return hikts,data-hikts
 
 def writefeats(cbetas,comptable,mmix,suffix=''):
@@ -526,7 +561,30 @@ def writect(comptable,ctname='',varexpl='-1',classarr=[]):
 		for i in range(nc):
 			f.write('%d\t%f\t%f\t%.2f\t%.2f\n'%(sortab[i,0],sortab[i,1],sortab[i,2],sortab[i,3],sortab[i,4]))
 
-	
+def writeresults():
+	print "++ Writing optimally combined time series"
+	ts = optcom(catd,t2s,tes,mask)
+	niwrite(ts,aff,'ts_OC.nii')
+	print "++ Writing Kappa-filtered optimally combined timeseries"
+	varexpl = write_split_ts(ts,comptable,mmix,'OC')
+	print "++ Writing signal versions of components"
+	ts_B = get_coeffs(ts,mask,mmix)
+	niwrite(ts_B[:,:,:,:],aff,'_'.join(['betas','OC'])+'.nii')
+	if len(acc)!=0:
+		niwrite(ts_B[:,:,:,acc],aff,'_'.join(['betas_hik','OC'])+'.nii')
+		print "++ Writing optimally combined high-Kappa features"
+		writefeats2(split_ts(ts,comptable,mmix)[0],mmix[:,acc],mask,'OC2')
+	print "++ Writing component table"
+	writect(comptable,'comp_table.txt',varexpl)
+	if options.e2d!=None:
+		options.e2d=int(options.e2d)
+		print "++ Writing Kappa-filtered TE#%i timeseries" % (options.e2d)
+		write_split_ts(catd[:,:,:,options.e2d-1,:],comptable,mmix,'e%i' % options.e2d)
+		print "++ Writing high-Kappa TE#%i  features" % (options.e2d)
+		writefeats(betas[:,:,:,options.e2d-1,:],comptable,mmix,'e%i' % options.e2d)
+
+
+
 ###################################################################################################
 # 						Begin Main
 ###################################################################################################
@@ -604,8 +662,8 @@ if __name__=='__main__':
 		mmix_orig = tedica(dd,cost=options.initcost)
 		np.savetxt('__meica_mix.1D',mmix_orig)
 		seldict,comptable,betas,mmix = fitmodels_direct(catd,mmix_orig,mask,t2s,tes,options.fout,reindex=True)
-		acc,rej,midk,empty = selcomps(seldict,knobargs=args)
 		np.savetxt('meica_mix.1D',mmix)
+		acc,rej,midk,empty = selcomps(seldict,knobargs=args)
 		del dd
 	else:
 		mmix_orig = np.loadtxt('meica_mix.1D')
@@ -613,27 +671,8 @@ if __name__=='__main__':
 		eimum = np.array(np.squeeze(unmask(np.array(eim,dtype=np.int).prod(1),mask)),dtype=np.bool)
 		seldict,comptable,betas,mmix = fitmodels_direct(catd,mmix_orig,mask,t2s,tes,options.fout)
 		acc,rej,midk,empty = selcomps(seldict,knobargs=args)
-            
-	
-	print "++ Writing optimally combined time series"
-	ts = optcom(catd,t2s,tes,mask)
-	niwrite(ts,aff,'ts_OC.nii')
-	print "++ Writing Kappa-filtered optimally combined timeseries"
-	varexpl = write_split_ts(ts,comptable,mmix,'OC')
-	print "++ Writing signal versions of components"
-	#ipdb.set_trace()
-	ts_B = get_coeffs(ts,mask,mmix)
-	niwrite(ts_B[:,:,:,:],aff,'_'.join(['betas','OC'])+'.nii')
-	niwrite(ts_B[:,:,:,acc],aff,'_'.join(['betas_hik','OC'])+'.nii')
-	print "++ Writing optimally combined high-Kappa features"
-	writefeats2(split_ts(ts,comptable,mmix)[0],mmix[:,acc],mask,'OC2')
 
-	print "++ Writing component table"
-	writect(comptable,'comp_table.txt',varexpl)
-
-	if options.e2d!=None:
-		options.e2d=int(options.e2d)
-		print "++ Writing Kappa-filtered TE#%i timeseries" % (options.e2d)
-		write_split_ts(catd[:,:,:,options.e2d-1,:],comptable,mmix,'e%i' % options.e2d)
-		print "++ Writing high-Kappa TE#%i  features" % (options.e2d)
-		writefeats(betas[:,:,:,options.e2d-1,:],comptable,mmix,'e%i' % options.e2d)
+	if len(acc)==0:
+		print "\n** WARNING! No BOLD components detected!!! Please check data and results!\n"
+    
+	writeresults()        
