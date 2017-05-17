@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17,  May, 2017, RCR, "RetroTS.py", MICRO, TYPE_BUG_FIX,
+   "D Nielson's fix in PeakFinder.py dealing with non-integer subscripts",
+   "Required by latest version of numpy."
+ } ,
+
  { 16,  May, 2017, RCR, "meica.py", MICRO, TYPE_GENERAL,
    "cast floor/ceil functions to int when used as subscripts",
    "Required by latest version of numpy."
