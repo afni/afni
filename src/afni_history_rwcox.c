@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 17 , MAY , 2017 , RWC , "3dttest++" , MICRO , TYPE_MODIFY ,
+   "Make -ETAC and -Clustsim work together" ,
+   "Makes it easier to test these two methods at the same time." } ,
+
  { 3 , MAY , 2017 , RWC , "Historical Records" , MINOR , TYPE_ENHANCE ,
    "Add the AFNI version to the History Note for new datasets" ,
    "So the user can see (via 3dinfo) exactly what version created a dataset." } ,
