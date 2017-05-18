@@ -58,7 +58,7 @@
 #set version   = "3.3";  set rev_dat   = "May 17, 2017"
 #   + also output map*1D file of rot_shift params now
 #
-set version   = "3.4";  set rev_dat   = "May 18, 2017"
+set version   = "3.41";  set rev_dat   = "May 18, 2017"
 #   + new option: cut away inf slices of inset
 #
 # ----------------------------------------------------------------
@@ -420,7 +420,7 @@ endif
 set iidx = `printf "%02d" $idx`
 set fin  = "$ifile"
 set fout = "${tpref}_${iidx}.nii"
-set inp0 = $fout
+set inp0 = $fout   # and reset what we mean "original" to be
 3dcalc    -echo_edu          \
     -a "$fin"                \
     -expr 'a'                \
@@ -438,6 +438,7 @@ if ( $INF_SLI != "" ) then
     echo "++ Pre-pre-step: remove $INF_SLI inferior (ha!) slices."
     set fin  = "$fout"
     set fout = "${tpref}_${iidx}_cut.nii"
+    set inp0 = $fout
     3dZeropad -echo_edu        \
         -overwrite             \
         -I -$INF_SLI           \
