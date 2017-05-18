@@ -160,7 +160,7 @@ void usage_NetCorr(int detail)
 "                      of the Pearson cc matrix.  Then each element p_{ij} of\n"
 "                      the partial correlation (PC) matrix is given as:\n"
 "                      p_{ij} = -M_{ij}/sqrt( M_{ii} * M_{jj} ).\n"
-"                      This will also calculate the PC-beta (PBC) matrix,\n"
+"                      This will also calculate the PC-beta (PCB) matrix,\n"
 "                      which is not symmetric, and whose values are given as:\n"
 "                      b_{ij} = -M_{ij}/M_{ii}.\n"
 "                      Use as you wish.  For both PC and PCB, the diagonals\n"
