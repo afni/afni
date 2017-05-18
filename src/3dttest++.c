@@ -166,6 +166,8 @@ static int do_permute      = 1 ;     /* 07 Dec 2016 - on by default */
 static int dont_permute    = 0 ;
 static char *CS_arg        = NULL ;  /* 07 Dec 2016 */
 
+#define ALLOW_BOTH_CLUSTIMS
+
 static int       do_clustsim = 0 ;   /* 10 Feb 2016 */
 static int      num_clustsim = 0 ;
 static char *prefix_clustsim = NULL ;
@@ -1081,6 +1083,28 @@ void display_help_menu(void)
       "use multi-threaded processing to carry out their clusterization statistics.\n"
       "If your computer does NOT have multiple CPU cores, then these options will\n"
       "run very slowly.\n"
+      "\n"
+#ifdef ALLOW_BOTH_CLUSTIMS
+      "You can use both -ETAC and -Clustsim in the same run. The main reason for\n"
+      "doing this is to compare the results of the two methods. Using both methods\n"
+      "in one 3dttest++ run will be very slow.\n"
+      " ++ In such a dual-use case, and if '-ETAC_blur' is also given, note that\n"
+      "     3dClustSim will be run once for each blur level, giving a set of cluster-\n"
+      "     size threshold tables for each blur case. This process is necessary since\n"
+      "     3dClustSim does not have a multi-blur thresholding capability, unlike\n"
+      "     ETAC (via program 3dXClustSim).\n"
+      " ++ The resulting 3dClustSim tables are to be applied to each of the auxiliary\n"
+      "     t-test files produced, one for each blur case. Unless one of those blur\n"
+      "     cases is '0.0', the 3dClustSim tables do NOT apply to the main output\n"
+      "     dataset produced by this program.\n"
+      " ++ These auxiliary blur case t-test results get names of the form\n"
+      "       PREFIX.B8.0.nii\n"
+      "    where PREFIX was given in the '-prefix' option, and in this example,\n"
+      "    the amount of extra blurring was 8.0 mm. These files are the result\n"
+      "    of re-running the commanded t-tests using blurred input datasets.\n"
+#else
+      "You cannot use both -ETAC and -Clustsim in the same run.\n"
+#endif
       "\n"
       " -Clustsim   = With this option, after the commanded t-tests are done, then:\n"
       "                (a) the residuals from '-resid' are used with '-randomsign' to\n"
@@ -2112,8 +2136,10 @@ int main( int argc , char *argv[] )
        char *uuu ;
        if( do_clustsim )
          WARNING_message("Why do you use -Clustsim more than once?!") ;
+#ifndef ALLOW_BOTH_CLUSTIMS
        if( do_Xclustsim )
          ERROR_exit("You can't use -Clustsim and -ETAC/-Xclustsim together!") ;
+#endif
        toz = 1 ;
 
        clustsim_prog = "3dClustSim" ;
@@ -2160,8 +2186,10 @@ int main( int argc , char *argv[] )
        char *uuu ;
        if( do_Xclustsim )
          WARNING_message("Why do you use -ETAC/-Xclustsim more than once?!") ;
+#ifndef ALLOW_BOTH_CLUSTIMS
        if( do_clustsim )
          ERROR_exit("You can't use -Clustsim and -ETAC/-Xclustsim together!") ;
+#endif
        toz = 1 ;
 
        clustsim_prog = "3dXClustSim" ;
@@ -2962,8 +2990,10 @@ int main( int argc , char *argv[] )
    if( brickwise && do_randomsign )          /* 02 Feb 2016 */
      ERROR_exit("You can't use -brickwise and -randomsign together!") ;
 
+#ifndef ALLOW_BOTH_CLUSTIMS
    if( do_clustsim && do_Xclustsim ) /* should not be possible */
      ERROR_exit("You can't use -Clustsim and -ETAC/-Xclustsim together /:(") ;
+#endif
 
    if( nnopt_Xclu > 0 && !do_Xclustsim )
      ERROR_exit("You can't use -ETAC_opt/-Xclu_opt without -ETAC/-Xclustsim /:( !!") ;
@@ -3007,6 +3037,9 @@ int main( int argc , char *argv[] )
 
    if( exblur > 0.0f && Xclu_nblur > 0 )     /* 20 Apr 2017 */
      ERROR_exit("You cannot combine '-exblur' with '-ETAC_blur' /:(") ;
+
+   if( Xclu_nblur > 0 && !do_Xclustsim )
+     ERROR_exit("You cannot use '-ETAC_blur' without '-ETAC' /:( !") ;
 
    /* do some checking and editing for Clustsim stuff */
 
@@ -3170,7 +3203,7 @@ int main( int argc , char *argv[] )
      ERROR_exit("You can't use -randomsign with nval_AAA+nval_BBB=%d < 14",nval_AAA+nval_BBB) ;
 
    if( do_Xclustsim && !twosam && nval_AAA < 17 )
-     ERROR_exit("You can't use %s with nval_AAA=%d in a 1-sample test",
+     ERROR_exit("You can't use %s with nval_AAA=%d < 17 in a 1-sample test",
                 clustsim_opt,nval_AAA) ;
    if( do_Xclustsim && nval_AAA+nval_BBB < 14 )
      ERROR_exit("You can't use %s in a 2-sample test with nval_AAA+nval_BBB=%d < 14",
@@ -4180,7 +4213,8 @@ LABELS_ARE_DONE:  /* target for goto above */
      char fname[1024] , *cmd , *ccc ; int qq,pp , nper ; double ct1,ct2 ;
      int ncsim , ncase , icase ; float cblur ;
      int use_sdat ;
-     char **tfname=NULL, *bmd=NULL, *qmd=NULL, bprefix[1024], **clab=NULL, **cprefix=NULL ;
+     char **tfname=NULL  , *bmd=NULL  , *qmd=NULL ;
+     char   bprefix[1024], **clab=NULL, **cprefix=NULL ;
      int ncmin = (do_Xclustsim) ? 40000 : 10000 ;
 
      use_sdat = do_Xclustsim ||
@@ -4246,8 +4280,10 @@ LABELS_ARE_DONE:  /* target for goto above */
        }
 
        /* start setting up the re-run command for blurring [19 Apr 2017] */
+       /* The output of this quick re-run (no -randomsign) is used for   */
+       /* multi-blur thresholding after 3dXClustSim is finished.         */
 
-       if( bmd != NULL ){
+       if( bmd != NULL ){ /* note the '-exblur' option here */
          sprintf( bmd , "3dttest++ -DAFNI_AUTOMATIC_FDR=NO -DAFNI_DONT_LOGFILE=YES \\\n"
                         "    -toz -exblur %.2f" , cblur ) ;
 
@@ -4265,9 +4301,12 @@ LABELS_ARE_DONE:  /* target for goto above */
          sprintf( bmd+strlen(bmd) , " \\\n   ") ;
        }
 
+       /* create multiple jobs for the randomization/permutation */
+       /* (plus 1 job, if needed, for the simple re-run-with-extra-blur) */
+
        for( pp=0 ; pp < num_clustsim ; pp++ ){
 
-         qmd = (pp==0) ? bmd : NULL ;  /* re-blur command? [19 Apr 2017] */
+         qmd = (pp==0) ? bmd : NULL ;  /* re-blur command? (only once) [19 Apr 2017] */
 
          /* format the command to run 3dttest++ with the residuals as input */
 
@@ -4383,7 +4422,7 @@ LABELS_ARE_DONE:  /* target for goto above */
            } else {
              start_job( bmd ) ;
            }
-           NI_sleep(111) ; /* fiddle while Rome burns */
+           NI_sleep(33) ; /* fiddle while Rome burns */
          }
 
          if( dryrun ){
@@ -4391,7 +4430,7 @@ LABELS_ARE_DONE:  /* target for goto above */
          } else {
            start_job( cmd ) ;
          }
-         NI_sleep(111) ;  /* give each job a little bit to start up */
+         NI_sleep(33) ;  /* give each job a little bit to start up */
 
        } /* end of loop over pp=parallel jobs for simulations */
 
@@ -4463,55 +4502,68 @@ LABELS_ARE_DONE:  /* target for goto above */
 
      if( do_clustsim ){    /*----- 3dClustsim -----*/
 
-       sprintf(fname,"%s.CSim.cmd",prefix_clustsim) ;
-       if( !use_sdat ){
-         sprintf( cmd , "3dClustSim -DAFNI_DONT_LOGFILE=YES"
-                        " -prefix %s.CSim -LOTS -both -nodec -cmd %s -inset" ,
-                        prefix_clustsim , fname ) ;
-         sprintf( cmd+strlen(cmd) , " \\\n   ") ;
-         if( name_mask != NULL )
-           sprintf( cmd+strlen(cmd) , " -mask %s",name_mask) ;
-         for( pp=0 ; pp < num_clustsim ; pp++ )
-           sprintf( cmd+strlen(cmd) , " %s" , tfname[pp]) ;
-       } else {
-         sprintf( cmd , "3dClustSim -DAFNI_DONT_LOGFILE=YES"
-                        " -prefix %s.CSim -LOTS -both -nodec -cmd %s -insdat %s" ,
-                        prefix_clustsim , fname , name_mask ) ;
-         sprintf( cmd+strlen(cmd) , " \\\n   ") ;
-         for( pp=0 ; pp < num_clustsim ; pp++ )
-           sprintf( cmd+strlen(cmd) , " %s" , tfname[pp]) ;
-       }
+       for( icase=0 ; icase < ncase ; icase++ ){
+         sprintf(fname,"%s.CSim%s.cmd",prefix_clustsim,clab[icase]) ;
+         if( !use_sdat ){
+           sprintf( cmd , "3dClustSim -DAFNI_DONT_LOGFILE=YES"
+                          " -prefix %s.CSim%s -LOTS -both -nodec -cmd %s -inset" ,
+                          prefix_clustsim , clab[icase] , fname ) ;
+           sprintf( cmd+strlen(cmd) , " \\\n   ") ;
+           if( name_mask != NULL )
+             sprintf( cmd+strlen(cmd) , " -mask %s",name_mask) ;
+           for( pp=0 ; pp < num_clustsim ; pp++ ){
+             qq = pp + icase*num_clustsim ;
+             sprintf( cmd+strlen(cmd) , " %s" , tfname[qq]) ;
+           }
+         } else {
+           sprintf( cmd , "3dClustSim -DAFNI_DONT_LOGFILE=YES"
+                          " -prefix %s.CSim%s -LOTS -both -nodec -cmd %s -insdat %s" ,
+                          prefix_clustsim , clab[icase] , fname , name_mask ) ;
+           sprintf( cmd+strlen(cmd) , " \\\n   ") ;
+           for( pp=0 ; pp < num_clustsim ; pp++ ){
+             qq = pp + icase*num_clustsim ;
+             sprintf( cmd+strlen(cmd) , " %s" , tfname[qq]) ;
+           }
+         }
 
-       if( dryrun ){
-         ININFO_message("3dClustSim command:\n  %s",cmd) ;
-       } else {
+         if( dryrun ){
+           ININFO_message("3dClustSim command:\n  %s",cmd) ;
+         } else {
 #if 0
-         ININFO_message("===== starting 3dClustSim =====\n   %s",cmd) ;
+           ININFO_message("===== starting 3dClustSim =====\n   %s",cmd) ;
 #else
-         ININFO_message("===== starting 3dClustSim =====") ;
+           ININFO_message("===== starting 3dClustSim =====") ;
 #endif
-         system(cmd) ;
+           system(cmd) ;
 
-         /* load the 3drefit command from 3dClustSim */
+           /* load the 3drefit command from 3dClustSim */
 
-         ccc = AFNI_suck_file(fname) ;
-         if( ccc == NULL )
-           ERROR_exit("===== 3dClustSim command failed :-((( =====") ;
+           ccc = AFNI_suck_file(fname) ;
+           if( ccc == NULL )
+             ERROR_exit("===== 3dClustSim command failed :-((( =====") ;
 
-         /* crop whitespace off the end */
+           /* crop whitespace off the end */
 
-         for( qq=strlen(ccc)-1 ; qq > 0 && isspace(ccc[qq]) ; qq-- ) ccc[qq] = '\0' ;
-         if( strlen(ccc) > 8190 ) cmd = (char *)realloc(cmd,strlen(ccc)+2048) ;
+           for( qq=strlen(ccc)-1 ; qq > 0 && isspace(ccc[qq]) ; qq-- ) ccc[qq] = '\0' ;
+           if( strlen(ccc) > 8190 ) cmd = (char *)realloc(cmd,strlen(ccc)+2048) ;
 
-         /* and run 3drefit */
+           /* and run 3drefit */
 #if 0
-         ININFO_message("===== 3drefit-ing 3dClustSim results into %s =====",DSET_HEADNAME(outset)) ;
+           ININFO_message("===== 3drefit-ing 3dClustSim results into %s =====",DSET_HEADNAME(outset)) ;
 #endif
-         sprintf(cmd,"%s -DAFNI_DONT_LOGFILE=NO %s",ccc,DSET_HEADNAME(outset)) ;
-         system(cmd) ;
-       }
+           if( cprefix == NULL )
+             sprintf(cmd,"%s -DAFNI_DONT_LOGFILE=NO %s",ccc,DSET_HEADNAME(outset)) ;
+           else
+             sprintf(cmd,"%s -DAFNI_DONT_LOGFILE=NO %s",ccc,cprefix[icase]) ;
 
-     } else {  /*----- 3dXClustSim [30 Aug 2016] -----*/
+           system(cmd) ;
+         }
+
+       } /* end of loop over icase */
+
+     } /* end of 3dClustSim */
+
+     if( do_Xclustsim ){ /*----- ETAC -----*/
 
        int ixx , nxx=MAX(nnopt_Xclu,1) ; Xclu_opt *opx ;
        int nnlev, sid, npthr ; float *pthr ; char *nam ;
@@ -4639,55 +4691,29 @@ LABELS_ARE_DONE:  /* target for goto above */
 
      /* remove intermediate files */
 
-     if( do_Xclustsim == 1 ){
-       sprintf(cmd,"\\rm %s",prefix_resid) ;
-       if( prefix_savedata != NULL ) sprintf(cmd+strlen(cmd)," %s",prefix_savedata) ;
+     if( do_clustsim != 3 && do_Xclustsim != 2 ){
+       strcpy(cmd,"\\rm -vf") ;
+
+         sprintf(cmd+strlen(cmd)," %s",prefix_resid) ;
+
+       if( prefix_savedata != NULL )
+         sprintf(cmd+strlen(cmd)," %s",prefix_savedata) ;
+
        for( pp=0 ; pp < num_clustsim*ncase ; pp++ )
          sprintf(cmd+strlen(cmd)," %s",tfname[pp]) ;
+
+       if( do_clustsim )
+         sprintf(cmd+strlen(cmd)," %s.*.niml" , prefix_clustsim ) ;
+
        if( dryrun ){
-         ININFO_message("3dXClustSim cleanup command:\n  %s",cmd) ;
+         ININFO_message("file cleanup command:\n  %s",cmd) ;
        } else {
-#if 0
-         ININFO_message("===== deleting %s temp files =====",clustsim_opt) ;
-#endif
+         ININFO_message("cleaning up intermediate files:") ;
          system(cmd) ;
        }
-
-     } else if( do_clustsim == 1 ){ /** currently, this case will never be executed **/
-       sprintf(cmd,"\\rm %s.*",prefix_clustsim) ;
-       if( strcmp(tempdir,".") != 0 ){
-         for( pp=0 ; pp < num_clustsim ; pp++ )
-           sprintf(cmd+strlen(cmd)," %s",tfname[pp]) ;
-       }
-       if( dryrun ){
-         ININFO_message("3dClustSim cleanup command:\n  %s",cmd) ;
-       } else {
-#if 0
-         ININFO_message("===== deleting %s temp files =====",clustsim_opt) ;
-#endif
-         system(cmd) ;
-       }
-
-     } else if( do_clustsim == 2 ){                     /** the default case **/
-       sprintf(cmd,"\\rm %s.*.niml %s",prefix_clustsim,prefix_resid) ;
-       for( pp=0 ; pp < num_clustsim ; pp++ )
-         sprintf(cmd+strlen(cmd)," %s",tfname[pp]) ;
-       if( dryrun ){
-         ININFO_message("3dClustSim cleanup command:\n  %s",cmd) ;
-       } else {
-#if 0
-         ININFO_message("===== deleting %s temp files =====",clustsim_opt) ;
-#endif
-         system(cmd) ;
-       }
-
-     } else {
-#if 0
-       ININFO_message("===== NOT deleting %s temp files =====",clustsim_opt) ;
-#endif
      }
 
-     /* et viola (or maybe cello?) */
+     /* et viola (or maybe cello? or gelato?) */
 
 #if 0
      free(ccc) ; free(cmd) ;
