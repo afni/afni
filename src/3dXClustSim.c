@@ -189,8 +189,13 @@ void get_options( int argc , char **argv )
 
 ENTRY("get_options") ;
 
+  /*-- sneaky ways to change default parameters --*/
+
   fgfac = AFNI_numenv("AFNI_XCLUSTSIM_FGFAC") ;
   if( fgfac < 0.1f || fgfac > 1.0f ) fgfac = FGFAC ;
+
+  farp_goal = AFNI_numenv("AFNI_XCLUSTSIM_FGOAL") ;
+  if( farp_goal < 2.0f || farp_goal > 10.0f ) farp_goal = FARP_GOAL ;
 
   while( nopt < argc ){
 
@@ -1605,7 +1610,7 @@ int main( int argc , char *argv[] )
    }
 
    if( verb )
-     INFO_message("STEP 4: adjusting per-voxel FOM thresholds to reach FPR=%.2f%%",FARP_GOAL) ;
+     INFO_message("STEP 4: adjusting per-voxel FOM thresholds to reach FPR=%.2f%%",farp_goal) ;
    if( verb > 1 ) ININFO_message("  Elapsed time = %.1f s",COX_clock_time()) ;
 
    /* tfrac = FOM count fractional threshold;
