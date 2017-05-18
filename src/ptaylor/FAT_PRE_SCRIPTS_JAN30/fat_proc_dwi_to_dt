@@ -38,8 +38,12 @@
 #set version   = "2.0";    set rev_dat   = "May 1, 2017"
 #   + add in ability to mask struc set
 #
-set version   = "2.1";    set rev_dat   = "May 12, 2017"
+#set version   = "2.1";    set rev_dat   = "May 12, 2017"
 #   + fixed error if no anat entered
+#
+set version   = "2.2";    set rev_dat   = "May 17, 2017"
+#   + now '3dDWItoDT -debug_briks ...' by default
+#   + Has some fit-type parameters there.
 #
 # ----------------------------------------------------------------
 
@@ -749,10 +753,11 @@ endif
 
 # ------------------- tensor fit -----------------
 
-echo "++ Fitting tensor and estimating params to make:  $odir/${dti_par}*"
+echo "++ Fitting tensor, estimating params and fit:  $odir/${dti_par}*"
 3dDWItoDT                              \
     -echo_edu                          \
     -overwrite                         \
+    -debug_briks                       \
     -eigs -nonlinear -sep_dsets        \
     $sca                               \
     -prefix       $odir/$dti_par       \
