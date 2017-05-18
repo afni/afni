@@ -55,8 +55,11 @@
 #   + checking steps again
 #   + change viewer output: edgey
 #
-set version   = "3.3";  set rev_dat   = "May 17, 2017"
+#set version   = "3.3";  set rev_dat   = "May 17, 2017"
 #   + also output map*1D file of rot_shift params now
+#
+set version   = "3.4";  set rev_dat   = "May 18, 2017"
+#   + new option: cut away inf slices of inset
 #
 # ----------------------------------------------------------------
 
@@ -119,6 +122,8 @@ set defran  = -100000
 set frange1 = $defran              # for giving FUNC_RANGE value to
 set frange2 = $defran              # chauffer;  can't be these values...
 set user_frange = ""               # 
+
+set INF_SLI    = ""                # number of inferior slices to remove
 
 # ------------------- process options, a la rr ----------------------
 
@@ -184,6 +189,11 @@ while ( $ac <= $#argv )
         set DoAni    = "0"
         set valthr   = 90
         set MODESET = "1"
+
+    else if ( "$argv[$ac]" == "-remove_inf_sli" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set INF_SLI = "$argv[$ac]"
 
     # can enter a weight mask emphasizing, e.g., subcort struct for
     # ACPC align
@@ -422,6 +432,19 @@ set inp0 = $fout
 # --------------- move to wdir and continue ------------------
 
 cd $wdir
+
+# [PT: May 18, 2017]: in case lots of nonbrain exists inferiorly
+if ( $INF_SLI != "" ) then
+    echo "++ Pre-pre-step: remove $INF_SLI inferior (ha!) slices."
+    set fin  = "$fout"
+    set fout = "${tpref}_${iidx}_cut.nii"
+    3dZeropad -echo_edu        \
+        -overwrite             \
+        -I -$INF_SLI           \
+        -prefix $fout          \
+        $fin
+    @ idx += 1
+endif
 
 if ( "$DO_CM" == "1" ) then
     echo "++ Pre-step: make input's center of mass sit at (x,y,z)=(0,0,0)."
