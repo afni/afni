@@ -50,10 +50,13 @@
 #   + Fix unifizing! 
 #   + (some other stuff?)
 #
-set version   = "3.2";  set rev_dat   = "Apr 24, 2017"
+#set version   = "3.2";  set rev_dat   = "Apr 24, 2017"
 #   + better naming wdir
 #   + checking steps again
 #   + change viewer output: edgey
+#
+set version   = "3.3";  set rev_dat   = "May 17, 2017"
+#   + also output map*1D file of rot_shift params now
 #
 # ----------------------------------------------------------------
 
@@ -651,6 +654,9 @@ printf "%s\n" "$vals[1-7] ... and faking" >> map_fake12dof.param.1D
 set vals = `sed -n '3p' _map_9dof.param.1D`
 printf "%s\n" "$vals[1-6] 0 0 0 0 0 0" >> map_fake12dof.param.1D
 #printf "$vals[1-6] 0 0 0 0 0 0\n" >> map_fake12dof.param.1D
+
+# cp map param file: might be useful info
+cp map_fake12dof.param.1D ../${opref}_12dof.param.1D
 
 # --------------------------------------------------------------
 
