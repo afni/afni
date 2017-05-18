@@ -557,13 +557,6 @@ if ( $PRE_LR ) then
         -source "$fin"                    \
         -overwrite
     @ idx += 1
-        #-nomask                           \
-
-    # grep "3dAllineate" _map_lr6.param.1D > _map_lr12.param.1D
-    # set vals = `sed -n '2p' _map_lr6.param.1D`
-    # printf "$vals[1-7] ... and faking\n" >> _map_lr12.param.1D
-    # set vals = `sed -n '3p' _map_lr6.param.1D`
-    # printf "$vals[1-6] 0 0 0 0 0 0\n" >> _map_lr12.param.1D
 
     cat_matvec -ONELINE _map_lr6.aff12.1D -S > _map_lr_half.aff12.1D
 
@@ -649,11 +642,19 @@ set qc2o = $fout
 # That is, make it only the 6 (solid body) DOF params.
 grep "3dAllineate" _map_9dof.param.1D > map_fake12dof.param.1D
 set vals = `sed -n '2p' _map_9dof.param.1D`
-#printf "$vals[1-7] ... and faking\n" >> map_fake12dof.param.1D
-printf "%s\n" "$vals[1-7] ... and faking" >> map_fake12dof.param.1D
+#printf "%s\n" "$vals[1-7] ... and faking" >> map_fake12dof.param.1D
+printf  \
+    "%s %8s %10s %10s %10s %10s %10s   and zero shear/scale\n"    \
+    $vals[1] $vals[2] $vals[3] $vals[4] $vals[5] $vals[6] $vals[7]  \
+    >> map_fake12dof.param.1D
+
 set vals = `sed -n '3p' _map_9dof.param.1D`
-printf "%s\n" "$vals[1-6] 0 0 0 0 0 0" >> map_fake12dof.param.1D
-#printf "$vals[1-6] 0 0 0 0 0 0\n" >> map_fake12dof.param.1D
+#printf "%s\n" "$vals[1-6] 0 0 0 0 0 0" >> map_fake12dof.param.1D
+printf \
+    "%10.5f %10.5f %10.5f %10.5f %10.5f %10.5f   0.0 0.0 0.0 0.0 0.0 0.0\n" \
+    $vals[1] $vals[2] $vals[3] $vals[4] $vals[5] $vals[6]                   \
+    >> map_fake12dof.param.1D
+
 
 # cp map param file: might be useful info
 cp map_fake12dof.param.1D ../${opref}_12dof.param.1D
