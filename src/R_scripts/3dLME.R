@@ -25,7 +25,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dLME ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.9.5, May 2, 2017
+Version 1.9.6, May 19, 2017
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/sscc/gangc/lme.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -451,7 +451,7 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
    "-glfCode k CODING: Specify the k-th general linear F-test (GLF) through a",
    "         weighted combination among factor levels. The symbolic coding has",
    "         to be within (single or double) quotes. For example, the coding",
-   "         'Condition : 1*A -1*B & 1*A -1*C Emotion : 1:pos' tests the main",
+   "         'Condition : 1*A -1*B & 1*A -1*C Emotion : 1*pos' tests the main",
    "         effect of Condition at the positive Emotion. Similarly the coding",
    "         'Condition : 1*A -1*B & 1*A -1*C Emotion : 1*pos -1*neg' shows",
    "         the interaction between the three levels of Condition and the two.",
