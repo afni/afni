@@ -401,6 +401,7 @@ static mday holiday[] = {
    {MAY,14,"Paraguay Independence Day"                               } ,
    {MAY,15,"Israel Independence Day"                                 } ,
    {MAY,16,"Maria Gaetana Agnesi's birthday"                         } ,
+   {MAY,16,"Try Not To Be Stupid Day"                                } ,
    {MAY,17,"Norway National Day"                                     } ,
    {MAY,18,"John Paul II's birthday"                                 } ,
    {MAY,18,"Bertrand Russell's birthday"                             } ,
