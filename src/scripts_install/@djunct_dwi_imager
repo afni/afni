@@ -15,10 +15,13 @@ set this_prog = "@djunct_dwi_imager"
 #set rev_dat = "Feb 24, 2017";  set version = "1.2"
 #   + can output movies
 #
-set rev_dat = "Feb 27, 2017";  set version = "1.3"
+#set rev_dat = "Feb 27, 2017";  set version = "1.3"
 #   + slice number there as IJK in corner
 #
-
+set set version = "1.4";  rev_dat = "May 20, 2017"
+#   + more unique naming of wdir, use rand id; safer for cluster 
+#     runs
+#
 # ----------------- find AFNI and set viewer ---------------------
 
 # find AFNI binaries directory and viewer location
@@ -37,7 +40,8 @@ endif
 set my_viewer    = "$adir/@chauffeur_afni"
 set my_calc_func = "$adir/@djunct_calc_mont_dims.py"
 
-set wdir      = "__WORK_dwi_imager"    # working directory
+set tmp_code = `3dnewid -fun11`    # should be essentially unique hash
+set wdir      = "__WORK_imgr_${tmp_code}"    # working directory
 set DO_CLEAN    = 1
 
 set iset   = ""
@@ -112,6 +116,11 @@ end
 # =======================================================================
 
 echo "++ Start imager script version: $version"
+echo ""
+echo "++ My command:"
+echo "   @djunct_dwi_imager $argv"
+
+# -------------------------------------------------------------------
 
 # NEED these two inputs
 if ( "$iset" == "" ) then
