@@ -1,7 +1,7 @@
 #!/bin/tcsh
 
 set here      = $PWD
-set this_prog = "@djunct_dwi_imager"
+set this_prog = "@djunct_4d_imager"
 
 # --------------------- revision history -------------------------
 #
@@ -47,8 +47,8 @@ set DO_CLEAN    = 1
 set iset   = ""
 set odir   = ""
 
-set opref  = "DWI_IMAGES"
-set mfile0 = "tmpdwi.nii"  
+set opref  = "FOURD_IMAGES"
+set mfile0 = "tmp4d.nii"  
 set svals  = ( )
 
 # final order?
@@ -118,7 +118,7 @@ end
 echo "++ Start imager script version: $version"
 echo ""
 echo "++ My command:"
-echo "   @djunct_dwi_imager $argv"
+echo "   $this_prog $argv"
 
 # -------------------------------------------------------------------
 
@@ -128,13 +128,13 @@ if ( "$iset" == "" ) then
     goto BAD_EXIT
 endif
 
-# make sure we can read DWI OK
+# make sure we can read inset OK
 set check = `3dinfo "$iset"`
 if ( "$#check" == "0" ) then
     echo "** ERROR: can't find inset file:  $iset !"
     goto BAD_EXIT
 else
-    echo "++ Found inset DWI file:   $iset"
+    echo "++ Found inset file:   $iset"
 endif
 
 # ===================== output dir + wdir =======================
@@ -147,7 +147,7 @@ if ( "$odir" == "" ) then
 
     set odir = `dirname "$iset"`
     echo "\n++ No output directory specificied by the user."
-    echo "++ Using the input DWI file's directory by default:"
+    echo "++ Using the input file's directory by default:"
     echo "\t$odir"
 else
     if ( ! -e $odir ) then

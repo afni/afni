@@ -44,7 +44,7 @@ endif
 set my_viewer    = "$adir/@chauffeur_afni"
 set my_selector  = "$adir/@djunct_dwi_selector.bash"
 set my_encoder   = "$adir/@djunct_select_str.py"
-set my_viewer_4d = "$adir/@djunct_dwi_imager"
+set my_viewer_4d = "$adir/@djunct_4d_imager"
 
 # ----------------------- set defaults --------------------------
 

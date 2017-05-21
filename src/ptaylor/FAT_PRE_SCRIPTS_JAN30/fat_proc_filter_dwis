@@ -19,10 +19,10 @@
 #set version = "2.5"
 #set rev_dat = "Feb 20, 2017"
 
-#   + add snapshotting with @djunct_dwi_imager
+#   + add snapshotting with @djunct_*_imager
 #
 #set version = "2.6"; set rev_dat = "Feb 23, 2017"
-#   + add movie-making with @djunct_dwi_imager
+#   + add movie-making with @djunct_*_imager
 #
 #set version = "2.7"; set rev_dat = "Apr 17, 2017"
 #   + I/O standardization
@@ -59,7 +59,7 @@ endif
 
 # default location of viewer: user could modify!
 set my_viewer    = "$adir/@chauffeur_afni"
-set my_viewer_4d = "$adir/@djunct_dwi_imager"
+set my_viewer_4d = "$adir/@djunct_4d_imager"
 
 # ----------------------- set defaults --------------------------
 
