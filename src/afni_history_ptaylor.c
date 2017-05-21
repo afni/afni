@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 20, May , 2017 , PT , "@chauffeur_afni" , MICRO , TYPE_MODIFY,
+   "Temporary files now have more unique names.",
+   "Helps avoid confusion in parallel computations.\n"
+},
+
 { 12, May , 2017 , PT , "3dDWItoDT" , MAJOR , TYPE_NEW_OPT,
    "Added goodness-of-fit measures to '-debug_brik' output.",
    "Two chi-sqs from Papadakis et al. (2003); thx, J Ipser for idea.\n"
