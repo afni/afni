@@ -14,7 +14,7 @@
 #
 #set version = "2.4"
 #set rev_dat = "Feb 19, 2017"
-#   + add snapshotting with @djunct_dwi_imager
+#   + add snapshotting with @djunct_*_imager
 #   + made nicer working dir stuff
 #
 #set version = "2.5"; set rev_dat = "Feb 20, 2017"
@@ -67,7 +67,7 @@ endif
 
 # default location of viewer: user could modify!
 set my_viewer    = "$adir/@chauffeur_afni"
-set my_viewer_4d = "$adir/@djunct_dwi_imager"
+set my_viewer_4d = "$adir/@djunct_4d_imager"
 
 # ----------------- find dcm2niix ---------------------
 
