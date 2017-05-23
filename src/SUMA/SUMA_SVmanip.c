@@ -804,7 +804,7 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
       SV->light1_position[0] = 1.0;
       SV->light1_position[1] = 1.0;
       SV->light1_position[2] = 1.0;
-      SV->light1_position[3] = 0.0;/home/dglen/git01222016/AFNI/src/SUMA
+      SV->light1_position[3] = 0.0;
 
       lightstr = getenv("SUMA_Light1Position");
       if (lightstr) {
