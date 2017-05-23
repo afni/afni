@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 23,  May, 2017, RCR, "timing_tool.py", MICRO, TYPE_MODIFY,
+   "only warn 'ISI error: stimuli overlap' if olap > 0.0001",
+   "Overlap could come from float->ascii->float conversion."
+ } ,
+
  { 23,  May, 2017, RCR, "suma", MICRO, TYPE_GENERAL,
    "warn on NULL glwDrawingAreaWidgetClass",
    NULL
