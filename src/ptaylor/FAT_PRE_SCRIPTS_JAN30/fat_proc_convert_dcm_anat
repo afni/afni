@@ -12,13 +12,19 @@
 #   + majorly updating I/O
 #   + wdir stuff
 #
-set version   = "2.1"; set rev_dat   = "Apr 14, 2017"
+#set version   = "2.1"; set rev_dat   = "Apr 14, 2017"
 #   + try to anonymize
 #   + qc snapshotting
-set version = "2.8"; set rev_dat = "Apr 19, 2017"
+#set version = "2.8"; set rev_dat = "Apr 19, 2017"
 #   + switch to dcm2niix from dcm2nii
 #     -> motivated by Philips scaling requirements
 #     -> prob better to stick with newer, anyways
+#
+#set version = "2.9"; set rev_dat = "Apr 21, 2017"
+#   + no more automask in 3dCM
+#
+set version = "3.0"; set rev_dat = "Apr 26, 2017"
+#   + dcm2niix -> dcm2niix_afni
 #
 # ----------------------------------------------------------------
 
@@ -45,9 +51,9 @@ set my_viewer = "$adir/@chauffeur_afni"
 
 # ----------------- find dcm2niix ---------------------
 
-which dcm2niix >& /dev/null
+which dcm2niix_afni >& /dev/null
 if ( $status ) then
-    echo "** ERROR: Cannot find 'dcm2niix'."
+    echo "** ERROR: Cannot find 'dcm2niix_afni'."
     goto BAD_EXIT
 endif
 
@@ -63,12 +69,13 @@ set opref    = ""
 set DO_REORI = 1
 
 set wdir       = "__WORKING_$tpname"
+set WDIR_EX  = "1"                # put opref on wdir (unless user names)
 set output_cmd = 1                # def: output copy of this command
 set cmd_file   = ""               # def: same name as viewer
 set DO_CLEAN   = "1"              # def: do delete temp files
 set DO_VIEWER  = "1"              # def: do QC image visualization
 set qc_prefix  = ""               # def: autoname; user can enter
-set postfix    = ""               # stick into name
+set postfix    = "_"              # stick into name
 
 set npref      = "nnn"
 
@@ -102,6 +109,7 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set wdir = "$argv[$ac]"
+        set WDIR_EX  = "0"
 
     # -------------- other opts ----------------
     else if ( "$argv[$ac]" == "-orient" ) then
@@ -195,7 +203,12 @@ if ( ! -e "$odir" ) then
     mkdir "$odir"
 endif
 
-set wdir = "$odir/$wdir"
+# and put working directory as subdirectory.
+if ( "$WDIR_EX" == "1" ) then
+    set wdir = $odir/${wdir}_$opref
+else
+    set wdir = $odir/$wdir
+endif
 
 # make the working directory
 if ( ! -e $wdir ) then
@@ -211,7 +224,7 @@ else
 endif
 
 set ocmd   = "${opref}_cmd.txt"      # name for output command
-set ofile  = "${opref}.nii"          # name for output command
+set ofile  = "${opref}.nii.gz"       # name for output command
 
 # =======================================================================
 # =========================== ** PROCESS ** =============================
@@ -233,7 +246,11 @@ endif
 if ( $output_cmd == 1 ) then
     echo "++ Echoing the command to: $cmd_file"
 
-    echo "### Executed from the directory location:"  > $cmd_file
+    set rec_afni_ver = `afni -ver`
+    echo "### AFNI version:"  > $cmd_file
+    echo "# $rec_afni_ver\n"            >> $cmd_file
+
+    echo "### Executed from the directory location:"  >> $cmd_file
     echo "# $here\n"            >> $cmd_file
     echo "### The command was:" >> $cmd_file
     echo "# $this_prog $argv"   >> $cmd_file
@@ -243,7 +260,7 @@ endif
 # ======================== convert dicoms ===============================
 
 # place output into wdir, using gzipped files
-dcm2niix  \
+dcm2niix_afni  \
         -z y              \
         -x n              \
         -p y              \
@@ -290,7 +307,7 @@ if ( $DO_REORI ) then
         -overwrite
 
     # put (0, 0, 0) at center of mass.  (Aug, 2016)
-    3dCM -automask -set 0 0 0 ../$ofile
+    3dCM -set 0 0 0 ../$ofile
 
 else
     # chicken...
@@ -320,9 +337,9 @@ endif
 if ( "$DO_VIEWER" == "1" ) then
 
     if( $qc_prefix == "" ) then
-        set vpref0 = ${opref}_${postfix}_qc00_anat
+        set vpref0 = ${opref}${postfix}_qc00_anat
     else
-        set vpref0 = ${qc_prefix}_${postfix}_qc00_anat
+        set vpref0 = ${qc_prefix}${postfix}_qc00_anat
     endif
 
     echo "\n\n"
@@ -369,7 +386,8 @@ cat << EOF
     *totally* useless; more options while converting might be added
     over time, as well.)
 
-    REQUIRES: AFNI, dcm2nii.
+    REQUIRES: AFNI (which should now contain dcm2niix_afni, the
+    version of dcm2niix [by C. Rorden] distributed in AFNI).
 
     Ver. $version (PA Taylor, ${rev_dat})
 

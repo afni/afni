@@ -28,9 +28,22 @@
 #   + fix when res struct and dwi don't have same origin to start
 #   + add QC snapshot of b0 edges overlayed on orig anat
 #
-set version   = "1.8";    set rev_dat   = "Apr 13, 2017"
+#set version   = "1.8";    set rev_dat   = "Apr 13, 2017"
 #   + alter I/O to be consistent across progs
 #   + wdir update
+#
+#set version   = "1.9";    set rev_dat   = "Apr 26, 2017"
+#   + wdir update
+#
+#set version   = "2.0";    set rev_dat   = "May 1, 2017"
+#   + add in ability to mask struc set
+#
+#set version   = "2.1";    set rev_dat   = "May 12, 2017"
+#   + fixed error if no anat entered
+#
+set version   = "2.2";    set rev_dat   = "May 17, 2017"
+#   + now '3dDWItoDT -debug_briks ...' by default
+#   + Has some fit-type parameters there.
 #
 # ----------------------------------------------------------------
 
@@ -60,7 +73,7 @@ set my_viewer = "$adir/@chauffeur_afni"
 set idwi     = ""                 # necessary input: DWI dset
 set invecmat = ( "" "" "" "" )    # switches+names for bvecs and bvals
 set imask    = ""                 # optional mask; otherwise, automask
-set ianat    = ""                 # optional struc vol (like in TORT)
+set istrc    = ""                 # optional struc vol (like in TORT)
 set iref     = ""                 # option, for getting orient + orig
 
 set iflip    = ""                 # for 1dDW_*++: can flip (yaaawn)
@@ -78,7 +91,7 @@ set qc_fa_max   = 0.9             # def: FA olay max for QC
 set output_cmd  = 1               # def: output copy of this command
                                   # -> should expand to have all cmds
 set cmd_file    = ""              # def: same name as viewer
-set postfix     = ""              # stick into name
+set postfix     = "_"             # stick into name
 
 set DO_UNCERT   = 1
 set Niters      = 300
@@ -86,6 +99,9 @@ set extra_unc_cmds = ""
 
 set DO_CLEAN = "1"
 set wdir     = "__WORKING_$tpname"
+set WDIR_EX  = "1"                # put opref on wdir (unless user names)
+
+set DO_STRUC_MASK = "0"
 
 # ------------------- process options, a la rr ----------------------
 
@@ -115,12 +131,16 @@ while ( $ac <= $#argv )
     else if ( "$argv[$ac]" == "-in_struc_res" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
-        set ianat = "$argv[$ac]"
+        set istrc = "$argv[$ac]"
 
     else if ( "$argv[$ac]" == "-in_ref_orig" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set iref = "$argv[$ac]"
+
+    # ------------- make mask from struc --------------
+    else if ( "$argv[$ac]" == "-mask_from_struc" ) then
+        set DO_STRUC_MASK = "1"
 
     # ------------- input vecmat and bval --------------
     else if ( "$argv[$ac]" == "-in_col_matA" ) then
@@ -172,6 +192,7 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set wdir = "$argv[$ac]"
+        set WDIR_EX  = "0"
 
     # ----------------- other opts ---------------------
     else if ( ("$argv[$ac]" == "-flip_x") || \
@@ -279,13 +300,13 @@ if ( "$imask" != "" ) then
 endif
 
 # check if ANAT was input, then if can be read
-if ( "$ianat" != "" ) then
-    set check = `3dinfo "$ianat"`
+if ( "$istrc" != "" ) then
+    set check = `3dinfo "$istrc"`
     if ( "$#check" == "0" ) then
-        echo "** ERROR: can't find input anatomical file:  $ianat !"
+        echo "** ERROR: can't find input anatomical file:  $istrc !"
         goto BAD_EXIT
     else
-        echo "++ Found inset input file:   $ianat"
+        echo "++ Found inset input file:   $istrc"
     endif
 endif
 
@@ -298,6 +319,22 @@ if ( "$iref" != "" ) then
     else
         echo "++ Found input ref file:   $iref"
         set ori_new = `3dinfo -orient "$iref"`
+    endif
+endif
+
+# can't have struc mask opt used if no struc vol, and can't input
+# another mask
+if ( "$DO_STRUC_MASK" == "1" ) then
+    if ( "$istrc" == "" ) then
+        echo "** ERROR: you asked for masking a struc file, but no such"
+        echo "**        struc file was input using '-in_struc_res ...'"
+        goto BAD_EXIT
+    endif
+    if ( "$imask" != "" ) then
+        echo "** ERROR: you asked for masking a struc file, but you also"
+        echo "**        input a mask file using '-mask ...'."
+        echo "**        Sorry, mate, can't have both!"
+        goto BAD_EXIT
     endif
 endif
 
@@ -339,7 +376,11 @@ if ( ! -e "$odir" ) then
 endif
 
 # and put working directory as subdirectory.
-set wdir = $odir/$wdir
+if ( "$WDIR_EX" == "1" ) then
+    set wdir = $odir/${wdir}_$opref
+else
+    set wdir = $odir/$wdir
+endif
 
 # make the working directory
 if ( ! -e $wdir ) then
@@ -388,7 +429,11 @@ endif
 if ( $output_cmd == 1 ) then
     echo "++ Echoing the command to: $cmd_file"
 
-    echo "### Executed from the directory location:"  > $cmd_file
+    set rec_afni_ver = `afni -ver`
+    echo "### AFNI version:"  > $cmd_file
+    echo "# $rec_afni_ver\n"            >> $cmd_file
+
+    echo "### Executed from the directory location:"  >> $cmd_file
     echo "# $here\n"            >> $cmd_file
     echo "### The command was:" >> $cmd_file
     echo "# $this_prog $argv"   >> $cmd_file
@@ -437,39 +482,39 @@ if ( "$iref" != "" ) then
         set tmp_idwi = "$idwi"
     endif
 
-    if ( "$ianat" != "" ) then
+    if ( "$istrc" != "" ) then
 
         # resample anat, if nec; then use it to find shift to get to
         # refspace
-        set tmp_ianat = $wdir/anat_res.nii
+        set tmp_istrc = $wdir/anat_res.nii
 
-        set ori_anat = `3dinfo -orient "$ianat"`
+        set ori_anat = `3dinfo -orient "$istrc"`
 
         if ( "$ori_anat" != "$ori_new" ) then
             echo "++ Resampling/fitting input anat vol."
             3dresample               \
                 -echo_edu            \
                 -overwrite           \
-                -inset  "$ianat"     \
+                -inset  "$istrc"     \
                 -orient "$ori_new"   \
-                -prefix $tmp_ianat
+                -prefix $tmp_istrc
         else
             # ... or just use input file as is
             echo "++ Copying input anat vol."
             3dcalc                   \
                 -echo_edu            \
                 -overwrite           \
-                -a "$ianat"          \
+                -a "$istrc"          \
                 -expr 'a'            \
-                -prefix $tmp_ianat
+                -prefix $tmp_istrc
         endif
 
         # check IJK dimensions of anat and dwi. [March 10, 2017]
-        set dimA = `3dinfo -n4 $tmp_ianat`
+        set dimA = `3dinfo -n4 $tmp_istrc`
         set dimD = `3dinfo -n4 $tmp_idwi`
         foreach i ( `seq 1 1 3` ) 
             if ( $dimA[$i] != $dimD[$i] ) then
-                echo "** ERROR! IJK dimensions of $ianat and $idwi do not match!"
+                echo "** ERROR! IJK dimensions of $istrc and $idwi don't match!"
                 goto BAD_EXIT
             endif
         end
@@ -479,7 +524,28 @@ if ( "$iref" != "" ) then
         3drefit                      \
             -echo_edu                \
             -duporigin $tmp_idwi     \
-            $tmp_ianat
+            $tmp_istrc
+
+        # [May 2, 2017]
+        if ( "$DO_STRUC_MASK" == "1" ) then
+            set ss_istrc = $wdir/anat_ss.nii
+            set imask    = $wdir/anat_mask.nii
+
+            3dSkullStrip \
+                -echo_edu               \
+                -overwrite              \
+                -mask_vol               \
+                -prefix $ss_istrc       \
+                -input  $tmp_istrc
+
+            # smooth out a bit, maybe fill small holes, and make
+            # output be smoothed
+            3dmask_tool                 \
+                -overwrite                    \
+                -prefix $imask                \
+                -dilate_inputs 2 -2           \
+                -inputs  $ss_istrc
+        endif
 
         # now do alignment to ref anat
         set isetinref  = $wdir/anat_in_ref.nii
@@ -492,7 +558,7 @@ if ( "$iref" != "" ) then
             -final wsinc5                \
             -1Dparam_save $map_to_ref    \
             -warp shift_only             \
-            -source $tmp_ianat           \
+            -source $tmp_istrc           \
             -base "$iref"                \
             -prefix $isetinref           \
             -overwrite
@@ -518,16 +584,16 @@ if ( "$iref" != "" ) then
 
         echo "++ Initial QC images: how did we align to ref?"
 
-        if ( "$ianat" == "" ) then
+        if ( "$istrc" == "" ) then
             set ffo = "b0"
         else
             set ffo = "struc"
         endif
 
         if( $qc_prefix == "" ) then
-            set vpref0 = ${opref}_${postfix}_qc00_ref_u_$ffo
+            set vpref0 = ${opref}${postfix}_qc00_ref_u_$ffo
         else
-            set vpref0 = ${qc_prefix}_${postfix}_qc00_ref_u_$ffo
+            set vpref0 = ${qc_prefix}${postfix}_qc00_ref_u_$ffo
         endif
 
         echo "\n\n"
@@ -575,11 +641,11 @@ if ( "$iref" != "" ) then
         -dzorigin "$sss[3]"  \
         $odir/$odwi
 
-    if ( "$ianat" != "" ) then
+    if ( "$istrc" != "" ) then
         3dcalc                   \
             -echo_edu            \
             -overwrite           \
-            -a  "$tmp_ianat"     \
+            -a  "$tmp_istrc"     \
             -expr 'a'            \
             -prefix $odir/$oanat
         3drefit                  \
@@ -598,12 +664,14 @@ else
         -expr 'a'            \
         -prefix $odir/$odwi
 
-    3dcalc                   \
-        -echo_edu            \
-        -overwrite           \
-        -a  "$ianat"         \
-        -expr 'a'            \
-        -prefix $odir/$oanat
+    if ( "$istrc" != "" ) then
+        3dcalc                   \
+            -echo_edu            \
+            -overwrite           \
+            -a  "$istrc"         \
+            -expr 'a'            \
+            -prefix $odir/$oanat
+    endif
 endif
 
 # ----------------- WB mask: make or copy -------------
@@ -617,13 +685,19 @@ if ( "$imask" == "" ) then
         -prefix $odir/$omask  \
         $odir/$odwi'[0]'
 else
-    # just copy
+    # just copy mask and apply transform [May 2, 2017]
     3dcalc                    \
         -echo_edu             \
         -overwrite            \
         -a  $imask            \
         -expr 'a'             \
         -prefix $odir/$omask
+
+    3drefit                  \
+        -dxorigin "$sss[1]"  \
+        -dyorigin "$sss[2]"  \
+        -dzorigin "$sss[3]"  \
+        $odir/$omask
 endif
 
 # [March 10, 2017]
@@ -649,9 +723,9 @@ if ( $DO_VIEWER ) then
             -input  $b0mskd
 
         if( $qc_prefix == "" ) then
-            set vpref0 = ${opref}_${postfix}_qc01_ref_u_eb0
+            set vpref0 = ${opref}${postfix}_qc01_ref_u_eb0
         else
-            set vpref0 = ${qc_prefix}_${postfix}_qc01_ref_u_eb0
+            set vpref0 = ${qc_prefix}${postfix}_qc01_ref_u_eb0
         endif
 
         echo "\n\n"
@@ -679,10 +753,11 @@ endif
 
 # ------------------- tensor fit -----------------
 
-echo "++ Fitting tensor and estimating params to make:  $odir/${dti_par}*"
+echo "++ Fitting tensor, estimating params and fit:  $odir/${dti_par}*"
 3dDWItoDT                              \
     -echo_edu                          \
     -overwrite                         \
+    -debug_briks                       \
     -eigs -nonlinear -sep_dsets        \
     $sca                               \
     -prefix       $odir/$dti_par       \
@@ -712,11 +787,11 @@ if ( $DO_VIEWER ) then
     echo "++ Making QC images."
 
     if( $qc_prefix == "" ) then
-        set vpref0 = ${opref}_${postfix}_qc02_ref_u_b0
-        set vpref1 = ${opref}_${postfix}_qc03_MD_u_FA_thr${qc_fa_thr}
+        set vpref0 = ${opref}${postfix}_qc02_ref_u_b0
+        set vpref1 = ${opref}${postfix}_qc03_MD_u_FA_thr${qc_fa_thr}
     else
-        set vpref0 = ${qc_prefix}_${postfix}_qc02_ref_u_b0
-        set vpref1 = ${qc_prefix}_${postfix}_qc03_MD_u_FA_thr${qc_fa_thr}
+        set vpref0 = ${qc_prefix}${postfix}_qc02_ref_u_b0
+        set vpref1 = ${qc_prefix}${postfix}_qc03_MD_u_FA_thr${qc_fa_thr}
     endif
 
     if( "$iref" != "" ) then
@@ -815,9 +890,9 @@ cat << EOF
    -prefix        PPP                             \
    {-in_bvals     BVAL}                           \
    {-mask         MASK}                           \
+   {-mask_from_struc}                             \
    {-in_struc_res STRUC}                          \
    {-in_ref_orig  REF}                            \
-   {-outdir       ODIR}                           \
    {-prefix_dti   PREFIX_D}                       \
    {-flip_x | -flip_y | -flip_z | -no_flip}       \
    {-no_scale_out_1000}                           \
@@ -855,9 +930,19 @@ cat << EOF
                      :can flip the DW grads, if needed; for example, 
                       based on the recommendation of @GradFlipTest.
 
-   -mask        MASK :optional whole brain mask can be input;
+   -mask    MASK     :optional whole brain mask can be input;
                       otherwise, automasking is performed for the 
                       region to be tensor and parameter fit.
+   -mask_from_struc  :flag to make a mask using 3dSkullStrip+3dmask_tool
+                      from the STRUC file.
+          ----> If no "-mask*" option is given, then 3dAutomask is run on 
+                the DWI set.  This often ain't great, so if TORTOISE isn't
+                producing a mask, 1) email Okan and ask him about that, and
+                2) try '-mask_from_struc'.
+                ALSO, if you want the whole volume to be estimated tensorially
+                for some reason, then make a volume fully filled with 1s and
+                pass that in as the MASK, et voila (but then calcs will likely
+                be slooow).
 
    -in_ref_orig REF  :use another data set to adjust the DWI (and
                       subsequent parameter) dsets' orientation and
@@ -874,7 +959,7 @@ cat << EOF
                       REF data set via ANAT: a version of the anatomical 
                       that has been resampled to match the DWI set (in 
                       both orientation and origin);  for example, in
-                      TORTOISE there is a 'structure.nii' file that should
+                      TORTOISE there is a 'structural.nii' file that should
                       match this description.  Both ANAT and DWI should 
                       then be well aligned to the original REF (and to  
                       each other). *Highly recommended to include!*
@@ -932,9 +1017,21 @@ cat << EOF
     $this_prog \
         -in_dwi       DWI.nii                \
         -in_col_matA  BMTXT_AFNI.txt         \
-        -in_struc_res ../structure.nii       \
+        -in_struc_res ../structural.nii      \
         -in_ref_orig  t2w.nii                \
-        -outdir       DTI 
+        -mask         mask_DWI.nii.gz        \
+        -prefix       OUTPUT/dwi
+
+    or
+
+    $this_prog \
+        -in_dwi        ap_proc_DRBUDDI_final.nii    \
+        -in_col_matT   ap_proc_DRBUDDI_final.bmtxt  \
+        -in_struc_res  structural.nii               \
+        -in_ref_orig   t2w.nii                      \
+        -mask_from_struc                            \
+        -prefix        dwi_03/dwi
+
 
 -------------------------------------------------------------------------
 

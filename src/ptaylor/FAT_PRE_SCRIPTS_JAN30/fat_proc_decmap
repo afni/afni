@@ -17,10 +17,13 @@
 #   + more QC output (sca and unwt+thr)
 #   + sca and thr opts in
 #
-set version   = "2.9"; set rev_dat   = "Apr 11, 2017"
+#set version   = "2.9"; set rev_dat   = "Apr 11, 2017"
 #   + printf fix
 #   + working dir better
 #   + output command
+#
+set version   = "3.0"; set rev_dat   = "Apr 26, 2017"
+#   + wdir naming
 #
 # ----------------------------------------------------------------
 
@@ -58,6 +61,7 @@ set tpref     = "tdwi"
 set copy_fa   = "${tpref}_FA.nii"
 
 set wdir       = "__WORKING_$tpname"
+set WDIR_EX  = "1"                # put opref on wdir (unless user names)
 set output_cmd = 1                # def: output copy of this command
 set cmd_file   = ""               # def: same name as viewer
 set DO_CLEAN    = "1"             # def: do delete temp files
@@ -65,11 +69,11 @@ set DO_VIEWER  = 1                # def: do QC image visualization
 
 set sca_fa    = "0.7"            # optional user scaling for a brighter img
 
-set postfix   = ""               
-set postfix0  = "dec"            # stick into name
-set postfix1  = "dec_unwt_thr"   # stick into name: unwtd, but thresholded
-set postfix2  = "dec_sca"        # stick into name: unwtd, but thresholded
-set thr_fa    = "0.2"            # for unweighted but thresholded image
+set postfix   = "_"               
+set postfix0  = "_dec"            # stick into name
+set postfix1  = "_dec_unwt_thr"   # stick into name: unwtd, but thresholded
+set postfix2  = "_dec_sca"        # stick into name: unwtd, but thresholded
+set thr_fa    = "0.2"             # for unweighted but thresholded image
 
 # ------------------- process options, a la rr ----------------------
 
@@ -110,6 +114,7 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set wdir = "$argv[$ac]"
+        set WDIR_EX  = "0"
 
     # --------------- other opts -------------------
 
@@ -190,7 +195,12 @@ if ( ! -e "$odir" ) then
     mkdir "$odir"
 endif
 
-set wdir = "$odir/$wdir"
+# and put working directory as subdirectory.
+if ( "$WDIR_EX" == "1" ) then
+    set wdir = $odir/${wdir}_$opref
+else
+    set wdir = $odir/$wdir
+endif
 
 # make the working directory
 if ( ! -e $wdir ) then
@@ -227,7 +237,11 @@ endif
 if ( $output_cmd == 1 ) then
     echo "++ Echoing the command to: $cmd_file"
 
-    echo "### Executed from the directory location:"  > $cmd_file
+    set rec_afni_ver = `afni -ver`
+    echo "### AFNI version:"  > $cmd_file
+    echo "# $rec_afni_ver\n"            >> $cmd_file
+
+    echo "### Executed from the directory location:"  >> $cmd_file
     echo "# $here\n"            >> $cmd_file
     echo "### The command was:" >> $cmd_file
     echo "# $this_prog $argv"   >> $cmd_file
@@ -323,7 +337,7 @@ cd $wdir
 
 # "classical" dec map
 set fin0  = "$fout_wtd"
-set fout0 = "${opref}_${postfix0}.nii"
+set fout0 = "${opref}${postfix0}.nii"
 3dThreetoRGB                             \
     -echo_edu                            \
     -overwrite                           \
@@ -334,7 +348,7 @@ set fout0 = "${opref}_${postfix0}.nii"
 
 # "other" dec map
 set fin1  = "$fout_uwtd"
-set fout1 = "${opref}_${postfix1}.nii"
+set fout1 = "${opref}${postfix1}.nii"
 3dThreetoRGB                             \
     -echo_edu                            \
     -overwrite                           \
@@ -346,7 +360,7 @@ set fout1 = "${opref}_${postfix1}.nii"
 if ( $sca_fa != "" ) then
     # "other" dec map
     set fin2  = "$fout_sca"
-    set fout2 = "${opref}_${postfix2}.nii"
+    set fout2 = "${opref}${postfix2}.nii"
     3dThreetoRGB                             \
         -echo_edu                            \
         -overwrite                           \
@@ -360,13 +374,13 @@ if ( $DO_VIEWER ) then
 
     echo "++ Making QC images."
     if( $qc_prefix == "" ) then
-        set vpref0 = ${opref}_${postfix}_qc0_${postfix0}
-        set vpref1 = ${opref}_${postfix}_qc1_${postfix1}_"$thr_fa"
-        set vpref2 = ${opref}_${postfix}_qc2_${postfix2}_"$sca_fa"
+        set vpref0 = ${opref}${postfix}_qc0${postfix0}
+        set vpref1 = ${opref}${postfix}_qc1${postfix1}_"$thr_fa"
+        set vpref2 = ${opref}${postfix}_qc2${postfix2}_"$sca_fa"
     else
-        set vpref0 = ${qc_prefix}_${postfix}_qc0_${postfix0}
-        set vpref1 = ${qc_prefix}_${postfix}_qc1_${postfix1}_"$thr_fa"
-        set vpref2 = ${qc_prefix}_${postfix}_qc2_${postfix2}_"$sca_fa"
+        set vpref0 = ${qc_prefix}${postfix}_qc0${postfix0}
+        set vpref1 = ${qc_prefix}${postfix}_qc1${postfix1}_"$thr_fa"
+        set vpref2 = ${qc_prefix}${postfix}_qc2${postfix2}_"$sca_fa"
     endif
 
     echo "++ QC image #0 (weighted+unthresholded dec): $vpref0"
@@ -521,33 +535,33 @@ cat << EOF
 
   OUTPUTS:
 
-    PREFIX_${postfix0}.nii.gz 
+    PREFIX${postfix0}.nii.gz 
         a single file of type 'rgb' that AFNI knows how to 
         display with RGB coloration when viewed as underlay: 
         made by using V1 as RGB and weighting by FA values
 
-    PREFIX_${postfix1}.nii.gz 
+    PREFIX${postfix1}.nii.gz 
         a single file of type 'rgb' that AFNI knows how to 
         display with RGB coloration when viewed as underlay: 
         made by using V1 as RGB, *not* weighting by FA, but using FA
         to threshold where DEC values are calculated (def: FA>0.2).
 
-    PREFIX_${postfix2}*.nii.gz 
-        A similar file to PREFIX_${postfix0}.nii.gz, but additionally
+    PREFIX${postfix2}*.nii.gz 
+        A similar file to PREFIX${postfix0}.nii.gz, but additionally
         scaled by a value (such as 0.7; see "-sca_fa SSS" option
         above); this can 'brighten' the DEC map for clarity.
 
-    PREFIX_${postfix0}_qc0*.png
+    PREFIX${postfix0}_qc0*.png
         a set cor, axi and sag images (each a 5x3 montage) of the 
-        PREFIX_${postfix0}.nii.gz data set.
+        PREFIX${postfix0}.nii.gz data set.
 
-    PREFIX_${postfix1}_qc1*.png
+    PREFIX${postfix1}_qc1*.png
         a set cor, axi and sag images (each a 5x3 montage) of the 
-        PREFIX_${postfix1}.nii.gz data set.
+        PREFIX${postfix1}.nii.gz data set.
 
-    PREFIX_${postfix2}*_qc2*.png
+    PREFIX${postfix2}*_qc2*.png
         a set cor, axi and sag images (each a 5x3 montage) of the 
-        PREFIX_${postfix2}.nii.gz data set.
+        PREFIX${postfix2}.nii.gz data set.
 
     (working directory of temp files: these can be deleted, as desired.)
 
@@ -558,7 +572,8 @@ cat << EOF
     $this_prog  \
         -in_fa DTI/DT_FA+orig.                    \
         -in_v1 DTI/DT_V1+orig.                    \
-        -mask  mask_DWI+orig 
+        -mask  mask_DWI+orig                      \
+        -prefix DEC
 
 -------------------------------------------------------------------------
 EOF

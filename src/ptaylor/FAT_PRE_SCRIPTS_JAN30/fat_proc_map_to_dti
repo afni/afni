@@ -19,10 +19,13 @@
 #set version   = "1.3";    set rev_dat   = "March 21, 2017"
 #   + consistent option/help names
 #
-set version   = "1.4";    set rev_dat   = "Apr 12, 2017"
+#set version   = "1.4";    set rev_dat   = "Apr 12, 2017"
 #   + standardizing names, I/O
 #   + change option names
 #   + allow 3dAllineate matrix to be input+applied
+#
+set version   = "1.5";  set rev_dat   = "Apr 26, 2017"
+#   + better naming wdir
 #
 # ---------------------------------------------------------------
 
@@ -62,10 +65,11 @@ set fWS5       = ()              # followers to be interpolated with wsinc5
 set DO_VIEWER  = 1               # def: do viewing
 set DO_CLEAN   = "1"
 set wdir       = "__WORKING_$tpname"
+set WDIR_EX  = "1"               # put opref on wdir (unless user names)
 set output_cmd = 1               # def: output copy of this command
 set cmd_file   = ""              # def: same name as viewer
 set qc_prefix  = ""              # def: autoname; user can enter
-set postfix    = ""              # stick into name
+set postfix    = "_"             # stick into name
 
 # ------------------- process options, a la rr ----------------------
 
@@ -121,6 +125,7 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set wdir = "$argv[$ac]"
+        set WDIR_EX  = "0"
 
     # -------------- get followers --------------------
     # can be arbitrary list (a bit clunky method...)
@@ -244,7 +249,12 @@ if ( ! -e "$odir" ) then
     mkdir "$odir"
 endif
 
-set wdir = "$odir/$wdir"
+# and put working directory as subdirectory.
+if ( "$WDIR_EX" == "1" ) then
+    set wdir = $odir/${wdir}_$opref
+else
+    set wdir = $odir/$wdir
+endif
 
 # make the working directory
 if ( ! -e $wdir ) then
@@ -285,7 +295,11 @@ endif
 if ( $output_cmd == 1 ) then
     echo "++ Echoing the command to: $cmd_file"
 
-    echo "### Executed from the directory location:"  > $cmd_file
+    set rec_afni_ver = `afni -ver`
+    echo "### AFNI version:"  > $cmd_file
+    echo "# $rec_afni_ver\n"            >> $cmd_file
+
+    echo "### Executed from the directory location:"  >> $cmd_file
     echo "# $here\n"            >> $cmd_file
     echo "### The command was:" >> $cmd_file
     echo "# $this_prog $argv"   >> $cmd_file
@@ -444,11 +458,11 @@ if ( $DO_VIEWER == 1 ) then
         -input  $odir/$osrc
 
     if( $qc_prefix == "" ) then
-        set vpref0 = ${opref}_${postfix}_qc00_base_u_esrc
-        set vpref1 = ${opref}_${postfix}_qc01_base_u_src
+        set vpref0 = ${opref}${postfix}_qc00_base_u_esrc
+        set vpref1 = ${opref}${postfix}_qc01_base_u_src
     else
-        set vpref0 = ${qc_prefix}_${postfix}_qc00_base_u_esrc
-        set vpref1 = ${qc_prefix}_${postfix}_qc01_base_u_src
+        set vpref0 = ${qc_prefix}${postfix}_qc00_base_u_esrc
+        set vpref1 = ${qc_prefix}${postfix}_qc01_base_u_src
     endif
 
     echo "\n\n"
@@ -503,9 +517,9 @@ if ( $DO_VIEWER == 1 ) then
         set ppp = `echo "$pp" | cut -c ${sss}-`
 
         if( $qc_prefix == "" ) then
-            set vprefnn = ${opref}_${postfix}_qc_$ppp
+            set vprefnn = ${opref}${postfix}_qc_$ppp
         else
-            set vprefnn = ${qc_prefix}_${postfix}_qc_$ppp
+            set vprefnn = ${qc_prefix}${postfix}_qc_$ppp
         endif
 
         $my_viewer                            \
@@ -539,9 +553,9 @@ if ( $DO_VIEWER == 1 ) then
         set ppp = `echo "$pp" | cut -c ${sss}-`
 
         if( $qc_prefix == "" ) then
-            set vprefnn = ${opref}_${postfix}_qc_$ppp
+            set vprefnn = ${opref}${postfix}_qc_$ppp
         else
-            set vprefnn = ${qc_prefix}_${postfix}_qc_$ppp
+            set vprefnn = ${qc_prefix}${postfix}_qc_$ppp
         endif
 
         $my_viewer                            \
@@ -701,7 +715,6 @@ cat << EOF
     $this_prog  \
         -source       brain.nii            \
         -base         dwi_dwi.nii.gz'[0]'  \
-        -outdir       SUB001               \
         -prefix       indti                \
         -followers_NN  aparc*_REN_*.nii.gz 
 

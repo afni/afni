@@ -455,7 +455,7 @@ examples (very basic for now):
 
    Example 28. convert slice order to slice times.
 
-       A slice order might be the sequence in which silces were acquired.
+       A slice order might be the sequence in which slices were acquired.
        For example, with 33 slices, perhaps the order is:
 
           set slice_order = ( 0 6 12 18 24 30 1 7 13 19 25 31 2 8 14 20 \\

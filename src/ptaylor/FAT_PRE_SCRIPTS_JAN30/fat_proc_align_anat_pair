@@ -1,5 +1,7 @@
 #!/bin/tcsh -e
 
+# !!!!!?   Why use f00*, f01*, f02*, etc.? is iidx instead?
+
 # written by PA Taylor (NIMH, NIH, USA)
 # started March, 2017
 
@@ -13,8 +15,14 @@
 #   + help text added
 #   + no-clean option added
 #
-set version   = "1.2";    set rev_dat   = "Apr 12, 2017"
+#set version   = "1.2";    set rev_dat   = "Apr 12, 2017"
 #   + standardize I/O, helpfile, option names
+#
+#set version   = "1.3";    set rev_dat   = "Apr 26, 2017"
+#   + newer wdir convention
+#
+set version   = "1.4";    set rev_dat   = "May 1, 2017"
+#   + Align t2w -> t1w and reverse (better masking/weighting)
 #
 # ---------------------------------------------------------------
 
@@ -58,10 +66,11 @@ set opref      = ""
 set DO_VIEWER  = 1               # def: do viewing
 set DO_CLEAN   = "1"
 set wdir       = "__WORKING_$tpname"
+set WDIR_EX  = "1"               # put opref on wdir (unless user names)
 set output_cmd = 1               # def: output copy of this command
 set cmd_file   = ""              # def: same name as viewer
 set qc_prefix  = ""              # def: autoname; user can enter
-set postfix    = ""              # stick into name
+set postfix    = "_"             # stick into name
 
 # ------------------- process options, a la rr ----------------------
 
@@ -108,6 +117,7 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set wdir = "$argv[$ac]"
+        set WDIR_EX  = "0"
 
     else if ( "$argv[$ac]" == "-no_cmd_out" ) then
         set output_cmd = 0
@@ -190,7 +200,12 @@ if ( ! -e "$odir" ) then
     mkdir "$odir"
 endif
 
-set wdir = "$odir/$wdir"
+# and put working directory as subdirectory.
+if ( "$WDIR_EX" == "1" ) then
+    set wdir = $odir/${wdir}_$opref
+else
+    set wdir = $odir/$wdir
+endif
 
 # make the working directory
 if ( ! -e $wdir ) then
@@ -254,7 +269,11 @@ endif
 if ( $output_cmd == 1 ) then
     echo "++ Echoing the command to: $cmd_file"
 
-    echo "### Executed from the directory location:"  > $cmd_file
+    set rec_afni_ver = `afni -ver`
+    echo "### AFNI version:"  > $cmd_file
+    echo "# $rec_afni_ver\n"            >> $cmd_file
+
+    echo "### Executed from the directory location:"  >> $cmd_file
     echo "# $here\n"            >> $cmd_file
     echo "### The command was:" >> $cmd_file
     echo "# $this_prog $argv"   >> $cmd_file
@@ -296,23 +315,34 @@ echo ${v1[2]}
 set t1align   = $wdir/f05_t1align.nii
 if ( "$imtrx" == "" ) then
 
-    echo "++ Calculating alignment matrix."
+    echo "++ Calculating alignment (t2w -> t1w) matrix."
+
+    set mt_t2_t1 = $wdir/map_t2w_to_t1w.aff12.1D
+    set mt_t1_t2 = $wdir/map_t1w_to_t2w.aff12.1D
 
     set imtrx = $wdir/map_to_t2w.aff12.1D
 
     3dAllineate   -echo_edu               \
         -warp shift_rotate                \
-        -1Dmatrix_save  $imtrx            \
+        -1Dmatrix_save  $mt_t2_t1         \
         -prefix         "$t1align"        \
-        -base           "$it2w"           \
+        -source         "$it2w"           \
+        -base           "$t1thr"          \
         -twopass                          \
         -cost lpc                         \
         -cmass                            \
         -source_automask                  \
         -autoweight                       \
-        -source "$t1thr"                  \
         -final wsinc5                     \
         -overwrite
+
+    # get inverse
+    echo "++ Inverting alignment matrix (to get t1w -> t2w)."
+    cat_matvec -ONELINE                   \
+        $mt_t2_t1 -I                      \
+        >> $mt_t1_t2
+    
+    set imtrx = $mt_t1_t2
 endif
 
 echo "++ Apply alignment matrix."
@@ -395,7 +425,11 @@ set fres  = `3dinfo -ad3 ${T1TOCOPY}`
 
 echo "++ Done workin'.  Just need to copy the final dset."
 
-3dcopy $T1TOCOPY $odir/$ot1w
+3dcalc                         \
+    -overwrite                 \
+    -a $T1TOCOPY               \
+    -expr 'a'                  \
+    -prefix $odir/$ot1w
 
 if ( $DO_VIEWER == 1 ) then
 
@@ -408,11 +442,11 @@ if ( $DO_VIEWER == 1 ) then
         -input  $odir/$ot1w
 
     if( $qc_prefix == "" ) then
-        set vpref0 = ${opref}_${postfix}_qc00_t2w_u_et1w
-        set vpref1 = ${opref}_${postfix}_qc01_t2w_u_t1w
+        set vpref0 = ${opref}${postfix}_qc00_t2w_u_et1w
+        set vpref1 = ${opref}${postfix}_qc01_t2w_u_t1w
     else
-        set vpref0 = ${qc_prefix}_${postfix}_qc00_t2w_u_et1w
-        set vpref1 = ${qc_prefix}_${postfix}_qc01_t2w_u_t1w
+        set vpref0 = ${qc_prefix}${postfix}_qc00_t2w_u_et1w
+        set vpref1 = ${qc_prefix}${postfix}_qc01_t2w_u_t1w
     endif
 
     echo "\n\n"
@@ -588,16 +622,16 @@ cat << EOF
     # have isotropic 1x1x1 mm final anat:
     $this_prog  \
         -in_t1w    MPRAGE.nii.gz        \
+        -in_t2w    T2w_anat.nii.gz      \
         -newgrid   1.0                  \
-        -outdir    SUB001               \
         -prefix    t1w_alnd
 
     # match the final anat resolution to that of the t2w dset:
     $this_prog  \
         -in_t1w    MPRAGE.nii.gz        \
-        -out_t2w   T2w_anat.nii.gz      \
-        -outdir    SUB001               \
-        -prefix    t1w_alnd
+        -in_t2w    T2w_anat.nii.gz      \
+        -out_t2w_grid                   \
+        -prefix    t1w_alndb
 
 
 # -----------------------------------------------------------------------

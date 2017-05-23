@@ -66,6 +66,56 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 20, May , 2017 , PT , "@chauffeur_afni" , MICRO , TYPE_MODIFY,
+   "Temporary files now have more unique names.",
+   "Helps avoid confusion in parallel computations.\n"
+},
+
+{ 12, May , 2017 , PT , "3dDWItoDT" , MAJOR , TYPE_NEW_OPT,
+   "Added goodness-of-fit measures to '-debug_brik' output.",
+   "Two chi-sqs from Papadakis et al. (2003); thx, J Ipser for idea.\n"
+},
+
+{ 11, May , 2017 , PT , "3dDTtoDWI" , MAJOR , TYPE_BUG_FIX,
+   "Fixed mismatch in multiplying DT and bmatrices.",
+   "Element indices hadn't been sync'ed, now they are.\n"
+},
+
+{ 4, May , 2017 , PT , "3dReHo" , MINOR , TYPE_NEW_OPT,
+   "Allow box-y neighborhoods.",
+   "User can input values for cubic/prism neighborhoods now.\n"
+},
+
+{ 4, May , 2017 , PT , "3dDTtoDWI" , MINOR , TYPE_NEW_OPT,
+   "Added in '-scale_out_1000' option, to match 3dDWItoDT.",
+   "This allows it to be used with scaled tensors from 3dDWItoDT.\n"
+},
+
+{ 3, May , 2017 , PT , "@chauffeur_afni" , MINOR , TYPE_MODIFY,
+   "The opacity in olays wasn't working with xvfb-run-- now it does.",
+   "Pixel depth was not useful by default, I think.\n"
+},
+
+{ 2, May , 2017 , PT , "@GradFlipTest" , MICRO , TYPE_MODIFY,
+   "If 'outdir' doesn't exist yet, create it (don't just exit with error).",
+   "Simplifies some other fat_proc scripting.\n"
+},
+
+{ 27, Apr , 2017 , PT , "3dNetCorr" , MINOR , TYPE_NEW_OPT,
+   "With '-output_mask_nonnull', user can output mask of non-null ts.",
+   "This was made to help those who need to finnd null time series here.\n"
+},
+
+{ 27, Apr , 2017 , PT , "3dNetCorr" , MINOR , TYPE_NEW_OPT,
+   "With '-ts_wb_strlabel', can use ROI string labels in WB output filenames.",
+   "This was made expressly for The Rajendra Who Shall Not Be Named.\n"
+},
+
+{ 27, Apr , 2017 , PT , "3dNetCorr" , MINOR , TYPE_MODIFY,
+   "More watchfulness for null time series from badly masked dsets.",
+   "Count and report null time series, and possibly fail if too many.\n"
+},
+
 { 30, Mar , 2017 , PT , "lib_fat_funcs.py" , MICRO , TYPE_BUG_FIX,
    "An error message in func called by fat_mvm_scripter.py was wrong.",
    "Fixed an indexing mistake which gave wrong ROI list-- thanks, E. Grodin!\n"

@@ -145,10 +145,12 @@ static char * g_history[] =
     " 4.16 Jul  8, 2016 [rickr]: add -read_all: remove limit on images read\n"
     " 4.17 Nov  8, 2016 [rickr]: maybe override DICOM orient if sorting\n"
     " 4.18 Nov  9, 2016 [rickr]: add -gert_chan_prefix\n"
+    " 4.19 May  9, 2017 [rickr]:\n",
+    "      - if NIFTI prefix, whine about and clear any write_as_nifti\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 4.18 (November 9, 2016)"
+#define DIMON_VERSION "version 4.19 (May 9, 2017)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
@@ -3364,6 +3366,14 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
         if ( dir_expansion_form(p->opts.start_dir, &p->glob_dir) ) return 2;
     }
 
+    /* if user gives a NIFTI prefix, forget write_as_nifti */
+    if( nifti_find_file_extension(p->opts.gert_prefix) != NULL &&
+        p->opts.gert_format == 1) {
+       fprintf(stderr,
+               "** -gert_write_as_nifti is not needed with NIFTI prefix\n");
+       p->opts.gert_format = 0;    /* do not try to add NIFTI extension */
+    }
+
     /* save command arguments to add as a NOTE to any AFNI datasets */
     p->opts.argv = argv;
     p->opts.argc = argc;
@@ -4734,7 +4744,7 @@ printf(
 "    %s -infile_pattern 'mr_0003/*.dcm' -gert_create_dataset\n"
 "          -gert_write_as_nifti \n"
 "    %s -infile_pattern 'mr_0003/*.dcm' -gert_create_dataset\n"
-"          -gert_outdir MRI_dsets -gert_write_as_nifti\n"
+"          -gert_outdir MRI_dsets -gert_to3d_prefix EPI_003.nii\n"
 "\n"
 "  C. with real-time options:\n"
 "\n"
@@ -5638,12 +5648,15 @@ printf(
     "    -gert_to3d_prefix PREFIX : set to3d PREFIX in output script\n"
     "\n"
     "        e.g. -gert_to3d_prefix anatomy\n"
+    "        e.g. -gert_to3d_prefix epi.nii.gz\n"
     "\n"
     "        When creating a GERT_Reco script that calls 'to3d', this\n"
     "        option will be applied to '-prefix'.\n"
     "\n"
     "        The default prefix is 'OutBrick_run_NNN', where NNN is the\n"
     "        run number found in the images.\n"
+    "\n"
+    "        Use a NIFTI suffix to create a NIFTI dataset.\n"
     "\n"
     "      * Caution: this option should only be used when the output\n"
     "        is for a single run.\n"
@@ -5664,11 +5677,13 @@ printf(
     "    -gert_write_as_nifti     : output dataset should be in NIFTI format\n"
     "\n"
     "        By default, datasets created by the GERT_Reco script will be in \n"
-    "        afni format.  Use this option to create them in NIfTI format,\n"
+    "        AFNI format.  Use this option to create them in NIfTI format,\n"
     "        instead.  These merely appends a .nii to the -prefix option of\n"
     "        the to3d command.\n"
     "\n"
-    "        See also -gert_create_dataset.\n"
+    "        This option is not necessary if -gert_to3d_prefix is NIFTI.\n"
+    "\n"
+    "        See also -gert_create_dataset, -gert_to3d_prefix.\n"
     "\n"
     "    -gert_quit_on_err : Add -quit_on_err option to to3d command\n"
     "                        which has the effect of causing to3d to \n"

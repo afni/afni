@@ -1045,15 +1045,15 @@ g_history = """
     2.2  Feb  3, 2017:
          - decay class now follows a better curve
          - added decay_old class for old decay method
+    2.3  May  9, 2017: applied -offset for advanced case
 """
 
-g_version = "version 2.1, January 23, 2017"
+g_version = "version 2.3, May 9, 2017"
 
 g_todo = """
    - add -show_consec_stats option?
    - c23 shows small post-stim rest...
    - apply -make_3dd_contrasts, -save_3dd_cmd
-   - apply -offset?
    - reconcile t_grid as global vs per class (init/pass as single parameters)
    - make new method for decay that better handles max duration, w/out spike
    - add warning if post-stim rest < 3 seconds
@@ -3270,11 +3270,16 @@ class RandTiming:
           convert mdata to AfniData object, stored as adata in stim class
           - 
        """
+       # add any offset
+       offset = self.offset
+       if offset != 0 and self.verb > 1:
+          print '++ applying offset of %g to all times' % offset
+          
        for sind, sc in enumerate(self.sclasses):
           sc.mdata = []
           for rind, erun in enumerate(self.full_event_list):
              srun = [event for event in erun if event[0] == sind]
-             mrun = [[se[3], [], se[1]] for se in srun]
+             mrun = [[se[3]+offset, [], se[1]] for se in srun]
              sc.mdata.append(mrun)
           sc.adata = LAD.AfniData(mdata=sc.mdata, verb=self.verb)
           sc.adata.name = sc.name

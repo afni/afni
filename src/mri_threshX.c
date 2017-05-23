@@ -53,6 +53,7 @@ typedef struct {
   float cth[3] ;            /* FOM threshold for hpow=0, 1, 2 */
   ind_t *ip , *jp , *kp ;   /* 3D indexes for each point */
   int   *ijk ;              /* 1D index for each point */
+  int   ijkmin,ijkmax ;     /* smallest and largest ijk[] values */
 } Xcluster ;
 
 #define MIN_CLUST 5  /* smallest cluster size allowed (voxels) */
@@ -73,8 +74,8 @@ typedef struct {
  } while(0)
 
 #define ADDTO_Xcluster_array(xcar,xc)                                          \
- do{ if( (xcar)->nclu == (xcar)->nall ){                                       \
-       (xcar)->nall += 32 ;                                                    \
+ do{ if( (xcar)->nclu >= (xcar)->nall ){                                       \
+       (xcar)->nall = (xcar)->nclu + 32 ;                                      \
        (xcar)->xclu = (Xcluster **)realloc((xcar)->xclu,                       \
                                            sizeof(Xcluster **)*(xcar)->nall) ; \
      }                                                                         \
@@ -113,6 +114,7 @@ typedef struct {
      xc->jp  = (ind_t *)malloc(sizeof(ind_t)*(siz)) ;                  \
      xc->kp  = (ind_t *)malloc(sizeof(ind_t)*(siz)) ;                  \
      xc->ijk = (int *)  malloc(sizeof(int)  *(siz)) ;                  \
+     xc->ijkmin = xc->ijkmax = -666 ;                                  \
  } while(0)
 
 #define DESTROY_Xcluster(xc)                                           \
@@ -152,6 +154,8 @@ void copyover_Xcluster( Xcluster *xcin , Xcluster *xcout )
    xcout->npt     = nin ;
    xcout->norig   = xcin->norig ;
    xcout->nbcount = xcin->nbcount ;
+   xcout->ijkmin  = xcin->ijkmin ;
+   xcout->ijkmax  = xcin->ijkmax ;
    return ;
 }
 
@@ -217,8 +221,8 @@ static float cth_perc = 90.0f ;
 #define CPUT_point(i,j,k)                                                    \
  do{ int pqr = (i)+(j)*nx+(k)*nxy , npt=(xcc)->npt ;                         \
      if( far[pqr] != 0.0f ){                                                 \
-       if( npt == (xcc)->nall ){                                             \
-         (xcc)->nall += DALL + (xcc)->nall/2 ;                               \
+       if( npt >= (xcc)->nall ){                                             \
+         (xcc)->nall = npt + DALL + (xcc)->nall/2 ;                          \
          (xcc)->ip = (ind_t *)realloc((xcc)->ip,sizeof(ind_t)*(xcc)->nall) ; \
          (xcc)->jp = (ind_t *)realloc((xcc)->jp,sizeof(ind_t)*(xcc)->nall) ; \
          (xcc)->kp = (ind_t *)realloc((xcc)->kp,sizeof(ind_t)*(xcc)->nall) ; \
@@ -226,6 +230,8 @@ static float cth_perc = 90.0f ;
        }                                                                     \
        (xcc)->ip[npt] = (i); (xcc)->jp[npt] = (j); (xcc)->kp[npt] = (k);     \
        (xcc)->ijk[npt] = pqr ;                                               \
+       if( (xcc)->ijkmin > pqr ) (xcc)->ijkmin = pqr ;                       \
+       if( (xcc)->ijkmax < pqr ) (xcc)->ijkmax = pqr ;                       \
        (xcc)->npt++ ; (xcc)->norig++ ;                                       \
        (xcc)->fomh[0] += 1.0f ;                                              \
        (xcc)->fomh[1] += fabsf(far[pqr]) ;                                   \
@@ -278,7 +284,7 @@ Xcluster_array * find_Xcluster_array( MRI_IMAGE *fim, int nnlev,
        CREATE_Xcluster(xcc,16) ;  /* initialize to have just 16 points */
 
      xcc->ip[0]   = (ind_t)ii; xcc->jp[0] = (ind_t)jj; xcc->kp[0] = (ind_t)kk;
-     xcc->ijk[0]  = ijk;
+     xcc->ijk[0]  = xcc->ijkmin = xcc->ijkmax = ijk;
      xcc->npt     = xcc->norig = 1 ;
      xcc->fomh[0] = 1.0f ;
      xcc->fomh[1] = fabsf(far[ijk]) ;
@@ -403,6 +409,25 @@ Xcluster_array * find_Xcluster_array( MRI_IMAGE *fim, int nnlev,
 }
 
 #undef CPUT_point  /* not to be used again */
+
+/*----------------------------------------------------------------------------*/
+
+void set_Xcluster_ijkminmax( Xcluster *xcc )
+{
+   int ib,it , ii,npt ;
+
+   if( xcc == NULL ) return ;
+
+   npt = xcc->npt ; if( npt < 1 ) return ;
+   ib  = it = xcc->ijk[0] ;
+   for( ii=1 ; ii < npt ; ii++ ){
+          if( xcc->ijk[ii] < ib ) ib = xcc->ijk[ii] ;
+     else if( xcc->ijk[ii] > it ) it = xcc->ijk[ii] ;
+   }
+   xcc->ijkmin = ib ;
+   xcc->ijkmax = it ;
+   return ;
+}
 
 /*----------------------------------------------------------------------------*/
 /* Allocate the initial cthar arrays for cluster FOM thresholding */

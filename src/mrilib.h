@@ -1182,6 +1182,7 @@ extern MRI_IMAGE * mri_cat2D( int,int,int,void *,MRI_IMARR *) ;
 extern MRI_IMARR * mri_uncat2D( int , int , MRI_IMAGE * im ) ; /* 09 May 2000 */
 
 extern MRI_IMAGE * mri_catvol_1D( MRI_IMARR *imar , int dir ); /* 08 Dec 2010 */
+extern MRI_IMAGE * mri_catvol_1D_ab( MRI_IMARR *imar , int dir, int na,int nb );
 
 extern MRI_IMAGE * mri_shift_1D( MRI_IMAGE * im , float shift ) ;
 
@@ -1722,7 +1723,14 @@ extern float mri_scaled_diff( MRI_IMAGE *bim, MRI_IMAGE *nim, MRI_IMAGE *msk ) ;
  } while(0)
 
 #undef  PRINT_COMPILE_DATE
-#define PRINT_COMPILE_DATE printf("\n++ Compile date = " __DATE__ "\n\n")
+#if defined(AFNI_VERSION_LABEL) && defined(AFNI_VERSION_PLATFORM)
+# define PRINT_COMPILE_DATE                     \
+         printf("\n++ Compile date = " __DATE__ \
+                " {%s:%s}\n\n",AFNI_VERSION_LABEL,AFNI_VERSION_PLATFORM)
+#else
+# define PRINT_COMPILE_DATE  \
+         printf("\n++ Compile date = " __DATE__ "\n\n")
+#endif
 
 #undef  AUTHOR
 #define AUTHOR(aa) \
