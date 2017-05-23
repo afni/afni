@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 23,  May, 2017, RCR, "suma", MICRO, TYPE_GENERAL,
+   "warn on NULL glwDrawingAreaWidgetClass",
+   NULL
+ } ,
+
  { 17,  May, 2017, RCR, "RetroTS.py", MICRO, TYPE_BUG_FIX,
    "D Nielson's fix in PeakFinder.py dealing with non-integer subscripts",
    "Required by latest version of numpy."
