@@ -372,9 +372,14 @@ def peak_finder(var_v, filename):
         nww = numpy.ceil((window_width / 2) * var_vector['phys_fs'])
         pkp = pk
         r['iz'] = iz
-        for i in range(len(iz)):######################left off here, turns out there's a difference in floating point precision in the calculation of r['x'], maybe look into the reason why they'd be different
-            n0 = max(2, iz[i] - nww)
-            n1 = min(nt, iz[i] + nww)
+        for i in range(len(iz)):
+            ###################### left off here, turns out there's a
+            # difference in floating point precision in the calculation
+            # of r['x'], maybe look into the reason why they'd be different
+
+            # force these to ints    17 May 2017 [DNielson]
+            n0 = int(max(2, iz[i] - nww))
+            n1 = int(min(nt, iz[i] + nww))
             temp = (r['x'][n0:n1 + 1]).real
             if pol[i] > 0:
                 xx, ixx = numpy.max(temp, 0), numpy.argmax(temp, 0)

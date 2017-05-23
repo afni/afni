@@ -100,7 +100,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dToyProg 3dRankizer nifti1_tool gifti_tool cifti_tool images_equal  \
            uniq_images tokens 3dLocalACF 3dXClustSim 3dtoXdataset 3dMultiThresh \
            3dLFCD 3dDegreeCentrality 3dECM 3dMSE 3dsvm_linpredict 3dTfilter     \
-           3dTsplit4D 3dSharpen 3dExtractGroupInCorr \
+           3dTsplit4D 3dSharpen 3dExtractGroupInCorr dcm2niix_afni \
            $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
@@ -1944,7 +1944,7 @@ afni_src.tgz:
 	$(MKDIR) afni_src
 	$(CP) -p *.c *.f *.inc *.h *.hhh Makefile.* *.xbm $(MINDOCS) $(MISC)     ./afni_src
 	$(CP) -pr coxplot volpack moveup moveAFNI* eispack                       ./afni_src
-	$(CP) -pr avovk ptaylor pkundu jzosky				         ./afni_src
+	$(CP) -pr avovk ptaylor pkundu jzosky crorden                            ./afni_src
 	$(CP) -pr $(SCRIPTS_DIR) $(SCRIPTS_SRC) $(PY_DIR) $(R_DIR)               ./afni_src
 	$(CP) -pr gifsicledir qhulldir f2cdir mpeg_encodedir                     ./afni_src
 	$(CP) -pr 3DEdge netcdf-3.5.0 jpeg-6b niml Makefile_* nifti dlcompat     ./afni_src
@@ -2159,6 +2159,10 @@ mri_genalign.o:mri_genalign.c
 thd_correlate.o:thd_correlate.c
 	$(RM) $@
 	$(CCFAST) -c thd_correlate.c $(INFLAGS)
+
+thd_notes.o:thd_notes.c
+	$(RM) $@
+	$(CC) -c thd_notes.c $(INFLAGS) $(SHOWOFF)
 
 thd_incorrelate.o:thd_incorrelate.c
 	$(RM) $@
@@ -2644,6 +2648,15 @@ r_misc.o: rickr/r_misc.c rickr/r_misc.h
 3dTsplit4D: 3dTsplit4D.o libmri.a
 	$(RM) $@
 	$(CC) -o 3dTsplit4D 3dTsplit4D.o $(LFLAGS) $(LLIBS)
+
+#######
+# make Chris Rorden's dcm2niix, but rename it with _afni to avoid conflicts
+
+dcm2niix_afni:
+	( cd crorden/dcm2niix_console ;		\
+	  make ;				\
+	  $(MV) dcm2niix ../../dcm2niix_afni ; 	\
+	  cd ../../ ; )
 
 #######
 # rickr programs

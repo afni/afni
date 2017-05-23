@@ -49,6 +49,67 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17,  May, 2017, RCR, "RetroTS.py", MICRO, TYPE_BUG_FIX,
+   "D Nielson's fix in PeakFinder.py dealing with non-integer subscripts",
+   "Required by latest version of numpy."
+ } ,
+
+ { 16,  May, 2017, RCR, "meica.py", MICRO, TYPE_GENERAL,
+   "cast floor/ceil functions to int when used as subscripts",
+   "Required by latest version of numpy."
+ } ,
+
+ { 16,  May, 2017, RCR, "meica.py", MINOR, TYPE_ENHANCE,
+   "sync with https://bitbucket.org/prantikk/me-ica/src",
+   "Update from version 2.5 beta9 to 2.5 beta11."
+ } ,
+
+ { 10,  May, 2017, RCR, "model_conv_PRF_DOG", MINOR, TYPE_NEW_PROG,
+   "new model: same as PRF, but Difference of Gaussians",
+   "For E Silson and C Baker."
+ } ,
+
+ {  9,  May, 2017, RCR, "Dimon", MICRO, TYPE_BUG_FIX,
+   "if to3d_prefix is NIFTI, clear write_as_nifti",
+   "Thanks to A Nugent for noting the problem."
+ } ,
+
+ {  9,  May, 2017, RCR, "make_random_timing.py", MINOR, TYPE_NEW_OPT,
+   "apply -offset for advanced case (remove from todo list)",
+   NULL
+ } ,
+
+ {  2,  May, 2017, RCR, "GIFTI", MINOR, TYPE_BUG_FIX,
+   "properly handle column major order",
+   "Convert to row major order on read; can control with gifti_tool.\n"
+   "Thanks to JH Lee for noting the problem."
+ } ,
+
+ {  1,  May, 2017, RCR, "@diff.files", MINOR, TYPE_NEW_OPT,
+   "add option -diff_prog, to use something besides xxdiff",
+   NULL
+ } ,
+
+ { 25,  Apr, 2017, RCR, "GIFTI", MINOR, TYPE_MODIFY,
+   "no COL_MAJOR changes for gifti_DA_rows_cols, write_*_file",
+   "Also, init gifti_globs_t struct with verb=1."
+ } ,
+
+ { 25,  Apr, 2017, RCR, "suma", MICRO, TYPE_MODIFY,
+   "SUMA_input.c: 'r'ecord with oversamle - use tcsh -c to delete files",
+   "To be explicit about shell in system(), sending errors to /dev/null."
+ } ,
+
+ { 25,  Apr, 2017, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "fix follower warps for gzipped NL-WARP datasets",
+   "Thanks to C Connely for noting the problem."
+ } ,
+
+ { 25,  Apr, 2017, RCR, "dcm2niix_afni", MICRO, TYPE_ENHANCE,
+   "added to source for build testing",
+   NULL
+ } ,
+
  { 17,  Apr, 2017, RCR, "1d_tool.py", MICRO, TYPE_MODIFY,
    "clarify source in -show_censored_trs (if Xmat, use header info)",
    NULL

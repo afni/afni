@@ -2351,6 +2351,12 @@ void AFNI_sigfunc_alrm(int sig)
      "\n  To be stupid, selfish, and have good health are three requirements\n"
      "  for happiness; though if stupidity is lacking, all is lost"                           ,
 
+     "\n  May the following be true for you:\n"
+     "    'Work is about a search for daily meaning as well as daily bread,\n"
+     "    for recognition as well as cash, for astonishment rather than torpor;\n"
+     "    in short, for a sort of life rather than a Monday through Friday sort of dying.'\n"
+     "  ... especially if you are working on a Saturday!"                                     ,
+
      "\n xkcd's translation of p-values into words:\n"
      "     0.001  = Highly significant\n"
      "     0.01   = Highly significant\n"

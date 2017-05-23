@@ -9,6 +9,7 @@ set showfiles = 1
 set showdiffs = 0
 set savediffs = 0
 set xxdiff = 0
+set diffprog = ''       # can pass any, like xxdiff
 set diffopts = ()
 
 if ( $#argv < 2 ) then
@@ -32,13 +33,28 @@ while ( $ac < $#argv )
         @ ac ++
     else if ( "$argv[$ac]" == '-xxdiff' ) then
         set xxdiff = 1
+        if ( "$diffprog" != "" ) then
+           echo "** only specify one of -xxdiff -diffprog"
+           exit 1
+        endif
+        # no longer call xxdiff explicitly
+        set diffprog = xxdiff
         @ ac ++
     else if ( "$argv[$ac]" == '-diff_opts' ) then
         @ ac ++
         set diffopts = ( $diffopts $argv[$ac] )
         @ ac ++
+    else if ( "$argv[$ac]" == '-diff_prog' ) then
+        @ ac ++
+        set diffprog = "$argv[$ac]"
+        if ( $xxdiff ) then
+           echo "** only specify one of -xxdiff -diffprog"
+           exit 1
+        endif
+        @ ac ++
     else if ( "$argv[$ac]" == '-X' ) then
         set xxdiff = 1
+        set diffprog = xxdiff
         set exit_on_missing = 0
         @ ac ++
     else
@@ -46,11 +62,11 @@ while ( $ac < $#argv )
     endif
 end
 
-# if xxdiff is requested, make sure it exists...
-if ( $xxdiff ) then
-   which xxdiff >& /dev/null
+# if a diffprog is requested, make sure it exists...
+if ( $diffprog != "" ) then
+   which $diffprog >& /dev/null
    if ( $status ) then
-      echo "** missing Unix program xxdiff, please install and try again"
+      echo "** $prog : missing Unix program $diffprog (please install)"
       exit
    endif
 endif
@@ -155,8 +171,8 @@ foreach file ( $files )
         endif
         @ count ++
 
-        if ( $xxdiff ) then
-           xxdiff $file $odir/$file
+        if ( $diffprog != "" ) then
+           $diffprog $file $odir/$file
         endif
 
         if ( $savediffs ) then 
@@ -203,6 +219,10 @@ cat << EOF
    options:
       -diff_opts 'OPTS'  : add options to diff command
                            e.g. -diff_opts -w
+      -diff_prog DPROG   : display diffs using DPROG (probably graphical)
+                           e.g. -diff_opts meld
+                           e.g. -diff_opts xxdiff    [same as -xxdiff]
+                           Consider also: kdiff3, tkdiff.
       -ignore_missing    : continue even if files are missing
                            alt: -im
       -longlist          : instead of listing file, run 'ls -l' on both

@@ -8939,7 +8939,7 @@ ENTRY("ISQ_overlay_label_CB") ;
    if( seq->overlay_label != NULL ){
      free(seq->overlay_label) ; seq->overlay_label = NULL ;
    }
-   if( cbs != NULL       && cbs->reason == mcwCR_string       &&
+   if( cbs       != NULL && cbs->reason == mcwCR_string       &&
        cbs->cval != NULL && strcasecmp(cbs->cval,"NULL") != 0   ){
      seq->overlay_label = strdup(cbs->cval) ;
    }

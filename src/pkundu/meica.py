@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-__version__="v2.5 beta9"
+__version__="v2.5 beta11"
 welcome_block="""
 # Multi-Echo ICA, Version %s
 #
@@ -53,6 +53,27 @@ def dssuffix(idna):
 	if len(spl_suffix[0])!=0 and spl_suffix[0][0] == '+': return spl_suffix[0]
 	else: return suffix
 
+def version_checker(cur_ver,ref_ver):
+	"""
+	Checks version in major/minor format of a current version versus a reference version.
+	Supports 2 or more level versioning, only 2 levels checked)
+
+	Input:
+	cur_ver: float or string of version to check
+	ref_ver: float or string of reference version
+
+	Returns:
+	bool for pass or fail
+	"""
+	cur_ver = str(cur_ver)
+	ref_ver = str(ref_ver)
+	cur_Varr = [int(vvv) for vvv in cur_ver.split('.')[0:2]]
+	cur_V = cur_Varr[0]*10**2 + cur_Varr[1]%100
+	ref_Varr = [int(vvv) for vvv in ref_ver.split('.')[0:2]]
+	ref_V = ref_Varr[0]*10**2 + ref_Varr[1]%100
+	if cur_V > ref_V: return True
+	return False
+
 #Run dependency check
 def dep_check():
 	print '++ Checking system for dependencies...'
@@ -63,10 +84,7 @@ def dep_check():
 	global grayweight_ok
 	grayweight_ok = 0
 	print " + Python version: %s" % ('.'.join([str(v) for v in sys.version_info[0:3]]))
-	if sys.version_info >= (3,0):
-		print "*+ meica.py requires Python 2.x, not 3.x!"
-		fails+=1
-	elif sys.version_info < (2,6):
+	if sys.version_info < (2,6) or sys.version_info > (3,0):
 		print "*+ Python 2.x is <2.6, please upgrade to Python 2.x >= 2.6 & Numpy >= 1.5.x."
 		fails+=1
 	else:
@@ -85,7 +103,7 @@ def dep_check():
 		fails+=1
 	if numpy_installed:
 		print " + Numpy version: %s" % (numpy.__version__)
-		if tuple(map(int, numpy.__version__.split('.'))) < (1, 5):
+		if version_checker(numpy.__version__,1.5)==False:
 			fails+=1
 			print "*+ Numpy version is too old! Please upgrade to Numpy >=1.5.x!"
 		import numpy.__config__ as nc
@@ -94,7 +112,7 @@ def dep_check():
 			print "*+ Numpy is not linked to BLAS! Please check Numpy installation."
 	if scipy_installed:
 		print " + Scipy version: %s" % (scipy.__version__)
-		if tuple(map(int, scipy.__version__.split('.'))) < (0, 11):
+		if version_checker(scipy.__version__,0.11)==False:
 			fails+=1
 			print "*+ Scipy version is too old! Please upgrade to Scipy >=0.11.x!"
 	afnicheck = commands.getstatusoutput("3dinfo")
@@ -150,12 +168,11 @@ extopts.add_option('',"--mask_mode",dest='mask_mode',help="Mask functional with 
 extopts.add_option('',"--coreg_mode",dest='coreg_mode',help="Coregistration with Local Pearson and T2* weights (default), or use align_epi_anat.py (edge method): use 'lp-t2s' or 'aea'",default='lp-t2s')
 extopts.add_option('',"--smooth",dest='FWHM',help="Data FWHM smoothing (3dBlurInMask). Default off. ex: --smooth 3mm ",default='0mm')
 extopts.add_option('',"--align_base",dest='align_base',help="Explicitly specify base dataset for volume registration",default='')
-#extopts.add_option('',"--uni_when",dest='uni_when',help="When to unifize anatomical relative to skullstrip: pre,post,never. Default pre.",default='pre')
 extopts.add_option('',"--TR",dest='TR',help="The TR. Default read from input dataset header",default='')
 extopts.add_option('',"--tpattern",dest='tpattern',help="Slice timing (i.e. alt+z, see 3dTshift -help). Default from header. (N.B. This is important!)",default='')
-extopts.add_option('',"--daw",dest='daw',help="Weight to increase ICA dimensionality, default 10. Use -1 for low tSNR data",default='10')
 extopts.add_option('',"--align_args",dest='align_args',help="Additional arguments to anatomical-functional co-registration routine",default='')
 extopts.add_option('',"--ted_args",dest='ted_args',help="Additional arguments to TE-dependence analysis routine",default='')
+extopts.add_option('',"--daw",dest='daw',help=SUPPRESS_HELP,default='10')
 extopts.add_option('',"--tlrc",dest='space',help=SUPPRESS_HELP,default=False) #For backwards compat. with existing scripts
 extopts.add_option('',"--highpass",dest='highpass',help=SUPPRESS_HELP,default=0.0)
 extopts.add_option('',"--detrend",dest='detrend',help=SUPPRESS_HELP,default=0.)
@@ -229,7 +246,7 @@ if len(options.tes.split(','))!=len(datasets):
 
 #Prepare script
 startdir=rstrip(popen('pwd').readlines()[0])
-meicadir=os.path.dirname(sys.argv[0])
+meicadir=os.path.dirname(os.path.abspath(os.path.expanduser(sys.argv[0])))
 sl = []	#Script command list
 sl.append('#'+" ".join(sys.argv).replace('"',r"\""))
 sl.append(welcome_block)
@@ -284,6 +301,7 @@ if options.coreg_mode == 'aea': options.t2salign=False
 elif 'lp' in options.coreg_mode : options.t2salign=True
 align_base = basebrik
 align_interp='cubic'
+align_interp_final='wsinc5'
 oblique_epi_read = 0 
 oblique_anat_read = 0
 zeropad_opts = " -I %s -S %s -A %s -P %s -L %s -R %s " % (tuple([1]*6))
@@ -312,11 +330,19 @@ if options.anat=='' and options.mask_mode!='func':
 	print "*+ Can't do anatomical-based functional masking without an anatomical!"
 	sys.exit()
 
+#Detect if current AFNI has old 3dNwarpApply
+if " -affter aaa  = *** THIS OPTION IS NO LONGER AVAILABLE" in commands.getstatusoutput("3dNwarpApply -help")[1]: old_qwarp = False
+else: old_warp = True
+
+#Detect AFNI direcotry
+afnidir = os.path.dirname(os.popen('which 3dSkullStrip').readlines()[0])
+
 #Prepare script and enter MEICA directory
 logcomment("Set up script run environment",level=1)
 sl.append('set -e')
 sl.append('export OMP_NUM_THREADS=%s' % (options.cpus))
 sl.append('export MKL_NUM_THREADS=%s' % (options.cpus))
+sl.append('export DYLD_FALLBACK_LIBRARY_PATH=%s' % (afnidir))
 sl.append('export AFNI_3dDespike_NEW=YES')
 if options.overwrite: 
 	sl.append('rm -rf meica.%s' % (setname))
@@ -398,7 +424,7 @@ for echo_ii in range(len(datasets)):
 	if echo_ii==0: e1_dsin = dsin
 	logcomment("Preliminary preprocessing dataset %s of TE=%sms to produce %s_ts+orig" % (indata,str(tes[echo_ii]),dsin) )
 	#Pre-treat datasets: De-spike, RETROICOR in the future?
-	intsname = "%s%s" % (dsprefix(indata),isf)
+	intsname = '%s%s' % (dsprefix(indata),isf)
 	if not options.no_despike:
 		intsname = "./%s_pt.nii.gz" % dsprefix(indata)
 		sl.append("3dDespike -overwrite -prefix %s %s%s" % (intsname,dsprefix(indata),isf))
@@ -408,6 +434,8 @@ for echo_ii in range(len(datasets)):
 	else:
 		tpat_opt = ''
 	sl.append("3dTshift -heptic %s -prefix ./%s_ts+orig %s" % (tpat_opt,dsin,intsname) )
+	#Force +orig label on dataset
+	sl.append("3drefit -view orig %s_ts*HEAD" % (dsin))
 	if oblique_mode and options.anat=="":
 		sl.append("3dWarp -overwrite -deoblique -prefix ./%s_ts+orig ./%s_ts+orig" % (dsin,dsin))
 	#Axialize functional dataset
@@ -415,9 +443,6 @@ for echo_ii in range(len(datasets)):
 		sl.append("3daxialize  -overwrite -prefix ./%s_ts+orig ./%s_ts+orig" % (dsin,dsin))
 	if oblique_mode: sl.append("3drefit -deoblique -TR %s %s_ts+orig" % (options.TR,dsin))
 	else: sl.append("3drefit -TR %s %s_ts+orig" % (options.TR,dsin))
-#Compute grand mean scaling factor
-sl.append("3dBrickStat -mask eBbase.nii.gz -percentile 50 1 50 %s_ts+orig[%i] > gms.1D" % (e1_dsin,basebrik))
-sl.append("gms=`cat gms.1D`; gmsa=($gms); p50=${gmsa[1]}")
 
 #Compute T2*, S0, and OC volumes from raw data
 logcomment("Prepare T2* and S0 volumes for use in functional masking and (optionally) anatomical-functional coregistration (takes a little while).",level=1)
@@ -474,7 +499,7 @@ if options.anat!='':
 			sl.append("if [ ! -e %s/%s ]; then " % (startdir,nlatnsmprage))
 			logcomment("Compute non-linear warp to standard space using 3dQwarp (get lunch, takes a while) ")
 			sl.append("3dUnifize -overwrite -GM -prefix ./%su.nii.gz %s/%s" % (dsprefix(atnsmprage),startdir,atnsmprage))  
-			sl.append("3dQwarp -iwarp -overwrite -resample -useweight -blur 2 2 -workhard -base ${templateloc}/%s -prefix %s/%snl.nii.gz -source ./%su.nii.gz" % (options.space,startdir,dsprefix(atnsmprage),dsprefix(atnsmprage)))
+			sl.append("3dQwarp -iwarp -overwrite -resample -useweight -blur 2 2 -duplo -workhard -base ${templateloc}/%s -prefix %s/%snl.nii.gz -source ./%su.nii.gz" % (options.space,startdir,dsprefix(atnsmprage),dsprefix(atnsmprage)))
 			sl.append("fi")
 			sl.append("ln -s %s/%s ." % (startdir,nlatnsmprage))
 			refanat = '%s/%snl.nii.gz' % (startdir,dsprefix(atnsmprage))
@@ -511,6 +536,11 @@ else: sl.append("cp %s_vrmat.aff12.1D %s_vrwmat.aff12.1D" % (prefix,prefix))
 #Preprocess datasets
 if shorthand_dsin: datasets.sort()
 logcomment("Extended preprocessing of functional datasets",level=1)
+
+#Compute grand mean scaling factor
+sl.append("3dBrickStat -mask eBbase.nii.gz -percentile 50 1 50 %s_ts+orig[%i] > gms.1D" % (e1_dsin,basebrik))
+sl.append("gms=`cat gms.1D`; gmsa=($gms); p50=${gmsa[1]}")
+
 for echo_ii in range(len(datasets)):
 
 	#Determine dataset name
@@ -526,16 +556,17 @@ for echo_ii in range(len(datasets)):
 		sl.append("voxsize=`ccalc $(3dinfo -voxvol eBvrmask.nii.gz)**.33`") #Set voxel size
 		#Create base mask
 		if options.anat and options.space and options.qwarp: 
-                        # merged -affter into -nwarp   21 Nov 2014 [rickr]
-			sl.append("3dNwarpApply -overwrite -nwarp '%s/%s_WARP.nii.gz %s_wmat.aff12.1D' %s %s -source eBvrmask.nii.gz -interp %s -prefix ./eBvrmask.nii.gz " % \
+			if old_qwarp: affter_string = "'-affter '%s_wmat.aff12.1D'" % prefix
+			else: affter_string = ""
+			sl.append("3dNwarpApply -overwrite -nwarp '%s/%s_WARP.nii.gz'  %s %s -source eBvrmask.nii.gz -interp %s -prefix ./eBvrmask.nii.gz " % \
 			(startdir,dsprefix(nlatnsmprage),prefix,almaster,qwfres,'NN'))
 			if options.t2salign or options.mask_mode!='func':
-				sl.append("3dNwarpApply -overwrite -nwarp '%s/%s_WARP.nii.gz %s_wmat.aff12.1D' %s %s -source t2svm_ss.nii.gz -interp %s -prefix ./t2svm_ss_vr.nii.gz " % \
-				(startdir,dsprefix(nlatnsmprage),prefix,almaster,qwfres,'NN'))
-				sl.append("3dNwarpApply -overwrite -nwarp '%s/%s_WARP.nii.gz %s_wmat.aff12.1D' %s %s -source ocv_uni+orig -interp %s -prefix ./ocv_uni_vr.nii.gz " % \
-				(startdir,dsprefix(nlatnsmprage),prefix,almaster,qwfres,'NN'))
-				sl.append("3dNwarpApply -overwrite -nwarp '%s/%s_WARP.nii.gz %s_wmat.aff12.1D' %s %s -source s0v_ss.nii.gz -interp %s -prefix ./s0v_ss_vr.nii.gz " % \
-				(startdir,dsprefix(nlatnsmprage),prefix,almaster,qwfres,'NN'))
+				sl.append("3dNwarpApply -overwrite -nwarp '%s/%s_WARP.nii.gz' %s %s %s -source t2svm_ss.nii.gz -interp %s -prefix ./t2svm_ss_vr.nii.gz " % \
+				(startdir,dsprefix(nlatnsmprage),affter_string,almaster,qwfres,'NN'))
+				sl.append("3dNwarpApply -overwrite -nwarp '%s/%s_WARP.nii.gz' %s %s %s -source ocv_uni+orig -interp %s -prefix ./ocv_uni_vr.nii.gz " % \
+				(startdir,dsprefix(nlatnsmprage),affter_string,almaster,qwfres,'NN'))
+				sl.append("3dNwarpApply -overwrite -nwarp '%s/%s_WARP.nii.gz' %s %s %s -source s0v_ss.nii.gz -interp %s -prefix ./s0v_ss_vr.nii.gz " % \
+				(startdir,dsprefix(nlatnsmprage),affter_string,almaster,qwfres,'NN'))
 		elif options.anat:
 			sl.append("3dAllineate -overwrite -final %s -%s -float -1Dmatrix_apply %s_wmat.aff12.1D -base eBvrmask.nii.gz -input eBvrmask.nii.gz -prefix ./eBvrmask.nii.gz %s %s" % \
 			('NN','NN',prefix,almaster,alfres))
@@ -575,11 +606,16 @@ for echo_ii in range(len(datasets)):
 
 	#logcomment("Extended preprocessing dataset %s of TE=%sms to produce %s_in.nii.gz" % (indata,str(tes[echo_ii]),dsin),level=2 )
 	logcomment("Apply combined normalization/co-registration/motion correction parameter set to %s_ts+orig" % dsin)
-	if options.qwarp: sl.append("3dNwarpApply -nwarp '%s/%s_WARP.nii.gz %s_vrwmat.aff12.1D' -master eBvrmask.nii.gz -source %s_ts+orig -interp %s -prefix ./%s_vr%s " % \
-			(startdir,dsprefix(nlatnsmprage),prefix,dsin,align_interp,dsin,osf))
+	if options.qwarp: 
+		if old_qwarp: affter_string = "-affter %s_vrwmat.aff12.1D" % prefix
+		else: affter_string = ""
+		sl.append("3dNwarpApply -nwarp '%s/%s_WARP.nii.gz' %s -master eBvrmask.nii.gz -source %s_ts+orig -interp %s -prefix ./%s_vr%s " % \
+			(startdir,dsprefix(nlatnsmprage),affter_string,dsin,align_interp,dsin,osf))
 	else: sl.append("3dAllineate -final %s -%s -float -1Dmatrix_apply %s_vrwmat.aff12.1D -base eBvrmask%s -input  %s_ts+orig -prefix ./%s_vr%s" % \
-		(align_interp,align_interp,prefix,osf,dsin,dsin,osf))
-	
+		(align_interp_final,align_interp,prefix,osf,dsin,dsin,osf))
+	if echo_ii == 0:
+		sl.append("3dTstat -min -prefix ./%s_vr_min%s ./%s_vr%s" % (dsin,osf,dsin,osf) )
+		sl.append("3dcalc -a eBvrmask.nii.gz -b %s_vr_min%s -expr 'step(a)*step(b)' -overwrite -prefix eBvrmask.nii.gz " % (dsin,osf))
 	if options.FWHM=='0mm': 
 		sl.append("3dcalc -float -overwrite -a eBvrmask.nii.gz -b ./%s_vr%s[%i..$] -expr 'step(a)*b' -prefix ./%s_sm%s " % (dsin,osf,basebrik,dsin,osf))
 	else: 
@@ -605,7 +641,7 @@ else:
 	ica_mask = "zcat_mask.nii.gz"
 	zcatstring=""
 	for echo in ica_datasets: 
-		dsin ='e'+echo+trailing
+		dsin ='e'+echo
 		zcatstring = "%s ./%s_in%s" % (zcatstring,dsin,osf)
 	sl.append("3dZcat -overwrite -prefix %s  %s" % (ica_input,zcatstring) )
 	sl.append("3dcalc -float -overwrite -a %s[0] -expr 'notzero(a)' -prefix %s" % (ica_input,ica_mask))

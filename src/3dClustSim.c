@@ -261,6 +261,44 @@ void display_help_menu()
    "Program to estimate the probability of false positive (noise-only) clusters.\n"
    "An adaptation of Doug Ward's AlphaSim, streamlined for various purposes.\n"
    "\n"
+   "-----------------------------------------------------------------------------\n"
+   "This program has several different modes of operation, each one involving\n"
+   "simulating noise-only random volumes, thresholding and clustering them,\n"
+   "and counting statistics of how often data 'survives' these processes at\n"
+   "various threshold combinations (per-voxel and cluster-size).\n"
+   "\n"
+   "OLDEST method = simulate noise volume assuming the spatial auto-correlation\n"
+   "                function (ACF) is given by a Gaussian-shaped function, where\n"
+   "                this shape is specified using the FWHM parameter. The FWHM\n"
+   "                parameter can be estimated by program 3dFWHMx.\n"
+   "          ** THIS METHOD IS NO LONGER RECOMMENDED **\n"
+   "\n"
+   "NEWER method  = simulate noise volume assuming the ACF is given by a mixed-model\n"
+   "                of the form a*exp(-r*r/(2*b*b))+(1-a)*exp(-r/c), where a,b,c\n"
+   "                are 3 parameters giving the shape, and can also be estimated\n"
+   "                by program 3dFWHMx.\n"
+   "          ** THIS METHOD IS ACCEPTABLE **\n"
+   "\n"
+   "NEWEST method = program 3dttest++ simulates the noise volumes by randomizing\n"
+   "                and permuting input datasets, and sending those volumes into\n"
+   "                3dClustSim directly. There is no built-in math model for the\n"
+   "                spatial ACF.\n"
+   "          ** THIS METHOD IS MOST ACCURATE AT CONTROLLING FALSE POSITIVE RATE **\n"
+   "          ** You invoke this method with the '-Clustsim' option in 3dttest++ **\n"
+   "\n"
+   "3dClustSim computes a cluster-size threshold for a given voxel-wise p-value\n"
+   "threshold, such that the probability of anything surviving the dual thresholds\n"
+   "is at some given level (specified by the '-athr' option).\n"
+   "\n"
+   "Note that this cluster-size threshold is the same for all brain regions.\n"
+   "There is an implicit assumption that the noise spatial statistics are\n"
+   "the same everywhere.\n"
+   "\n"
+   "Program 3dXClustSim introduces the idea of spatially variable cluster-size\n"
+   "thresholds, which may be more useful in some cases. 3dXClustSim's method is\n"
+   "invoked by using the '-ETAC' option in 3dttest++.\n"
+   "-----------------------------------------------------------------------------\n"
+   "\n"
    "**** NOTICE ****\n"
    "You should use the -acf method, not the -fwhm method, when determining\n"
    "cluster-size thresholds for FMRI data. The -acf method will give more\n"
@@ -1149,12 +1187,16 @@ ENTRY("get_options") ;
 
   /*------- finalize some simple setup stuff --------*/
 
-  if( fwhm_x > 0.0f )
+  if( fwhm_x > 0.0f ){
+    WARNING_message("**************************************************") ;
     WARNING_message(
-      "I repeat: -fwhm uses a Gaussian-shaped autocorrelation function,\n"
+      "I repeat:\n"
+      "           -fwhm uses a Gaussian-shaped autocorrelation function,\n"
       "           which is not accurate for most FMRI data :(\n"
-      "           Consider using -acf instead :)"
+      "           Consider using -acf instead, or 3dttest++ -Clustsim :)"
     ) ;
+    WARNING_message("**************************************************") ;
+  }
 
   if( do_athr_sum && (athr_sum_bot < 0 || athr_sum_top < 0) ){  /* 18 Dec 2015 */
     do_athr_sum = 0 ;
@@ -3104,8 +3146,10 @@ MPROBE ;
    destroy_shave() ;
 #endif
 
+#if 0
    if( verb )
      INFO_message("Clock time now = %.1f s",COX_clock_time()) ;
+#endif
 
   } /* end of outputizationing */
 

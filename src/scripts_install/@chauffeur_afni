@@ -30,9 +30,18 @@
 #
 #set version   = "2.1";   set rev_dat   = "Feb 27, 2017"
 #     + can have IJK labels -> DWImager
-set version   = "2.2";   set rev_dat   = "Mar 29, 2017"
+#
+#set version   = "2.2";   set rev_dat   = "Mar 29, 2017"
 #     + xvfb-run introduced: should work better/more generally
 #       on biowulf? [thanks D. Godlove for suggesting this fix]
+#set version   = "2.3";   set rev_dat   = "May 3, 2017"
+#     + xvfb-run: new option to set colordepth to 24, so opacity works
+#       in the AFNI commands
+# 
+set version   = "2.4";   set rev_dat   = "May 20, 2017"
+#     + more unique naming of tempdir; safer for cluster runs
+# 
+# =====================================================================
 
 # For more info about opts/fields, see:
 #
@@ -94,7 +103,8 @@ set alpha_edgize_no = 0          # =1 -> SETENV AFNI_EDGIZE_OVERLAY NO
 set do_quit = "QUITT"            # quick-quit; not subject to change
 
 # tmp dir, in case under- and overlays are in separate dirs
-set tmp_dir  = "__tmp_ImG_837261"
+set tmp_code = `3dnewid -fun11`    # should be essentially unique hash
+set tmp_dir  = "__tmp_chauf_${tmp_code}"
 set DO_CLEAN = 0
 set read_dir = ""
 set read_ulay = tmp_ulay.nii
@@ -111,8 +121,6 @@ set listind = (  1   1   2   2   3   3  )
 
 # -------------------------------------------------------------------
 # ------------------- process options, a la rr ----------------------
-
-echo "++ My command: $argv"
 
 if ( $#argv == 0 ) goto SHOW_HELP
 
@@ -325,6 +333,11 @@ while ( $ac <= $#argv )
    endif
    @ ac += 1
 end
+
+# -------------------------------------------------------------------
+
+echo "++ My command:"
+echo "   @chauffeur_afni $argv"
 
 # -------------------------------------------------------------------
 # ------------------ check about auxiliary progs --------------------
@@ -629,7 +642,7 @@ set OW = "OPEN_WINDOW"
 # -------------------------------------------------------------------
 # ---------------- The actual, driven command! ----------------------
 
-xvfb-run -a                                                         \
+xvfb-run --server-args="-screen 0 1024x768x24" -a  \
     afni -noplugins -no_detach  -echo_edu                           \
      -com "SWITCH_UNDERLAY ${read_ulay}"                            \
      -com "SWITCH_OVERLAY  ${read_olay}"                            \

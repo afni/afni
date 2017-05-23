@@ -38,9 +38,9 @@ def scoreatpercentile(a, per, limit=(), interpolation_method='lower'):
             score = _interpolate(values[int(idx)], values[int(idx) + 1],
                                  idx % 1)
         elif interpolation_method == 'lower':
-            score = values[np.floor(idx)]
+            score = values[int(np.floor(idx))]
         elif interpolation_method == 'higher':
-            score = values[np.ceil(idx)]
+            score = values[int(np.ceil(idx))]
         else:
             raise ValueError("interpolation_method can only be 'fraction', " \
                              "'lower' or 'higher'")

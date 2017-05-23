@@ -1312,7 +1312,7 @@ MRI_vectim * THD_dset_list_censored_to_vectim( int nds, THD_3dim_dataset **ds,
 void THD_check_vectim( MRI_vectim *mv , char *fname )
 {
    int nvec , nvals ;
-   float *vpt ;
+   float *vpt , vz ;
    int nbad , ii,jj ;
 
    if( fname == NULL ) fname = "vectim check" ;
@@ -1324,27 +1324,28 @@ void THD_check_vectim( MRI_vectim *mv , char *fname )
    nvec  = mv->nvec ;
    nvals = mv->nvals ;
 
-   /* scan each time series for all zero */
+   /* scan each time series for constancy */
 
    for( nbad=jj=0 ; jj < nvec ; jj++ ){
-     vpt = VECTIM_PTR(mv,jj) ;
-     for( ii=0 ; ii < nvals && vpt[ii] == 0.0f ; ii++ ) ; /*nada*/
+     vpt = VECTIM_PTR(mv,jj) ; vz = vpt[0] ;
+     for( ii=1 ; ii < nvals && vpt[ii] == vz ; ii++ ) ; /*nada*/
      if( ii == nvals ) nbad++ ;
    }
    if( nbad > 0 )
-     WARNING_message("%s :: %d vector%s all zero",
+     WARNING_message("%s :: %d vector%s constant",
                      fname , nbad , (nbad==1) ? " is" : "s are" ) ;
 
-   /* scan each time point for all zero */
+   /* scan each time point for constancy */
 
    for( nbad=ii=0 ; ii < nvals ; ii++ ){
-     for( jj=0 ; jj < nvec ; jj++ ){
-       vpt = VECTIM_PTR(mv,jj) ; if( vpt[ii] != 0.0f ) break ;
+     vpt = VECTIM_PTR(mv,0) ; vz = vpt[ii] ;
+     for( jj=1 ; jj < nvec ; jj++ ){
+       vpt = VECTIM_PTR(mv,jj) ; if( vpt[ii] != vz ) break ;
      }
      if( jj == nvec ) nbad++ ;
    }
    if( nbad > 0 )
-     WARNING_message("%s :: %d volume%s all zero",
+     WARNING_message("%s :: %d volume%s constant",
                      fname , nbad , (nbad==1) ? " is" : "s are" ) ;
    return ;
 }
