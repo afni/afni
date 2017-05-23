@@ -759,9 +759,11 @@ class AfniTiming(LD.AfniData):
          # for each following index, update stim and isi times
          # (check for bad overlap)
          for sind in range(1, len(run)):
-            if run[sind][0] < run[sind-1][1]:
-               print '** ISI error: stimuli overlap at run %d, time %s' % \
-                     (rind+1, run[sind][0])
+            olap = run[sind-1][1] - run[sind][0]
+            # there may be float/ascii reason for a tiny overlap...
+            if olap > 0.0001:
+               print '** ISI error: stimuli overlap at run %d, time %s,' \
+                     'overlap %s' % (rind+1, run[sind][0], olap)
                errs += 1
                if errs > max_errs:
                   print '** bailing...'
