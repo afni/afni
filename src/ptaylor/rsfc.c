@@ -229,6 +229,40 @@ int IntSpherSha(int **HS,int *RD, float *NR){
   return ct;
 }
 
+// [PT: May, 2017]: similar to above, but box-shaped
+int IntBoxVol(int *RD, float *NR){
+   int i,j,k;
+   int ct=0;
+
+   for ( i = 0 ; i <3 ; i++ ) 
+      RD[i] = (int) NR[i];
+   for( i=-RD[0] ; i<=RD[0] ; i++)
+      for( j=-RD[1] ; j<=RD[1] ; j++) 
+         for( k=-RD[2] ; k<=RD[2] ; k++) {
+            ct++;
+         }
+
+   return ct;
+}
+
+// ~silly near duplicate to fill array of values... expediency...
+int IntBoxSha(int **HS,int *RD, float *NR) {
+   int i,j,k;
+   int ct=0;
+
+   for ( i = 0 ; i <3 ; i++ ) 
+      RD[i] = (int) NR[i];
+   for( i=-RD[0] ; i<=RD[0] ; i++)
+      for( j=-RD[1] ; j<=RD[1] ; j++) 
+         for( k=-RD[2] ; k<=RD[2] ; k++) {
+            HS[ct][0]=i;
+            HS[ct][1]=j;
+            HS[ct][2]=k;
+            ct++;
+         }
+  
+   return ct;
+}
 
 
 int WB_netw_corr(int Do_r, 
@@ -240,6 +274,8 @@ int WB_netw_corr(int Do_r,
                  int *Dim,
                  double ***ROI_AVE_TS,
                  int **ROI_LABELS_REF,
+                 char ***ROI_STR_LABELS,
+                 int DO_STRLABEL,
                  THD_3dim_dataset *insetTIME,
                  byte *mskd2,
                  int Nmask,
@@ -257,6 +293,9 @@ int WB_netw_corr(int Do_r,
    float *zscores=NULL;
    int Nvox;
 
+   char *ftype=NULL;   // default, BRIK/HEAD: can be ".nii.gz"
+   char roilab[300];  // will be either int or char str
+
 
    Nvox = Dim[0]*Dim[1]*Dim[2];
 
@@ -270,6 +309,12 @@ int WB_netw_corr(int Do_r,
       exit(123);
    }
 
+   // for postfix
+   if( NIFTI_OUT )
+      ftype = strdup(".nii.gz");
+   else
+      ftype = strdup("");
+
    fprintf(stderr,"\nHAVE_ROIS=%d",HAVE_ROIS);
    for( k=0 ; k<HAVE_ROIS ; k++) { // each netw gets own file
       sprintf(OUT_indiv0,"%s_%03d_INDIV", prefix, k);
@@ -278,12 +323,16 @@ int WB_netw_corr(int Do_r,
          fprintf(stderr,"\nNROI_REF[%d]= %d",k,NROI_REF[k]);
          for( j=0 ; j<Dim[3] ; j++)
             AVE_TS_fl[0][j] = (float) ROI_AVE_TS[k][i][j];
-         if( NIFTI_OUT )
-            sprintf(OUT_indiv,"%s/WB_CORR_ROI_%03d.nii.gz",
-                    OUT_indiv0,ROI_LABELS_REF[k][i+1]);
+
+         // use either ROI int value or labeltable value for output name
+         if( DO_STRLABEL ) 
+            sprintf(roilab, "%s", ROI_STR_LABELS[k][i+1]);
          else
-            sprintf(OUT_indiv,"%s/WB_CORR_ROI_%03d",
-                    OUT_indiv0,ROI_LABELS_REF[k][i+1]);
+            sprintf(roilab, "%03d", ROI_LABELS_REF[k][i+1]);
+
+         sprintf(OUT_indiv,"%s/WB_CORR_ROI_%s%s",
+                 OUT_indiv0, roilab, ftype);
+
          mri = mri_float_arrays_to_image(AVE_TS_fl,Dim[3],1);
          OUT_CORR_MAP = THD_Tcorr1D(insetTIME, mskd2, Nmask,
                                     mri,
@@ -301,13 +350,10 @@ int WB_netw_corr(int Do_r,
 
          }
          if(Do_Z){
-          if( NIFTI_OUT )
-             sprintf(OUT_indivZ,"%s/WB_Z_ROI_%03d.nii.gz",
-                     OUT_indiv0,ROI_LABELS_REF[k][i+1]);
-          else
-             sprintf(OUT_indivZ,"%s/WB_Z_ROI_%03d",
-                     OUT_indiv0,ROI_LABELS_REF[k][i+1]);
 
+            sprintf(OUT_indivZ,"%s/WB_Z_ROI_%s%s",
+                    OUT_indiv0, roilab, ftype);
+            
             OUT_Z_MAP = EDIT_empty_copy(OUT_CORR_MAP);
             EDIT_dset_items( OUT_Z_MAP,
                              ADN_nvals, 1,
@@ -361,6 +407,7 @@ int WB_netw_corr(int Do_r,
    for( i=0 ; i<1 ; i++) 
       free(AVE_TS_fl[i]);
    free(AVE_TS_fl);
+   free(ftype);
 
    RETURN(1);
 }

@@ -6547,9 +6547,9 @@ ENTRY("AFNI_lock_button") ;
                              "together in their viewpoint\n"
                              "coordinates.\n"
                              "N.B.: The lock will only take\n"
-                             "  effect when you next move\n"
-                             "  the crosshairs, or click\n"
-                             "  on the 'Enforce' button."
+                             " effect when you next move\n"
+                             " the crosshairs, or click\n"
+                             " on the 'Enforce All' button."
                     ) ;
    MCW_register_hint( cbut , "Lock AFNI controller viewpoints" ) ;
 
@@ -6681,6 +6681,12 @@ ENTRY("AFNI_lock_button") ;
                   AFNI_lock_clear_CB , (XtPointer)im3d ) ;
    XmStringFree(xstr) ;
    MCW_register_hint( dmode->lock_clear_pb , "Clear all locked controllers" ) ;
+   MCW_set_widget_bg( dmode->lock_clear_pb , "#002288" , 0 ) ;
+
+   (void) XtVaCreateManagedWidget(
+            "dialog" , xmSeparatorWidgetClass , menu ,
+               XmNseparatorType , XmSINGLE_LINE ,
+            NULL ) ;
 
    /*** to set all locks right now [19 Apr 1999] ***/
 
@@ -6697,10 +6703,16 @@ ENTRY("AFNI_lock_button") ;
                   AFNI_lock_setall_CB , (XtPointer)im3d ) ;
    XmStringFree(xstr) ;
    MCW_register_hint( dmode->lock_setall_pb , "Set all locked controllers" ) ;
+   MCW_set_widget_bg( dmode->lock_setall_pb , "#882200" , 0 ) ;
+
+   (void) XtVaCreateManagedWidget(
+            "dialog" , xmSeparatorWidgetClass , menu ,
+               XmNseparatorType , XmSINGLE_LINE ,
+            NULL ) ;
 
    /*** to enforce locks right now ***/
 
-   xstr = XmStringCreateLtoR( "Enforce" , XmFONTLIST_DEFAULT_TAG ) ;
+   xstr = XmStringCreateLtoR( "Enforce All" , XmFONTLIST_DEFAULT_TAG ) ;
    dmode->lock_enforce_pb =
          XtVaCreateManagedWidget(
             "dialog" , xmPushButtonWidgetClass , menu ,
@@ -6713,6 +6725,7 @@ ENTRY("AFNI_lock_button") ;
                   AFNI_lock_enforce_CB , (XtPointer)im3d ) ;
    XmStringFree(xstr) ;
    MCW_register_hint( dmode->lock_enforce_pb , "Make lock work NOW" ) ;
+   MCW_set_widget_bg( dmode->lock_enforce_pb , "#443344" , 0 ) ;
 
    XtManageChild( rc ) ;
    EXRETURN ;

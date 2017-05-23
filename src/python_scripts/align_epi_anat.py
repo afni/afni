@@ -2,6 +2,7 @@
 # way to run script example
 # python ~/afni/src/python_scripts/align_epi_anat.py \
 #   -anat anat+orig -epi epi_r1+orig -base_epi median -ex_mode dry_run
+#
 # more examples
 
 # align_epi_anat.py -anat anat+orig -epi epi+orig -epi_base 5

@@ -44,6 +44,27 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 17 , MAY , 2017 , RWC , "3dttest++" , MICRO , TYPE_MODIFY ,
+   "Make -ETAC and -Clustsim work together" ,
+   "Makes it easier to test these two methods at the same time." } ,
+
+ { 3 , MAY , 2017 , RWC , "Historical Records" , MINOR , TYPE_ENHANCE ,
+   "Add the AFNI version to the History Note for new datasets" ,
+   "So the user can see (via 3dinfo) exactly what version created a dataset." } ,
+
+ { 26 , APR , 2017 , RWC , "3dMultiThresh" , MICRO , TYPE_NEW_OPT ,
+   "Add option to choose sign for 1-sided thresholding" ,
+   NULL } ,
+
+ { 26 , APR , 2017 , RWC , "3dXClustSim" , MICRO , TYPE_BUG_FIX ,
+   "Bug in looping index in STEP 2 caused malloc() problems.  Oog" ,
+   NULL } ,
+
+ { 21 , APR , 2017 , RWC , "3dttest++" , MAJOR , TYPE_ENHANCE ,
+   "Extensive modifications to ETAC" ,
+   "Adding the ability to due multiple amounts of blurring.  Some changes to\n"
+   "3dttest++ and 3dMultiThresh, big changes to 3dXClustSim." } ,
+
  { 27 , MAR , 2017 , RWC , "afni GUI" , MICRO , TYPE_NEW_ENV ,
    "AFNI_LEFT_IS_POSTERIOR" ,
    "To show posterior of brain on the left (instead of right) in sagittal\n"

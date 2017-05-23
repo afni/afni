@@ -2623,9 +2623,10 @@ int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                                 -(SUMAg_CF->SUMA_SnapshotOverSampling * 
                                   SUMAg_CF->SUMA_SnapshotOverSampling),
                                 0);
-               system(  "rm -f HighRes_Suma_tmp* >& /dev/null ; "
-                        "imcat -prefix HighRes_Suma_tmp HighRes_Photo___tmp* ;"
-                        "rm -f HighRes_Photo___tmp* >& /dev/null");
+               /* use explicit tcsh to avoid sh syntax  25 Apr 2017 [rickr] */
+               system(  "tcsh -c 'rm -f HighRes_Suma_tmp* >& /dev/null' ; "
+                        "imcat -prefix HighRes_Suma_tmp HighRes_Photo___tmp* ; "
+                        "rm -f HighRes_Photo___tmp*");
             }
          }
          break;

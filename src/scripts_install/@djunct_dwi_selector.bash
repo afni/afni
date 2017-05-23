@@ -78,8 +78,8 @@ while [ TRUE ];
 do
     ## dialog to confirm coordinate or stop recording
     check_out=`prompt_popup -message \
-    "Select volume in viewer with left-click.\nClick a button to:\n  'Add'    an index to the list;\n  'Remove' an index from the list;\n  'Finish' and exit.\n\n** Check terminal output for running tally. **\n\nNB1: type 'a' to resize window if images\n     appear stretched/squashed.\nNB2: popup follows mouse after button clicks\n     (in case you move quick-quick)." \
-    -b Add -b Remove -b Finish`
+    "Select volume in viewer with left-click.\nClick a button:\n  'Bad-vol'    to add an index to the bad-list;\n  'Unbad' to remove an index from the bad-list;\n  'Finish' and exit.\n\n** Check terminal output for running tally. **\n\nNB1: type 'a' to resize window if images\n     appear stretched/squashed.\nNB2: popup follows mouse after button clicks\n     (in case you move quick-quick)." \
+    -b Bad-vol -b Unbad -b Finish`
 
     ## save the current crosshair coordinate to the file with the prefix name
     ## (will be created in you current folder)

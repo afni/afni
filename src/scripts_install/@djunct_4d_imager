@@ -1,7 +1,7 @@
 #!/bin/tcsh
 
 set here      = $PWD
-set this_prog = "@djunct_dwi_imager"
+set this_prog = "@djunct_4d_imager"
 
 # --------------------- revision history -------------------------
 #
@@ -15,10 +15,13 @@ set this_prog = "@djunct_dwi_imager"
 #set rev_dat = "Feb 24, 2017";  set version = "1.2"
 #   + can output movies
 #
-set rev_dat = "Feb 27, 2017";  set version = "1.3"
+#set rev_dat = "Feb 27, 2017";  set version = "1.3"
 #   + slice number there as IJK in corner
 #
-
+set set version = "1.4";  rev_dat = "May 20, 2017"
+#   + more unique naming of wdir, use rand id; safer for cluster 
+#     runs
+#
 # ----------------- find AFNI and set viewer ---------------------
 
 # find AFNI binaries directory and viewer location
@@ -37,14 +40,15 @@ endif
 set my_viewer    = "$adir/@chauffeur_afni"
 set my_calc_func = "$adir/@djunct_calc_mont_dims.py"
 
-set wdir      = "__WORK_dwi_imager"    # working directory
+set tmp_code = `3dnewid -fun11`    # should be essentially unique hash
+set wdir      = "__WORK_imgr_${tmp_code}"    # working directory
 set DO_CLEAN    = 1
 
 set iset   = ""
 set odir   = ""
 
-set opref  = "DWI_IMAGES"
-set mfile0 = "tmpdwi.nii"  
+set opref  = "FOURD_IMAGES"
+set mfile0 = "tmp4d.nii"  
 set svals  = ( )
 
 # final order?
@@ -112,6 +116,11 @@ end
 # =======================================================================
 
 echo "++ Start imager script version: $version"
+echo ""
+echo "++ My command:"
+echo "   $this_prog $argv"
+
+# -------------------------------------------------------------------
 
 # NEED these two inputs
 if ( "$iset" == "" ) then
@@ -119,13 +128,13 @@ if ( "$iset" == "" ) then
     goto BAD_EXIT
 endif
 
-# make sure we can read DWI OK
+# make sure we can read inset OK
 set check = `3dinfo "$iset"`
 if ( "$#check" == "0" ) then
     echo "** ERROR: can't find inset file:  $iset !"
     goto BAD_EXIT
 else
-    echo "++ Found inset DWI file:   $iset"
+    echo "++ Found inset file:   $iset"
 endif
 
 # ===================== output dir + wdir =======================
@@ -138,7 +147,7 @@ if ( "$odir" == "" ) then
 
     set odir = `dirname "$iset"`
     echo "\n++ No output directory specificied by the user."
-    echo "++ Using the input DWI file's directory by default:"
+    echo "++ Using the input file's directory by default:"
     echo "\t$odir"
 else
     if ( ! -e $odir ) then

@@ -27,7 +27,8 @@ typedef struct {
 
   int    nsdat ;                               /* number of input files */
   int    *nvol , nvtot ;  /* length of each file (in volumes) and total */
-  short **sdat ;            /* pointer to data from each file (mmap-ed) */
+  short  **sdat ;           /* pointer to data from each file (mmap-ed) */
+  size_t *ssiz ;                         /* length of each file (bytes) */
 } Xdataset ;
 
 /*----------------------------------------------------------*/
@@ -81,6 +82,7 @@ Xdataset * open_Xdataset( char *mask_fname, int nsdat, char **sdat_fname )
    xds->nsdat = nsdat ;
    xds->nvol  = (int *)calloc(sizeof(int),nsdat) ;
    xds->sdat  = (short **)calloc(sizeof(short *),nsdat) ;
+   xds->ssiz  = (size_t *)calloc(sizeof(size_t) ,nsdat) ;
    nvtot = 0 ;
 
    for( ids=0 ; ids < nsdat ; ids++ ){
@@ -102,6 +104,7 @@ Xdataset * open_Xdataset( char *mask_fname, int nsdat, char **sdat_fname )
 
      /* memory map the data file */
 
+     xds->ssiz[ids] = (size_t)fsiz ;
      xds->sdat[ids] = (short *)mmap( 0, (size_t)fsiz, PROT_READ, THD_MMAP_FLAG, fdes, 0 ) ;
      close(fdes) ;
      if( xds->sdat[ids] == (short *)(-1) )
@@ -129,6 +132,20 @@ Xdataset * open_Xdataset( char *mask_fname, int nsdat, char **sdat_fname )
    /* e finito */
 
    return xds ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void unmap_Xdataset( Xdataset *xds )
+{
+   int jj ;
+
+   if( xds == NULL ) return ;
+
+   for( jj=0 ; jj < xds->nsdat ; jj++ )
+     munmap( xds->sdat[jj] , xds->ssiz[jj] ) ;
+
+   return ;
 }
 
 /*---------------------------------------------------------------------------*/
