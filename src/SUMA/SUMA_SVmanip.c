@@ -622,7 +622,8 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
    static char FuncName[]={"SUMA_Alloc_SurfaceViewer_Struct"};
    SUMA_SurfaceViewer *SV=NULL, *SVv=NULL;
    int i=-1, j=-1, n=-1, iii=-1;
-   float a[3];
+   float a[3], lightpos[3];
+   char *lightstr;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -781,7 +782,7 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
                
          }
       }
-      
+
 
       SV->light0_position[0] = 0.0;
       SV->light0_position[1] = 0.0;
@@ -791,10 +792,29 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
 
       SV->light0_position[3] = 0.0;
 
+      lightstr = getenv("SUMA_Light0Position");
+      if (lightstr) {
+         if (SUMA_StringToNum (lightstr, (void *)lightpos, 3, 1) == 3) { 
+            SV->light0_position[0] = lightpos[0];
+            SV->light0_position[1] = lightpos[1];
+            SV->light0_position[2] = lightpos[2];
+         }
+      }
+
       SV->light1_position[0] = 1.0;
       SV->light1_position[1] = 1.0;
       SV->light1_position[2] = 1.0;
       SV->light1_position[3] = 0.0;
+
+      lightstr = getenv("SUMA_Light1Position");
+      if (lightstr) {
+         if (SUMA_StringToNum (lightstr, (void *)lightpos, 3, 1) == 3) { 
+            SV->light1_position[0] = lightpos[0];
+            SV->light1_position[1] = lightpos[1];
+            SV->light1_position[2] = lightpos[2];
+         }
+      }
+
       
       SV->dim_spe = 1.0;
       SV->dim_dif = 1.0;
