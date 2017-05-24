@@ -1046,9 +1046,10 @@ g_history = """
          - decay class now follows a better curve
          - added decay_old class for old decay method
     2.3  May  9, 2017: applied -offset for advanced case
+    2.4  May 24, 2017: applied -save_3dd_cmd for advanced case
 """
 
-g_version = "version 2.3, May 9, 2017"
+g_version = "version 2.4, May 24, 2017"
 
 g_todo = """
    - add -show_consec_stats option?
@@ -2044,7 +2045,7 @@ class RandTiming:
         c2 += '    -x1D X.xmat.1D\n\n'
 
         first = (polort+1) * len(self.run_time)
-        if len(self.run_time) > 1:
+        if len(self.fnames) > 1:
             # note first non-poly baseline index
             c2 += '# compute the sum of non-baseline regressors\n'           \
                   "3dTstat -sum -prefix sum_ideal.1D X.xmat.1D'[%d..$]'\n\n" \
@@ -2054,7 +2055,7 @@ class RandTiming:
                   "# command: 1dplot -xlabel Time %sX.xmat.1D'[%d..$]'\n"    \
                   % (ynames, first)
         else:
-            c2 += "# consider plotting the SUM below non-polort regressors\n"\
+            c2 += "# consider plotting the desired regressor\n"\
                   "# command: 1dplot -xlabel Time X.xmat.1D'[%d]'\n" % first
 
         cmd += UTIL.add_line_wrappers(c2)
@@ -3579,6 +3580,112 @@ class RandTiming:
        print '** RCR - rest across runs...'
        return []
 
+    def adv_make_3dd_cmd(self):
+        """write sample usage of 3dDeconvolve -nodata to a file"""
+
+        if not self.file_3dd_cmd:       return
+        if os.path.isfile(self.file_3dd_cmd):
+            print "** 3dD command file '%s' already exists, failing..." \
+                        % self.file_3dd_cmd
+            return
+
+        nstim = len(self.sclasses)
+
+        # set tr and nt for the command
+        if self.tr != 0.0:      tr = self.tr
+        elif self.t_gran > 1.0: tr = self.t_gran
+        else:                   tr = 1.0
+
+        nt = round(UTIL.loc_sum(self.run_time) / tr)
+
+        cmd  = '# -------------------------------------------------------\n' \
+               '# create 3dDeconvolve -nodata command\n\n'
+
+        polort = UTIL.run_time_to_polort(self.run_time[0])
+        # separate the 3dDecon command, to apply wrappers
+        c2   = '3dDeconvolve   \\\n'                            \
+            +  '    -nodata %d %.3f   \\\n' % (nt, tr)          \
+            +  '    -polort %d        \\\n' % polort            \
+            +  '%s' % make_concat_from_times(self.run_time,tr)  \
+            +  '    -num_stimts %d    \\\n' % self.num_stim
+
+
+        for ind, sc in enumerate(self.sclasses):
+            basis = adv_basis_from_time(sc)
+            # if duration modulation as stim durs vary, use AM1
+            if basis == 'dmUBLOCK':
+               c2 += '    -stim_times_AM1 %d %s %s    \\\n' %                  \
+                     (ind+1, sc.adata.fname, basis)
+            else:
+               c2 += '    -stim_times %d %s %s    \\\n' %                  \
+                     (ind+1, sc.adata.fname, basis)
+            c2 += '    -stim_label %d %s \\\n' % (ind+1,sc.name)
+
+        # todo?
+        # if self.make_3dd_contr and self.labels:
+        #     c2 += self.make_3dd_contr_str(prefix='    ')
+
+        if self.prefix: xmat = 'X.%s.xmat.1D' % self.prefix
+        else:           xmat = 'X.xmat.1D'
+
+        c2 += '    -x1D %s\n\n' % xmat
+
+        cmd += UTIL.add_line_wrappers(c2)
+
+
+        # add additional commands for plotting
+        c2 = ''
+        first = (polort+1) * len(self.run_time)
+        tlabel = '-xlabel Time'
+        if len(self.sclasses) > 1:
+            # note first non-poly baseline index
+            c2 += '# compute the sum of non-baseline regressors\n'           \
+                  "3dTstat -sum -prefix sum_ideal.1D %s'[%d..$]'\n\n" \
+                  % (xmat, first)
+            ynames = '-ynames SUM -'
+            c2 += "# consider plotting the SUM below non-polort regressors:\n"\
+                  '# (if(0) allows easy copy-and-paste)\n'                    \
+                  "if ( 0 ) then\n"                                           \
+                  "   1dplot -sepscl %s %s sum_ideal.1D %s'[%d..$]'\n"        \
+                  "endif\n\n"                                                 \
+                  % (tlabel, ynames, xmat, first)
+
+            # include a more detailed version, just for kicks
+            tlabel = '-xlabel "Time index"'
+            ynames = '-ynames SUM %s -' \
+                     % ' '.join([sc.name for sc in self.sclasses])
+
+            c2 += "# or the more completely labeled command:\n"         \
+                  "if ( 0 ) then\n"                                     \
+                  "   1dplot -sepscl %s \\\n"                           \
+                  "          %s \\\n "                                  \
+                  "          sum_ideal.1D %s'[%d..$]'\n"                \
+                  "endif\n\n"                                           \
+                  % (tlabel, ynames, xmat, first)
+        else:
+            c2 += "# consider plotting the desired regressor\n"\
+                  "# command: 1dplot %s %s'[%d]'\n" % (tlabel, xmat, first)
+        c2 += '\n'
+
+        cmd += UTIL.add_line_wrappers(c2)
+
+        if self.verb > 0:
+            print "saving 3dD command to file '%s'...\n" % self.file_3dd_cmd
+        if self.verb > 1:
+            print cmd
+
+        if UTIL.write_text_to_file(self.file_3dd_cmd, cmd):
+            print '** failed to write 3dD command to %s' % self.file_3dd_cmd,
+            return
+
+def adv_basis_from_time(sclass):
+    const, cdur = sclass.adata.check_constant_duration()
+    if const:
+       if cdur > 1: return "'BLOCK(%g,1)'" % cdur
+       return 'GAM'
+    else:
+       return 'dmUBLOCK'
+
 def basis_from_time(stim_len):
     if stim_len > 1.0: return "'BLOCK(%g,1)'" % stim_len
     else: return 'GAM'
@@ -3686,6 +3793,8 @@ def process():
 
        if timing.adv_write_timing_files():
           return 1
+
+       if timing.file_3dd_cmd: timing.adv_make_3dd_cmd()  # ignore return value
 
        if timing.show_timing_stats:
           LAD.show_multi_isi_stats(timing.sclasses, timing.run_time, timing.tr,
