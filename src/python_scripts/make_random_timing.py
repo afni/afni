@@ -492,6 +492,8 @@ advanced arguments/options:
     -rand_post_stim_rest yes/no : allow rest after final stimulus
     -show_rest_events           : show details of rest timing, per type
     -write_event_list FILE      : create FILE listing all events and times
+    -save_3dd_cmd FILE          : write 3dDeconvolve script to FILE
+    -make_3dd_contrasts         : include pairwise contrasts in 3dD script
 ----------------------------------------
 required arguments:
 
@@ -862,6 +864,8 @@ make_random_timing.py - Advanced usage
      - Also, do not allow any extra rest (beyond the specified 10 s) after
        the final stimulus event.
 
+     - Generate 3dDeconvolve command script with contrasts.
+
      - Show timing statistics.  Save a complete event list (events.adv.1.txt).
 
          make_random_timing.py -num_runs 4 -run_time 200         \\
@@ -1046,14 +1050,14 @@ g_history = """
          - decay class now follows a better curve
          - added decay_old class for old decay method
     2.3  May  9, 2017: applied -offset for advanced case
+    2.4  May 24, 2017: advanced -save_3dd_cmd and -make_3dd_contrasts
 """
 
-g_version = "version 2.3, May 9, 2017"
+g_version = "version 2.4, May 24, 2017"
 
 g_todo = """
    - add -show_consec_stats option?
    - c23 shows small post-stim rest...
-   - apply -make_3dd_contrasts, -save_3dd_cmd
    - reconcile t_grid as global vs per class (init/pass as single parameters)
    - make new method for decay that better handles max duration, w/out spike
    - add warning if post-stim rest < 3 seconds
@@ -1128,6 +1132,7 @@ class RandTiming:
         # required arguments for advanced method
         self.tclasses   = [g_instant_timing_class] # TimingClass instances
         self.sclasses   = []            # StimClass instances
+        self.advanced   = 0
 
         # advanced options
         self.rand_post_stim_rest = 1    # include random rest from last event?
@@ -1357,6 +1362,9 @@ class RandTiming:
               print '   BASIC: %s' % ', '.join(g_style_opts_old)
               return 1
 
+           # note that we have the advanced style
+           self.advanced = 1
+
            # get timing classes first, required for stim classes
            olist = self.user_opts.find_all_opts('-add_timing_class')
            if len(olist) == 0:
@@ -1567,7 +1575,8 @@ class RandTiming:
             if not self.file_3dd_cmd:
                 print '** cannot use -make_3dd_contrasts without -save_3dd_cmd'
                 return 1
-            elif not self.labels:
+            # advanced style has labels built in
+            elif not self.labels and not self.advanced:
                 print '** cannot use -make_3dd_contrasts without -stim_labels'
                 return 1
 
@@ -2040,11 +2049,11 @@ class RandTiming:
             if self.labels and len(self.labels) == len(self.fnames):
                 c2 += '    -stim_label %d %s \\\n' % (ind+1,self.labels[ind])
         if self.make_3dd_contr and self.labels:
-            c2 += self.make_3dd_contr_str(prefix='    ')
+            c2 += self.make_3dd_contr_str(self.labels, prefix='    ')
         c2 += '    -x1D X.xmat.1D\n\n'
 
         first = (polort+1) * len(self.run_time)
-        if len(self.run_time) > 1:
+        if len(self.fnames) > 1:
             # note first non-poly baseline index
             c2 += '# compute the sum of non-baseline regressors\n'           \
                   "3dTstat -sum -prefix sum_ideal.1D X.xmat.1D'[%d..$]'\n\n" \
@@ -2054,7 +2063,7 @@ class RandTiming:
                   "# command: 1dplot -xlabel Time %sX.xmat.1D'[%d..$]'\n"    \
                   % (ynames, first)
         else:
-            c2 += "# consider plotting the SUM below non-polort regressors\n"\
+            c2 += "# consider plotting the desired regressor\n"\
                   "# command: 1dplot -xlabel Time X.xmat.1D'[%d]'\n" % first
 
         cmd += UTIL.add_line_wrappers(c2)
@@ -2073,12 +2082,12 @@ class RandTiming:
         fp.write(cmd)
         fp.close()
 
-    def make_3dd_contr_str(self, prefix=''):
+    def make_3dd_contr_str(self, labels, prefix=''):
         """return a string with all pairwise contrasts"""
-        if not self.labels: return ''
+        if not labels: return ''
         cstr = ''
         cind = 0
-        llist = self.labels # just to make shorter
+        llist = labels # just to make shorter
         for first in range(len(llist)-1):
             for next in range(first+1,len(llist)):
                 cstr += "%s-gltsym 'SYM: %s -%s' -glt_label %d %s-%s \\\n" % \
@@ -3579,6 +3588,112 @@ class RandTiming:
        print '** RCR - rest across runs...'
        return []
 
+    def adv_make_3dd_cmd(self):
+        """write sample usage of 3dDeconvolve -nodata to a file"""
+
+        if not self.file_3dd_cmd:       return
+        if os.path.isfile(self.file_3dd_cmd):
+            print "** 3dD command file '%s' already exists, failing..." \
+                        % self.file_3dd_cmd
+            return
+
+        nstim = len(self.sclasses)
+
+        # set tr and nt for the command
+        if self.tr != 0.0:      tr = self.tr
+        elif self.t_gran > 1.0: tr = self.t_gran
+        else:                   tr = 1.0
+
+        nt = round(UTIL.loc_sum(self.run_time) / tr)
+
+        cmd  = '# -------------------------------------------------------\n' \
+               '# create 3dDeconvolve -nodata command\n\n'
+
+        polort = UTIL.run_time_to_polort(self.run_time[0])
+        # separate the 3dDecon command, to apply wrappers
+        c2   = '3dDeconvolve   \\\n'                            \
+            +  '    -nodata %d %.3f   \\\n' % (nt, tr)          \
+            +  '    -polort %d        \\\n' % polort            \
+            +  '%s' % make_concat_from_times(self.run_time,tr)  \
+            +  '    -num_stimts %d    \\\n' % self.num_stim
+
+        for ind, sc in enumerate(self.sclasses):
+            basis = adv_basis_from_time(sc)
+            # if duration modulation as stim durs vary, use AM1
+            if basis == 'dmUBLOCK':
+               c2 += '    -stim_times_AM1 %d %s %s    \\\n' %                  \
+                     (ind+1, sc.adata.fname, basis)
+            else:
+               c2 += '    -stim_times %d %s %s    \\\n' %                  \
+                     (ind+1, sc.adata.fname, basis)
+            c2 += '    -stim_label %d %s \\\n' % (ind+1,sc.name)
+
+        # and possibly add contrasts
+        if self.make_3dd_contr:
+            labels = [sc.name for sc in self.sclasses]
+            c2 += self.make_3dd_contr_str(labels, prefix='    ')
+
+        if self.prefix: xmat = 'X.%s.xmat.1D' % self.prefix
+        else:           xmat = 'X.xmat.1D'
+
+        c2 += '    -x1D %s\n\n' % xmat
+
+        cmd += UTIL.add_line_wrappers(c2)
+
+
+        # add additional commands for plotting
+        c2 = ''
+        first = (polort+1) * len(self.run_time)
+        tlabel = '-xlabel Time'
+        if len(self.sclasses) > 1:
+            # note first non-poly baseline index
+            c2 += '# compute the sum of non-baseline regressors\n'           \
+                  "3dTstat -sum -prefix sum_ideal.1D %s'[%d..$]'\n\n" \
+                  % (xmat, first)
+            ynames = '-ynames SUM -'
+            c2 += "# consider plotting the SUM below non-polort regressors:\n"\
+                  '# (if(0) allows easy copy-and-paste)\n'                    \
+                  "if ( 0 ) then\n"                                           \
+                  "   1dplot -sepscl %s %s sum_ideal.1D %s'[%d..$]'\n"        \
+                  "endif\n\n"                                                 \
+                  % (tlabel, ynames, xmat, first)
+
+            # include a more detailed version, just for kicks
+            tlabel = '-xlabel "Time index"'
+            ynames = '-ynames SUM %s -' \
+                     % ' '.join([sc.name for sc in self.sclasses])
+
+            c2 += "# or the more completely labeled command:\n"         \
+                  "if ( 0 ) then\n"                                     \
+                  "   1dplot -sepscl %s \\\n"                           \
+                  "          %s \\\n "                                  \
+                  "          sum_ideal.1D %s'[%d..$]'\n"                \
+                  "endif\n\n"                                           \
+                  % (tlabel, ynames, xmat, first)
+        else:
+            c2 += "# consider plotting the desired regressor\n"\
+                  "# command: 1dplot %s %s'[%d]'\n" % (tlabel, xmat, first)
+        c2 += '\n'
+
+        cmd += UTIL.add_line_wrappers(c2)
+
+        if self.verb > 0:
+            print "saving 3dD command to file '%s'...\n" % self.file_3dd_cmd
+        if self.verb > 1:
+            print cmd
+
+        if UTIL.write_text_to_file(self.file_3dd_cmd, cmd):
+            print '** failed to write 3dD command to %s' % self.file_3dd_cmd,
+            return
+
+def adv_basis_from_time(sclass):
+    const, cdur = sclass.adata.check_constant_duration()
+    if const:
+       if cdur > 1: return "'BLOCK(%g,1)'" % cdur
+       return 'GAM'
+    else:
+       return 'dmUBLOCK'
+
 def basis_from_time(stim_len):
     if stim_len > 1.0: return "'BLOCK(%g,1)'" % stim_len
     else: return 'GAM'
@@ -3686,6 +3801,8 @@ def process():
 
        if timing.adv_write_timing_files():
           return 1
+
+       if timing.file_3dd_cmd: timing.adv_make_3dd_cmd()  # ignore return value
 
        if timing.show_timing_stats:
           LAD.show_multi_isi_stats(timing.sclasses, timing.run_time, timing.tr,
