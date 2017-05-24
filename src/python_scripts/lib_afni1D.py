@@ -3058,6 +3058,25 @@ class AfniData(object):
          dall.extend([e[2] for e in mrow])
       return UTIL.vals_are_constant(dall)
 
+   def check_constant_duration(self):
+      """return whether constant, and duration if so
+         (akin to durs_are_constant(), but also return that duration)
+         return -1 for duration, if unknown
+      """
+      cdur = -1
+      if self.mdata == None: return 1, cdur
+      dall = []
+      for mrow in self.mdata:
+         dall.extend([e[2] for e in mrow])
+
+      if UTIL.vals_are_constant(dall):
+         if len(dall) > 0: cdur = dall[0]
+         rv = 1
+      else:
+         rv = 0
+
+      return rv, cdur
+
    def write_as_timing(self, fname='', nplaces=-1):
       """write the current M timing out, with nplaces right of the decimal"""
       if not self.ready:
