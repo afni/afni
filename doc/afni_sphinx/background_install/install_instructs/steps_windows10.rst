@@ -238,6 +238,37 @@ to have administrator privileges on your operating system.
         ``Profile``, turn **off** "use colors ...", and finally simply
         pick a scheme+palette that you like.
 
+    #. Terminal comparison
+    attached a screen capture of the three basic terminal windows.
+    From left to right - 
+       "Command Prompt", "Bash on Ubuntu on Windows", gnome-terminal
+       (there is also the Windows PowerShell available through "Super-X,A"
+       that is almost the same thing too as the "Command Prompt")
+    Note the small icons in the upper left corner of each. 
+    Copy/paste is available by default in the first two by left-clicking
+    on the upper-left button of the window
+       Select "Edit", "Mark" to select,
+       then "Edit","Copy". Select "Edit","Paste" to paste - fairly awkward. 
+       If you select "Properties", then "Quick Edit" to change the defaults
+       of the shortcut and make this a little easier. You can then use the mouse
+       to select text, "Shift-Ctrl-c" to copy and right-click with a mouse to paste.
+    In gnome-terminal, everything is standard and similar to other linux implementations
+       middle button pastes whatever is selected in the BouoW terminal
+       or other gnome-terminal. 
+       Shift-Ctrl-c copies, and Shift-Ctrl-v also pastes.
+
+Like most linux systems, some things have to be done with sudo permissions. The user name and password may have nothing to do with their Windows login. To reset the password, follow these instructions:
+
+    In the Windows admin command prompt (Super[windowskey]+X, A) 
+    change the default user to root:
+       lxrun /setdefaultuser root
+
+    Now Bash on Ubuntu on Windows logs you in as root without asking password
+    Use passwd command in Bash to change the user password:
+       passwd your_username
+
+    Change the default user back to your normal user in Windows command prompt
+       lxrun /setdefaultuser your_username
 
 
    .. ---------- HERE/BELOW: copy for all installs --------------
