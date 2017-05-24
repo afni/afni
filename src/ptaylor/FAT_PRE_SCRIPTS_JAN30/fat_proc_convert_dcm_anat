@@ -23,8 +23,13 @@
 #set version = "2.9"; set rev_dat = "Apr 21, 2017"
 #   + no more automask in 3dCM
 #
-set version = "3.0"; set rev_dat = "Apr 26, 2017"
+#set version = "3.0"; set rev_dat = "Apr 26, 2017"
 #   + dcm2niix -> dcm2niix_afni
+#
+set version = "3.1"; set rev_dat = "May 24, 2017"
+#   + dcm2niix_afni: in multiecho DCMs, the echo number
+#     automatically gets put in *somehow*, whether asked for or not
+#     ... so now this is controlled for
 #
 # ----------------------------------------------------------------
 
@@ -259,12 +264,13 @@ endif
 
 # ======================== convert dicoms ===============================
 
-# place output into wdir, using gzipped files
+# place output into wdir, using gzipped files. 
+# [PT: May 24, 2017] Control for multiecho files now
 dcm2niix_afni  \
         -z y              \
         -x n              \
         -p y              \
-        -f $npref         \
+        -f ${npref}_%e    \
         -o "$wdir"        \
         $idir/
 
@@ -272,7 +278,7 @@ dcm2niix_afni  \
 
 cd $wdir
 
-set all_nii = `\ls ${npref}.nii.gz`
+set all_nii = `\ls ${npref}*.nii.gz`
 
 # =========== put into proper orientation, simplify name =================
 
