@@ -492,6 +492,8 @@ advanced arguments/options:
     -rand_post_stim_rest yes/no : allow rest after final stimulus
     -show_rest_events           : show details of rest timing, per type
     -write_event_list FILE      : create FILE listing all events and times
+    -save_3dd_cmd FILE          : write 3dDeconvolve script to FILE
+    -make_3dd_contrasts         : include pairwise contrasts in 3dD script
 ----------------------------------------
 required arguments:
 
@@ -862,6 +864,8 @@ make_random_timing.py - Advanced usage
      - Also, do not allow any extra rest (beyond the specified 10 s) after
        the final stimulus event.
 
+     - Generate 3dDeconvolve command script with contrasts.
+
      - Show timing statistics.  Save a complete event list (events.adv.1.txt).
 
          make_random_timing.py -num_runs 4 -run_time 200         \\
@@ -1046,7 +1050,7 @@ g_history = """
          - decay class now follows a better curve
          - added decay_old class for old decay method
     2.3  May  9, 2017: applied -offset for advanced case
-    2.4  May 24, 2017: applied -save_3dd_cmd for advanced case
+    2.4  May 24, 2017: advanced -save_3dd_cmd and -make_3dd_contrasts
 """
 
 g_version = "version 2.4, May 24, 2017"
@@ -1054,7 +1058,6 @@ g_version = "version 2.4, May 24, 2017"
 g_todo = """
    - add -show_consec_stats option?
    - c23 shows small post-stim rest...
-   - apply -make_3dd_contrasts, -save_3dd_cmd
    - reconcile t_grid as global vs per class (init/pass as single parameters)
    - make new method for decay that better handles max duration, w/out spike
    - add warning if post-stim rest < 3 seconds
@@ -1129,6 +1132,7 @@ class RandTiming:
         # required arguments for advanced method
         self.tclasses   = [g_instant_timing_class] # TimingClass instances
         self.sclasses   = []            # StimClass instances
+        self.advanced   = 0
 
         # advanced options
         self.rand_post_stim_rest = 1    # include random rest from last event?
@@ -1358,6 +1362,9 @@ class RandTiming:
               print '   BASIC: %s' % ', '.join(g_style_opts_old)
               return 1
 
+           # note that we have the advanced style
+           self.advanced = 1
+
            # get timing classes first, required for stim classes
            olist = self.user_opts.find_all_opts('-add_timing_class')
            if len(olist) == 0:
@@ -1568,7 +1575,8 @@ class RandTiming:
             if not self.file_3dd_cmd:
                 print '** cannot use -make_3dd_contrasts without -save_3dd_cmd'
                 return 1
-            elif not self.labels:
+            # advanced style has labels built in
+            elif not self.labels and not self.advanced:
                 print '** cannot use -make_3dd_contrasts without -stim_labels'
                 return 1
 
@@ -2041,7 +2049,7 @@ class RandTiming:
             if self.labels and len(self.labels) == len(self.fnames):
                 c2 += '    -stim_label %d %s \\\n' % (ind+1,self.labels[ind])
         if self.make_3dd_contr and self.labels:
-            c2 += self.make_3dd_contr_str(prefix='    ')
+            c2 += self.make_3dd_contr_str(self.labels, prefix='    ')
         c2 += '    -x1D X.xmat.1D\n\n'
 
         first = (polort+1) * len(self.run_time)
@@ -2074,12 +2082,12 @@ class RandTiming:
         fp.write(cmd)
         fp.close()
 
-    def make_3dd_contr_str(self, prefix=''):
+    def make_3dd_contr_str(self, labels, prefix=''):
         """return a string with all pairwise contrasts"""
-        if not self.labels: return ''
+        if not labels: return ''
         cstr = ''
         cind = 0
-        llist = self.labels # just to make shorter
+        llist = labels # just to make shorter
         for first in range(len(llist)-1):
             for next in range(first+1,len(llist)):
                 cstr += "%s-gltsym 'SYM: %s -%s' -glt_label %d %s-%s \\\n" % \
@@ -3609,7 +3617,6 @@ class RandTiming:
             +  '%s' % make_concat_from_times(self.run_time,tr)  \
             +  '    -num_stimts %d    \\\n' % self.num_stim
 
-
         for ind, sc in enumerate(self.sclasses):
             basis = adv_basis_from_time(sc)
             # if duration modulation as stim durs vary, use AM1
@@ -3621,9 +3628,10 @@ class RandTiming:
                      (ind+1, sc.adata.fname, basis)
             c2 += '    -stim_label %d %s \\\n' % (ind+1,sc.name)
 
-        # todo?
-        # if self.make_3dd_contr and self.labels:
-        #     c2 += self.make_3dd_contr_str(prefix='    ')
+        # and possibly add contrasts
+        if self.make_3dd_contr:
+            labels = [sc.name for sc in self.sclasses]
+            c2 += self.make_3dd_contr_str(labels, prefix='    ')
 
         if self.prefix: xmat = 'X.%s.xmat.1D' % self.prefix
         else:           xmat = 'X.xmat.1D'
