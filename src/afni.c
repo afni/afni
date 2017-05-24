@@ -1947,6 +1947,7 @@ void AFNI_sigfunc_alrm(int sig)
      "If I can find the man calling me ruthless, I'll destroy him"   ,
      "'It remains to be seen' == 'When pigs fly'"                    ,
      "Do not scorn pity that is the gift of a gentle heart"          ,
+     "Do not go gentle into that good abend"                         ,
      "The best laid statistics of mice and men gang aft agley"       ,
      "A thousand farewells pass in one moment"                       ,
      "Did you see hyperconnectivity in the disconnected fibers?"     ,
@@ -1993,7 +1994,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Do you still miss the NIH Bear? I do"                          ,
      "Always be patient with the rich and powerful"                  ,
      "Better to visit hell in your lifetime than afterwards"         ,
-     "Halfway is 12 miles, when you have 14 miles to go"             ,
+     "Halfway is 12 miles, when you are on a 14 mile hike"           ,
      "How beautiful it is to do nothing, then rest afterwards"       ,
      "When the sky falls, hold up your hands"                        ,
      "If you can't bite, don't show your teeth"                      ,
@@ -2063,6 +2064,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Give into temptation; it might not come again"                 ,
      "Insanity is my best and only means of relaxation"              ,
      "The three 'Ups' of life: Grow Up, Shut Up, Lighten Up"         ,
+     "I am not a number, I am a free software!"                      ,
 
      /* paraprosdokians */
 
@@ -2176,6 +2178,7 @@ void AFNI_sigfunc_alrm(int sig)
 
      /* Longer quotes */
 
+     "I look to that which is, and beyond, to that which will ever be"                ,
      "To steal ideas from one person is plagiarism; to steal from many is research"   ,
      "The early bird gets the worm, but the second mouse gets the cheese"             ,
      "I believe in giving everybody a fair and equal chance to foul things up"        ,
@@ -2373,9 +2376,23 @@ void AFNI_sigfunc_alrm(int sig)
      "     0.099  = Significant at the p < 0.1 level\n"
      "     > 0.1  = Hey! Look at this interesting subgroup analysis"   ,
 
+     "\n Possible answers to a binary question:\n"
+     "     Yes\n"
+     "     No\n"
+     "     Maybe\n"
+     "     I don't know\n"
+     "     I know but I'm not telling you\n"
+     "     I need to talk to my lawyer\n"
+     "     Please repeat the question\n"
+     "     Quantum indeterminacy makes any answer uncertain\n"
+     "     That depends on the truth of the Riemann Hypothesis\n"
+     "     Is there an odd perfect number?\n"
+     "     Go Fish\n"
+     "     Look, a squirrel" ,
+
      "\n There comes a time when you look into the mirror and you realize\n"
-     "  what you see is all that you will ever be. And then you accept it.\n"
-     "  Or you stop looking in mirrors"
+     " what you see is all that you will ever be. And then you accept it.\n"
+     " Or you stop looking in mirrors"
 
    } ;
 #undef NTOP
