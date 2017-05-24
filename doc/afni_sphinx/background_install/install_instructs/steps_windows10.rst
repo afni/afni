@@ -55,8 +55,9 @@ to have administrator privileges on your operating system.
    From this point, your terminal behaves very similarly to how it would
    on a normal (non-Windows) Linux system.
 
-   To open up a terminal, you can go to "Ask me
-   anything" and start typing "Bash on Ubuntu," and it will likely
+   To open up a terminal, you can go to the Search bar in the lower left
+   (where it says "Type here to search")
+   and start typing "Bash on Ubuntu," and it will likely
    autocomplete while typing.  Additionally, you can make a shortcut
    on your Windows desktop.
 
@@ -160,8 +161,7 @@ to have administrator privileges on your operating system.
 
 #. **Get R setup.**
 
-   **DANIEL**: What about this?
-
+ 
    Install current R libraries for the group analysis programs.  This
    relies on the environment variable ``$R_LIBS``, which refers to a
    directory that will contain the R packages.  That variable should
@@ -218,9 +218,7 @@ to have administrator privileges on your operating system.
         You may receive errors about "cannot load font," but it still
         works after doing the following in the terminal:
         ``ctrl-right-click``, select TrueType Fonts, and change font
-        size.
-
-        **DANIEL**: what are they changing font size to, above?
+        size to a font you like.
 
      #. ``gnome-terminal``.
 
@@ -239,6 +237,7 @@ to have administrator privileges on your operating system.
         terminal.  To fix this: select the ``Edit`` tab, then
         ``Profile``, turn **off** "use colors ...", and finally simply
         pick a scheme+palette that you like.
+
 
 
    .. ---------- HERE/BELOW: copy for all installs --------------
