@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25,  May, 2017, RCR, "make_random_timing.py", MINOR, TYPE_ENHANCE,
+   "can now apply -save_3dd_cmd and -make_3dd_contrasts in advanced case",
+   "Advanced usage can generate 3dDeconvolve command scripts, with contrasts."
+ } ,
+
  { 23,  May, 2017, RCR, "timing_tool.py", MICRO, TYPE_MODIFY,
    "only warn 'ISI error: stimuli overlap' if olap > 0.0001",
    "Overlap could come from float->ascii->float conversion."
