@@ -864,7 +864,7 @@ make_random_timing.py - Advanced usage
      - Also, do not allow any extra rest (beyond the specified 10 s) after
        the final stimulus event.
 
-     - Generate 3dDeconvolve command script with contrasts.
+     - Generate 3dDeconvolve command script (and with pairwise contrasts).
 
      - Show timing statistics.  Save a complete event list (events.adv.1.txt).
 
@@ -878,6 +878,8 @@ make_random_timing.py - Advanced usage
             -add_stim_class donuts 10 stim rest                  \\
             -show_timing_stats                                   \\
             -write_event_list events.adv.1.txt                   \\
+            -save_3dd_cmd cmd.3dd.eg1.txt                        \\
+            -make_3dd_contrasts                                  \\
             -seed 31415 -prefix stimes.adv.1
 
 
@@ -935,6 +937,7 @@ make_random_timing.py - Advanced usage
      - Every pizza1 event is followed by pizza2 and then pizza3.
      - The stimc timing class has durations on a grid of 0.1s, rather
        than the default of 0.01s.
+     - Write a corresponding 3dDeconvolve script, cmd.3dd.eg3.txt.
 
          make_random_timing.py -num_runs 2 -run_time 300         \\
             -pre_stim_rest 10 -post_stim_rest 10                 \\
@@ -957,6 +960,7 @@ make_random_timing.py - Advanced usage
             -show_timing_stats                                   \\
             -ordered_stimuli cue test result                     \\
             -ordered_stimuli pizza1 pizza2 pizza3                \\
+            -save_3dd_cmd cmd.3dd.eg3.txt                        \\
             -seed 31415 -prefix stimes.adv.3
 
    -------------------------------------------------------
@@ -1061,11 +1065,9 @@ g_todo = """
    - reconcile t_grid as global vs per class (init/pass as single parameters)
    - make new method for decay that better handles max duration, w/out spike
    - add warning if post-stim rest < 3 seconds
-   - add option to change timing classes for pre and post stim rest
+   - add option to specify timing classes for pre and post stim rest
    - add related dist_types rand_unif and rand_gauss?
    - global "-across_runs" should still apply
-
-   - option to give -pre_/-post_stim_rest a class?
 
    - maybe this program should just be a new one?  gen_random_timing.py?
       - MRT could be forked and depricated, but maybe people want to use it?
