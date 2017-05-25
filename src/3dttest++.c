@@ -173,6 +173,8 @@ static int      num_clustsim = 0 ;
 static char *prefix_clustsim = NULL ;
 static char *tempdir         = "." ; /* 20 Jul 2016 */
 
+static int       do_5percent = 1 ;   /* 24 May 2017 */
+
 static int dryrun = 0 ;
 
 typedef struct {
@@ -1192,6 +1194,8 @@ void display_help_menu(void)
       "                           was also close to the threshold at which the FDR\n"
       "                           q=1/43000, which may not be a coincidence.\n"
       "\n"
+      " -no5percent         = Don't output the 'cc'.5percent.txt file.\n"
+      "\n"
       " -tempdir ttt        = Store temporary files for '-Clustsim' in this directory,\n"
       "                       rather than in the current working directory: this option\n"
       "                       is for use when you have access to a fast local disk\n"
@@ -2036,6 +2040,10 @@ int main( int argc , char *argv[] )
 
      if( strcasecmp(argv[nopt],"-notests") == 0 ){  /* 05 Feb 2014 */
        do_tests = 0 ; nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-no5percent") == 0 ){ /* 24 May 2017 */
+       do_5percent = 0 ; nopt++ ; continue ;
      }
 
 #ifdef ALLOW_RANK
@@ -3020,7 +3028,7 @@ int main( int argc , char *argv[] )
    if( name_mask == NULL && do_Xclustsim )
      ERROR_exit("%s requires -mask /:(",clustsim_opt) ;
 
-   if( do_randomsign && num_randomsign > 1 ){ /* 02 Feb 2016 */
+   if( do_randomsign && num_randomsign > 1 && do_5percent ){ /* 02 Feb 2016 */
      char *cpt ;
      brickwise_num = num_randomsign ;
 
@@ -4345,6 +4353,9 @@ LABELS_ARE_DONE:  /* target for goto above */
          else if( dont_permute )
            sprintf( cmd+strlen(cmd) , " -nopermute" ) ;  /* 09 Dec 2016 */
 
+         if( !do_5percent )
+           sprintf( cmd+strlen(cmd) , " -no5percent" ) ; /* 24 May 2017 */
+
          if( dofsub != 0 )
            sprintf( cmd+strlen(cmd) , " -dofsub %d",-dofsub) ;
          if( name_mask != NULL )
@@ -4460,7 +4471,7 @@ LABELS_ARE_DONE:  /* target for goto above */
 
      if( dryrun ){
        ININFO_message("(At this point, would compute .5percent.txt file(s) from minmax.1D files)") ;
-     } else {
+     } else if( do_5percent ){
        MRI_IMAGE *inim , *allim ; MRI_IMARR *inar ; int nbad=0 ;
        INIT_IMARR(inar) ;
        for( pp=0 ; pp < num_clustsim*ncase ; pp++ ){ /* read one from each simulation */
@@ -4542,7 +4553,8 @@ LABELS_ARE_DONE:  /* target for goto above */
 #if 0
            ININFO_message("===== starting 3dClustSim =====\n   %s",cmd) ;
 #else
-           ININFO_message("===== starting 3dClustSim =====") ;
+           ININFO_message("===== starting 3dClustSim %s: elapsed = %.1f s =====",
+                          clab[icase] , COX_clock_time() ) ;
 #endif
            system(cmd) ;
 
@@ -4641,7 +4653,8 @@ LABELS_ARE_DONE:  /* target for goto above */
 #if 0
            ININFO_message("===== starting 3dXClustSim =====\n   %s",cmd) ;
 #else
-           ININFO_message("===== starting 3dXClustSim =====") ;
+           ININFO_message("===== starting 3dXClustSim : elapsed = %.1f s =====",
+                          COX_clock_time() ) ;
 #endif
            system(cmd) ;  /* run 3dXClustSim here */
 
