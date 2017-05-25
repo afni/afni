@@ -1,7 +1,5 @@
 #!/bin/tcsh -e
 
-# !!!!!???????? CHECK LRMID STUFFF?????
-
 # --------------------- revision history -------------------------
 # Sept, 2016
 #   + added pre-lr-symm (as def), 
@@ -58,8 +56,11 @@
 #set version   = "3.3";  set rev_dat   = "May 17, 2017"
 #   + also output map*1D file of rot_shift params now
 #
-set version   = "3.41";  set rev_dat   = "May 18, 2017"
+#set version   = "3.41";  set rev_dat   = "May 18, 2017"
 #   + new option: cut away inf slices of inset
+#
+set version   = "3.5";  set rev_dat   = "May 25, 2017"
+#   + new option: input mask for early application
 #
 # ----------------------------------------------------------------
 
@@ -87,6 +88,7 @@ set my_viewer = "$adir/@chauffeur_afni"
 # ----------------------- set defaults --------------------------
 
 set ifile    = ""                   # nec input T1w vol
+set imask    = ""                   # can use mask but don't apply to final
 set iref     = ""                   # optional, if SS'ing elsewhere
 set opref    = ""                   # for final output files
 set odir     = ""                   # will be output dir
@@ -144,6 +146,11 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set ifile = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-focus_mask" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set imask = "$argv[$ac]"
 
     else if ( "$argv[$ac]" == "-refset" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
@@ -272,7 +279,7 @@ if ( "$#check" == "0" ) then
 endif
 
 # make sure we can read volumes OK: anat and final mask, if inpu
-foreach ff ( "$ifile" "$iref" $final_al_wtmask )
+foreach ff ( "$ifile" "$iref" $final_al_wtmask $imask )
     set check = `3dinfo "$ff"`
     if ( "$#check" == "0" ) then
         echo "** ERROR: can't find input file:  $ff !"
@@ -427,6 +434,18 @@ set inp0 = $fout   # and reset what we mean "original" to be
     -prefix "$wdir/$fout"    \
     -float                   \
     -overwrite
+
+# [PT: May 25, 2017]: allow for early application of mask
+if ( "$imask" != "" ) then
+    set min  = "$imask"
+    set mout = "${tpref}_${iidx}_mask.nii"
+    3dcalc    -echo_edu          \
+        -a "$min"                \
+        -expr 'step(a)'          \
+        -prefix "$wdir/$mout"    \
+        -byte                    \
+        -overwrite
+endif
 @ idx += 1
 
 # --------------- move to wdir and continue ------------------
@@ -444,15 +463,50 @@ if ( $INF_SLI != "" ) then
         -I -$INF_SLI           \
         -prefix $fout          \
         $fin
+
+    if ( "$imask" != "" ) then
+        set min  = "$mout"
+        set mout = "${tpref}_${iidx}_mask.nii"
+        3dcalc    -echo_edu          \
+            -a "$min"                \
+            -expr 'step(a)'          \
+            -prefix "$mout"          \
+            -byte                    \
+            -overwrite
+    endif
+
+    @ idx += 1
+endif
+
+if ( "$imask" != "" ) then
+    set fin  = "$fout"
+    set min  = "$mout"
+    set fout = "${tpref}_${iidx}_mask.nii"
+    3dcalc    -echo_edu          \
+        -a "$fin"                \
+        -b "$min"                \
+        -expr 'a*b'              \
+        -prefix "$fout"          \
+        -float                   \
+        -overwrite
     @ idx += 1
 endif
 
 if ( "$DO_CM" == "1" ) then
     echo "++ Pre-step: make input's center of mass sit at (x,y,z)=(0,0,0)."
     set fin  = "$fout"
-    3dCM  \
+    3dCM              \
         -set 0 0 0    \
         $fin
+
+    # and reset origin of inp0 to use
+    if ( "$inp0" != "$fin" ) then
+        echo "++ ... and bring along the input."
+        3drefit -echo_edu    \
+            -duporigin $fin  \
+            $inp0
+    endif
+
 else
     set fin  = "$fout"
     set xyz = `3dCM $fin`
@@ -885,6 +939,8 @@ cat << EOF
         {-extra_al_cost CC}                   \
         {-extra_al_inps II}                   \
         {-extra_al_opts SS}                   \
+        {-focus_mask MMM}                     \
+        {-remove_inf_sli II}                  \
         {-post_lr_symm}                       \
         {-no_pre_lr_symm}                     \
         {-no_clean}                           \
@@ -893,6 +949,7 @@ cat << EOF
         {-qc_prefix QCP}
 
   where: 
+
   -inset  IN_FILE  :is the full name of the input anatomical volume.
   -refset REF_FILE :is the full name of the reference volume, such as
                     TT or MNI or something (probably you want to match
@@ -945,6 +1002,21 @@ cat << EOF
                     warp with 3dAllineate at the end.  One I could see
                     being useful would be having "-newgrid X", where X
                     is desired final resolution of the data.
+
+  -focus_mask MMM  :input a mask of the inset that gets applied early
+                    on to focus the processing+alignment; the final,
+                    axialized volume will not have the mask applied,
+                    it's just used to help get rid of non-brain 
+                    garbage.  Note: before application, MMM gets binarized
+                    to 1 where MMM>0 and 0 elsewhere.
+
+-remove_inf_sli II :sometimes data is acquired with lots of nonbrain
+                    volume in the FOV, particularly neck and things like
+                    that.  While necks are important, they also might
+                    move the center of mass estimate of the brain
+                    far lower than it should be.  You can get rid of this
+                    by applying this option, to remove 'II' number of 
+                    slices from the inferior part of the FOV.
 
   -no_pre_lr_symm  :a pre-alignment left-right symmetrization is
                     performed by default, but you can turn it off if you
@@ -1008,8 +1080,6 @@ cat << EOF
      -extra_al_wtmask mni_icbm152_t2_relx_tal_nlin_sym_09a_ACPC_wtell.nii.gz \
      -mode_t2w                                                  \
      -prefix t2w_axlz
-
-
 
 -------------------------------------------------------------------------
   TIPS:
