@@ -21,8 +21,12 @@
 #   + new wdir naming
 #   + redone final file naming
 #
-set version   = "1.7";  set rev_dat   = "Apr 26, 2017"
+#set version   = "1.7";  set rev_dat   = "Apr 26, 2017"
 #   + better naming wdir
+#
+set version   = "1.8";  set rev_dat   = "May 25, 2017"
+#   + changed output file names; earlier ones now annoyed me, 
+#     fickly enough
 #
 # ----------------------------------------------------------------
 
@@ -346,7 +350,7 @@ echo "\nThresh value will be: $P_THR \n"
 
 set fin1  = "$fout"
 set fin2  = "$foutm"
-set t1out  = "${opref}_t1w.nii.gz"
+set t1out  = "${opref}_orig.nii.gz"
 # [PT: now weight as 10% values outside brain]
 3dcalc                                            \
     -echo_edu                                     \
@@ -359,7 +363,7 @@ set t1out  = "${opref}_t1w.nii.gz"
 
 set fin1  = "../$t1out"
 set fin2  = "$foutm"
-set fout  = "${opref}_t1w_ss.nii.gz"
+set fout  = "${opref}_orig_ss.nii.gz"
 set t1ss  = $fout
 3dcalc                                            \
     -echo_edu                                     \
@@ -372,7 +376,7 @@ set t1ss  = $fout
 
 # try making an imitation T2;
 # same fin* as above
-set t2out = "${opref}_t2w.nii.gz"
+set t2out = "${opref}.nii.gz"
 3dcalc                                            \
     -echo_edu                                     \
     -a $fin1                                      \
@@ -389,10 +393,10 @@ if ( $DO_VIEWER ) then
     echo "++ Making QC images."
 
     if( $qc_prefix == "" ) then
-        set vpref1 = ${opref}${postfix}_qc1_t1wss
+        set vpref1 = ${opref}${postfix}_qc1_origss
         set vpref2 = ${opref}${postfix}_qc2_imit2w
     else
-        set vpref1 = ${qc_prefix}${postfix}_qc1_t1wss
+        set vpref1 = ${qc_prefix}${postfix}_qc1_origss
         set vpref2 = ${qc_prefix}${postfix}_qc2_imit2w
     endif
 
@@ -508,14 +512,14 @@ cat << EOF
 
   OUTPUTS:
 
-    PREFIX_t2w.nii.gz     :a volume with T2w-like tissue contrast made
+    PREFIX.nii.gz         :a volume with T2w-like tissue contrast made
                            from a T1w one; the outside of the brain
                            has scaled skull and noise, for having a
                            non-zero SNR estimation.
-    PREFIX_t1w.nii.gz     :a somewhat cleaned/processed version of the
+    PREFIX_orig.nii.gz    :a somewhat cleaned/processed version of the
                            input T1w volume; it also has a scaled skull 
                            and noise outside the brain.
-    PREFIX_t1w_ss.nii.gz  :a skull-stripped version of PREFIX_t1w.nii.gz.
+    PREFIX_orig_ss.nii.gz :a skull-stripped version of PREFIX_t1w.nii.gz.
 
     PREFIX${postfix}_qc*
                           :QC images of the skull-stripped T1w volume
