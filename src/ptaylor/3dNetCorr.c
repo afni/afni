@@ -591,7 +591,8 @@ int main(int argc, char *argv[]) {
             // first, we make a mask of nonzero time series
             checksum = 0.;
             for( m=0 ; m<Dim[3] ; m++ ) 
-               checksum+= fabs(THD_get_voxel(insetTIME,idx,0));
+               // [PT: May 27, 2017] fixed index 0 -> m
+               checksum+= fabs(THD_get_voxel(insetTIME,idx,m)); 
             if( checksum > EPS_V ) {
                mskdnz[i][j][k] = 1;
                mskd2nz[idx] = 1;
