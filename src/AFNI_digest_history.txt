@@ -1,0 +1,40 @@
+
+===========================================================================
+AFNI Digest, week of 2017/05/26.
+
+00) AFNI is starting a new “Digest” email distribution-- welcome!
+
+01) FMRI Clustering has been a widely discussed topic this year. These recent papers by the AFNI group discuss the work by Eklund et al. (with useful summaries of their results) and discuss both old and new AFNI clustering functionality.
++ Full Brain Connectivity paper:
+  http://online.liebertpub.com/doi/full/10.1089/brain.2016.0475
++ And its “Executive Summary”:
+  https://drive.google.com/file/d/0B6Sn11ZTBrhvR2VYWmhvYmpZU2M/view
++ PNAS reply Letter:
+  http://www.pnas.org/content/114/17/E3370.full
++ Presentation slides:
+  https://drive.google.com/file/d/0B6Sn11ZTBrhvMi1TRDdKRUlMaEk/view
+
+02) In afni_proc.py, blur estimation and clustering are now done using the ACF method by default, replacing Gaussian FWHM (as of Aug. 15, 2016). Further progress in this area will be debuted at the OHBM meeting in Vancouver BC (end of June).
+
+03) The AFNI team has a new member, Justin "DiscoRaj" Rajendra.  Please direct your most complicated inquiries directly to him.
+
+04) For Mac users, a note about AFNI compiling, installation, and updates:
+For relative ease, please use the "local" Mac version now (easier dependencies), described in Step #2 here:
+  https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/background_install/install_instructs/steps_mac.html
+
+05) The command line form of dcm2niix is now distributed with AFNI, as "dcm2niix_afni" (renamed to avoid potential filename conflicts for anyone with it already installed from elsewhere):
+   https://afni.nimh.nih.gov/pub/dist/doc/program_help/dcm2niix_afni.html
+Thanks very much to Chris Rorden!
+
+06) For convenient referencing+remembering, the AFNI version number is now stored in the header of data files, as part of the history (viewable with 3dinfo).  For example,
+   ----- HISTORY -----
+   [user@computer: Mon May 22 17:21:52 2017] {AFNI_17.1.06:linux_openmp_64} 3dmask_tool -input ...
+
+---------------------------------------------------------------------
++ This Digest is not a comprehensive list of code updates.
++ Please direct comments or questions to the AFNI Message Board:
+  https://afni.nimh.nih.gov/afni/community/board/list.php?1
++ To unsubscribe or otherwise manage your Digest settings, click here:
+  https://list.nih.gov/cgi-bin/wa.exe?SUBED1=afni_digest&A=1
+---------------------------------------------------------------------
+
