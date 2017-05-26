@@ -12,7 +12,7 @@
 /*---------------------------------------------------------------------------*/
 
 #define PROGRAM_NAME   "3dclust"                     /* name of this program */
-#define PROGRAM_AUTHOR "RW Cox et al"                      /* program author */
+#define PROGRAM_AUTHOR "RW Cox et alii"                    /* program author */
 #define PROGRAM_DATE   "21 Jul 2005"             /* date of last program mod */
 
 /*---------------------------------------------------------------------------*/
@@ -79,8 +79,9 @@ static int CL_verbose = 0 ; /* RWC 01 Nov 1999 */
 
 static int CL_quiet = 0;   /* MSB 02 Dec 1999 */
 
-static char * CL_prefix = NULL ; /* 29 Nov 2001 -- RWCox */
+static char * CL_prefix   = NULL ; /* 29 Nov 2001 -- RWCox */
 static char * CL_savemask = NULL ; /* 26 Aug 2011 */
+static int    do_binary   = 0 ;    /* 26 May 2017 */
 
 static int    CL_do_mni = 0 ;    /* 30 Apr 2002 -- RWCox */
 
@@ -127,9 +128,9 @@ int main( int argc , char * argv[] )
    int do_mni ;                         /* 30 Apr 2002 */
    char c1d[2] = {""}, c1dn[2] = {""};
    byte *mask=NULL ; int nmask=0 ;      /* 02 Aug 2011 */
-   
+
    mainENTRY("3dclust"); machdep();
-   
+
    if( argc < 4 || strncmp(argv[1],"-help",4) == 0 ){
       printf ("\n\n");
       printf ("Program: %s \n", PROGRAM_NAME);
@@ -271,6 +272,8 @@ int main( int argc , char * argv[] )
   "                 that the largest cluster is labeled '1', the next      \n"
   "                 largest '2' and so forth.  Should be the same as       \n"
   "                 '3dmerge -1clust_order' or Clusterize 'SaveMsk'.       \n"
+  "  -binary     => This turns the output of '-savemask' into a binary     \n"
+  "                 (0 or 1) mask, rather than a cluster-index mask.       \n"
   "\n"
   "----------------------------------------------------------------------- \n"
   " N.B.: 'N.B.' is short for 'Nota Bene', Latin for 'Note Well';          \n"
@@ -650,7 +653,7 @@ int main( int argc , char * argv[] )
              cl = clar->clar[iclu] ; if( cl == NULL ) continue ;
              for( ipt=0 ; ipt < cl->num_pt ; ipt++ ){
                ii = cl->i[ipt] ; jj = cl->j[ipt] ; kk = cl->k[ipt] ;
-               mmm[ii+jj*nx+kk*nxy] = (short)(iclu+1) ;
+               mmm[ii+jj*nx+kk*nxy] = (do_binary) ? 1 : (iclu+1) ;
              }
            }
 
@@ -679,35 +682,35 @@ int main( int argc , char * argv[] )
                       if( mmm[ii] == 0 ) bar[ii] = 0 ;
                   }
                   break ;
-  
+
                   case MRI_int:{
                     int *bar = (int *) DSET_ARRAY(dset,qv) ;
                     for( ii=0 ; ii < nxyz ; ii++ )
                       if( mmm[ii] == 0 ) bar[ii] = 0 ;
                   }
                   break ;
-  
+
                   case MRI_float:{
                     float *bar = (float *) DSET_ARRAY(dset,qv) ;
                     for( ii=0 ; ii < nxyz ; ii++ )
                       if( mmm[ii] == 0 ) bar[ii] = 0.0 ;
                   }
                   break ;
-  
+
                   case MRI_double:{
                     double *bar = (double *) DSET_ARRAY(dset,qv) ;
                     for( ii=0 ; ii < nxyz ; ii++ )
                       if( mmm[ii] == 0 ) bar[ii] = 0.0 ;
                   }
                   break ;
-  
+
                   case MRI_complex:{
                     complex *bar = (complex *) DSET_ARRAY(dset,qv) ;
                     for( ii=0 ; ii < nxyz ; ii++ )
                       if( mmm[ii] == 0 ) bar[ii].r = bar[ii].i = 0.0 ;
                   }
                   break ;
-  
+
                   case MRI_rgb:{
                     byte *bar = (byte *) DSET_ARRAY(dset,qv) ;
                     for( ii=0 ; ii < nxyz ; ii++ )
@@ -786,7 +789,7 @@ int main( int argc , char * argv[] )
             mm = fabs(ms);
 
        mssum += ms;
-	    mmsum += mm;
+       mmsum += mm;
 
             sqsum += mm * mm;
             xxsum += mm * xx ; yysum += mm * yy ; zzsum += mm * zz ;
@@ -795,7 +798,7 @@ int main( int argc , char * argv[] )
                mmmax = mm ; msmax = ms ;
             }
 
-	    /* Dimensions: */
+       /* Dimensions: */
             if ( xx > RLmax )
             	RLmax = xx;
             if ( xx < RLmin )
@@ -983,6 +986,10 @@ void CL_read_opts( int argc , char * argv[] )
             fprintf(stderr,"-savemask string is illegal: %s\n",CL_savemask); exit(1);
          }
          nopt++ ; continue ;
+      }
+
+      if( strcmp(argv[nopt],"-binary") == 0 ){  /* 26 May 2017 */
+        do_binary = 1 ; nopt++ ; continue ;
       }
 
       /**** Sep 16 1999: -1tindex and -1dindex ****/
