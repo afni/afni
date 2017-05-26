@@ -81,7 +81,7 @@ MODEL_interface * initialize_model ()
          gs[2] = y0     = y-coordinate of gaussian center
          gs[3] = sigma  = "width" of gaussian curve
 
-  For each TR, integrate g(x,y) over stim aperature dset.
+  For each TR, integrate g(x,y) over stim aperture dset.
 
          g(x,y) = e^-[((x-x0)^2+(y-y0)^2)/(2*sigma^2)]
 
