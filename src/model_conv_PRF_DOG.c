@@ -88,7 +88,7 @@ MODEL_interface * initialize_model ()
          gs[4] = amp2   = amplitude of second gaussian
          gs[5] = sigma2 = width of second gaussian
 
-  For each TR, integrate g(x,y) over stim aperature dset.  But as a
+  For each TR, integrate g(x,y) over stim aperture dset.  But as a
   difference of Gaussians.
 
      given:  g(x,y,sigma) = e^-[((x-x0)^2+(y-y0)^2)/(2*sigma^2)]
