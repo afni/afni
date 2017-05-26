@@ -32,6 +32,9 @@
    + change behavior around empty ROIs
    + allow WB dsets to be named by str labels
 
+   May 2017:
+   + bug fix in checksum to find null time series
+
 */
 
 
