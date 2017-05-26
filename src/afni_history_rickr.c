@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 26,  May, 2017, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "add initial AFNI_digest_history.txt",
+   NULL
+ } ,
+
  { 25,  May, 2017, RCR, "make_random_timing.py", MINOR, TYPE_ENHANCE,
    "can now apply -save_3dd_cmd and -make_3dd_contrasts in advanced case",
    "Advanced usage can generate 3dDeconvolve command scripts, with contrasts."
