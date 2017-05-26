@@ -341,6 +341,19 @@ Like most linux systems, some things have to be done with sudo permissions. The 
          cat ~/.cshrc
 
        .. am inverting steps 5 and 6 from the original documentation,
-          under the idea that hte Bootcamp material is secondary to a
+          under the idea that the Bootcamp material is secondary to a
           general install, which I feel should include R.
 
+.. figure:: media/AFNI_on_Windows10_2ways.jpg
+   :align: center
+   :figwidth: 70%
+   :name: media/AFNI_on_Windows10_2ways.jpg
+   
+..
+
+.. figure:: media/bashforwindows10_terminals.jpg
+   :align: center
+   :figwidth: 70%
+   :name: media/AFNI_on_Windows10_2ways.jpg
+   
+..

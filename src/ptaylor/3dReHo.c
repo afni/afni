@@ -18,6 +18,7 @@
    + updated, Aug. 2016: wasn't allowing for subbrik selection on input
                          -> now it does
    + updated, May, 2017: added boxes as a shape for ReHoing
+   + updated, May, 2017: bug fix in checksum to find null time series
 */
 
 
@@ -522,7 +523,8 @@ int main(int argc, char *argv[]) {
         else {
            checksum = 0.;
            for( m=0 ; m<Dim[3] ; m++ ) 
-              checksum+= fabs(THD_get_voxel(insetTIME,idx,0));
+              // [PT: May 27, 2017] fixed index 0 -> m
+              checksum+= fabs(THD_get_voxel(insetTIME,idx,m));
            if( checksum > EPS_V ) 
               mskd[i][j][k] = 1;
         }
