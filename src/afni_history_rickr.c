@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 30,  May, 2017, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_ENHANCE,
+   "add volreg params to enorm/outlier plot",
+   NULL
+ } ,
+
  { 30,  May, 2017, RCR, "SUMA_IsoSurface", MICRO, TYPE_GENERAL,
    "remove non-ASCII characters in paper reference; remove tabs",
    NULL
