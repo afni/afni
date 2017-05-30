@@ -274,6 +274,7 @@ int main( int argc , char * argv[] )
   "                 '3dmerge -1clust_order' or Clusterize 'SaveMsk'.       \n"
   "  -binary     => This turns the output of '-savemask' into a binary     \n"
   "                 (0 or 1) mask, rather than a cluster-index mask.       \n"
+  "          **-->> If no clusters are found, the mask is not written!     \n"
   "\n"
   "----------------------------------------------------------------------- \n"
   " N.B.: 'N.B.' is short for 'Nota Bene', Latin for 'Note Well';          \n"
