@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 30,  May, 2017, RCR, "SUMA_IsoSurface", MICRO, TYPE_GENERAL,
+   "remove non-ASCII characters in paper reference; remove tabs",
+   NULL
+ } ,
+
  { 26,  May, 2017, RCR, "afni-general", MICRO, TYPE_ENHANCE,
    "add initial AFNI_digest_history.txt",
    NULL
