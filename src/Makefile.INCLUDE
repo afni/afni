@@ -2436,7 +2436,7 @@ models: model_constant.$(SO) model_linear.$(SO) model_quadratic.$(SO)  \
         model_zero.$(SO) model_demri_3.$(SO) model_expr2.$(SO)         \
         model_conv_diffgamma.$(SO) model_expMEMRI.$(SO)                \
         model_expMEMRI3.$(SO) model_conv_cosine4.$(SO)                 \
-        model_conv_PRF.$(SO) model_conv_PRF_6.$(SO)
+        model_conv_PRF.$(SO) model_conv_PRF_6.$(SO) model_conv_PRF_DOG.$(SO)
 
 # Contributed plugins go last, since they might not compile well
 
