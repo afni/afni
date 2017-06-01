@@ -423,6 +423,13 @@ cat << EOF
     **Majorly updated in Jan, 2017-- otherwise you wouldn't even be
       reading this help file description!**
 
+    When using this function and looking at the number of tracts per
+    flip, there should be a *very* clear winner.  If there isn't, then
+    probably something is not correct in the data (something
+    inconsistent in bvals or bvecs, large noise, etc.).  Please make
+    sure to look at the results in SUMA when prompted at the end, to
+    make sure that everything makes sense!
+
     ver $version; revision date $rev_dat.
     Written by PA Taylor (NIH).
    
