@@ -1,6 +1,5 @@
 #!/bin/tcsh
 
-
 # -----------------------------------------------------------------
 # Multipurpose, driven viewer.  Meant to be used for auto QC in
 # scripts. 
@@ -41,8 +40,11 @@
 #set version   = "2.4";   set rev_dat   = "May 20, 2017"
 #     + more unique naming of tempdir; safer for cluster runs
 # 
-set version   = "2.5";   set rev_dat   = "June 1, 2017"
+#set version   = "2.5";   set rev_dat   = "June 1, 2017"
 #     + back to regular xvfb and Bob's search
+# 
+set version   = "2.6";   set rev_dat   = "June 1, 2017"
+#     + default interpolation to NN, but add in option to set
 # 
 # =====================================================================
 
@@ -97,6 +99,8 @@ set gapord = ( 0 0 0 )
 set pbar_sign = "-"              # + is pos. only, - is both (switch for both)
 set ncolors   = "99"             # default number of colors
 set topval    = 1                # upper scale value in colorbar
+
+set func_resam = "NN"            # def. no resample; opt: {NN|Li|Cu|Bk}
 
 # for SET_FUNC_ALPHA
 set alpha_par    = "Off"         # 
@@ -213,6 +217,20 @@ while ( $ac <= $#argv )
         set frange = "$argv[$ac]"
         set USER_FRANGE = 1
         
+    #  SET_FUNC_RESAM [c.]{NN|Li|Cu|Bk}[.{NN|Li|Cu|Bk}]
+    else if ( "$argv[$ac]" == "-func_resam" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set func_resam = "$argv[$ac]"
+        if ( ( "$func_resam" != "NN" ) || \
+            ( "$func_resam" != "Li" ) || \
+            ( "$func_resam" != "Cu" ) || \
+            ( "$func_resam" != "Bk" ) ) then
+                echo "** Error! '-func_resam ...' input"
+                echo "   needs to be one of {NN|Li|Cu|Bk}."
+                goto BAD_EXIT
+        endif
+
     # refers to olay
     else if ( "$argv[$ac]" == "-func_range_perc" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
@@ -654,6 +672,7 @@ afni -noplugins -no_detach  -echo_edu                           \
      -com "SET_THRESHNEW   $thrnew $thrflag"                        \
      -com "SEE_OVERLAY     ${see_olay}"                             \
      -com "SET_FUNC_ALPHA  $alpha_par $alpha_floor"                 \
+     -com "SET_FUNC_RESAM  ${func_resam}.${func_resam}"             \
      -com "SET_XHAIRS  ${crossh}"                                   \
      -com "$OW sagittalimage opacity=${opac} mont=${mx}x${my}:${gapord[1]}" \
      -com "$OW coronalimage  opacity=${opac} mont=${mx}x${my}:${gapord[2]}" \
