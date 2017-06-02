@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  2,  Jun, 2017, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "add Makefile.linux_ubuntu_16_64 and OS_notes.linux_ubuntu_16_64",
+   "This is for setting up an Ubuntu 16 build machine."
+ } ,
+
  { 30,  May, 2017, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_ENHANCE,
    "add volreg params to enorm/outlier plot",
    NULL
