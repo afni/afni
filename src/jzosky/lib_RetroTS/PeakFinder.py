@@ -37,6 +37,8 @@ where opt is a dictionary with the parameters for the function
 """
 #numpy.set_printoptions(threshold='nan')
 
+# for checking whether quotients are sufficiently close to integral
+g_epsilon = 0.00001
 
 def fftsegs(ww, po, nv):
     """
@@ -316,9 +318,16 @@ def peak_finder(var_v, filename):
     # Doing ffts over smaller windows can improve peak detection in the few instances that go undetected but
     # what value to use is not clear and there seems to be at times more errors introduced in the lower envelope.
     nt = len(r['x'])
-    r['t'] = numpy.arange(0.,
-                          float(nt) / var_vector['phys_fs'],
-                          (1. / var_vector['phys_fs']))  # # % FIX FIX FIX
+
+    # force 't' to have the same length as 'x', rather than trusting
+    # divisions (when it should come out evenly)  5 Jun, 2017 [rickr]
+    #
+    # r['t'] = numpy.arange(0.,
+    #                       float(nt) / var_vector['phys_fs'],
+    #                       (1. / var_vector['phys_fs']))  # # % FIX FIX FIX
+    fsi = 1./var_vector['phys_fs']
+    r['t'] = numpy.array([i*fsi for i in range(len(r['x']))])
+
     iz = nonzero((r['x'][0:nt-1].imag * r['x'][1:nt].imag) <= 0)
     iz = iz[0]
     polall = -numpy.sign(r['x'][0:nt-1].imag - r['x'][1:nt].imag)
@@ -454,8 +463,12 @@ def peak_finder(var_v, filename):
         # Interpolate to slice sampling time grid:
         step_interval = 1. / var_vector['resample_fs']
         #r['tR'] = numpy.arange(0, max(r['t']) + step_interval, step_interval)
-        step_size = int(max(r['t']) / step_interval) + 1
+
+        # allow for a ratio that is barely below an integer
+        #                               5 Jun, 2017 [rickr]
+        step_size = int(max(r['t']) / step_interval + g_epsilon) + 1
         r['tR'] = []
+
         for i in range(0, step_size):
             r['tR'].append(i * step_interval)
         '''
