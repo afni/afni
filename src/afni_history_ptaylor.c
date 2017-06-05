@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 5, Jun , 2017 , PT , "3dTrackID" , MICRO , TYPE_GENERAL,
+   "Allow longer path names input for some things.",
+   "Paths to dti_in inputs can now be longer (300 chars).\n"
+},
+
 { 30, May , 2017 , PT , "3dANOVA3" , MICRO , TYPE_GENERAL,
    "Removed warning/info message for using type 4 or 5.",
    "Apparently made loooong ago, no longer needed according to GC.\n"
