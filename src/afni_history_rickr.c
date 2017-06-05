@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 5,  Jun, 2017, RCR, "RetroTS.py", MINOR, TYPE_BUG_FIX,
+   "peak_finder(): fix lengths of r['t'] and r['tR']",
+   "Be more cautious with ratios that are very close to integers."
+ } ,
+
+ { 5,  Jun, 2017, RCR, "RetroTS.py", MINOR, TYPE_BUG_FIX,
+   "merge phase_base() fix by D Nielson",
+   "range() is closed in matlab but half-open in python."
+ } ,
+
  {  2,  Jun, 2017, RCR, "afni-general", MINOR, TYPE_ENHANCE,
    "add Makefile.linux_ubuntu_16_64 and OS_notes.linux_ubuntu_16_64",
    "This is for setting up an Ubuntu 16 build machine."
