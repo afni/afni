@@ -88,7 +88,7 @@ MODEL_interface * initialize_model ()
          gs[4] = amp2   = amplitude of second gaussian
          gs[5] = sigma2 = width of second gaussian
 
-  For each TR, integrate g(x,y) over stim aperature dset.  But as a
+  For each TR, integrate g(x,y) over stim aperture dset.  But as a
   difference of Gaussians.
 
      given:  g(x,y,sigma) = e^-[((x-x0)^2+(y-y0)^2)/(2*sigma^2)]
@@ -202,6 +202,14 @@ static int model_help(void)
 "\n"
 "      So the amplitude of the narrower (inner) Gaussian must be at least\n"
 "      as big as that of the wider (outer) Gaussian.\n"
+"\n"
+"   So the 6 parameters are:\n"
+"\n"
+"      A1   : amplitude of taller, narrower Gaussian\n"
+"      X, Y : fractional grid coord representing focal location (in [-1,1])\n"
+"      sig  : sigma - width of taller, narrower Gaussian\n"
+"      A2   : amplitude of shorter, wider Gaussian\n"
+"      sig2 : sigma - width of shorter, wider Gaussian\n"
 "\n"
 "--------------------------------------------------\n"
 "To use this model function:\n"
@@ -345,7 +353,7 @@ static int model_help(void)
 "\n"
 "      AFNI_MODEL_HELP_CONV_PRF_DOG : Y/N - output this help\n"
 "\n"
-"         e.g. setenv AFNI_MODEL_HELP_CONV_PRF YES\n"
+"         e.g. setenv AFNI_MODEL_HELP_CONV_PRF_DOG YES\n"
 "\n"
 "         When set, the model initialization function will output this help.\n"
 "\n"
@@ -355,7 +363,7 @@ static int model_help(void)
 "\n"
 "         or more directly (without setenv):\n"
 "\n"
-"            3dNLfim -DAFNI_MODEL_HELP_CONV_PRF=Y -signal Conv_PRF_DOG\n"
+"            3dNLfim -DAFNI_MODEL_HELP_CONV_PRF_DOG=Y -signal Conv_PRF_DOG\n"
 "\n"
 "      AFNI_MODEL_DEBUG            : specify debug/verbosity level\n"
 "\n"

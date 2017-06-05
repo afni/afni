@@ -44,7 +44,8 @@ SOMEAFOBJS = parser_int.o afni_warp.o afni_slice_byte.o afni_slice_short.o \
 T3OBJS  = to3d.o
 
 MISC    = AFNI_atlas_spaces.niml AFNI.Xdefaults AFNI.afnirc AFNI.sumarc \
-          3d*.lib gmovie* afni_papers.txt AFNI_version_base.txt
+          3d*.lib gmovie* afni_papers.txt AFNI_version_base.txt		\
+	  AFNI_digest_history.txt
 
 ## The following programs are "extras" not really part of the
 ## AFNI package, but included because they are useful.  Some of
@@ -2435,7 +2436,7 @@ models: model_constant.$(SO) model_linear.$(SO) model_quadratic.$(SO)  \
         model_zero.$(SO) model_demri_3.$(SO) model_expr2.$(SO)         \
         model_conv_diffgamma.$(SO) model_expMEMRI.$(SO)                \
         model_expMEMRI3.$(SO) model_conv_cosine4.$(SO)                 \
-        model_conv_PRF.$(SO) model_conv_PRF_6.$(SO)
+        model_conv_PRF.$(SO) model_conv_PRF_6.$(SO) model_conv_PRF_DOG.$(SO)
 
 # Contributed plugins go last, since they might not compile well
 

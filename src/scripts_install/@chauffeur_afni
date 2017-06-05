@@ -1,6 +1,5 @@
 #!/bin/tcsh
 
-
 # -----------------------------------------------------------------
 # Multipurpose, driven viewer.  Meant to be used for auto QC in
 # scripts. 
@@ -38,8 +37,14 @@
 #     + xvfb-run: new option to set colordepth to 24, so opacity works
 #       in the AFNI commands
 # 
-set version   = "2.4";   set rev_dat   = "May 20, 2017"
+#set version   = "2.4";   set rev_dat   = "May 20, 2017"
 #     + more unique naming of tempdir; safer for cluster runs
+# 
+#set version   = "2.5";   set rev_dat   = "June 1, 2017"
+#     + back to regular xvfb and Bob's search
+# 
+set version   = "2.6";   set rev_dat   = "June 1, 2017"
+#     + default interpolation to NN, but add in option to set
 # 
 # =====================================================================
 
@@ -94,6 +99,8 @@ set gapord = ( 0 0 0 )
 set pbar_sign = "-"              # + is pos. only, - is both (switch for both)
 set ncolors   = "99"             # default number of colors
 set topval    = 1                # upper scale value in colorbar
+
+set func_resam = "NN"            # def. no resample; opt: {NN|Li|Cu|Bk}
 
 # for SET_FUNC_ALPHA
 set alpha_par    = "Off"         # 
@@ -210,6 +217,20 @@ while ( $ac <= $#argv )
         set frange = "$argv[$ac]"
         set USER_FRANGE = 1
         
+    #  SET_FUNC_RESAM [c.]{NN|Li|Cu|Bk}[.{NN|Li|Cu|Bk}]
+    else if ( "$argv[$ac]" == "-func_resam" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set func_resam = "$argv[$ac]"
+        if ( ( "$func_resam" != "NN" ) || \
+            ( "$func_resam" != "Li" ) || \
+            ( "$func_resam" != "Cu" ) || \
+            ( "$func_resam" != "Bk" ) ) then
+                echo "** Error! '-func_resam ...' input"
+                echo "   needs to be one of {NN|Li|Cu|Bk}."
+                goto BAD_EXIT
+        endif
+
     # refers to olay
     else if ( "$argv[$ac]" == "-func_range_perc" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
@@ -609,41 +630,41 @@ echo "\n------------------- end of optionizing -------------------\n"
 
 ########## NB: D. Godlove suggests this unnecessary, using instead
 ##########     `xvfb-run -a ...` below for afni command.
-# # start the X virtual frame buffer on display #xdisplay, a la bob
-# 
-# set ranval = `count -dig 1 1 999999 R1`
-# 
-# if( $?xdisplay == 0 )then
-#   set killX     = 1
-#   set ntry      = 1
-#   set Xnotfound = 1
-#   while( $Xnotfound )
-#     set xdisplay = `count -dig 1 3 999 R1`
-#     if( -e /tmp/.X${xdisplay}-lock ) continue
-#     echo " -- trying to start Xvfb :${xdisplay}"
-#     Xvfb :${xdisplay} -screen 0 1024x768x24 &
-#     sleep 1
-#     jobs > zzerm.$ranval.txt
-#     grep -q Xvfb zzerm.$ranval.txt
-#     set Xnotfound = $status
-#     \rm -f zzerm.$ranval.txt
-#     if( $Xnotfound == 0 )break ;
-#     @ ntry++
-#     if( $ntry > 99 )then
-#       echo "** ERROR: can't start Xvfb -- exiting"
-#       goto BAD_EXIT
-#     endif
-#   end
-# endif
-# 
-# setenv DISPLAY :${xdisplay}
+# start the X virtual frame buffer on display #xdisplay, a la bob
+
+set ranval = `count -dig 1 1 999999 R1`
+
+if( $?xdisplay == 0 )then
+  set killX     = 1
+  set ntry      = 1
+  set Xnotfound = 1
+  while( $Xnotfound )
+    set xdisplay = `count -dig 1 3 999 R1`
+    if( -e /tmp/.X${xdisplay}-lock ) continue
+    echo " -- trying to start Xvfb :${xdisplay}"
+    Xvfb :${xdisplay} -screen 0 1024x768x24 &
+    sleep 1
+    jobs > zzerm.$ranval.txt
+    grep -q Xvfb zzerm.$ranval.txt
+    set Xnotfound = $status
+    \rm -f zzerm.$ranval.txt
+    if( $Xnotfound == 0 )break ;
+    @ ntry++
+    if( $ntry > 99 )then
+      echo "** ERROR: can't start Xvfb -- exiting"
+      goto BAD_EXIT
+    endif
+  end
+endif
+
+setenv DISPLAY :${xdisplay}
 set OW = "OPEN_WINDOW"
 
 # -------------------------------------------------------------------
 # ---------------- The actual, driven command! ----------------------
 
-xvfb-run --server-args="-screen 0 1024x768x24" -a  \
-    afni -noplugins -no_detach  -echo_edu                           \
+#xvfb-run -d --server-args="-screen 0 1024x768x24" -w 0  \
+afni -noplugins -no_detach  -echo_edu                           \
      -com "SWITCH_UNDERLAY ${read_ulay}"                            \
      -com "SWITCH_OVERLAY  ${read_olay}"                            \
      -com "SET_PBAR_ALL    ${pbar_sign}${ncolors} $topval $my_cbar" \
@@ -651,6 +672,7 @@ xvfb-run --server-args="-screen 0 1024x768x24" -a  \
      -com "SET_THRESHNEW   $thrnew $thrflag"                        \
      -com "SEE_OVERLAY     ${see_olay}"                             \
      -com "SET_FUNC_ALPHA  $alpha_par $alpha_floor"                 \
+     -com "SET_FUNC_RESAM  ${func_resam}.${func_resam}"             \
      -com "SET_XHAIRS  ${crossh}"                                   \
      -com "$OW sagittalimage opacity=${opac} mont=${mx}x${my}:${gapord[1]}" \
      -com "$OW coronalimage  opacity=${opac} mont=${mx}x${my}:${gapord[2]}" \

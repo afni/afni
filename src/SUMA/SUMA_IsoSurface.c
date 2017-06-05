@@ -2,8 +2,8 @@
 
 NOTE: MarchingCube code was translated from Thomas Lewiner's C++
 implementation of the paper:
-Efficient Implementation of Marching Cubes´ Cases with Topological Guarantees
-by Thomas Lewiner, Hélio Lopes, Antônio Wilson Vieira and Geovan Tavares 
+Efficient Implementation of Marching Cubes' Cases with Topological Guarantees
+by Thomas Lewiner, Helio Lopes, Antonio Wilson Vieira and Geovan Tavares 
 in Journal of Graphics Tools. 
 http://www-sop.inria.fr/prisme/personnel/Thomas.Lewiner/JGT.pdf
 */
@@ -213,23 +213,23 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_IsoSurface_ParseInput (char *argv[],
    Opt->b1 = 0;
    Opt->b2 = 0;
    Opt->efrac = 0;
-	brk = NOPE;
-	while (kar < argc) { /* loop accross command ine options */
-		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
-		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
-			 ps->hverb = strlen(argv[kar])>3?2:1;
+   brk = NOPE;
+   while (kar < argc) { /* loop accross command ine options */
+      /*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
+      if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
+          ps->hverb = strlen(argv[kar])>3?2:1;
           usage_SUMA_IsoSurface(ps);
           exit (0);
-		}
-		
-		SUMA_SKIP_COMMON_OPTIONS(brk, kar);
+      }
+      
+      SUMA_SKIP_COMMON_OPTIONS(brk, kar);
       
       if (!brk && (strcmp(argv[kar], "-xform") == 0)) {
          kar ++;
          if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -xform \n");
-				exit (1);
-			}
+            fprintf (SUMA_STDERR, "need argument after -xform \n");
+            exit (1);
+         }
          if (!strcmp(argv[kar], "mask")) {
             Opt->xform = SUMA_ISO_XFORM_MASK;
          } else if (!strcmp(argv[kar], "none")) {
@@ -239,7 +239,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_IsoSurface_ParseInput (char *argv[],
          }else {
             fprintf (SUMA_STDERR, 
                      "%s is a bad parameter for -xform option. \n", argv[kar]);
-				exit (1);
+            exit (1);
          }
          brk = YUP;
       }
@@ -247,9 +247,9 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_IsoSurface_ParseInput (char *argv[],
       if (!brk && (strcmp(argv[kar], "-Tsmooth") == 0)) {
          kar ++;
          if (kar+1 >= argc)  {
-		  		fprintf (SUMA_STDERR, "need 2 arguments after -Tsmooth \n");
-				exit (1);
-			}
+            fprintf (SUMA_STDERR, "need 2 arguments after -Tsmooth \n");
+            exit (1);
+         }
          Opt->Zt = atof(argv[kar++]); 
          Opt->N_it = atoi(argv[kar]);
          brk = YUP;
@@ -258,43 +258,43 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_IsoSurface_ParseInput (char *argv[],
     
       if (!brk && (strcmp(argv[kar], "-debug") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -debug \n");
-				exit (1);
-			}
-			Opt->debug = atoi(argv[kar]);
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -debug \n");
+            exit (1);
+         }
+         Opt->debug = atoi(argv[kar]);
          if (Opt->debug > 2) { LocalHead = YUP; }
          brk = YUP;
-		}
+      }
             
       if (!brk && (strcmp(argv[kar], "-isocmask") == 0)) {
          if (Opt->MaskMode != SUMA_ISO_UNDEFINED) {
             fprintf (SUMA_STDERR, "only one masking mode (-iso*) allowed.\n");
          }
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -isocmask \n");
-				exit (1);
-			}
-			Opt->cmask = argv[kar];
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -isocmask \n");
+            exit (1);
+         }
+         Opt->cmask = argv[kar];
          Opt->MaskMode = SUMA_ISO_CMASK;
-			brk = YUP;
-		}
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-remesh") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -remesh \n");
-				exit (1);
-			}
-			Opt->efrac = atof(argv[kar]);
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -remesh \n");
+            exit (1);
+         }
+         Opt->efrac = atof(argv[kar]);
          if (Opt->efrac < 0.0 || Opt->efrac > 1.0) {
             SUMA_S_Err("-remesh value should be between 0 and 1.0, have %f"
                         , Opt->efrac);
             exit(1);
          }
-			brk = YUP;
-		}
+         brk = YUP;
+      }
       
       if (!brk && ((strcmp(argv[kar], "-isorois") == 0) ||
                    (strcmp(argv[kar], "-isorois+dsets") == 0))) {
@@ -304,91 +304,91 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_IsoSurface_ParseInput (char *argv[],
          }
          while (kar+1<argc && argv[kar+1][0] != '-') {
             kar ++;
-			   if (!nalloc || nalloc <= Opt->n_ivec) {
+            if (!nalloc || nalloc <= Opt->n_ivec) {
                if (Opt->n_ivec < 0) Opt->n_ivec = 0;
                nalloc += 1000;
                Opt->ivec = (int *)SUMA_realloc(Opt->ivec, nalloc*sizeof(int));
             }
             Opt->ivec[Opt->n_ivec++] = atoi(argv[kar]);
          }
-			Opt->MaskMode = SUMA_ISO_ROIS;
+         Opt->MaskMode = SUMA_ISO_ROIS;
          if ((strcmp(argv[kar], "-isorois+dsets") == 0)) Opt->b1 = 1;
-			brk = YUP;
-		}
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-mergerois") == 0)) {
          SUMA_ifree(Opt->s);
          while (kar+1<argc && argv[kar+1][0] != '-') {
             kar ++;
-			   Opt->s = SUMA_copy_string(argv[kar]);
+            Opt->s = SUMA_copy_string(argv[kar]);
          }
          if (!Opt->s) Opt->s = SUMA_copy_string("_Don't_Do_No'in");
-			brk = YUP;
-		}
+         brk = YUP;
+      }
      
       if (!brk && ((strcmp(argv[kar], "-mergerois+dset") == 0) ||
                    (strcmp(argv[kar], "-mergerois+dsets") == 0))) {
          SUMA_ifree(Opt->s);
          Opt->s = SUMA_copy_string("_from_surf_yall");
-			brk = YUP;
-		}
+         brk = YUP;
+      }
      
       if (!brk && (strcmp(argv[kar], "-autocrop") == 0)) {
          Opt->b2 = 1;
-			brk = YUP;
-		}
+         brk = YUP;
+      }
      
       if (!brk && (strcmp(argv[kar], "-isoval") == 0)) {
          if (Opt->MaskMode != SUMA_ISO_UNDEFINED) {
             fprintf (SUMA_STDERR, "only one masking mode (-iso*) allowed.\n");
          }
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -isoval \n");
-				exit (1);
-			}
-			Opt->v0 = atof(argv[kar]);
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -isoval \n");
+            exit (1);
+         }
+         Opt->v0 = atof(argv[kar]);
          Opt->MaskMode = SUMA_ISO_VAL;
-			brk = YUP;
-		}
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-isorange") == 0)) {
          if (Opt->MaskMode != SUMA_ISO_UNDEFINED) {
             fprintf (SUMA_STDERR, "only one masking mode (-iso*) allowed.\n");
          }
          kar ++;
-			if (kar+1 >= argc)  {
-		  		fprintf (SUMA_STDERR, "need 2 arguments after -isorange \n");
-				exit (1);
-			}
-			Opt->v0 = atof(argv[kar]);kar ++;
+         if (kar+1 >= argc)  {
+            fprintf (SUMA_STDERR, "need 2 arguments after -isorange \n");
+            exit (1);
+         }
+         Opt->v0 = atof(argv[kar]);kar ++;
          Opt->v1 = atof(argv[kar]);
          Opt->MaskMode = SUMA_ISO_RANGE;
          if (Opt->v1 < Opt->v0) {
             fprintf (SUMA_STDERR, 
                   "range values wrong. Must have %f <= %f \n", Opt->v0, Opt->v1);
-				exit (1);
+            exit (1);
          }
-			brk = YUP;
-		}
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-input") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -input \n");
-				exit (1);
-			}
-			Opt->in_name = SUMA_copy_string(argv[kar]);
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -input \n");
+            exit (1);
+         }
+         Opt->in_name = SUMA_copy_string(argv[kar]);
          brk = YUP;
-		}
+      }
       
       if (!brk && (strcmp(argv[kar], "-shape") == 0)) {
          kar ++;
-			if (kar+1 >= argc)  {
-		  		fprintf (SUMA_STDERR, "need 2 arguments after -shape \n");
-				exit (1);
-			}
-			Opt->obj_type = atoi(argv[kar]); kar ++;
+         if (kar+1 >= argc)  {
+            fprintf (SUMA_STDERR, "need 2 arguments after -shape \n");
+            exit (1);
+         }
+         Opt->obj_type = atoi(argv[kar]); kar ++;
          Opt->obj_type_res = atoi(argv[kar]);
          if (Opt->obj_type < 0 || Opt->obj_type > 9) {
             SUMA_S_Errv("Shape number (S) must be between 0 and 9. I have %d\n", 
@@ -401,19 +401,21 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_IsoSurface_ParseInput (char *argv[],
             exit (1);
          }
          brk = YUP;
-		}
+      }
       
       if (!brk && !ps->arg_checked[kar]) {
-			SUMA_S_Errv("Option %s not understood. Try -help for usage\n", 
+         SUMA_S_Errv("Option %s not understood. Try -help for usage\n", 
                      argv[kar]);
-			suggest_best_prog_option(argv[0], argv[kar]);
+         suggest_best_prog_option(argv[0], argv[kar]);
          exit (1);
-		} else {	
-			brk = NOPE;
-			kar ++;
-		}
+      } else { 
+         brk = NOPE;
+         kar ++;
+      }
    }
-   
+
+fprintf(stderr,"== MaskMode %g, v0 %g, v1 %d\n",Opt->v0,Opt->v1,Opt->MaskMode);
+
    /* transfer some options to Opt from ps.  Clunky retrofitting */
    if (ps->o_N_surfnames) {
       Opt->out_prefix = SUMA_copy_string(ps->o_surfnames[0]);
@@ -494,7 +496,7 @@ SUMA_SurfaceObject **SUMA_THD_ROI_IsoSurfaces_ef(
 int main (int argc,char *argv[])
 {/* Main */    
    static char FuncName[]={"IsoSurface"}; 
-	int i;
+   int i;
    void *SO_name=NULL;
    SUMA_SurfaceObject *SO = NULL;
    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt;  
@@ -504,11 +506,11 @@ int main (int argc,char *argv[])
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
 
    SUMA_STANDALONE_INIT;
-	SUMA_mainENTRY;
+   SUMA_mainENTRY;
    
    
    /* Allocate space for DO structure */
-	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
+   SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
    ps = SUMA_Parse_IO_Args(argc, argv, "-o;");
    
    Opt = SUMA_IsoSurface_ParseInput (argv, argc, ps);
