@@ -24,14 +24,14 @@ int list_for_DTI( char *dti_listname,
 
    NameVEC = calloc( N_DTI_VECT, sizeof(NameVEC));  
    for(i=0 ; i<N_DTI_VECT ; i++) 
-      NameVEC[i] = calloc( 100, sizeof(char)); 
+      NameVEC[i] = calloc( N_CHAR_PATH, sizeof(char)); 
    NameSCAL = calloc( N_DTI_SCAL, sizeof(NameSCAL));  
    for(i=0 ; i<N_DTI_SCAL ; i++) 
-      NameSCAL[i] = calloc( 100, sizeof(char)); 
+      NameSCAL[i] = calloc( N_CHAR_PATH, sizeof(char)); 
    NamePLUS = calloc( N_DTI_PLUS, sizeof(NamePLUS));  
    for(i=0 ; i<N_DTI_PLUS ; i++) 
-      NamePLUS[i] = calloc( 100, sizeof(char)); 
-   NameXF = (char *)calloc(100, sizeof(char)); 
+      NamePLUS[i] = calloc( N_CHAR_PATH, sizeof(char)); 
+   NameXF = (char *)calloc(N_CHAR_PATH, sizeof(char)); 
    
    if( (NameVEC == NULL) || (NameSCAL == NULL) ||
        (NameXF == NULL) || (NamePLUS == NULL)  ) {

@@ -1458,7 +1458,7 @@ int NI_getDTI_inputs( NI_element *nel,
    for( i=0 ; i<N_DTI_VECT ; i++ ) {
       sprintf(tmp, "dti_%s", DTI_VECT_LABS[i]);
       if (NameVECT[i] && (atr=NI_get_attribute(nel,tmp))) {
-         snprintf(NameVECT[i],100,"%s", atr);
+         snprintf(NameVECT[i], N_CHAR_PATH, "%s", atr);
       }
    }
          INFO_message(" CCC1  ");
@@ -1467,7 +1467,7 @@ int NI_getDTI_inputs( NI_element *nel,
    for( i=0 ; i<N_DTI_SCAL ; i++ ) {
       sprintf(tmp, "dti_%s", DTI_SCAL_LABS[i]);
       if (NameSCAL[i] && (atr=NI_get_attribute(nel,tmp))) {
-         snprintf(NameSCAL[i],100,"%s", atr);
+         snprintf(NameSCAL[i], N_CHAR_PATH, "%s", atr);
          ct_scal++;
       }
    }
@@ -1475,7 +1475,7 @@ int NI_getDTI_inputs( NI_element *nel,
    // for extra scalar
    sprintf(tmp, "dti_%s", DTI_XTRA_LABS[0]);
    if (NameXF && (atr=NI_get_attribute(nel,tmp))) {
-      snprintf(NameXF,100,"%s", atr); 
+      snprintf(NameXF, N_CHAR_PATH, "%s", atr); 
       *extrafile = 1;
    }
    else
@@ -1486,15 +1486,15 @@ int NI_getDTI_inputs( NI_element *nel,
    for( i=0 ; i<N_DTI_PLUS ; i++ ) {
       sprintf(tmp, "dti_%s", DTI_PLUS_LABS[i]);
       if (NamePLUS[i] && (atr=NI_get_attribute(nel,tmp))) {
-         snprintf(NamePLUS[i],100,"%s", atr);
+         snprintf(NamePLUS[i], N_CHAR_PATH, "%s", atr);
          ct_scal++;
       }
       else 
-         snprintf(NamePLUS[i],100,"%s", "\0");
+         snprintf(NamePLUS[i], N_CHAR_PATH, "%s", "\0");
    }
    
    *pars_top = ct_scal; // 2 + 3 + ct_ex; // RD and extra; FA,MD;extras
-   INFO_message(" ct_scal: %d atr:%s ",ct_scal,atr);
+   INFO_message(" ct_scal: %d atr:%s ", ct_scal, atr);
    
    RETURN(0);
 }
