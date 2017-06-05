@@ -1,6 +1,6 @@
 #!/bin/tcsh -e
 
-set testmode = 0
+set testmode = 1
 set tmpico = __donut
 set to = ''
 
@@ -115,7 +115,8 @@ SurfaceMetrics -spec ${tmpico}.spec -surf_A ${tmpico} \
 #get a  random colection
 set nout = `3dnvals -all ${pr}.TriNormSeg.1D`
 set nout = `ccalc -int $nout[1] - 1`
-1dcat $pr.TriNormSeg.1D"{count 0 $nout S50}" > $pr.mini.TriNormSeg.1D
+set rows = `count -commas 0 $nout S50`
+1dcat $pr.TriNormSeg.1D"{$rows}" > $pr.mini.TriNormSeg.1D
 
 DriveSuma   -echo_edu   \
                -com viewer_cont -load_do $pr.mini.TriNormSeg.1D   \
