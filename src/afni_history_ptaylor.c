@@ -66,6 +66,21 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 30, May , 2017 , PT , "3dANOVA3" , MICRO , TYPE_GENERAL,
+   "Removed warning/info message for using type 4 or 5.",
+   "Apparently made loooong ago, no longer needed according to GC.\n"
+},
+
+{ 26, May , 2017 , PT , "3dReHo" , MINOR , TYPE_BUG_FIX,
+   "Correct checking for null time series now.",
+   "Earlier, only looked at [0]th point; now sums across all.\n"
+},
+
+{ 26, May , 2017 , PT , "3dNetCorr" , MINOR , TYPE_BUG_FIX,
+   "Correct checking for null time series now.",
+   "Earlier, only looked at [0]th point; now sums across all.\n"
+},
+
 { 20, May , 2017 , PT , "@chauffeur_afni" , MICRO , TYPE_MODIFY,
    "Temporary files now have more unique names.",
    "Helps avoid confusion in parallel computations.\n"

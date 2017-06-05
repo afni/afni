@@ -72,12 +72,12 @@ static int   g_exp_ipieces = 1000; /* vals per unit length */
 static int     g_exp_nvals = 0;   /* maxval*ipieces + 1 */
 static float * g_exp_ts  = NULL;  /* exp(-x) for x at index VAL*pieces */
 
-static THD_3dim_dataset * g_saset=NULL; /* stimulus aperature dataset */
+static THD_3dim_dataset * g_saset=NULL; /* stimulus aperture dataset */
 
 /* prototypes */
 static void conv_set_ref( int num , float * ref );
 static int signal_model( float * , int , float ** , float *, int );
-static int reset_stim_aperature_dset(int);
+static int reset_stim_aperture_dset(int);
 static int reset_exp_time_series(void);
 
 static THD_3dim_dataset * convert_to_blurred_masks(THD_3dim_dataset *);
@@ -230,7 +230,7 @@ static void conv_set_ref( int num , float * ref )
 /* any failure should leave g_saset == NULL
  *
  * return 0 on success */
-static int reset_stim_aperature_dset(int needed_length)
+static int reset_stim_aperture_dset(int needed_length)
 {
    THD_3dim_dataset * sanew;
    int                errs=0;
@@ -607,13 +607,13 @@ static void conv_model( float *  gs      , int     ts_length ,
    }
 
    /*** make sure there is a reference function to convolve with ***/
-   /*   it may be used in reset_stim_aperature_dset */
+   /*   it may be used in reset_stim_aperture_dset */
 
    if( refnum <= 0 ) conv_set_ref( 0 , NULL ) ;
 
-   /* create stim aperature dset */
+   /* create stim aperture dset */
    if( g_iter == 0 ) {
-      (void)reset_stim_aperature_dset(ts_length); /* free and reload saset */
+      (void)reset_stim_aperture_dset(ts_length); /* free and reload saset */
       (void)reset_exp_time_series();     /* pre-compute exp(x) */
       if( genv_debug ) fprintf(stderr, "== start time %d\n", NI_clock_time());
    }
@@ -799,7 +799,7 @@ MODEL_interface * initialize_model ()
          gs[4] = sigrat = sigma ratio = sigma_y / sigma_x
          gs[5] = theta  = angle from "due north"
 
-  For each TR, integrate g(x,y) over stim aperature dset.
+  For each TR, integrate g(x,y) over stim aperture dset.
 
          g(x,y) = e^-[((x-x0)^2+(y-y0)^2)/(2*sigma^2)]
 
