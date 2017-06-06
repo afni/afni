@@ -56,6 +56,11 @@
     Aug 2015:
         minor bug fix: don't crash if no GM ROIs survive
 
+    Jun 2017:
+        new opt: -skel_stop_strict.  Perhaps better inflation
+                 properties than -skel_stop, because it won't
+                 go in any further to the WM itself.
+
 */
 
 
@@ -150,6 +155,7 @@ void usage_ROIMaker(int detail)
 "                       ROI in question.  NB: it is possible to utilize\n"
 "                       negative-valued ROIs (voxels =-1) to represent NOT-\n"
 "                       regions for tracking, for example.\n"
+"\n"
 "     -volthr   MINVOL :integer number representing minimum size a cluster of\n"
 "                       voxels must have in order to remain a GM ROI after \n"
 "                       the values have been thresholded.  Number might be\n"
@@ -174,6 +180,7 @@ void usage_ROIMaker(int detail)
 "                       ROIs won't overlap with each other, and a WM skeleton\n"
 "                       can also be input to keep ROIs from expanding through\n"
 "                       a large amount of WM ~artificially (see below).\n"
+"\n"
 "     -trim_off_wm     :switch to trim the INSET to exclude voxels in WM,\n"
 "                       by excluding those which overlap an input WM\n"
 "                       skeleton, SKEL (see `-wm_skel', below; to trim off\n"
@@ -190,6 +197,11 @@ void usage_ROIMaker(int detail)
 "     -skel_stop       :switch to stop inflation at locations which are \n"
 "                       already on WM skeleton (default: off; and need\n"
 "                       `-wm_skel' to be able to use).\n"
+"    -skel_stop_strict :similar to the above option, but this won't let any\n"
+"                       inflation into the WM skel; the above one will allow\n"
+"                       one layer of inflation from non-skel voxels\n"
+"                       (def: off; and need '-wm_skel' to be able to use);\n"
+"                       new, as of Jun, 2017.\n"
 "     -csf_skel CSF_SK :similar to SKEL, a 3D volume containing info of CSF.\n"
 "                       NB: however, with CSF_SK, info must just be a binary\n"
 "                       mask already, and it will only be applied in trimming\n"
@@ -198,6 +210,7 @@ void usage_ROIMaker(int detail)
 "                       using `-trim_off_wm'.  Again, trimming done before\n"
 "                       volume thresholding, so may decrease/separate regions\n"
 "                       (though, that may be useful/more physiological).\n"
+"\n"
 "     -mask   MASK     :can include a mask within which to apply threshold.\n"
 "                       Otherwise, data should be masked already. Guess this\n"
 "                       would be useful if the MINTHR were a negative value.\n"
@@ -206,6 +219,7 @@ void usage_ROIMaker(int detail)
 "                       often matter too much.\n"
 "                       For an N-brick inset, one can input an N- or 1-brick\n"
 "                       mask.\n"
+"\n"
 "    -neigh_face_only  : **DEPRECATED SWITCH** -> it's now default behavior\n"
 "                       to have facewise-only neighbors, in order to be\n"
 "                       consistent with the default usage of the clusterize\n"
@@ -217,6 +231,7 @@ void usage_ROIMaker(int detail)
 "    -neigh_upto_vert  :can loosen the definition of neighbors, so that\n"
 "                       voxels can be grouped into the same ROI if they share\n"
 "                       at least one vertex (see above for default).\n"
+"\n"
 "    -nifti            :switch to output *.nii.gz GM and GMI files\n"
 "                       (default format is BRIK/HEAD).\n"
 "\n"
@@ -248,6 +263,17 @@ void usage_ROIMaker(int detail)
 "         -inflate 2                  \\\n"
 "         -wm_skel WM_T1+orig.        \\\n"
 "         -skel_stop \n"
+"\n"
+"    or\n"
+"\n"
+"      3dROIMaker                                        \\\n"
+"         -inset indti_aparc.a2009s+aseg_REN_gm.nii.gz   \\\n"
+"         -refset indti_aparc.a2009s+aseg_REN_gm.nii.gz  \\\n"
+"         -prefix gm_rois                                \\\n"
+"         -inflate 1                                     \\\n"
+"         -skel_stop_strict                              \\\n"
+"         -wm_skel dt_FA.nii.gz                          \\\n"
+"         -skel_thr 0.2\n"
 "\n"
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "\n"
@@ -548,6 +574,12 @@ int main(int argc, char *argv[]) {
 			iarg++ ; continue ;
 		}
 
+      // [PT: June 6, 2017]: new stricter conditions with this opt
+		if( strcmp(argv[iarg],"-skel_stop_strict") == 0) {
+			SKEL_STOP=2;
+			iarg++ ; continue ;
+		}
+
 		if( strcmp(argv[iarg],"-csf_skel") == 0 ) {
 			iarg++ ; if( iarg >= argc ) 
 							ERROR_exit("Need argument after '-csf_skel'");
@@ -658,12 +690,11 @@ int main(int argc, char *argv[]) {
          ERROR_exit("When using '-preinfl_inset', need a '-wm_skel'");
 
       if( !SKEL_STOP ) {
-         WARNING_message("When using '-preinfl_inset', you need '-skel_stop'"
-                         "also.\n    It will be set for you here.");
+         WARNING_message("When using '-preinfl_inset', you need '-skel_stop' "
+                         "also.\n    It will be set for you here, just "
+                         "to the basic one.");
          SKEL_STOP = 1;
       }
-
-
    }
 
 	INFO_message("Value of threshold is: %f",THR);
@@ -889,7 +920,7 @@ int main(int argc, char *argv[]) {
       // book counting of WM intersections, etc.
       i = ROI_make_inflate( Dim, 
                             PREINFL_NUM,
-                            1,
+                            SKEL_STOP, // updated here: 1 -> SKEL_STOP
                             NEIGHBOR_LIMIT,
                             HAVE_MASK,
                             MASK,
