@@ -2317,6 +2317,11 @@ void AFNI_sigfunc_alrm(int sig)
      "   If you don't like the facts, ignore them.\n"
      "   And if you need facts, dream up some you DO like"                                    ,
 
+     "\n  We shall not cease from exploration\n"
+     "  And the end of all our exploring\n"
+     "  Will be to arrive where we started\n"
+     "  And know the place for the first time."
+
      "Remember:\n"
      "  To argue with those who have renounced the use and authority\n"
      "  of reason is as futile as to administer medicine to the dead"                         ,
