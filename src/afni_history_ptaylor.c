@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 6, Jun , 2017 , PT , "3dROIMaker" , MINOR , TYPE_NEW_OPT,
+   "New inflation opt:  '-skel_stop_strict'.",
+   "Think this might be useful: don't expand at all *into* WM skel.\n"
+},
+
 { 6, Jun , 2017 , PT , "@GradFlipTest" , MICRO , TYPE_MODIFY,
    "Internal call to 3dAutomask for DWI file now talks abs value of DWI[0].",
    "Useful bc TORTOISE now outputs negative DWIs... .\n"
