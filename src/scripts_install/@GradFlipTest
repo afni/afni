@@ -22,9 +22,13 @@
 #   + changed the way outdir works: can create a dir
 #   + also, make sure output text file goes into output dir
 #
-set version   = "2.6";    set rev_dat   = "June 6, 2017"
+#set version   = "2.6";    set rev_dat   = "June 6, 2017"
 #   + better results summary, no auto-prending of './' on output path 
 #     names (-> can be bad/inappropriate)
+#
+set version   = "2.7";    set rev_dat   = "June 6, 2017"
+#   + in 3dAutomask, take abs val of DWI[0], bc TORTOISE can output
+#     huge neg values that apparently can make a big difference.
 #
 ########################################################################
 
@@ -271,11 +275,14 @@ if ( "$in_MASK" != "" ) then
 else
     echo "++ Automasking (-> $out_mask)"
     # mask based on 0th brick of 1st set
+    # [June 6, 2017]: updated because TORTOISE can have large
+    #    neg values in DWIs, so take abs value
     3dAutomask                               \
         -echo_edu                            \
         -overwrite                           \
         -prefix $out_mask                    \
-        $out_DSET'[0]'
+        "3dcalc( -a ${out_DSET}[0] -expr (a*step(a)) )"
+        #$out_DSET'[0]'
 endif
 
 printf "\n\n++ Quick tensor fitting (just needed once):"
