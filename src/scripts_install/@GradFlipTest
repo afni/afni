@@ -18,9 +18,13 @@
 #   + command line optioning
 #   + a real help output!
 #
-set version   = "2.5";    set rev_dat   = "May 5, 2017"
+#set version   = "2.5";    set rev_dat   = "May 5, 2017"
 #   + changed the way outdir works: can create a dir
 #   + also, make sure output text file goes into output dir
+#
+set version   = "2.6";    set rev_dat   = "June 6, 2017"
+#   + better results summary, no auto-prending of './' on output path 
+#     names (-> can be bad/inappropriate)
 #
 ########################################################################
 
@@ -371,7 +375,7 @@ foreach i ( `seq 1 1 4` )
 
     # for building output command
     set SUMA_CALL = "${SUMA_CALL}# For '$FLIPS[$i]':\n"
-    set SUMA_CALL = "${SUMA_CALL}suma -vol ./${out_DT}_FA*HEAD -tract ./$out_TRACT &\n"
+    set SUMA_CALL = "${SUMA_CALL}suma -vol ${out_DT}_FA*HEAD -tract $out_TRACT &\n"
 
 end
 
@@ -398,7 +402,7 @@ printf "\n\n -->"
 printf "Therefore, I *guess* that the best flip is:   "
 printf "'$FLIPS[$MaxI]'\n\n"
 printf "That recommendation is stored in '$odir/$out_ff'\n\n"
-printf "Volume + tracking results are in directory './$tmpdir/'\n"
+printf "Volume + tracking results are in directory '$tmpdir'\n"
 printf "You may check the tracking results to verify, e.g.:\n"
 printf "$SUMA_CALL\n"
 printf "DONE.\n\n"
