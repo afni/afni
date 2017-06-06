@@ -677,13 +677,16 @@ endif
 # ----------------- WB mask: make or copy -------------
 
 if ( "$imask" == "" ) then
-    # make
+    # make mask.
+    # [June 6, 2017]: updated because TORTOISE can have large
+    #    neg values in DWIs, so take abs value
     echo "++ Automasking to make:  $odir/$omask"
     3dAutomask                \
         -echo_edu             \
         -overwrite            \
         -prefix $odir/$omask  \
-        $odir/$odwi'[0]'
+        "3dcalc( -a ${odir}/${odwi}[0] -expr (a*step(a)) )"
+        #$odir/$odwi'[0]'
 else
     # just copy mask and apply transform [May 2, 2017]
     3dcalc                    \

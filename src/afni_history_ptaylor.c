@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 6, Jun , 2017 , PT , "@GradFlipTest" , MICRO , TYPE_MODIFY,
+   "Internal call to 3dAutomask for DWI file now talks abs value of DWI[0].",
+   "Useful bc TORTOISE now outputs negative DWIs... .\n"
+},
+
 { 6, Jun , 2017 , PT , "@GradFlipTest" , MICRO , TYPE_GENERAL,
    "Change output summary dumped to screen: don't prepend './' on paths.",
    "Should have changed earlier with internal name changes... Easier now.\n"
