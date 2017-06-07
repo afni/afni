@@ -197,3 +197,5 @@
 12173     ctx_rh_S_temporal_inf                tiss__gm        195     21 180 180   0
 12174     ctx_rh_S_temporal_sup                tiss__gm        196    223 220  60   0
 12175     ctx_rh_S_temporal_transverse         tiss__gm        197    221  60  60   0
+29        Left-undetermined                    tiss__unkn      220    135 206 235   0
+61        Right-undetermined                   tiss__unkn      221    135 206 235   0
