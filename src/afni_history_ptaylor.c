@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 7, Jun , 2017 , PT , "@SUMA_renumber_FS" , MINOR , TYPE_MODIFY,
+   "Added two more FS 'undetermined' regions to the list, ROIs 29 and 61.",
+   "One voxel of one was in one subject once. Joy. Now part of tiss__unkn.\n"
+},
+
 { 6, Jun , 2017 , PT , "3dROIMaker" , MINOR , TYPE_NEW_OPT,
    "New inflation opt:  '-skel_stop_strict'.",
    "Think this might be useful: don't expand at all *into* WM skel.\n"
