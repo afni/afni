@@ -115,3 +115,5 @@
 2033      ctx-rh-temporalpole                  tiss__gm        113    70  70  70  0
 2034      ctx-rh-transversetemporal            tiss__gm        114    150 150 200 0
 2035      ctx-rh-insula                        tiss__gm        115    255 192 32  0
+29        Left-undetermined                    tiss__unkn      220    135 206 235 0
+61        Right-undetermined                   tiss__unkn      221    135 206 235 0
