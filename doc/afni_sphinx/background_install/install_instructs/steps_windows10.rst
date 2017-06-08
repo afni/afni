@@ -4,9 +4,6 @@
 *The essential system setup for:*  **Windows 10 ('Bash on Ubuntu')**
 ================================================================
 
-**INSTRUCTIONS UNDER CONSTRUCTIONS: DO NOT USE!! COULD LEAD TO
-DESTRUCTIONS (well, ok, probably not, just frustructions).**
-
 Here we describe installation and system setup for the
 recently-available "Bash on Ubuntu" for Windows 10 (BoUoW)
 systems. Some general background information information is provided
