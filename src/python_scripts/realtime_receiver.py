@@ -158,6 +158,11 @@ realtime_receiver.py - program to receive and display real-time plugin data
 
    other options
       -data_choice CHOICE       : pick which data to send as feedback
+                   motion       : send the 6 motion parameters
+                   motion_norm  : send the Euclidean norm of them
+                   all_extras   : send all 'extra' values (ROI or voxel values)
+                   diff_ratio   :  (a-b)/(abs(a)+abs(b)) for 2 'extra' values
+         * To add additional CHOICE methods, see the function compute_TR_data().
       -dc_params P1 P2 ...      : set data_choice parameters
                                   e.g. for diff_ratio, parmas P1 P2
                                      P1 = dr low limit, P2 = scalar -> [0,1]
