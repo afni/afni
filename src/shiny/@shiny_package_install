@@ -1,0 +1,9 @@
+#!/bin/tcsh -f
+#################################################
+## 06/08/2017 Justin Rajendra
+## install R packages for shiny
+## only for FATCAT_heatmap_shiny for now
+
+Rscript -e 'install.packages(c("shiny","shinydashboard","plotly","colourpicker","data.table","gplots"), repos="https://cran.rstudio.com")'
+
+exit 0
