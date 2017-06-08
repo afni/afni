@@ -1,0 +1,15 @@
+#!/bin/tcsh -f
+#################################################
+## 05/16/2017 Justin Rajendra
+## launch shiny plot of FATCAT outputs
+
+if ($#argv == 0) then
+   echo Need a path to .netcc files
+   exit 0
+else
+   set arglist = ($*)
+endif
+
+R --slave --no-restore \
+-e 'shiny::runApp("./FATCAT_heatmap_shiny", launch.browser=TRUE)' \
+--args $arglist &
