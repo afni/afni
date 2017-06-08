@@ -1,43 +1,44 @@
 .. from: https://afni.nimh.nih.gov/pub/dist/HOWTO/howto/ht00_inst/html/linux_inst_current.html
 
-.. _install_steps_linux_ubuntu:
+.. _install_steps_linux_ubuntu16:
 
 
-*The essential system setup for:*  **Ubuntu Linux (15.10 and earlier)**
+*The essential system setup for:*  **Ubuntu Linux (16.04 and higher)**
 ===================================================
 
-Here we describe installation and system setup for reasonably modern
-Ubuntu Linux versions, up through version 15.10 (Wily Werewolf).  For
-later systems, please see the :ref:`instructions here
-<install_steps_linux_ubuntu16>`.
-
-Several of the following steps are version number dependent, so we
-list parallel instructions for each.
+Here we describe installation and system setup for modern Ubuntu Linux
+versions, specifically 16.04 (Xenial Xerus).  It *may* work for later
+systems, as well.  For earlier versions of Ubuntu, please see the
+relevant :ref:`instructions here <install_steps_linux_ubuntu>`.
 
 #. **Install prerequisite packages.**
 
    There are several packages and libraries that are needed to run the
    afni and shell programs, often even including ``tcsh``:
-        
-   * *for versions upto and including 15.04*::
-      
-       sudo apt-get install -y tcsh libxp6 xfonts-base python-qt4             \
-                               libmotif4 libmotif-dev motif-clients           \
-                               gsl-bin netpbm xvfb gnome-tweak-tool           \
-                               libjpeg62 xterm
-       sudo apt-get update
+     
+   * *Required*::
 
-   * *for versions 15.10 and higher*::
-      
-       sudo apt-get install -y tcsh xfonts-base python-qt4                    \
-                               libmotif4 libmotif-dev motif-clients           \
-                               gsl-bin netpbm xvfb gnome-tweak-tool libjpeg62
-       sudo apt-get update
-       sudo ln -s /usr/lib/x86_64-linux-gnu/libgsl.so /usr/lib/libgsl.so.0
-       sudo dpkg -i http://mirrors.kernel.org/ubuntu/pool/main/libx/libxp/libxp6_1.0.2-2_amd64.deb
-       sudo apt-get install -f
+       sudo apt-get install -y tcsh xfonts-base python-qt4       \
+                               gsl-bin netpbm gnome-tweak-tool   \
+                               libjpeg62 xvfb xterm
 
-   .. _setup_Ubu_tcsh:
+       sudo apt-get update
+      
+       sudo apt-get install -y libglu1-mesa-dev libglw1-mesa     \
+                               libxm4 build-essential
+
+     * *Optional, but may be quite useful. The following may take a
+       little while for your system to setup, but it should provide
+       nice terminal behavior*::
+
+         sudo apt-get install -y gnome-terminal
+
+   .. internal note/comment: at this moment, we are eschewing
+      including 'mwm', which is the replacement for 'motif-clients'
+      from earlier Ubuntu versions.  If problems arise, that might be
+      useful
+
+   .. _setup_Ubu16_tcsh:
 #. **(optional, but recommended) Set "tcsh" to be the default shell.**
 
    ::
@@ -56,13 +57,13 @@ list parallel instructions for each.
    Then install the appropriate AFNI package.  Note that most other
    Linux systems will probably work with linux_openmp_64::
 
-     tcsh @update.afni.binaries -package linux_openmp_64 -do_extras
+     tcsh @update.afni.binaries -package linux_ubuntu_16_64  -do_extras
 
    .. note:: If the binary package has already been downloaded, one
              can use ``-local_package``, followed by the location+name
              of the binary file, e.g.::
 
-               tcsh @update.afni.binaries -local_package linux_openmp_64.tgz -do_extras
+               tcsh @update.afni.binaries -local_package linux_ubuntu_16_64.tgz -do_extras
 
 #. **Reboot.**
 
@@ -82,7 +83,7 @@ list parallel instructions for each.
    uptodate set of R libraries to the source list.  Therefore:
 
    * *for setting this variable in* ``tcsh`` 
-     *(i.e., if you did* :ref:`tcsh setup, above <setup_Ubu_tcsh>`\ *)*::
+     *(i.e., if you did* :ref:`tcsh setup, above <setup_Ubu16_tcsh>`\ *)*::
       
        setenv R_LIBS $HOME/R
        mkdir $R_LIBS
