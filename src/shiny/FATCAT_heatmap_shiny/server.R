@@ -146,6 +146,7 @@ shinyServer(function(input,output,session) {
     if(length(net.mat) < 2){ stop('select more than one ROI!') }
 
     ## suppress the stupid extra pdf
+    if(length(dev.list()) > 0 ){ graphics.off() }
     pdf(NULL)
 
     ## cluster if you want
@@ -190,6 +191,11 @@ shinyServer(function(input,output,session) {
       hm2$carpet <- hm2$carpet[,rev(seq.int(ncol(hm2$carpet)))]
       hm2$carpet[(lower.tri(hm2$carpet,diag=TRUE))] <- NA
       hm2$carpet <- hm2$carpet[,rev(seq_len(ncol(hm2$carpet)))]
+    }
+
+    ## make sure something is left
+    if(all(is.na(hm2$carpet))){
+      stop('Nothing survives thresholding!')
     }
 
     ## plot margins and color
@@ -249,7 +255,7 @@ shinyServer(function(input,output,session) {
       if(length(net.mat) < 2){ stop('select more than one ROI!') }
 
       ## get the margin size from the names
-      lab.width <- max(nchar(rownames(net.mat))) / 2
+      lab.width <- max(nchar(rownames(net.mat))) / 3
       if(lab.width < 10){ lab.width <- 10 }
 
       ## suppress the stupid extra pdf
@@ -349,7 +355,7 @@ shinyServer(function(input,output,session) {
                   trace='none',symm=TRUE,revC=FALSE,Rowv=FALSE,
                   key.title=NA,key.xlab=stat.lab,keysize=0.5,
                   density.info='none',
-                  key.par=list(mar=c(10,4,10,2)),
+                  key.par=list(mar=c(4,2,4,2)),
                   main=plot.title,
                   margins=c(lab.width,lab.width),
                   sepcolor="lightgrey",sepwidth=c(0.01,0.01),
