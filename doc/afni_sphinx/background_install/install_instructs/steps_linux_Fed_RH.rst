@@ -25,7 +25,8 @@ for each.
    * *for Fedora 21 (and higher)*::
       
        sudo yum install -y tcsh libXp openmotif gsl xorg-x11-fonts-misc       \
-                           PyQt4 R-devel netpbm-progs gnome-tweak-tool ed
+                           PyQt4 R-devel netpbm-progs gnome-tweak-tool ed     \
+                           xorg-x11-server-Xvfb
        sudo yum update -y
       
    * *for RHEL/CentOS 7*:
@@ -40,7 +41,7 @@ for each.
 
         sudo yum install -y tcsh libXp openmotif gsl xorg-x11-fonts-misc       \
                             PyQt4 R-devel netpbm-progs gnome-tweak-tool ed     \
-                            libpng12
+                            libpng12 xorg-x11-server-Xvfb
         sudo yum update -y
             
    .. _setup_FRH_tcsh:
