@@ -130,16 +130,12 @@ shinyServer(function(input,output,session) {
     return(net.mat)
   })   ## end net_data
 
-  ############################################
-  ## outputs
+  ## read mat 2
+  heat_data2 <- reactive({
 
-  ## plot heat map
-  output$cor_heatmap_plot <- renderPlotly({
+    if(length(input$rois) < 2){ stop('ERROR: select more than one ROI!') }
 
-    ## some plot stuff
-    col.ramp <- colorRampPalette(c(input$col1,input$col2,input$col3))
-
-    ## get data and make sure it is enough and flip it
+    ## get data
     net.mat <- mat_read()
     net.mat <- net.mat[rownames(net.mat) %in% input$rois, ]
     net.mat <- net.mat[, colnames(net.mat) %in% input$rois]
@@ -154,26 +150,17 @@ shinyServer(function(input,output,session) {
       if(input$dist_meth == "canberra" & min(net.mat,na.rm=TRUE) <= 0){
         stop('Canberra does not work with none positive values!')
       }
-      hm2 <- heatmap.2(net.mat,col=col.ramp(100),Rowv=TRUE,Colv='Rowv',
-                       breaks=seq(input$range_min,input$range_max,
-                                  length.out=101),
+      hm2 <- heatmap.2(net.mat,Rowv=TRUE,Colv='Rowv',
                        trace='none',symm=TRUE,revC=TRUE,
                        distfun=function(c) dist(c,method=input$dist_meth),
-                       hclustfun=function(c) hclust(c,method=input$h_clust))
-      plot.title <- paste(basename(input$net_file),
-                          stat.df$description[stat.df$label == input$stat_sel],
-                          paste0('clust: ',input$h_clust,
-                                 ', dist: ',input$dist_meth),
-                          sep='\n')
-    } else {
-      hm2 <- heatmap.2(net.mat,col=col.ramp(100),Rowv=FALSE,
+                       hclustfun=function(c) hclust(c,method=input$h_clust),
                        breaks=seq(input$range_min,input$range_max,
-                                  length.out=101),
-                       trace='none',symm=TRUE,revC=FALSE)
-      plot.title <- paste(basename(input$net_file),
-                          stat.df$description[stat.df$label == input$stat_sel],
-                          sep='\n')
-    }
+                                  length.out=101))
+    } else {
+      hm2 <- heatmap.2(net.mat,Rowv=FALSE,symm=TRUE,revC=FALSE,trace='none',
+                       breaks=seq(input$range_min,input$range_max,
+                                  length.out=101))
+    }  ## end cluster check
 
     ## threshold and remove zeros
     if(input$thresh_yn){
@@ -182,55 +169,76 @@ shinyServer(function(input,output,session) {
     }
     if(input$zero_yn){  hm2$carpet[hm2$carpet == 0] <- NA }
 
+    return(hm2$carpet)
+
+  })   ## end heat_data2
+  ############################################
+  ## outputs
+
+  ## plot heat map
+  output$cor_heatmap_plot <- renderPlotly({
+
+    ## get data and make sure it is enough
+    heat.mat <- heat_data2()
+    if(length(heat.mat) < 2){ stop('select more than one ROI!') }
+
+    ## suppress the stupid extra pdf
+    if(length(dev.list()) > 0 ){ graphics.off() }
+    pdf(NULL)
+
+    ## get title checking if clustered
+    if(input$h_clust != 'none'){
+      if(input$dist_meth == "canberra" & min(heat.mat,na.rm=TRUE) <= 0){
+        stop('Canberra does not work with none positive values!')
+      }
+      plot.title <- paste(basename(input$net_file),
+                          stat.df$description[stat.df$label == input$stat_sel],
+                          paste0('clust: ',input$h_clust,
+                                 ', dist: ',input$dist_meth),
+                          sep='\n')
+    } else {
+      plot.title <- paste(basename(input$net_file),
+                          stat.df$description[stat.df$label == input$stat_sel],
+                          sep='\n')
+    }
+
+    ## threshold and remove zeros
+    if(input$thresh_yn){
+      heat.mat[heat.mat > input$thresh_min &
+                 heat.mat < input$thresh_max] <- NA
+    }
+    if(input$zero_yn){  heat.mat[heat.mat == 0] <- NA }
+
     ## select upper/lower/full
     if(input$tri_sel == 'Upper'){
-      hm2$carpet <- hm2$carpet[,rev(seq.int(ncol(hm2$carpet)))]
-      hm2$carpet[(upper.tri(hm2$carpet,diag=TRUE))] <- NA
-      hm2$carpet <- hm2$carpet[,rev(seq_len(ncol(hm2$carpet)))]
+      heat.mat <- heat.mat[,rev(seq.int(ncol(heat.mat)))]
+      heat.mat[(upper.tri(heat.mat,diag=TRUE))] <- NA
+      heat.mat <- heat.mat[,rev(seq_len(ncol(heat.mat)))]
     } else if(input$tri_sel == 'Lower'){
-      hm2$carpet <- hm2$carpet[,rev(seq.int(ncol(hm2$carpet)))]
-      hm2$carpet[(lower.tri(hm2$carpet,diag=TRUE))] <- NA
-      hm2$carpet <- hm2$carpet[,rev(seq_len(ncol(hm2$carpet)))]
+      heat.mat <- heat.mat[,rev(seq.int(ncol(heat.mat)))]
+      heat.mat[(lower.tri(heat.mat,diag=TRUE))] <- NA
+      heat.mat <- heat.mat[,rev(seq_len(ncol(heat.mat)))]
     }
 
     ## make sure something is left
-    if(all(is.na(hm2$carpet))){
+    if(all(is.na(heat.mat))){
       stop('Nothing survives thresholding!')
     }
 
     ## plot margins and color
-    lab.width <- max(strwidth(rownames(hm2$carpet),'inches')) * 96
+    lab.width <- max(strwidth(rownames(heat.mat),'inches')) * 96
     if(lab.width < 125){ lab.width <- 125 }
     m <- list(l=lab.width,r=lab.width,b=lab.width,t=lab.width,pad=4)
+    col.ramp <- colorRampPalette(c(input$col1,input$col2,input$col3))
 
     ## plot
-    plot.ly <- plot_ly(x=~colnames(hm2$carpet),y=~rownames(hm2$carpet),
-                       z=~hm2$carpet,
+    plot.ly <- plot_ly(x=~colnames(heat.mat),y=~rownames(heat.mat),
+                       z=~heat.mat,
                        type="heatmap",colors=col.ramp(100),
                        colorbar=list(title=''),
                        zmin=input$range_min,zmax=input$range_max)
     layout(plot.ly,xaxis=list(title=''),yaxis=list(title=''),margin=m,
            title=plot.title)
-  })   ## end heat map
-
-  ############################################
-  ## plot histogram
-  output$cor_hist_plot <- renderPlotly({
-    ## get data and make sure it is enough
-    cor.in <- c(heat_data())
-    if(length(cor.in) < 2){ stop('select more than one ROI!') }
-
-    ## plot margins and color
-    stat.lab <- stat.df$description[stat.df$label == input$stat_sel]
-    m <- list(l=100,r=100,b=100,t=125,pad=4)
-
-    ## plot
-    plot.ly <- plot_ly(x=~cor.in,type="histogram",
-                       marker=list(color='lightblue',
-                                   line=list(width=1,color='darkblue')))
-    layout(plot.ly,yaxis=list(title='Count'),xaxis=list(title=stat.lab),
-           title=paste(basename(input$net_file),stat.lab,sep='\n'),
-           margin=m)
   })   ## end heat map
 
   ############################################
@@ -241,12 +249,6 @@ shinyServer(function(input,output,session) {
              stat.df$description[stat.df$label == input$stat_sel],'.png') },
 
     content = function(file) {
-
-      ## close all in case of failed previous
-      graphics.off()
-
-      col.ramp <- colorRampPalette(c(input$col1,input$col2,input$col3))
-      stat.lab <- stat.df$description[stat.df$label == input$stat_sel]
 
       ## get data and make sure it is enough and select rois
       net.mat <- mat_read()
@@ -264,12 +266,15 @@ shinyServer(function(input,output,session) {
       ############################################
       ## calculate first
 
+      col.ramp <- colorRampPalette(c(input$col1,input$col2,input$col3))
+      stat.lab <- stat.df$description[stat.df$label == input$stat_sel]
+
       ## cluster if you want
       if(input$h_clust != 'none'){
         if(input$dist_meth == "canberra" & min(net.mat,na.rm=TRUE) <= 0){
           stop('Canberra does not work with none positive values!')
         }
-        hm2 <- heatmap.2(net.mat,col=col.ramp(100),Rowv=TRUE,Colv='Rowv',
+        hm2 <- heatmap.2(net.mat,Rowv=TRUE,Colv='Rowv',
                          breaks=seq(input$range_min,input$range_max,
                                     length.out=101),
                          trace='none',symm=TRUE,revC=TRUE,
@@ -280,7 +285,7 @@ shinyServer(function(input,output,session) {
                                   ', dist: ',input$dist_meth),
                             sep='\n')
       } else {
-        hm2 <- heatmap.2(net.mat,col=col.ramp(100),Rowv=FALSE,
+        hm2 <- heatmap.2(net.mat,Rowv=FALSE,
                          breaks=seq(input$range_min,input$range_max,
                                     length.out=101),
                          trace='none',symm=TRUE,revC=FALSE)
@@ -298,9 +303,10 @@ shinyServer(function(input,output,session) {
       ## plot
 
       ## open graphics device
-      png(file,width=20,height=20,units='in',
-          res=input$static_dpi)
+      graphics.off()
+      png(file,width=20,height=20,units='in',res=input$static_dpi)
 
+      ## different orders depending on clustering
       if(input$h_clust != 'none'){
         ## select upper/lower/full
         if(input$tri_sel == 'Upper'){
@@ -365,6 +371,40 @@ shinyServer(function(input,output,session) {
 
       dev.off()
     })   ## end static heatmap
+
+  ############################################
+  ## plot histogram
+  output$cor_hist_plot <- renderPlotly({
+    ## get data and make sure it is enough
+    cor.in <- heat_data2()
+    if(length(cor.in) < 2){ stop('select more than one ROI!') }
+
+    ## select upper/lower/full
+    if(input$tri_sel == 'Upper'){
+      cor.in <- cor.in[,rev(seq.int(ncol(cor.in)))]
+      cor.in[(upper.tri(cor.in,diag=TRUE))] <- NA
+      cor.in <- cor.in[,rev(seq_len(ncol(cor.in)))]
+    } else if(input$tri_sel == 'Lower'){
+      cor.in <- cor.in[,rev(seq.int(ncol(cor.in)))]
+      cor.in[(lower.tri(cor.in,diag=TRUE))] <- NA
+      cor.in <- cor.in[,rev(seq_len(ncol(cor.in)))]
+    }
+
+    ## as vector
+    cor.in <- c(cor.in)
+
+    ## plot margins and color
+    stat.lab <- stat.df$description[stat.df$label == input$stat_sel]
+    m <- list(l=100,r=100,b=100,t=125,pad=4)
+
+    ## plot
+    plot.ly <- plot_ly(x=~cor.in,type="histogram",
+                       marker=list(color='lightblue',
+                                   line=list(width=1,color='darkblue')))
+    layout(plot.ly,yaxis=list(title='Count'),xaxis=list(title=stat.lab),
+           title=paste(basename(input$net_file),stat.lab,sep='\n'),
+           margin=m)
+  })   ## end histogram
 
   ############################################
   ## help links

@@ -43,13 +43,13 @@ sidebar <- dashboardSidebar(width=300,sidebarMenu(
                                                   1,step=0.1))
                             ) ),
 
-           selectInput('h_clust','Cluster linkage:',
+           selectInput('h_clust','Cluster linkage (before thresholding):',
                        c('none','complete','single','average','median',
                          'centroid','mcquitty')),
 
            conditionalPanel('input.h_clust != "none"',
-                            h5('Clustering is calculated FIRST (no NAs!)',
-                               class='learn_link'),
+                            # h5('Clustering is calculated FIRST (no NAs!)',
+                            #    class='learn_link'),
                             htmlOutput('hclust_link',class='learn_link'),
                             selectInput('dist_meth','Distance Method:',
                                         c("euclidean","maximum","manhattan",
