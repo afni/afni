@@ -20,7 +20,7 @@ relevant :ref:`instructions here <install_steps_linux_ubuntu>`.
 
        sudo apt-get install -y tcsh xfonts-base python-qt4       \
                                gsl-bin netpbm gnome-tweak-tool   \
-                               libjpeg62 xvfb xterm
+                               libjpeg62 xvfb xterm vi
 
        sudo apt-get update
       
@@ -132,6 +132,8 @@ relevant :ref:`instructions here <install_steps_linux_ubuntu>`.
 
    .. include:: substep_rcfiles.rst
 
+   Also, consider running ``gnome-tweak-tool`` and changing
+   ``Windows`` -> ``Focus Mode`` from 'click' to 'mouse'.
 
 #. **Keeping up-to-date (remember).**
 
