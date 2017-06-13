@@ -1911,11 +1911,18 @@ void wait_for_jobs(void)     /* 10 Feb 2016 */
 {
    int qq ;
 
+#if 0
    if( njob <= 0 || jobid == NULL ) return ;
-   for( qq=0 ; qq < njob ; qq++ )
+   for( qq=0 ; qq < njob ; qq++ ){
      waitpid( jobid[qq] , NULL , 0 ) ;
+   }
+#else
+   while( wait(NULL) > 0 ) ;  /* 13 Jun 2017 */
+#endif
 
-   free(jobid) ; jobid = NULL ; njob = 0 ;
+   if( jobid != NULL ){
+     free(jobid) ; jobid = NULL ; njob = 0 ;
+   }
    return ;
 }
 
@@ -2203,8 +2210,11 @@ int main( int argc , char *argv[] )
        }
 
        INFO_message("Number of -Clustsim threads set to %d",num_clustsim) ;
-       if( num_clustsim == 1 )
+       if( num_clustsim == 1 ){
          ININFO_message("  The program will be slow with only 1 CPU :(") ;
+         ININFO_message("  You can set the number of CPUs to use manually with '-Clustsim N'") ;
+         ININFO_message("   where you replace the 'N' with the number of CPUs.") ;
+       }
        if( prefix_clustsim == NULL ){
          uuu = UNIQ_idcode_11() ;
          prefix_clustsim = (char *)malloc(sizeof(char)*32) ;
@@ -2252,8 +2262,11 @@ int main( int argc , char *argv[] )
        }
 
        INFO_message("Number of 3dXClustSim threads set to %d",num_clustsim) ;
-       if( num_clustsim == 1 )
+       if( num_clustsim == 1 ){
          ININFO_message("  The program will be very slow with only 1 CPU :(") ;
+         ININFO_message("  You can set the number of CPUs to use manually with '-ETAC N'") ;
+         ININFO_message("   where you replace the 'N' with the number of CPUs.") ;
+       }
        if( prefix_clustsim == NULL ){
          uuu = UNIQ_idcode_11() ;
          prefix_clustsim = (char *)malloc(sizeof(char)*32) ;
