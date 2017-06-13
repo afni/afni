@@ -1132,6 +1132,8 @@ void display_help_menu(void)
       "                 integer immediately following the option, as in '-Clustsim 12',\n"
       "                 it will instead use that many jobs (e.g., 12).  This capability\n"
       "                 is to be used when the CPU count is not auto-detected correctly.\n"
+      "               ** You can also set the number of CPUs to be used via the Unix\n"
+      "                  environment variable OMP_NUM_THREADS.\n"
 #if 0
       "          -->>++ '-Clustsim' can use up all the memory on a computer, and even\n"
       "                 more -- causing the computer to freeze or crash.  The program\n"
@@ -1271,18 +1273,22 @@ void display_help_menu(void)
       "The following options use the ETAC (Equitable Thresholding And Clustering)\n"
       "method to provide a method for thresholding the results of 3dttest++.\n"
       "-ETAC uses randomization/permutation to generate null distributions,\n"
-      "as does -Clustsim. The main difference is that ETAC allows:\n"
+      "as does -Clustsim. The main difference is that ETAC also allows:\n"
       "  * use of multiple per-voxel p-value thresholds simultaneously\n"
       "  * use of cluster-size and/or cluster-square-sum as threshold parameters\n"
       "  * use of multiple amounts of blurring simultaneously\n"
+      "  * use of spatially variable cluster sizes.\n"
       "\n"
       "'Equitable' means that each combination of the above choices is treated\n"
       "to contribute approximately the same to the False Positive Rate (FPR).\n"
-      "In addition, the FPR is also balanced across voxels, so that the thresholds\n"
+      "The FPR is also balanced across voxels, so that the cluster-FOM thresholds\n"
       "are depend on location -- that is, brain regions that have less intrinsic\n"
       "smoothness will tend to get smaller thresholds (unlike the global -Clustsim).\n"
+      "In FMRI, this seems to mean that the base (ventral part) of the brain gets\n"
+      "the smallest thresholds and the top (superior occipital and retrosplenial)\n"
+      "parts of the brain get the largest thresholds. (YMMV :)\n"
       "\n"
-      "Differences between '-Clustsim' and '-ETAC':\n"
+      "Major differences between '-Clustsim' and '-ETAC':\n"
       " * -Clustsim produces a number: the cluster-size threshold to be used everywhere.\n"
       " * -ETAC produces a map: the cluster figure of merit (FOM) threshold to be\n"
       "     used as a function of location.\n"
@@ -1298,10 +1304,16 @@ void display_help_menu(void)
       "         Nmask = number of voxels in the mask.\n"
       "   For example, 50000 voxels in the mask and 4 blur cases might use about\n"
       "   50000 * 100000 * 4 = 20 billion bytes of memory.\n"
-      " * You should use ETAC only on a computer with multiple CPU cores and\n"
-      "   lots of RAM.\n"
       " * Run time depends a lot on the parameters and the computer hardware, but\n"
       "   will typically be 10-100 minutes. Get another cup of tea (or coffee).\n"
+      "\n"
+      "         *** You should use ETAC only on a computer with ***\n"
+      "         ***     multiple CPU cores and lots of RAM!     ***\n"
+      "\n"
+      "         ***    If 3dXClustSim fails with the message    ***\n"
+      "         ***   'Killed', this means that the operating   ***\n"
+      "         ***   system stopped the program for trying to  ***\n"
+      "         ***           use too much memory.              ***\n"
       "\n"
       " -ETAC [ncpu]         = This option turns ETAC computations on.\n"
       "                       ++ You can put the maximum number of CPUs to use\n"
@@ -1313,6 +1325,9 @@ void display_help_menu(void)
 #endif
       "                       ++ The ETAC algorithms are implemented in program\n"
       "                          3dXClustSim, which 3dttest++ will run for you.\n"
+      "                       ++ As with '-Clustsim', you can put the number of CPUs\n"
+      "                          to be used after the '-ETAC' option, or let the\n"
+      "                          program figure out how many to use.\n"
       "\n"
       " -ETAC_blur b1 b2 ... = This option says to use multiple levels of spatial\n"
       "                        blurring in the t-tests and ETAC analysis.\n"
@@ -2175,19 +2190,21 @@ int main( int argc , char *argv[] )
          if( num_clustsim > 99 ){
            WARNING_message("CPU count after -Clustsim is > 99") ; num_clustsim = 99 ;
          } else if( num_clustsim < 1 ){
-           WARNING_message("CPU count after -Clustsim is < 1" ) ; num_clustsim = 1 ;
+           WARNING_message("CPU count after -Clustsim is < 1" ) ;
          }
        }
 
        /* make sure number of CPUs are set to reasonable values */
 
-       if( num_clustsim == 0 ){
+       if( num_clustsim <= 0 ){
          num_clustsim = AFNI_get_ncpu() ;  /* will be at least 1 */
          jj = (int)AFNI_numenv("OMP_NUM_THREADS") ;
          if( jj > 0 && (jj < num_clustsim || num_clustsim == 1) ) num_clustsim = jj ;
        }
 
        INFO_message("Number of -Clustsim threads set to %d",num_clustsim) ;
+       if( num_clustsim == 1 )
+         ININFO_message("  The program will be slow with only 1 CPU :(") ;
        if( prefix_clustsim == NULL ){
          uuu = UNIQ_idcode_11() ;
          prefix_clustsim = (char *)malloc(sizeof(char)*32) ;
@@ -2222,19 +2239,21 @@ int main( int argc , char *argv[] )
          if( num_clustsim > 99 ){
            WARNING_message("CPU count after %s is > 99",clustsim_opt) ; num_clustsim = 99 ;
          } else if( num_clustsim < 1 ){
-           WARNING_message("CPU count after %s is < 1" ,clustsim_opt) ; num_clustsim = 1 ;
+           WARNING_message("CPU count after %s is < 1" ,clustsim_opt) ;
          }
        }
 
        /* make sure number of CPUs are set to reasonable values */
 
-       if( num_clustsim == 0 ){
+       if( num_clustsim <= 0 ){
          num_clustsim = AFNI_get_ncpu() ;  /* will be at least 1 */
          jj = (int)AFNI_numenv("OMP_NUM_THREADS") ;
          if( jj > 0 && (jj < num_clustsim || num_clustsim == 1) ) num_clustsim = jj ;
        }
 
        INFO_message("Number of 3dXClustSim threads set to %d",num_clustsim) ;
+       if( num_clustsim == 1 )
+         ININFO_message("  The program will be very slow with only 1 CPU :(") ;
        if( prefix_clustsim == NULL ){
          uuu = UNIQ_idcode_11() ;
          prefix_clustsim = (char *)malloc(sizeof(char)*32) ;
@@ -4457,10 +4476,11 @@ LABELS_ARE_DONE:  /* target for goto above */
 
        /*-- wait until all jobs stop --*/
 
-       wait_for_jobs() ;
+       wait_for_jobs() ; NI_sleep(1) ;
 
      } /*----- end of loop over blur cases -----*/
 
+     NI_sleep(1) ;
      ct2 = COX_clock_time() ;
      if( !dryrun )
        ININFO_message("===== simulation jobs have finished (%.1f s elapsed) =====",ct2-ct1) ;
