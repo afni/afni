@@ -245,8 +245,8 @@ shinyServer(function(input,output,session) {
   ## download static version
   output$downloadPlot <- downloadHandler(
     filename = function() {
-      paste0(basename(input$net_file),'_',
-             stat.df$description[stat.df$label == input$stat_sel],'.png') },
+      paste0(tools::file_path_sans_ext(basename(input$net_file)),'_',
+                                input$stat_sel,'.png') },
 
     content = function(file) {
 
