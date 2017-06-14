@@ -181,6 +181,7 @@ typedef struct {
   int nnlev , sid , npthr ;
   int do_hpow0 , do_hpow1 , do_hpow2 ;
   float *pthr ;
+  float farp_goal ;
   char name[32] ;
 } Xclu_opt ;
 
@@ -1299,6 +1300,9 @@ void display_help_menu(void)
       " *** ALSO see the description of the '-prefix_clustsim', '-tempdir', and  ***\n"
       " *** '-seed' options above, since these also affect the operation of ETAC ***\n"
       "\n"
+      " *** The 'goal' of ETAC is a set of thresholds that give a 5%% FPR. You   ***\n"
+      " *** can modify this goal by setting the 'fpr=' parameter via '-ETAC_opt' ***\n"
+      "\n"
       " * ETAC can use a lot of memory; about 100000 * Ncase * Nmask bytes,\n"
       "   where Ncase = number of blur cases in option '-ETAC_blur' and\n"
       "         Nmask = number of voxels in the mask.\n"
@@ -1357,6 +1361,7 @@ void display_help_menu(void)
       "                    sid=1 or sid=2       } 1-sided or 2-sided t-tests\n"
       "                    pthr=p1,p2,...       } list of p-values to use\n"
       "                    hpow=h1,h2,...       } list of H powers to use\n"
+      "                    fpr=value            } FPR goal, between 2 and 10 (percent)\n"
       "                    name=Something       } a label to distinguish this case\n"
       "                        For example:\n"
       "             -ETAC_opt NN=2:sid=2:hpow=0,2:pthr=0.01,0.005,0.002,0.01:name=Fred\n"
@@ -1367,12 +1372,12 @@ void display_help_menu(void)
       "                        voxels in a cluster (what 3dClustSim uses).\n"
       "                       ++ You can use '-ETAC_opt' more than once, to make\n"
       "                          efficient re-use of the randomized/permuted cases.\n"
-      "                          Just give each use within the same 3dttest++ run a\n"
+      "                     -->> Just give each use within the same 3dttest++ run a\n"
       "                          different label after 'name='.\n"
       "                       ++ There's no built-in upper limit to the number of\n"
       "                          '-ETAC_opt' cases you can run.\n"
-      "                          Each time you use this option, another 3dXClustSim\n"
-      "                          run will be made.\n"
+      "                          Each time you use '-ETAC_opt', 3dXClustSim will be\n"
+      "                          run (using the same set of randomizations).\n"
       "                       ++ It is important to use distinct names for each\n"
       "                          different '-ETAC_opt' case, so that the output\n"
       "                          file names will be distinct (see below).\n"
@@ -1381,7 +1386,8 @@ void display_help_menu(void)
       "                            NN=2 sid=2 hpow=2 name=default\n"
       "                            pthr=0.01,0.0056,0.0031,0.0018,0.0010\n"
       "                                =0.01 * 0.1^(i/4) for i=0..4\n"
-      "                                =geometrically distributed\n"
+      "                                =geometrically distributed from 0.001 to 0.01\n"
+      "                            fpr=5.0\n"
       "\n"
       " -ETAC_arg something  = This option is used to pass extra options to the\n"
       "                        3dXClustSim program (which is what implements ETAC).\n"
@@ -2287,11 +2293,12 @@ int main( int argc , char *argv[] )
 
        opt_Xclu = (Xclu_opt **)realloc( opt_Xclu , sizeof(Xclu_opt *)*(nnopt_Xclu+1)) ;
        opx = opt_Xclu[nnopt_Xclu]  = malloc(sizeof(Xclu_opt)) ;
-       opx->nnlev = 0 ;
-       opx->sid   = 0 ;
-       opx->npthr = 0 ;
-       opx->pthr  = NULL ;
-       opx->do_hpow0 = 0 ; opx->do_hpow1 = 0 ; opx->do_hpow2 = 0 ;
+       opx->nnlev     = 0 ;
+       opx->sid       = 0 ;
+       opx->npthr     = 0 ;
+       opx->pthr      = NULL ;
+       opx->farp_goal = 5.0f ;
+       opx->do_hpow0  = 0 ; opx->do_hpow1 = 0 ; opx->do_hpow2 = 0 ;
        sprintf(opx->name,"Case%d",nnopt_Xclu+1) ;
 
        acp = strdup(argv[nopt]) ;  /* change colons to blanks */
@@ -2379,6 +2386,21 @@ int main( int argc , char *argv[] )
          } else {
            MCW_strncpy(opx->name,nam,32) ;
          }
+       }
+
+       cpt = strcasestr(acp,"fpr=") ;   /* 14 Jun 2017 */
+       if( cpt != NULL ){
+         float fgoal = (float)strtod(cpt+4,NULL) ;
+         if( fgoal < 2.0f ){
+           WARNING_message("fpr=%.4f%% too small in -ETAC_opt name=%s: setting fpr=2",
+                           opx->name,fgoal) ;
+           fgoal = 2.0f ;
+         } else if( fgoal > 10.0f ){
+           WARNING_message("fpr=%.4f%% too large in -ETAC_opt name=%s: setting fpr=10",
+                           opx->name,fgoal) ;
+           fgoal = 10.0f ;
+         }
+         opx->farp_goal = fgoal ;
        }
 
        if( nbad > 0 )
@@ -4323,7 +4345,7 @@ LABELS_ARE_DONE:  /* target for goto above */
        if( bmd != NULL ){
          sprintf( fname , "B%.1f" , cblur ) ;
          clab[icase] = strdup(fname) ;
-         INFO_message("--- start simulations for blur case %.1f (%s) : elapsed = %.1f s ---",
+         INFO_message("------ start simulations for blur case %.1f (%s) : elapsed = %.1f s ------",
                       cblur , fname , COX_clock_time() ) ;
        } else {
          clab[icase] = strdup("\0") ;
@@ -4622,7 +4644,7 @@ LABELS_ARE_DONE:  /* target for goto above */
 
        int ixx , nxx=MAX(nnopt_Xclu,1) ; Xclu_opt *opx ;
        int nnlev, sid, npthr ; float *pthr ; char *nam ;
-       int do_hpow0, do_hpow1, do_hpow2 ;
+       int do_hpow0, do_hpow1, do_hpow2 ; float fgoal ;
 
        for( ixx=0 ; ixx < nxx ; ixx++ ){   /* loop over -Xclu_opt cases */
          if( ixx < nnopt_Xclu ){   /* and run 3dXClustSim once for each */
@@ -4632,16 +4654,19 @@ LABELS_ARE_DONE:  /* target for goto above */
            npthr = opx->npthr ;      /* number of threshold */
             pthr = opx->pthr ;       /* threshold array */
            nam   = opx->name ;       /* code name for output */
+           fgoal = opx->farp_goal ;
            do_hpow0 = opx->do_hpow0 ;
            do_hpow1 = opx->do_hpow1 ;
            do_hpow2 = opx->do_hpow2 ;
          } else {
            nnlev = sid = npthr = 0 ; pthr = NULL ; nam="default" ;
-           do_hpow0 = 1 ; do_hpow1 = 0 ; do_hpow2 = 0 ;
+           do_hpow0 = 0 ; do_hpow1 = 0 ; do_hpow2 = 1 ;
+           fgoal = 5.0f ;
          }
 
          sprintf( cmd , "3dXClustSim -DAFNI_DONT_LOGFILE=YES"
-                        " -prefix %s.%s.ETAC.nii" , prefix_clustsim , nam ) ;
+                        " -DAFNI_XCLUSTSIM_FGOAL=%.2f%%"
+                        " -prefix %s.%s.ETAC.nii" , fgoal , prefix_clustsim , nam ) ;
          sprintf( cmd+strlen(cmd) , " \\\n   ") ;
 
          if( Xclu_nblur > 0 ){
@@ -4762,9 +4787,9 @@ LABELS_ARE_DONE:  /* target for goto above */
          sprintf(cmd+strlen(cmd)," %s.*.niml" , prefix_clustsim ) ;
 
        if( dryrun ){
-         ININFO_message("file cleanup command:\n  %s",cmd) ;
+         INFO_message("file cleanup command:\n  %s",cmd) ;
        } else {
-         ININFO_message("cleaning up intermediate files:") ;
+         INFO_message("Cleaning up intermediate files:") ;
          system(cmd) ;
        }
      }
