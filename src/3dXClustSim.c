@@ -196,6 +196,7 @@ ENTRY("get_options") ;
 
   farp_goal = AFNI_numenv("AFNI_XCLUSTSIM_FGOAL") ;
   if( farp_goal < 2.0f || farp_goal > 10.0f ) farp_goal = FARP_GOAL ;
+  INFO_message("FPR goal of %.2f%% will be used",farp_goal) ;
 
   while( nopt < argc ){
 
@@ -435,7 +436,7 @@ ENTRY("get_options") ;
 
   /*------- finalize some simple setup stuff --------*/
 
-  if( xinset == NULL ) ERROR_exit("-inset option is mandatory :(") ;
+  if( xinset == NULL ) ERROR_exit("-inset or -insdat option is mandatory :(") ;
 
   /* create default pthr array, if none was given */
 
