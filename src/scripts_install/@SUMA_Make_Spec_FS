@@ -1,4 +1,4 @@
-#!/bin/tcsh -f
+#!/bin/tcsh
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
@@ -139,7 +139,7 @@ L_PARSE_COMMAND:
     set count    = 1
 
     while ( $count <= $args )
-   switch ( "$argv[$count]" )
+      switch ( "$argv[$count]" )
 
        # ----------------------------------------------------------
        # usage: -help
@@ -154,13 +154,13 @@ L_PARSE_COMMAND:
        # usage: -sid SUBJECT_ID
        case "-sid":
 
-      if ( $count >= $args ) then
-          set endstr = "arg usage: -sid SUBJECT_ID"
-          goto L_BAD_END
-      endif
+         if ( $count >= $args ) then
+             set endstr = "arg usage: -sid SUBJECT_ID"
+             goto L_BAD_END
+         endif
 
-      @ count ++
-      set subj_id  = $argv[$count]
+         @ count ++
+         set subj_id  = $argv[$count]
 
        breaksw
 
@@ -168,18 +168,18 @@ L_PARSE_COMMAND:
        # usage: -fspath FREESURFER_PATH
        case "-fspath":
 
-      if ( $count >= $args ) then
-          set endstr = "arg usage: -fspath FREESURFER_PATH"
-          goto L_BAD_END
-      endif
+         if ( $count >= $args ) then
+             set endstr = "arg usage: -fspath FREESURFER_PATH"
+             goto L_BAD_END
+         endif
 
-      @ count ++
-      set fs_dir  = $argv[$count]
+         @ count ++
+         set fs_dir  = $argv[$count]
 
-      if ( ! -d $fs_dir ) then
-          set endstr = "failure: directory not found - '$fs_dir'"
-          goto L_BAD_END
-      endif
+         if ( ! -d $fs_dir ) then
+             set endstr = "failure: directory not found - '$fs_dir'"
+             goto L_BAD_END
+         endif
 
        breaksw
 
@@ -187,19 +187,25 @@ L_PARSE_COMMAND:
        # usage : -neuro
        case "-neuro":
 
-      set neuro_ori = 1
+         # do not allow overlapping options    15 Jun 2017 [rickr]
+         if ( $neuro_ori != 0 ) then
+            echo '** cannot use any -*IFTI options with -neuro'
+            goto L_BAD_END
+         endif
+
+         set neuro_ori = 1
        breaksw
 
        # ----------------------------------------------------------
        # usage : -nocor
        case "-nocor":
-      set endstr = "Option -nocor obsolete. See -help for important details."
-      goto L_BAD_END
+         set endstr = "Option -nocor obsolete. See -help for important details."
+         goto L_BAD_END
       
-      #set neuro_ori = -1
-      #set sfieldname = 'SurfaceName'
-      #set sex = 'gii'
-      #set stp = 'GIFTI'
+         #set neuro_ori = -1
+         #set sfieldname = 'SurfaceName'
+         #set sex = 'gii'
+         #set stp = 'GIFTI'
       
        breaksw
 
@@ -210,25 +216,31 @@ L_PARSE_COMMAND:
        case "-GIFTI":
        case "-IFTI":
 
-      set neuro_ori = -1
-      set sfieldname = 'SurfaceName'
-      set sex = 'gii'
-      set stp = 'GIFTI'
-      set USING_NIFTI = 1      # [PT: Feb,2017] really useful...
-      
+         # do not allow overlapping options    15 Jun 2017 [rickr]
+         if ( $neuro_ori != 0 ) then
+            echo '** cannot use any -*IFTI options with -neuro'
+            goto L_BAD_END
+         endif
+
+         set neuro_ori = -1
+         set sfieldname = 'SurfaceName'
+         set sex = 'gii'
+         set stp = 'GIFTI'
+         set USING_NIFTI = 1      # [PT: Feb,2017] really useful...
+         
        breaksw
 
        # ----------------------------------------------------------
        # usage : -set_space SPACE
        case "-set_space":
 
-      if ( $count >= $args ) then
-          set endstr = "arg usage: -set_space SPACE"
-          goto L_BAD_END
-      endif
+         if ( $count >= $args ) then
+             set endstr = "arg usage: -set_space SPACE"
+             goto L_BAD_END
+         endif
 
-      @ count ++
-      set set_space  = $argv[$count]
+         @ count ++
+         set set_space  = $argv[$count]
 
        breaksw
 
@@ -236,7 +248,7 @@ L_PARSE_COMMAND:
        # usage : -neuro
        case "-use_mgz":
 
-      set use_mgz = 1
+         set use_mgz = 1
 
        breaksw
 
@@ -244,16 +256,16 @@ L_PARSE_COMMAND:
        # usage : -debug DEBUG_LEVEL
        case "-debug":
 
-      if ( $count >= $args ) then
-          set endstr = "arg usage: -debug DEBUG_LEVEL"
-          goto L_BAD_END
-      endif
+         if ( $count >= $args ) then
+             set endstr = "arg usage: -debug DEBUG_LEVEL"
+             goto L_BAD_END
+         endif
 
-      @ count ++
-      set debug = $argv[$count]
+         @ count ++
+         set debug = $argv[$count]
 
-      if ( "$debug" > 2 ) set debug = 2
-      if ( "$debug" < 0 ) set debug = 0
+         if ( "$debug" > 2 ) set debug = 2
+         if ( "$debug" < 0 ) set debug = 0
 
        breaksw
 
@@ -261,17 +273,17 @@ L_PARSE_COMMAND:
        # usage : -inflate VAL
        case "-inflate":
 
-      if ( $count >= $args ) then
-          set endstr = "arg usage: -inflate INF"
-          goto L_BAD_END
-      endif
+         if ( $count >= $args ) then
+             set endstr = "arg usage: -inflate INF"
+             goto L_BAD_END
+         endif
 
-      @ count ++
-       set ff = 0
-       foreach inf ($inflates)
-         if ($inf == "$argv[$count]") set ff = 1
-       end
-       if ($ff == 0) set inflates = ($inflates $argv[$count])
+         @ count ++
+          set ff = 0
+          foreach inf ($inflates)
+            if ($inf == "$argv[$count]") set ff = 1
+          end
+          if ($ff == 0) set inflates = ($inflates $argv[$count])
 
        breaksw
 
@@ -280,13 +292,13 @@ L_PARSE_COMMAND:
        # usage : -ld VAL
        case "-ld":
 
-      if ( $count >= $args ) then
-          set endstr = "arg usage: -ld LD"
-          goto L_BAD_END
-      endif
+         if ( $count >= $args ) then
+             set endstr = "arg usage: -ld LD"
+             goto L_BAD_END
+         endif
 
-      @ count ++
-      set ldu = ($ldu $argv[$count])
+         @ count ++
+         set ldu = ($ldu $argv[$count])
 
        breaksw
 
@@ -294,13 +306,13 @@ L_PARSE_COMMAND:
        # usage : -ldpref LDpref
        case "-ldpref":
 
-      if ( $count >= $args ) then
-          set endstr = "arg usage: -ldpref LDpref"
-          goto L_BAD_END
-      endif
+         if ( $count >= $args ) then
+             set endstr = "arg usage: -ldpref LDpref"
+             goto L_BAD_END
+         endif
 
-      @ count ++
-      set ldpref = ($ldpref $argv[$count])
+         @ count ++
+         set ldpref = ($ldpref $argv[$count])
 
        breaksw
 
@@ -308,7 +320,7 @@ L_PARSE_COMMAND:
        # usage : -no_ld
        case "-no_ld":
 
-      set ldlist = ()
+         set ldlist = ()
 
        breaksw
 
@@ -317,14 +329,14 @@ L_PARSE_COMMAND:
        # bad argument
        default:
 
-      set endstr = "invalid option: '$argv[$count]'"
-      apsearch -popt `basename $0` -word $argv[$count]
-      goto L_BAD_END
+         set endstr = "invalid option: '$argv[$count]'"
+         apsearch -popt `basename $0` -word $argv[$count]
+         goto L_BAD_END
 
        breaksw
-   endsw
+      endsw
 
-   @ count ++
+      @ count ++
     end
 
     if ( $subj_id == "" ) then
