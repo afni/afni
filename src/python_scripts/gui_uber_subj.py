@@ -62,10 +62,10 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       if self.verb < 0: self.verb = int(self.cvars.verb)
       self.set_sdir = set_sdir
       if ctrl_vars and set_sdir:
-          if self.verb:
-              print '++ have passed subj_dir %s, keeping it' \
-                    % ctrl_vars.val('subj_dir')
-          if ctrl_vars.val('subj_dir') != '.':
+          if ctrl_vars.is_not_empty('subj_dir'):
+              if self.verb:
+                 print '++ have passed subj_dir %s, keeping it' \
+                       % ctrl_vars.val('subj_dir')
               set_sdir = 0
               self.set_sdir = 0
 
