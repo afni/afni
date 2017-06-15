@@ -35,11 +35,11 @@ sidebar <- dashboardSidebar(width=300,sidebarMenu(
                             fluidRow(
                               column(width=6,
                                      numericInput('thresh_min',
-                                                  'Threshold Lower:',
+                                                  'Low Pass:',
                                                   -1,step=0.1)),
                               column(width=6,
                                      numericInput('thresh_max',
-                                                  'Threshold Upper:',
+                                                  'High Pass:',
                                                   1,step=0.1))
                             ) ),
 
@@ -48,8 +48,6 @@ sidebar <- dashboardSidebar(width=300,sidebarMenu(
                          'centroid','mcquitty')),
 
            conditionalPanel('input.h_clust != "none"',
-                            # h5('Clustering is calculated FIRST (no NAs!)',
-                            #    class='learn_link'),
                             htmlOutput('hclust_link',class='learn_link'),
                             selectInput('dist_meth','Distance Method:',
                                         c("euclidean","maximum","manhattan",
