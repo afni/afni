@@ -7318,7 +7318,6 @@ g_help_string = """
                   -regress_censor_outliers 0.1                               \\
                   -regress_bandpass 0.01 0.1                                 \\
                   -regress_apply_mot_types demean deriv                      \\
-                  -regress_run_clustsim no                                   \\
                   -regress_est_blur_epits                                    \\
                   -regress_est_blur_errts
 
@@ -7343,7 +7342,6 @@ g_help_string = """
                   -regress_censor_outliers 0.1                               \\
                   -regress_bandpass 0.01 0.1                                 \\
                   -regress_apply_mot_types demean deriv                      \\
-                  -regress_run_clustsim no                                   \\
                   -regress_est_blur_epits                                    \\
                   -regress_est_blur_errts
 
@@ -7381,7 +7379,6 @@ g_help_string = """
                   -regress_bandpass 0.01 0.1                                 \\
                   -regress_apply_mot_types demean deriv                      \\
                   -regress_ROI WMe                                           \\
-                  -regress_run_clustsim no                                   \\
                   -regress_est_blur_epits                                    \\
                   -regress_est_blur_errts
 
@@ -7470,8 +7467,7 @@ g_help_string = """
                   -regress_censor_outliers 0.1                               \\
                   -regress_apply_mot_types demean deriv                      \\
                   -regress_est_blur_epits                                    \\
-                  -regress_est_blur_errts                                    \\
-                  -regress_run_clustsim no
+                  -regress_est_blur_errts
 
        Example 11b. Similar to 11, but without FreeSurfer.
            
@@ -7911,7 +7907,8 @@ g_help_string = """
     If it is important to have the FreeSurfer output align with the input,
     it might help to pass a modified volume to FreeSurfer.  Use 3dresample
     and then 3dZeropad (if necessary) to make a volume with 1 mm^3 voxels
-    and an even number voxels in each direction.
+    and an even number voxels in each direction.  The @SUMA_Make_Spec_FS 
+    help provides some details on this.
 
     The exact 3dZeropad command depends on the grid output by 3dresample.
 
