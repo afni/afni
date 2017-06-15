@@ -49,9 +49,9 @@
 
 afni_history_struct rickr_history[] = {
 
- { 15,  Jun, 2017, RCR, "@SUMA_Make_Spec_FS", MICRO, TYPE_ENHANCE,
-   "be sure mris_convert actually works, on top of being in PATH",
-   "Also, do not allow -neuro and -*IFTI together."
+ { 15,  Jun, 2017, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "added OS_notes.linux_RH7.txt",
+   NULL
  } ,
 
  { 15,  Jun, 2017, RCR, "@SUMA_Make_Spec_FS", MICRO, TYPE_ENHANCE,
