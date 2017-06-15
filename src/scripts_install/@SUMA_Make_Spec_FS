@@ -370,19 +370,36 @@ goto L_PARSE_COMMAND_DONE
 L_VERIFY_PROGRAMS:
 
     set failed_pgms = 0
+
+    # check that programs are in the path
     foreach test_command ( afni to3d suma mris_convert )
 
-   (which $test_command) >& /dev/null
+       (which $test_command) >& /dev/null
 
-   if ( $status ) then
-       echo "program not found in path: $test_command"
-       @ failed_pgms ++
-   endif
+       if ( $status ) then
+          echo "program not found in path: $test_command"
+          @ failed_pgms ++
+       endif
     end
 
     if ( $failed_pgms ) then
-   set endstr = "$failed_pgms program(s) not found"
-   goto L_BAD_END
+       set endstr = "$failed_pgms program(s) not found"
+       goto L_BAD_END
+    endif
+
+    # check that a couple of commands actually work
+    foreach test_command ( afni mris_convert )
+       $test_command --version >& /dev/null
+
+       if ( $status ) then
+          echo "program failure: $test_command"
+          @ failed_pgms ++
+       endif
+    end
+
+    if ( $failed_pgms ) then
+       set endstr = "$failed_pgms program(s) not working correctly"
+       goto L_BAD_END
     endif
 
     if ( $debug ) echo "-- all programs found"
