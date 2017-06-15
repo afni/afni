@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 15,  Jun, 2017, RCR, "uber_subject", MICRO, TYPE_BUG_FIX,
+   "handle empty subj_dir",
+   NULL
+ } ,
+
  { 15,  Jun, 2017, RCR, "afni-general", MICRO, TYPE_ENHANCE,
    "added OS_notes.linux_RH7.txt",
    NULL
