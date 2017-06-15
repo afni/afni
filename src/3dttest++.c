@@ -181,6 +181,7 @@ typedef struct {
   int nnlev , sid , npthr ;
   int do_hpow0 , do_hpow1 , do_hpow2 ;
   float *pthr ;
+  float farp_goal ;
   char name[32] ;
 } Xclu_opt ;
 
@@ -1132,6 +1133,8 @@ void display_help_menu(void)
       "                 integer immediately following the option, as in '-Clustsim 12',\n"
       "                 it will instead use that many jobs (e.g., 12).  This capability\n"
       "                 is to be used when the CPU count is not auto-detected correctly.\n"
+      "               ** You can also set the number of CPUs to be used via the Unix\n"
+      "                  environment variable OMP_NUM_THREADS.\n"
 #if 0
       "          -->>++ '-Clustsim' can use up all the memory on a computer, and even\n"
       "                 more -- causing the computer to freeze or crash.  The program\n"
@@ -1271,18 +1274,22 @@ void display_help_menu(void)
       "The following options use the ETAC (Equitable Thresholding And Clustering)\n"
       "method to provide a method for thresholding the results of 3dttest++.\n"
       "-ETAC uses randomization/permutation to generate null distributions,\n"
-      "as does -Clustsim. The main difference is that ETAC allows:\n"
+      "as does -Clustsim. The main difference is that ETAC also allows:\n"
       "  * use of multiple per-voxel p-value thresholds simultaneously\n"
       "  * use of cluster-size and/or cluster-square-sum as threshold parameters\n"
       "  * use of multiple amounts of blurring simultaneously\n"
+      "  * use of spatially variable cluster sizes.\n"
       "\n"
       "'Equitable' means that each combination of the above choices is treated\n"
       "to contribute approximately the same to the False Positive Rate (FPR).\n"
-      "In addition, the FPR is also balanced across voxels, so that the thresholds\n"
+      "The FPR is also balanced across voxels, so that the cluster-FOM thresholds\n"
       "are depend on location -- that is, brain regions that have less intrinsic\n"
       "smoothness will tend to get smaller thresholds (unlike the global -Clustsim).\n"
+      "In FMRI, this seems to mean that the base (ventral part) of the brain gets\n"
+      "the smallest thresholds and the top (superior occipital and retrosplenial)\n"
+      "parts of the brain get the largest thresholds. (YMMV :)\n"
       "\n"
-      "Differences between '-Clustsim' and '-ETAC':\n"
+      "Major differences between '-Clustsim' and '-ETAC':\n"
       " * -Clustsim produces a number: the cluster-size threshold to be used everywhere.\n"
       " * -ETAC produces a map: the cluster figure of merit (FOM) threshold to be\n"
       "     used as a function of location.\n"
@@ -1293,15 +1300,24 @@ void display_help_menu(void)
       " *** ALSO see the description of the '-prefix_clustsim', '-tempdir', and  ***\n"
       " *** '-seed' options above, since these also affect the operation of ETAC ***\n"
       "\n"
+      " *** The 'goal' of ETAC is a set of thresholds that give a 5%% FPR. You   ***\n"
+      " *** can modify this goal by setting the 'fpr=' parameter via '-ETAC_opt' ***\n"
+      "\n"
       " * ETAC can use a lot of memory; about 100000 * Ncase * Nmask bytes,\n"
       "   where Ncase = number of blur cases in option '-ETAC_blur' and\n"
       "         Nmask = number of voxels in the mask.\n"
       "   For example, 50000 voxels in the mask and 4 blur cases might use about\n"
       "   50000 * 100000 * 4 = 20 billion bytes of memory.\n"
-      " * You should use ETAC only on a computer with multiple CPU cores and\n"
-      "   lots of RAM.\n"
       " * Run time depends a lot on the parameters and the computer hardware, but\n"
       "   will typically be 10-100 minutes. Get another cup of tea (or coffee).\n"
+      "\n"
+      "         *** You should use ETAC only on a computer with ***\n"
+      "         ***     multiple CPU cores and lots of RAM!     ***\n"
+      "\n"
+      "         ***    If 3dXClustSim fails with the message    ***\n"
+      "         ***   'Killed', this means that the operating   ***\n"
+      "         ***   system stopped the program for trying to  ***\n"
+      "         ***           use too much memory.              ***\n"
       "\n"
       " -ETAC [ncpu]         = This option turns ETAC computations on.\n"
       "                       ++ You can put the maximum number of CPUs to use\n"
@@ -1313,6 +1329,9 @@ void display_help_menu(void)
 #endif
       "                       ++ The ETAC algorithms are implemented in program\n"
       "                          3dXClustSim, which 3dttest++ will run for you.\n"
+      "                       ++ As with '-Clustsim', you can put the number of CPUs\n"
+      "                          to be used after the '-ETAC' option, or let the\n"
+      "                          program figure out how many to use.\n"
       "\n"
       " -ETAC_blur b1 b2 ... = This option says to use multiple levels of spatial\n"
       "                        blurring in the t-tests and ETAC analysis.\n"
@@ -1342,6 +1361,7 @@ void display_help_menu(void)
       "                    sid=1 or sid=2       } 1-sided or 2-sided t-tests\n"
       "                    pthr=p1,p2,...       } list of p-values to use\n"
       "                    hpow=h1,h2,...       } list of H powers to use\n"
+      "                    fpr=value            } FPR goal, between 2 and 10 (percent)\n"
       "                    name=Something       } a label to distinguish this case\n"
       "                        For example:\n"
       "             -ETAC_opt NN=2:sid=2:hpow=0,2:pthr=0.01,0.005,0.002,0.01:name=Fred\n"
@@ -1352,12 +1372,12 @@ void display_help_menu(void)
       "                        voxels in a cluster (what 3dClustSim uses).\n"
       "                       ++ You can use '-ETAC_opt' more than once, to make\n"
       "                          efficient re-use of the randomized/permuted cases.\n"
-      "                          Just give each use within the same 3dttest++ run a\n"
+      "                     -->> Just give each use within the same 3dttest++ run a\n"
       "                          different label after 'name='.\n"
       "                       ++ There's no built-in upper limit to the number of\n"
       "                          '-ETAC_opt' cases you can run.\n"
-      "                          Each time you use this option, another 3dXClustSim\n"
-      "                          run will be made.\n"
+      "                          Each time you use '-ETAC_opt', 3dXClustSim will be\n"
+      "                          run (using the same set of randomizations).\n"
       "                       ++ It is important to use distinct names for each\n"
       "                          different '-ETAC_opt' case, so that the output\n"
       "                          file names will be distinct (see below).\n"
@@ -1366,7 +1386,8 @@ void display_help_menu(void)
       "                            NN=2 sid=2 hpow=2 name=default\n"
       "                            pthr=0.01,0.0056,0.0031,0.0018,0.0010\n"
       "                                =0.01 * 0.1^(i/4) for i=0..4\n"
-      "                                =geometrically distributed\n"
+      "                                =geometrically distributed from 0.001 to 0.01\n"
+      "                            fpr=5.0\n"
       "\n"
       " -ETAC_arg something  = This option is used to pass extra options to the\n"
       "                        3dXClustSim program (which is what implements ETAC).\n"
@@ -1896,11 +1917,18 @@ void wait_for_jobs(void)     /* 10 Feb 2016 */
 {
    int qq ;
 
+#if 0
    if( njob <= 0 || jobid == NULL ) return ;
-   for( qq=0 ; qq < njob ; qq++ )
+   for( qq=0 ; qq < njob ; qq++ ){
      waitpid( jobid[qq] , NULL , 0 ) ;
+   }
+#else
+   while( wait(NULL) > 0 ) ;  /* 13 Jun 2017 */
+#endif
 
-   free(jobid) ; jobid = NULL ; njob = 0 ;
+   if( jobid != NULL ){
+     free(jobid) ; jobid = NULL ; njob = 0 ;
+   }
    return ;
 }
 
@@ -2175,19 +2203,24 @@ int main( int argc , char *argv[] )
          if( num_clustsim > 99 ){
            WARNING_message("CPU count after -Clustsim is > 99") ; num_clustsim = 99 ;
          } else if( num_clustsim < 1 ){
-           WARNING_message("CPU count after -Clustsim is < 1" ) ; num_clustsim = 1 ;
+           WARNING_message("CPU count after -Clustsim is < 1" ) ;
          }
        }
 
        /* make sure number of CPUs are set to reasonable values */
 
-       if( num_clustsim == 0 ){
+       if( num_clustsim <= 0 ){
          num_clustsim = AFNI_get_ncpu() ;  /* will be at least 1 */
          jj = (int)AFNI_numenv("OMP_NUM_THREADS") ;
          if( jj > 0 && (jj < num_clustsim || num_clustsim == 1) ) num_clustsim = jj ;
        }
 
        INFO_message("Number of -Clustsim threads set to %d",num_clustsim) ;
+       if( num_clustsim == 1 ){
+         ININFO_message("  The program will be slow with only 1 CPU :(") ;
+         ININFO_message("  You can set the number of CPUs to use manually with '-Clustsim N'") ;
+         ININFO_message("   where you replace the 'N' with the number of CPUs.") ;
+       }
        if( prefix_clustsim == NULL ){
          uuu = UNIQ_idcode_11() ;
          prefix_clustsim = (char *)malloc(sizeof(char)*32) ;
@@ -2222,19 +2255,24 @@ int main( int argc , char *argv[] )
          if( num_clustsim > 99 ){
            WARNING_message("CPU count after %s is > 99",clustsim_opt) ; num_clustsim = 99 ;
          } else if( num_clustsim < 1 ){
-           WARNING_message("CPU count after %s is < 1" ,clustsim_opt) ; num_clustsim = 1 ;
+           WARNING_message("CPU count after %s is < 1" ,clustsim_opt) ;
          }
        }
 
        /* make sure number of CPUs are set to reasonable values */
 
-       if( num_clustsim == 0 ){
+       if( num_clustsim <= 0 ){
          num_clustsim = AFNI_get_ncpu() ;  /* will be at least 1 */
          jj = (int)AFNI_numenv("OMP_NUM_THREADS") ;
          if( jj > 0 && (jj < num_clustsim || num_clustsim == 1) ) num_clustsim = jj ;
        }
 
        INFO_message("Number of 3dXClustSim threads set to %d",num_clustsim) ;
+       if( num_clustsim == 1 ){
+         ININFO_message("  The program will be very slow with only 1 CPU :(") ;
+         ININFO_message("  You can set the number of CPUs to use manually with '-ETAC N'") ;
+         ININFO_message("   where you replace the 'N' with the number of CPUs.") ;
+       }
        if( prefix_clustsim == NULL ){
          uuu = UNIQ_idcode_11() ;
          prefix_clustsim = (char *)malloc(sizeof(char)*32) ;
@@ -2255,11 +2293,12 @@ int main( int argc , char *argv[] )
 
        opt_Xclu = (Xclu_opt **)realloc( opt_Xclu , sizeof(Xclu_opt *)*(nnopt_Xclu+1)) ;
        opx = opt_Xclu[nnopt_Xclu]  = malloc(sizeof(Xclu_opt)) ;
-       opx->nnlev = 0 ;
-       opx->sid   = 0 ;
-       opx->npthr = 0 ;
-       opx->pthr  = NULL ;
-       opx->do_hpow0 = 0 ; opx->do_hpow1 = 0 ; opx->do_hpow2 = 0 ;
+       opx->nnlev     = 0 ;
+       opx->sid       = 0 ;
+       opx->npthr     = 0 ;
+       opx->pthr      = NULL ;
+       opx->farp_goal = 5.0f ;
+       opx->do_hpow0  = 0 ; opx->do_hpow1 = 0 ; opx->do_hpow2 = 0 ;
        sprintf(opx->name,"Case%d",nnopt_Xclu+1) ;
 
        acp = strdup(argv[nopt]) ;  /* change colons to blanks */
@@ -2347,6 +2386,21 @@ int main( int argc , char *argv[] )
          } else {
            MCW_strncpy(opx->name,nam,32) ;
          }
+       }
+
+       cpt = strcasestr(acp,"fpr=") ;   /* 14 Jun 2017 */
+       if( cpt != NULL ){
+         float fgoal = (float)strtod(cpt+4,NULL) ;
+         if( fgoal < 2.0f ){
+           WARNING_message("fpr=%.4f%% too small in -ETAC_opt name=%s: setting fpr=2",
+                           opx->name,fgoal) ;
+           fgoal = 2.0f ;
+         } else if( fgoal > 10.0f ){
+           WARNING_message("fpr=%.4f%% too large in -ETAC_opt name=%s: setting fpr=10",
+                           opx->name,fgoal) ;
+           fgoal = 10.0f ;
+         }
+         opx->farp_goal = fgoal ;
        }
 
        if( nbad > 0 )
@@ -4291,7 +4345,7 @@ LABELS_ARE_DONE:  /* target for goto above */
        if( bmd != NULL ){
          sprintf( fname , "B%.1f" , cblur ) ;
          clab[icase] = strdup(fname) ;
-         INFO_message("--- start simulations for blur case %.1f (%s) : elapsed = %.1f s ---",
+         INFO_message("------ start simulations for blur case %.1f (%s) : elapsed = %.1f s ------",
                       cblur , fname , COX_clock_time() ) ;
        } else {
          clab[icase] = strdup("\0") ;
@@ -4457,10 +4511,11 @@ LABELS_ARE_DONE:  /* target for goto above */
 
        /*-- wait until all jobs stop --*/
 
-       wait_for_jobs() ;
+       wait_for_jobs() ; NI_sleep(1) ;
 
      } /*----- end of loop over blur cases -----*/
 
+     NI_sleep(1) ;
      ct2 = COX_clock_time() ;
      if( !dryrun )
        ININFO_message("===== simulation jobs have finished (%.1f s elapsed) =====",ct2-ct1) ;
@@ -4589,7 +4644,7 @@ LABELS_ARE_DONE:  /* target for goto above */
 
        int ixx , nxx=MAX(nnopt_Xclu,1) ; Xclu_opt *opx ;
        int nnlev, sid, npthr ; float *pthr ; char *nam ;
-       int do_hpow0, do_hpow1, do_hpow2 ;
+       int do_hpow0, do_hpow1, do_hpow2 ; float fgoal ;
 
        for( ixx=0 ; ixx < nxx ; ixx++ ){   /* loop over -Xclu_opt cases */
          if( ixx < nnopt_Xclu ){   /* and run 3dXClustSim once for each */
@@ -4599,16 +4654,19 @@ LABELS_ARE_DONE:  /* target for goto above */
            npthr = opx->npthr ;      /* number of threshold */
             pthr = opx->pthr ;       /* threshold array */
            nam   = opx->name ;       /* code name for output */
+           fgoal = opx->farp_goal ;
            do_hpow0 = opx->do_hpow0 ;
            do_hpow1 = opx->do_hpow1 ;
            do_hpow2 = opx->do_hpow2 ;
          } else {
            nnlev = sid = npthr = 0 ; pthr = NULL ; nam="default" ;
-           do_hpow0 = 1 ; do_hpow1 = 0 ; do_hpow2 = 0 ;
+           do_hpow0 = 0 ; do_hpow1 = 0 ; do_hpow2 = 1 ;
+           fgoal = 5.0f ;
          }
 
          sprintf( cmd , "3dXClustSim -DAFNI_DONT_LOGFILE=YES"
-                        " -prefix %s.%s.ETAC.nii" , prefix_clustsim , nam ) ;
+                        " -DAFNI_XCLUSTSIM_FGOAL=%.2f%%"
+                        " -prefix %s.%s.ETAC.nii" , fgoal , prefix_clustsim , nam ) ;
          sprintf( cmd+strlen(cmd) , " \\\n   ") ;
 
          if( Xclu_nblur > 0 ){
@@ -4729,9 +4787,9 @@ LABELS_ARE_DONE:  /* target for goto above */
          sprintf(cmd+strlen(cmd)," %s.*.niml" , prefix_clustsim ) ;
 
        if( dryrun ){
-         ININFO_message("file cleanup command:\n  %s",cmd) ;
+         INFO_message("file cleanup command:\n  %s",cmd) ;
        } else {
-         ININFO_message("cleaning up intermediate files:") ;
+         INFO_message("Cleaning up intermediate files:") ;
          system(cmd) ;
        }
      }
