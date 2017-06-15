@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 15,  Jun, 2017, RCR, "@SUMA_Make_Spec_FS", MICRO, TYPE_ENHANCE,
+   "be sure mris_convert actually works, on top of being in PATH",
+   "Also, do not allow -neuro and -*IFTI together."
+ } ,
+
+ { 15,  Jun, 2017, RCR, "@SUMA_Make_Spec_FS", MICRO, TYPE_ENHANCE,
+   "remove -f from top tcsh command; fix some bad tab indenting",
+   NULL
+ } ,
+
  { 5,  Jun, 2017, RCR, "RetroTS.py", MINOR, TYPE_BUG_FIX,
    "peak_finder(): fix lengths of r['t'] and r['tR']",
    "Be more cautious with ratios that are very close to integers."
