@@ -49,13 +49,18 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16,  Jun, 2017, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "add Makefile.linux_centos_7_64",
+   "CentOS 7 and Ubuntu 16 will be new distribution build systems."
+ } ,
+
  { 15,  Jun, 2017, RCR, "uber_subject", MICRO, TYPE_BUG_FIX,
    "handle empty subj_dir",
    NULL
  } ,
 
  { 15,  Jun, 2017, RCR, "afni-general", MICRO, TYPE_ENHANCE,
-   "added OS_notes.linux_RH7.txt",
+   "add OS_notes.linux_centos_7.txt",
    NULL
  } ,
 
