@@ -390,6 +390,7 @@ class SysInfo:
       self.check_for_10_11_lib('libgomp.1.dylib', wpath='gcc/*/lib/gcc/*')
       self.check_for_10_11_lib('libglib-2.0.dylib', wpath='glib/*/lib')
       self.check_for_flat_namespace()
+      self.check_for_libXt7()
 
    def hunt_for_homebrew(self):
       """assuming it was not found, just look for the file"""
@@ -563,6 +564,44 @@ class SysInfo:
             print '** env var %s is not set to contain %s' % (edir, flatdir)
             print '   (so afni and suma may fail)'
             self.comments.append('consider setting %s to %s' % (edir, flatdir))
+
+      return 1
+
+   def check_for_libXt7(self):
+      """check for /opt/X11/lib/libXt.7.dylib directly, and any link to it
+        (only do anything if it exists)
+      """
+
+      odir = '/opt/X11/lib'
+      fname = 'libXt.7.dylib'
+      fpath = '%s/%s' % (odir, fname)
+      lname = 'libXt.dylib'
+
+      # if it is not here, we are done
+      if not os.path.exists(fpath):
+         return 0
+
+      print '++ found without flat_namespace: %s' % fpath
+
+      # let the user know what the link points to
+      lpath = '%s/%s' % (odir, lname)
+      realpath = os.path.realpath(lpath)
+      if os.path.islink(lpath):
+         if realpath.find('libXt.6') > 0:
+            gstr = '(good!)'
+         elif realpath.find('libXt.7') > 0:
+            gstr = '(bad)'
+         else:
+            gstr = '(bad - unknown)'
+         print '   link %s points to %s %s' % (lname, realpath, gstr)
+
+         if realpath.find('libXt.7') > 0:
+            msg = '%s link points to version 7, should point to 6' % lname
+            print '** %s' % msg
+            self.comments.append(msg)
+      else:
+         print '** %s is not a link, listing all such files...' % lname
+         os.system('ls -l %s/libXt.*dylib' % odir)
 
       return 1
 
