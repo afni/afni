@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16,  Jun, 2017, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
+   "check for libXt.7.dylib without flat_namespace",
+   NULL
+ } ,
+
  { 16,  Jun, 2017, RCR, "afni-general", MICRO, TYPE_ENHANCE,
    "add Makefile.linux_centos_7_64",
    "CentOS 7 and Ubuntu 16 will be new distribution build systems."
