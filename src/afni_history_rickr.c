@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19,  Jun, 2017, RCR, "Dimon", MICRO, TYPE_NEW_OPT,
+   "add -assume_dicom_mosaic to handle Siemens 3D format",
+   "Done for A. Jahn."
+ } ,
+
  { 16,  Jun, 2017, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
    "check for libXt.7.dylib without flat_namespace",
    NULL
