@@ -147,10 +147,11 @@ static char * g_history[] =
     " 4.18 Nov  9, 2016 [rickr]: add -gert_chan_prefix\n"
     " 4.19 May  9, 2017 [rickr]:\n",
     "      - if NIFTI prefix, whine about and clear any write_as_nifti\n"
+    " 4.20 Jun 19, 2017 [rickr]: add -assume_dicom_mosaic\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 4.19 (May 9, 2017)"
+#define DIMON_VERSION "version 4.20 (June 19, 2017)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
@@ -2766,6 +2767,11 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
                 errors++;
             }
         }
+        else if ( ! strcmp( argv[ac], "-assume_dicom_mosaic") )
+        {
+            assume_dicom_mosaic = 1 ; /* global in mri_read_dicom.c */
+            p->opts.assume_dicom_mosaic = 1 ;
+        }
         else if ( ! strncmp( argv[ac], "-dicom_org", 10 ) )
         {
             p->opts.dicom_org = 1;
@@ -4290,6 +4296,7 @@ static int idisp_opts_t( char * info, opts_t * opt )
             "   sleep_vol          = %d\n"
             "   debug              = %d\n"
             "   quit, no_wait      = %d, %d\n"
+            "   assume_dicom_mosaic= %d\n"
             "   use_last_elem      = %d\n"
             "   use_slice_loc      = %d\n"
             "   use_obl_origin     = %d\n"
@@ -4331,6 +4338,7 @@ static int idisp_opts_t( char * info, opts_t * opt )
             opt->max_quiet_trs, opt->nice, opt->pause,
             opt->sleep_frac, opt->sleep_init, opt->sleep_vol,
             opt->debug, opt->quit, opt->no_wait,
+            opt->assume_dicom_mosaic,
             opt->use_last_elem, opt->use_slice_loc, opt->use_obl_origin,
             opt->show_sorted_list, opt->gert_reco,
             CHECK_NULL_STR(opt->gert_filename),
@@ -5564,6 +5572,12 @@ printf(
     "        ** This option is deprecated.\n"
     "           Use -file_type GEMS, instead.\n"
     "\n"
+    "    -assume_dicom_mosaic : as stated, useful for 3D format\n"
+    "\n"
+    "        Siemens 3D DICOM image files use a different type of mosaic\n"
+    "        format, missing the indicator string.  This option matches\n"
+    "        that for to3d.\n"
+    "\n"
     "    -use_last_elem     : use the last elements when reading DICOM\n"
     "\n"
     "        In some poorly created DICOM image files, some elements\n"
@@ -5987,8 +6001,9 @@ static int create_gert_dicom( stats_t * s, param_t * p )
         }
 
         /* if gert_format = 1, write as NIfTI */
-        fprintf(fp, "%*sto3d%s -prefix %s%s%s%s  \\\n", 
+        fprintf(fp, "%*sto3d%s%s -prefix %s%s%s%s  \\\n", 
                  indent, "",
+                 opts->assume_dicom_mosaic==1 ? " -assume_dicom_mosaic" : "",
                  opts->gert_quiterr==1 ? " -quit_on_err" : "",
                  pname,
                  /* if multi-chan, use either prefix or _chan_, else "" */
