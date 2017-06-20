@@ -1,4 +1,4 @@
-#!/bin/tcsh -f
+#!/bin/tcsh
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
@@ -139,7 +139,7 @@ L_PARSE_COMMAND:
     set count    = 1
 
     while ( $count <= $args )
-   switch ( "$argv[$count]" )
+      switch ( "$argv[$count]" )
 
        # ----------------------------------------------------------
        # usage: -help
@@ -154,13 +154,13 @@ L_PARSE_COMMAND:
        # usage: -sid SUBJECT_ID
        case "-sid":
 
-      if ( $count >= $args ) then
-          set endstr = "arg usage: -sid SUBJECT_ID"
-          goto L_BAD_END
-      endif
+         if ( $count >= $args ) then
+             set endstr = "arg usage: -sid SUBJECT_ID"
+             goto L_BAD_END
+         endif
 
-      @ count ++
-      set subj_id  = $argv[$count]
+         @ count ++
+         set subj_id  = $argv[$count]
 
        breaksw
 
@@ -168,18 +168,18 @@ L_PARSE_COMMAND:
        # usage: -fspath FREESURFER_PATH
        case "-fspath":
 
-      if ( $count >= $args ) then
-          set endstr = "arg usage: -fspath FREESURFER_PATH"
-          goto L_BAD_END
-      endif
+         if ( $count >= $args ) then
+             set endstr = "arg usage: -fspath FREESURFER_PATH"
+             goto L_BAD_END
+         endif
 
-      @ count ++
-      set fs_dir  = $argv[$count]
+         @ count ++
+         set fs_dir  = $argv[$count]
 
-      if ( ! -d $fs_dir ) then
-          set endstr = "failure: directory not found - '$fs_dir'"
-          goto L_BAD_END
-      endif
+         if ( ! -d $fs_dir ) then
+             set endstr = "failure: directory not found - '$fs_dir'"
+             goto L_BAD_END
+         endif
 
        breaksw
 
@@ -187,19 +187,25 @@ L_PARSE_COMMAND:
        # usage : -neuro
        case "-neuro":
 
-      set neuro_ori = 1
+         # do not allow overlapping options    15 Jun 2017 [rickr]
+         if ( $neuro_ori != 0 ) then
+            echo '** cannot use any -*IFTI options with -neuro'
+            goto L_BAD_END
+         endif
+
+         set neuro_ori = 1
        breaksw
 
        # ----------------------------------------------------------
        # usage : -nocor
        case "-nocor":
-      set endstr = "Option -nocor obsolete. See -help for important details."
-      goto L_BAD_END
+         set endstr = "Option -nocor obsolete. See -help for important details."
+         goto L_BAD_END
       
-      #set neuro_ori = -1
-      #set sfieldname = 'SurfaceName'
-      #set sex = 'gii'
-      #set stp = 'GIFTI'
+         #set neuro_ori = -1
+         #set sfieldname = 'SurfaceName'
+         #set sex = 'gii'
+         #set stp = 'GIFTI'
       
        breaksw
 
@@ -210,25 +216,31 @@ L_PARSE_COMMAND:
        case "-GIFTI":
        case "-IFTI":
 
-      set neuro_ori = -1
-      set sfieldname = 'SurfaceName'
-      set sex = 'gii'
-      set stp = 'GIFTI'
-      set USING_NIFTI = 1      # [PT: Feb,2017] really useful...
-      
+         # do not allow overlapping options    15 Jun 2017 [rickr]
+         if ( $neuro_ori != 0 ) then
+            echo '** cannot use any -*IFTI options with -neuro'
+            goto L_BAD_END
+         endif
+
+         set neuro_ori = -1
+         set sfieldname = 'SurfaceName'
+         set sex = 'gii'
+         set stp = 'GIFTI'
+         set USING_NIFTI = 1      # [PT: Feb,2017] really useful...
+         
        breaksw
 
        # ----------------------------------------------------------
        # usage : -set_space SPACE
        case "-set_space":
 
-      if ( $count >= $args ) then
-          set endstr = "arg usage: -set_space SPACE"
-          goto L_BAD_END
-      endif
+         if ( $count >= $args ) then
+             set endstr = "arg usage: -set_space SPACE"
+             goto L_BAD_END
+         endif
 
-      @ count ++
-      set set_space  = $argv[$count]
+         @ count ++
+         set set_space  = $argv[$count]
 
        breaksw
 
@@ -236,7 +248,7 @@ L_PARSE_COMMAND:
        # usage : -neuro
        case "-use_mgz":
 
-      set use_mgz = 1
+         set use_mgz = 1
 
        breaksw
 
@@ -244,16 +256,16 @@ L_PARSE_COMMAND:
        # usage : -debug DEBUG_LEVEL
        case "-debug":
 
-      if ( $count >= $args ) then
-          set endstr = "arg usage: -debug DEBUG_LEVEL"
-          goto L_BAD_END
-      endif
+         if ( $count >= $args ) then
+             set endstr = "arg usage: -debug DEBUG_LEVEL"
+             goto L_BAD_END
+         endif
 
-      @ count ++
-      set debug = $argv[$count]
+         @ count ++
+         set debug = $argv[$count]
 
-      if ( "$debug" > 2 ) set debug = 2
-      if ( "$debug" < 0 ) set debug = 0
+         if ( "$debug" > 2 ) set debug = 2
+         if ( "$debug" < 0 ) set debug = 0
 
        breaksw
 
@@ -261,17 +273,17 @@ L_PARSE_COMMAND:
        # usage : -inflate VAL
        case "-inflate":
 
-      if ( $count >= $args ) then
-          set endstr = "arg usage: -inflate INF"
-          goto L_BAD_END
-      endif
+         if ( $count >= $args ) then
+             set endstr = "arg usage: -inflate INF"
+             goto L_BAD_END
+         endif
 
-      @ count ++
-       set ff = 0
-       foreach inf ($inflates)
-         if ($inf == "$argv[$count]") set ff = 1
-       end
-       if ($ff == 0) set inflates = ($inflates $argv[$count])
+         @ count ++
+          set ff = 0
+          foreach inf ($inflates)
+            if ($inf == "$argv[$count]") set ff = 1
+          end
+          if ($ff == 0) set inflates = ($inflates $argv[$count])
 
        breaksw
 
@@ -280,13 +292,13 @@ L_PARSE_COMMAND:
        # usage : -ld VAL
        case "-ld":
 
-      if ( $count >= $args ) then
-          set endstr = "arg usage: -ld LD"
-          goto L_BAD_END
-      endif
+         if ( $count >= $args ) then
+             set endstr = "arg usage: -ld LD"
+             goto L_BAD_END
+         endif
 
-      @ count ++
-      set ldu = ($ldu $argv[$count])
+         @ count ++
+         set ldu = ($ldu $argv[$count])
 
        breaksw
 
@@ -294,13 +306,13 @@ L_PARSE_COMMAND:
        # usage : -ldpref LDpref
        case "-ldpref":
 
-      if ( $count >= $args ) then
-          set endstr = "arg usage: -ldpref LDpref"
-          goto L_BAD_END
-      endif
+         if ( $count >= $args ) then
+             set endstr = "arg usage: -ldpref LDpref"
+             goto L_BAD_END
+         endif
 
-      @ count ++
-      set ldpref = ($ldpref $argv[$count])
+         @ count ++
+         set ldpref = ($ldpref $argv[$count])
 
        breaksw
 
@@ -308,7 +320,7 @@ L_PARSE_COMMAND:
        # usage : -no_ld
        case "-no_ld":
 
-      set ldlist = ()
+         set ldlist = ()
 
        breaksw
 
@@ -317,14 +329,14 @@ L_PARSE_COMMAND:
        # bad argument
        default:
 
-      set endstr = "invalid option: '$argv[$count]'"
-      apsearch -popt `basename $0` -word $argv[$count]
-      goto L_BAD_END
+         set endstr = "invalid option: '$argv[$count]'"
+         apsearch -popt `basename $0` -word $argv[$count]
+         goto L_BAD_END
 
        breaksw
-   endsw
+      endsw
 
-   @ count ++
+      @ count ++
     end
 
     if ( $subj_id == "" ) then
@@ -370,19 +382,36 @@ goto L_PARSE_COMMAND_DONE
 L_VERIFY_PROGRAMS:
 
     set failed_pgms = 0
+
+    # check that programs are in the path
     foreach test_command ( afni to3d suma mris_convert )
 
-   (which $test_command) >& /dev/null
+       (which $test_command) >& /dev/null
 
-   if ( $status ) then
-       echo "program not found in path: $test_command"
-       @ failed_pgms ++
-   endif
+       if ( $status ) then
+          echo "program not found in path: $test_command"
+          @ failed_pgms ++
+       endif
     end
 
     if ( $failed_pgms ) then
-   set endstr = "$failed_pgms program(s) not found"
-   goto L_BAD_END
+       set endstr = "$failed_pgms program(s) not found"
+       goto L_BAD_END
+    endif
+
+    # check that a couple of commands actually work
+    foreach test_command ( afni mris_convert )
+       $test_command --version >& /dev/null
+
+       if ( $status ) then
+          echo "program failure: $test_command"
+          @ failed_pgms ++
+       endif
+    end
+
+    if ( $failed_pgms ) then
+       set endstr = "$failed_pgms program(s) not working correctly"
+       goto L_BAD_END
     endif
 
     if ( $debug ) echo "-- all programs found"
@@ -1265,7 +1294,7 @@ echo ""
 echo "    $prog_name -help"
 echo "    $prog_name -NIFTI -sid subject1"
 echo "    $prog_name -NIFTI -fspath subject1/surface_stuff -sid subject1"
-echo "    $prog_name -NIFTI -neuro -sid 3.14159265 -debug 1"
+echo "    $prog_name -NIFTI -sid 3.14159265 -debug 1"
 echo ""
 echo "  options:"
 echo ""
@@ -1296,6 +1325,8 @@ echo "          In the default radiological orientation, the subject's"
 echo "          right is on the left side of the image.  In the"
 echo "          neurological orientation, left is really left."
 echo ""
+echo "        * This is not compatible with -NIFTI."
+echo ""
 echo "    -nocor: This option is no longer supported because it created"
 echo "            GIFTI surfaces with coordinates in RAI, rather than LPI"
 echo "            which is the GIFTI standard. While using RAI surfaces"
@@ -1319,19 +1350,21 @@ echo '                 ConvertSurface  -i $ss -o_gii $ss \\'
 echo "                                 -overwrite -xmat_1D NegXY"
 echo "              end"
 echo ""            
-echo "    -GNIFTI:Produce files in exchangeable formats. With this option"
-echo "    -NIFTI :COR volumes are no longer used and output volumes"
-echo "    -GIFTI :and surfaces are in alignment with the original "
-echo "    -IFTI  :volume used to create the surface. All volumes are"
+echo "    -GNIFTI/-GIFTI/-IFTI: same as -NIFTI"
+echo "    -NIFTI :Produce files in exchangeable formats. With this option"
+echo "           :COR volumes are no longer used and output volumes"
+echo "           :and surfaces are in alignment with the original "
+echo "           :volume used to create the surface. All volumes are"
 echo "            written out NIFTI format, and all surfaces are"
 echo "            in GIFTI format."
+echo ""
 echo "            This option is incompatible with -neuro or -use_mgz"
 echo ""
 echo "         ** Note: from 22 Feb 2013 through 20 Mar 2017, use of -NIFTI"
 echo "                  would distort standard mesh surfaces.  To evaluate"
 echo "                  effects of this, consider: MapIcosahedron -write_dist."
 echo ""
-echo "    NOTE for -GNIFTI:"
+echo "    NOTE for -NIFTI:"
 echo "        If you really care that the volumes in SUMA/ are in exact"
 echo "        register with the volume you passed to FreeSurfer, you "
 echo "        should be sure that the volume passed to FreeSurfer has "
@@ -1355,8 +1388,8 @@ echo "    -inflate INF: Create modereately inflated surfaces using"
 echo "                  SurfSmooth. INF controls the amount of smoothness"
 echo "                  in the final image. It is the number of iterations"
 echo "                  in the command such as: "
-echo "             SurfSmooth  -i lh.white.asc    -met NN_geom \"
-echo "                    -Niter 200  -o_gii  -surf_out lh.inf_200 \"
+echo "             SurfSmooth  -i lh.white.asc    -met NN_geom \\"
+echo "                    -Niter 200  -o_gii  -surf_out lh.inf_200 \\"
 echo "                    -match_vol 0.01"
 echo "                  You can use multiple instances of -inflate to create"
 echo "                  inflations of various levels."
@@ -1423,7 +1456,7 @@ echo "    4. You can tailor the script to your needs. Just make sure you"
 echo "       rename it or risk having your modifications overwritten with"
 echo "       the next SUMA version you install."
 echo ""
-echo "     R. Reynolds (rickr@codon.nih.gov)"
+echo "     R. Reynolds (reynoldr@mail.nih.gov)"
 echo "     Z. Saad (saadz@mail.nih.gov)"
 echo "     M. Beauchamp (Michael.S.Beauchamp@uth.tmc.edu)"
 echo ""

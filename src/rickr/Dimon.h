@@ -91,6 +91,7 @@ typedef struct  /* user options */
     int              debug;         /* debug level                      */
     int              quit;          /* quit when no new images found    */
     int              no_wait;       /* never wait for more data         */
+    int              assume_dicom_mosaic; /* useful for 3D format       */
     int              use_last_elem; /* use last element in DICOM images */
     int              use_slice_loc; /* use Slice Loc for zoff           */
     int              use_obl_origin;/* maybe apply to3d -oblique_origin */
