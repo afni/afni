@@ -445,6 +445,13 @@ void usage_1dplot(int detail)
      "                          [the 1D files from separate runs into one ]\n"
      "                          [long file for plotting with this program.]\n"
      "\n"
+     " -rbox x1 y1 x2 y2 color1 color2\n"
+     "                    = Draw a rectangular box with corners (x1,y1) to\n"
+     "                      (x2,y2), in color1, with an outline in color2.\n"
+     "                      Colors are names, such as 'green'.\n"
+     "                        [This option lets you make bar]\n"
+     "                        [charts, *if* you care enough.]\n"
+     "\n"
      "Another fun fun example:\n"
      "\n"
      "  1dplot -censor_RGB #ffa -CENSORTR '0-99'           \\\n"
@@ -562,6 +569,24 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 #endif
+
+     if( strcmp(argv[iarg],"-rbox") == 0 ){
+       float x1,y1 , x2,y2 , r1,g1,b1 , r2,g2,b2 ; int qq ;
+       x1 = (float)strtod(argv[++iarg],NULL) ;
+       y1 = (float)strtod(argv[++iarg],NULL) ;
+       x2 = (float)strtod(argv[++iarg],NULL) ;
+       y2 = (float)strtod(argv[++iarg],NULL) ;
+       qq = find_color_name( argv[++iarg] , &r1,&g1,&b1 ) ;
+       if( qq < 0 ){
+         ERROR_message("bad color name '%s'",argv[iarg]) ; iarg++ ; continue ;
+       }
+       qq = find_color_name( argv[++iarg] , &r2,&g2,&b2 ) ;
+       if( qq < 0 ){
+         ERROR_message("bad color name '%s'",argv[iarg]) ; iarg++ ; continue ;
+       }
+       plot_ts_add_rbox( 0 , x1,y1 , x2,y2 , r1,g1,b1 , r2,g2,b2 ) ;
+       iarg++ ; continue ;
+     }
 
      if( strcmp(argv[iarg],"-hist") == 0 ){   /* 14 Jul 2014 */
        plot_ts_dohist(1) ; iarg++ ; continue ;
