@@ -21,8 +21,11 @@
 #set version   = "1.3";    set rev_dat   = "Apr 26, 2017"
 #   + newer wdir convention
 #
-set version   = "1.4";    set rev_dat   = "May 1, 2017"
+#set version   = "1.4";    set rev_dat   = "May 1, 2017"
 #   + Align t2w -> t1w and reverse (better masking/weighting)
+#
+set version   = "1.5";    set rev_dat   = "June 20, 2017"
+#   + new opt: can have mask for t2w vol
 #
 # ---------------------------------------------------------------
 
@@ -52,6 +55,7 @@ set my_viewer = "$adir/@chauffeur_afni"
 set it1w       = ""
 set it2w       = ""
 set imtrx      = ""              # user can input 12 DOF made elsewhere
+set it2w_mask  = ""
 
 # def: do prep t1w for freesurfing -> matrix has even numbered dims ->
 # 1mm iso voxels, or other iso
@@ -97,6 +101,11 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set it2w = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-in_t2w_mask" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set it2w_mask = "$argv[$ac]"
 
     # optional input: premade 3dAllineate matrix
     else if ( "$argv[$ac]" == "-matrix" ) then
@@ -322,6 +331,12 @@ if ( "$imtrx" == "" ) then
 
     set imtrx = $wdir/map_to_t2w.aff12.1D
 
+    if ( "$it2w_mask" == "" ) then
+        set it2w_mask = "-source_automask"
+    else
+        set it2w_mask = "-source_mask $it2w_mask"
+    endif
+
     3dAllineate   -echo_edu               \
         -warp shift_rotate                \
         -1Dmatrix_save  $mt_t2_t1         \
@@ -331,7 +346,8 @@ if ( "$imtrx" == "" ) then
         -twopass                          \
         -cost lpc                         \
         -cmass                            \
-        -source_automask                  \
+        $it2w_mask                  \
+        -wtprefix      WWW.nii.gz         \
         -autoweight                       \
         -final wsinc5                     \
         -overwrite
@@ -578,6 +594,7 @@ cat << EOF
       -prefix  PPP                          \
       {-newgrid RES}                        \
       {-out_t2w_grid}                       \
+      {-in_t2w_mask MASK_T2W}               \
       {-matrix MMM}                         \
       {-workdir WWW}                        \
       {-no_fs_prep}                         \
@@ -595,13 +612,18 @@ cat << EOF
    -newgrid RES   :specify output T1w volume's final resolution; will be
                    isotropic in this value (default: 1 mm, or smallest voxel
                    edge length of input T1W if that value is < 1 mm).
-   -out_t2w_grid  :final T1w volume is on the T2W volume's grid (with possible
-                   addition of padding with a slice of zeros if prepping for
-                   FS).
+   -out_t2w_grid  :final T1w volume is on the T2W volume's grid (with 
+                   possible addition of padding with a slice of zeros if
+                   prepping for FS).
 
    -no_fs_prep    :check output T1w volume to have an even number of slices
                    in all directions, because FS appears to like/require this
                    (at least at this slicetime of the universe, March, 2017).
+
+   -in_t2w_mask MASK_T2W
+                  :can input a mask to apply to the t2w volume for
+                   alignment purposes; might help in times of aligning 
+                   hardship.
 
    -matrix MMM    :one can apply a pre-made matrix that has been made by
                    3dAllineate previously.  With this option.  If you want.
