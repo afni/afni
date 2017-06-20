@@ -257,6 +257,20 @@ int find_color_name( char *cnam, float *rr, float *gg, float *bb )
    if( cnam == NULL ) return -1 ;
    if( rr == NULL && gg == NULL && bb == NULL ) return -1 ;
 
+   if( strncasecmp(cnam,"RGB:",4) == 0 ){
+     float ir=-1.0f,ig=-1.0f,ib=-1.0f ; char s1,s2 ;
+     sscanf( cnam+4 ,"%f%c%f%c%f" , &ir,&s1,&ig,&s2,&ib ) ;
+     if( ir >= 0.0f && ig >= 0.0f && ib >= 0.0f ){
+       ir = MIN(ir,255.0f);  ig = MIN(ig,255.0f);  ib = MIN(ib,255.0f);
+       if( ir > 1.0f || ig > 1.0f || ib > 1.0f ){
+        *rr = ir / 255.0f ; *gg = ig / 255.0f   ; *bb = ib / 255.0f   ;
+       } else {
+        *rr = ir          ; *gg = ig            ; *bb = ib            ;
+       }
+      return 0 ;
+     }
+   }
+
    for( ii=0 ; ii < RGB_TXT_NUM ; ii++ ){
      if( strcasecmp(cnam,rgb_txt_name[ii]) == 0 ){
        if( rr != NULL ) *rr = (float)rgb_txt_byte[3*ii  ]/255.0f ;

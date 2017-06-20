@@ -384,9 +384,9 @@ void plot_ts_add_rbox( int ygr ,
 
    vbox[nvbox].rb_y1 = y1 ;  /* spec for rectangle (RBOX) */
    vbox[nvbox].rb_y2 = y2 ;  /* with filled color (above) */
-   vbox[nvbox].rb_rr = rr ;  /* and outline around it (color here) */
-   vbox[nvbox].rb_gg = gg ;
-   vbox[nvbox].rb_bb = bb ;
+   vbox[nvbox].rb_rr = r2 ;  /* and outline around it (color here) */
+   vbox[nvbox].rb_gg = g2 ;
+   vbox[nvbox].rb_bb = b2 ;
    nvbox++ ;
 }
 
@@ -717,6 +717,19 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
           xb1 = vbox[iv].x1 ; xb2 = vbox[iv].x2 ;
           yb1 = ybot        ; yb2 = ytop        ;
           zzphys_(&xb1,&yb1); zzphys_(&xb2,&yb2);
+          plotfrect_memplot( xb1,yb1 , xb2,yb2 ) ;
+        } else if( vbox[iv].code == RBOX ){  /* 15 Jun 2017 */
+          xb1 = vbox[iv].x1    ; xb2 = vbox[iv].x2    ;
+          yb1 = vbox[iv].rb_y1 ; yb2 = vbox[iv].rb_y2 ;
+          set_color_memplot( vbox[iv].rb_rr , vbox[iv].rb_gg , vbox[iv].rb_bb ) ;
+          set_thick_memplot( thik ) ;
+          plotpak_line( xb1,yb1 , xb1,yb2 ) ;
+          plotpak_line( xb1,yb2 , xb2,yb2 ) ;
+          plotpak_line( xb2,yb2 , xb2,yb1 ) ;
+          plotpak_line( xb2,yb1 , xb1,yb1 ) ;
+          set_color_memplot( vbox[iv].rr , vbox[iv].gg , vbox[iv].bb ) ;
+          zzphys_(&xb1,&yb1); zzphys_(&xb2,&yb2);
+          set_thick_memplot( 0 ) ;
           plotfrect_memplot( xb1,yb1 , xb2,yb2 ) ;
         }
       }

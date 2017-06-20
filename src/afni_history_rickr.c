@@ -49,6 +49,36 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19,  Jun, 2017, RCR, "Dimon", MICRO, TYPE_NEW_OPT,
+   "add -assume_dicom_mosaic to handle Siemens 3D format",
+   "Done for A. Jahn."
+ } ,
+
+ { 16,  Jun, 2017, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
+   "check for libXt.7.dylib without flat_namespace",
+   NULL
+ } ,
+
+ { 16,  Jun, 2017, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "add Makefile.linux_centos_7_64",
+   "CentOS 7 and Ubuntu 16 will be new distribution build systems."
+ } ,
+
+ { 15,  Jun, 2017, RCR, "uber_subject", MICRO, TYPE_BUG_FIX,
+   "handle empty subj_dir",
+   NULL
+ } ,
+
+ { 15,  Jun, 2017, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "add OS_notes.linux_centos_7.txt",
+   NULL
+ } ,
+
+ { 15,  Jun, 2017, RCR, "@SUMA_Make_Spec_FS", MICRO, TYPE_ENHANCE,
+   "remove -f from top tcsh command; fix some bad tab indenting",
+   NULL
+ } ,
+
  { 5,  Jun, 2017, RCR, "RetroTS.py", MINOR, TYPE_BUG_FIX,
    "peak_finder(): fix lengths of r['t'] and r['tR']",
    "Be more cautious with ratios that are very close to integers."
