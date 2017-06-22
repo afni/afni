@@ -30,21 +30,28 @@ shinyServer(function(input,output,session) {
     if(is.numeric(roi.lab)){ roi.lab <- paste0('roi_',roi.lab) }
 
     stat.list <- c()
+    stat.names <- c()
     start.line <- 5
     withProgress(message = 'Finding stat types.', value = 0, {
       for(i in 1:num.mat){
+
+        ## cut out the stat and add to list
         stat.type <- as.character(scan(input$net_file,what='character',n=2,
                                        skip=start.line,nlines=1,
                                        quiet=TRUE)[2][1])
         stat.list <- rbind(stat.list,stat.type[1])
+
+        ## get the pretty name and add to name list
+        name.temp <- ifelse(stat.type[1] %in% stat.df$label,
+                            stat.df$description[stat.df$label == stat.type[1]],
+                            stat.type[1])
+        stat.names <- rbind(stat.names,name.temp)
+
         start.line <- 5 + (num.rois*i+1*i)
         incProgress(1/num.mat,detail=stat.type[[1]])
       }
-      stat.list <- stat.list[,1]
-      stat.long <- ifelse(stat.list %in% stat.df$label,
-                          stat.df$description[stat.df$label == stat.list],
-                          stat.list)
-      names(stat.list) <- stat.long
+      names(stat.list) <- stat.names
+      print(stat.list)
       updateSelectInput(session,'stat_sel',choices=stat.list)
     })
     ## if there are too many regions...
