@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 23,  Jun, 2017, RCR, "@update.afni.binaries", MICRO, TYPE_MODIFY,
+   "unalias grep; update cur_afni only when not abin",
+   NULL
+ } ,
+
  { 19,  Jun, 2017, RCR, "Dimon", MICRO, TYPE_NEW_OPT,
    "add -assume_dicom_mosaic to handle Siemens 3D format",
    "Done for A. Jahn."
