@@ -14,7 +14,7 @@ experience (and greatly so, in the opinion of some).
     differentiate different types of files ("normal" files, zipped
     files, executables, et al.) and directories using colors::
 
-      echo 'alias ls ls -G' >> ~/.cshrc
+      echo 'alias ls ls --color=auto' >> ~/.cshrc
       echo 'alias ll ls -lG' >> ~/.cshrc
 
 * *For* ``bash`` *users*:
