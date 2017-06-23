@@ -2,9 +2,9 @@
 .. _install_overview:
 
 
-********
-Overview
-********
+************************
+The Indispensable Overview
+************************
 
 .. contents::
    :depth: 3
