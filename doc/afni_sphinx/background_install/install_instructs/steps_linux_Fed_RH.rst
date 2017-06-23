@@ -3,7 +3,7 @@
 .. _install_steps_linux_Fed_RH:
 
 
-*The essential system setup for:* **Fedora and Red Hat Linux**
+**Fedora and Red Hat Linux**: *The essential system setup*
 ==============================================================
 
 

@@ -1,7 +1,7 @@
 .. _install_steps_windows10:
 
 
-*The essential system setup for:*  **Windows 10 ('Bash on Ubuntu')**
+**Windows 10 ('Bash on Ubuntu')**: *The essential system setup*
 ================================================================
 
 Here we describe installation and system setup for the

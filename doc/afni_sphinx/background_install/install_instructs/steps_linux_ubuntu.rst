@@ -3,7 +3,7 @@
 .. _install_steps_linux_ubuntu:
 
 
-*The essential system setup for:*  **Ubuntu Linux (15.10 and earlier)**
+**Ubuntu Linux (15.10 and earlier)**: *The essential system setup*
 ===================================================
 
 Here we describe installation and system setup for reasonably modern

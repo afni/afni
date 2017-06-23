@@ -3,7 +3,7 @@
 .. _install_steps_linux_ubuntu16:
 
 
-*The essential system setup for:*  **Ubuntu Linux (16.04 and higher)**
+**Ubuntu Linux (16.04 and higher)**: *The essential system setup*
 ===================================================
 
 Here we describe installation and system setup for modern Ubuntu Linux

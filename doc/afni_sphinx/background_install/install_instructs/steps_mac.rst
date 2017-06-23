@@ -1,8 +1,8 @@
 
 .. _install_steps_mac:
 
-*The essential system setup for:* **Mac OS**
-============================================
+**Mac OS**: *The essential system setup*
+========================================
 
 
 Here we describe a complete AFNI installation and system setup for Mac
