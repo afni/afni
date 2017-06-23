@@ -18,11 +18,12 @@ relevant :ref:`instructions here <install_steps_linux_ubuntu>`.
      
    * *Required*::
 
+       sudo add-apt-repository universe
+       sudo apt-get update
+
        sudo apt-get install -y tcsh xfonts-base python-qt4       \
                                gsl-bin netpbm gnome-tweak-tool   \
-                               libjpeg62 xvfb xterm vi
-
-       sudo apt-get update
+                               libjpeg62 xvfb xterm vim curl
       
        sudo apt-get install -y libglu1-mesa-dev libglw1-mesa     \
                                libxm4 build-essential
@@ -135,6 +136,9 @@ relevant :ref:`instructions here <install_steps_linux_ubuntu>`.
    Also, consider running ``gnome-tweak-tool`` and changing
    ``Windows`` -> ``Focus Mode`` from 'click' to 'mouse'.
 
+   Also, consider extending time for screen saver:
+   ``System Settings`` -> ``Brightness & Lock``, and set inactivity duration.
+
 #. **Keeping up-to-date (remember).**
 
    .. include:: substep_update.rst
@@ -171,8 +175,8 @@ relevant :ref:`instructions here <install_steps_linux_ubuntu>`.
           afni -ver
 
        | The final command should show something useful, like:
-       | ``Precompiled binary linux_ubuntu_12_64: 
-         Feb 29 2016 (Version AFNI_16.0.10)``
+       | ``Precompiled binary linux_ubuntu_16_64: 
+         Jun 16 2017 (Version AFNI_17.1.11)``
 
 
        NB: ``@update.afni.binaries`` should have set the path in
