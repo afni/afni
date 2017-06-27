@@ -146,7 +146,7 @@ When ``afni`` is started for the first time, you should be directed
        * Go to `the R page for Mac OS X
          <https://cran.r-project.org/bin/macosx>`_
 
-       * Click on the latest package (probably R-3.2.3.pkg), and
+       * Click on the latest package (probably R-3.4.0.pkg), and
          download/install it.
 
          |
