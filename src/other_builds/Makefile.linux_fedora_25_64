@@ -1,6 +1,7 @@
 # This Makefile was written for the Linux OS, Fedora 25.
 # It is the same as for 19, but for GLw_IPATH and GLw_LIB.
 # --> use the system library here (so fix the GLwDrawA.h bug)
+#     and change -I/usr/lib64/glib-2.0/include to glib/include
 
 SYSTEM_NAME = linux_fedora_25
 
@@ -105,7 +106,7 @@ SUMA_GLIB_VER = -2.0
 GLw_LIB = -lGLw
 
 SUMA_INCLUDE_PATH = $(GLw_IPATH) $(IFLAGS) -I.. -I../niml -Igts/src \
-    -I/usr/lib64/glib-2.0/include -I/usr/include/glib-2.0           \
+    -I/usr/lib64/glib/include -I/usr/include/glib-2.0           \
     -I/usr/include/glib-1.2
 SUMA_LINK_PATH = -L.. $(LFLAGS)
 #use -lGLw if you have libGLw.a or libGLw.so* or 
