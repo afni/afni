@@ -1,0 +1,24 @@
+
+# Fedora 25 Linux setup, 28 Jun, 2017   R Reynolds
+
+#       *** to run as a script, use:    sudo tcsh OS_notes
+
+
+# Steps to create a build machine.
+
+dnf install tcsh
+dnf upgrade
+dnf install pyqt4 motif-devel gsl-devel libXpm-devel python-devel R
+dnf install mesa-libGL-devel mesa-libGLw-devel mesa-libGLU-devel
+dnf install glib-devel libXi-devel
+
+# convenience and user machine packages
+dnf install gnome-tweak-tool ipython aspell-en
+
+
+# fix bug in /usr/include/GL/GLwDrawA.h
+cd /usr/include/GL
+mv GLwDrawA.h GLwDrawA.h.orig
+sed 's/GLAPI WidgetClass/extern GLAPI WidgetClass/' GLwDrawA.h.orig > GLwDrawA.h
+
+

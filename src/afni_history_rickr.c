@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28,  Jun, 2017, RCR, "afni-general", MINOR, TYPE_GENERAL,
+   "add afni_src/other_builds files for Fedora 25 (Makefile, OS_notes)",
+   NULL
+ } ,
+
  { 23,  Jun, 2017, RCR, "@update.afni.binaries", MICRO, TYPE_MODIFY,
    "unalias grep; update cur_afni only when not abin",
    NULL
