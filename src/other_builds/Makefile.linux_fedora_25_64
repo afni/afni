@@ -106,8 +106,8 @@ SUMA_GLIB_VER = -2.0
 GLw_LIB = -lGLw
 
 SUMA_INCLUDE_PATH = $(GLw_IPATH) $(IFLAGS) -I.. -I../niml -Igts/src \
-    -I/usr/lib64/glib/include -I/usr/include/glib-2.0           \
-    -I/usr/include/glib-1.2
+    -I/usr/lib64/glib-2.0/include -I/usr/include/glib-2.0           \
+    -I/usr/lib64/glib/include -I/usr/include/glib-1.2
 SUMA_LINK_PATH = -L.. $(LFLAGS)
 #use -lGLw if you have libGLw.a or libGLw.so* or 
 #  -lMesaGLw if you have Mesa's version (libMesaGLw*) of libGLw
