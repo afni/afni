@@ -4,9 +4,13 @@
 #include "cs_symeig.c"
 #endif
 
-int   verb   = 0 ;
-char *prefix = "Tsync" ;
-THD_3dim_dataset *dsetB=NULL , *dsetC=NULL , *maskset=NULL , *outset=NULL ;
+static int   verb   = 0 ;
+static char *prefix = "Tsync" ;
+static char *matpre = NULL ;
+static int do_joshi = 1 ;
+static int do_norm  = 0 ;
+
+static THD_3dim_dataset *dsetB=NULL, *dsetC=NULL, *maskset=NULL, *outset=NULL ;
 
 /*----------------------------------------------------------------------------*/
 
@@ -145,7 +149,7 @@ static void compute_joshi_matrix( int m , int n ,
    for( jj=0 ; jj < m ; jj++ ){
      for( ii=0 ; ii < m ; ii++ ){
        bsum = 0.0 ;
-       for( kk=0 ; kk < n ; kk++ ) bsum += BN(ii,kk) * CN(ii,kk) ;
+       for( kk=0 ; kk < n ; kk++ ) bsum += BN(ii,kk) * CN(jj,kk) ;
        A(ii,jj) = bsum ;
    }}
 
@@ -160,7 +164,7 @@ static void compute_joshi_matrix( int m , int n ,
 
    free(amat) ; free(sval) ;
 
-   /* compute output matrix */
+	/* compute QQ = output matrix = U V' */
 
    for( jj=0 ; jj < m ; jj++ ){
      for( ii=0 ; ii < m ; ii++ ){
@@ -171,6 +175,20 @@ static void compute_joshi_matrix( int m , int n ,
 
    free(umat) ; free(vmat) ;
    return ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* Given m X n matrices bmat and cmat, compute the non-orthogonal m X m matrix
+   qmat that 'best' transforms cmat to bmat.
+    1) normalize all columns of bmat and cmat
+    2) compute m X m matrix amat = [bmat] * [cmat]'
+    3) compute m X m matrix dmat = [cmat] * [cmat]'
+    4) qmat = inv[dmat] * [amat]
+*//*--------------------------------------------------------------------------*/
+
+static void compute_nonorth_matrix( int m , int n ,
+                                    float *bmat , float *cmat , float *qmat )
+{
 }
 
 /*----------------------------------------------------------------------------*/
@@ -232,7 +250,10 @@ void TSY_process_data(void)
 
    /* compute orthogonal matrix qmat */
 
-   compute_joshi_matrix( mm , nvmask , bmat , cmat , qmat ) ;
+   if( do_joshi )
+     compute_joshi_matrix( mm , nvmask , bmat , cmat , qmat ) ;
+   else
+     compute_nonorth_matrix( mm , nvmask , bmat , cmat , qmat ) ;
 
    /* transform input matric C */
 
@@ -330,12 +351,40 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
+     /*-----*/
+
      if( strcasecmp(argv[iarg],"-prefix") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need value after option '%s'",argv[iarg-1]) ;
        prefix = strdup(argv[iarg]) ;
        if( !THD_filename_ok(prefix) )
          ERROR_exit("-prefix '%s' is not acceptable :-(",prefix) ;
        iarg++ ; continue ;
+     }
+
+     /*-----*/
+
+     if( strcasecmp(argv[iarg],"-Qmatrix") == 0 ||
+         strcasecmp(argv[iarg],"-matrix")  == 0   ){
+
+       if( ++iarg >= argc ) ERROR_exit("Need value after option '%s'",argv[iarg-1]) ;
+       matpre = strdup(argv[iarg]) ;
+       if( !THD_filename_ok(matpre) )
+         ERROR_exit("%s '%s' is not acceptable :-(",argv[iarg-1],prefix) ;
+       iarg++ ; continue ;
+     }
+
+     /*-----*/
+
+     if( strncasecmp(argv[iarg],"-josh",5) == 0 ||
+         strncasecmp(argv[iarg],"-orth",5) == 0   ){
+
+       do_joshi = 1 ; iarg++ ; continue ;
+     }
+
+     if( strncasecmp(argv[iarg],"-non-ort",9) == 0 ||
+         strncasecmp(argv[iarg],"-nonorth",9) == 0   ){
+
+       do_joshi = 0 ; iarg++ ; continue ;
      }
 
      /*--- error! ---*/
