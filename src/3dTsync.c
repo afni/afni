@@ -24,21 +24,63 @@ void TSY_help_the_pitiful_user(void)
    "--------\n"
    " -inset1 dataset     =\n"
    " -inset2 dataset     =\n"
+   "\n"
    " -prefix ppp         = Specifies the output dataset, as usual.\n"
+   "                       This will be the -inset2 dataset transformed\n"
+   "                       to be as correlated as possible (in time)\n"
+   "                       with the -inset1 dataset.\n"
+   "\n"
+   " -normalize          = Normalize the output dataset so that each\n"
+   "                       time series has sum-of-squares = 1.\n"
    "\n"
    " -mask mset          = Only operate on voxels nonzero in the mset dataset.\n"
    "                       ++ Voxels outside the mask will be filled with zeros.\n"
    "                       ++ If no masking option is given, then all voxels\n"
    "                          will be processed.\n"
+   "                       ++ Any voxel which is all constant in time\n"
+   "                          (in either input) will be added to the mask.\n"
+   "\n"
+   " -joshi              = Use the Joshi method, with an orthogonal matrix\n"
+   " -orthogonal           for the transformation. [This is the default]\n"
+   "\n"
+   " -non-orthgonal      = Allow the use of a non-orthgonal matrix for the\n"
+   "                       transformation. [Experimental]\n"
+   "\n"
+   " -Qmatrix mmm        = Save the transformation matrix Q into a file\n"
+   "                       with name 'mmm.qmat.1D', for perusal at your leisure.\n"
    "\n"
    "------\n"
    "NOTES:\n"
    "------\n"
+   "* Is this program useful? Not even The Shadow knows!\n"
+   "\n"
    "* The output dataset is in floating point format.\n"
+   "\n"
+   "* Notation:\n"
+   "    M = Number of time points\n"
+   "    N = Number of voxels > M\n"
+   "    B = MxN matrix of time series from -inset1\n"
+   "    C = MxN matrix of time series from -inset2\n"
+   "        Both matrices have each column normalized to\n"
+   "        sum-of-squares = 1\n"
+   "    Q = Desired MxM matrix to transform C such that\n"
+   "        B-QC is as small as possible (sum-of-squares)\n"
+   "\n"
+   "* Joshi method:\n"
+   "   (a) compute MxM matrix B C'\n"
+   "   (b) compute SVD of B C' = U S V' (each is matrix MxM)\n"
+   "   (c) Q = U V'\n"
+   "   (d) transform each time series from -inset2 using Q\n"
+   "\n"
+   "* non-orthogonal method\n"
+   "    Q = inv(C C') B C'\n"
+   "      = solution to unrestricted least squares problem.\n"
    "\n"
    "* The input datasets should be pre-processed first to remove\n"
    "  undesirable components (motions, baseline, spikes, etc.)\n"
    "  3dTproject would be one way to do this. Or afni_proc.py.\n"
+   "\n"
+   "* RWCox - July 2017\n"
   ) ;
 
   PRINT_COMPILE_DATE ; exit(0) ;
@@ -46,15 +88,15 @@ void TSY_help_the_pitiful_user(void)
 
 /*----------------------------------------------------------------------------*/
 /* Given m X n matrices bmat and cmat, compute the orthogonal m X m matrix
-   omat that 'best' transforms cmat to bmat.
+   qmat that 'best' transforms cmat to bmat.
     1) normalize all columns of bmat and cmat
     2) compute m X m matrix amat = [bmat] * [cmat]'
     3) SVD that to get amat = [umat] * [sigma] * [vmat]'
-    4) omat = [vmat] * [umat]'
+    4) qmat = [umat] * [vmat]'
 *//*--------------------------------------------------------------------------*/
 
-static void compute_brainsync( int m , int n ,
-                               float *bmat , float *cmat , float *omat )
+static void compute_joshi_matrix( int m , int n ,
+                                  float *bmat , float *cmat , float *qmat )
 {
    int ii,jj,kk ;
    double *bmatn , *cmatn ;
@@ -80,7 +122,7 @@ static void compute_brainsync( int m , int n ,
 #define A(i,j)  amat[(i)+(j)*m]
 #define U(i,j)  umat[(i)+(j)*m]
 #define V(i,j)  vmat[(i)+(j)*m]
-#define OO(i,j) omat[(i)+(j)*m]
+#define QQ(i,j) qmat[(i)+(j)*m]
 
    /* copy input matrices into bmatn and cmatn, normalizing as we go */
 
@@ -98,7 +140,7 @@ static void compute_brainsync( int m , int n ,
      }
    }
 
-   /* form A matrix */
+   /* form A matrix = BN CN' */
 
    for( jj=0 ; jj < m ; jj++ ){
      for( ii=0 ; ii < m ; ii++ ){
@@ -118,11 +160,13 @@ static void compute_brainsync( int m , int n ,
 
    free(amat) ; free(sval) ;
 
+   /* compute output matrix */
+
    for( jj=0 ; jj < m ; jj++ ){
      for( ii=0 ; ii < m ; ii++ ){
        bsum = 0.0 ;
-       for( kk=0 ; kk < m ; kk++ ) bsum += V(ii,kk)*U(jj,kk) ;
-       OO(ii,jj) = (float)bsum ;
+       for( kk=0 ; kk < m ; kk++ ) bsum += U(ii,kk)*V(jj,kk) ;
+       QQ(ii,jj) = (float)bsum ;
    }}
 
    free(umat) ; free(vmat) ;
@@ -145,7 +189,7 @@ void TSY_process_data(void)
    byte *vmask ;
    int nvmask , ii,jj,kk , mm , nvox ;
    MRI_IMAGE *bim, *cim ;
-   float *bar, *car, *bmat, *cmat, *omat, *cvec, csum ;
+   float *bar, *car, *bmat, *cmat, *qmat, *cvec, csum ;
 
    /* build mask */
 
@@ -171,7 +215,7 @@ void TSY_process_data(void)
    mm   = DSET_NVALS(dsetB) ;
    bmat = (float *)calloc( sizeof(float) , mm*nvmask ) ;
    cmat = (float *)calloc( sizeof(float) , mm*nvmask ) ;
-   omat = (float *)calloc( sizeof(float) , mm*mm     ) ;
+   qmat = (float *)calloc( sizeof(float) , mm*mm     ) ;
 
    for( ii=0 ; ii < mm ; ii++ ){
      bim = THD_extract_float_brick( ii , dsetB ) ; bar = MRI_FLOAT_PTR(bim) ;
@@ -186,30 +230,30 @@ void TSY_process_data(void)
    }
    DSET_unload(dsetB) ; DSET_unload(dsetC) ;
 
-   /* compute orthogonal matrix omat */
+   /* compute orthogonal matrix qmat */
 
-   compute_brainsync( mm , nvmask , bmat , cmat , omat ) ;
+   compute_joshi_matrix( mm , nvmask , bmat , cmat , qmat ) ;
 
    /* transform input matric C */
 
    free(bmat) ;
    cvec = (float *)calloc( sizeof(float) , mm ) ;
 
-#undef  OO
+#undef  QQ
 #undef  C
-#define OO(i,j) omat[(i)+(j)*mm]
+#define QQ(i,j) qmat[(i)+(j)*mm]
 #define C(i,j)  cmat[(i)+(j)*mm]
 
    for( jj=0 ; jj < nvmask ; jj++ ){
      for( ii=0 ; ii < mm ; ii++ ){
        csum = 0.0f ;
-       for( kk=0 ; kk < mm ; kk++ ) csum += OO(ii,kk) * C(kk,jj) ;
+       for( kk=0 ; kk < mm ; kk++ ) csum += QQ(ii,kk) * C(kk,jj) ;
        cvec[ii] = csum ;
      }
      for( ii=0 ; ii < mm ; ii++ ) C(ii,jj) = cvec[ii] ;
    }
 
-   free(cvec) ; free(omat) ;
+   free(cvec) ; free(qmat) ;
 
    /* load transformed C matrix into output dataset */
 
