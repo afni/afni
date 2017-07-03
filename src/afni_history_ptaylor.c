@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 3, Jul , 2017 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
+   "Some new subbrick-setting optioning.",
+   "For utilizing 'SET_SUBBRICKS i j k' functionality in driving afni.\n"
+},
+
 { 7, Jun , 2017 , PT , "@SUMA_renumber_FS" , MINOR , TYPE_MODIFY,
    "Added two more FS 'undetermined' regions to the list, ROIs 29 and 61.",
    "One voxel of one was in one subject once. Joy. Now part of tiss__unkn.\n"
