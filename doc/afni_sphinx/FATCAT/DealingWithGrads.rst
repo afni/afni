@@ -311,8 +311,6 @@ Simultaneous averaging of datasets
 **This is not performed in ``1dDW_Grad_o_Mat``.  We no longer
 recommend doing this, based on the way tensor fitting is peformed.**
 
-|
-
 .. _FlippingGrads:
 
 Flipping Gradients (if necessary)
@@ -323,39 +321,53 @@ Flipping Gradients (if necessary)
              important to understand and deal with (hopefully just
              once at the beginning of a study).
 
-#.  Preface I: mathematically, there are a lot of symmetries in the
-    diffusion tensor model (and also in HARDI ones, for that matter).
-    A consequence of this is that using a gradient, :math:`\mathbf{g}
-    = (g_x, g_y, g_z)`, or its negative, :math:`\mathbf{-g} = (-g_x,
-    -g_y, -g_z)`, makes absolutely no difference in the model
-    fitting-- the resulting tensor will look the same. (NB: this
-    equanimity is *not* referring to twice refocused spin-echo EPI or
-    any sequence features-- purely to post-acquisition analysis.)
+#.  **Preface I:** mathematically, there are a lot of symmetries in
+    the diffusion tensor model (and also in HARDI ones, for that
+    matter).  A consequence of this is that using a gradient,
+    :math:`\mathbf{g} = (g_x, g_y, g_z)`, or its negative,
+    :math:`\mathbf{-g} = (-g_x, -g_y, -g_z)`, makes absolutely no
+    difference in the model fitting-- the resulting tensor will look
+    the same. (NB: this equanimity is *not* referring to twice
+    refocused spin-echo EPI or any sequence features-- purely to
+    post-acquisition analysis.)
 
-    
+#.  **Preface II:** the above symmetry does not quite apply in the
+    case that *not all* components are simultaneously flipped.  If
+    just one or two are, then the *scalar* parameter values of the
+    tensor will be the same (i.e., things that describe magnitudes,
+    such as FA, MD, RD, L1, L2 and L3), but some of the *vector*
+    parameters (i.e., the eigenvectors V1, V2 and V3 that describe the
+    orientation orientation) can/will differ.  So, if one fits using a
+    gradient :math:`\mathbf{g_1} = (g_x, g_y, g_z)` and then with
+    another related one :math:`\mathbf{g_2} = (g_x, -g_y, g_z)`, then
+    the two fits would have the same scalar parameters (:math:`FA_1 =
+    FA_2`, etc.) but different vectors (:math:`V1_1 \neq V1_2`, etc.).
 
-#.  Preface II: the scanner has its own set of coordinate axes, and
-    this determines each dataset's origin and orientation (all of
+#.  **Preface III:** any two flips leads to equivalent fitting by just
+    flipping the third gradient (due to the symmetries described above
+    in Prefaces I and II).  Thus, using the gradient
+    :math:`\mathbf{g_2} = (g_x, -g_y, g_z)` or :math:`\mathbf{g_3} =
+    (-g_x, g_y, -g_z)` would lead to the same tensor fit.
+
+#.  **Preface IV:** the scanner has its own set of coordinate axes,
+    and this determines each dataset's origin and orientation (all of
     which can by reading the file's header information, e.g.,
     ``3dinfo -o3 -orient FILE``).  The scanner axes also determine the
     values of the DW gradient/matrix components, both their magnitude
-    and sign.  
+    and sign.
 
-    
-
-#.  The issue at hand: for some unbeknownst reason, after converting
-    diffusion data from dicom to an analyzable format (such as NIFTI
-    or BRIK/HEAD), **the gradient values often don't match well with
-    the dataset values.** Specifically, *there is a systematic sign
-    change in the recorded gradient components, relative to the
-    recorded dataset.* The problem takes the following form: a single
-    component of each gradient has had its sign *flipped* in the
-    output file (always the same gradient per file)-- for example,
-    :math:`g_y \rightarrow -g_y`.
+#.  The issue at hand: for some unbeknownst reason, the way gradients
+    are stored in dicoms (and subsequent file formats such as NIFTI,
+    etc.) may have a *there is a systematic sign change in the
+    recorded gradient components, relative to how a software
+    interprets them.* The problem takes the following form: a single
+    component of each gradient appears to have had its sign *flipped*
+    in the output file (always the same gradient per file): for
+    example, :math:`g_y \rightarrow -g_y`.
 
     This is quite an annoying thing to have happen. Furthermore, it
-    appears to be dependent as well on the programs used (they somehow
-    have separate conventions at times). Fortunately:
+    appears to be dependent as well on the programs used (they often
+    have separate conventions). **Fortunately:**
     
     * it is pretty straightforward to determine when gradients and
       data are 'unmatched';
@@ -364,7 +376,6 @@ Flipping Gradients (if necessary)
     * usually, once you determine the fix for one subject's data set,
       the rest of the data from the same scanner+protocol follows
       suit.    
-    |
        
 #.  The sign flip does **not** affect the scalar DT parameter values
     such as FA, MD, RD, L1, and all others related purely to size and
