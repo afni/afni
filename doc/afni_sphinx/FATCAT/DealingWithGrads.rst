@@ -160,26 +160,48 @@ Of note, TORTOISE functions typically use and output a *row-first*
           we only deal with and convert the TORTOISE-style matrices.
 
 
-The following figure shows a comparison of the same few lines of four
-column output formats:
+The following figure shows a comparison of the same few lines of *b*\-
+and *g*\- matrix and vector formats:
 
-.. tabularcolumns:: |l|l|
+.. list-table:: 
+   :header-rows: 1
+   :widths: 64 40
+   :stub-columns: 0
 
-+------------------------------------+----------------------------------------+
-| Grad/matrix selection              |  Style                                 |
-+====================================+========================================+
-|.. image:: media/GRAD_Grad.png      | gradient file                          |
-|   :width: 4in                      |                                        |
-+------------------------------------+----------------------------------------+
-|.. image:: media/GRAD_gmatA.png     | diagonal-first (AFNI-style) *g*\-matrix|
-|   :width: 4in                      |                                        |
-+------------------------------------+----------------------------------------+
-|.. image:: media/GRAD_gmatT.png     | row-first (TORTOISE-style) *g*\-matrix |
-|   :width: 4in                      |                                        |
-+------------------------------------+----------------------------------------+
-|.. image:: media/GRAD_bmatT.png     | row-first (TORTOISE-style) *b*\-matrix |
-|   :width: 4in                      |                                        |
-+------------------------------------+----------------------------------------+
+   *  - Grad/matrix selection
+      - Style
+   *  - .. image:: media/dwi_gvec_row.png
+           :width: 100%
+      - **(row, unit-magnitude) gradient file**; note the arrows on
+        the edge signifying that each line is actually wrapped over
+        many rows of the text editor
+   *  - .. image:: media/dwi_bval_row.png
+           :width: 100%
+      - **(row) b-value file**; the single line is wrapped around to
+        many rows in the text editor
+   *  - .. image:: media/dwi_bval.png
+           :width: 100%
+      - **(column) b-value file**  
+   *  - .. image:: media/dwi_gvec.png
+           :width: 100%
+      - **(column, unit-magnitude) gradient file**
+   *  - .. image:: media/dwi_bvec.png
+           :width: 100%
+      - **(column, DW-scaled) gradient file**
+   *  - .. image:: media/dwi_bmatT.png
+           :width: 100%
+      - **row-first (TORTOISE-style) b-matrix**; the three columns
+        with no negative values contain the diagonal elements of the
+        matrix.
+   *  - .. image:: media/dwi_bmatA.png
+           :width: 100%
+      - **diagonal-first (AFNI-style) b-matrix**; the three columns
+        with no negative values contain the diagonal elements of the
+        matrix.
+   *  - .. image:: media/dwi_gmatA.png
+           :width: 100%
+      - **row-first (AFNI-style) g-matrix** 
+
 
 
 One can verify the dyadic gradient-to-matrix element relation by
@@ -212,7 +234,7 @@ Gradient and matrix information
     +---------------------------+---------------------------------------+--------------------------------------------------------+
     |       input/option        |               style                   |       example program                                  |
     +===========================+=======================================+========================================================+
-    | -{in,out}_grad_rows       | row gradients                         | dcm2niix output, TORTOISE input                         |
+    | -{in,out}_grad_rows       | row gradients                         | dcm2niix output, TORTOISE input                        |
     +---------------------------+---------------------------------------+--------------------------------------------------------+
     | -{in,out}_grad_cols       | column gradients                      | basic input to 3dDWItoDT                               |
     +---------------------------+---------------------------------------+--------------------------------------------------------+
