@@ -4,7 +4,23 @@
 #include "cs_symeig.c"
 #endif
 
-static int   verb   = 0 ;
+#undef MEMORY_CHECK
+#ifdef USING_MCW_MALLOC
+# define MEMORY_CHECK(mm)                                               \
+   do{ if( verb > 5 ) mcw_malloc_dump() ;                               \
+       if( verb > 1 ){                                                  \
+         long long nb = mcw_malloc_total() ;                            \
+         if( nb > 0 ) INFO_message("Memory usage now = %s (%s): %s" ,   \
+                      commaized_integer_string(nb) ,                    \
+                      approximate_number_string((double)nb) , (mm) ) ;  \
+         ININFO_message(" status = %s",mcw_malloc_status(NULL,0)) ;     \
+       }                                                                \
+   } while(0)
+#else
+# define MEMORY_CHECK(mm) /*nada*/
+#endif
+
+static int   verb   = 1 ;
 static char *prefix = "brainsync" ;
 static char *matpre = NULL ;
 static int do_joshi = 1 ;
@@ -122,9 +138,9 @@ ENTRY("compute_joshi_matrix") ;
 
    /* temp matrices */
 
-   bmatn = (double *)calloc( sizeof(double),m*n ) ; /* normalized bmat */
-   cmatn = (double *)calloc( sizeof(double),m*n ) ; /* normalized cmat */
-   amat  = (double *)calloc( sizeof(double),m*m ) ; /* [bmatn] * [cmatn]' */
+   bmatn = (double *)calloc( sizeof(double) , m*n ) ; /* normalized bmat */
+   cmatn = (double *)calloc( sizeof(double) , m*n ) ; /* normalized cmat */
+   amat  = (double *)calloc( sizeof(double) , m*m ) ; /* [bmatn] * [cmatn]' */
 
    /* macros for 2D array indexing */
 
@@ -160,6 +176,7 @@ ENTRY("compute_joshi_matrix") ;
        CN(ii,jj) = C(ii,jj)*csum ;
      }
    }
+MEMORY_CHECK("a") ;
 
    /* form A matrix = BN * CN' */
 
@@ -169,6 +186,7 @@ ENTRY("compute_joshi_matrix") ;
        for( kk=0 ; kk < n ; kk++ ) bsum += BN(ii,kk) * CN(jj,kk) ;
        A(ii,jj) = bsum ;
    }}
+MEMORY_CHECK("b") ;
 
    free(bmatn) ; free(cmatn) ;
    umat  = (double *)calloc( sizeof(double),m*m ) ; /* SVD outputs */
@@ -177,7 +195,9 @@ ENTRY("compute_joshi_matrix") ;
 
    /* compute SVD of scaled matrix */
 
-   svd_double( m , n , amat , sval , umat , vmat ) ;
+MEMORY_CHECK("c1") ;
+   svd_double( m , m , amat , sval , umat , vmat ) ;
+MEMORY_CHECK("c2") ;
 
    free(amat) ; free(sval) ;
 
@@ -189,6 +209,7 @@ ENTRY("compute_joshi_matrix") ;
        for( kk=0 ; kk < m ; kk++ ) bsum += U(ii,kk)*V(jj,kk) ;
        QQ(ii,jj) = (float)bsum ;
    }}
+MEMORY_CHECK("d") ;
 
    free(umat) ; free(vmat) ;
    EXRETURN ;
@@ -252,6 +273,7 @@ ENTRY("TSY_process_data") ;
      for( jj=0 ; jj < nvox ; jj++ ) vmask[jj] = 1 ;
      INFO_message("no -mask option ==> processing all %d voxels in dataset",nvox) ;
    }
+MEMORY_CHECK("P") ;
 
    /* find and eliminate any voxels with all-constant vectors */
 
@@ -273,7 +295,9 @@ ENTRY("TSY_process_data") ;
      }
      mri_free(bim) ; mri_free(cim) ;
    }
+MEMORY_CHECK("Q") ;
    DSET_unload(dsetB) ; DSET_unload(dsetC) ;
+MEMORY_CHECK("R") ;
 
    /* compute transform matrix qmat */
 
@@ -283,6 +307,7 @@ ENTRY("TSY_process_data") ;
      compute_nonorth_matrix( mm , nvmask , bmat , cmat , qmat ) ;
 
    /* transform input matric C */
+MEMORY_CHECK("S") ;
 
    free(bmat) ;
    cvec = (float *)calloc( sizeof(float) , mm ) ;
@@ -300,6 +325,7 @@ ENTRY("TSY_process_data") ;
      }
      for( ii=0 ; ii < mm ; ii++ ) C(ii,jj) = cvec[ii] ;
    }
+MEMORY_CHECK("T") ;
 
    free(cvec) ; free(qmat) ;
 
@@ -318,6 +344,7 @@ ENTRY("TSY_process_data") ;
      }
      EDIT_substitute_brick( outset , ii , MRI_float , car ) ;
    }
+MEMORY_CHECK("U") ;
 
    free(cmat) ;
    EXRETURN ;
