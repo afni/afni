@@ -159,7 +159,6 @@ Of note, TORTOISE functions typically use and output a *row-first*
           TORTOISE v3.* does not appear to have these options as yet;
           we only deal with and convert the TORTOISE-style matrices.
 
-
 The following figure shows a comparison of the same few lines of *b*\-
 and *g*\- matrix and vector formats:
 
@@ -237,8 +236,6 @@ translates into the *b*\-matrix file by comparing the last two rows.
              rather than "0.0007" (in units of :math:`{\rm
              s~mm}^{-2}`), which might be more annoying for
              bookkeeping/calculations.
-
-          |
 
 Operations
 ==========
@@ -533,78 +530,64 @@ Example commands
 
 Consider a case where ``dcm2niix`` has been used to convert data from
 a DWI acquisition, resulting in: a NIFTI file called ``ALL.nii.gz``; a
-row gradient file called ``ALL.bvec``; and a (row) *b*\-value file
-called ``ALL.bval``.  Let's say that the acquisition aquired: 4 *b*\=0
-reference images; then 30 DW images with *b*\=1000; then another 2
-volumes with *b*\=0 and a repeated 30 DW volumes (same gradients) with
-*b*\=1000.  To start, there are a total of 66 volumes. Then:
+row gradient file called ``ALL.bvec`` (unweighted, unit magnitudes);
+and a (row) *b*\-value file called ``ALL.bval``.  Let's say that the
+acquisition aquired: 4 *b*\=0 reference images; then 30 DW images with
+*b*\=1000. Then:
 
-    #. The following produces a gradient file with 3 columns and 66
-       rows::
+    #. The following produces a gradient file with 3 columns and 34
+       rows (unscaled, gradient vectors)::
 
-         1dDW_Grad_o_Mat -in_grad_rows ALL.bvec    \
-            -out_grad_cols GRAD_ALL.dat            \
-            -keep_b0s
+         1dDW_Grad_o_Mat++                         \
+            -in_row_vec   ALL.bvec                 \
+            -out_col_vec  dwi_bvec.dat  
 
     #. The following flips the y-component of the input DW gradients
-       and produces a row-first *b*\-matrix file with 66 rows::
+       and produces a row-first *b*\-matrix (i.e., elements scaled by
+       DW value) file with 6 columns and 34 rows::
 
-         1dDW_Grad_o_Mat -in_grad_rows ALL.bvec    \
-            -in_bvals ALL.bval                     \
-            -out_bmatT_cols BMAT_ALL.dat           \
-            -keep_b0s                              \
+         1dDW_Grad_o_Mat++                         \
+            -in_row_vec   ALL.bvec                 \
+            -in_bvals     ALL.bval                 \
+            -out_col_matA dwi_matA.dat  
             -flip_y
 
-    #. The following produces a gradient file with 3 columns and 60
-       rows (reference grads are not kept), and a dataset with 61
-       volumes (reference images have been averaged, with the
-       resulting volume at brick [0])::
+    #. Sometimes, to deal with odd sequence protocol necessities, a
+       single DW scaling is stored for each *b*\-value and the
+       gradients themselves are scaled to less than unity to reflect
+       having a lower, applied weighting.  Weird.  But we can deal
+       with this-- the following example would combine the *b*\-values
+       and gradients, and then output gradient-magnitude (column)
+       vector grads and the effective *b*\-values separately::
 
-         1dDW_Grad_o_Mat -in_grad_rows ALL.bvec    \
-            -out_grad_cols GRAD_allDWI.dat         \
-            -proc_dset ALL.nii.gz                  \
-            -pref_dset AVEB0_allDWI.nii.gz
+         1dDW_Grad_o_Mat++                         \
+            -in_row_vec   ALL.bvec                 \
+            -in_bvals     ALL.bval                 \
+            -out_col_vec  dwi_gvec.dat             \
+            -out_col_bval_sep dwi_bval.dat         \
+            -unit_mag_out
 
-    #. The following adds DWI averaging to the previous command,
-       producing a grad file of 30 rows and a dataset with 31
-       volumes::
 
-         1dDW_Grad_o_Mat -in_grad_rows ALL.bvec    \
-            -out_grad_cols GRAD_aveDWI.dat         \
-            -dwi_comp_fac 2                        \
-            -proc_dset ALL.nii.gz                  \
-            -pref_dset AVEB0_aveDWI.nii.gz
 
-    #. The following first selects only the first 25 acquisitions (for
-       example, if motion had occured), averages the reference images,
-       and puts a row of zeros at the top of the file; therefore, the
-       output grad file has 22 columns (four reference images averaged
-       to 1, plus the remaining 21 DWIs), as does the output dataset::
+    #. The following first selects only some of the gradient and
+       associated *b*\-values (for example, if motion had occured).
+       Of the original 34 volumes, this would select :math:`4+1+22=27`
+       gradients, and similar subbrick selection would have to be
+       applied to the set of DWI volumes::
 
-         1dDW_Grad_o_Mat -in_grad_rows ALL.bvec'[0..24]'  \
-            -out_grad_cols GRAD_mot25.dat                 \
-            -proc_dset ALL.nii.gz'[0..24]'                \
-            -pref_dset AVEB0_mot25.nii.gz                 \
-            -put_zeros_top
+         1dDW_Grad_o_Mat                           \
+            -in_row_vec   ALL.bvec'[0..3,8,12..$]' \
+            -in_bvals     ALL.bval'[0..3,8,12..$]' \
+            -out_col_matA dwi_matA_sel.dat 
+
+         3dcalc                                    \
+            -a ALL.nii'[0..3,8,12..$]'             \
+            -expr 'a'                              \
+            -prefix ALL_sel.nii
 
        .. note:: Subset selection works similarly as in other AFNI
                  programs, both for datasets and the row/column
                  files. For row text files, one uses square-brackets
-                 '[*i*..\ *j*\]' to select the gradients *i* to
-                 *j*. For column text files, one would do the same
-                 using curly brackets '{*i*..\ *j*}'.
-
-    #. Consider the same data acquisition and file naming conventions
-       as above, but where the reference volumes were actually
-       acquired with small but nonzero DW factors *b*\=5. Then, there
-       are no '0 0 0' gradients, and to determined reference volumes,
-       we instead have to look where *b*\-values are <6, for example.
-       The following produces a gradient file with 60 rows and a
-       dataset with 61 volumes::
-
-         1dDW_Grad_o_Mat -in_grad_rows ALL.bvec    \
-            -in_bvals ALL.bval                     \
-            -bmax_ref 6                            \
-            -out_grad_cols GRAD_allDWI.dat         \
-            -proc_dset ALL.nii.gz                  \
-            -pref_dset AVEB0_allDWI.nii.gz
+                 '[*A*..\ *B*\]' to select the gradients *A* to
+                 *B*. For column text files, one would do the same
+                 using curly brackets '{*A*..\ *B*}'.
