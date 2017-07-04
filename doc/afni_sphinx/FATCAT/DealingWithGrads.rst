@@ -192,7 +192,8 @@ and *g*\- matrix and vector formats:
            :width: 100%
       - **row-first (TORTOISE-style) b-matrix**; the three columns
         with no negative values contain the diagonal elements of the
-        matrix.
+        matrix; this has a different order and a factor of 2 scaling
+        the off-diagonal elements, compared to the 'AFNI-style'.
    *  - .. image:: media/dwi_bmatA.png
            :width: 100%
       - **diagonal-first (AFNI-style) b-matrix**; the three columns
@@ -203,44 +204,61 @@ and *g*\- matrix and vector formats:
       - **row-first (AFNI-style) g-matrix**
 
 Note that in the 'diagonal-first' matrix case, the first three columns
-contain only positive (:math:`\geq0`) numbers. This will always be the
+contain only non-negative (:math:`\geq0`) numbers. This will always be the
 case, since the *b*\- or *g*\-matrix is positive definite, and this
 property provides a solid hint as to the style of a given matrix
-output.  Columns 0, 2 and 5 contain the matrix diagonals in the
-'row-first' cases (and have matching values).  The factors of two in
-the columns representing off-diagonal DT elements is apparent when
-comparing the *b*\-matrices. Finally, one can see how the *b*\=1000
-information translates into the *b*\-matrix file by comparing the last
-two rows.
+output.  (Columns of off-diagonal elements may or may not contain
+negatives). In the 'row-first' cases columns 0, 2 and 5 contain the
+matrix diagonals.  The factors of two in the columns representing
+off-diagonal matrix elements is apparent when comparing the
+*b*\-matrices. Finally, one can see how the *b*\=1000 information
+translates into the *b*\-matrix file by comparing the last two rows.
+
+.. note:: This is discussed more below, but current recommendations
+          for using AFNI DT-calculating functions (e.g., ``3dDWItoDT``
+          and ``3dDWUncert``) is to make AFNI-style *b*\-matrices.
 
 |
 
 Operations
 ==========
 
+Note the name of the function, ``1dDW_Grad_o_Mat++``, which is now the
+recommended processor for gradient/matrix things in AFNI.  It
+supercedes the older, clunkier ``1dDW_Grad_o_Mat``.  The newer
+``1dDW_Grad_o_Mat++`` has clearer syntax, better defaults and promotes
+world peace (in its own small way).
+
 Gradient and matrix information
 -------------------------------
-
 
 #.  The relevant formats described above can be converted among each other
     using ``1dDW_Grad_o_Mat``. The formats of inputs and outputs are
     described by the option used, as follows:
 
-    .. _grads_table:
 
-    +---------------------------+---------------------------------------+--------------------------------------------------------+
-    |       input/option        |               style                   |       example program                                  |
-    +===========================+=======================================+========================================================+
-    | -{in,out}_grad_rows       | row gradients                         | dcm2niix output, TORTOISE input                        |
-    +---------------------------+---------------------------------------+--------------------------------------------------------+
-    | -{in,out}_grad_cols       | column gradients                      | basic input to 3dDWItoDT                               |
-    +---------------------------+---------------------------------------+--------------------------------------------------------+
-    | -{in,out}_{g,b}matA_cols  | row-first *g*\- or *b*\-matrices      | alt. input to 3dDWItoDT; (some) TORTOISE output        |
-    +---------------------------+---------------------------------------+--------------------------------------------------------+
-    | -{in,out}_{g,b}matT_cols  | diagonal-first *g*\- or *b*\-matrices | (some) TORTOISE output                                 |
-    +---------------------------+---------------------------------------+--------------------------------------------------------+
+    .. list-table:: 
+       :header-rows: 1
+       :widths: 30 30 40
+       :stub-columns: 0
 
+       *  - input/option
+          - style description
+          - example program
+       *  - -{in,out}_row_vec
+          - row gradients
+          - dcm2niix output, TORTOISE input
+       *  - -{in,out}_col_vec
+          - column gradients
+          - basic input to 3dDWItoDT (not preferred one, tho')
+       *  - -{in,out}_col_matA
+          - row-first *g*\- or *b*\-matrices (user can choose scaling)
+          - alt. input to 3dDWItoDT (preferred!); (some, maybe) TORTOISE output
+       *  - -{in,out}_col_matT
+          - diagonal-first *g*\- or *b*\-matrices
+          - (some/typical) TORTOISE output
 
+|
 
 #.  Additionally, the file of *b*\-values may be input after the
     ``-in_bvals *`` option.  This might be requisite if converting
