@@ -1,9 +1,9 @@
 
 .. _DealingWithGrads:
 
-**********************************************
-**Dealing with DW gradients: 1dDW_Grad_o_Mat**
-**********************************************
+************************************************
+**Dealing with DW gradients: 1dDW_Grad_o_Mat++**
+************************************************
 
 .. contents::
    :depth: 3
@@ -36,7 +36,8 @@ discussed here allow one to semi-automate these averaging processes
 appropriately updating gradient information.
 
 .. note:: Below, when referring to DW factors, the assumed units of
-          the *b*\-values are always:  :math:`{\rm s~mm}^{-2}`.
+          the *b*\-values are always: :math:`{\rm s~mm}^{-2}` (unless
+          otherwise stated.
 
 |
 
@@ -45,7 +46,7 @@ Diffusion gradients
 
 The spatial orientations of the applied diffusion weighting gradients
 are typically recorded as unit normal vectors, which can be expressed
-as (equivalently):
+as (equivalently, just with different notations):
 
 .. math::
    \mathbf{g} &= (g_x, g_y, g_z),~{\rm or}\\
@@ -58,7 +59,7 @@ the *z*\-direction (of whatever set of axes the scanner is using)
 might be expressed as (0, 0, 1), and one purely in the *xy*\-plane
 could be (0.707, -0.707, 0) or (-0.950, -0.436, 0), etc. 
 
-.. note:: Sometimes the 'reference' images aren't exactly totally
+.. note:: Sometimes the 'reference' images aren't *exactly* totally
           unweighed with *b*\=0. Some data acquisition protocols use a
           magnetic field gradient with a small DW factor, such as
           *b*\=5, as a reference volume.  Such data can be processed
@@ -67,19 +68,19 @@ could be (0.707, -0.707, 0) or (-0.950, -0.436, 0), etc.
           values.
 
 The gradient information is often saved in a text file as three rows
-of numbers (for example, the ``*.bvecs`` files created by ``dcm2nii``)
-or as three columns.  If the acquisition contained *N* reference
-(*b*\=0) images and *M* DWIs, then these initial files typically have
-dimensionality "3 by *N*\+\ *M*" or "*N*\+\ *M* by 3", respectively.
-Additionally, a separate file may contain the list of DW factors
-(i.e., the *b*\-values), and there would be *N*\+\ *M* in a single row
-or column.
+of numbers (for example, the ``*.bvecs`` files created by
+``dcm2niix``) or as three columns.  If the acquisition contained *N*
+reference (*b*\=0) images and *M* DWIs, then these initial files
+typically have dimensionality :math:`3\times(N+M)` or
+:math:`(N+M)\times3`, respectively.  Additionally, a separate file
+may contain the list of DW factors (i.e., the *b*\-values), and there
+would be :math:`N+M` in a single row or column.
 
 Diffusion matrices
 ------------------
 
-The directionality diffusion gradients may also be encoded as a (3 by 3)
-matrix:
+The directionality diffusion gradients may also be encoded as a
+:math:`3\times3` matrix:
 
 .. math::
    \mathbf{G}= 
@@ -87,7 +88,7 @@ matrix:
    G_{xx}&G_{xy}&G_{xz}\\
    G_{yx}&G_{yy}&G_{yz}\\
    G_{zx}&G_{zy}&G_{zz}
-   \end{array}\right],~~{\rm or}~~
+   \end{array}\right],~~~{\rm or}~~~
    \left[\begin{array}{ccc}
    G_{11}&G_{12}&G_{13}\\
    G_{21}&G_{22}&G_{23}\\
@@ -99,30 +100,32 @@ The components of the matrix are related to the gradients above:
 etc. Formally, **G** is the outer (or dyadic) product of **g**. Here,
 the main thing that results from this relation is that **G** is
 symmetric (:math:`G_{xy}\equiv G_{yx}`), which means that there are
-only six independent components in the 3 by 3 matrix.  Thus, six
-numbers are recorded in this format. Generally, these are stored as
-columns, so that the files would be (following the previous section's
-notation) an "*N*\+\ *M* by 6" array of numbers.
+only six independent components in the :math:`3\times3` matrix.  Thus,
+six numbers are recorded in this format. Generally, these are stored
+as columns, so that the files would be (following the previous
+section's notation) an :math:`(N+M)\times6` array of numbers.
 
 *However, there is the little wrinkle that different programs write
 out the components in different ways!*
 
-The standard AFNI style is 'diagonal first': 
+The standard style for inputting into AFNI functions is 'diagonal
+first' *g*-matrix:
 
 .. math::
-   G_{xx}, G_{yy}, G_{zz}, G_{xy}, G_{xz}, G_{yz},
+   G_{xx}~~~ G_{yy}~~~ G_{zz}~~~ G_{xy}~~~ G_{xz}~~~ G_{yz}\,,
 
-while, for example, another output style is 'row first' (and
-explicitly includes the factors of two from the symmetry of the
-off-diagonals):
+while, for example, another output style is 'row first' *g*-matrix
+(and it may often explicitly include the factors of two from the
+symmetry of the off-diagonals):
 
 .. math::
-   G_{xx}, 2\,G_{xy}, 2\,G_{xz}, G_{yy}, 2\,G_{yz}, G_{zz}.
+   G_{xx}~~~2\,G_{xy}~~~2\,G_{xz}~~~G_{yy}~~~2\,G_{yz}~~~G_{zz}\,.
 
-Each of these formats is record equivalent information, it's just a
+Each of these formats record equivalent information, so it's just a
 matter of using the appropriate one with the appropriate software.
-When using these dyadic matrices to record spatial information, the
-*b*\-value information sits by itself again.
+When using these dyadic *g*-matrices to record spatial information,
+the *b*\-value information sits by itself again, similar as with the
+**g** vector gradients.
 
 As a final case, one may include the magnitude of the magnetic fields
 with the spatial directionality in a single expression, the
@@ -133,46 +136,82 @@ with the spatial directionality in a single expression, the
 
 where every component of the above dyadic matrix, **G**, is simply
 multiplied by the DW factor, *b*.  All the other notations, symmetries
-and relations remain the same, including the distinctions in row- or
-diagonal-first notations.  Of note, TORTOISE by default uses and
-outputs a *row-first* *b*\-matrix; if you use the 'AFNI_SAVE' option
-at the end of DIFF_PREP, however, the output matrix is actually a
-*diagonal-first* *b*\-matrix (AKA: AFNI-style).
+and relations for the *b*\-matrices remain the same as for the
+*g*\-matrices, including the distinctions in row- or diagonal-first
+notations.  
+
+Of note, TORTOISE functions typically use and output a *row-first*
+*b*\-matrix (with the factors of 2, as above).  
+
+.. note:: In some versions of TORTOISE v2.*, there is an 'AFNI_SAVE'
+          option that can be used when exporting the *b*\-matrix; in
+          this case, the output matrix is *diagonal-first*, such as
+          would be called "AFNI-style" above.  **However**, this issue
+          is further complicated by the fact that some versions of
+          TORTOISE had the factor of 2 included, which AFNI typically
+          does not use...  This is actually easily managed because the
+          conversion from matrix-to-vector is not affected by that
+          factor of two (in an interesting algebraic quirk, only the
+          sign information comes from the off-diagonal elements for
+          this operation); so one could convert the TORTOISE matrix to
+          a vector and then to an AFNI style matrix in such cases.
+
+          TORTOISE v3.* does not appear to have these options as yet;
+          we only deal with and convert the TORTOISE-style matrices.
 
 
-The following figure shows a comparison of the same few lines of four
-column output formats:
+The following figure shows a comparison of the same few lines of *b*\-
+and *g*\- matrix and vector formats:
 
-.. tabularcolumns:: |l|l|
+.. list-table:: 
+   :header-rows: 1
+   :widths: 64 40
+   :stub-columns: 0
 
-+------------------------------------+----------------------------------------+
-| Grad/matrix selection              |  Style                                 |
-+====================================+========================================+
-|.. image:: media/GRAD_Grad.png      | gradient file                          |
-|   :width: 4in                      |                                        |
-+------------------------------------+----------------------------------------+
-|.. image:: media/GRAD_gmatA.png     | diagonal-first (AFNI-style) *g*\-matrix|
-|   :width: 4in                      |                                        |
-+------------------------------------+----------------------------------------+
-|.. image:: media/GRAD_gmatT.png     | row-first (TORTOISE-style) *g*\-matrix |
-|   :width: 4in                      |                                        |
-+------------------------------------+----------------------------------------+
-|.. image:: media/GRAD_bmatT.png     | row-first (TORTOISE-style) *b*\-matrix |
-|   :width: 4in                      |                                        |
-+------------------------------------+----------------------------------------+
+   *  - Grad/matrix selection
+      - Style description
+   *  - .. image:: media/dwi_gvec_row.png
+           :width: 100%
+      - **(row, unit-magnitude) gradient file**; note the arrows on
+        the edge signifying that each line is actually wrapped over
+        many rows of the text editor
+   *  - .. image:: media/dwi_bval_row.png
+           :width: 100%
+      - **(row) b-value file**; the single line is wrapped around to
+        many rows in the text editor
+   *  - .. image:: media/dwi_bval.png
+           :width: 100%
+      - **(column) b-value file**  
+   *  - .. image:: media/dwi_gvec.png
+           :width: 100%
+      - **(column, unit-magnitude) gradient file**
+   *  - .. image:: media/dwi_bvec.png
+           :width: 100%
+      - **(column, DW-scaled) gradient file**
+   *  - .. image:: media/dwi_bmatT.png
+           :width: 100%
+      - **row-first (TORTOISE-style) b-matrix**; the three columns
+        with no negative values contain the diagonal elements of the
+        matrix.
+   *  - .. image:: media/dwi_bmatA.png
+           :width: 100%
+      - **diagonal-first (AFNI-style) b-matrix**; the three columns
+        with no negative values contain the diagonal elements of the
+        matrix.
+   *  - .. image:: media/dwi_gmatA.png
+           :width: 100%
+      - **row-first (AFNI-style) g-matrix**
 
-
-One can verify the dyadic gradient-to-matrix element relation by
-comparing values of the uppermost two files (*if* one wants).  Note
-that in the 'diagonal-first' case, the first three columns contain
-only positive (:math:`\geq0`) numbers. This will always be the case,
-since the DT is positive definite, and the property provides a solid
-hint as to the style of a given matrix output.  Columns 0, 2 and 5 are
-the equivalent ones in the 'row-first' cases (and have matching
-values).  The factors of two in the columns representing off-diagonal
-DT elements is apparent when comparing the *g*\-matrices. Finally, one
-can see how the *b*\=1000 information translates into the *b*\-matrix
-file by comparing the last two rows.
+Note that in the 'diagonal-first' matrix case, the first three columns
+contain only positive (:math:`\geq0`) numbers. This will always be the
+case, since the *b*\- or *g*\-matrix is positive definite, and this
+property provides a solid hint as to the style of a given matrix
+output.  Columns 0, 2 and 5 contain the matrix diagonals in the
+'row-first' cases (and have matching values).  The factors of two in
+the columns representing off-diagonal DT elements is apparent when
+comparing the *b*\-matrices. Finally, one can see how the *b*\=1000
+information translates into the *b*\-matrix file by comparing the last
+two rows.
 
 |
 
@@ -192,7 +231,7 @@ Gradient and matrix information
     +---------------------------+---------------------------------------+--------------------------------------------------------+
     |       input/option        |               style                   |       example program                                  |
     +===========================+=======================================+========================================================+
-    | -{in,out}_grad_rows       | row gradients                         | dcm2nii output, TORTOISE input                         |
+    | -{in,out}_grad_rows       | row gradients                         | dcm2niix output, TORTOISE input                        |
     +---------------------------+---------------------------------------+--------------------------------------------------------+
     | -{in,out}_grad_cols       | column gradients                      | basic input to 3dDWItoDT                               |
     +---------------------------+---------------------------------------+--------------------------------------------------------+
@@ -482,8 +521,8 @@ Flipping Gradients (if necessary)
 Example commands
 ----------------
 
-Consider a case where ``dcm2nii`` has been used to convert data from a
-DWI acquisition, resulting in: a NIFTI file called ``ALL.nii.gz``; a
+Consider a case where ``dcm2niix`` has been used to convert data from
+a DWI acquisition, resulting in: a NIFTI file called ``ALL.nii.gz``; a
 row gradient file called ``ALL.bvec``; and a (row) *b*\-value file
 called ``ALL.bval``.  Let's say that the acquisition aquired: 4 *b*\=0
 reference images; then 30 DW images with *b*\=1000; then another 2
