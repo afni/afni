@@ -169,7 +169,7 @@ and *g*\- matrix and vector formats:
    :stub-columns: 0
 
    *  - Grad/matrix selection
-      - Style
+      - Style description
    *  - .. image:: media/dwi_gvec_row.png
            :width: 100%
       - **(row, unit-magnitude) gradient file**; note the arrows on
@@ -200,21 +200,18 @@ and *g*\- matrix and vector formats:
         matrix.
    *  - .. image:: media/dwi_gmatA.png
            :width: 100%
-      - **row-first (AFNI-style) g-matrix** 
+      - **row-first (AFNI-style) g-matrix**
 
-
-
-One can verify the dyadic gradient-to-matrix element relation by
-comparing values of the uppermost two files (*if* one wants).  Note
-that in the 'diagonal-first' case, the first three columns contain
-only positive (:math:`\geq0`) numbers. This will always be the case,
-since the DT is positive definite, and the property provides a solid
-hint as to the style of a given matrix output.  Columns 0, 2 and 5 are
-the equivalent ones in the 'row-first' cases (and have matching
-values).  The factors of two in the columns representing off-diagonal
-DT elements is apparent when comparing the *g*\-matrices. Finally, one
-can see how the *b*\=1000 information translates into the *b*\-matrix
-file by comparing the last two rows.
+Note that in the 'diagonal-first' matrix case, the first three columns
+contain only positive (:math:`\geq0`) numbers. This will always be the
+case, since the *b*\- or *g*\-matrix is positive definite, and this
+property provides a solid hint as to the style of a given matrix
+output.  Columns 0, 2 and 5 contain the matrix diagonals in the
+'row-first' cases (and have matching values).  The factors of two in
+the columns representing off-diagonal DT elements is apparent when
+comparing the *b*\-matrices. Finally, one can see how the *b*\=1000
+information translates into the *b*\-matrix file by comparing the last
+two rows.
 
 |
 
