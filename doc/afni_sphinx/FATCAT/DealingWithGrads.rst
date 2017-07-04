@@ -233,9 +233,8 @@ Gradient and matrix information
 -------------------------------
 
 #.  The relevant formats described above can be converted among each other
-    using ``1dDW_Grad_o_Mat``. The formats of inputs and outputs are
+    using ``1dDW_Grad_o_Mat++``. The formats of inputs and outputs are
     described by the option used, as follows:
-
 
     .. list-table:: 
        :header-rows: 1
@@ -247,73 +246,60 @@ Gradient and matrix information
           - example program
        *  - -{in,out}_row_vec
           - row gradients
-          - dcm2niix output, TORTOISE input
+          - ``dcm2niix`` output, ``TORTOISE`` input
        *  - -{in,out}_col_vec
           - column gradients
-          - basic input to 3dDWItoDT (not preferred one, tho')
+          - basic input to ``3dDWItoDT`` (not preferred one, tho')
        *  - -{in,out}_col_matA
           - row-first *g*\- or *b*\-matrices (user can choose scaling)
-          - alt. input to 3dDWItoDT (preferred!); (some, maybe) TORTOISE output
+          - alt. input to ``3dDWItoDT`` (preferred!); (some, maybe)
+            ``TORTOISE`` output
        *  - -{in,out}_col_matT
           - diagonal-first *g*\- or *b*\-matrices
-          - (some/typical) TORTOISE output
+          - (some/typical) ``TORTOISE`` output
 
 |
 
 #.  Additionally, the file of *b*\-values may be input after the
     ``-in_bvals *`` option.  This might be requisite if converting
-    gradients to *b*\-matrices, for instance.  
+    gradients to *b*\-matrices, for instance (but be sure not to scale
+    up an already-scaled set of vectors/matrices!).  One can input
+    either a row- or column-oriented file here; ``1dDW_Grad_o_Mat++``
+    will know what to do with either one (because it will be
+    1-by-something or something-by-1).  When outputting a separate
+    file of *b*\-values, one *does* have to specify either row or
+    column, using: ``-out_row_bval_sep *`` or ``-out_col_bval_sep *``,
+    respectively.
 
     The *b*\-values can also be used to define which associated
     gradient/matrix entries refer to reference images and which to
     DWIs; if not input, the program will estimate this based on the
     magnitudes of the gradients-- those with essentially zero
     magnitude are treated as reference markers, and the rest are
-    treated as DWI markers.  
+    treated as DWI markers.  *In general now, the distinction between
+    reference and DW-scaled gradients is not very important: we no
+    longer average reference volumes by default, and it probably
+    shouldn't be done.*
 
-    In some acquired data, the reference images actually have a small,
-    nonzero DW factor applied, such as *b*\=5, so that neither the
-    gradient value nor the *b*\-value would be identified as a
-    'reference image'.  In this case, one can use the ``-bmax_ref *``
-    option to input a number below which *b*\-values will be treated
-    as marking reference images.
-
-    .. note:: The great interest in determining which gradient/matrix
-       elements correspond to either reference or DW images comes with
-       the processing of the DW datasets themselves, as described
-       below.  For example, one might want to average together all
-       reference images into one, as well as averaging repeated DWI
-       sets with each other.  This potentially tedious scripting
-       exercise can be slightly automated using the gradient info in
-       ``1dDW_Grad_o_Mat``, as described below in :ref:`GradOpsWithImages`.
-
-    
-
-#.  In rare cases, one might want to include a row of *b*\-values in
-    the output gradient/matrix file. One example of this is with
+#.  In rare cases, one might want to include a column of *b*\-values
+    in the output gradient/matrix file. One example of this is with
     DSI-Studio for HARDI fitting.  One can enact this behavior using
-    the ``-out_bval_col`` switch .  The first column of the text file
+    the ``-out_col_bval`` switch.  The first column of the text file
     will contain the *b*\-values (assuming you either input
-    *b*\-matrices or used ``-in_bvals *``). This option only applies to
-    columnar output.
+    *b*\-matrices or used ``-in_bvals *``). This option only applies
+    to columnar output.
    
-    
-
-#.  By default, ``1dDW_Grad_o_Mat`` will remove gradient/matrix rows
-    corresponding to reference images in the output.  Thus, if one
-    inputs a file with *N* reference and *M* DW images, the output
-    would have the gradients/matrices of just the *M* DW images. To
-    preserve all of the reference values, one can use the
-    ``-keep_b0s`` switch.  To remove all reference values but insert a
-    row of zeros at the top afterward, one can use the
-    ``-put_zeros_top`` switch, instead.
-
-    .. note:: The use of these switches depends on whether one also
-              wants to average reference images together, and whether
-              one wants the number of gradient/matrix entries to be
-              the same as the number of DWI files or not (likely
-              determined by the use of particular DT- or
-              HARDI-estimating programs).
+#.  In contrast to the older ``1dDW_Grad_o_Mat``, the newer
+    ``1dDW_Grad_o_Mat`` does **not** try to average *b*\=0 files or to
+    remove the top row of reference volumes from the top of the
+    gradient/matrix files.  Nowadays, if one inputs a file with *N*
+    reference and *M* DW images, the output would have the
+    gradients/matrices of all :math:`N+M`.  One major reason for
+    preferring using the AFNI-style *b*\-matrix as the format of
+    choice is because the full set of :math:`N+M` values are used via
+    the ``-bmatrix_FULL *`` option in ``3dDWItoDT``, ``3dDWUncert``,
+    etc. (as opposed to :math:`N+M-1` ones if using grads or a
+    difference *b*\-matrix option, for historical reasons).
        
     |
     
@@ -322,68 +308,10 @@ Gradient and matrix information
 Simultaneous averaging of datasets
 ----------------------------------
 
-#.  Generally, DWI data are acquired with multiple reference images
-    (*M*\>1), and it might be useful to average these together into a
-    single image (at the start of the file) with higher SNR for the
-    tensor fitting.  The default behavior of locating and removing
-    rows of reference grads/matrices described above can be used to
-    aid this.
+**This is not performed in ``1dDW_Grad_o_Mat``.  We no longer
+recommend doing this, based on the way tensor fitting is peformed.**
 
-    Say one starts with *N*\+\ *M* images and grads/matrices.  One can
-    input the dataset with the option ``-proc_dset *``.  When
-    ``1dDW_Grad_o_Mat`` removes gradients corresponding to the
-    reference images, it will identify simultaneously:
-
-    * the related volumes in the dataset, 
-    * average them together,
-    * and place them as the 0th volume (with the *N* remaining DWIs
-      going from 1..end in their original ordering).
-
-    In this case, the output dataset will have *N*\+1 total volumes
-    (and the output prefix for it is given via the ``-pref_dset *``
-    option).  By default, an output gradient file in this case would
-    have only *N* rows, which would be appropriate for default
-    ``3dDWItoDT`` usage; other programs might require reinserting a
-    row of zeros at the top, parallel to the 0th brick reference
-    image, using ``-put_zeros_top``.
-
-    .. note:: There are currently no 'corrective' steps taken in
-              ``1dDW_Grad_o_Mat``.  The assumption is that you, the
-              user, have performed any corrections for motion, eddy
-              currents, EPI distortions, et al. Therefore, you must
-              consider the appropriateness of averaging volumes in
-              your pipeline, both for reference images here and for
-              DWIs (described below).
-
-    
-    
-#.  Occasionally, diffusion data is acquired with multiple repetitions
-    of DWIs.  For example, one might acquire three repetitions of 4
-    *b*\=0 images and 30 *b*\=1000 images, for a total of 102 volumes;
-    in that case, the 5th, 39th and 73rd bricks will have been
-    acquired with the same gradient, etc. However, *you*, the
-    analyzer, don't need to do the index math in scripts, because
-    ``1dDW_Grad_o_Mat`` can be told to do the appropriate averaging
-    among gradients (along with the averaging of the reference images,
-    described in the previous section).
-
-    The way to signal ``1dDW_Grad_o_Mat`` to average sets of DWIs is
-    to use the ``-dwi_comp_fac *`` to enter the 'compression factor'.
-    In this case, with three repeated DWI sets, one would use
-    ``-dwi_comp_fac 3`` (and would be so even if the number of
-    reference images weren't constant-- this refers only to the DWIs
-    themselves). If both the reference images and DWIs are
-    respectively averaged, the final data set will have 31 volumes
-    (reference one first); with no other flags there would be 30
-    gradients, while if using ``-put_zeros_top`` there would be 31.
-    
-    .. note:: When entering a DWI compression factor, there is a bit
-              of an internal check with dot products of the gradients
-              to see if they really are the same gradient repeated,
-              and a warning will appear if they don't seem similar
-              enough.
-
-    |
+|
 
 .. _FlippingGrads:
 
