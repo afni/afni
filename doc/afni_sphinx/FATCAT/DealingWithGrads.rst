@@ -216,9 +216,29 @@ translates into the *b*\-matrix file by comparing the last two rows.
 
 .. note:: This is discussed more below, but current recommendations
           for using AFNI DT-calculating functions (e.g., ``3dDWItoDT``
-          and ``3dDWUncert``) is to make AFNI-style *b*\-matrices.
+          and ``3dDWUncert``) is to make AFNI-style *b*\-matrices.  
 
-|
+          1. We like the *b*\-matrix format because we can use all of
+             the rows when inputting into ``3dDWItoDT`` or
+             ``3dDWUncert`` with the ``-bmatrix_FULL *`` option;
+             gradient vector-based options would want one less row,
+             just assuming that the 0th volume in the set is *b*\=0,
+             which might not be the case.
+
+          2. We like having DW scaling in the matrix info (the
+             *b*\value), so that we preserve real physical units in
+             the tensor estimates. When using ``3dDWItoDT`` or
+             ``3dDWUncert``, one should probably also use the
+             ``-scale_out_1000`` switch to have nice numbers, which
+             are then interpreted as :math:`10^{-3}~{\rm s~mm}^{-2}`
+             instead of the default :math:`{\rm s~mm}^{-2}`; thus, the
+             number part for average healthy adult parenchyma would be
+             "0.7" (in units of :math:`10^{-3}~{\rm s~mm}^{-2}`)
+             rather than "0.0007" (in units of :math:`{\rm
+             s~mm}^{-2}`), which might be more annoying for
+             bookkeeping/calculations.
+
+          |
 
 Operations
 ==========
@@ -313,8 +333,8 @@ recommend doing this, based on the way tensor fitting is peformed.**
 
 .. _FlippingGrads:
 
-Flipping Gradients (if necessary)
----------------------------------
+Flipping Gradients (if necessary) and using @GradFlipTest
+---------------------------------------------------------
 
 .. warning:: This is an annoying feature of DWI/DTI processing.
              Probably my least favorite aspect. But it's also quite
@@ -375,17 +395,9 @@ Flipping Gradients (if necessary)
       relatively simply; and
     * usually, once you determine the fix for one subject's data set,
       the rest of the data from the same scanner+protocol follows
-      suit.    
+      suit. *Usually*.
        
-#.  The sign flip does **not** affect the scalar DT parameter values
-    such as FA, MD, RD, L1, and all others related purely to size and
-    shape, due to mathematical symmetries in the DT (and HARDI)
-    models.  Therefore, its presence cannot be noticed by looking at
-    these scalar maps.  However, the sign flip **does** affect the
-    directionality of the modeled shapes, meaning that eigenvectors
-    V1, V2 and V3 are rotated in space.
-
-    For me it is difficult to view eigenvector maps and know what's
+#.  For me it is difficult to view eigenvector maps and know what's
     going on, so I use a quick, whole brain (WB) tractography as a way
     to see that things have gone wrong. The premise is that, since the
     directionality of most DTs will be wrong, the most basic WM
@@ -394,18 +406,16 @@ Flipping Gradients (if necessary)
     fibers may be highly nonstandard, I suggest using a control
     subject for checking about gradient flips).
 
-    
-
-#.  The solution: flip back against the system! ``1dDW_Grad_o_Mat``
+#.  The solution: flip back against the system! ``1dDW_Grad_o_Mat++``
     contains switches to flip each component (even if one is using
     matrix formats instead of gradients, these apply): ``-flip_x``,
-    ``-flip_y``, and ``-flip_z``.  These can be applied individually
-    (mathematically in DTI/HARDI models, flipping any two grads
-    simultaneously is equivalent to flipping the third, due to the
-    sign change symmetry noted at the beginning of this section).  At
-    least this means that only a few combinations need to be tested.
-
-    
+    ``-flip_y``, and ``-flip_z`` (default is just "no flip", but there
+    actually is an explicit option for this, ``-no_flip``, which might
+    seem useless but actually makes scripting easier).  These can be
+    applied individually (as noted in Preface III above,
+    mathematically in DTI/HARDI models, flipping any two grads
+    simultaneously is equivalent to flipping the third).  At least
+    this means that only a few combinations need to be tested.
 
 #.  This then begs the questions, how do you know:
     
@@ -422,6 +432,18 @@ Flipping Gradients (if necessary)
            -dti_in DTI/DT -logic OR -prefix DTI/o.WB
       suma -tract DTI/o.WB_000.niml.tract
 
+    **but even better nowadays** is that the function
+    ``@GradFlipTest`` exists to do this automatically:
+
+    * tensors are fit
+    * tracking is performed with each possible flip (x, y, z and none)
+    * numbers of long tracts is calculated
+    * and based on the relative numbers of tracts, there should be a
+      clear winner from the possible options
+    * users are prompted to look at the results with ``suma`` commands
+      that are displayed in the terminal
+    * the best guess is dumped into a file, for scriptability.
+
     Below are sets of images from (bad) data in need of each potential
     kind of flip, as well as a (good) data which has been properly
     flipped.  From left to right, columns show the following
@@ -429,34 +451,65 @@ Flipping Gradients (if necessary)
     supero-axial WB; supero-axial ROI (spherical mask located in the
     genu and anterior cingulum bundle):
 
+    .. list-table:: 
+       :header-rows: 1
+       :widths: 33 33 33
+       :stub-columns: 0
 
-    +------------------------------------+------------------------------------+------------------------------------+
-    | good:  no relative flip                                                                                      |
-    +====================================+====================================+====================================+
-    |.. image:: media/UNFLIPPED_2.jpg    |.. image:: media/UNFLIPPED_1.jpg    |.. image:: media/UNFLIPPED_3.jpg    |
-    |   :width: 100%                     |   :width: 100%                     |   :width: 100%                     |
-    +------------------------------------+------------------------------------+------------------------------------+
+       *  - good:  no relative flip
+          -  
+          -  
+       *  - .. image:: media/UNFLIPPED_2.jpg
+               :width: 100%
+          - .. image:: media/UNFLIPPED_1.jpg 
+               :width: 100%
+          - .. image:: media/UNFLIPPED_3.jpg
+               :width: 100%  
 
-    +------------------------------------+------------------------------------+------------------------------------+
-    | bad:  flipped x                                                                                              |
-    +====================================+====================================+====================================+
-    |.. image:: media/FLIPPED_X_2.jpg    |.. image:: media/FLIPPED_X_1.jpg    |.. image:: media/FLIPPED_X_3.jpg    |
-    |   :width: 100%                     |   :width: 100%                     |   :width: 100%                     |
-    +------------------------------------+------------------------------------+------------------------------------+
+    .. list-table:: 
+       :header-rows: 1
+       :widths: 33 33 33
+       :stub-columns: 0
 
-    +------------------------------------+------------------------------------+------------------------------------+
-    | bad:  flipped y                                                                                              |
-    +====================================+====================================+====================================+
-    |.. image:: media/FLIPPED_Y_2.jpg    |.. image:: media/FLIPPED_Y_1.jpg    |.. image:: media/FLIPPED_Y_3.jpg    |
-    |   :width: 100%                     |   :width: 100%                     |   :width: 100%                     |
-    +------------------------------------+------------------------------------+------------------------------------+
+       *  - bad:  flipped x
+          -  
+          -  
+       *  - .. image:: media/FLIPPED_X_2.jpg
+               :width: 100%
+          - .. image:: media/FLIPPED_X_1.jpg 
+               :width: 100%
+          - .. image:: media/FLIPPED_X_3.jpg
+               :width: 100%  
 
-    +------------------------------------+------------------------------------+------------------------------------+
-    | bad:  flipped z                                                                                              |
-    +====================================+====================================+====================================+
-    |.. image:: media/FLIPPED_Z_2.jpg    |.. image:: media/FLIPPED_Z_1.jpg    |.. image:: media/FLIPPED_Z_3.jpg    |
-    |   :width: 100%                     |   :width: 100%                     |   :width: 100%                     |
-    +------------------------------------+------------------------------------+------------------------------------+
+    .. list-table:: 
+       :header-rows: 1
+       :widths: 33 33 33
+       :stub-columns: 0
+
+       *  - bad:  flipped y
+          -  
+          -  
+       *  - .. image:: media/FLIPPED_Y_2.jpg
+               :width: 100%
+          - .. image:: media/FLIPPED_Y_1.jpg 
+               :width: 100%
+          - .. image:: media/FLIPPED_Y_3.jpg
+               :width: 100%  
+
+    .. list-table:: 
+       :header-rows: 1
+       :widths: 33 33 33
+       :stub-columns: 0
+
+       *  - bad:  flipped z
+          -  
+          -  
+       *  - .. image:: media/FLIPPED_Z_2.jpg
+               :width: 100%
+          - .. image:: media/FLIPPED_Z_1.jpg 
+               :width: 100%
+          - .. image:: media/FLIPPED_Z_3.jpg
+               :width: 100%  
 
     As seen above, several of the badly flipped sets have (among other
     detrimental features) variously missing corpus
@@ -501,8 +554,6 @@ volumes with *b*\=0 and a repeated 30 DW volumes (same gradients) with
             -out_bmatT_cols BMAT_ALL.dat           \
             -keep_b0s                              \
             -flip_y
-
-       
 
     #. The following produces a gradient file with 3 columns and 60
        rows (reference grads are not kept), and a dataset with 61
