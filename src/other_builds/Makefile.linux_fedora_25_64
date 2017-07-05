@@ -3,7 +3,7 @@
 # --> use the system library here (so fix the GLwDrawA.h bug)
 #     and change -I/usr/lib64/glib-2.0/include to glib/include
 
-SYSTEM_NAME = linux_fedora_25
+SYSTEM_NAME = linux_fedora_25_64
 
 # CPROF = -pg -g
 USE_ZLIB = -DHAVE_ZLIB
