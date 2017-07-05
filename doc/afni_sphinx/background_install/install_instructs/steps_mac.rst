@@ -220,7 +220,7 @@ When ``afni`` is started for the first time, you should be directed
 
 #. **(optional) Niceifying interfaces: it's a magical terminal.**
 
-   .. include:: substep_rcfiles.rst
+   .. include:: substep_rcfiles_mac.rst
 
 
 #. **Keeping up-to-date (remember).**
