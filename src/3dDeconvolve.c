@@ -2309,7 +2309,11 @@ void get_options
             for( lmax=2,it=0 ; it < dset->tcat_num ; it++ )
               lmax = MAX( lmax , dset->tcat_len[it] ) ;
           }
-          ttmax = lmax * DSET_TR(dset) ;
+          /* if force_TR is set, apply it           5 Jul 2017 [rickr] */
+          if( option_data->force_TR > 0.0 )
+            ttmax = lmax * option_data->force_TR ;
+          else
+            ttmax = lmax * DSET_TR(dset) ;
           DSET_delete(dset) ;
         }
 
@@ -2370,6 +2374,12 @@ void get_options
       /*-----   -force_TR  -------*/
       if (strcmp(argv[nopt], "-force_TR") == 0)  /* 18 Aug 2008 */
       {
+        /* if ttmax is alreay set (from -input), suggest putting -force_TR
+         * earlier (this is for _IM, at least)          5 Jul 2017 [rickr] */
+        if (ttmax < big_time)
+           ERROR_exit("please apply -force_TR before -input\n"
+                      "   (or use 3drefit so it is not needed)") ;
+
         nopt++;
         if (nopt >= argc)  DC_error ("need argument after -force_TR ");
         option_data->force_TR = (float)strtod(argv[nopt++],NULL) ;
