@@ -206,8 +206,8 @@ What do distortions in DWI data look like?  Ugly stuff.
    Rapid switching of the diffusion gradients causes distortions.
    These occur in the *b*\>0 volumes of a DWI data set.  They cause
    nonlinear distortions, and generally need nonlinear registration to
-   reduce their effects.  The DIFF_PREP part of TORTOISE tries to undo
-   some of these.
+   reduce their effects.  The ``DIFFPREP`` part of TORTOISE tries to
+   undo some of these.
 
 #. **Subject motion**
 
