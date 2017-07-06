@@ -20,20 +20,20 @@ The purposes of this set of scripts are to:
       according to the user's judgment (e.g., remove dropout volumes
       or those with heavy motion distortion);
 
-    * to filter volume, gradient and b-value files of a given data set
-      simultaneously;
+    * to filter volume, gradient and *b*\-value files of a given data
+      set simultaneously;
 
     * to process dual phase encoded DWI data sets (i.e., when AP-PA
       data are present) in parallel, in order to maintain matched
       volumes/gradients;
 
-    * to make an imitation T2w-like contrast reference volume if only
-      a T1w is available (NB: 'twould be better to have the real
-      thing, probably);
-
     * to axialize a reference anatomical (i.e., put it into "nice"
       alignment within a volume's axes/orientation) for slice viewing,
       structure coloration, and group alignment.
+
+    * to make an imitation T2w-like contrast reference volume if only
+      a T1w is available (NB: 'tis far better to have the real thing,
+      probably, but one is not always available);
 
 You can skip any steps that aren't applicable. I will assume that each
 acquired volume is currently a set of unpacked DICOMs sitting in its
@@ -48,12 +48,13 @@ more details, defaults and available options.  Here, default names and
 locations of things (such as output directories, prefixes, etc.) are
 often used in order to simplerify life.
 
-.. note:: Have matched data sets with opposite phase encoding (e.g.,
-          AP and PA) is useful for correcting EPI distortions.
+.. note:: Having matched DWI data sets with opposite phase encoding
+          (e.g., AP and PA) is useful for correcting EPI distortions.
           However, if you only have one, whether it is AP or PA
           doesn't really matter for this pre-processing-- I will refer
-          to single phase encode data sets as 'AP' just for
-          simplicity, but either encoding would get treated the same.
+          to single phase encode data sets as 'AP' just for simplicity
+          of description, but either encoding would get treated the
+          same.
 
 |
 
