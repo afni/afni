@@ -317,8 +317,6 @@ Gradient and matrix information
     the ``-bmatrix_FULL *`` option in ``3dDWItoDT``, ``3dDWUncert``,
     etc. (as opposed to :math:`N+M-1` ones if using grads or a
     difference *b*\-matrix option, for historical reasons).
-       
-    |
     
 .. _GradOpsWithImages:
 
@@ -375,16 +373,19 @@ Flipping Gradients (if necessary) and using @GradFlipTest
 
 #.  The issue at hand: for some unbeknownst reason, the way gradients
     are stored in dicoms (and subsequent file formats such as NIFTI,
-    etc.) may have a *there is a systematic sign change in the
-    recorded gradient components, relative to how a software
-    interprets them.* The problem takes the following form: a single
-    component of each gradient appears to have had its sign *flipped*
-    in the output file (always the same gradient per file): for
-    example, :math:`g_y \rightarrow -g_y`.
+    etc.) there may be a systematic sign change in the recorded
+    gradient components, relative to how a software interprets
+    them. The problem takes the following form: a single component of
+    each gradient appears to have had its sign *flipped* in the output
+    file (always the same gradient per file): for example, :math:`g_y
+    \rightarrow -g_y`.
 
     This is quite an annoying thing to have happen. Furthermore, it
     appears to be dependent as well on the programs used (they often
-    have separate conventions). **Fortunately:**
+    have separate conventions; for all AFNI functions it should be the
+    same, but it might be different for TORTOISE or other programs
+    (but we don't care about other-other programs,
+    anyways, at least)). **Fortunately:**
     
     * it is pretty straightforward to determine when gradients and
       data are 'unmatched';
