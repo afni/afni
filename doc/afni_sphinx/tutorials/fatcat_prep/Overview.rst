@@ -10,33 +10,57 @@ Background and additional software
 Overview
 --------
 
-**For now**, the script files to execute are here:
-:download:`SCRIPT_TARBALL <media/FAT_PRE_SCRIPTS.tar.gz>`
+**[July 2017]** Revamping, and scripts soon to be added to the
+ distribution..
 
 This page provides a preliminary description of using AFNI+FATCAT
 tools in conjunction with `TORTOISE
 <https://science.nichd.nih.gov/confluence/display/nihpd/TORTOISE>`_
-for processing diffusion weighted (DW) MRI data.  It also uses ``dcm2nii``
-from `mricron <http://people.cas.sc.edu/rorden/mricron/dcm2nii.html>`_
-for converting DICOM files to NIFTI format.
+for processing diffusion weighted (DW) MRI data.  It also uses
+``dcm2niix`` from `mricron
+<http://people.cas.sc.edu/rorden/mricron/dcm2nii.html>`_ (though,
+conveniently, this is now distributed within AFNI itself, as
+``dcm2niix_afni``-- thanks, C Rorden!) for converting DICOM files to
+NIFTI format.  Additionally, we describe incorporating `FreeSurfer
+<https://surfer.nmr.mgh.harvard.edu/>`_ into the processing, as one
+way of making meaningful GM targets from the subject's own data.
 
-*  :ref:`preTORTOISE`.
-   First, we discuss converting DW and anatomical data sets from DICOM
-   format, organizing them, preparing the anatomical as a reference
-   volume, visually checking the DWIs and removing bad
-   volumes/gradients. So, these are mainly a pre-preprocessing guide.
+.. note:: TORTOISE has changed quite a lot lately (early-mid 2017),
+          and we now just describe using tools in TORTOISE v3.* (or
+          potentially later, as time rolls on inexorably).  This is
+          version is command line processable, and has several new
+          features relative to v2.* and earlier.  
 
-*  :ref:`TORTOISEing`. We then provide a brief set of steps for using
-   the TORTOISE GUI to process your data. If you have an IDL license,
-   you can actually script TORTOISE; otherwise, the GUI is your
-   fate...
+          For now, we do still provide the earlier PDF for how we run
+          straightforward processing in TORTOISE v2.5.2, for those in
+          the midst of processing older data still.  However, we
+          strongly recommend using the more recent versions described.
 
-*  :ref:`postTORTOISEing`. We then show simple steps for tensor
-   fitting and parameter estimation, as well as basic whole brain
-   tracking for quality control.  We might even discuss some further
-   processing, for example integrating with FreeSurfer, FMRI data, or
-   other things...  but the branching points for analysis become
-   pretty numerous pretty quickly.
+While there is no single way to break up levels of a processing
+pipeline, the major stages can be described as follows:
+
+* **Pre-preprocessing.** First, we discuss converting DW and
+  anatomical data sets from DICOM format, organizing them, preparing
+  the anatomical as a reference volume (and also for segmentation),
+  visually checking the DWIs and removing bad volumes/gradients.
+
+* **Preprocessing.** We then provide a brief set of steps for using
+  the TORTOISE GUI to process your DWI data. Note, we don't maintain
+  the TORTOISE tools, we just use them a lot; please consult with the
+  real `TORTOISE
+  <https://science.nichd.nih.gov/confluence/display/nihpd/TORTOISE>`_
+  gurus for processing, and take everything here with a grain of
+  salt. We describe some default usages, but special cases (infant,
+  pediatric, non-typical brain structure, non-human brains, etc.)
+  should *really* involve the TORTOISE gurus.  We also describe
+  running FreeSurfer and converting volumes to AFNI/SUMA format.
+
+* **Post-preprocessing.** We then show simple steps for tensor fitting
+  and parameter estimation, as well as basic whole brain tracking for
+  quality control.  We even discuss some further processing, for
+  example integrating with FreeSurfer (and maybe eventually FMRI data,
+  or other things...), but the branching points for analysis become
+  pretty numerous pretty quickly.
 
 It is pretty difficult to come up with one unwavering pipeline for
 this preprocessing, particularly as people have very different
@@ -49,13 +73,12 @@ be necessary (or even appropriate, in some cases) in every single
 pipeline.  The user will be required to do some decision making.
 
 These scripts are examples, not dogma-- they are **a** way to go about
-DWI processing with AFNI, FATCAT and TORTOISE (and dcm2nii). They are
-bound to change (improve?) over time. Additional options can happily
-be added if they simplify your life and don't overly complicate mine.
-And please let me know if you have any problems, via posting on the
-`Message Board <https://afni.nimh.nih.gov/afni/community/board>`_ or
-emailing.
-
+DWI processing with AFNI, FATCAT and TORTOISE (as well as FreeSurfer
+and ``dcm2niix``). They are bound to change (improve?) over
+time. Additional options can happily be added if they simplify your
+life and don't overly complicate mine.  And please let me know if you
+have any problems, via posting on the `Message Board
+<https://afni.nimh.nih.gov/afni/community/board>`_ or emailing.
 
 TORTOISE and DWIs
 -----------------
@@ -77,14 +100,15 @@ it is publicly available from the NIH.  As noted on their `webpage
 there are two main tools in TORTOISE for corrective preprocessing of
 diffusion data:
 
-    * *DIFF_PREP* - software for image resampling, motion, eddy
-      current distortion, and EPI distortion correction using a
+    * ``DIFFPREP`` - software for image resampling, motion, eddy
+      current distortion, and some EPI distortion correction using a
       structural image as target, and for re-orientation of data to a
       common space.
 
-    * *DR-BUDDI* - software for EPI distortion correction using pairs
-      of diffusion data sets acquired with opposite phase encoding
-      (blip-up blip-down acquisitions).
+    * ``DR_BUDDI`` - software for EPI distortion correction using
+      pairs of diffusion data sets acquired with opposite phase
+      encoding (blip-up blip-down acquisitions), also using a
+      structural image as a target.
 
 By default, these functions use an anatomical reference for distortion
 correction/unwarping, and it is strongly recommended to have one when
@@ -94,20 +118,22 @@ T2-weighted (T2w) volume; the application of a T1w volume as a
 reference if a T2w one is not available is discussed below. Finally,
 we note that TORTOISE includes the DIFF_CALC module for tensor
 fitting, visualization and other features, but here it is only used
-for exporting DIFF_PREP or DR-BUDDI results.  
+for exporting ``DIFFPREP`` or ``DR_BUDDI`` results.  
 
-As also noted on their webpage, it is not a speedy program.  It will
-take upwards of a couple hours per data set to process with either
-DIFF_PREP or DR-BUDDI, increasing with higher spatial resolution, with
-selecting to upsample more, and with a larger number of
-volumes/gradients. 
+As also noted on their webpage, it is not a speedy program-- though it
+has gotten much faster in v3.* (having migrated from IDL to
+C++). Speed of processing depends a lot on the data, with higher
+spatial resolution, larger numbers of volumes/gradients and greater
+upsampling adding to time.  It might take around an hour to
+``DIFFPREP`` a standard research data set (~30 grads, 2 mm isotropic
+data), and probably a couple hours then for ``DR_BUDDI``
 
 **Many thanks to Okan Irfanoglu, Amritha Nayak and the rest of the
 TORTOISE crew for constructive comments, suggestions and
 contributions to these notes and scripts.**
 
-DICOMs and dcm2nii
-------------------
+DICOMs and dcm2niix
+-------------------
 
 DICOM conversion requires reading the data header, parsing it for
 desired information (i.e., how many volumes, what order, voxel
@@ -118,14 +144,14 @@ own inner workings from time to time), and tailored sequences might
 contain additional wrinkles.  Basically, it's a hard task.
 
 There's a fair number of DICOM converters out there and even some "in
-here" in AFNI (e.g., ``to3d``, ``Dimon``).  I use ``dcm2nii`` for
-conversion because it is `free
-<http://people.cas.sc.edu/rorden/mricron/dcm2nii.html>`_, I have used
-it for a long time, it requires minimal user input, and I've generally
-had quite good luck with it.  That is, most converted volumes (appear
-to) have correctly translated data and header information.  However,
-there are no guarantees in life, and the user will be expected to look
-over her/his own data for sanity checking everything. AFNI's
+here" in AFNI (e.g., ``to3d``, ``Dimon``).  I use ``dcm2niix_afni``
+for conversion because: it is free (and now even distributed as part
+of AFNI!); I have used it for a long time; it requires minimal user
+input; and I've generally found it to be reliable-- that is, most
+converted volumes (appear to) have correctly translated data and
+header information.  However, there are no guarantees in life, and the
+user will be expected to look over her/his own data for sanity
+checking everything. 
 
 It is important to note that the TORTOISE folks generally recommend
 reading in DICOM files to TORTOISE directly.  They do this because
