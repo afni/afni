@@ -11,7 +11,7 @@ Overview
 --------
 
 **[July 2017]** Revamping, and scripts soon to be added to the
- distribution..
+distribution...
 
 This page provides a preliminary description of using AFNI+FATCAT
 tools in conjunction with `TORTOISE
@@ -80,6 +80,15 @@ life and don't overly complicate mine.  And please let me know if you
 have any problems, via posting on the `Message Board
 <https://afni.nimh.nih.gov/afni/community/board>`_ or emailing.
 
+*Much of this work was started at the* `University of Cape Town
+<http://www.bme.uct.ac.za/bme/researchgrouping-mri>`_, *SA-- thanks
+Jia Fan, Marcin Jankiewicz and Ernesta Meintjes for facilitating and
+providing useful feedback with many of these scripts.  Additionally,
+thanks Bharath Holla at* `NIMHANS <http://www.nimhans.ac.in/>`_ *in
+Bangalore, India, who also ran beta versions and gave very helpful
+suggestions.*
+
+
 TORTOISE and DWIs
 -----------------
 
@@ -128,12 +137,12 @@ upsampling adding to time.  It might take around an hour to
 ``DIFFPREP`` a standard research data set (~30 grads, 2 mm isotropic
 data), and probably a couple hours then for ``DR_BUDDI``
 
-**Many thanks to Okan Irfanoglu, Amritha Nayak and the rest of the
-TORTOISE crew for constructive comments, suggestions and
-contributions to these notes and scripts.**
+*Many thanks to Okan Irfanoglu, Amritha Nayak, Carlo Pierpaoli and the
+rest of the TORTOISE crew for constructive comments, suggestions and
+contributions to these notes and scripts.*
 
-DICOMs and dcm2niix
--------------------
+DICOMs and dcm2niix(_afni)
+--------------------------
 
 DICOM conversion requires reading the data header, parsing it for
 desired information (i.e., how many volumes, what order, voxel
