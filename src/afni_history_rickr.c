@@ -49,11 +49,9 @@
 
 afni_history_struct rickr_history[] = {
 
- {  5,  Jul, 2017, RCR, "3dDeconvolve", MICRO, TYPE_BUG_FIX,
-   "require -force_TR before -input (and apply to ttmax if there)",
-   "Otherwise event times (e.g. for _IM) might be limited based on\n"
-   "the dataset TR.\n"
-   "Thanks to W Villano for noting the problem."
+ {  5,  Jul, 2017, RCR, "3dAllineate", MICRO, TYPE_MODIFY,
+   "make quieter: only report sub-brick messages if verbose",
+   "Applied to 3dAllinate and 3dmerge."
  } ,
 
  { 28,  Jun, 2017, RCR, "afni-general", MINOR, TYPE_GENERAL,
