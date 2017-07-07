@@ -6,6 +6,9 @@ Pre-preprocessing
 .. contents::
    :depth: 3
 
+Description
+-----------
+
 Many of the following pre-preprocessing steps are convenience features
 for organizing, viewing, and assessing data, while at the same timing
 preparing to run major "pre"processing with several software
@@ -103,6 +106,9 @@ directories:
        dset ("dwi_ap/", etc.), containing one or more directory of
        dicoms ("mr_00\*/").*
 
+Comments and notes
+------------------
+
 In this primary example, we will reconstruct the set as follows.  We
 will use both the AP and PA diffusion data in order to perform EPI
 distortion correction with ``DR_BUDDI``, but we will employ just the
@@ -128,8 +134,17 @@ Additionally, the help file of each function contains more options
 that are not listed in this "vanilla" processing description.  It
 would behoove the reader to check those out.
 
-Convert DWIs
-------------
+Before processing, I have made a "data_proc/" directory that is
+parallel to the "data_basic/" one.  The idea is that if I need to redo
+processing, I can move the entire tree and redo it.  Additionally, as
+I loop through each subject directory in "data_basic/" (e.g., here,
+"SUBJ_001/"), I make a directory of the same name under "data_proc/"
+to hold all the processed data.  
+
+.. _fp_convert_dcm_dwis:
+
+Convert DWIs: fat_proc_convert_dcm_dwis
+---------------------------------------
 
 For each DWI set, go from DICOMs to having a NIFTI volume plus
 supplementary text files: a '\*.bvec' file has the unit normal

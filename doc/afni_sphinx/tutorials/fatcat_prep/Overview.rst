@@ -270,4 +270,3 @@ What do distortions in DWI data look like?  Ugly stuff.
              :width: 100%
       * - *Example of a dropout slice in a DWI volume.*
 
-
