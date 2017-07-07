@@ -4238,7 +4238,8 @@ STATUS("zeropad weight dataset") ;
 
      /* make copy of target brick, and deal with that */
 
-     if( verb )
+     /* only show this if user asks for it   7 Jul 2017 [rickr] */
+     if( verb > 1 )
        INFO_message("========== sub-brick #%d ========== [total CPU to here=%.1f s]",
                     kk , COX_cpu_time() ) ;
 
