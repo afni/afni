@@ -6,33 +6,34 @@ Pre-preprocessing
 .. contents::
    :depth: 3
 
-Somehow, this ended up being a long section, but don't fret-- the
-reality is that there are very few scripts to run (about 5), and each
-has a pretty short syntax.
+Many of the following pre-preprocessing steps are convenience features
+for organizing, viewing, and assessing data, while at the same timing
+preparing to run major "pre"processing with several software
+functions.
 
 The purposes of this set of scripts are to: 
 
 * convert DICOMs to NIFTIs, putting (0, 0, 0) at the volume's center
-  of mass (useful for alignment, viewing, rotating);
+  of mass (useful for alignment, viewing, rotating)
   
 * to allow the DWIs to be viewed, quality-checked and filtered
   according to the user's judgment (e.g., remove dropout volumes
-  or those with heavy motion distortion);
+  or those with heavy motion distortion)
 
 * to filter volume, gradient and *b*\-value files of a given data
-  set simultaneously;
+  set simultaneously
 
 * to process dual phase encoded DWI data sets (i.e., when AP-PA data
   are present) in parallel, in order to maintain matched
-  volumes/gradients;
+  volumes/gradients
 
 * to axialize a reference anatomical (i.e., put it into "nice"
   alignment within a volume's axes/orientation) for slice viewing,
-  structure coloration, and group alignment.
+  structure coloration, and group alignment
 
-* to make an imitation T2w-like contrast reference volume if only a
-  T1w is available (NB: 'tis far better to have the real thing,
-  probably, but one is not always available);
+* (*if driven by necessity*) to make an imitation T2w-like contrast
+  reference volume if only a T1w is available; NB: 'tis far better to
+  have the real thing, probably, but one is not always available
 
 You can skip any steps that aren't applicable. I will assume that each
 acquired volume is currently a set of unpacked DICOMs sitting in its
@@ -117,19 +118,29 @@ the T1w volume for parcellation+segmentation in FreeSurfer.
           There will also be a separate description of processing as
           if there were no T2w volume, when I get even *more* time.
 
+In each case sets of montaged images that I think are useful are
+created automatically along the way (one axial, one sagittal and one
+coronal set).  These include overlay/underlay images to show matching
+structures, edges or ranges of values (multiple slices of a single 3D
+set), as well as comparisons of a single slice across a 4D data set.
+
+Additionally, the help file of each function contains more options
+that are not listed in this "vanilla" processing description.  It
+would behoove the reader to check those out.
 
 Convert DWIs
 ------------
 
-Go from DICOMs to a NIFTI volume and supplementary text files (a
-'\*.bvec' file has the unit normal gradients, and a '\*.bval' file has
-the diffusion weighting b-values). The (x, y, z) = (0, 0, 0)
-coordinate of the data set is placed at the center of mass of the
-volume (and, when AP-PA sets are loaded, the sets have the same
-origin); having large distance among data sets create problems for
-rotating visualizations and for alignment processes.
+For each DWI set, go from DICOMs to having a NIFTI volume plus
+supplementary text files: a '\*.bvec' file has the unit normal
+gradients, and a '\*.bval' file has the diffusion weighting
+b-values. The (x, y, z) = (0, 0, 0) coordinate of the data set is
+placed at the center of mass of the volume (and, when AP-PA sets are
+loaded, the sets could be given the same origin); having large
+distance among data sets create problems for rotating visualizations
+and for alignment processes.
 
-* **Case A:** A paired set of *N* DWIs with opposite phase encode
+* A paired set of *N* DWIs with opposite phase encode
   directions (in "SUBJ_001/dwi_ap/" and "SUBJ_001/dwi_pa/")::
 
     fat_proc_convert_dcm_dwis              \
@@ -157,36 +168,41 @@ rotating visualizations and for alignment processes.
          directories afterwards.*
   |
 
-* **Case B:** A single set of *N* DWIs acquired with a single phase
-  encode direction (in SUB01/01_dicom_dir_AP/)::
+Each data set will have 'RPI' orientation; no gradient flipping has
+been performed (but it could be, if you wanted).  See the help file
+for changing these defaults, as well as output directories and file
+prefixes.
 
-     fat_pre_convert_dwis.tcsh                        \
-         -indir_ap  SUB01/01_dicom_dir_AP
+.. 
+    * **Case B:** A single set of *N* DWIs acquired with a single phase
+      encode direction (in SUB01/01_dicom_dir_AP/)::
 
-  -> produces a single directory called 'SUB01/UNFILT_AP/', which
-  contains three files: AP.nii (*N* volumes), AP.bvec (3x\ *N*
-  lines) and AP.bval (1x\ *N* lines). Output would look similar to
-  **Case A** but without the PA results.
+         fat_pre_convert_dwis.tcsh                        \
+             -indir_ap  SUB01/01_dicom_dir_AP
 
-* **Case C:** Multiple sets each in separate directories, for example
-  each with *Q* DWIs with a single phase encode direction (in
-  SUB01/01_dicom_dir_AP/, SUB01/02_dicom_dir_AP/,
-  SUB01/02_dicom_dir_AP/)::
+      -> produces a single directory called 'SUB01/UNFILT_AP/', which
+      contains three files: AP.nii (*N* volumes), AP.bvec (3x\ *N*
+      lines) and AP.bval (1x\ *N* lines). Output would look similar to
+      **Case A** but without the PA results.
 
-     fat_pre_convert_dwis.tcsh                        \
-         -indir_ap  "SUB01/0*_dicom_dir_AP"
+    * **Case C:** Multiple sets each in separate directories, for example
+      each with *Q* DWIs with a single phase encode direction (in
+      SUB01/01_dicom_dir_AP/, SUB01/02_dicom_dir_AP/,
+      SUB01/02_dicom_dir_AP/)::
 
-  -> produces a single directory called 'SUB01/UNFILT_AP/', which
-  contains three files: AP.nii (*N*\=3\ *Q* volumes), AP.bvec (3x\ *N*
-  lines) and AP.bval (1x\ *N* lines). Output would look similar to
-  **Case A** but without the PA results. Note the use of double
-  quotes around the wildcarded file directories after ``-indir_ap``;
-  the quotes are necessary for either a wildcarded expression or a
-  simple list of directories after ``-indir_ap`` or ``-indir_pa``.
+         fat_pre_convert_dwis.tcsh                        \
+             -indir_ap  "SUB01/0*_dicom_dir_AP"
 
-Each data set will have 'RPI' orientation; the gradients in each
-case will not be flipped.  See the help file for changing these
-defaults, as well as output directories and file prefixes.
+      -> produces a single directory called 'SUB01/UNFILT_AP/', which
+      contains three files: AP.nii (*N*\=3\ *Q* volumes), AP.bvec (3x\ *N*
+      lines) and AP.bval (1x\ *N* lines). Output would look similar to
+      **Case A** but without the PA results. Note the use of double
+      quotes around the wildcarded file directories after ``-indir_ap``;
+      the quotes are necessary for either a wildcarded expression or a
+      simple list of directories after ``-indir_ap`` or ``-indir_pa``.
+
+
+
 
 Convert anatomical volume
 -------------------------
