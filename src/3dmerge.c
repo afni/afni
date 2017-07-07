@@ -1201,12 +1201,13 @@ int main( int argc , char * argv[] )
   /*----- Iterate over sub-bricks -----*/
   for (iv = iv_bot;  iv < iv_top;  iv++)
     {
-      if ((!MRG_be_quiet) && MRG_doall) printf ("Editing sub-brick %d\n", iv);
+      /* show if requested */
+      if ((MRG_verbose) && MRG_doall) printf ("Editing sub-brick %d\n", iv);
 
       MRG_edopt.iv_fim = iv;
       EDIT_one_dataset( dset , &MRG_edopt ) ;  /* all the real work */
 
-      if( !MRG_be_quiet && !MRG_doall ){ printf(".") ; fflush(stdout) ; }
+      if( !MRG_be_quiet && !MRG_verbose ) { printf(".") ; fflush(stdout) ; }
 
     }  /* end of loop over sub-bricks */
 
