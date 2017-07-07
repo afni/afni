@@ -34,3 +34,37 @@ given prefix there.  Thus, consider an example using `-prefix
 * if there were just an empty directory called "/somewhere/", then
   this option would lead to failure-- it can only create a new output
   directory one layer deep.
+
+
+Automatic QC imaging
+--------------------
+
+Most `fat_proc*` functions automatically generate sets of montaged
+images (PNG files by default).  In each case the choice of image(s) is
+mainly just due to what I thought might be useful or have found myself
+creating often in order to evaluate a given step or the state of a
+particular data set.  By default, a set of axial, sagittal and coronal
+views are made.  
+
+For 3D volumes, the montage size is typically 15 slices as evenly
+spaced as possible across each FOV dimension.  These may show just an
+underlay, or underlays with either a translucent/masked overlay or an
+"edge-ified" image (esp. for judging alignment).  
+
+For 4D data, the montage typically shows a single slice across all
+time points (which, for DWI, might just represent different DW
+volumes).  The *N* images are arranged in something close to a golden
+ratio array, padded at the end as necessary to have a solid grid of
+images.  Additionally, a GIF or MPG movie may be created.
+
+
+Temporary working directories
+-----------------------------
+
+Most `fat_proc*` functions perform several sub-steps, and therefore
+they make use of temporary working directories.  By default, these are
+deleted or "cleaned up."  If you want to keep them, for example if
+some step is failing and you want more information about why, you can
+instruct them to not be deleted using the `-no_clean` switch.
+
+
