@@ -4243,9 +4243,9 @@ STATUS("zeropad weight dataset") ;
        INFO_message("========== sub-brick #%d ========== [total CPU to here=%.1f s]",
                     kk , COX_cpu_time() ) ;
      else if ( verb ) {
-       if     ( kk == 0                       ) fprintf(stderr,"volume 0");
-       else if( kk  < DSET_NVALS(dset_targ)-1 ) fprintf(stderr,"..%d", kk);
-       else                                     fprintf(stderr,"..%d\n", kk);
+       if( kk == 0 ) fprintf(stderr,"volume 0");
+       else          fprintf(stderr,"..%d", kk);
+       if( kk == DSET_NVALS(dset_targ)-1 ) fputc("\n", stderr);
      }
 
      im_targ = mri_scale_to_float( bfac , DSET_BRICK(dset_targ,kk) ) ;
