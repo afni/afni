@@ -70,11 +70,16 @@ and one anatomical scan.
    :header-rows: 0
    :widths: 90
    
-   * - .. image:: media/Screenshot_from_2016-08-12_09:31:58.png
+   * - .. image:: media/fp_00_data_basic.png
           :width: 90%
           :align: center
-   * - *Initial, basic subject directory layout.*
+   * - *Initial, basic subject directory layout: a branch of
+       unprocessed data ("data_basic/"), containing one directory per
+       subject ("SUBJ_001/"), containing one directory per type of
+       dset ("dwi_ap/", etc.), containing one or more directory of
+       dicoms ("mr_00\*/").*
 
+DESCRIPTION OF DATA MORE: !!!
 
 Convert DWIs
 ------------
@@ -88,14 +93,17 @@ origin); having large distance among data sets create problems for
 rotating visualizations and for alignment processes.
 
 * **Case A:** A paired set of *N* DWIs with opposite phase encode
-  directions (in SUB01/01_dicom_dir_AP/ and
-  SUB01/01_dicom_dir_PA/)::
+  directions (in "SUBJ_001/dwi_ap/" and "SUBJ_001/dwi_pa/")::
 
-     fat_pre_convert_dwis.tcsh                        \
-         -indir_ap  SUB01/01_dicom_dir_AP             \
-         -indir_pa  SUB01/01_dicom_dir_PA
+    fat_proc_convert_dcm_dwis              \
+        -indir  $path_B_ss/dwi_ap/mr_0003  \
+        -prefix $path_P_ss/dwi_00/ap
 
-  -> produces two directories in 'SUB01/', one called 'UNFILT_AP/',
+    fat_proc_convert_dcm_dwis              \
+        -indir  $path_B_ss/dwi_pa/mr_0006  \
+        -prefix $path_P_ss/dwi_00/pa
+
+  -> produces one directories in 'SUB01/', called 'UNFILT_AP/',
   which contains three files: AP.nii (*N* volumes), AP.bvec (3x\
   *N* lines) and AP.bval (1x\ *N* lines); and the other called
   'UNFILT_PA/', which contains three files: PA.nii (*N* volumes),
