@@ -124,15 +124,9 @@ the T1w volume for parcellation+segmentation in FreeSurfer.
           There will also be a separate description of processing as
           if there were no T2w volume, when I get even *more* time.
 
-In each case sets of montaged images that I think are useful are
-created automatically along the way (one axial, one sagittal and one
-coronal set).  These include overlay/underlay images to show matching
-structures, edges or ranges of values (multiple slices of a single 3D
-set), as well as comparisons of a single slice across a 4D data set.
-
-Additionally, the help file of each function contains more options
-that are not listed in this "vanilla" processing description.  It
-would behoove the reader to check those out.
+The help file of each function contains more options that are not
+listed in this "vanilla" processing description.  It would behoove the
+reader to check those out.
 
 Before processing, I have made a "data_proc/" directory that is
 parallel to the "data_basic/" one.  The idea is that if I need to redo
