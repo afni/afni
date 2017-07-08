@@ -12,7 +12,9 @@ Description
 Many of the following pre-preprocessing steps are convenience features
 for organizing, viewing, and assessing data, while at the same timing
 preparing to run major "pre"processing with several software
-functions.
+functions.  The present description page may look long, but much of
+that is to including snapshots of terminals and autoimages along the
+way.
 
 The purposes of this set of scripts are to: 
 
@@ -147,10 +149,15 @@ b-values. The (x, y, z) = (0, 0, 0) coordinate of the data set is
 placed at the center of mass of the volume (and, when AP-PA sets are
 loaded, the sets could be given the same origin); having large
 distance among data sets create problems for rotating visualizations
-and for alignment processes.
+and for alignment processes.  Volumes should all have the same
+orientation ("RPI" by default) and be anonymized (depends on things
+like filenames chosen; users should doublecheck anonymizing).
 
 * A paired set of *N* DWIs with opposite phase encode
   directions (in "SUBJ_001/dwi_ap/" and "SUBJ_001/dwi_pa/")::
+
+    set path_B_ss = data_basic/SUBJ_001
+    set path_P_ss = data_proc/SUBJ_001
 
     fat_proc_convert_dcm_dwis              \
         -indir  $path_B_ss/dwi_ap/mr_0003  \
@@ -160,27 +167,63 @@ and for alignment processes.
         -indir  $path_B_ss/dwi_pa/mr_0006  \
         -prefix $path_P_ss/dwi_00/pa
 
-  -> produces one directories in 'SUB01/', called 'UNFILT_AP/',
-  which contains three files: AP.nii (*N* volumes), AP.bvec (3x\
-  *N* lines) and AP.bval (1x\ *N* lines); and the other called
-  'UNFILT_PA/', which contains three files: PA.nii (*N* volumes),
-  PA.bvec (3x\ *N* lines) and PA.bval (1x\ *N* lines).
+  -> produces one new directory in 'data_proc/SUBJ_001/', called
+  "dwi_00/".  It contains the following outputs for the AP data (and
+  analogous outputs for the PA sets):
 
   .. list-table:: 
-     :header-rows: 0
+     :header-rows: 1
+     :widths: 20 80
+     :stub-columns: 0
+
+     * - Outputs of
+       - ``fat_proc_convert_dcm_dwis``
+     * - **ap_cmd.txt**
+       - textfile, copy of the command that was run, and location
+     * - **ap.nii.gz**
+       - volumetric NIFTI file, 4D (*N*\=33 volumes)
+     * - **ap_bval.dat**
+       - textfile, row file of *N* b-values
+     * - **ap_rvec.dat**
+       - textfile, row file of (DW scaled) b-vectors (:math:`3\times N`)
+     * - **ap_cvec.dat**
+       - textfile, column file of (DW scaled) b-vectors (:math:`N\times 3`)
+     * - **ap_matA.dat**
+       - textfile, column file of (DW scaled) AFNI-style b-matrix
+         (:math:`N\times 6`)
+     * - **ap_matT.dat**
+       - textfile, column file of (DW scaled) AFNI-style b-matrix
+         (:math:`N\times 6`)
+     * - **ap_onescl.\*.png**
+       - autoimages, one slice per DWI volume, with single scaling
+         across all volumes
+     * - **ap_sepscl.\*.png**
+       - autoimages, one slice per DWI volume, with separate scalings
+         for each volume
+
+  .. list-table:: 
+     :header-rows: 1
      :widths: 100
 
-     * - .. image:: media/Screenshot_from_2016-08-12_09:33:47.png
-            :width: 90%   
+     * - Autoimages of ``fat_proc_convert_dcm_dwis``
+     * - .. image:: media/pa_sepscl.sag.png
+            :width: 100%   
             :align: center
-     * - *End of 'DWI conversion' script message, and listing of
-         directories afterwards.*
-  |
+     * - *PA volumes, separate scaling per volume, sagittal view.*
+     * - .. image:: media/ap_sepscl.sag.png
+            :width: 100%   
+            :align: center
+     * - *AP volumes, separate scaling per volume, sagittal view.*
 
-Each data set will have 'RPI' orientation; no gradient flipping has
-been performed (but it could be, if you wanted).  See the help file
-for changing these defaults, as well as output directories and file
-prefixes.
+
+No gradient flipping has been performed (but it could be, if you
+wanted).  See the help file for changing these defaults, as well as
+output directories and file prefixes.
+
+.. note:: Toggling between those sets of images highlights just why
+          the AP-PA (or blip up-blip down) distortion correction for
+          EPI inhomogeneity must be done.  For example, you could open
+          this on adjacent browser tabs and switch back and forth.
 
 .. 
     * **Case B:** A single set of *N* DWIs acquired with a single phase

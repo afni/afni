@@ -17,11 +17,11 @@ Specifying output location and prefix
 
 Fortunately, the naming of outputs isn't *so* complicated as that, but
 one can essentially output with two names: a new subdirectory and a
-prefix for filenames.  For each `fat_proc` function, one can use
-`-prefix *` to either put files of a given prefix into a preexisting
+prefix for filenames.  For each ``fat_proc`` function, one can use
+``-prefix *`` to either put files of a given prefix into a preexisting
 directory, or to both create a new subdirectory and put files of a
-given prefix there.  Thus, consider an example using `-prefix
-/somewhere/group/AAA/bbb`:
+given prefix there.  Thus, consider an example using ``-prefix
+/somewhere/group/AAA/bbb``:
 
 * if there is an existing directory "/somewhere/group/AAA/", then this
   option would put files starting with "bbb" into it;
@@ -39,7 +39,7 @@ given prefix there.  Thus, consider an example using `-prefix
 Automatic QC imaging
 --------------------
 
-Most `fat_proc` functions automatically generate sets of montaged
+Most ``fat_proc`` functions automatically generate sets of montaged
 images (PNG files by default).  In each case the choice of image(s) is
 mainly just due to what I thought might be useful or have found myself
 creating often in order to evaluate a given step or the state of a
@@ -60,7 +60,7 @@ underlay, or underlays with either a translucent/masked overlay or an
 
      * - Example of 3D autoimage output
      * - .. image:: media/t1w__qc00_anat.cor.png
-            :width: 90%   
+            :width: 100%   
             :align: center
      * - *Multiple slices evenly spaced across FOV dimension (by
          approx. 1/(15-1)th of the length) for an T1w anatomical
@@ -84,7 +84,7 @@ comparisons.
 
      * - Examples of 4D autoimage output
      * - .. image:: media/pa_onescl.cor.png
-            :width: 90%   
+            :width: 100%   
             :align: center
      * - *Single slice from 3 b=0 and 30 b=1100 DWIs, all with same
          brightness scale (coronal view, left=left).  Each volume
@@ -92,7 +92,7 @@ comparisons.
          "#34") are merely empty elements to complete the matrix
          shape.*
      * - .. image:: media/pa_sepscl.cor.png
-            :width: 90%   
+            :width: 100%   
             :align: center
      * - *Same volume and single slice as above, but with separate
          2-98\% brightness scales for each volume (coronal view,
@@ -129,7 +129,7 @@ and select "Properties" and see the path (and the field updates as one
 traverses images); additionally, one can set "View -> Side Pane" to
 see file information.  I usually have "View -> Best Fit" toggled ON. 
 
-.. note:: It is possible to install `eog` on Mac OS.  One might also
+.. note:: It is possible to install ``eog`` on Mac OS.  One might also
           have another viewing program of choice-- use whatever you
           find easiest for viewing your data!
 
@@ -137,10 +137,10 @@ see file information.  I usually have "View -> Best Fit" toggled ON.
 Temporary working directories
 -----------------------------
 
-Most `fat_proc` functions perform several sub-steps, and therefore
+Most ``fat_proc`` functions perform several sub-steps, and therefore
 they make use of temporary working directories.  By default, these are
 deleted or "cleaned up."  If you want to keep them, for example if
 some step is failing and you want more information about why, you can
-instruct them to not be deleted using the `-no_clean` switch.
+instruct them to not be deleted using the ``-no_clean`` switch.
 
 
