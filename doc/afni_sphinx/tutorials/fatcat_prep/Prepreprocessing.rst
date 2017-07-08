@@ -215,15 +215,15 @@ like filenames chosen; users should doublecheck anonymizing).
             :align: center
      * - *AP volumes, separate scaling per volume, sagittal view.*
 
+.. note:: Toggling between those sets of images highlights just why
+          the AP-PA (or blip up-blip down) distortion correction for
+          EPI inhomogeneity must be done.  For example, you could open
+          this on adjacent browser tabs and switch back and forth.
 
 No gradient flipping has been performed (but it could be, if you
 wanted).  See the help file for changing these defaults, as well as
 output directories and file prefixes.
 
-.. note:: Toggling between those sets of images highlights just why
-          the AP-PA (or blip up-blip down) distortion correction for
-          EPI inhomogeneity must be done.  For example, you could open
-          this on adjacent browser tabs and switch back and forth.
 
 .. 
     * **Case B:** A single set of *N* DWIs acquired with a single phase
