@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10,  Jul, 2017, RCR, "@update.afni.binaries", MICRO, TYPE_MODIFY,
+   "if -bindir is relative, require -no_recur",
+   NULL
+ } ,
+
  {  5,  Jul, 2017, RCR, "3dAllineate", MICRO, TYPE_MODIFY,
    "make quieter: only report sub-brick messages if verbose",
    "Applied to 3dAllinate and 3dmerge."
