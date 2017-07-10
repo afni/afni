@@ -56,6 +56,7 @@ history for $prog :
   3.1  08 Feb 2017 : (by David Abbott) fix crash in and finish case of
                      -local_package with updated install script
   3.2  23 Jun 2017 : unalias grep; only update cur_afni if not abin
+  3.3  10 Jul 2017 : if bindir is relative, fail without -no_recur
 
 -------------------------------------------------------------------------------
 EOF
@@ -64,7 +65,7 @@ POST_HIST:
 # end history section
 # ----------------------------------------------------------------------
 
-set aub_version = "3.2, June 23, 2017"
+set aub_version = "3.3, July 10, 2017"
 
 # ----------------------------------------------------------------------
 # apply any options
@@ -241,6 +242,15 @@ if ( $quick ) then
    set do_dotfiles = 0
 endif
 
+# if abin and do_recur, abin must be absolute
+if ( $abin != "" && $do_recur ) then
+   set c1 = `echo $abin | cut -b 1`
+   if ( $c1 != "/" ) then
+      echo "** when -bindir is relative, please include -no_recur"
+      echo "   have -bindir = '$abin'"
+      exit 1
+   endif
+endif
 
 # if requested, show help and exit
 if ( $help ) then
