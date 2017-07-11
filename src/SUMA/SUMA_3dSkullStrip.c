@@ -39,6 +39,14 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "  tissue from MRI T1-weighted images. \n"
 "  The simplest command would be:\n"
 "        3dSkullStrip <-input DSET>\n"
+"\n"
+"  Also consider the script @SSwarper, which combines the use of\n"
+"  3dSkullStrip and nonlinear warping to an MNI template to produce\n"
+"  a skull-stripped dataset in MNI space, plus the nonlinear warp\n"
+"  that can used to transform other datasets from the same subject\n"
+"  (e.g., EPI) to MNI space. (This script only applies to human brain\n"
+"  images.)\n"
+
 "\n%s", detail ? "":"use -h or -help for more help detail.\n");
    if (detail) {
       printf (

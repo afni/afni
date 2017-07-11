@@ -2802,7 +2802,7 @@ int main( int argc , char **argv )
      }
    }
 
-#if 0
+#if 1
    if( AFNI_yesenv("AFNI_CLUSTSIM_SAVE") ){
      FILE *fp; char fname[128]; static char *lnn[3] = { "NN1","NN2","NN3" }; int cc;
      for( nnn=1 ; nnn <= 3 ; nnn++ ){

@@ -1,4 +1,64 @@
 
+========================================================================
+AFNI Digest, week of 2017/07/07.
+
+00) AFNI Bootcamp at NIH October 2-6, 2017: Registration open.
+    Please see here:
+    https://afni.nimh.nih.gov/bootcamp/
+    ... for the registration page and for more information.
+
+01) We will be retiring some of the AFNI packages.  Please let us know
+    via the AFNI Message Board if there is a need to keep any of them.
+    a) Linux_fedora_21_64.tgz     - not replaced
+    b) macosx_10.8_gcc/icc.tgz    - not replaced
+    c) macosx_10.10_gcc/icc.tgz   - probably replaced by a local version
+    d) linux_xorg7/_64.tgz        - not replaced
+
+02) New or planned AFNI binary packages include:
+    a) new: linux_ubuntu_16_64.tgz
+    b) new: linux_centos_7_64.tgz
+    c) planned: macosx_10.10_local.tgz  (convenient for 10.10, 10.11)
+    d) planned: macosx_10.12_local.tgz  (convenient for 10.12+)
+    e) possibly: linux_fedora_25_64.tgz
+
+ 
+ 
+---------------------------------------------------------------------
++ This Digest is not a comprehensive list of code updates.
++ Please direct comments or questions to the AFNI Message Board:
+ https://afni.nimh.nih.gov/afni/community/board/list.php?1
+---------------------------------------------------------------------
+
+===========================================================================
+AFNI Digest, week of 2017/06/23. 
+
+00) Posters from the AFNI group for the OHBM (Organization for Human
+Brain Mapping) conference are available online:
+
+++ New FMRI clustering tools (more?!?), here with an emphasis on being
+   "equitable" across the brain and in dependence on various
+   parameters such as smoothing, voxelwise p-value, etc.:
+   https://afni.nimh.nih.gov/pub/dist/OHBM2017/OHBM_2017_ETAC.pdf
+
+++ New work on calculating intraclass correlation (ICC):
+   https://afni.nimh.nih.gov/pub/dist/OHBM2017/OHBM_2017_ICC.pdf
+
+++ New tools for FATCAT (whose online help is being written...)
+   https://afni.nimh.nih.gov/pub/dist/OHBM2017/OHBM_2017_FATCAT.pdf
+
+++ Comparisons of two FMRI task paradigms: "naturalistic" (=movie) and
+   rest:
+   https://afni.nimh.nih.gov/pub/dist/OHBM2017/OHBM_2017_ISC_and_RSFMRI.pdf
+
+No doubt these make great plane reading for anyone flying to
+Vancouver, or metro reading for any city.
+
+---------------------------------------------------------------------
++ This Digest is not a comprehensive list of code updates.
++ Please direct comments or questions to the AFNI Message Board:
+  https://afni.nimh.nih.gov/afni/community/board/list.php?1
+---------------------------------------------------------------------
+
 ===========================================================================
 AFNI Digest, week of 2017/06/09. 
 

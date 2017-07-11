@@ -9824,12 +9824,12 @@ g_help_string = """
             and multiplied by the +tlrc transformation, while the volume
             registered EPI data is promptly ignored.
 
-            The volreg/tlrc transformation is then applied as a single warp to
-            the unregistered data.
+            The volreg/tlrc (affine or non-linear) transformation is then
+            applied as a single concatenated warp to the unregistered data.  
 
-            Note that this is only possible when using @auto_tlrc, not the 12
-            piece manual transformation.  See -volreg_tlrc_adwarp for applying
-            a manual transformation.
+            Note that the transformation concatenation is not possible when
+            using the 12-piece manual transformation (see -volreg_tlrc_adwarp
+            for details).
 
             The resulting voxel grid is the minimum dimension, truncated to 3
             significant bits.  See -volreg_warp_dxyz for details. 

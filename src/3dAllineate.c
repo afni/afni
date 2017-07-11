@@ -4238,9 +4238,15 @@ STATUS("zeropad weight dataset") ;
 
      /* make copy of target brick, and deal with that */
 
-     if( verb )
+     /* show if verbose, else use light output     7 Jul 2017 [rickr] */
+     if( verb > 1 )
        INFO_message("========== sub-brick #%d ========== [total CPU to here=%.1f s]",
                     kk , COX_cpu_time() ) ;
+     else if ( verb ) {
+       if( kk == 0 ) fprintf(stderr,"volume 0");
+       else          fprintf(stderr,"..%d", kk);
+       if( kk == DSET_NVALS(dset_targ)-1 ) fputc("\n", stderr);
+     }
 
      im_targ = mri_scale_to_float( bfac , DSET_BRICK(dset_targ,kk) ) ;
      DSET_unload_one(dset_targ,kk) ;

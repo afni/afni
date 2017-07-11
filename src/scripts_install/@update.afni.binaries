@@ -55,6 +55,8 @@ history for $prog :
   3.0  02 Feb 2017 : default OS X package is macosx_10.7_local
   3.1  08 Feb 2017 : (by David Abbott) fix crash in and finish case of
                      -local_package with updated install script
+  3.2  23 Jun 2017 : unalias grep; only update cur_afni if not abin
+  3.3  10 Jul 2017 : if bindir is relative, fail without -no_recur
 
 -------------------------------------------------------------------------------
 EOF
@@ -63,7 +65,7 @@ POST_HIST:
 # end history section
 # ----------------------------------------------------------------------
 
-set aub_version = "3.1, Feb 8, 2017"
+set aub_version = "3.3, July 10, 2017"
 
 # ----------------------------------------------------------------------
 # apply any options
@@ -240,6 +242,15 @@ if ( $quick ) then
    set do_dotfiles = 0
 endif
 
+# if abin and do_recur, abin must be absolute
+if ( $abin != "" && $do_recur ) then
+   set c1 = `echo $abin | cut -b 1`
+   if ( $c1 != "/" ) then
+      echo "** when -bindir is relative, please include -no_recur"
+      echo "   have -bindir = '$abin'"
+      exit 1
+   endif
+endif
 
 # if requested, show help and exit
 if ( $help ) then
@@ -684,7 +695,7 @@ if ( $do_recur ) then
       set retry = 1
    else
       # see if we have this text (and therefore the actual program)
-      grep 'upgrade the AFNI binaries' $prog > /dev/null
+      \grep 'upgrade the AFNI binaries' $prog > /dev/null
       if ( $status ) then
          set retry = 1
          \rm -f $prog
@@ -700,7 +711,7 @@ if ( $do_recur ) then
          set retry = 1
       else
          # see if we have this text (and therefore the actual program)
-         grep 'upgrade the AFNI binaries' $prog > /dev/null
+         \grep 'upgrade the AFNI binaries' $prog > /dev/null
          if ( $status ) then
             set retry = 1
             \rm -f $prog
@@ -787,7 +798,7 @@ if ( $test_protos ) then
 
       # make sure we have a good download, even if $status is okay
       if ( ! $st ) then
-         grep 'upgrade the AFNI binaries' $prog > /dev/null
+         \grep 'upgrade the AFNI binaries' $prog > /dev/null
          set st = $status
          if ( $st ) then
             echo "** okay status but bad download"
@@ -1029,7 +1040,7 @@ if ( $do_dotfiles && -d $abin && $?USER ) then
          touch $rcfile
       endif
 
-      grep $abin:t $rcfile >& /dev/null
+      \grep $abin:t $rcfile >& /dev/null
       if ( $status ) then
          # finally, update .csrhc and our current path
          echo "++ adding $abin to path in $rcfile ..."
@@ -1037,9 +1048,13 @@ if ( $do_dotfiles && -d $abin && $?USER ) then
          set path = ( $path $abin )
       endif
 
-      rehash
-      set cur_afni = `which afni`
-      set cur_afni = $cur_afni:h
+      # if cur_afni_does not point to abin, reset it
+      if ( $cur_afni != $abin ) then
+         set path = ( $abin $path )
+         rehash
+         set cur_afni = `which afni`
+         set cur_afni = $cur_afni:h
+      endif
 
       # ---------------------------
       # do this for .bashrc, too...
@@ -1048,7 +1063,7 @@ if ( $do_dotfiles && -d $abin && $?USER ) then
       if ( ! -f $brcfile ) touch $brcfile
 
       # and possibly edit
-      grep $abin:t $brcfile >& /dev/null
+      \grep $abin:t $brcfile >& /dev/null
       if ( $status ) then
          # not found, so append to file
          echo "++ adding $abin to PATH in $brcfile ..."
@@ -1065,7 +1080,7 @@ if ( $do_apsearch && $cur_afni == $abin && $#prog_list == 0 ) then
    echo "++ running $cmd ..."
    $cmd
    
-   grep afni_help_dir $rcfile >& /dev/null
+   \grep afni_help_dir $rcfile >& /dev/null
    if ( $status && -f $rcfile ) then
       cat << EOF >> $rcfile
 
