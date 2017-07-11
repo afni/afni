@@ -40,6 +40,7 @@ class SysInfo:
       self.repo_prog       = '' # e.g. yum or brew
       self.have_pyqt4      = 0
       self.ok_openmp       = 0  # does 3dAllineate work, for example?
+      self.mac_good_libxt  = 0  # does /opt/X11/lib/libXt.dylib point to 6?
 
    def get_afni_dir(self):
       s, so, se = BASE.simple_shell_exec('which afni', capture=1)
@@ -389,6 +390,7 @@ class SysInfo:
       # in 10.11, check for gcc under homebrew
       self.check_for_10_11_lib('libgomp.1.dylib', wpath='gcc/*/lib/gcc/*')
       self.check_for_10_11_lib('libglib-2.0.dylib', wpath='glib/*/lib')
+      self.check_for_libXt7()
       self.check_for_flat_namespace()
 
    def hunt_for_homebrew(self):
@@ -547,22 +549,68 @@ class SysInfo:
 
       # so there is something here that we might care about
 
-      edir = 'DYLD_LIBRARY_PATH'
-      if flatdir in self.split_env_var(edir):
-         print '++ yay, env var %s contains %s' % (edir, flatdir)
-      elif os.environ.has_key(edir):
-         print '** env var %s does not contain %s' % (edir, flatdir)
+      evar = 'DYLD_LIBRARY_PATH'
+      if self.mac_good_libxt :
+         print '++ no need for %s to point to %s' % (evar, flatdir)
+         return 1
+
+      if flatdir in self.split_env_var(evar):
+         print '++ yay, env var %s contains %s' % (evar, flatdir)
+      elif os.environ.has_key(evar):
+         print '** env var %s does not contain %s' % (evar, flatdir)
          print '   (so afni and suma might fail)'
-         self.comments.append('consider appending %s with %s' % (edir,flatdir))
+         self.comments.append('consider appending %s with %s' % (evar,flatdir))
       else:
          if self.get_osx_ver() >= 11:
-            self.check_evar_path_for_val(edir, flatdir)
+            self.check_evar_path_for_val(evar, flatdir)
             if self.cur_shell.find('csh') < 0:
-               self.check_evar_path_for_val(edir, flatdir, shell='tcsh')
+               self.check_evar_path_for_val(evar, flatdir, shell='tcsh')
          else:
-            print '** env var %s is not set to contain %s' % (edir, flatdir)
+            print '** env var %s is not set to contain %s' % (evar, flatdir)
             print '   (so afni and suma may fail)'
-            self.comments.append('consider setting %s to %s' % (edir, flatdir))
+            self.comments.append('consider setting %s to %s' % (evar, flatdir))
+
+      return 1
+
+   def check_for_libXt7(self):
+      """check for /opt/X11/lib/libXt.7.dylib directly, and any link to it
+        (only do anything if it exists)
+
+        return 0    : not found
+      """
+
+      odir = '/opt/X11/lib'
+      fname = 'libXt.7.dylib'
+      fpath = '%s/%s' % (odir, fname)
+      lname = 'libXt.dylib'
+
+      # if it is not here, we are done
+      if not os.path.exists(fpath):
+         return 0
+
+      print '++ found without flat_namespace: %s' % fpath
+
+      # let the user know what the link points to
+      lpath = '%s/%s' % (odir, lname)
+      realpath = os.path.realpath(lpath)
+      if os.path.islink(lpath):
+         if realpath.find('libXt.6') > 0:
+            gstr = '(good!)'
+            # so we do not need any DYLD variable
+            self.mac_good_libxt = 1
+         elif realpath.find('libXt.7') > 0:
+            gstr = '(bad)'
+         else:
+            gstr = '(bad - unknown)'
+         print '   link %s points to %s %s' % (lname, realpath, gstr)
+
+         if realpath.find('libXt.7') > 0:
+            msg = '%s link points to version 7, should point to 6' % lname
+            print '** %s' % msg
+            self.comments.append(msg)
+      else:
+         print '** %s is not a link, listing all such files...' % lname
+         os.system('ls -l %s/libXt.*dylib' % odir)
 
       return 1
 

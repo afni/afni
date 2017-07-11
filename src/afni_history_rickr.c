@@ -49,13 +49,53 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11,  Jul, 2017, RCR, "afni_system_check.py", MICRO, TYPE_MODIFY,
+   "if /opt/X11/lib/libXt.dylib points to Xt.6, no need to check env var",
+   NULL
+ } ,
+
+ { 10,  Jul, 2017, RCR, "@update.afni.binaries", MICRO, TYPE_MODIFY,
+   "if -bindir is relative, require -no_recur",
+   NULL
+ } ,
+
+ {  5,  Jul, 2017, RCR, "3dAllineate", MICRO, TYPE_MODIFY,
+   "make quieter: only report sub-brick messages if verbose",
+   "Applied to 3dAllinate and 3dmerge."
+ } ,
+
+ { 28,  Jun, 2017, RCR, "afni-general", MINOR, TYPE_GENERAL,
+   "add afni_src/other_builds files for Fedora 25 (Makefile, OS_notes)",
+   NULL
+ } ,
+
+ { 23,  Jun, 2017, RCR, "@update.afni.binaries", MICRO, TYPE_MODIFY,
+   "unalias grep; update cur_afni only when not abin",
+   NULL
+ } ,
+
+ { 19,  Jun, 2017, RCR, "Dimon", MICRO, TYPE_NEW_OPT,
+   "add -assume_dicom_mosaic to handle Siemens 3D format",
+   "Done for A. Jahn."
+ } ,
+
+ { 16,  Jun, 2017, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
+   "check for libXt.7.dylib without flat_namespace",
+   NULL
+ } ,
+
+ { 16,  Jun, 2017, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "add Makefile.linux_centos_7_64",
+   "CentOS 7 and Ubuntu 16 will be new distribution build systems."
+ } ,
+
  { 15,  Jun, 2017, RCR, "uber_subject", MICRO, TYPE_BUG_FIX,
    "handle empty subj_dir",
    NULL
  } ,
 
  { 15,  Jun, 2017, RCR, "afni-general", MICRO, TYPE_ENHANCE,
-   "added OS_notes.linux_RH7.txt",
+   "add OS_notes.linux_centos_7.txt",
    NULL
  } ,
 

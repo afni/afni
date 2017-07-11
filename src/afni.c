@@ -2292,6 +2292,7 @@ void AFNI_sigfunc_alrm(int sig)
      "The best revenge is to be unlike him who performed the injury"                  ,
      "The art of living is more like wrestling than dancing"                          ,
      "If the genome is the source code, it should have come with comments"            ,
+     "So the days float through my eyes, but still the days seem the same"            ,
 
      "You know you're in trouble when it takes a 64 bit integer to count your unread emails"  ,
      "Once you've done what you have to do, no one will let you do what you want to do"       ,

@@ -1,8 +1,8 @@
 
 .. _install_steps_mac:
 
-*The essential system setup for:* **Mac OS**
-============================================
+**Mac OS**: *The essential system setup*
+========================================
 
 
 Here we describe a complete AFNI installation and system setup for Mac
@@ -64,7 +64,7 @@ When ``afni`` is started for the first time, you should be directed
       ``XQuartz`` is the desktop manager needed to run ``X11``
       programs (such as ``afni``).
 
-      *  *For OS X 10.12*:
+      *  *For OS X >= 10.11*:
 
          a. Install ``Xcode`` using the command::
 
@@ -73,7 +73,7 @@ When ``afni`` is started for the first time, you should be directed
          #. Install ``XQuartz`` using the "Quick Download" DMG from
             http://www.xquartz.org
 
-      *  *For OS X 10.9 through 10.11*:
+      *  *For OS X 10.9 and 10.10*:
 
          a. Run the two commands::
 
@@ -146,7 +146,7 @@ When ``afni`` is started for the first time, you should be directed
        * Go to `the R page for Mac OS X
          <https://cran.r-project.org/bin/macosx>`_
 
-       * Click on the latest package (probably R-3.2.3.pkg), and
+       * Click on the latest package (probably R-3.4.0.pkg), and
          download/install it.
 
          |
@@ -220,7 +220,7 @@ When ``afni`` is started for the first time, you should be directed
 
 #. **(optional) Niceifying interfaces: it's a magical terminal.**
 
-   .. include:: substep_rcfiles.rst
+   .. include:: substep_rcfiles_mac.rst
 
 
 #. **Keeping up-to-date (remember).**
