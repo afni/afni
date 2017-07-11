@@ -50,6 +50,11 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 11, JUL, 2017 , DRG , "DriveSuma quiet variable" , 
+    MICRO , TYPE_NEW_OPT, 
+    "SUMA_DriveSumaQuiet",
+    "Make suma a little quieter with DriveSuma"
+},
 { 19, APR, 2017 , DRG , "3dMean min, max options" , 
     MINOR , TYPE_NEW_OPT, 
     "3dMean computes min and max voxelwise across datasets",
