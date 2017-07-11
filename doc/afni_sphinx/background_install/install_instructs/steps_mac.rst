@@ -64,7 +64,7 @@ When ``afni`` is started for the first time, you should be directed
       ``XQuartz`` is the desktop manager needed to run ``X11``
       programs (such as ``afni``).
 
-      *  *For OS X 10.12*:
+      *  *For OS X >= 10.11*:
 
          a. Install ``Xcode`` using the command::
 
@@ -73,7 +73,7 @@ When ``afni`` is started for the first time, you should be directed
          #. Install ``XQuartz`` using the "Quick Download" DMG from
             http://www.xquartz.org
 
-      *  *For OS X 10.9 through 10.11*:
+      *  *For OS X 10.9 and 10.10*:
 
          a. Run the two commands::
 
