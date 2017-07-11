@@ -523,7 +523,12 @@ class SysInfo:
       # if self.get_osx_ver() < 9 and self.verb <= 1:
       #    return 0
 
+      evar = 'DYLD_LIBRARY_PATH'
       flatdir = '/opt/X11/lib/flat_namespace'
+
+      # but still check whether flatdir exists, just to know
+      if self.mac_good_libxt :
+         print '++ no need for %s to point to %s' % (evar, flatdir)
 
       # if the directory exists and is non-empty, note it
       flibs = glob.glob('%s/*dylib*' % flatdir)
@@ -532,6 +537,9 @@ class SysInfo:
          print "++ found %d dylib files under '%s'" % (len(flibs), flatdir)
       else:
          if self.verb > 1: print '-- no flat_namespace libraries exist'
+         return 0
+
+      if self.mac_good_libxt :
          return 0
 
       found = 0
@@ -548,11 +556,6 @@ class SysInfo:
          return 0
 
       # so there is something here that we might care about
-
-      evar = 'DYLD_LIBRARY_PATH'
-      if self.mac_good_libxt :
-         print '++ no need for %s to point to %s' % (evar, flatdir)
-         return 1
 
       if flatdir in self.split_env_var(evar):
          print '++ yay, env var %s contains %s' % (evar, flatdir)
