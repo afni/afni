@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11,  Jul, 2017, RCR, "afni_system_check.py", MICRO, TYPE_MODIFY,
+   "if /opt/X11/lib/libXt.dylib points to Xt.6, no need to check env var",
+   NULL
+ } ,
+
  { 10,  Jul, 2017, RCR, "@update.afni.binaries", MICRO, TYPE_MODIFY,
    "if -bindir is relative, require -no_recur",
    NULL
