@@ -43,8 +43,11 @@
 #set version   = "2.5";   set rev_dat   = "June 1, 2017"
 #     + back to regular xvfb and Bob's search
 # 
-set version   = "2.6";   set rev_dat   = "June 1, 2017"
+#set version   = "2.6";   set rev_dat   = "June 1, 2017"
 #     + default interpolation to NN, but add in option to set
+# 
+set version   = "2.7";   set rev_dat   = "June 20, 2017"
+#     + new opts, for SET_SUBBRICKS
 # 
 # =====================================================================
 
@@ -101,6 +104,8 @@ set ncolors   = "99"             # default number of colors
 set topval    = 1                # upper scale value in colorbar
 
 set func_resam = "NN"            # def. no resample; opt: {NN|Li|Cu|Bk}
+
+set subbb = ( -1 -1 -1 )
 
 # for SET_FUNC_ALPHA
 set alpha_par    = "Off"         # 
@@ -209,7 +214,17 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set thrflag = "$argv[$ac]"
-        
+
+    # [PT: June 20, 2017]:  SET_SUBBRICKS i j k
+    else if ( "$argv[$ac]" == "-set_subbricks" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set subbb[1] = "$argv[$ac]"
+        @ ac += 1
+        set subbb[2] = "$argv[$ac]"
+        @ ac += 1
+        set subbb[3] = "$argv[$ac]"
+
     # refers to olay
     else if ( "$argv[$ac]" == "-func_range" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
@@ -667,17 +682,18 @@ set OW = "OPEN_WINDOW"
 afni -noplugins -no_detach  -echo_edu                           \
      -com "SWITCH_UNDERLAY ${read_ulay}"                            \
      -com "SWITCH_OVERLAY  ${read_olay}"                            \
+     -com "SEE_OVERLAY     ${see_olay}"                             \
      -com "SET_PBAR_ALL    ${pbar_sign}${ncolors} $topval $my_cbar" \
+     -com "SET_SUBBRICKS   ${subbb}"                                \
      -com "SET_FUNC_RANGE  ${frange}"                               \
      -com "SET_THRESHNEW   $thrnew $thrflag"                        \
-     -com "SEE_OVERLAY     ${see_olay}"                             \
      -com "SET_FUNC_ALPHA  $alpha_par $alpha_floor"                 \
      -com "SET_FUNC_RESAM  ${func_resam}.${func_resam}"             \
      -com "SET_XHAIRS  ${crossh}"                                   \
      -com "$OW sagittalimage opacity=${opac} mont=${mx}x${my}:${gapord[1]}" \
      -com "$OW coronalimage  opacity=${opac} mont=${mx}x${my}:${gapord[2]}" \
      -com "$OW axialimage    opacity=${opac} mont=${mx}x${my}:${gapord[3]}" \
-     -com "SET_IJK $coors"                                                    \
+     -com "SET_IJK $coors"                                          \
      -com "SAVE_${ftype} sagittalimage ${odir}/${impref}.sag blowup=${bufac}" \
      -com "SAVE_${ftype} coronalimage  ${odir}/${impref}.cor blowup=${bufac}" \
      -com "SAVE_${ftype} axialimage    ${odir}/${impref}.axi blowup=${bufac}" \

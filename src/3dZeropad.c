@@ -56,7 +56,6 @@ void usage_3dZeropad(int detail)
  " * Program works for byte-, short-, float-, and complex-valued\n"
  "     datasets.\n"
  " * You can use a sub-brick selector on the input dataset.\n"
- " * 3dZeropad won't overwrite an existing dataset (I hope).\n"
  "\n"
  " Author: RWCox - July 2000\n"
            ) ;
