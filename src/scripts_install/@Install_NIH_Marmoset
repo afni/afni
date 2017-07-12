@@ -89,7 +89,7 @@ HELP:
    echo "Installs the NIH marmoset template and atlases described"
    echo "in:"
    echo "    \"Marmoset template\""
-   echo      Cirong Lui, et al, submitted
+   echo      Cirong Liu, et al, submitted
    echo ""
    echo "After the archive is downloaded and unpacked, see its README.txt"
    echo "for details."
