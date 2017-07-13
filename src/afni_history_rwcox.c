@@ -44,6 +44,13 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 13 , JUL , 2017 , RWC , "3dclust" , MINOR , TYPE_NEW_OPT ,
+   "Add '-NNx' options to specify clustering method" ,
+   "-NN1 or -NN2 or -NN3\n"
+   "These can replace the use of 'rmm' and 'vmul', and are meant\n"
+   "to make using this program simpler and more compatible with\n"
+   "Clusterize in the AFNI GUI." } ,
+
  { 17 , MAY , 2017 , RWC , "3dttest++" , MICRO , TYPE_MODIFY ,
    "Make -ETAC and -Clustsim work together" ,
    "Makes it easier to test these two methods at the same time." } ,
