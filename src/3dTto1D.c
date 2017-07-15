@@ -15,7 +15,7 @@ static char * g_history[] =
   "     -initial version\n"
 };
 
-static char g_version[] = "3dmatmult version 0.0, 29 September 2008";
+static char g_version[] = "3dTto1D version 0.0, 29 September 2008";
 
 #include "mrilib.h"
 
@@ -43,9 +43,10 @@ options_t g_opts;
 
 int show_help           (void);
 int compute_results     (options_t *);
+int compute_dvars       (options_t *);
 int fill_mask           (options_t *);
 int process_opts        (options_t *, int, char *[] );
-int write_result        (options_t *);
+int write_results       (options_t *);
 
 /*--------------- main routine ---------------*/
 int main( int argc, char *argv[] )
@@ -55,7 +56,7 @@ int main( int argc, char *argv[] )
 
    if( argc < 2 ) { show_help();  return 0; }
 
-   mainENTRY("3dmatmult main"); machdep(); AFNI_logger("3dmatmult",argc,argv);
+   mainENTRY("3dTto1D main"); machdep(); AFNI_logger("3dTto1D",argc,argv);
 
    /* process command line arguments (and read dataset and mask) */
    rv = process_opts(opts, argc, argv);
@@ -89,13 +90,19 @@ int write_results(options_t * opts)
       fp = fopen(opts->prefix, "w");
       if( ! fp ) {
          ERROR_message("failed to open '%s' for writing", opts->prefix);
-         WARNING_message("writing to stdout, instead...");
-      fp = stdout;
+         RETURN(1);
       }
    }
 
+   if( opts->verb ) {
+      if     ( fp == stdout ) INFO_message("writing to stdout...");
+      else if( fp == stdout ) INFO_message("writing to stderr...");
+      else if( opts->prefix ) INFO_message("writing to '%s'...", opts->prefix);
+      else                    INFO_message("writing to unknown?!?");
+   }
+
    /* actually write results */
-   for( c=0; c > opts->nt; c++ )
+   for( c=0; c < opts->nt; c++ )
       fprintf(fp, "%f\n", opts->result[c]);
 
    if( fp != stdout && fp != stderr )
@@ -107,12 +114,23 @@ int write_results(options_t * opts)
 
 int compute_results(options_t * opts)
 {
+   ENTRY("compute_results");
+
+   if( opts->method == 1 ) RETURN(compute_dvars(opts));
+   
+   ERROR_message("unknown method index %d", opts->method);
+
+   RETURN(1);
+}
+
+int compute_dvars(options_t * opts)
+{
    double * dwork, dsum;
    float  * fdata, fdiff;
    byte   * mask = opts->mask;  /* save 6 characters... */
    int      nt, nvox, vind, tind, nmask;
 
-   ENTRY("compute_results");
+   ENTRY("compute_dvars");
 
    nt = DSET_NVALS(opts->inset);
    if( nt < 2 ) ERROR_exit("input dataset must have at least 2 time points");
@@ -123,6 +141,9 @@ int compute_results(options_t * opts)
 
    /* could steal fdata, but that might be unethical */
    opts->result = calloc(nt, sizeof(float));
+
+   if( opts->verb > 1 )
+      INFO_message("have memory, ready for computations, nt = %d", nt);
 
    /* we will scale by sqrt(nvox) and the mean */
    if( opts->mask ) nmask = THD_countmask( nvox, opts->mask );
@@ -147,17 +168,26 @@ int compute_results(options_t * opts)
       }
    }
 
-   /* convert dsum to dmean */
-   dsum /= nvox * nt;
+   /* convert dsum to dmean and then a scalar:
+    *    ss / nvox / mean
+    *  = ss / (sum/nt)     dividing by global ave is good, but further
+    *                      dividing by nvox simplifies to div by sum/nt
+    */
+   dsum /= nt;
+   if( opts->verb > 2 ) INFO_message("global mask ave = %f", dsum/nvox);
+   if( opts->verb > 1 ) INFO_message("Euclidean norm is scaled by %f",
+                                      sqrt(dsum));
 
    /* scale and store the result */
    for( tind=1; tind < nt; tind++ )
-      opts->result[tind] = dwork[tind] / sqrt(nvox) / dsum;
+      opts->result[tind] = sqrt(dwork[tind] / dsum);
    opts->nt = nt;
 
    free(dwork);
    free(fdata);
   
+   if( opts->verb > 1 ) INFO_message("result is done");
+
    RETURN(0);
 }
 
@@ -258,13 +288,14 @@ int process_opts(options_t * opts, int argc, char * argv[] )
    if( !opts->inset ) ERROR_exit("missing -input dataset");
 
    if( opts->verb > 1 )
-      INFO_message("++ input dataset loaded\n");
+      INFO_message("input dataset loaded\n");
 
    if( opts->automask && opts->mask_name )
       ERROR_exit("cannot apply both -mask and -mset");
 
-   if( opts->automask || opts->mask_name )
+   if( opts->automask || opts->mask_name ) {
       if( fill_mask(opts) ) RETURN(1);
+   }
 
    RETURN(0);
 }
@@ -272,11 +303,12 @@ int process_opts(options_t * opts, int argc, char * argv[] )
 int fill_mask(options_t * opts)
 {
    THD_3dim_dataset * mset;
+   int nvox;
 
 ENTRY("fill_mask");
 
    if( opts->automask ) {
-      if( opts->verb ) INFO_message("++ creating automask...");
+      if( opts->verb ) INFO_message("creating automask...");
 
       opts->mask = THD_automask(opts->inset);
       if( ! opts->mask ) {
@@ -288,11 +320,13 @@ ENTRY("fill_mask");
    }
 
    if( opts->mask_name ) {
-      if( opts->verb ) INFO_message("++ reading mask dset...");
+      if( opts->verb )
+         INFO_message("reading mask dset from %s...", opts->mask_name);
 
       mset = THD_open_dataset( opts->mask_name );
       if( ! mset ) ERROR_exit("cannot open mask dset '%s'", opts->mask_name);
-      if( DSET_NVOX(mset) != DSET_NVOX(opts->inset) ) {
+      nvox = DSET_NVOX(opts->inset);
+      if( DSET_NVOX(mset) != nvox ) {
          ERROR_message("mask does not have the same voxel count as input");
          RETURN(1);
       }
@@ -307,6 +341,9 @@ ENTRY("fill_mask");
          ERROR_message("cannot make mask from '%s'", opts->mask_name);
          RETURN(1);
       }
+
+      if( opts->verb > 1 )
+         INFO_message("have mask with %d voxels", nvox);
    }
 
    RETURN(0);
