@@ -2738,6 +2738,11 @@ tokens: rickr/tokens.c
 			'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' ;           \
 	$(MV) tokens .. ; )
 
+3dTto1D: 3dTto1D.o libmri.a
+	$(RM) $@
+	$(CC) -o 3dTto1D 3dTto1D.o $(LFLAGS) $(LLIBS)
+
+
 
 selenium_test: selenium_test.o
 	$(RM) $@
