@@ -13,7 +13,7 @@
 
 #define PROGRAM_NAME   "3dclust"                     /* name of this program */
 #define PROGRAM_AUTHOR "RW Cox et alii"                    /* program author */
-#define PROGRAM_DATE   "21 Jul 2005"             /* date of last program mod */
+#define PROGRAM_DATE   "12 Jul 2017"             /* date of last program mod */
 
 /*---------------------------------------------------------------------------*/
 
@@ -66,6 +66,8 @@ voxels per original voxel
 
 #include "mrilib.h"
 
+static int do_NN = 0 ;  /* 12 Jul 2017 */
+
 static EDIT_options CL_edopt ;
 static int CL_ivfim=-1 , CL_ivthr=-1 ;
 
@@ -97,8 +99,7 @@ static THD_coorder CL_cord ;
 
 int compare_cluster( void * , void * ) ;
 void CL_read_opts( int , char ** ) ;
-#define CL_syntax(str) \
-  do{ fprintf(stderr,"\n*** %s\a\n",str) ; exit(1) ; } while(0)
+#define CL_syntax(str) ERROR_exit("%s",(str))
 
 void MCW_fc7( float qval , char * buf ) ;
 
@@ -145,11 +146,27 @@ int main( int argc , char * argv[] )
   "      * 'Active' refers to nonzero voxels that survive the threshold    \n"
   "         that you (the user) have specified                             \n"
   "      * Clusters are defined by a connectivity radius parameter 'rmm'   \n"
+  "        *OR*\n"
+  "        Clusters are defined by how close neighboring voxels must\n"
+  "        be in the 3D grid:\n"
+  "          first nearest neighbors  (-NN1)\n"
+  "          second nearest neighbors (-NN2)\n"
+  "          third nearest neighbors  (-NN3)\n"
   "                                                                        \n"
   "      Note: by default, this program clusters on the absolute values    \n"
   "            of the voxels                                               \n"
   "----------------------------------------------------------------------- \n"
-  "Usage: 3dclust [editing options] [other options] rmm vmul dset ...      \n"
+  "Usage:\n"
+  "                                                                        \n"
+  "   3dclust [editing options] [other options] rmm vmul dset ...      \n"
+  "                                                                        \n"
+  " *OR*\n"
+  "                                                                        \n"
+  "   3dclust [editing options] -NNx dset ...\n"
+  "     where '-NNx' is one of '-NN1' or '-NN2' or '-NN3':\n"
+  "      -NN1 == 1st nearest-neighbor (faces touching) clustering\n"
+  "      -NN2 == 2nd nearest-neighbor (edges touching) clustering\n"
+  "      -NN2 == 3rd nearest-neighbor (corners touching) clustering\n"
   "-----                                                                   \n"
   "                                                                        \n"
   "Examples:                                                               \n"
@@ -173,6 +190,8 @@ int main( int argc , char * argv[] )
   "Arguments (must be included on command line):                           \n"
   "---------                                                               \n"
   "                                                                        \n"
+  "THE OLD WAY TO SPECIFY THE TYPE OF CLUSTERING\n"
+  "\n"
   "   rmm            : cluster connection radius (in millimeters).         \n"
   "                    All nonzero voxels closer than rmm millimeters      \n"
   "                    (center-to-center distance) to the given voxel are  \n"
@@ -185,11 +204,27 @@ int main( int argc , char * argv[] )
   "                     * If vmul = 0, then all clusters are kept.         \n"
   "                     * If vmul < 0, then the absolute vmul is the minimum\n"
   "                          number of voxels allowed in a cluster.        \n"
+  "\n"
+  "  If you do not use one of the '-NNx' options, you must give the\n"
+  "  numbers for rmm and vmul just before the input dataset name(s)\n"
+  "\n"
+  "THE NEW WAY TO SPECIFY TYPE OF CLUSTERING [13 Jul 2017]\n"
+  "\n"
+  "   -NN1 or -NN2 or -NN3\n"
+  "\n"
+  "  If you use one of these '-NNx' options, you do NOT give the rmm\n"
+  "  and vmul values.  Instead, after all the options that start with '-',\n"
+  "  you just give the input dataset name(s).\n"
+  "\n"
+  "FOLLOWED BY ONE (or more) DATASETS\n"
   "                                                                        \n"
   "   dset           : input dataset (more than one allowed, but only the  \n"
   "                    first sub-brick of the dataset)                     \n"
   "                                                                        \n"
-  " The results are sent to standard output (i.e., the screen)             \n"
+  " The results are sent to standard output (i.e., the screen):            \n"
+  " if you want to save them in a file, then use redirection, as in\n"
+  "\n"
+  "   3dclust -1thresh 0.4 -NN2 Elvis.nii'[1]' > Elvis.clust.txt\n"
   "                                                                        \n"
   "----------------------------------------------------------------------- \n"
   "                                                                        \n"
@@ -198,6 +233,10 @@ int main( int argc , char * argv[] )
   "                                                                        \n"
   "* Editing options are as in 3dmerge (see 3dmerge -help)                 \n"
   "  (including -1thresh, -1dindex, -1tindex, -dxyz=1 options)             \n"
+  "\n"
+  "* -NN1        => described earlier;\n"
+  "  -NN2        => replaces the use of 'rmm' to specify the\n"
+  "  -NN3        => clustering method (vmul is set to 2 voxels)\n"
   "                                                                        \n"
   "* -noabs      => Use the signed voxel intensities (not the absolute     \n"
   "                 value) for calculation of the mean and Standard        \n"
@@ -391,25 +430,33 @@ int main( int argc , char * argv[] )
    }
 #endif
 
-   if( nopt+3 >  argc ){
-      fprintf(stderr,"\n*** No rmm or vmul arguments?\a\n") ;
-      exit(1) ;
-   }
+   if( do_NN ){    /* 12 Jul 2017 */
+     CL_edopt.fake_dxyz = 1 ;
+     switch( do_NN ){
+       default:
+       case 1: rmm = 1.11f ; break ;
+       case 2: rmm = 1.44f ; break ;
+       case 3: rmm = 1.77f ; break ;
+     }
+     vmul = 2.0f ;
+   } else {        /* the OLDE way (with rmm and vmul) */
+     if( nopt+3 > argc )
+        ERROR_exit("No rmm or vmul arguments?") ;
 
-   rmm  = strtod( argv[nopt++] , NULL ) ;
-   vmul = strtod( argv[nopt++] , NULL ) ;
-   if( rmm < 0.0 ){
-      fprintf(stderr,"\n*** Illegal rmm=%f \a\n",rmm) ;
-      exit(1) ;
-   } else if ( rmm == 0.0f ){
-      CL_edopt.fake_dxyz = 1 ;  /* 26 Dec 2007 */
-      rmm = 1.001f ;
+     rmm  = strtod( argv[nopt++] , NULL ) ;
+     vmul = strtod( argv[nopt++] , NULL ) ;
+     if( rmm < 0.0 )
+        ERROR_exit("Illegal rmm=%f",rmm) ;
+     else if ( rmm == 0.0f ){
+        CL_edopt.fake_dxyz = 1 ;  /* 26 Dec 2007 */
+        rmm = 1.11f ;
+     }
    }
 
    /* BDW  26 March 1999  */
 
    if( CL_edopt.clust_rmm >= 0.0 ){  /* 01 Nov 1999 */
-      fprintf(stderr,"** Warning: -1clust can't be used in 3dclust!\n") ;
+      WARNING_message("-1clust can't be used in 3dclust") ;
       CL_edopt.clust_rmm  = -1.0 ;
    }
 
@@ -949,6 +996,24 @@ void CL_read_opts( int argc , char * argv[] )
       }
 #endif
 
+      if( strcmp(argv[nopt],"-NN1") == 0 ){   /* 12 Jul 2017 */
+        do_NN = 1 ; nopt++ ; continue ;
+      }
+      if( strcmp(argv[nopt],"-NN2") == 0 ){
+        do_NN = 2 ; nopt++ ; continue ;
+      }
+      if( strcmp(argv[nopt],"-NN3") == 0 ){
+        do_NN = 3 ; nopt++ ; continue ;
+      }
+      if( strcmp(argv[nopt],"-NN") == 0 ){
+        nopt++ ;
+        if( nopt >= argc ) ERROR_exit("need argument after '-NN'") ;
+        do_NN = (int)strtod(argv[nopt],NULL) ;
+        if( do_NN < 1 || do_NN > 3 )
+          ERROR_exit("Illegal value '%s' after '-NN'",argv[nopt]) ;
+        nopt++ ; continue ;
+      }
+
       if( strcmp(argv[nopt],"-no_inmask") == 0 ){  /* 02 Aug 2011 */
         no_inmask = 1 ; nopt++ ; continue ;
       }
@@ -967,11 +1032,11 @@ void CL_read_opts( int argc , char * argv[] )
 
       if( strcmp(argv[nopt],"-prefix") == 0 ){
          if( ++nopt >= argc ){
-            fprintf(stderr,"need an argument after -prefix!\n") ; exit(1) ;
+            ERROR_exit("need an argument after -prefix!") ;
          }
          CL_prefix = argv[nopt] ;
          if( !THD_filename_ok(CL_prefix) ){
-            fprintf(stderr,"-prefix string is illegal: %s\n",CL_prefix); exit(1);
+            ERROR_exit("-prefix string is illegal: %s\n",CL_prefix);
          }
          nopt++ ; continue ;
       }
@@ -980,11 +1045,11 @@ void CL_read_opts( int argc , char * argv[] )
 
       if( strcmp(argv[nopt],"-savemask") == 0 ){
          if( ++nopt >= argc ){
-            fprintf(stderr,"need an argument after -savemask!\n") ; exit(1) ;
+            ERROR_exit("need an argument after -savemask!\n") ;
          }
          CL_savemask = argv[nopt] ;
          if( !THD_filename_ok(CL_savemask) ){
-            fprintf(stderr,"-savemask string is illegal: %s\n",CL_savemask); exit(1);
+            ERROR_exit("-savemask string is illegal: %s\n",CL_savemask);
          }
          nopt++ ; continue ;
       }
@@ -997,7 +1062,7 @@ void CL_read_opts( int argc , char * argv[] )
 
       if( strncmp(argv[nopt],"-1dindex",5) == 0 ){
          if( ++nopt >= argc ){
-            fprintf(stderr,"need an argument after -1dindex!\n") ; exit(1) ;
+            ERROR_exit("need an argument after -1dindex!\n") ;
          }
          CL_ivfim = CL_edopt.iv_fim = (int) strtod( argv[nopt++] , NULL ) ;
          continue ;
@@ -1005,7 +1070,7 @@ void CL_read_opts( int argc , char * argv[] )
 
       if( strncmp(argv[nopt],"-1tindex",5) == 0 ){
          if( ++nopt >= argc ){
-            fprintf(stderr,"need an argument after -1tindex!\n") ; exit(1) ;
+            ERROR_exit("need an argument after -1tindex!\n") ;
          }
          CL_ivthr = CL_edopt.iv_thr = (int) strtod( argv[nopt++] , NULL ) ;
          continue ;
@@ -1067,7 +1132,7 @@ void CL_read_opts( int argc , char * argv[] )
 
       /**** unknown switch ****/
 
-      fprintf(stderr,"** Unrecognized option %s\a\n",argv[nopt]) ;
+      ERROR_message("Unrecognized option %s",argv[nopt]) ;
       suggest_best_prog_option(argv[0], argv[nopt]);
       exit(1) ;
 
