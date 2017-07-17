@@ -43,7 +43,7 @@ options_t g_opts;
 
 int show_help           (void);
 int compute_results     (options_t *);
-int compute_dvars       (options_t *);
+int compute_dvars       (options_t *, int);
 int fill_mask           (options_t *);
 int process_opts        (options_t *, int, char *[] );
 int write_results       (options_t *);
@@ -116,16 +116,26 @@ int compute_results(options_t * opts)
 {
    ENTRY("compute_results");
 
-   if( opts->method == 1 ) RETURN(compute_dvars(opts));
+/***** rcr - add options for all 3 methods */
+   if( opts->method == 1 ) RETURN(compute_dvars(opts, 0));
+   if( opts->method == 2 ) RETURN(compute_dvars(opts, 1));
+   if( opts->method == 3 ) RETURN(compute_dvars(opts, 2));
    
    ERROR_message("unknown method index %d", opts->method);
 
    RETURN(1);
 }
 
-int compute_dvars(options_t * opts)
+/* this is basically dvars (enorm), with scaling variants 
+ *
+ * convert dsum to dmean and then a scalar:
+ * dmeth = 0 : enrom  sqrt(ss)
+ *         1 : dvars  sqrt(ss/nvox) = stdev (biased)
+ *         2 : sdvars sqrt(ss/nvox) / grand mean
+ */
+int compute_dvars(options_t * opts, int dmeth)
 {
-   double * dwork, dsum;
+   double * dwork, dscale, gmean;
    float  * fdata, fdiff;
    byte   * mask = opts->mask;  /* save 6 characters... */
    int      nt, nvox, vind, tind, nmask;
@@ -133,54 +143,85 @@ int compute_dvars(options_t * opts)
    ENTRY("compute_dvars");
 
    nt = DSET_NVALS(opts->inset);
-   if( nt < 2 ) ERROR_exit("input dataset must have at least 2 time points");
    nvox = DSET_NVOX(opts->inset);
+
+   /* note how many voxels this is over */
+   if( opts->mask ) {
+      if( opts->verb )
+         INFO_message("ready for computations, nmask = %d, nt = %d", nmask, nt);
+      nmask = THD_countmask( nvox, opts->mask );
+   } else {
+      nmask = nvox;
+   }
+
+   /* make sure we have something to compute */
+   if( nvox < 1 ) {
+      ERROR_message("input dataset must have at least 1 voxel");
+      RETURN(1);
+   } else if( nmask < 1 ) {
+      ERROR_message("input mask must have at least 1 voxel");
+      RETURN(1);
+   } else if( nt < 2 ) {
+      ERROR_exit("input dataset must have at least 2 time points");
+   }
 
    dwork = calloc(nt, sizeof(double));
    fdata = calloc(nt, sizeof(float));
 
-   /* could steal fdata, but that might be unethical */
+   /* could steal fdata, but that might be unethical (plus, garbage on err) */
    opts->result = calloc(nt, sizeof(float));
 
    if( opts->verb > 1 )
-      INFO_message("have memory, ready for computations, nt = %d", nt);
+      INFO_message("ready for computations, nt = %d", nt);
 
-   /* we will scale by sqrt(nvox) and the mean */
-   if( opts->mask ) nmask = THD_countmask( nvox, opts->mask );
-   else             nmask = nvox;
-
-   /* use dsum to get mean across all masked voxels and time */
-   dsum = 0.0;
+   /* use gmean to get mean across all masked voxels and time */
+   gmean = 0.0;
    for( vind=0; vind < nvox; vind++ ) {
       if( opts->mask && ! opts->mask[vind] ) continue;
 
       if( THD_extract_array(vind, opts->inset, 0, fdata) ) {
          ERROR_message("failed to exract data at index %d\n", vind);
-         RETURN(1);
+         free(dwork);  free(fdata);  RETURN(1);
       }
 
-      /* accumuate squared differences */
-      dsum += fdata[0];  /* and accumlate for mean */
+      /* accumuate squared differences; dwork[0] is already 0 */
+      gmean += fdata[0];  /* and accumlate for mean */
       for( tind=1; tind < nt; tind++ ) {
-         dsum += fdata[tind];  /* and accumlate for mean */
+         gmean += fdata[tind];  /* and accumlate for mean */
          fdiff = fdata[tind]-fdata[tind-1];
          dwork[tind] += fdiff*fdiff;
       }
    }
 
    /* convert dsum to dmean and then a scalar:
-    *    ss / nvox / mean
-    *  = ss / (sum/nt)     dividing by global ave is good, but further
-    *                      dividing by nvox simplifies to div by sum/nt
+    * dmeth = 0 : enorm  sqrt(ss)
+    *         1 : dvars  sqrt(ss/nmask) = stdev (biased) of first diffs
+    *         2 : sdvars sqrt(ss/nmask) / abs(grand mean)
     */
-   dsum /= nt;
-   if( opts->verb > 2 ) INFO_message("global mask ave = %f", dsum/nvox);
-   if( opts->verb > 1 ) INFO_message("Euclidean norm is scaled by %f",
-                                      sqrt(dsum));
+   gmean = fabs(gmean/nmask); /* global masked mean */
+   if( opts->verb ) INFO_message("global ave = %f", gmean);
+   if( dmeth == 0 ) {
+      if( opts->verb ) INFO_message("writing enorm : uses no scaling");
+      dscale = 1.0;
+   } else if ( dmeth == 1 ) {
+      if( opts->verb ) INFO_message("writing dvars = stdev = enorm/sqrt(nvox)");
+      dscale = sqrt(nmask);
+   } else if ( dmeth == 2 ) {
+      if( opts->verb ) INFO_message("scaled dvars = stdev/gmean");
+      if( gmean == 0.0 ) {
+         ERROR_message("values have zero mean, failing (use dvars, instead)");
+         free(dwork);  free(fdata);  RETURN(1);
+      } else if( gmean < 1.0 ) {
+         WARNING_message("values seem de-meaned, should probably use dvars");
+      }
+      dscale = sqrt(nmask)*gmean;
+   }
+   if( opts->verb > 2 ) INFO_message("scaling enorm down by %f", dscale);
 
    /* scale and store the result */
+   dscale = 1.0/dscale;  /* for uselessly small speed-up */
    for( tind=1; tind < nt; tind++ )
-      opts->result[tind] = sqrt(dwork[tind] / dsum);
+      opts->result[tind] = dscale * sqrt(dwork[tind]);
    opts->nt = nt;
 
    free(dwork);
