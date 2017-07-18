@@ -20,6 +20,11 @@ static char g_version[] = "3dTto1D version 0.0, 29 September 2008";
 #include "mrilib.h"
 
 
+/*--------------- method enumeration ---------------*/
+#define T21_METH_UNDEF          0
+#define T21_METH_ENORM          1       /* enorm    */
+#define T21_METH_DVARS          2       /* dvars    */
+#define T21_METH_SDVARS         3       /* sdvars   */
 
 /*--------------- global options struct ---------------*/
 typedef struct
@@ -41,12 +46,14 @@ options_t g_opts;
 
 /*--------------- prototypes ---------------*/
 
-int show_help           (void);
-int compute_results     (options_t *);
-int compute_dvars       (options_t *, int);
-int fill_mask           (options_t *);
-int process_opts        (options_t *, int, char *[] );
-int write_results       (options_t *);
+int    show_help           (void);
+int    compute_results     (options_t *);
+int    compute_enorm       (options_t *, int);
+int    fill_mask           (options_t *);
+int    meth_name_to_index  (char *);
+char * meth_index_to_name  (int);
+int    process_opts        (options_t *, int, char *[] );
+int    write_results       (options_t *);
 
 /*--------------- main routine ---------------*/
 int main( int argc, char *argv[] )
@@ -114,14 +121,16 @@ int write_results(options_t * opts)
 
 int compute_results(options_t * opts)
 {
+   int method = opts->method;
+
    ENTRY("compute_results");
 
-/***** rcr - add options for all 3 methods */
-   if( opts->method == 1 ) RETURN(compute_dvars(opts, 0));
-   if( opts->method == 2 ) RETURN(compute_dvars(opts, 1));
-   if( opts->method == 3 ) RETURN(compute_dvars(opts, 2));
+   /* the first 3 methods are varieties of enorm/dvars */
+   if( method == T21_METH_ENORM ||
+       method == T21_METH_DVARS || 
+       method == T21_METH_SDVARS ) RETURN(compute_enorm(opts, method));
    
-   ERROR_message("unknown method index %d", opts->method);
+   ERROR_message("unknown method index %d", method);
 
    RETURN(1);
 }
@@ -129,18 +138,18 @@ int compute_results(options_t * opts)
 /* this is basically dvars (enorm), with scaling variants 
  *
  * convert dsum to dmean and then a scalar:
- * dmeth = 0 : enrom  sqrt(ss)
- *         1 : dvars  sqrt(ss/nvox) = stdev (biased)
- *         2 : sdvars sqrt(ss/nvox) / grand mean
+ * method = 1 : enrom  sqrt(ss)
+ *          2 : dvars  sqrt(ss/nvox) = stdev (biased)
+ *          3 : sdvars sqrt(ss/nvox) / grand mean
  */
-int compute_dvars(options_t * opts, int dmeth)
+int compute_enorm(options_t * opts, int method)
 {
    double * dwork, dscale, gmean;
    float  * fdata, fdiff;
    byte   * mask = opts->mask;  /* save 6 characters... */
    int      nt, nvox, vind, tind, nmask;
 
-   ENTRY("compute_dvars");
+   ENTRY("compute_enorm");
 
    nt = DSET_NVALS(opts->inset);
    nvox = DSET_NVOX(opts->inset);
@@ -194,19 +203,19 @@ int compute_dvars(options_t * opts, int dmeth)
    }
 
    /* convert dsum to dmean and then a scalar:
-    * dmeth = 0 : enorm  sqrt(ss)
-    *         1 : dvars  sqrt(ss/nmask) = stdev (biased) of first diffs
-    *         2 : sdvars sqrt(ss/nmask) / abs(grand mean)
+    * method = 1 : enorm  sqrt(ss)
+    *          2 : dvars  sqrt(ss/nmask) = stdev (biased) of first diffs
+    *          3 : sdvars sqrt(ss/nmask) / abs(grand mean)
     */
-   gmean = fabs(gmean/nmask); /* global masked mean */
+   gmean = fabs(gmean/nmask/nt); /* global masked mean */
    if( opts->verb ) INFO_message("global ave = %f", gmean);
-   if( dmeth == 0 ) {
+   if( method == T21_METH_ENORM ) {
       if( opts->verb ) INFO_message("writing enorm : uses no scaling");
       dscale = 1.0;
-   } else if ( dmeth == 1 ) {
+   } else if ( method == T21_METH_DVARS ) {
       if( opts->verb ) INFO_message("writing dvars = stdev = enorm/sqrt(nvox)");
       dscale = sqrt(nmask);
-   } else if ( dmeth == 2 ) {
+   } else if ( method == T21_METH_SDVARS ) {
       if( opts->verb ) INFO_message("scaled dvars = stdev/gmean");
       if( gmean == 0.0 ) {
          ERROR_message("values have zero mean, failing (use dvars, instead)");
@@ -227,119 +236,11 @@ int compute_dvars(options_t * opts, int dmeth)
    free(dwork);
    free(fdata);
   
-   if( opts->verb > 1 ) INFO_message("result is done");
+   if( opts->verb > 1 ) INFO_message("successfully computed enorm");
 
    RETURN(0);
 }
 
-
-int show_help(void)
-{
-   ENTRY("show_help");
-
-   printf(
-   "-------------------------------------------------------------------------\n"
-   "If you cannot get help here, please get help somewhere.\n\n"
-   );
-
-   printf("%s\ncompiled: %s\n\n", g_version, __DATE__);
-
-   RETURN(0);
-}
-
-/* ----------------------------------------------------------------------
- * fill the options_t struct
- * return 1 on (acceptable) termination
- *        0 on continue
- *       -1 on error
- */
-int process_opts(options_t * opts, int argc, char * argv[] )
-{
-   int ac;
-
-   ENTRY("process_opts");
-
-   memset(opts, 0, sizeof(options_t));  /* init everything to 0 */
-   opts->method = 1; /* DVARS */
-   opts->verb = 1;
-
-   ac = 1;
-   while( ac < argc ) {
-
-      /* check for terminal options */
-      if( ! strcmp(argv[ac],"-help") || ! strcmp(argv[ac],"-h") ) {
-         show_help();
-         RETURN(1);
-      } else if( strcmp(argv[ac],"-hist") == 0 ) {
-         int c, len = sizeof(g_history)/sizeof(char *);
-         for( c = 0; c < len; c++) fputs(g_history[c], stdout);
-         putchar('\n');
-         RETURN(1);
-      } else if( strcmp(argv[ac],"-ver") == 0 ) {
-         puts(g_version);
-         RETURN(1);
-      }
-
-      /* the remaining options are alphabetical */
-
-      else if( strcmp(argv[ac],"-automask") == 0 ) {
-         opts->automask = 1;
-         ac++; continue;
-      }
-      else if( ! strcmp(argv[ac],"-input") || ! strcmp(argv[ac], "-inset") ) {
-         if( opts->inset ) ERROR_exit("-input already applied");
-
-         if( ++ac >= argc ) ERROR_exit("need argument after '-input'");
-
-         opts->inset = THD_open_dataset( argv[ac] );
-         if( ! opts->inset ) ERROR_exit("cannot open dset '%s'", argv[ac]);
-
-         DSET_load(opts->inset); CHECK_LOAD_ERROR(opts->inset);
-         ac++; continue;
-      }
-      else if( ! strcmp(argv[ac],"-mask") ) {
-         if( opts->mask_name ) ERROR_exit("-mask already applied");
-         if( ++ac >= argc   ) ERROR_exit("need argument after '-mask'");
-
-         opts->mask_name = argv[ac];
-         ac++; continue;
-      }
-
-      else if( strcmp(argv[ac],"-prefix") == 0 ) {
-         if( ++ac >= argc ) ERROR_exit("need argument after '-prefix'");
-
-         opts->prefix = argv[ac];
-
-         if( !THD_filename_ok(opts->prefix) )
-            ERROR_exit("Illegal name after '-prefix'");
-         ac++; continue;
-      }
-
-      else if( strcmp(argv[ac],"-verb") == 0 ) {
-         if( ++ac >= argc ) ERROR_exit("need argument after '-verb'");
-
-         opts->verb = atoi(argv[ac]);
-         ac++; continue;
-      }
-
-      ERROR_message("** unknown option '%s'\n",argv[ac]);
-      RETURN(-1);
-   }
-
-   if( !opts->inset ) ERROR_exit("missing -input dataset");
-
-   if( opts->verb > 1 )
-      INFO_message("input dataset loaded\n");
-
-   if( opts->automask && opts->mask_name )
-      ERROR_exit("cannot apply both -mask and -mset");
-
-   if( opts->automask || opts->mask_name ) {
-      if( fill_mask(opts) ) RETURN(1);
-   }
-
-   RETURN(0);
-}
 
 int fill_mask(options_t * opts)
 {
@@ -385,6 +286,155 @@ ENTRY("fill_mask");
 
       if( opts->verb > 1 )
          INFO_message("have mask with %d voxels", nvox);
+   }
+
+   RETURN(0);
+}
+
+
+/* ----------------------------------------------------------------------*/
+/* method name to and from index */
+int meth_name_to_index(char * name)
+{
+   if( ! name ) return T21_METH_UNDEF;
+
+   if( ! strcmp(name, "enorm") )     return T21_METH_ENORM;
+   if( ! strcmp(name, "dvars") )     return T21_METH_DVARS;
+   if( ! strcmp(name, "sdvars") )    return T21_METH_SDVARS;
+
+   /* be explicit, since we have a case for this */
+   if( ! strcmp(name, "undefined") ) return T21_METH_UNDEF;
+
+   return T21_METH_UNDEF;
+}
+
+char * meth_index_to_name(int method)
+{
+   if( method == T21_METH_ENORM )   return "enorm";
+   if( method == T21_METH_DVARS )   return "dvars";
+   if( method == T21_METH_SDVARS )  return "sdvars";
+
+   return "undefined";
+}
+
+/* ----------------------------------------------------------------------*/
+int show_help(void)
+{
+   ENTRY("show_help");
+
+   printf(
+   "-------------------------------------------------------------------------\n"
+   "If you cannot get help here, please get help somewhere.\n\n"
+   );
+
+   printf("%s\ncompiled: %s\n\n", g_version, __DATE__);
+
+   RETURN(0);
+}
+
+
+/* ----------------------------------------------------------------------
+ * fill the options_t struct
+ * return 1 on (acceptable) termination
+ *        0 on continue
+ *       -1 on error
+ */
+int process_opts(options_t * opts, int argc, char * argv[] )
+{
+   int ac;
+
+   ENTRY("process_opts");
+
+   memset(opts, 0, sizeof(options_t));  /* init everything to 0 */
+   opts->method = T21_METH_UNDEF;       /* be explicit, required option */
+   opts->verb = 1;
+
+   ac = 1;
+   while( ac < argc ) {
+
+      /* check for terminal options */
+      if( ! strcmp(argv[ac],"-help") || ! strcmp(argv[ac],"-h") ) {
+         show_help();
+         RETURN(1);
+      } else if( strcmp(argv[ac],"-hist") == 0 ) {
+         int c, len = sizeof(g_history)/sizeof(char *);
+         for( c = 0; c < len; c++) fputs(g_history[c], stdout);
+         putchar('\n');
+         RETURN(1);
+      } else if( strcmp(argv[ac],"-ver") == 0 ) {
+         puts(g_version);
+         RETURN(1);
+      }
+
+      /* the remaining options are alphabetical */
+
+      else if( strcmp(argv[ac],"-automask") == 0 ) {
+         opts->automask = 1;
+         ac++; continue;
+      }
+      else if( ! strcmp(argv[ac],"-input") || ! strcmp(argv[ac], "-inset") ) {
+         if( opts->inset ) ERROR_exit("-input already applied");
+
+         if( ++ac >= argc ) ERROR_exit("need argument after '-input'");
+
+         opts->inset = THD_open_dataset( argv[ac] );
+         if( ! opts->inset ) ERROR_exit("cannot open dset '%s'", argv[ac]);
+
+         DSET_load(opts->inset); CHECK_LOAD_ERROR(opts->inset);
+         ac++; continue;
+      }
+      else if( ! strcmp(argv[ac],"-mask") ) {
+         if( opts->mask_name ) ERROR_exit("-mask already applied");
+         if( ++ac >= argc   ) ERROR_exit("need argument after '-mask'");
+
+         opts->mask_name = argv[ac];
+         ac++; continue;
+      }
+
+      else if( ! strcmp(argv[ac],"-method") ) {
+         if( ++ac >= argc   ) ERROR_exit("need argument after '-method'");
+
+         opts->method = meth_name_to_index(argv[ac]);
+         if( opts->method == T21_METH_UNDEF )
+            ERROR_exit("illegal -method '%s'", argv[ac]);
+         ac++; continue;
+      }
+
+      else if( strcmp(argv[ac],"-prefix") == 0 ) {
+         if( ++ac >= argc ) ERROR_exit("need argument after '-prefix'");
+
+         opts->prefix = argv[ac];
+
+         if( !THD_filename_ok(opts->prefix) )
+            ERROR_exit("Illegal name after '-prefix'");
+         ac++; continue;
+      }
+
+      else if( strcmp(argv[ac],"-verb") == 0 ) {
+         if( ++ac >= argc ) ERROR_exit("need argument after '-verb'");
+
+         opts->verb = atoi(argv[ac]);
+         ac++; continue;
+      }
+
+      ERROR_message("** unknown option '%s'\n",argv[ac]);
+      RETURN(-1);
+   }
+
+   /* require data and method */
+   if( !opts->inset ) ERROR_exit("missing -input dataset");
+   if( opts->method == T21_METH_UNDEF ) ERROR_exit("missing -method option");
+
+   if( opts->verb > 1 ) {
+      INFO_message("input dataset loaded\n");
+      INFO_message("will apply method %s", meth_index_to_name(opts->method));
+   }
+
+   if( opts->automask && opts->mask_name )
+      ERROR_exit("cannot apply both -mask and -mset");
+
+   if( opts->automask || opts->mask_name ) {
+      if( fill_mask(opts) ) RETURN(1);
    }
 
    RETURN(0);
