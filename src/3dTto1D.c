@@ -2,15 +2,15 @@
  * Do stuff.
  *
  *
- * Author: R Reynolds  12 July 2017
+ * Author: R Reynolds  18 July 2017
  */
 
 static char * g_history[] =
 {
   "----------------------------------------------------------------------\n"
-  "history (of 3dTHIS):\n"
+  "history (of 3dTto1D):\n"
   "\n",
-  "0.0  12 Jul 2017\n"
+  "0.0  18 Jul 2017\n"
   "     (Rick Reynolds of the National Institutes of Health, SSCC/DIRP/NIMH)\n"
   "     -initial version\n"
 };
@@ -23,8 +23,8 @@ static char g_version[] = "3dTto1D version 0.0, 29 September 2008";
 /*--------------- method enumeration ---------------*/
 #define T21_METH_UNDEF          0
 #define T21_METH_ENORM          1       /* enorm    */
-#define T21_METH_DVARS          2       /* dvars    */
-#define T21_METH_SDVARS         3       /* sdvars   */
+#define T21_METH_RMS            2       /* rms      */
+#define T21_METH_SRMS           3       /* srms     */
 
 /*--------------- global options struct ---------------*/
 typedef struct
@@ -127,24 +127,24 @@ int compute_results(options_t * opts)
 
    /* the first 3 methods are varieties of enorm/dvars */
    if( method == T21_METH_ENORM ||
-       method == T21_METH_DVARS || 
-       method == T21_METH_SDVARS ) RETURN(compute_enorm(opts, method));
+       method == T21_METH_RMS || 
+       method == T21_METH_SRMS ) RETURN(compute_enorm(opts, method));
    
    ERROR_message("unknown method index %d", method);
 
    RETURN(1);
 }
 
-/* this is basically dvars (enorm), with scaling variants 
+/* this is basically enorm, with scaling variants 
  *
  * convert dsum to dmean and then a scalar:
  * method = 1 : enrom  sqrt(ss)
- *          2 : dvars  sqrt(ss/nvox) = stdev (biased)
- *          3 : sdvars sqrt(ss/nvox) / grand mean
+ *          2 : rms    sqrt(ss/nvox) = stdev (biased)
+ *          3 : srms   sqrt(ss/nvox) / grand mean
  */
 int compute_enorm(options_t * opts, int method)
 {
-   double * dwork, dscale, gmean;
+   double * dwork, dscale, gmean, gdiff;
    float  * fdata, fdiff;
    byte   * mask = opts->mask;  /* save 6 characters... */
    int      nt, nvox, vind, tind, nmask;
@@ -204,24 +204,24 @@ int compute_enorm(options_t * opts, int method)
 
    /* convert dsum to dmean and then a scalar:
     * method = 1 : enorm  sqrt(ss)
-    *          2 : dvars  sqrt(ss/nmask) = stdev (biased) of first diffs
-    *          3 : sdvars sqrt(ss/nmask) / abs(grand mean)
+    *          2 : rms    sqrt(ss/nmask) = stdev (biased) of first diffs
+    *          3 : srms   sqrt(ss/nmask) / abs(grand mean)
     */
    gmean = fabs(gmean/nmask/nt); /* global masked mean */
    if( opts->verb ) INFO_message("global ave = %f", gmean);
    if( method == T21_METH_ENORM ) {
       if( opts->verb ) INFO_message("writing enorm : uses no scaling");
       dscale = 1.0;
-   } else if ( method == T21_METH_DVARS ) {
-      if( opts->verb ) INFO_message("writing dvars = stdev = enorm/sqrt(nvox)");
+   } else if ( method == T21_METH_RMS ) {
+      if( opts->verb ) INFO_message("writing rms = dvars = enorm/sqrt(nvox)");
       dscale = sqrt(nmask);
-   } else if ( method == T21_METH_SDVARS ) {
-      if( opts->verb ) INFO_message("scaled dvars = stdev/gmean");
+   } else if ( method == T21_METH_SRMS ) {
+      if( opts->verb ) INFO_message("scaled dvars = srms = rms/gmean");
       if( gmean == 0.0 ) {
-         ERROR_message("values have zero mean, failing (use dvars, instead)");
+         ERROR_message("values have zero mean, failing (use rms, instead)");
          free(dwork);  free(fdata);  RETURN(1);
       } else if( gmean < 1.0 ) {
-         WARNING_message("values seem de-meaned, should probably use dvars");
+         WARNING_message("values seem de-meaned, should probably use rms");
       }
       dscale = sqrt(nmask)*gmean;
    }
@@ -298,9 +298,13 @@ int meth_name_to_index(char * name)
 {
    if( ! name ) return T21_METH_UNDEF;
 
-   if( ! strcmp(name, "enorm") )     return T21_METH_ENORM;
-   if( ! strcmp(name, "dvars") )     return T21_METH_DVARS;
-   if( ! strcmp(name, "sdvars") )    return T21_METH_SDVARS;
+   if( ! strcasecmp(name, "enorm") )   return T21_METH_ENORM;
+
+   if( ! strcasecmp(name, "rms") || 
+       ! strcasecmp(name, "dvars") )   return T21_METH_RMS;
+
+   if( ! strcasecmp(name, "srms") ||
+       ! strcasecmp(name, "cvar") )    return T21_METH_SRMS;
 
    /* be explicit, since we have a case for this */
    if( ! strcmp(name, "undefined") ) return T21_METH_UNDEF;
@@ -311,8 +315,8 @@ int meth_name_to_index(char * name)
 char * meth_index_to_name(int method)
 {
    if( method == T21_METH_ENORM )   return "enorm";
-   if( method == T21_METH_DVARS )   return "dvars";
-   if( method == T21_METH_SDVARS )  return "sdvars";
+   if( method == T21_METH_RMS )     return "rms";
+   if( method == T21_METH_SRMS )    return "srms";
 
    return "undefined";
 }
@@ -324,7 +328,80 @@ int show_help(void)
 
    printf(
    "-------------------------------------------------------------------------\n"
-   "If you cannot get help here, please get help somewhere.\n\n"
+   "3dTto1D             - collapse a 4D time series to a 1D time series\n"
+   "\n"
+   "The program takes as input a 4D times series (a list of 1D time series)\n"
+   "and an optional mask, and computes from in a 1D time series using some\n"
+   "method.  Choices for the method include:\n"
+   "\n"
+   "   1. enorm\n"
+   "\n"
+   "      This is the Euclidean norm.\n"
+   "\n"
+   "      Start by computing the temporal difference (backwards difference)\n"
+   "      time series (where the first volume is all zero).\n"
+   "\n"
+   "      Then the result each time point is the Euclidean norm for that\n"
+   "      volume.  This is the same as the L2-norm.\n"
+   "\n"
+   "         enorm = sqrt(sum squares)\n"
+   "\n"
+   "\n"
+   "   2. rms (or dvars)\n"
+   "\n"
+   "      RMS = DVARS = enorm/sqrt(nvox).\n"
+   "\n"
+   "      The RMS (root mean square) is the same as the enorm divided by\n"
+   "      sqrt(nvox).  It is like a standard deviation, but without removal\n"
+   "      of the mean (per time point).\n"
+   "\n"
+   "         rms = dvars = enorm/sqrt(nvox) = sqrt(sum squares/nvox)\n"
+   "\n"
+   "      This is the RMS of backward differences first described by Smyser\n"
+   "      et. al., 2010, for motion detection, and later renamed to DVARS by\n"
+   "      Power et. al., 2012.\n"
+   "\n"
+   "    * DVARS survives a resampling, where it would be unchanged if every\n"
+   "      voxel were listed multiple times.\n"
+   "\n"
+   "    * DVARS does not survive a scaling, it scales with the data.\n"
+   "      This is why SRMS was introduced.\n"
+   "\n"
+   "\n"
+   "   3. srms (or cvar) (= scaled rms = dvars/mean = enorm/sqrt(nvox)/mean)\n"
+   "\n"
+   "      This result is basically the coefficient of variation, but without\n"
+   "      removal of each volume mean.\n"
+   "\n"
+   "      This is the same as dvars divided by the overall mean.\n"
+   "\n"
+   "         dvars = enorm/sqrt(nvox) = sqrt(sum squares/nvox)\n"
+   "\n"
+   "    * SRMS survives both a resampling and scaling of the data.  Since it\n"
+   "      is unchanged with any data scaling (unlike DVARS), values are\n"
+   "      comparable across subjects and studies.\n"
+   "\n"
+   "\n"
+   "  *** These 3 functions/curves are identical, subject to scaling.\n"
+   "\n"
+   "--------------------------------------------------\n"
+   "examples:\n"
+   "\n"
+   "a. compute DVARS of EPI time series within a brain mask\n"
+   "   (this might be used for censoring)\n"
+   "\n"
+   "   3dTto1D -input epi_r1+orig -mask mask.auto.nii.gz -method dvars \\\n"
+   "           -prefix epi_dvars.1D\n"
+   "\n"
+   "b. compute SRMS of EPI time series within a brain mask\n"
+   "   (similarly used for censoring, but is comparable across subjects)\n"
+   "\n"
+   "   3dTto1D -input epi_r1+orig -mask mask.auto.nii.gz -method dvars \\\n"
+   "           -prefix epi_dvars.1D\n"
+   "\n"
+   "\n"
+   "\n"
+   "\n"
    );
 
    printf("%s\ncompiled: %s\n\n", g_version, __DATE__);
