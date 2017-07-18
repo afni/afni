@@ -22,9 +22,12 @@ static char g_version[] = "3dTto1D version 0.0, 29 September 2008";
 
 /*--------------- method enumeration ---------------*/
 #define T21_METH_UNDEF          0
-#define T21_METH_ENORM          1       /* enorm    */
-#define T21_METH_RMS            2       /* rms      */
-#define T21_METH_SRMS           3       /* srms     */
+#define T21_METH_ENORM          1       /* enorm      */
+#define T21_METH_RMS            2       /* rms        */
+#define T21_METH_SRMS           3       /* srms       */
+#define T21_METH_S_SRMS         4       /* shift_srms */
+#define T21_METH_MDIFF          5       /* mdiff      */
+#define T21_METH_SMDIFF         6       /* smdiff     */
 
 /*--------------- global options struct ---------------*/
 typedef struct
@@ -47,8 +50,10 @@ options_t g_opts;
 /*--------------- prototypes ---------------*/
 
 int    show_help           (void);
+int    check_dims          (options_t *);
 int    compute_results     (options_t *);
 int    compute_enorm       (options_t *, int);
+int    compute_meandiff    (options_t *, int);
 int    fill_mask           (options_t *);
 int    meth_name_to_index  (char *);
 char * meth_index_to_name  (int);
@@ -69,12 +74,43 @@ int main( int argc, char *argv[] )
    rv = process_opts(opts, argc, argv);
    if( rv ) RETURN(rv < 0); /* only a negative return is considered failure */
 
+   if( check_dims(opts) ) RETURN(1);
+
    if( compute_results(opts) ) RETURN(1);
 
    if( write_results(opts) ) RETURN(1);
 
    RETURN(0);
 }
+
+
+/* just make sure we have sufficient data for computations */
+int check_dims(options_t * opts)
+{
+   int nt, nvox, nmask;
+
+   ENTRY("check_dims");
+
+   nt = DSET_NVALS(opts->inset);
+   nvox = DSET_NVOX(opts->inset);
+   if( opts->mask ) nmask = THD_countmask( nvox, opts->mask );
+   else             nmask = nvox;
+
+   /* make sure we have something to compute */
+   if( nvox < 1 ) {
+      ERROR_message("input dataset must have at least 1 voxel");
+      RETURN(1);
+   } else if( nmask < 1 ) {
+      ERROR_message("input mask must have at least 1 voxel");
+      RETURN(1);
+   } else if( nt < 2 ) {
+      ERROR_message("input dataset must have at least 2 time points");
+      RETURN(1);
+   }
+
+   RETURN(0);
+}
+
 
 int write_results(options_t * opts)
 {
@@ -127,52 +163,41 @@ int compute_results(options_t * opts)
 
    /* the first 3 methods are varieties of enorm/dvars */
    if( method == T21_METH_ENORM ||
-       method == T21_METH_RMS || 
-       method == T21_METH_SRMS ) RETURN(compute_enorm(opts, method));
+       method == T21_METH_RMS   || 
+       method == T21_METH_SRMS  ||
+       method == T21_METH_S_SRMS)  RETURN(compute_enorm(opts, method));
+
+   if( method == T21_METH_MDIFF ||
+       method == T21_METH_SMDIFF ) RETURN(compute_meandiff(opts, method));
    
    ERROR_message("unknown method index %d", method);
 
    RETURN(1);
 }
 
-/* this is basically enorm, with scaling variants 
- *
- * convert dsum to dmean and then a scalar:
- * method = 1 : enrom  sqrt(ss)
- *          2 : rms    sqrt(ss/nvox) = stdev (biased)
- *          3 : srms   sqrt(ss/nvox) / grand mean
- */
-int compute_enorm(options_t * opts, int method)
+
+/* this computes the mean abs first (backwards) diff */
+int compute_meandiff(options_t * opts, int method)
 {
-   double * dwork, dscale, gmean, gdiff;
+   double * dwork, dscale, gmean, meandiff;
    float  * fdata, fdiff;
    byte   * mask = opts->mask;  /* save 6 characters... */
    int      nt, nvox, vind, tind, nmask;
 
-   ENTRY("compute_enorm");
+   ENTRY("compute_mdiff");
 
    nt = DSET_NVALS(opts->inset);
    nvox = DSET_NVOX(opts->inset);
 
    /* note how many voxels this is over */
-   if( opts->mask ) {
-      if( opts->verb )
-         INFO_message("ready for computations, nmask = %d, nt = %d", nmask, nt);
-      nmask = THD_countmask( nvox, opts->mask );
-   } else {
-      nmask = nvox;
-   }
+   if( opts->mask ) nmask = THD_countmask( nvox, opts->mask );
+   else             nmask = nvox;
 
-   /* make sure we have something to compute */
-   if( nvox < 1 ) {
-      ERROR_message("input dataset must have at least 1 voxel");
-      RETURN(1);
-   } else if( nmask < 1 ) {
-      ERROR_message("input mask must have at least 1 voxel");
-      RETURN(1);
-   } else if( nt < 2 ) {
-      ERROR_exit("input dataset must have at least 2 time points");
-   }
+   if( opts->verb )
+      INFO_message("computing %s, nvox = %d, nmask = %d, nt = %d",
+                   meth_index_to_name(method), nvox, nmask, nt);
+
+   /* check_dims() has been called, so we have sufficient data */
 
    dwork = calloc(nt, sizeof(double));
    fdata = calloc(nt, sizeof(float));
@@ -180,11 +205,9 @@ int compute_enorm(options_t * opts, int method)
    /* could steal fdata, but that might be unethical (plus, garbage on err) */
    opts->result = calloc(nt, sizeof(float));
 
-   if( opts->verb > 1 )
-      INFO_message("ready for computations, nt = %d", nt);
-
    /* use gmean to get mean across all masked voxels and time */
    gmean = 0.0;
+   meandiff = 0.0;
    for( vind=0; vind < nvox; vind++ ) {
       if( opts->mask && ! opts->mask[vind] ) continue;
 
@@ -196,8 +219,107 @@ int compute_enorm(options_t * opts, int method)
       /* accumuate squared differences; dwork[0] is already 0 */
       gmean += fdata[0];  /* and accumlate for mean */
       for( tind=1; tind < nt; tind++ ) {
-         gmean += fdata[tind];  /* and accumlate for mean */
+         gmean += fdata[tind];      /* accumlate for mean */
+         fdiff = fabs(fdata[tind]-fdata[tind-1]);
+         meandiff += fdiff;        /* accumulate for mean diff */
+         dwork[tind] += fdiff;
+      }
+   }
+
+   /* convert dsum to dmean and then a scalar:
+    * method = 1 : enorm  sqrt(ss)
+    *          2 : rms    sqrt(ss/nmask) = stdev (biased) of first diffs
+    *          3 : srms   sqrt(ss/nmask) / abs(grand mean)
+    */
+   gmean = fabs(gmean/nmask/nt); /* global masked mean */
+   meandiff /= nmask*nt;         /* global masked mean first diff */
+
+   /* set the enorm scalar, based on the method */
+   if( method == T21_METH_MDIFF ) {
+      if( opts->verb ) INFO_message("mean diff uses no scaling");
+      dscale = nmask;
+   } else if ( method == T21_METH_SMDIFF ) {
+      if( opts->verb ) INFO_message("scaled mean diff = mdiff/gmean");
+      if( gmean == 0.0 ) {
+         ERROR_message("values have zero mean, failing (use mdiff, instead)");
+         free(dwork);  free(fdata);  RETURN(1);
+      } else if( gmean < 1.0 ) {
+         WARNING_message("values seem de-meaned, should probably use mdiff");
+      }
+      dscale = nmask*gmean;
+   }
+
+   if( opts->verb )
+      INFO_message("global mean = %f, mean diff = %f, mdiff/gmean = %f",
+                   gmean, meandiff, meandiff/gmean);
+
+   /* scale and store the result */
+   dscale = 1.0/dscale;  /* for uselessly small speed-up */
+   for( tind=1; tind < nt; tind++ )
+      opts->result[tind] = dscale * dwork[tind];
+   opts->nt = nt;
+
+   free(dwork);
+   free(fdata);
+  
+   if( opts->verb > 1 ) INFO_message("successfully computed mdiff");
+
+   RETURN(0);
+}
+
+
+/* this is basically enorm, with scaling variants 
+ *
+ * convert dsum to dmean and then a scalar:
+ * method = 1 : enrom  sqrt(ss)
+ *          2 : rms    sqrt(ss/nvox) = stdev (biased)
+ *          3 : srms   sqrt(ss/nvox) / grand mean
+ */
+int compute_enorm(options_t * opts, int method)
+{
+   double * dwork, dscale, gmean, meandiff;
+   float  * fdata, fdiff;
+   byte   * mask = opts->mask;  /* save 6 characters... */
+   int      nt, nvox, vind, tind, nmask;
+
+   ENTRY("compute_enorm");
+
+   nt = DSET_NVALS(opts->inset);
+   nvox = DSET_NVOX(opts->inset);
+
+   /* note how many voxels this is over */
+   if( opts->mask ) nmask = THD_countmask( nvox, opts->mask );
+   else             nmask = nvox;
+
+   if( opts->verb )
+      INFO_message("computing %s, nvox = %d, nmask = %d, nt = %d",
+                   meth_index_to_name(method), nvox, nmask, nt);
+
+   /* check_dims() has been called, so we have sufficient data */
+
+   dwork = calloc(nt, sizeof(double));
+   fdata = calloc(nt, sizeof(float));
+
+   /* could steal fdata, but that might be unethical (plus, garbage on err) */
+   opts->result = calloc(nt, sizeof(float));
+
+   /* use gmean to get mean across all masked voxels and time */
+   gmean = 0.0;
+   meandiff = 0.0;
+   for( vind=0; vind < nvox; vind++ ) {
+      if( opts->mask && ! opts->mask[vind] ) continue;
+
+      if( THD_extract_array(vind, opts->inset, 0, fdata) ) {
+         ERROR_message("failed to exract data at index %d\n", vind);
+         free(dwork);  free(fdata);  RETURN(1);
+      }
+
+      /* accumuate squared differences; dwork[0] is already 0 */
+      gmean += fdata[0];  /* and accumlate for mean */
+      for( tind=1; tind < nt; tind++ ) {
+         gmean += fdata[tind];      /* accumlate for mean */
          fdiff = fdata[tind]-fdata[tind-1];
+         meandiff += fabs(fdiff);   /* accumulate for mean diff */
          dwork[tind] += fdiff*fdiff;
       }
    }
@@ -208,14 +330,16 @@ int compute_enorm(options_t * opts, int method)
     *          3 : srms   sqrt(ss/nmask) / abs(grand mean)
     */
    gmean = fabs(gmean/nmask/nt); /* global masked mean */
-   if( opts->verb ) INFO_message("global ave = %f", gmean);
+   meandiff /= nmask*nt;         /* global masked mean first diff */
+
+   /* set the enorm scalar, based on the method */
    if( method == T21_METH_ENORM ) {
       if( opts->verb ) INFO_message("writing enorm : uses no scaling");
       dscale = 1.0;
    } else if ( method == T21_METH_RMS ) {
       if( opts->verb ) INFO_message("writing rms = dvars = enorm/sqrt(nvox)");
       dscale = sqrt(nmask);
-   } else if ( method == T21_METH_SRMS ) {
+   } else if ( method == T21_METH_SRMS || method == T21_METH_S_SRMS ) {
       if( opts->verb ) INFO_message("scaled dvars = srms = rms/gmean");
       if( gmean == 0.0 ) {
          ERROR_message("values have zero mean, failing (use rms, instead)");
@@ -225,6 +349,10 @@ int compute_enorm(options_t * opts, int method)
       }
       dscale = sqrt(nmask)*gmean;
    }
+
+   if( opts->verb )
+      INFO_message("global mean = %f, mean diff = %f, mdiff/gmean = %f",
+                   gmean, meandiff, meandiff/gmean);
    if( opts->verb > 2 ) INFO_message("scaling enorm down by %f", dscale);
 
    /* scale and store the result */
@@ -232,6 +360,14 @@ int compute_enorm(options_t * opts, int method)
    for( tind=1; tind < nt; tind++ )
       opts->result[tind] = dscale * sqrt(dwork[tind]);
    opts->nt = nt;
+
+   /* if computing a mean diff, apply the shift */
+   if( method == T21_METH_S_SRMS ) {
+      meandiff /= gmean;
+      if( opts->verb ) INFO_message("shift by scaled mean diff %f", meandiff);
+      for( tind=1; tind < nt; tind++ )
+         opts->result[tind] -= meandiff;
+   }
 
    free(dwork);
    free(fdata);
@@ -306,6 +442,13 @@ int meth_name_to_index(char * name)
    if( ! strcasecmp(name, "srms") ||
        ! strcasecmp(name, "cvar") )    return T21_METH_SRMS;
 
+   if( ! strcasecmp(name, "shift_srms") ||
+       ! strcasecmp(name, "s_srms") )  return T21_METH_S_SRMS;
+
+   if( ! strcasecmp(name, "mdiff") )   return T21_METH_MDIFF;
+
+   if( ! strcasecmp(name, "smdiff") )  return T21_METH_SMDIFF;
+
    /* be explicit, since we have a case for this */
    if( ! strcmp(name, "undefined") ) return T21_METH_UNDEF;
 
@@ -317,6 +460,9 @@ char * meth_index_to_name(int method)
    if( method == T21_METH_ENORM )   return "enorm";
    if( method == T21_METH_RMS )     return "rms";
    if( method == T21_METH_SRMS )    return "srms";
+   if( method == T21_METH_S_SRMS )  return "shift_srms";
+   if( method == T21_METH_MDIFF )   return "mdiff";
+   if( method == T21_METH_SMDIFF )  return "smdiff";
 
    return "undefined";
 }
@@ -381,8 +527,19 @@ int show_help(void)
    "      is unchanged with any data scaling (unlike DVARS), values are\n"
    "      comparable across subjects and studies.\n"
    "\n"
-   "\n"
    "  *** These 3 functions/curves are identical, subject to scaling.\n"
+   "\n"
+   "\n"
+   "   4. shift_srms  (= srms - meandiff)\n"
+   "\n"
+   "      This is simply the SRMS curve shifted down by the global mean of\n"
+   "      (the absolute values of) the first differences.\n"
+   "\n"
+   "\n"
+   "   5. mdiff (mean diff = mean abs(first diff))\n"
+   "\n"
+   "      Again, starting with the first backward differences, this is the\n"
+   "      mean absolute values (of those first differences).\n"
    "\n"
    "--------------------------------------------------\n"
    "examples:\n"
