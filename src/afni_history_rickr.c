@@ -51,9 +51,9 @@ afni_history_struct rickr_history[] = {
 
  { 19,  Jul, 2017, RCR, "3dDeconvolve", MICRO, TYPE_BUG_FIX,
    "adjust looking for good stim times to handle global timing",
-   "Max time was previously that of the longest run.  For global\n"
-   "times, accumulate across runs.\n"
-   "Thanks to B Callaghan for noting the problem."
+   "Max time was previously that of the longest run.  For global timing,\n"
+   "accumulate across runs.\n"
+   "Thanks to B Callaghan, Michael, ace327 and Jeff for noting the problem."
  } ,
 
  { 11,  Jul, 2017, RCR, "afni_system_check.py", MICRO, TYPE_MODIFY,
