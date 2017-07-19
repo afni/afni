@@ -49,6 +49,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19,  Jul, 2017, RCR, "3dDeconvolve", MICRO, TYPE_BUG_FIX,
+   "adjust looking for good stim times to handle global timing",
+   "Max time was previously that of the longest run.  For global\n"
+   "times, accumulate across runs.\n"
+   "Thanks to B Callaghan for noting the problem."
+ } ,
+
  { 11,  Jul, 2017, RCR, "afni_system_check.py", MICRO, TYPE_MODIFY,
    "if /opt/X11/lib/libXt.dylib points to Xt.6, no need to check env var",
    NULL
