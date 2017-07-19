@@ -179,7 +179,7 @@ int compute_results(options_t * opts)
 /* this computes the mean abs first (backwards) diff */
 int compute_meandiff(options_t * opts, int method)
 {
-   double * dwork, dscale, gmean, meandiff;
+   double * dwork, dscale, gmean, mdiff;
    float  * fdata, fdiff;
    byte   * mask = opts->mask;  /* save 6 characters... */
    int      nt, nvox, vind, tind, nmask;
@@ -207,7 +207,7 @@ int compute_meandiff(options_t * opts, int method)
 
    /* use gmean to get mean across all masked voxels and time */
    gmean = 0.0;
-   meandiff = 0.0;
+   mdiff = 0.0;
    for( vind=0; vind < nvox; vind++ ) {
       if( opts->mask && ! opts->mask[vind] ) continue;
 
@@ -221,7 +221,7 @@ int compute_meandiff(options_t * opts, int method)
       for( tind=1; tind < nt; tind++ ) {
          gmean += fdata[tind];      /* accumlate for mean */
          fdiff = fabs(fdata[tind]-fdata[tind-1]);
-         meandiff += fdiff;        /* accumulate for mean diff */
+         mdiff += fdiff;            /* accumulate for mean diff */
          dwork[tind] += fdiff;
       }
    }
@@ -232,7 +232,7 @@ int compute_meandiff(options_t * opts, int method)
     *          3 : srms   sqrt(ss/nmask) / abs(grand mean)
     */
    gmean = fabs(gmean/nmask/nt); /* global masked mean */
-   meandiff /= nmask*nt;         /* global masked mean first diff */
+   mdiff /= nmask*nt;            /* global masked mean first diff */
 
    /* set the enorm scalar, based on the method */
    if( method == T21_METH_MDIFF ) {
@@ -251,12 +251,11 @@ int compute_meandiff(options_t * opts, int method)
 
    if( opts->verb )
       INFO_message("global mean = %f, mean diff = %f, mdiff/gmean = %f",
-                   gmean, meandiff, meandiff/gmean);
+                   gmean, mdiff, mdiff/gmean);
 
    /* scale and store the result */
-   dscale = 1.0/dscale;  /* for uselessly small speed-up */
    for( tind=1; tind < nt; tind++ )
-      opts->result[tind] = dscale * dwork[tind];
+      opts->result[tind] = dwork[tind] / dscale;
    opts->nt = nt;
 
    free(dwork);
@@ -271,13 +270,13 @@ int compute_meandiff(options_t * opts, int method)
 /* this is basically enorm, with scaling variants 
  *
  * convert dsum to dmean and then a scalar:
- * method = 1 : enrom  sqrt(ss)
+ * method = 1 : enorm  sqrt(ss)
  *          2 : rms    sqrt(ss/nvox) = stdev (biased)
  *          3 : srms   sqrt(ss/nvox) / grand mean
  */
 int compute_enorm(options_t * opts, int method)
 {
-   double * dwork, dscale, gmean, meandiff;
+   double * dwork, dscale, gmean, mdiff;
    float  * fdata, fdiff;
    byte   * mask = opts->mask;  /* save 6 characters... */
    int      nt, nvox, vind, tind, nmask;
@@ -305,7 +304,7 @@ int compute_enorm(options_t * opts, int method)
 
    /* use gmean to get mean across all masked voxels and time */
    gmean = 0.0;
-   meandiff = 0.0;
+   mdiff = 0.0;
    for( vind=0; vind < nvox; vind++ ) {
       if( opts->mask && ! opts->mask[vind] ) continue;
 
@@ -319,7 +318,7 @@ int compute_enorm(options_t * opts, int method)
       for( tind=1; tind < nt; tind++ ) {
          gmean += fdata[tind];      /* accumlate for mean */
          fdiff = fdata[tind]-fdata[tind-1];
-         meandiff += fabs(fdiff);   /* accumulate for mean diff */
+         mdiff += fabs(fdiff);      /* accumulate for mean diff */
          dwork[tind] += fdiff*fdiff;
       }
    }
@@ -330,7 +329,7 @@ int compute_enorm(options_t * opts, int method)
     *          3 : srms   sqrt(ss/nmask) / abs(grand mean)
     */
    gmean = fabs(gmean/nmask/nt); /* global masked mean */
-   meandiff /= nmask*nt;         /* global masked mean first diff */
+   mdiff /= nmask*nt;            /* global masked mean first diff */
 
    /* set the enorm scalar, based on the method */
    if( method == T21_METH_ENORM ) {
@@ -350,23 +349,23 @@ int compute_enorm(options_t * opts, int method)
       dscale = sqrt(nmask)*gmean;
    }
 
+   /* babble to user */
    if( opts->verb )
       INFO_message("global mean = %f, mean diff = %f, mdiff/gmean = %f",
-                   gmean, meandiff, meandiff/gmean);
+                   gmean, mdiff, mdiff/gmean);
    if( opts->verb > 2 ) INFO_message("scaling enorm down by %f", dscale);
 
    /* scale and store the result */
-   dscale = 1.0/dscale;  /* for uselessly small speed-up */
    for( tind=1; tind < nt; tind++ )
-      opts->result[tind] = dscale * sqrt(dwork[tind]);
+      opts->result[tind] = sqrt(dwork[tind]) / dscale;
    opts->nt = nt;
 
    /* if computing a mean diff, apply the shift */
    if( method == T21_METH_S_SRMS ) {
-      meandiff /= gmean;
-      if( opts->verb ) INFO_message("shift by scaled mean diff %f", meandiff);
+      mdiff /= gmean;
+      if( opts->verb ) INFO_message("shift by scaled mean diff %f", mdiff);
       for( tind=1; tind < nt; tind++ )
-         opts->result[tind] -= meandiff;
+         opts->result[tind] -= mdiff;
    }
 
    free(dwork);
@@ -480,7 +479,7 @@ int show_help(void)
    "and an optional mask, and computes from in a 1D time series using some\n"
    "method.  Choices for the method include:\n"
    "\n"
-   "   1. enorm\n"
+   "   method enorm\n"
    "\n"
    "      This is the Euclidean norm.\n"
    "\n"
@@ -493,7 +492,7 @@ int show_help(void)
    "         enorm = sqrt(sum squares)\n"
    "\n"
    "\n"
-   "   2. rms (or dvars)\n"
+   "   method rms (or dvars)\n"
    "\n"
    "      RMS = DVARS = enorm/sqrt(nvox).\n"
    "\n"
@@ -514,7 +513,7 @@ int show_help(void)
    "      This is why SRMS was introduced.\n"
    "\n"
    "\n"
-   "   3. srms (or cvar) (= scaled rms = dvars/mean = enorm/sqrt(nvox)/mean)\n"
+   "   method srms (or cvar) (= scaled rms = dvars/mean)\n"
    "\n"
    "      This result is basically the coefficient of variation, but without\n"
    "      removal of each volume mean.\n"
@@ -527,37 +526,111 @@ int show_help(void)
    "      is unchanged with any data scaling (unlike DVARS), values are\n"
    "      comparable across subjects and studies.\n"
    "\n"
-   "  *** These 3 functions/curves are identical, subject to scaling.\n"
+   "  *** The above 3 results are identical, subject to scaling.\n"
    "\n"
    "\n"
-   "   4. shift_srms  (= srms - meandiff)\n"
+   "   method shift_srms  (= srms - meandiff)\n"
    "\n"
    "      This is simply the SRMS curve shifted down by the global mean of\n"
-   "      (the absolute values of) the first differences.\n"
+   "      (the absolute values of) the first differences.  This is probably\n"
+   "      useless.\n"
    "\n"
    "\n"
-   "   5. mdiff (mean diff = mean abs(first diff))\n"
+   "   method mdiff (mean diff = mean abs(first diff))\n"
    "\n"
-   "      Again, starting with the first backward differences, this is the\n"
-   "      mean absolute values (of those first differences).\n"
+   "      Again, starting with the first backward differences, this is just\n"
+   "      the mean absolute values (of those first differences).\n"
+   "\n"
+   "\n"
+   "   method smdiff (scaled mean diff = mdiff/mean)\n"
+   "\n"
+   "      This is the mean diff scaled by the global mean.\n"
    "\n"
    "--------------------------------------------------\n"
    "examples:\n"
    "\n"
-   "a. compute DVARS of EPI time series within a brain mask\n"
-   "   (this might be used for censoring)\n"
+   "E1. compute SRMS of EPI time series within a brain mask\n"
+   "    (might be good for censoring, and is comparable across subjects)\n"
    "\n"
-   "   3dTto1D -input epi_r1+orig -mask mask.auto.nii.gz -method dvars \\\n"
-   "           -prefix epi_dvars.1D\n"
+   "       3dTto1D -input epi_r1+orig -mask mask.auto.nii.gz -method srms \\\n"
+   "               -prefix epi_srms.1D\n"
    "\n"
-   "b. compute SRMS of EPI time series within a brain mask\n"
-   "   (similarly used for censoring, but is comparable across subjects)\n"
+   "E2. compute DVARS of EPI time series within a brain mask\n"
+   "    (similarly good for censoring, but not comparable across subjects)\n"
    "\n"
-   "   3dTto1D -input epi_r1+orig -mask mask.auto.nii.gz -method dvars \\\n"
-   "           -prefix epi_dvars.1D\n"
+   "       3dTto1D -input epi_r1+orig -mask mask.auto.nii.gz -method dvars \\\n"
+   "               -prefix epi_dvars.1D\n"
    "\n"
+   "E3. compute ENORM of motion parameters\n"
+   "    (as is done by afni_proc.py via 1d_tool.py)\n"
    "\n"
+   "    Note that 1D inputs will generally need the transpose operator,\n"
+   "    applied by appending an escaped ' to the -input dataset.\n"
    "\n"
+   "       3dTto1D -input dfile.r01.1D\\' -method enorm -prefix enorm.r01.1D\n"
+   "\n"
+   "--------------------------------------------------\n"
+   "informational command arguments:\n"
+   "\n"
+   "   -help                    : show this help\n"
+   "   -hist                    : show program history\n"
+   "   -ver                     : show program version\n"
+   "\n"
+   "--------------------------------------------------\n"
+   "required command arguments:\n"
+   "\n"
+   "   -input DSET              : specify input dataset\n"
+   "\n"
+   "         e.g. -input epi_r1+orig\n"
+   "         e.g. -input dfile.r01.1D\\'\n"
+   "\n"
+   "      Specify the input dataset to be processed.  This should be a set\n"
+   "      of 3D time series.  If the input is in 1D format, a transpose\n"
+   "      operator will typically be required.\n"
+   "\n"
+   "   -method METHOD           : specify 4D to 1D conversion method\n"
+   "\n"
+   "         e.g. -method srms\n"
+   "         e.g. -method DVARS\n"
+   "         e.g. -method dvars\n"
+   "         e.g. -method enorm\n"
+   "\n"
+   "      Details of the computational methods are at the top of the help.\n"
+   "      The methods (which are case insensitive) include:\n"
+   "\n"
+   "         enorm      : Euclidean norm of first differences\n"
+   "                      = sqrt(sum squares(diffs))\n"
+   "\n"
+   "         rms        : RMS (root mean square) of first differences\n"
+   "                      = DVARS = enorm/sqrt(nvox)\n"
+   "\n"
+   "         srms       : scaled (by grand mean) RMS of first differences\n"
+   "                      = DVARS/mean\n"
+   "\n"
+   "                  * seems like the most useful method for censoring\n"
+   "\n"
+   "         s_srms     : SRMS shifted by grand mean abs of first diffs\n"
+   "                      = SRMS - mean(abs(first diffs))\n"
+   "\n"
+   "         mdiff      : mean absolute first differences\n"
+   "                      = mean(abs(first diff))\n"
+   "\n"
+   "         smdiff     : mdiff scaled by grand mean\n"
+   "                      = mdiff/mean\n"
+   "\n"
+   "--------------------------------------------------\n"
+   "optional command arguments:\n"
+   "\n"
+   "   -automask\n"
+   "   -mask\n"
+   "   -prefix\n"
+   "   -verb\n"
+   "   -input DSET              : specify input dataset\n"
+   "\n"
+   "         e.g. -input epi_r1+orig\n"
+   "         e.g. -input dfile.r01.1D\\'\n"
+   "\n"
+   "      Specify the input dataset to be processed.  This should be a set\n"
    "\n"
    );
 
