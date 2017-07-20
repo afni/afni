@@ -126,6 +126,7 @@ list parallel instructions for each.
 
    .. include:: substep_evaluate.rst
 
+.. _install_steps_linux_ubuntu_niceify:
 
 #. **(optional) Niceifying interfaces: it's a magical terminal.**
 

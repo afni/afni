@@ -144,3 +144,25 @@ some step is failing and you want more information about why, you can
 instruct them to not be deleted using the ``-no_clean`` switch.
 
 
+Shell and scripting choices in these docs
+-----------------------------------------
+
+The command line blocs in these tutorial docs will use ``tcsh``
+scripting notation from time to time, for example defining something
+as a variable and then using that variable in a ``fat_proc`` function,
+such as::
+
+  set dirname = "/data/DTI_EXAMPLE_DATA/data_proc/SUBJ_001/dwi_00"
+
+  fat_proc_something                  \
+      -prefix $dirname/subj_314159    \
+      ...
+
+This is often done to simplify script reading, shortening lines by
+wrapping up long file paths into a single variable, or purely on whim.
+
+Some people feel strongly about ``tcsh`` vs ``bash`` or other shells--
+I am not smart enough to care deeply, fortunately or unfortunately.
+Please feel free to translate any of these statements into whatever
+shell or scripting language, such as Python, that you would wish.
+

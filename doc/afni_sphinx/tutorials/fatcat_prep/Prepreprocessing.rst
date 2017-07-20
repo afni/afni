@@ -144,14 +144,15 @@ Convert DWIs: fat_proc_convert_dcm_dwis
 
 For each DWI set, go from DICOMs to having a NIFTI volume plus
 supplementary text files: a '\*.bvec' file has the unit normal
-gradients, and a '\*.bval' file has the diffusion weighting
-b-values. The (x, y, z) = (0, 0, 0) coordinate of the data set is
-placed at the center of mass of the volume (and, when AP-PA sets are
-loaded, the sets could be given the same origin); having large
-distance among data sets create problems for rotating visualizations
-and for alignment processes.  Volumes should all have the same
-orientation ("RPI" by default) and be anonymized (depends on things
-like filenames chosen; users should doublecheck anonymizing).
+gradients, and a '\*.bval' file has the diffusion weighting b-values.
+
+The (x, y, z) = (0, 0, 0) coordinate of the data set is placed at the
+center of mass of the volume (and, when AP-PA sets are loaded, the
+sets could be given the same origin); having large distance among data
+sets create problems for rotating visualizations and for alignment
+processes.  Volumes should all have the same orientation ("RPI" by
+default) and be anonymized (depends on things like filenames chosen;
+users should doublecheck anonymizing).
 
 * A paired set of *N* DWIs with opposite phase encode
   directions (in "SUBJ_001/dwi_ap/" and "SUBJ_001/dwi_pa/")::
@@ -168,7 +169,20 @@ like filenames chosen; users should doublecheck anonymizing).
         -prefix $path_P_ss/dwi_00/pa
 
   -> produces one new directory in 'data_proc/SUBJ_001/', called
-  "dwi_00/".  It contains the following outputs for the AP data (and
+  "dwi_00/":
+
+  .. list-table:: 
+     :header-rows: 1
+     :widths: 90
+
+     * - Directory structure for example data set
+     * - .. image:: media/fp_01_data_proc_dwi_00.png
+            :width: 100%
+            :align: center
+     * - *Output files made by fat_proc_convert_dcm_dwis commands for
+         both the AP and PA data.*
+
+  It contains the following outputs for the AP data (and
   analogous outputs for the PA sets):
 
   .. list-table:: 
@@ -209,11 +223,16 @@ like filenames chosen; users should doublecheck anonymizing).
      * - .. image:: media/pa_sepscl.sag.png
             :width: 100%   
             :align: center
-     * - *PA volumes, separate scaling per volume, sagittal view.*
+     * - *PA volumes, separate scaling per volume, sagittal view.  The
+         integer numbers in the upper left hand corner ("#N") of each
+         panel are the volume number in the image.  There are 33
+         volumes in this dset, with the final two blank panels (#33
+         and #34) merely appended for to display a full matrix.*
      * - .. image:: media/ap_sepscl.sag.png
             :width: 100%   
             :align: center
-     * - *AP volumes, separate scaling per volume, sagittal view.*
+     * - *AP volumes, separate scaling per volume, sagittal view.
+         The image formatting is the same as above.*
 
 .. note:: Toggling between those sets of images highlights just why
           the AP-PA (or blip up-blip down) distortion correction for
@@ -221,8 +240,12 @@ like filenames chosen; users should doublecheck anonymizing).
           this on adjacent browser tabs and switch back and forth.
 
 No gradient flipping has been performed (but it could be, if you
-wanted).  See the help file for changing these defaults, as well as
-output directories and file prefixes.
+wanted).  
+
+The AP and PA dsets match volume-for-volume.  Interestingly, one can
+notice the difference in overall brain shape between the AP and PA
+dsets; for example, one can open each set in their own browser tabs
+and toggle back and forth.
 
 
 .. 
@@ -259,35 +282,90 @@ output directories and file prefixes.
 Convert anatomical volume
 -------------------------
 
-Go from DICOMs to NIFTI. Sometimes ``dcm2nii`` creates multiple
-volumes from a single anatomical (one zoomed in on brain, etc.), but
-here we try to auto-select the basic one (file name typically starts
-with "2\*").  As for DWIs above, the (x, y, z) = (0, 0, 0) coordinate
-of the data set is placed at the center of mass of the volume.
+For each anatomical volume set (here, we have both a T1w and T2w
+volume), go from DICOMs to having a NIFTI volume.
 
-* A single anatomical (in SUB01/01_dicom_dir_anat/)::
+As for DWIs above, the (x, y, z) = (0, 0, 0) coordinate of the data
+set is placed at the center of mass of the volume. Volumes should all have the same orientation ("RPI" by
+default) and be anonymized (depends on things like filenames chosen;
+users should doublecheck anonymizing).
 
-     fat_pre_convert_anat.tcsh                       \
-         -indir  SUB01/01_dicom_dir_anat
+* A paired set of *N* DWIs with opposite phase encode
+  directions (in "SUBJ_001/dwi_ap/" and "SUBJ_001/dwi_pa/")::
 
-  -> produces a single directory called 'SUB01/ANATOM/', which
-  contains one file: anat.nii (there's also a subdirectory of
-  SUB01/ANATOM/ containing intermediate files; should be
-  ignorable).
+    # same I/O path variables as above in the DWI case
+    set path_B_ss = data_basic/SUBJ_001
+    set path_P_ss = data_proc/SUBJ_001
+
+    fat_proc_convert_dcm_anat              \
+        -indir  $path_B_ss/t1w/mr_0014     \
+        -prefix $path_P_ss/anat_00/t1w
+
+    fat_proc_convert_dcm_anat              \
+        -indir  $path_B_ss/t2w/mr_0002     \
+        -prefix $path_P_ss/anat_00/t2w
+
+  -> produces one new directory in 'data_proc/SUBJ_001/', called
+  "anat_00/":
 
   .. list-table:: 
-     :header-rows: 0
+     :header-rows: 1
+     :widths: 90
+
+     * - Directory structure for example anatomical volume(s) set
+     * - .. image:: media/fp_02_data_proc_anat_00.png
+            :width: 100%
+            :align: center
+     * - *Output files made by fat_proc_convert_dcm_anat commands for
+         both the T1w and T2w data.*
+
+  It contains the following outputs for the T1w data (and
+  analogous outputs for the T2w sets):
+
+  .. list-table:: 
+     :header-rows: 1
+     :widths: 20 80
+     :stub-columns: 0
+
+     * - Outputs of
+       - ``fat_proc_convert_dcm_anat``
+     * - **t1w_cmd.txt**
+       - textfile, copy of the command that was run, and location
+     * - **t1w.nii.gz**
+       - volumetric NIFTI file, 3D (single brick volume)
+     * - **t1w__qc00_anat.\*.png**
+       - autoimages, multiple slices per DWI volume, with single
+         scaling across the volume
+
+  .. list-table:: 
+     :header-rows: 1
      :widths: 100
 
-     * - .. image:: media/Screenshot_from_2016-08-12_09:43:26.png
-            :width: 90%
+     * - Autoimages of ``fat_proc_convert_dcm_anat``
+     * - .. image:: media/t1w__qc00_anat.sag.png
+            :width: 100%   
             :align: center
-     * - *End of 'anatomical conversion' script message, and
-         listing of directories afterwards.*
+     * - *Slices of the T1w volume, single scaling for the volume,
+         sagittal view.  The float numbers in the upper left hand
+         corner ("#XR") of each panel are the physical space
+         coordinate for that slice (in RAI-DICOM notation, which is
+         default in the AFNI GUI viewer).*
+     * - .. image:: media/t2w__qc00_anat.sag.png
+            :width: 100%   
+            :align: center
+     * - *T2w volumes, single scaling per volume, sagittal view.
+         The image formatting is the same as above.*
 
-The anatomical will have 'RPI' orientation. You could change that,
-or rename it to reflect what kind of anatomical it is (e.g., T1w or
-T2w).
+.. note:: Here, the T2w volume is really quite oblique to the viewing 
+
+
+
+The AP and PA dsets match volume-for-volume.  Interestingly, one can
+notice the difference in overall brain shape between the AP and PA
+dsets; for example, one can open each set in their own browser tabs
+and toggle back and forth.
+
+AAAAAAAAAAAAAAAAAAAAAAAa
 
 Axialize the anatomical
 -----------------------
