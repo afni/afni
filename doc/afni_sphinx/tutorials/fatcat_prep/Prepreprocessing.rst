@@ -6,10 +6,15 @@ Pre-preprocessing
 .. contents::
    :depth: 3
 
+Description
+-----------
+
 Many of the following pre-preprocessing steps are convenience features
 for organizing, viewing, and assessing data, while at the same timing
 preparing to run major "pre"processing with several software
-functions.
+functions.  The present description page may look long, but much of
+that is to including snapshots of terminals and autoimages along the
+way.
 
 The purposes of this set of scripts are to: 
 
@@ -103,6 +108,9 @@ directories:
        dset ("dwi_ap/", etc.), containing one or more directory of
        dicoms ("mr_00\*/").*
 
+Comments and notes
+------------------
+
 In this primary example, we will reconstruct the set as follows.  We
 will use both the AP and PA diffusion data in order to perform EPI
 distortion correction with ``DR_BUDDI``, but we will employ just the
@@ -118,18 +126,21 @@ the T1w volume for parcellation+segmentation in FreeSurfer.
           There will also be a separate description of processing as
           if there were no T2w volume, when I get even *more* time.
 
-In each case sets of montaged images that I think are useful are
-created automatically along the way (one axial, one sagittal and one
-coronal set).  These include overlay/underlay images to show matching
-structures, edges or ranges of values (multiple slices of a single 3D
-set), as well as comparisons of a single slice across a 4D data set.
+The help file of each function contains more options that are not
+listed in this "vanilla" processing description.  It would behoove the
+reader to check those out.
 
-Additionally, the help file of each function contains more options
-that are not listed in this "vanilla" processing description.  It
-would behoove the reader to check those out.
+Before processing, I have made a "data_proc/" directory that is
+parallel to the "data_basic/" one.  The idea is that if I need to redo
+processing, I can move the entire tree and redo it.  Additionally, as
+I loop through each subject directory in "data_basic/" (e.g., here,
+"SUBJ_001/"), I make a directory of the same name under "data_proc/"
+to hold all the processed data.  
 
-Convert DWIs
-------------
+.. _fp_convert_dcm_dwis:
+
+Convert DWIs: fat_proc_convert_dcm_dwis
+---------------------------------------
 
 For each DWI set, go from DICOMs to having a NIFTI volume plus
 supplementary text files: a '\*.bvec' file has the unit normal
@@ -138,10 +149,15 @@ b-values. The (x, y, z) = (0, 0, 0) coordinate of the data set is
 placed at the center of mass of the volume (and, when AP-PA sets are
 loaded, the sets could be given the same origin); having large
 distance among data sets create problems for rotating visualizations
-and for alignment processes.
+and for alignment processes.  Volumes should all have the same
+orientation ("RPI" by default) and be anonymized (depends on things
+like filenames chosen; users should doublecheck anonymizing).
 
 * A paired set of *N* DWIs with opposite phase encode
   directions (in "SUBJ_001/dwi_ap/" and "SUBJ_001/dwi_pa/")::
+
+    set path_B_ss = data_basic/SUBJ_001
+    set path_P_ss = data_proc/SUBJ_001
 
     fat_proc_convert_dcm_dwis              \
         -indir  $path_B_ss/dwi_ap/mr_0003  \
@@ -151,27 +167,63 @@ and for alignment processes.
         -indir  $path_B_ss/dwi_pa/mr_0006  \
         -prefix $path_P_ss/dwi_00/pa
 
-  -> produces one directories in 'SUB01/', called 'UNFILT_AP/',
-  which contains three files: AP.nii (*N* volumes), AP.bvec (3x\
-  *N* lines) and AP.bval (1x\ *N* lines); and the other called
-  'UNFILT_PA/', which contains three files: PA.nii (*N* volumes),
-  PA.bvec (3x\ *N* lines) and PA.bval (1x\ *N* lines).
+  -> produces one new directory in 'data_proc/SUBJ_001/', called
+  "dwi_00/".  It contains the following outputs for the AP data (and
+  analogous outputs for the PA sets):
 
   .. list-table:: 
-     :header-rows: 0
+     :header-rows: 1
+     :widths: 20 80
+     :stub-columns: 0
+
+     * - Outputs of
+       - ``fat_proc_convert_dcm_dwis``
+     * - **ap_cmd.txt**
+       - textfile, copy of the command that was run, and location
+     * - **ap.nii.gz**
+       - volumetric NIFTI file, 4D (*N*\=33 volumes)
+     * - **ap_bval.dat**
+       - textfile, row file of *N* b-values
+     * - **ap_rvec.dat**
+       - textfile, row file of (DW scaled) b-vectors (:math:`3\times N`)
+     * - **ap_cvec.dat**
+       - textfile, column file of (DW scaled) b-vectors (:math:`N\times 3`)
+     * - **ap_matA.dat**
+       - textfile, column file of (DW scaled) AFNI-style b-matrix
+         (:math:`N\times 6`)
+     * - **ap_matT.dat**
+       - textfile, column file of (DW scaled) AFNI-style b-matrix
+         (:math:`N\times 6`)
+     * - **ap_onescl.\*.png**
+       - autoimages, one slice per DWI volume, with single scaling
+         across all volumes
+     * - **ap_sepscl.\*.png**
+       - autoimages, one slice per DWI volume, with separate scalings
+         for each volume
+
+  .. list-table:: 
+     :header-rows: 1
      :widths: 100
 
-     * - .. image:: media/Screenshot_from_2016-08-12_09:33:47.png
-            :width: 90%   
+     * - Autoimages of ``fat_proc_convert_dcm_dwis``
+     * - .. image:: media/pa_sepscl.sag.png
+            :width: 100%   
             :align: center
-     * - *End of 'DWI conversion' script message, and listing of
-         directories afterwards.*
-  |
+     * - *PA volumes, separate scaling per volume, sagittal view.*
+     * - .. image:: media/ap_sepscl.sag.png
+            :width: 100%   
+            :align: center
+     * - *AP volumes, separate scaling per volume, sagittal view.*
 
-Each data set will have 'RPI' orientation; no gradient flipping has
-been performed (but it could be, if you wanted).  See the help file
-for changing these defaults, as well as output directories and file
-prefixes.
+.. note:: Toggling between those sets of images highlights just why
+          the AP-PA (or blip up-blip down) distortion correction for
+          EPI inhomogeneity must be done.  For example, you could open
+          this on adjacent browser tabs and switch back and forth.
+
+No gradient flipping has been performed (but it could be, if you
+wanted).  See the help file for changing these defaults, as well as
+output directories and file prefixes.
+
 
 .. 
     * **Case B:** A single set of *N* DWIs acquired with a single phase

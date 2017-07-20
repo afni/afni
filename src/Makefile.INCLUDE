@@ -101,7 +101,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dToyProg 3dRankizer nifti1_tool gifti_tool cifti_tool images_equal  \
            uniq_images tokens 3dLocalACF 3dXClustSim 3dtoXdataset 3dMultiThresh \
            3dLFCD 3dDegreeCentrality 3dECM 3dMSE 3dsvm_linpredict 3dTfilter     \
-           3dTsplit4D 3dSharpen 3dExtractGroupInCorr dcm2niix_afni \
+           3dTsplit4D 3dSharpen 3dExtractGroupInCorr dcm2niix_afni 3dTto1D \
            $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
@@ -140,6 +140,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
                   3dToyProg nifti1_tool gifti_tool cifti_tool images_equal          \
                   uniq_images stimband 1dNLfit tokens 3dLocalACF                    \
                   3dDegreeCentrality 3dECM 3dLFCD 3dMSE 3dsvm_linpredict            \
+                  3dTto1D \
                   $(EXTRAS)
 
 # For CYGWIN (look for "exe" to find various places below)
@@ -2738,6 +2739,11 @@ tokens: rickr/tokens.c
 			'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' ;           \
 	$(MV) tokens .. ; )
 
+3dTto1D: 3dTto1D.o libmri.a
+	$(RM) $@
+	$(CC) -o 3dTto1D 3dTto1D.o $(LFLAGS) $(LLIBS)
+
+
 
 selenium_test: selenium_test.o
 	$(RM) $@
@@ -3658,7 +3664,7 @@ R_io.so:R_io.c libmri.a
 	( if which R >/dev/null ; then \
 	echo PKG_CPPFLAGS = $(INFLAGS)  > Makevars ;\
 	echo PKG_LIBS =  $(LFLAGS) $(LLIBS) >> Makevars ;\
-	R CMD SHLIB R_io.c ; \
+	R CMD SHLIB -o R_io.so R_io.c ; \
 	else echo WARNING: Cannot build R_io.so because R is not installed;\
 	fi ; )
 
