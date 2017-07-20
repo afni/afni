@@ -191,9 +191,10 @@ g_history = """
    0.25 Jan 25, 2017 - new OS X, check any DYLD vars via sub-shells
    0.26 Feb  1, 2017 - updates for brew/fink, and check for fink python link
    0.27 Jun 16, 2017 - check for libXt.7.dylib without flat_namespace
+   0.28 Jul 12, 2017 - idiot; forget libXt.7 checks
 """
 
-g_version = "afni_system_check.py version 0.27, June 16, 2017"
+g_version = "afni_system_check.py version 0.28, July 12, 2017"
 
 
 class CmdInterface:

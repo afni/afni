@@ -62,9 +62,14 @@ afni_history_struct rickr_history[] = {
    "Thanks to B Callaghan, Michael, ace327 and Jeff for noting the problem."
  } ,
 
+ { 12,  Jul, 2017, RCR, "afni_system_check.py", MICRO, TYPE_MODIFY,
+   "ignore /opt/X11/lib/libXt.dylib check",
+   "Undo Xt.7 and /opt/X11/lib/libXt.6.dylib checks."
+ } ,
+
  { 11,  Jul, 2017, RCR, "afni_system_check.py", MICRO, TYPE_MODIFY,
-   "if /opt/X11/lib/libXt.dylib points to Xt.6, no need to check env var",
-   NULL
+   "check if /opt/X11/lib/libXt.dylib points to Xt.6",
+   "This is useless, pulling it out."
  } ,
 
  { 10,  Jul, 2017, RCR, "@update.afni.binaries", MICRO, TYPE_MODIFY,
