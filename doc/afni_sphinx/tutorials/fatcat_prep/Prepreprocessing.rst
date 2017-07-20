@@ -75,11 +75,6 @@ DWIs. We make a group directory for a study (e.g.,
 subject's directory ("SUBJ_001/"), which contains four sets of DICOM
 directories:
 
-* "t2w/": a T2w anatomical (with fat suppression-- highly recommended
-  if at all possible)
-
-* "t1w/": a T1w anatomical (standard MPRAGE)
-
 * "dwi_ap/": DWI set acquired with the phase encode direction
   anterior->posterior.  There is one directory of DICOMs acquired with
   gradients for just DTI reconstruction ("mr_0003/", with 3 volumes
@@ -87,12 +82,24 @@ directories:
   and two others with higher b-valued shells for including with a more
   complicated reconstruction ("mr_0004/", with 3 volumes with *b*\=0
   and 30 with *b*\=2500 :math:`{\rm s~mm^{-2}}`; "mr_0005/", with 3
-  volumes *b*\=0 and 30 with *b*\=5000 :math:`{\rm s~mm^{-2}}`)
-
+  volumes *b*\=0 and 30 with *b*\=5000 :math:`{\rm s~mm^{-2}}`). The
+  spatial resolution is :math:`2.5\times2.5\times2.5~{\rm mm}^3`;
+  perhaps more standard/desirable would be 2~mm isotropic.
+ 
 * "dwi_pa/": DWI set acquired with the same gradients as the AP one
   (with same respective shells stored in "mr_0006/" "mr_0007/"
   "mr_0008/"), though with the phase encode direction reversed,
   posterior->anterior.
+
+* "t2w/": a T2w anatomical (with fat suppression-- highly recommended
+  if at all possible) with :math:`1.25\times1.25\times1.70~{\rm mm}^3`
+  spatial resolution. This is still much higher resolution than the
+  DWI data, which is great; perhaps isotropic resolution would be
+  preferable.
+
+* "t1w/": a T1w anatomical (standard MPRAGE) with
+  :math:`1\times1\times1~{\rm mm}^3` spatial resolution.
+
 
 .. list-table:: 
    :header-rows: 1
@@ -157,6 +164,7 @@ users should doublecheck anonymizing).
 * A paired set of *N* DWIs with opposite phase encode
   directions (in "SUBJ_001/dwi_ap/" and "SUBJ_001/dwi_pa/")::
 
+    # for I/O, "basic" (= DICOM) and "proc" (= NIFTI) directories
     set path_B_ss = data_basic/SUBJ_001
     set path_P_ss = data_proc/SUBJ_001
 
@@ -279,21 +287,22 @@ and toggle back and forth.
 
 
 
-Convert anatomical volume
--------------------------
+Convert anatomical volume(s)
+----------------------------
 
 For each anatomical volume set (here, we have both a T1w and T2w
 volume), go from DICOMs to having a NIFTI volume.
 
 As for DWIs above, the (x, y, z) = (0, 0, 0) coordinate of the data
-set is placed at the center of mass of the volume. Volumes should all have the same orientation ("RPI" by
-default) and be anonymized (depends on things like filenames chosen;
-users should doublecheck anonymizing).
+set is placed at the center of mass of the volume. Volumes should all
+have the same orientation ("RPI" by default) and be anonymized
+(depends on things like filenames chosen; users should doublecheck
+anonymizing).
 
-* A paired set of *N* DWIs with opposite phase encode
-  directions (in "SUBJ_001/dwi_ap/" and "SUBJ_001/dwi_pa/")::
+* Two separate anatomical volumes, a T1w and a T2w dset (in
+  "SUBJ_001/t1w/" and "SUBJ_001/t2w/")::
 
-    # same I/O path variables as above in the DWI case
+    # for I/O, same path variables as above in the DWI case
     set path_B_ss = data_basic/SUBJ_001
     set path_P_ss = data_proc/SUBJ_001
 
@@ -342,52 +351,154 @@ users should doublecheck anonymizing).
      :widths: 100
 
      * - Autoimages of ``fat_proc_convert_dcm_anat``
-     * - .. image:: media/t1w__qc00_anat.sag.png
+     * - .. image:: media/t1w__qc00_anat.axi.png
             :width: 100%   
             :align: center
      * - *Slices of the T1w volume, single scaling for the volume,
-         sagittal view.  The float numbers in the upper left hand
-         corner ("#XR") of each panel are the physical space
+         axial view.  The float numbers in the upper left hand corner
+         ("#XI" and "#XS") of each panel are the physical space
          coordinate for that slice (in RAI-DICOM notation, which is
          default in the AFNI GUI viewer).*
-     * - .. image:: media/t2w__qc00_anat.sag.png
+     * - .. image:: media/t2w__qc00_anat.axi.png
             :width: 100%   
             :align: center
-     * - *T2w volumes, single scaling per volume, sagittal view.
-         The image formatting is the same as above.*
+     * - *T2w volumes, single scaling per volume, axial view.  The
+         image formatting is the same as above.*
 
-.. note:: Here, the T2w volume is really quite oblique to the viewing 
+.. note:: Notice that here the T2w volume is really quite oblique to
+          the acquired field of view (FOV).  When using this as a
+          reference volume in TORTOISE, the DWI volumes would also end
+          up with major axes unaligned to those of the dset FOV; this
+          would be highly non-ideal for things like RGB coloration and
+          systematic viewing/comparisons.  This is dealt with in the
+          next step ("axialization").
 
-
-
-The AP and PA dsets match volume-for-volume.  Interestingly, one can
-notice the difference in overall brain shape between the AP and PA
-dsets; for example, one can open each set in their own browser tabs
-and toggle back and forth.
-
-AAAAAAAAAAAAAAAAAAAAAAAa
 
 Axialize the anatomical
 -----------------------
 
-It might be useful to have the standard slice planes of the brain be
-parallel with the sides of the volume.  That is, if a subject's head
-is strongly tilted in the volumetric field of view (FOV), then the
+There are many reasons why it would be useful to have subject volumes
+well-aligned (i.e., major brain axes aligned with the volume's FOV, so
+that slices planes are in "standard" viewing orientation):
+
+* for group alignment, all volumes start "nearer" to each other
+
+* views across the group are more similar and therefore easier to
+  compare and/or spot differences and similarities
+
+* since the T2w volume will be useful for DWI reference alignment in
+  TORTOISE, then alignment leads to RGB coloration of structures in
+  DWI being both uniform across group and standardly interpretable
+  (e.g., transcallosal regions are red; cingular fibers are green;
+  cortico-spinal tracts are mainly blue).
+
+If a subject's head is strongly tilted in the volumetric FOV, then the
 display of slices might be awkward, anatomical definition might be
 tricky, tract/structure coloration could be non-standard, and later
-alignments might be made more difficult.  This process is akin to an
-automated form of "AC-PC alignment" that is sometimes performed (for
-example, using MIPAV).
+alignments might be made more difficult.  
 
-This program "rights the ship" by calculating an affine alignment to a
-reference volume of the user's choice (e.g., a standard space
-Talairach volume), *but only applying the rotation/translation part*,
-so that the subject's brain doesn't warp/change shape (and brightness
-values are not altered, except by minor smoothing due to rotation).
-This is essentially an automated version of AC-PC alignment. 
+The present "axialization" process is akin to an automated form of
+"AC-PC alignment" that is sometimes performed (for example, using
+MIPAV)-- but, importantly, it is **not the same thing**.  This program
+"rights the ship" by calculating an affine alignment to a reference
+volume of the user's choice (e.g., a standard space Talairach volume),
+*but only applying the rotation/translation part*, so that the
+subject's brain doesn't warp/change shape (and brightness values are
+not altered, except by minor smoothing due to rotation).
 
-Note that for T2w volumes, a special option should be used (see
-below).
+Axialization can be applied to either a T2w or T1w volume.  The "mode"
+of running must be specified, basically as whether the volume in
+question has either contrast similar to a human adult's T2w volume
+(``-mode_t2w``) or T1w volume (``-mode_t1w``).  The mode selection
+mainly specifies some processing options internally.  Note that for
+newborn infant dsets, one might invert the mode flag (i.e., use
+``-mode_t1w`` for an infant T2w volume), because the contrasts at
+young ages are inverted.  Sigh, I know, that's not ideal, but that's
+life at present.
+
+#############################################################
+
+* Two separate anatomical volumes, a T1w and a T2w dset (in
+  "SUBJ_001/t1w/" and "SUBJ_001/t2w/")::
+
+    # I/O path, same as above; just need the "proc" dirs now
+    set path_P_ss = data_proc/SUBJ_001
+
+    # reference anatomical volumes to which we axialize
+    set here       = $PWD
+    set ref_t2w    = $here/mni_icbm152_t2_relx_tal_nlin_sym_09a_ACPC.nii.gz
+    set ref_t2w_wt = $here/mni_icbm152_t2_relx_tal_nlin_sym_09a_ACPC_wtell.nii.gz 
+
+    fat_proc_axialize_anat                       \
+        -inset  $path_P_ss/anat_00/t2w.nii.gz    \
+        -prefix $path_P_ss/anat_01/t2w           \
+        -mode_t2w                                \
+        -refset          $ref_t2w                \
+        -extra_al_wtmask $ref_t2w_wt             \
+        -out_match_ref
+
+  -> produces one new directory in 'data_proc/SUBJ_001/', called
+  "anat_01/":
+
+  .. list-table:: 
+     :header-rows: 1
+     :widths: 90
+
+     * - Directory structure for example anatomical volume(s) set
+     * - .. image:: media/fp_02_data_proc_anat_00.png
+            :width: 100%
+            :align: center
+     * - *Output files made by fat_proc_convert_dcm_anat commands for
+         both the T1w and T2w data.*
+
+  It contains the following outputs for the T1w data (and
+  analogous outputs for the T2w sets):
+
+  .. list-table:: 
+     :header-rows: 1
+     :widths: 20 80
+     :stub-columns: 0
+
+     * - Outputs of
+       - ``fat_proc_convert_dcm_anat``
+     * - **t1w_cmd.txt**
+       - textfile, copy of the command that was run, and location
+     * - **t1w.nii.gz**
+       - volumetric NIFTI file, 3D (single brick volume)
+     * - **t1w__qc00_anat.\*.png**
+       - autoimages, multiple slices per DWI volume, with single
+         scaling across the volume
+
+  .. list-table:: 
+     :header-rows: 1
+     :widths: 100
+
+     * - Autoimages of ``fat_proc_convert_dcm_anat``
+     * - .. image:: media/t1w__qc00_anat.axi.png
+            :width: 100%   
+            :align: center
+     * - *Slices of the T1w volume, single scaling for the volume,
+         axial view.  The float numbers in the upper left hand corner
+         ("#XI" and "#XS") of each panel are the physical space
+         coordinate for that slice (in RAI-DICOM notation, which is
+         default in the AFNI GUI viewer).*
+     * - .. image:: media/t2w__qc00_anat.axi.png
+            :width: 100%   
+            :align: center
+     * - *T2w volumes, single scaling per volume, axial view.  The
+         image formatting is the same as above.*
+
+.. note:: Notice that here the T2w volume is really quite oblique to
+          the acquired field of view (FOV).  When using this as a
+          reference volume in TORTOISE, the DWI volumes would also end
+          up with major axes unaligned to those of the dset FOV; this
+          would be highly non-ideal for things like RGB coloration and
+          systematic viewing/comparisons.  This is dealt with in the
+          next step ("axialization").
+
+
+
+###########################################################
 
 * **T1w volume:** A single anatomical volume (SUB01/ANATOM/anat.nii)
   and a similar-contrast anatomical reference (e.g.,
