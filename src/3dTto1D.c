@@ -10,12 +10,13 @@ static char * g_history[] =
   "----------------------------------------------------------------------\n"
   "history (of 3dTto1D):\n"
   "\n",
+  "1.0  19 Jul 2017: initial release\n"
   "0.0  18 Jul 2017\n"
   "     (Rick Reynolds of the National Institutes of Health, SSCC/DIRP/NIMH)\n"
   "     -initial version\n"
 };
 
-static char g_version[] = "3dTto1D version 0.0, 29 September 2008";
+static char g_version[] = "3dTto1D version 1.0, 19 July 2017";
 
 #include "mrilib.h"
 
@@ -184,7 +185,7 @@ int compute_meandiff(options_t * opts, int method)
    byte   * mask = opts->mask;  /* save 6 characters... */
    int      nt, nvox, vind, tind, nmask;
 
-   ENTRY("compute_mdiff");
+   ENTRY("compute_meandiff");
 
    nt = DSET_NVALS(opts->inset);
    nvox = DSET_NVOX(opts->inset);
@@ -261,7 +262,7 @@ int compute_meandiff(options_t * opts, int method)
    free(dwork);
    free(fdata);
   
-   if( opts->verb > 1 ) INFO_message("successfully computed mdiff");
+   if( opts->verb > 1 ) INFO_message("successfully computed mean diff");
 
    RETURN(0);
 }
@@ -621,17 +622,18 @@ int show_help(void)
    "--------------------------------------------------\n"
    "optional command arguments:\n"
    "\n"
-   "   -automask\n"
-   "   -mask\n"
-   "   -prefix\n"
-   "   -verb\n"
-   "   -input DSET              : specify input dataset\n"
+   "   -automask        : restrict computation to automask\n"
+   "   -mask MSET       : restrict computation to given mask\n"
+   "   -prefix PREFIX   : specify output file\n"
+   "         e.g.     -prefix SVAR_run1.1D\n"
+   "         default: -prefix stdout\n"
+   "   -verb LEVEL      : specify verbose level\n"
+   "         e.g.     -verb 2\n"
+   "         default: -verb 1\n"
    "\n"
-   "         e.g. -input epi_r1+orig\n"
-   "         e.g. -input dfile.r01.1D\\'\n"
-   "\n"
-   "      Specify the input dataset to be processed.  This should be a set\n"
-   "\n"
+   "--------------------------------------------------\n"
+   "R Reynolds  July, 2017\n"
+   "-------------------------------------------------------------------------\n"
    );
 
    printf("%s\ncompiled: %s\n\n", g_version, __DATE__);

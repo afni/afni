@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19,  Jul, 2017, RCR, "3dTto1D", MAJOR, TYPE_NEW_PROG,
+   "time series to 1D : e.g. compute enorm, DVARS(RMS), SRMS",
+   "Given time series data such as EPI or motion parameters, compute\n"
+   "things like Euclidean norm and RMS (a.k.a. DVARS)."
+ } ,
+
  { 19,  Jul, 2017, RCR, "3dDeconvolve", MICRO, TYPE_BUG_FIX,
    "adjust looking for good stim times to handle global timing",
    "Max time was previously that of the longest run.  For global timing,\n"
