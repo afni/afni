@@ -51,7 +51,7 @@ list parallel instructions for each.
 
    First, get the install script::
       
-      curl -O https://afni.nimh.nih.gov/pub/dist/bin/linux_fedora_21_64/@update.afni.binaries
+      curl -O https://afni.nimh.nih.gov/pub/dist/bin/linux_ubuntu_16_64/@update.afni.binaries
       
    Then install the appropriate AFNI package.  Note that most other
    Linux systems will probably work with linux_openmp_64::

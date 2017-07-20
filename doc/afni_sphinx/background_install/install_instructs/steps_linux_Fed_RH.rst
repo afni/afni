@@ -59,7 +59,7 @@ for each.
    First, get the install script (*this* command actually works for both
    Fedora and RHEL systems)::
       
-      curl -O https://afni.nimh.nih.gov/pub/dist/bin/linux_fedora_21_64/@update.afni.binaries
+      curl -O https://afni.nimh.nih.gov/pub/dist/bin/linux_ubuntu_16_64/@update.afni.binaries
       
    Then install the appropriate AFNI package.  Note that most other
    Linux systems will probably work with linux_openmp_64:
@@ -67,10 +67,6 @@ for each.
    * *for RHEL 7*::
 
        tcsh @update.afni.binaries -package linux_openmp_64 -do_extras
-
-   * *for Fedora 21 (and higher)*::
-
-       tcsh @update.afni.binaries -package linux_fedora_21_64 -do_extras
 
    .. note:: if the binary package has already been downloaded, one can use ``-local_package``, followed by the location+name of the binary file, e.g.:
 
