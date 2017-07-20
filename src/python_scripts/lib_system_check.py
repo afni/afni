@@ -390,7 +390,10 @@ class SysInfo:
       self.check_for_10_11_lib('libgomp.1.dylib', wpath='gcc/*/lib/gcc/*')
       self.check_for_10_11_lib('libglib-2.0.dylib', wpath='glib/*/lib')
       self.check_for_flat_namespace()
-      self.check_for_libXt7()
+
+      # forget this function - I forgot that the problem was a non-flat version
+      #                        of libXt6, not a 6 vs 7 issue...
+      # self.check_for_libXt7()
 
    def hunt_for_homebrew(self):
       """assuming it was not found, just look for the file"""

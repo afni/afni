@@ -3468,6 +3468,11 @@ static ENV_SPEC envlist[] = {
       "Negative values mean leave the threshold alone when switching.\n",
       "SUMA_pval_at_switch",
       "-1.0" },
+   {  "If YES, then reduce messages to only errors while driving suma\n"
+      "Choose from YES or NO",
+      "SUMA_DriveSumaQuiet",
+      "NO" },
+
    {  NULL, NULL, NULL  }
 };
       

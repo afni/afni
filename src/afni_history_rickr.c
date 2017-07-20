@@ -49,6 +49,34 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19,  Jul, 2017, RCR, "3dTto1D", MAJOR, TYPE_NEW_PROG,
+   "time series to 1D : e.g. compute enorm, DVARS(RMS), SRMS",
+   "Given time series data such as EPI or motion parameters, compute\n"
+   "things like Euclidean norm and RMS (a.k.a. DVARS)."
+ } ,
+
+ { 19,  Jul, 2017, RCR, "3dDeconvolve", MICRO, TYPE_BUG_FIX,
+   "adjust looking for good stim times to handle global timing",
+   "Max time was previously that of the longest run.  For global timing,\n"
+   "accumulate across runs.\n"
+   "Thanks to B Callaghan, Michael, ace327 and Jeff for noting the problem."
+ } ,
+
+ { 12,  Jul, 2017, RCR, "afni_system_check.py", MICRO, TYPE_MODIFY,
+   "ignore /opt/X11/lib/libXt.dylib check",
+   "Undo Xt.7 and /opt/X11/lib/libXt.6.dylib checks."
+ } ,
+
+ { 11,  Jul, 2017, RCR, "afni_system_check.py", MICRO, TYPE_MODIFY,
+   "check if /opt/X11/lib/libXt.dylib points to Xt.6",
+   "This is useless, pulling it out."
+ } ,
+
+ { 10,  Jul, 2017, RCR, "@update.afni.binaries", MICRO, TYPE_MODIFY,
+   "if -bindir is relative, require -no_recur",
+   NULL
+ } ,
+
  {  5,  Jul, 2017, RCR, "3dAllineate", MICRO, TYPE_MODIFY,
    "make quieter: only report sub-brick messages if verbose",
    "Applied to 3dAllinate and 3dmerge."
