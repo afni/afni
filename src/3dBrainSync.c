@@ -45,8 +45,9 @@ void TSY_help_the_pitiful_user(void)
    " -inset1 dataset     = Reference dataset\n"
    " -inset2 dataset     = Dataset to be matched to the reference dataset,\n"
    "                       as much as possible.\n"
-   "                       ++ These 2 datasets must be on the same spatial\n"
-   "                          grid, and must have the same number of time points!\n"
+   "                       ++ These 2 datasets must be on the same spatial grid,\n"
+   "                          and must have the same number of time points!\n"
+   "                       ++ These are MANDATORY 'options'.\n"
    "\n"
    " -prefix ppp         = Specifies the output dataset, as usual.\n"
    "                       This will be the -inset2 dataset transformed\n"
@@ -55,7 +56,6 @@ void TSY_help_the_pitiful_user(void)
    "\n"
    " -normalize          = Normalize the output dataset so that each\n"
    "                       time series has sum-of-squares = 1.\n"
-   "                      **[not yet implemented]**\n"
    "\n"
    " -mask mset          = Only operate on voxels nonzero in the mset dataset.\n"
    "                       ++ Voxels outside the mask will be filled with zeros.\n"
@@ -68,14 +68,17 @@ void TSY_help_the_pitiful_user(void)
    "\n"
    " -joshi              = Use the Joshi method, with an orthogonal matrix\n"
    " -orthogonal           for the transformation. [This is the default]\n"
+   "                       ++ At present, there is no other method implemented,\n"
+   "                          so this option is VERY optional.\n"
    "\n"
+#if 0
    " -non-orthgonal      = Allow the use of a non-orthgonal matrix for the\n"
    "                       transformation. [Experimental]\n"
    "                      **[not yet implemented]**\n"
+#endif
    "\n"
    " -Qmatrix mmm        = Save the transformation matrix Q into a file\n"
    "                       with name 'mmm.qmat.1D', for perusal at your leisure.\n"
-   "                      **[not yet implemented]**\n"
    "\n"
    "------\n"
    "NOTES:\n"
@@ -86,29 +89,43 @@ void TSY_help_the_pitiful_user(void)
    "\n"
    "* Notation:\n"
    "    M = Number of time points\n"
-   "    N = Number of voxels > M\n"
+   "    N = Number of voxels > M (N = size of mask)\n"
    "    B = MxN matrix of time series from -inset1\n"
    "    C = MxN matrix of time series from -inset2\n"
    "        Both matrices have each column normalized to\n"
-   "        sum-of-squares = 1\n"
-   "    Q = Desired MxM matrix to transform C such that\n"
-   "        B-QC is as small as possible (sum-of-squares)\n"
+   "        sum-of-squares = 1 (L2 normalized)\n"
+   "    Q = Desired MxM matrix to transform C such that B-QC\n"
+   "        is as small as possible (sum-of-squares = Frechet norm)\n"
+   "        normF(A) = sum_{ij} A_{ij}^2 = trace(AA') = trace(A'A)\n"
+   "        This norm is different from the matrix L2 norm.\n"
    "\n"
    "* Joshi method:\n"
    "   (a) compute MxM matrix B C'\n"
    "   (b) compute SVD of B C' = U S V' (U, S, V are MxM matrices)\n"
    "   (c) Q = U V'\n"
+   "       [note: if B=C, then U=V, so Q=I, as it should]\n"
    "   (d) transform each time series from -inset2 using Q\n"
    "   This matrix Q is the solution to the restricted least squares\n"
    "   problem (i.e., restricted to have Q be an orthogonal matrix).\n"
+   "\n"
+   "   A pre-print of their method is available as:\n"
+   "   AA Joshi, M Chong, RM Leahy.\n"
+   "   BrainSync: An Orthogonal Transformation for Synchronization of fMRI\n"
+   "   Data Across Subjects, Proc. MICCAI 2017\n"
+   "   https://www.dropbox.com/s/tu4kuqqlg6r02kt/brainsync_miccai2017.pdf\n"
+   "   https://www.google.com/search?q=joshi+brainsync\n"
+#if 0
    "\n"
    "* non-orthogonal method:\n"
    "    Q = inv(C C') B C'\n"
    "      = solution to unrestricted least squares problem\n"
    "        (i.e., Q can be any MxM matrix).\n"
+#endif
    "\n"
    "* The input datasets should be pre-processed first to remove\n"
    "  undesirable components (motions, baseline, spikes, etc.)\n"
+   "  Otherwise, you'll be trying to match artifacts between the\n"
+   "  datasets, which is not likely to be interesting or useful.\n"
    "  3dTproject would be one way to do this. Or afni_proc.py.\n"
    "\n"
    "* RWCox -- July 2017\n"
@@ -212,6 +229,20 @@ MEMORY_CHECK("c2") ;
 MEMORY_CHECK("d") ;
 
    free(umat) ; free(vmat) ;
+
+   /* write the matrix out? [20 Jul 2017] */
+
+   if( matpre != NULL ){
+     char *fname ; MRI_IMAGE *qim ;
+     fname = (char *)malloc(sizeof(char)*(strlen(matpre)+32)) ;
+     strcpy(fname,matpre) ;
+     if( strstr(fname,".1D") == NULL ) strcat(fname,".qmat.1D") ;
+     qim = mri_new_vol_empty( m,m,1, MRI_float ) ;
+     mri_fix_data_pointer( qmat , qim ) ;
+     mri_write( fname , qim ) ;
+     mri_clear_data_pointer( qim ) ; mri_free(qim) ; free(fname) ;
+   }
+
    EXRETURN ;
 }
 
@@ -249,7 +280,7 @@ static int is_vector_constant( int n , float *v )
 void TSY_process_data(void)
 {
    byte *vmask ;
-   int nvmask , ii,jj,kk , mm , nvox ;
+   int nvmask , ii,jj,kk , mm , nvox , ncut=0 ;
    MRI_IMAGE *bim, *cim ;
    float *bar, *car, *bmat, *cmat, *qmat, *cvec, csum ;
 
@@ -277,9 +308,24 @@ MEMORY_CHECK("P") ;
 
    /* find and eliminate any voxels with all-constant vectors */
 
+   mm  = DSET_NVALS(dsetB) ;
+   bar = (float *)malloc(sizeof(float)*mm) ;
+   for( kk=0 ; kk < nvox ; kk++ ){
+     if( vmask[kk] ){
+       THD_extract_array( kk , dsetB , 0 , bar ) ;
+       if( is_vector_constant(mm,bar) ){ vmask[kk] = 0 ; ncut++ ; continue ; }
+       THD_extract_array( kk , dsetC , 0 , bar ) ;
+       if( is_vector_constant(mm,bar) ){ vmask[kk] = 0 ; ncut++ ; continue ; }
+     }
+   }
+   if( ncut > 0 ){
+     nvmask = THD_countmask(nvox,vmask) ;
+     INFO_message("removed %d voxel%s for being constant in time" ,
+                  ncut , (ncut > 1) ? "s" : "\0" ) ;
+   }
+
    /* load datasets into matrices */
 
-   mm   = DSET_NVALS(dsetB) ;
    bmat = (float *)calloc( sizeof(float) , mm*nvmask ) ;
    cmat = (float *)calloc( sizeof(float) , mm*nvmask ) ;
    qmat = (float *)calloc( sizeof(float) , mm*mm     ) ;
@@ -309,7 +355,7 @@ MEMORY_CHECK("R") ;
    /* transform input matric C */
 MEMORY_CHECK("S") ;
 
-   free(bmat) ;
+   free(bmat) ; /* not needed no more */
    cvec = (float *)calloc( sizeof(float) , mm ) ;
 
 #undef  QQ
@@ -322,6 +368,14 @@ MEMORY_CHECK("S") ;
        csum = 0.0f ;
        for( kk=0 ; kk < mm ; kk++ ) csum += QQ(ii,kk) * C(kk,jj) ;
        cvec[ii] = csum ;
+     }
+     if( do_norm ){  /* -normalize */
+       csum = 0.0f ;
+       for( ii=0 ; ii < mm ; ii++ ) csum += cvec[ii]*cvec[ii] ;
+       if( csum > 0.0f ){
+         csum = 1.0f/sqrtf(csum) ;
+         for( ii=0 ; ii < mm ; ii++ ) cvec[ii] *= csum ;
+       }
      }
      for( ii=0 ; ii < mm ; ii++ ) C(ii,jj) = cvec[ii] ;
    }
@@ -445,17 +499,25 @@ int main( int argc , char *argv[] )
 
      /*-----*/
 
+     if( strncasecmp(argv[iarg],"-norm",5) == 0 ){
+       do_norm = 1 ; iarg++ ; continue ;
+     }
+
+     /*-----*/
+
      if( strncasecmp(argv[iarg],"-josh",5) == 0 ||
          strncasecmp(argv[iarg],"-orth",5) == 0   ){
 
        do_joshi = 1 ; iarg++ ; continue ;
      }
 
+#if 0
      if( strncasecmp(argv[iarg],"-non-ort",9) == 0 ||
          strncasecmp(argv[iarg],"-nonorth",9) == 0   ){
 
        do_joshi = 0 ; iarg++ ; continue ;
      }
+#endif
 
      /*--- error! ---*/
 
