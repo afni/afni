@@ -17,6 +17,7 @@ void SUMA_freep( void *p ){ free(p) ; return ; }  /* RWC: 07 Oct 2015 */
 /*! Flag to tell if NIML things are initialized. */
 
 static int started = 0 ;
+static int dsq = 0;
 
 int SUMA_init_ports_assignments(SUMA_CommonFields *cf) 
 {
@@ -60,6 +61,10 @@ int SUMA_init_ports_assignments(SUMA_CommonFields *cf)
    } else {
       dsmwc = (float)5;
    } 
+   if (SUMA_isEnv("SUMA_DriveSumaQuiet","y")) dsq = 1;
+   else dsq = 0;
+
+
     
    for (i=0; i<SUMA_MAX_STREAMS; ++i) {
       cf->ns_v[i] = NULL;
@@ -510,15 +515,18 @@ SUMA_Boolean SUMA_niml_call ( SUMA_CommonFields *cf, int si,
          cf->ns_flags_v[si] = SUMA_FLAG_CONNECTED;
          if (LocalHead) 
             fprintf(SUMA_STDOUT,"%s: Stream existed, reusing.\n", FuncName);
+         if(dsq==0)
          fprintf(SUMA_STDOUT,"%s: Connected.\n", FuncName); fflush(SUMA_STDOUT);
       }else {   /* must open stream */              
          /* contact afni */
             SUMA_SetWriteCheckWaitMax(cf->ns_to[si]);
-            fprintf( SUMA_STDOUT,
-                     "%s: Contacting on %s (%d), maximum wait %.3f sec \n"
-            "(You can change max. wait time with env. SUMA_DriveSumaMaxWait)\n", 
-                     FuncName, cf->NimlStream_v[si], si, 
-                     (float)cf->ns_to[si]/1000.0);
+            if(dsq==0) {
+               fprintf( SUMA_STDOUT,
+                        "%s: Contacting on %s (%d), maximum wait %.3f sec \n"
+               "(You can change max. wait time with env. SUMA_DriveSumaMaxWait)\n", 
+                        FuncName, cf->NimlStream_v[si], si, 
+                        (float)cf->ns_to[si]/1000.0);
+            }
             fflush(SUMA_STDOUT);
             cf->ns_v[si] =  NI_stream_open( cf->NimlStream_v[si] , "w" ) ;
             if (!cf->ns_v[si]) {
@@ -534,8 +542,10 @@ SUMA_Boolean SUMA_niml_call ( SUMA_CommonFields *cf, int si,
             if (!strcmp(cf->HostName_v[si],"localhost")) { 
                /* only try shared memory when 
                   AfniHostName is localhost */
+               if(dsq==0)
                fprintf (SUMA_STDERR, 
                         "%s: Trying local connection...\n", FuncName);
+
                if( strstr( cf->NimlStream_v[si] , "tcp:localhost:" ) != NULL ) {
                   if (!NI_stream_reopen( cf->ns_v[si] , "shm:WeLikeElvis:1M" )){
                      fprintf (SUMA_STDERR, 
@@ -989,7 +999,8 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
 	      /* Register the surfaces in Spec file with the surface 
             viewer and perform setups */
          viewopt = 0;
-	      fprintf (SUMA_STDERR, 
+         if(dsq==0)
+            fprintf (SUMA_STDERR, 
                   "%s: Registering surfaces with surface viewers, "
                   "viewopt = %d...\n", FuncName, viewopt);
 
@@ -1226,7 +1237,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
          SUMA_RECOMPUTE_NORMALS(SO);
 
          /* file a redisplay request */
-         if (LocalHead) fprintf(SUMA_STDERR, "%s: Redisplaying all visible...\n",                                 FuncName);
+         if (LocalHead) fprintf(SUMA_STDERR, "%s: Redisplaying all visible...\n", FuncName);
          if (!list) list = SUMA_CreateList();
          SUMA_REGISTER_HEAD_COMMAND_NO_DATA( list, SE_Redisplay_AllVisible, 
                                              SES_SumaFromAny, sv);
@@ -4225,7 +4236,10 @@ void SUMA_Wait_Till_Stream_Goes_Bad(SUMA_COMM_STRUCT *cs,
    
    SUMA_ENTRY;
 
-   if (verb) fprintf (SUMA_STDERR,"\nWaiting for SUMA to close stream .");
+   if (verb) {
+      if(dsq==0) fprintf (SUMA_STDERR,"\nWaiting for SUMA to close stream .");
+   }
+
    while (good && WaitClose < WaitMax) {
       if (NI_stream_goodcheck(SUMAg_CF->ns_v[cs->istream], 1) <= 0) {
          good = NOPE;

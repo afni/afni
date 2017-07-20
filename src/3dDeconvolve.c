@@ -2150,6 +2150,7 @@ void get_options
   int iglt = 0;                     /* general linear test index */
   int nerr ;
   float ttmax=big_time ;   /* 28 Aug 2015 */
+  float gtmax=big_time ;   /* same, for global timing  19 Jul 2017 [rickr] */
 
   /*-- addto the arglist, if user wants to --*/
   { int new_argc ; char **new_argv ;
@@ -2304,16 +2305,24 @@ void get_options
           dset = THD_open_dataset (option_data->input_filename);
           CHECK_OPEN_ERROR(dset,option_data->input_filename) ;
           lmax = DSET_NVALS(dset) ;
+          /* compute gtmax, as ttmax for global timing  19 Jul 2017 [rickr] */
+          gtmax = 0.0;
           if( DSET_IS_TCAT(dset) && !option_data->tcat_noblock ){
             int it ;
-            for( lmax=2,it=0 ; it < dset->tcat_num ; it++ )
+            for( lmax=2,it=0 ; it < dset->tcat_num ; it++ ) {
               lmax = MAX( lmax , dset->tcat_len[it] ) ;
+              /* accumulate time points, scale by TR later */
+              gtmax += dset->tcat_len[it];
+            }
           }
           /* if force_TR is set, apply it           5 Jul 2017 [rickr] */
-          if( option_data->force_TR > 0.0 )
+          if( option_data->force_TR > 0.0 ) {
             ttmax = lmax * option_data->force_TR ;
-          else
+            gtmax *= option_data->force_TR ; /* scale NT by TR */
+          } else {
             ttmax = lmax * DSET_TR(dset) ;
+            gtmax *= DSET_TR(dset) ;         /* scale NT by TR */
+          }
           DSET_delete(dset) ;
         }
 
@@ -2816,7 +2825,11 @@ void get_options
 
         /* check number of reasonable times */
 
-        nc = mri_counter( tim , 0.0f , ttmax ) ;
+        /* allow for global timing    19 Jul 2017 [rickr] */
+        if( basis_timetype == GLOBAL_TIMES )
+           nc = mri_counter( tim , 0.0f , gtmax ) ;
+        else
+           nc = mri_counter( tim , 0.0f , ttmax ) ;
 
         if( tim != basis_times[k] ) mri_free(tim) ;
 

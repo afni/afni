@@ -1215,7 +1215,7 @@ int main( int argc , char * argv[] )
       free(MRG_edopt.fmask) ; MRG_edopt.fmask = NULL ; MRG_edopt.nfmask = 0 ;
     }
 
-    if( !MRG_be_quiet && !MRG_doall ) printf("\n") ;
+    if( !MRG_be_quiet ) printf("\n") ;
 
       /** 17 Sep 1998: NOW create the new dataset **/
 
