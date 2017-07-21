@@ -7669,7 +7669,7 @@ g_help_string = """
 
         To generalize, Nyquist = 1/(2*TR), so the fraction of DoF kept is
 
-            fraction kept = 0.1/Nyquist = 0.1/(1/2*TR) = 0.1 * 2 * TR = 0.2*TR
+            fraction kept = 0.1/Nyquist = 0.1/(1/(2*TR)) = 0.1*2*TR = 0.2*TR
 
         For example,
 
@@ -7680,14 +7680,19 @@ g_help_string = """
 
         Consider also:
 
-            Gohel, S.R., Biswal, B.B.
+            Shirer WR, Jiang H, Price CM, Ng B, Greicius MD
+            Optimization of rs-fMRI pre-processing for enhanced signal-noise
+                separation, test-retest reliability, and group discrimination
+            Neuroimage. 2015 Aug 15;117:67-79.
+
+            Gohel SR, Biswal BB
             Functional integration between brain regions at rest occurs in
                 multiple-frequency bands
-            (2015) Brain Connectivity, 5 (1), pp. 23-34
+            Brain connectivity. 2015 Feb 1;5(1):23-34.
 
-            Caballero-Gaudes C., Reynolds R.C.
+            Caballero-Gaudes C, Reynolds RC
             Methods for cleaning the BOLD fMRI signal
-            (2016) NeuroImage
+            Neuroimage. 2017 Jul 1;154:128-49
 
     Application of bandpassing in afni_proc.py:
 
