@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21,  Jul, 2017, RCR, "@update.afni.binaries", MICRO, TYPE_MODIFY,
+   "relative -bindir test needs quotes to block eval",
+   NULL
+ } ,
+
  { 19,  Jul, 2017, RCR, "3dTto1D", MAJOR, TYPE_NEW_PROG,
    "time series to 1D : e.g. compute enorm, DVARS(RMS), SRMS",
    "Given time series data such as EPI or motion parameters, compute\n"

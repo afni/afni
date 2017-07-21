@@ -57,6 +57,7 @@ history for $prog :
                      -local_package with updated install script
   3.2  23 Jun 2017 : unalias grep; only update cur_afni if not abin
   3.3  10 Jul 2017 : if bindir is relative, fail without -no_recur
+  3.4  21 Jul 2017 : oops, apparently that needs quotes to block eval
 
 -------------------------------------------------------------------------------
 EOF
@@ -65,7 +66,7 @@ POST_HIST:
 # end history section
 # ----------------------------------------------------------------------
 
-set aub_version = "3.3, July 10, 2017"
+set aub_version = "3.4, July 21, 2017"
 
 # ----------------------------------------------------------------------
 # apply any options
@@ -245,7 +246,7 @@ endif
 # if abin and do_recur, abin must be absolute
 if ( $abin != "" && $do_recur ) then
    set c1 = `echo $abin | cut -b 1`
-   if ( $c1 != "/" ) then
+   if ( "$c1" != "/" ) then
       echo "** when -bindir is relative, please include -no_recur"
       echo "   have -bindir = '$abin'"
       exit 1
