@@ -204,8 +204,8 @@ which are shown below.
    :header-rows: 1
    :widths: 50 50
 
-   * - T2w reference volume and weight mask
-     - for ``fat_proc_axialize_anat``
+   * - T2w reference volume
+     - T2w weight mask
    * - mni_icbm152_t2_relx_tal_nlin_sym_09a_ACPCE.\*
      - mni_icbm152_t2_relx_tal_nlin_sym_09a_ACPCE_wtell.\*
    * - .. image:: media/IMG_mni_icbm152_t2_relx_tal_nlin_sym_09a_ACPCE.axi.png
@@ -235,26 +235,26 @@ which are shown below.
    :header-rows: 1
    :widths: 50 50
 
-   * - T1w reference volume and weight mask
-     - for ``fat_proc_axialize_anat``
+   * - T1w reference volume
+     - T1w weight mask
    * - mni_icbm152_t1_relx_tal_nlin_sym_09a_ACPCE.\*
      - mni_icbm152_t1_relx_tal_nlin_sym_09a_ACPCE_wtell.\*
-   * - .. image:: media/IMG_mni_icbm152_t1_relx_tal_nlin_sym_09a_ACPCE.axi.png
+   * - .. image:: media/IMG_mni_icbm152_t1_tal_nlin_sym_09a_MSKD_ACPCE.axi.png
           :width: 100%   
           :align: center
-     - .. image:: media/IMG_mni_icbm152_t1_tal_nlin_sym_09a_ACPCE_wtell.axi.png
+     - .. image:: media/IMG_mni_icbm152_t1_tal_nlin_sym_09a_MSKD_ACPCE_wtell.axi.png
           :width: 100%   
           :align: center
-   * - .. image:: media/IMG_mni_icbm152_t1_tal_nlin_sym_09a_ACPCE.cor.png
+   * - .. image:: media/IMG_mni_icbm152_t1_tal_nlin_sym_09a_MSKD_ACPCE.cor.png
           :width: 100%   
           :align: center
-     - .. image:: media/IMG_mni_icbm152_t1_tal_nlin_sym_09a_ACPCE_wtell.cor.png
+     - .. image:: media/IMG_mni_icbm152_t1_tal_nlin_sym_09a_MSKD_ACPCE_wtell.cor.png
           :width: 100%   
           :align: center
-   * - .. image:: media/IMG_mni_icbm152_t1_tal_nlin_sym_09a_ACPCE.sag.png
+   * - .. image:: media/IMG_mni_icbm152_t1_tal_nlin_sym_09a_MSKD_ACPCE.sag.png
           :width: 100%   
           :align: center
-     - .. image:: media/IMG_mni_icbm152_t1_tal_nlin_sym_09a_ACPCE_wtell.sag.png
+     - .. image:: media/IMG_mni_icbm152_t1_tal_nlin_sym_09a_MSKD_ACPCE_wtell.sag.png
           :width: 100%   
           :align: center
    * - *T1w volume (originally from MNI ICBM 2009a Nonlinear Symmetric
@@ -279,6 +279,7 @@ which are shown below.
           differ, and the user must choose what is most appropriate
           and/or feasible for their own study.
 
+|
 
 .. _DWI_distortions:
 
