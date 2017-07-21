@@ -54,6 +54,12 @@ spaced as possible across each FOV dimension.  These may show just an
 underlay, or underlays with either a translucent/masked overlay or an
 "edge-ified" image (esp. for judging alignment).  
 
+Definitions:
+* **ulay**: underlay data set; always grayscale here
+
+* **olay**: overlay data set; can be made using one of many
+  colorscales, may also be translucent or outline edges
+
   .. list-table:: 
      :header-rows: 1
      :widths: 100
