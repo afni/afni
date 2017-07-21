@@ -190,17 +190,17 @@ atlases
 <www.bic.mni.mcgill.ca/~vfonov/icbm/2009/mni_icbm152_nlin_sym_09a_nifti.zip>`_
 freely available for download from the `BIC folks at MNI
 <http://www.bic.mni.mcgill.ca/ServicesAtlases/ICBM152NLin2009>`_.  One
-volume was manually AC-PC aligned using MIPAV, and the other volumes
-were registered to it. (During this process, the FOV of the data was
-altered-- the resulting volume has an even number of slices in all
-directions.)  The volumes were masked to remove the skull.  Finally, a
-subcortical weight mask version of each volume was also made by
-weighting (values :math:`\times5`) a blurred ellipsoid covering much
-of the subcortical brain; using this mask would weight the global
-brain alignment by this part of the brain, with the idea that the
-final result of axialization might be closer to what AC-PC alignment
-would provide.  This was done for the T2w and T1w volumes in the MNI
-set, which are shown below.
+volume was manually AC-PC aligned by an expert using MIPAV, and the
+other volumes were registered to it. (During this process, the FOV of
+the data was altered-- the resulting volume has an even number of
+slices in all directions.)  The volumes were masked to remove the
+skull.  Finally, a subcortical weight mask version of each volume was
+also made by weighting (values :math:`\times5`) a blurred ellipsoid
+covering much of the subcortical brain; using this mask would weight
+the global brain alignment by this part of the brain, with the idea
+that the final result of axialization might be closer to what AC-PC
+alignment would provide.  This was done for the T2w and T1w volumes in
+the MNI set, which are shown below.
 
 .. list-table:: 
    :header-rows: 1
