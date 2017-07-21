@@ -581,8 +581,12 @@ seems to tacitly require having:
 * **even numbers of slices** in all directions of the dset FOV; not
   having this will affect results negatively.
 
-These properties can be conveyed to the T1w dset at this stage.
+These properties can be conveyed to the T1w dset at this stage. 
 
+.. note:: This step is quite optional.  However, if one doesn't align
+          the volumes now, one should still take care that the T1w
+          volume *does* have the above properties before FreeSurfering
+          with ``recon-all``.
 
 **Proc:** Align the T1w (in "data_proc/SUBJ_001/anat_00/") and align
 it to the axialized T2w volume (in "data_proc/SUBJ_001/anat_01/"); the
@@ -658,7 +662,7 @@ It contains the following outputs for the T2w data:
      - .. image:: media/t1w__qc01_t2w_u_t1w.axi.png
           :width: 100%   
           :align: center
-   * - .. image:: media/t1w__qc00_t2w_u_et1w.sag.png
+   * - .. image:: media/t1w__qc00_t2w_u_et1w.cor.png
           :width: 100%   
           :align: center
      - .. image:: media/t1w__qc01_t2w_u_t1w.cor.png
