@@ -173,6 +173,25 @@ the data and kick out bad volumes pre-TORTOISEing, and I haven't had
 the misfortune to have major formatting trouble whilst doing so (*he
 writes asking The Universe for trouble*...).
 
+
+Supplementary/reference data sets
+---------------------------------
+
+For the purposes of axialization, it is necessary to have a reference
+volume that has desired orientation within a FOV.  In this example we
+are looking at an adult human dset, which includes a T2w volume for
+reference within TORTOISE processing. Therefore, we want to have a
+reference volume with T2w contrast.  
+
+We started by downloading the `"ICBM 2009a Nonlinear Symmetric"
+atlases
+<www.bic.mni.mcgill.ca/~vfonov/icbm/2009/mni_icbm152_nlin_sym_09a_nifti.zip>`_
+freely available for download from the `folks BIC folks at MNI
+<http://www.bic.mni.mcgill.ca/ServicesAtlases/ICBM152NLin2009>`_.
+
+
+
+
 .. _DWI_distortions:
 
 Distorted views of the DWI world
