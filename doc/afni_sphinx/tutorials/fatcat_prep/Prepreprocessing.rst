@@ -419,9 +419,10 @@ life at present.
 * This takes the NIFTI T2w dset (in "data_proc/SUBJ_001/anat_00/") and
   axializes it with respect to the reference dset (here, from the MNI
   2009 templates, which was manually AC-PC aligned and regridded to
-  have an even number of slices in all FOV planes), with some extra
-  weighting for the subcortical regions (via ``-extra_al_wtmask *``);
-  and the output volume will match the grid of the input volume
+  have an even number of slices in all FOV planes as described
+  :ref:`here <suppl_refsets_mni>`), with some extra weighting for the
+  subcortical regions (via ``-extra_al_wtmask *``); and the output
+  volume will match the grid of the input volume
   (``-out_match_ref``)::
 
     # I/O path, same as above; just need the "proc" dirs now
@@ -429,8 +430,8 @@ life at present.
 
     # reference anatomical volumes to which we axialize
     set here       = $PWD
-    set ref_t2w    = $here/mni_icbm152_t2_relx_tal_nlin_sym_09a_ACPC.nii.gz
-    set ref_t2w_wt = $here/mni_icbm152_t2_relx_tal_nlin_sym_09a_ACPC_wtell.nii.gz 
+    set ref_t2w    = $here/mni_icbm152_t2_relx_tal_nlin_sym_09a_ACPCE.nii.gz
+    set ref_t2w_wt = $here/mni_icbm152_t2_relx_tal_nlin_sym_09a_ACPCE_wtell.nii.gz 
 
     fat_proc_axialize_anat                       \
         -inset  $path_P_ss/anat_00/t2w.nii.gz    \
