@@ -425,8 +425,8 @@ cat << EOF
    options:
 
       -prefix PREFIX    : output file and folder name
-      -brain dset       : skull stripped dataset to touch up
-      -head dest        : whole head anatomical dataset
+      -brain DSET       : skull stripped data set to touch up
+      -head DSET        : whole head anatomical data set
       -mask_out         : output a binary mask in addition to actual data
       -orig_dim         : edit in the original image dimensions
       -help             : show this help
