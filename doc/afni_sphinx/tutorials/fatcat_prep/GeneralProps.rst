@@ -54,6 +54,12 @@ spaced as possible across each FOV dimension.  These may show just an
 underlay, or underlays with either a translucent/masked overlay or an
 "edge-ified" image (esp. for judging alignment).  
 
+Definitions:
+* **ulay**: underlay data set; always grayscale here
+
+* **olay**: overlay data set; can be made using one of many
+  colorscales, may also be translucent or outline edges
+
   .. list-table:: 
      :header-rows: 1
      :widths: 100
@@ -144,3 +150,40 @@ some step is failing and you want more information about why, you can
 instruct them to not be deleted using the ``-no_clean`` switch.
 
 
+Shell and scripting choices in these docs
+-----------------------------------------
+
+The command line blocs in these tutorial docs will use ``tcsh``
+scripting notation from time to time, for example defining something
+as a variable and then using that variable in a ``fat_proc`` function,
+such as::
+
+  set dirname = "/data/DTI_EXAMPLE_DATA/data_proc/SUBJ_001/dwi_00"
+
+  fat_proc_something                  \
+      -prefix $dirname/subj_314159    \
+      ...
+
+This is often done to simplify script reading, shortening lines by
+wrapping up long file paths into a single variable, or purely on whim.
+
+Some people feel strongly about ``tcsh`` vs ``bash`` or other shells--
+I am not smart enough to care deeply, fortunately or unfortunately.
+Please feel free to translate any of these statements into whatever
+shell or scripting language, such as Python, that you would wish.
+
+
+Supplementary/reference data sets
+---------------------------------
+
+For the purposes of axialization, it is necessary to have a reference
+volume that has desired orientation within a FOV.  In this example we
+are looking at an adult human dset, which includes a T2w volume for
+reference within TORTOISE processing. Therefore, we want to have a
+reference volume with T2w contrast.  
+
+We started by downloading the `"ICBM 2009a Nonlinear Symmetric"
+atlases
+<www.bic.mni.mcgill.ca/~vfonov/icbm/2009/mni_icbm152_nlin_sym_09a_nifti.zip>`_
+freely available for download from the `folks BIC folks at MNI
+<http://www.bic.mni.mcgill.ca/ServicesAtlases/ICBM152NLin2009>`_.
