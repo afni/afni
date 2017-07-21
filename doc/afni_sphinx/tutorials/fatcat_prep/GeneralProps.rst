@@ -172,3 +172,18 @@ I am not smart enough to care deeply, fortunately or unfortunately.
 Please feel free to translate any of these statements into whatever
 shell or scripting language, such as Python, that you would wish.
 
+
+Supplementary/reference data sets
+---------------------------------
+
+For the purposes of axialization, it is necessary to have a reference
+volume that has desired orientation within a FOV.  In this example we
+are looking at an adult human dset, which includes a T2w volume for
+reference within TORTOISE processing. Therefore, we want to have a
+reference volume with T2w contrast.  
+
+We started by downloading the `"ICBM 2009a Nonlinear Symmetric"
+atlases
+<www.bic.mni.mcgill.ca/~vfonov/icbm/2009/mni_icbm152_nlin_sym_09a_nifti.zip>`_
+freely available for download from the `folks BIC folks at MNI
+<http://www.bic.mni.mcgill.ca/ServicesAtlases/ICBM152NLin2009>`_.
