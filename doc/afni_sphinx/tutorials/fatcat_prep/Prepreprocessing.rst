@@ -490,38 +490,33 @@ life at present.
      :header-rows: 1
      :widths: 50 50
 
-     * - Autoimages of ``fat_proc_axialize_anat``: 
-       - t2w_qc00_fin.\*.png
+     * - Autoimages of ``fat_proc_axialize_anat``
+       -
+     * - t2w_qc00_fin.\*.png
+       - t2w_qc01_ref_u_inp.\*.png
      * - .. image:: media/t2w_qc00_fin.sag.png
-            :width: 100%   
-            :align: center
-       - .. image:: media/t2w_qc00_fin.cor.png
-            :width: 100%   
-            :align: center
-     * - .. image:: media/t2w_qc00_fin.axi.png
-            :width: 100%   
-            :align: center
-       - 
-     * - *Images of the final volume, for checking the alignment of
-         brain structures with major FOV axes.*
-       - 
-
-  .. list-table:: 
-     :header-rows: 1
-     :widths: 50 50
-
-     * - Autoimages of ``fat_proc_axialize_anat``: 
-       - t2w_qc00_fin.\*.png
-     * - .. image:: media/t2w_qc01_ref_u_inp.axi.png
             :width: 100%   
             :align: center
        - .. image:: media/t2w_qc01_ref_u_inp.sag.png
             :width: 100%   
             :align: center
-     * - *Intermediate volume images, for checking the relative
+     * - .. image:: media/t2w_qc00_fin.cor.png
+            :width: 100%   
+            :align: center
+       - .. image:: media/t2w_qc01_ref_u_inp.cor.png
+            :width: 100%   
+            :align: center
+     * - .. image:: media/t2w_qc00_fin.axi.png
+            :width: 100%   
+            :align: center
+       - .. image:: media/t2w_qc01_ref_u_inp.axi.png
+            :width: 100%   
+            :align: center
+     * - *Images of the final volume, for checking the alignment of
+         brain structures with major FOV axes.*
+       - *Intermediate volume images, for checking the relative
          goodness of alignment fit of the anatomical (edge-ified olay)
          with the refset volume (ulay).*
-       - 
 
 *TIPS*: 
 
