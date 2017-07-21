@@ -187,9 +187,97 @@ We started by downloading the `"ICBM 2009a Nonlinear Symmetric"
 atlases
 <www.bic.mni.mcgill.ca/~vfonov/icbm/2009/mni_icbm152_nlin_sym_09a_nifti.zip>`_
 freely available for download from the `folks BIC folks at MNI
-<http://www.bic.mni.mcgill.ca/ServicesAtlases/ICBM152NLin2009>`_.
+<http://www.bic.mni.mcgill.ca/ServicesAtlases/ICBM152NLin2009>`_.  One
+volume was manually AC-PC aligned using MIPAV, and the other volumes
+were registered to it. (During this process, the FOV of the data was
+altered-- the resulting volume has an even number of slices in all
+directions.)  The volumes were masked to remove the skull.  Finally, a
+"weight mask" version of each volume was also made by weighting
+(values :math:`\times5`) a blurred ellipsoid covering much of the
+subcortical brain; using this mask would weight the global brain
+alignment by this part of the brain, with the idea that the final
+result of axialization might be closer to what AC-PC alignment would
+provide.  This was done for the T2w and T1w volumes in the MNI set,
+which are shown below.
 
+.. list-table:: 
+   :header-rows: 1
+   :widths: 50 50
 
+   * - T2w reference volume and weight mask
+     - for ``fat_proc_axialize_anat``
+   * - mni_icbm152_t2_relx_tal_nlin_sym_09a_ACPCE.\*
+     - mni_icbm152_t2_relx_tal_nlin_sym_09a_ACPCE_wtell.\*
+   * - .. image:: media/IMG_mni_icbm152_t2_relx_tal_nlin_sym_09a_ACPCE.axi.png
+          :width: 100%   
+          :align: center
+     - .. image:: media/IMG_mni_icbm152_t2_relx_tal_nlin_sym_09a_ACPCE_wtell.axi.png
+          :width: 100%   
+          :align: center
+   * - .. image:: media/IMG_mni_icbm152_t2_relx_tal_nlin_sym_09a_ACPCE.cor.png
+          :width: 100%   
+          :align: center
+     - .. image:: media/IMG_mni_icbm152_t2_relx_tal_nlin_sym_09a_ACPCE_wtell.cor.png
+          :width: 100%   
+          :align: center
+   * - .. image:: media/IMG_mni_icbm152_t2_relx_tal_nlin_sym_09a_ACPCE.sag.png
+          :width: 100%   
+          :align: center
+     - .. image:: media/IMG_mni_icbm152_t2_relx_tal_nlin_sym_09a_ACPCE_wtell.sag.png
+          :width: 100%   
+          :align: center
+   * - *T2w volume (originally from MNI ICBM 2009a Nonlinear Symmetric
+       atlas) used as a reference for axialization.*
+     - *The "weight mask" of the T2w reference volume, emphasizing the
+       subcortical region.*
+
+.. list-table:: 
+   :header-rows: 1
+   :widths: 50 50
+
+   * - T1w reference volume and weight mask
+     - for ``fat_proc_axialize_anat``
+   * - mni_icbm152_t1_relx_tal_nlin_sym_09a_ACPCE.\*
+     - mni_icbm152_t1_relx_tal_nlin_sym_09a_ACPCE_wtell.\*
+   * - .. image:: media/IMG_mni_icbm152_t1_relx_tal_nlin_sym_09a_ACPCE.axi.png
+          :width: 100%   
+          :align: center
+     - .. image:: media/IMG_mni_icbm152_t1_tal_nlin_sym_09a_ACPCE_wtell.axi.png
+          :width: 100%   
+          :align: center
+   * - .. image:: media/IMG_mni_icbm152_t1_tal_nlin_sym_09a_ACPCE.cor.png
+          :width: 100%   
+          :align: center
+     - .. image:: media/IMG_mni_icbm152_t1_tal_nlin_sym_09a_ACPCE_wtell.cor.png
+          :width: 100%   
+          :align: center
+   * - .. image:: media/IMG_mni_icbm152_t1_tal_nlin_sym_09a_ACPCE.sag.png
+          :width: 100%   
+          :align: center
+     - .. image:: media/IMG_mni_icbm152_t1_tal_nlin_sym_09a_ACPCE_wtell.sag.png
+          :width: 100%   
+          :align: center
+   * - *T1w volume (originally from MNI ICBM 2009a Nonlinear Symmetric
+       atlas) used as a reference for axialization.*
+     - *The "weight mask" of the T1w reference volume, emphasizing the
+       subcortical region.*
+
+.. note:: Both axialization and AC-PC alignment have similar goals of
+          "regularizing" the orientation of a brain within a field of
+          view.  However, please note that they are *not* the same
+          thing.  The AC-PC alignment criterion is based on
+          identifying 5 specific *local*, anatomical locations in the
+          brain and using these to lever the brain
+          orientation. Axialization is based on a *global*, whole
+          brain alignment of brain structures (with the possible
+          addition of a weight mask to emphasize certain parts of the
+          structure).  
+
+          In many cases, such as for typical/control brains, the
+          results of either regularization may be very similar.
+          However, there would be many scenarios where results would
+          differ, and the user must choose what is most appropriate
+          and/or feasible for their own study.
 
 
 .. _DWI_distortions:
