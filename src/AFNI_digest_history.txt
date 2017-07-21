@@ -1,3 +1,40 @@
+========================================================================
+AFNI Digest, week of 2017/07/21.
+
+00) Dartmouth Bootcamp announcement:
+    https://afni.nimh.nih.gov/afni/community/board/read.php?1,155427
+
+01) 3dFWHMx will now output the mixed model ACF parameters by default,
+    rather than the Gaussian FWHM ones.  This follows from recent
+    discussion+changes related to FMRI clustering.  To discourage use,
+    the Gaussian FWHM output row will show zeros (and will be reported
+    by afni_proc.py as such, until the options are updated).
+
+
+02) New program: 3dTto1D - a general program for collapsing time series data.
+    The most useful computations are probably:
+
+    enorm  - Euclidean norm of first differences 
+             (of motion parameters or of EPI time series data, say)
+    RMS    - Root Mean Square (a.k.a DVARS) of first differences
+             (= enorm/sqrt(nvoxels))
+    SRMS   - Scaled RMS, scaled by mean of input
+             (= RMS/mean)
+             (probably very good for censoring)
+             (might be the same as DVARS censoring in FSL)
+
+    Censoring with SRMS has not yet been incorporated into afni_proc.py.
+
+
+03) Changes+problems with OpenGL on very recent versions MacOS (10.12.5).
+    These changes will result in SUMA crashing under some circumstances,
+    namely when the object controller panel (ctrl+s) is opened, then closed,
+    then opened again;  something like this often occurs behind the scenes
+    when scripts are driving SUMA.
+    This new OpenGL behavior on Mac has been affecting many different
+    softwares;  while we are looking into any fixes/workarounds, it is
+    likely that a full solution is outside of our hands and will have to
+    come from Mac.
 
 ========================================================================
 AFNI Digest, week of 2017/07/07.
