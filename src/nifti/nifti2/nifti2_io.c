@@ -5400,9 +5400,11 @@ int nifti_hdr1_looks_good(const nifti_1_header * hdr)
 
    } else {             /* ANALYZE 7.5 */
 
-      if( g_opts.debug > 1 )  /* maybe tell user it's an ANALYZE hdr */
+      if( g_opts.debug > 1 ) { /* maybe tell user it's an ANALYZE hdr */
          fprintf(stderr,
-            "-- nhdr magic field implies ANALYZE: magic = '%.4s'\n",hdr->magic);
+           "-- nhdr magic field implies ANALYZE: magic = '%.4s' : ",hdr->magic);
+         print_hex_vals(hdr->magic, 4, stderr); fputc('\n', stderr);
+      }
 
       if( ! nifti_datatype_is_valid(hdr->datatype, 0) ){
          if( g_opts.debug > 0 )
