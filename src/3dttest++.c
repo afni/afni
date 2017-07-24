@@ -3729,6 +3729,7 @@ int main( int argc , char *argv[] )
      bbase = ss = bb = 0 ;
      if( do_means ) MEAN_LABEL_2SAM(snam_PPP,snam_MMM,"diff") ;
      if( do_tests ) TEST_LABEL_2SAM_MEAN(snam_PPP,snam_MMM) ;
+     ntwosam = (do_means+do_tests) ; /* 24 Jul 2017 -- oopsie */
      goto LABELS_ARE_DONE ;
    }
 
