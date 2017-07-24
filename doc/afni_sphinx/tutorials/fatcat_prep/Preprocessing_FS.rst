@@ -7,8 +7,8 @@ Preprocessing: FreeSurfer (and @SUMA_Make_Spec_FS)
 .. contents::
    :depth: 3
 
-Re. ``recon-all`` (FS)
-----------------------
+Re. recon-all (FS)
+------------------
 
 This stage describes preprocessing the (T1w) anatomical volume
 primarily using `FreeSurfer (FS) <https://surfer.nmr.mgh.harvard.edu/>`_.
@@ -47,8 +47,8 @@ to use that function to accomplish some of those things.
           and AFNI in grouping FS parc+seg ROI maps into tissue maps,
           which are described in the next section.
 
-Re. ``@SUMA_Make_Spec_FS`` (AFNI-SUMA)
---------------------------------------
+Re. @SUMA_Make_Spec_FS (AFNI-SUMA)
+----------------------------------
 
 After running ``recon-all``, then the SUMA function
 ``@SUMA_Make_Spec_FS`` in AFNI is used to translate all the volumetric
