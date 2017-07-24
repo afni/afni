@@ -112,9 +112,9 @@ recommended).  Therefore, the following can be run in succession::
         -sid    $ss_id
 
 -> produces a set of subdirectories in the new directory
-'data_proc/SUBJ_001/anat_02', as well as
-'data_proc/SUBJ_001/fsaverage'; the AFNI- and SUMA-compatible files
-are contained in the subdirectory 'data_proc/SUBJ_001/anat_02/SUMA'.
+'data_proc/SUBJ_001/anat_02/', as well as
+'data_proc/SUBJ_001/fsaverage/'; the AFNI- and SUMA-compatible files
+are contained in the subdirectory 'data_proc/SUBJ_001/anat_02/SUMA/'.
 
 .. list-table:: 
    :header-rows: 1
