@@ -2,7 +2,7 @@
 
 # Check your ubuntu system name for its codename (e.g., 'trusty',
 # 'utopic', 'vivid', 'wily') with the following command: 
-set ubuntu_code = `lsb_release --codename --short`
+set ubuntu_code = `awk -F= '/CODENAME/ {print $2}' /etc/lsb-release`
 printf "\n\n++ Linux codename is: ${ubuntu_code}\n\n"
 
 # Add the following default repository name to your sources list (if
