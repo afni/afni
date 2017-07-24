@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24,  Jul, 2017, RCR, "nifti_tool", MINOR, TYPE_MODIFY,
+   "treat ANALYZE more as NIFTI-1; apply more PRId64 macros for I/O",
+   NULL
+ } ,
+
  { 21,  Jul, 2017, RCR, "@update.afni.binaries", MICRO, TYPE_MODIFY,
    "relative -bindir test needs quotes to block eval",
    NULL

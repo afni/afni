@@ -174,9 +174,12 @@ static char * g_history[] =
   "   - have diff_hdr1/diff_hdr2 to read as those types\n"
   "2.03 23 Jul 2015 [rickr] - handle a couple of unknown version cases\n",
   "2.04 05 Aug 2015 [rickr] - incorporate nifti-2 writing library change\n",
+  "2.05 24 Jul 2017 [rickr]\n"
+  "   - display ANALYZE header via appropriate NIFTI-1\n"
+  "   - apply more PRId64 for 64-bit int I/O\n"
   "----------------------------------------------------------------------\n"
 };
-static char g_version[] = "version 2.04 (August 5, 2015)";
+static char g_version[] = "version 2.05 (July 24, 2017)";
 static int  g_debug = 1;
 
 #define _NIFTI_TOOL_C_
@@ -2370,10 +2373,12 @@ int act_diff_hdrs( nt_opts * opts )
       fprintf(stderr,"   have NIFTI-%d and NIFTI-%d\n", nva, nvb);
    }
 
-   if( nva < 0 || nvb < 0 ) {
-      fprintf(stderr,"** resetting invalid NIFTI version(s) to 1\n");
-      if( nva < 0 ) nva = 1;
-      if( nvb < 0 ) nvb = 1;
+   /* treat ANALYZE as NIFTI-1 */
+   if( nva <= 0 || nvb <= 0 ) {
+      if( nva < 0 || nvb < 0 )
+         fprintf(stderr,"** resetting invalid NIFTI version(s) to 1\n");
+      if( nva <= 0 ) nva = 1;
+      if( nvb <= 0 ) nvb = 1;
    }
 
    /* a difference is fatal */
@@ -2739,13 +2744,13 @@ int act_disp_hdr( nt_opts * opts )
 
       /* set the number of fields to display */
       nfields = opts->flist.len > 0 ? opts->flist.len : 
-                   nver == 1 ? NT_HDR1_NUM_FIELDS : NT_HDR2_NUM_FIELDS;
+                   nver <= 1 ? NT_HDR1_NUM_FIELDS : NT_HDR2_NUM_FIELDS;
 
       if( g_debug > 0 )
          fprintf(stdout,"\nN-%d header file '%s', num_fields = %d\n",
                  nver, opts->infiles.list[filenum], nfields);
       if( g_debug > 1 ) {
-         if( nver == 1 )
+         if( nver <= 1 )
             fprintf(stderr,"-d header is: %s\n",
                     nifti_hdr1_looks_good(nhdr) ? "valid" : "invalid");
          else
@@ -2754,7 +2759,7 @@ int act_disp_hdr( nt_opts * opts )
       }
 
       if( opts->flist.len <= 0 ) { /* then display all fields */
-         if( nver == 1 ) fnhdr = g_hdr1_fields;
+         if( nver <= 1 ) fnhdr = g_hdr1_fields;
          else            fnhdr = g_hdr2_fields;
          disp_field("\nall fields:\n", fnhdr, nhdr, nfields, g_debug>0);
       } else { /* print only the requested fields... */
@@ -2797,7 +2802,7 @@ int act_disp_hdr1( nt_opts * opts )
    {
       /* do not validate the header structure */
       nhdr = nt_read_header(opts->infiles.list[filenum], &nver, NULL, g_debug>1,
-                             opts->new_datatype, opts->new_dim);
+                            opts->new_datatype, opts->new_dim);
       if( !nhdr ) return 1;  /* errors are printed from library */
 
       if( g_debug > 0 )
@@ -3423,7 +3428,7 @@ int modify_field(void * basep, field_s * field, char * data)
             int64_t v64;
             for( fc = 0; fc < field->len; fc++ )
             {
-               if( sscanf(posn, " %lld%n", &v64, &nchars) != 1 )
+               if( sscanf(posn, " %" PRId64 "%n", &v64, &nchars) != 1 )
                {
                   fprintf(stderr,"** found %d of %d modify values\n",
                           fc,field->len);
@@ -3431,7 +3436,7 @@ int modify_field(void * basep, field_s * field, char * data)
                }
                ((int64_t *)((char *)basep + field->offset))[fc] = v64;
                if( g_debug > 1 )
-                  fprintf(stderr,"+d setting posn %d of '%s' to %lld\n",
+                  fprintf(stderr,"+d setting posn %d of '%s' to %" PRId64 "\n",
                           fc, field->name, v64);
                posn += nchars;
             }
@@ -4543,7 +4548,8 @@ int act_disp_ci( nt_opts * opts )
 
    if( g_debug > 2 && opts->dts )
    {
-      fprintf(stderr,"-d displaying time series at (i,j,k) = (%lld,%lld,%lld)\n"
+      fprintf(stderr,"-d displaying time series at (i,j,k) = ("
+                     "%" PRId64 ",%" PRId64 ",%" PRId64 ")\n"
                      "      for %d nifti datasets...\n\n", opts->ci_dims[1],
               opts->ci_dims[2], opts->ci_dims[3], opts->infiles.len);
    }
@@ -4637,7 +4643,7 @@ int disp_raw_data( void * data, int type, int nvals, char space, int newline )
                printf("%d", *(int *)dp);
                break;
          case DT_INT64:
-               printf("%lld", *(int64_t *)dp);
+               printf("%"PRId64, *(int64_t *)dp);
                break;
          case DT_UINT8:
                printf("%u", *(unsigned char *)dp);
@@ -4955,7 +4961,7 @@ void * nt_read_header(char * fname, int * nver, int * swapped, int check,
         /* negative means convert, if necessary */
         if( *nver == -1 ) {
            nifti_1_header * hdr=NULL;
-           if( nv == 1 ) return nptr;
+           if( nv <= 1 ) return nptr;
 
            /* else assume 2: convert headers via nim? */
            hdr = (nifti_1_header *)malloc(sizeof(nifti_1_header));
@@ -5079,20 +5085,23 @@ nifti_image * nt_read_bricks(nt_opts * opts, char * fname, int len,
     NBL->bsize = nim->nbyper * nim->nx * nim->ny * nim->nz;
     NBL->bricks = (void **)calloc(NBL->nbricks, sizeof(void *));
     if( !NBL->bricks ){
-        fprintf(stderr,"** NRB: failed to alloc %lld pointers\n",NBL->nbricks);
+        fprintf(stderr,"** NRB: failed to alloc %" PRId64 " pointers\n",
+                NBL->nbricks);
         nifti_image_free(nim);
         return NULL;
     }
 
     if(g_debug > 1)
-        fprintf(stderr,"+d NRB, allocating %lld bricks of %lld bytes...\n",
+        fprintf(stderr,"+d NRB, allocating "
+                "%" PRId64 " bricks of %" PRId64 " bytes...\n",
                 NBL->nbricks, NBL->bsize);
 
     /* now allocate the data pointers */
     for( c = 0; c < len; c++ ) {
         NBL->bricks[c] = calloc(1, NBL->bsize);
         if( !NBL->bricks[c] ){
-            fprintf(stderr,"** NRB: failed to alloc brick %d of %lld bytes\n",
+            fprintf(stderr,
+                    "** NRB: failed to alloc brick %d of %" PRId64 " bytes\n",
                     c, NBL->bsize);
             nifti_free_NBL(NBL); nifti_image_free(nim); return NULL;
         }
