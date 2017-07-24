@@ -555,6 +555,8 @@ It contains the following outputs for the T2w data:
 
 |
 
+.. _fp_align_anat_pair:
+
 **fat_proc_align_anat_pair**: Align T1w -> T2w
 ----------------------------------------------
 
