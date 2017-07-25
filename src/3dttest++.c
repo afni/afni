@@ -4526,7 +4526,8 @@ LABELS_ARE_DONE:  /* target for goto above */
         and gather statistics on them for the sake of amusement and mirth */
 
      if( dryrun ){
-       ININFO_message("(At this point, would compute .5percent.txt file(s) from minmax.1D files)") ;
+       if( do_5percent )
+         ININFO_message("(Would now compute .5percent.txt file(s) from minmax.1D files)") ;
      } else if( do_5percent ){
        MRI_IMAGE *inim , *allim ; MRI_IMARR *inar ; int nbad=0 ;
        INIT_IMARR(inar) ;
@@ -4538,42 +4539,47 @@ LABELS_ARE_DONE:  /* target for goto above */
          }
          ADDTO_IMARR(inar,inim) ; remove(fname) ;
        }
-       if( nbad == 0 ){                   /* if all are OK */
+       if( nbad == 0 ){                   /* if all files were OK */
          for( icase=0 ; icase < ncase ; icase++ ){
-           /* glue this case's minmax results together */
+           /* glue this case's minmax results together from a sub-array of images */
            allim = mri_catvol_1D_ab(inar,1,icase*num_clustsim,(icase+1)*num_clustsim-1) ;
            if( allim != NULL ){
-             int nall=2*allim->nx , n05=(int)rintf(0.05f*nall) ;
+             int nall=2*allim->nx , n05 ;
              float *allar=MRI_FLOAT_PTR(allim) ;
              float oneside_05 , twoside_05 ; FILE *fp ;
+             int ipp ;
 
              for( pp=0 ; pp < nall ; pp++ ) allar[pp] = fabsf(allar[pp]) ;
              qsort_float_rev(nall,allar) ;  /* decreasing order */
-             twoside_05 = allar[n05] ;      /* 5% in all cases */
-             oneside_05 = allar[2*n05] ;    /* 10% in all cases = 5% one side */
-             mri_free(allim) ;
 
              if( clab[icase][0] == '\0' )
                sprintf(fname,"%s.5percent.txt",prefix_clustsim) ;
              else
                sprintf(fname,"%s.%s.5percent.txt",prefix_clustsim,clab[icase]) ;
              fp = fopen(fname,"w") ;
-             INFO_message("Global 5%% FPR points for simulated z-stats:") ;
-             fprintf(stderr,"   %.3f = 1-sided 5%% FPR %s\n",oneside_05,clab[icase]) ;
-             fprintf(stderr,"   %.3f = 2-sided 5%% FPR %s\n",twoside_05,clab[icase]) ;
-             if( fp != NULL ){
-               fprintf(fp," %.3f = 1-sided 5%% FPR\n",oneside_05) ;
-               fprintf(fp," %.3f = 2-sided 5%% FPR\n",twoside_05) ;
-               fclose(fp) ;
-               ININFO_message("    [above results also in file %s]",fname) ;
-             } else {  /* should never happen */
-               WARNING_message("   [for some reason, unable to write above results to a file]") ;
+             INFO_message("Global %% FPR points for simulated z-stats:") ;
+
+             for( ipp=9 ; ipp > 0 ; ipp-- ){
+               n05 = (int)rintf(0.01f*ipp*nall) ;
+               twoside_05 = allar[n05] ;      /* ipp% in all cases */
+               oneside_05 = allar[2*n05] ;    /* 2*ipp% in all cases = ipp% one side */
+               fprintf(stderr,"   %.3f = 1-sided %1d%% FPR %s\n",oneside_05,ipp,clab[icase]) ;
+               fprintf(stderr,"   %.3f = 2-sided %1d%% FPR %s\n",twoside_05,ipp,clab[icase]) ;
+               if( fp != NULL ){
+                 fprintf(fp," %.3f = 1-sided %1d%% FPR\n",oneside_05,ipp) ;
+                 fprintf(fp," %.3f = 2-sided %1d%% FPR\n",twoside_05,ipp) ;
+               } else if( ipp==9 ){  /* should never happen */
+                 WARNING_message("   [for some reason, unable to write above results to a file]") ;
+               }
              }
+             fclose(fp) ;
+             ININFO_message("    [above results also in file %s]",fname) ;
+             mri_free(allim) ;
            }
          }
        }
        DESTROY_IMARR(inar) ;
-     }
+     } /*-- end of 5percent stuff --*/
 
      /* run 3d[X]ClustSim using the outputs from the above as the simulations */
 
