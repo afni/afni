@@ -445,9 +445,21 @@ void display_help_menu(void)
       "  options are slow, since they will run 1000s of simulated 3D t-tests in\n"
       "  order to get cluster-level statistics about the 1 actual test.\n"
       "\n"
-      "* This program is meant (for many uses) to replace the original 3dttest,\n"
+      "* You can input plain text files of numbers, provided their filenames end\n"
+      "  in the AFNI standard '.1D'. If you have two columns of numbers in files\n"
+      "  AA.1D and BB.1D, you could test their means for equality with a command like\n"
+      "    3dttest++ -prefix stdout: -no1sam setA AA.1D\\' -setB BB.1D\\'\n"
+      "  Here, the \\' at the end of the filename tells the program to transpose\n"
+      "  the column files to row files, since AFNI treats a single row of numbers\n"
+      "  as the multiple values for a single 'voxel'. The output (on stdout) from\n"
+      "  such a command will be one row of numbers: the first value is the\n"
+      "  difference in the means between the 2 samples, and the second value is\n"
+      "  the t-statistic for this difference. (There will also be a bunch of text\n"
+      "  on stderr, with various messages.)\n"
+      "\n"
+      "* This program is meant (for most uses) to replace the original 3dttest,\n"
       "   which was written in 1994, \"When grass was green and grain was yellow\".\n"
-      "  ++ And when the program's author still had hair with color /:(\n"
+      "  ++ And when the program's author still had hair on the top of his head /:(\n"
       "\n"
 
       "------------------\n"
@@ -4236,7 +4248,7 @@ LABELS_ARE_DONE:  /* target for goto above */
 
    /*---------- finalizationing ----------*/
 
-   if( do_tests && !AFNI_noenv("AFNI_AUTOMATIC_FDR") ){
+   if( do_tests && !AFNI_noenv("AFNI_AUTOMATIC_FDR") && nvox > 20 ){
      INFO_message("Creating FDR curves in output dataset") ;
      mri_fdr_setmask(mask) ;
      kk = THD_create_all_fdrcurves(outset) ;
