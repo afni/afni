@@ -72,6 +72,18 @@ describe a possible sequence of tools, but mention that not all would
 be necessary (or even appropriate, in some cases) in every single
 pipeline.  The user will be required to do some decision making.
 
+.. list-table:: 
+   :header-rows: 1
+   :widths: 100
+
+   * - A schematic pipeline for some of the main ``fat_proc``
+       functions, as well as how they might incorporate with other
+       tools
+   * - .. image:: media/fat_proc_3prong_pipeline.png
+          :width: 90%
+          :align: center
+   * -
+
 These scripts are examples, not dogma-- they are **a** way to go about
 DWI processing with AFNI, FATCAT and TORTOISE (as well as FreeSurfer
 and ``dcm2niix``). They are bound to change (improve?) over

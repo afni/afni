@@ -17,3 +17,10 @@
    TORTOISEing
    Postprocessing
 
+.. list-table:: 
+   :header-rows: 0
+   :widths: 100
+
+   * - .. image:: ../../FATCAT/media/FATCAT_logo.jpg
+          :width: 25%
+          :align: center
