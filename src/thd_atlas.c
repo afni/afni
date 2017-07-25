@@ -2956,7 +2956,7 @@ niml_to_atlas_list(ATLAS_POINT_LIST *atp, char *atlas_file)
    NI_element *nel=NULL;
 
    float cog[3];
-   char *encstr;
+   char *encstr=NULL;
    short okey;
 
    ENTRY("niml_to_atlas_list");
