@@ -31,9 +31,43 @@ For slice viewing, I generally prefer using the sagittal view with
 separate scaling per volume.  Generally, the presence of one or more
 bad slices is most readily apparent in these, IMHO.
 
+The purpose of ``fat_proc_select_vols`` is to allow a user to
+select *bad* volumes that should be removed, and to automatically
+generate a list of *good* volumes to keep.  The tool works by
+selecting *bad* volumes because we assume that, in any given study,
+there will be fewer bad volumes than good ones-- if this is not the
+case, your data+study might be in big trouble!  
+
+In AFNI, one can use "sub-brick" selectors to choose subsets of a data
+set to input into a function.  For example, let's say AAA.nii.gz is a
+4D data set containing 20 volumes.  If you wanted to keep only the
+first ten, then you would input AAA.nii.gz'[0..9]'; if you wanted the
+last ten, this could be either AAA.nii.gz'[10..19]' or
+AAA.nii.gz'[10..$]', as the "$" is a special character meaning "to the
+end of the list"; if you wanted only volumes #0-5, 8 and 16-18, you
+would input AAA.nii.gz'[0..5,8,16..18]'; etc.  These selectors can
+also be applied to text files, selecting indices of either rows or
+columns using '[*string*\]' or '{*string*\}'.  See the help of
+``3dcalc`` for more information.
+
+Thus, the primary output of ``fat_proc_select_vols`` is a file
+containing the selector string part of those above commands, plain and
+simple.  For example, in the example performed below, the whole
+rigmarole with ``fat_proc_select_vols`` is to produce of file called
+"dwi_sel_both_goods.txt" that contains a single line::
+
+  0..12,14..21,23..32
+
+\.\.\. which is the string selector of *good* volumes to keep from
+each of the AP and PA dsets.  Note that that kind of simply structured
+file could be made in **many** different ways-- feel free to use other
+methods.  We do find value in A) users looking at and inspecting their
+own data for artifacts and B) having a written record of what they
+decided to filter.
+
 The ``fat_proc_filter_dwis`` function applies the AFNI-formatted
 selector string from ``fat_proc_select_vols`` (or, from any source,
-actually) to input volume and gradient files.  Yup.
+actually) to input volume and gradient files.  Yup, that's it.
 
 |
 
@@ -292,6 +326,8 @@ in the "data_proc/SUBJ_001/dwi_01/" directory::
    * - *Output files made by calls to fat_proc_filter_dwis commands
        for both the AP and PA data.*
 
+It contains the following outputs for the AP data (and analogous
+outputs for the PA sets):
 
 .. list-table:: 
    :header-rows: 1
