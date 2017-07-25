@@ -54,7 +54,9 @@ sagittal views of each volume, with brightness scaled separately per
 slice, and one can click on bad volumes to add them to the list; then,
 in the second function call, the same list is reopened and the editing
 continues, since we want to form the union of bad volumes across the
-AP-PA pair of dsets::
+AP-PA pair of dsets.  **When all is said and done here, the main thing
+we will want from this is the string selector of the list of good
+volumes to keep, which will be called dwi_sel_both_goods.txt**::
 
     # I/O path, same as before
     set path_P_ss = data_proc/SUBJ_001
