@@ -31,9 +31,50 @@ For slice viewing, I generally prefer using the sagittal view with
 separate scaling per volume.  Generally, the presence of one or more
 bad slices is most readily apparent in these, IMHO.
 
+The purpose of ``fat_proc_select_vols`` is to allow a user to
+select *bad* volumes that should be removed, and to automatically
+generate a list of *good* volumes to keep.  The tool works by
+selecting *bad* volumes because we assume that, in any given study,
+there will be fewer bad volumes than good ones-- if this is not the
+case, your data+study might be in big trouble!  
+
+In AFNI, one can use "sub-brick" selectors to choose subsets of a data
+set to input into a function.  For example, let's say AAA.nii.gz is a
+4D data set containing 20 volumes.  If you wanted to keep only the
+first ten, then you would input ``AAA.nii.gz'[0..9]'``; if you wanted
+the last ten, this could be either ``AAA.nii.gz'[10..19]'`` or
+``AAA.nii.gz'[10..$]'``, as the "$" is a special character meaning "to
+the end of the list"; if you wanted only volumes #0-5, 8 and 16-18,
+you would input ``AAA.nii.gz'[0..5,8,16..18]'``; etc.  These selectors
+can also be applied to text files, selecting indices of either rows or
+columns using ``BBB.txt'[0..9]'`` or ``BBB'{0..9}'``, etc.  See the
+help of ``3dcalc`` for more information.
+
+Thus, the primary output of ``fat_proc_select_vols`` is a file
+containing the selector string part of those above commands, plain and
+simple.  For example, in the example performed below, the whole
+rigmarole with ``fat_proc_select_vols`` is to produce of file called
+"dwi_sel_both_goods.txt" that contains a single line::
+
+  0..12,14..21,23..32
+
+\.\.\. which is the string selector of *good* volumes to keep from
+each of the AP and PA dsets.  Note that that kind of simply structured
+file could be made in **many** different ways-- feel free to use other
+methods.  We do find value in A) users looking at and inspecting their
+own data for artifacts and B) having a written record of what they
+decided to filter.
+
+.. note:: There are no brackets in the desired selector string of
+          *good* volumes.  This is because the user may have either
+          row or column data of gradient and *b*\-value information,
+          which would require different brackets.  We deal with that
+          hassle internally in the ``fat_proc_filter_dwis`` function
+          so that the user doesn't have to.  You're welcome.
+
 The ``fat_proc_filter_dwis`` function applies the AFNI-formatted
 selector string from ``fat_proc_select_vols`` (or, from any source,
-actually) to input volume and gradient files.  Yup.
+actually) to input volume and gradient files.  Yup, that's it.
 
 |
 
@@ -85,7 +126,7 @@ the GUI):
       :widths: 90
     
       * - Selector GUI:  having selected (and deselected) some AP vols
-      * - .. image:: media/fp_06_sel_vols_ap.png
+      * - .. image:: media/prepre_ii/fp_06_sel_vols_ap.png
              :width: 100%
              :align: center
       * - *An example of what the opened GUI looks like after the
@@ -110,7 +151,7 @@ the GUI):
       :widths: 90
     
       * - Selector GUI:  initial view when about to select PA vols
-      * - .. image:: media/fp_06_sel_vols_pa_init.png
+      * - .. image:: media/prepre_ii/fp_06_sel_vols_pa_init.png
              :width: 100%
              :align: center
       * - *Now, when the second function was executed above, the set
@@ -130,7 +171,7 @@ the GUI):
       :widths: 90
     
       * - Selector GUI:  final view after adding to "bad" list
-      * - .. image:: media/fp_06_sel_vols_pa_final.png
+      * - .. image:: media/prepre_ii/fp_06_sel_vols_pa_final.png
              :width: 100%
              :align: center
       * - *Now, continuing to navigate the PA volumes, the user has
@@ -140,7 +181,6 @@ the GUI):
 
    |
 
-
 -> produces one new directory in 'data_proc/SUBJ_001/', called
 "dwi_01/":
 
@@ -149,7 +189,7 @@ the GUI):
    :widths: 90
 
    * - Directory structure for example data set
-   * - .. image:: media/fp_06_sel_vols_dir.png
+   * - .. image:: media/prepre_ii/fp_06_sel_vols_dir.png
           :width: 100%
           :align: center
    * - *Output files made by calls to fat_proc_select_vols commands
@@ -167,7 +207,7 @@ the PA (="both") images have fewer volumes here.
    :stub-columns: 0
 
    * - Outputs of
-     - ``fat_proc_convert_dcm_dwis``
+     - ``fat_proc_select_vols``
    * - **dwi_sel_ap_cmd.txt**
      - textfile, copy of the command that was run, and location
    * - **dwi_sel_ap_bads.txt**
@@ -183,7 +223,7 @@ the PA (="both") images have fewer volumes here.
        dwi_sel_ap_goods.txt, if the filter string were applied (to the
        AP set)
    * - 
-     - .. image:: media/dwi_sel_ap_onescl.sag.png
+     - .. image:: media/prepre_ii/dwi_sel_ap_onescl.sag.png
           :width: 100%   
           :align: center
    * - **dwi_sel_ap_sepscl.\*.png**
@@ -192,7 +232,7 @@ the PA (="both") images have fewer volumes here.
        dwi_sel_ap_goods.txt, if the filter string were applied (to the
        AP set)
    * - 
-     - .. image:: media/dwi_sel_ap_sepscl.sag.png
+     - .. image:: media/prepre_ii/dwi_sel_ap_sepscl.sag.png
           :width: 100%   
           :align: center
    * - **dwi_sel_both_cmd.txt**
@@ -209,7 +249,7 @@ the PA (="both") images have fewer volumes here.
        dwi_sel_both_goods.txt, if the filter string were applied (to
        the PA set)
    * -
-     - .. image:: media/dwi_sel_both_onescl.sag.png
+     - .. image:: media/prepre_ii/dwi_sel_both_onescl.sag.png
           :width: 100%   
           :align: center
    * - **dwi_sel_both_sepscl.\*.png**
@@ -218,7 +258,7 @@ the PA (="both") images have fewer volumes here.
        dwi_sel_both_goods.txt, if the filter string were applied (to
        the PA set)
    * -
-     - .. image:: media/dwi_sel_both_sepscl.sag.png
+     - .. image:: media/prepre_ii/dwi_sel_both_sepscl.sag.png
           :width: 100%   
           :align: center
 
@@ -228,8 +268,8 @@ the PA (="both") images have fewer volumes here.
    :header-rows: 1
    :widths: 90
 
-   * - Text files: "good" and "bad" files, 
-   * - .. image:: media/fp_06_sel_vol_str_files.png
+   * - Text files: "good" and "bad" files
+   * - .. image:: media/prepre_ii/fp_06_sel_vol_str_files.png
           :width: 100%
           :align: center
    * - *Output text files after both fat_proc_select_vols commands for
@@ -244,7 +284,21 @@ the PA (="both") images have fewer volumes here.
 **fat_proc_filter_dwis**: apply selection filter to keep goodies
 ------------------------------------------------------
 
-**Proc:** run::
+Once the string of "good" values to keep in the data set has been made
+and stored in a simple text file, it can be applied to both a 4D DWI
+file and some form of the gradient information.  For the latter, here
+we choose to use the TORTOISE-style *b*\-matrix, which contains both
+the gradient and DW *b*\-value information, because we aim to use
+TORTOISE's DIFFPREP in the subsequent step of DWI processing. (For
+what it's worth, one could use any *b*\-value and/or gradient/matrix
+input allowed by ``1dDW_Grad_o_Mat++``; the choice made here is simply
+for convenience.)
+
+**Proc:** the filter function will be applied to each of the AP and PA
+dsets individually, though using the same "selection string" in both
+cases.  Note that the input volumes and *b*\-matrices are in the
+"data_proc/SUBJ_001/dwi_00/" directory, while the selection string is
+in the "data_proc/SUBJ_001/dwi_01/" directory::
 
     # I/O path, same as before
     set path_P_ss = data_proc/SUBJ_001
@@ -264,3 +318,49 @@ the PA (="both") images have fewer volumes here.
         -in_col_matT   $path_P_ss/dwi_00/pa_matT.dat     \
         -select        "$selstr"                         \
         -prefix        $path_P_ss/dwi_02/pa
+
+-> produces one new directory in 'data_proc/SUBJ_001/', called
+"dwi_02/":
+
+.. list-table:: 
+   :header-rows: 1
+   :widths: 90
+
+   * - Directory structure for example data set
+   * - .. image:: media/prepre_ii/fp_07_filter_dwis.png
+          :width: 100%
+          :align: center
+   * - *Output files made by calls to fat_proc_filter_dwis commands
+       for both the AP and PA data.*
+
+It contains the following outputs for the AP data (and analogous
+outputs for the PA sets):
+
+.. list-table:: 
+   :header-rows: 1
+   :widths: 20 80
+   :stub-columns: 0
+
+   * - Outputs of
+     - ``fat_proc_filter_dwis``
+   * - **ap_cmd.txt**
+     - textfile, copy of the command that was run, and location
+   * - **ap.nii.gz**
+     - volumetric NIFTI file, 4D (*M*\=31 volumes)
+   * - **ap_matT.dat**
+     - textfile, column file of (DW scaled) TORTOISE-style b-matrix
+       (:math:`M\times 6`)
+   * - **ap_onescl.\*.png**
+     - autoimages, one slice per DWI volume, with single scaling
+       across all volumes
+   * -
+     - .. image:: media/prepre_ii/ap_onescl.sag.png
+          :width: 100%   
+          :align: center
+   * - **ap_sepscl.\*.png**
+     - autoimages, one slice per DWI volume, with separate scalings
+       for each volume
+   * -
+     - .. image:: media/prepre_ii/ap_sepscl.sag.png
+          :width: 100%   
+          :align: center
