@@ -24,8 +24,12 @@
 #set version   = "1.4";    set rev_dat   = "May 1, 2017"
 #   + Align t2w -> t1w and reverse (better masking/weighting)
 #
-set version   = "1.5";    set rev_dat   = "June 20, 2017"
+#set version   = "1.5";    set rev_dat   = "June 20, 2017"
 #   + new opt: can have mask for t2w vol
+#
+set version   = "1.6";    set rev_dat   = "July 25, 2017"
+#   + new opt: can have more than warp = shift+rot only; default is
+#   just that, still
 #
 # ---------------------------------------------------------------
 
@@ -75,6 +79,7 @@ set output_cmd = 1               # def: output copy of this command
 set cmd_file   = ""              # def: same name as viewer
 set qc_prefix  = ""              # def: autoname; user can enter
 set postfix    = "_"             # stick into name
+set warp_opt   = "-warp shift_rotate" # default, but can be changed
 
 # ------------------- process options, a la rr ----------------------
 
@@ -106,6 +111,13 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set it2w_mask = "$argv[$ac]"
+
+    # [PT: July 25, 2017] works like opt of the same name in
+    # 3dAllineate; takes shift_only, shift_rotate, etc.
+    else if ( "$argv[$ac]" == "-warp" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set warp_opt = "-warp $argv[$ac]"
 
     # optional input: premade 3dAllineate matrix
     else if ( "$argv[$ac]" == "-matrix" ) then
@@ -338,7 +350,6 @@ if ( "$imtrx" == "" ) then
     endif
 
     3dAllineate   -echo_edu               \
-        -warp shift_rotate                \
         -1Dmatrix_save  $mt_t2_t1         \
         -prefix         "$t1align"        \
         -source         "$it2w"           \
@@ -346,7 +357,8 @@ if ( "$imtrx" == "" ) then
         -twopass                          \
         -cost lpc                         \
         -cmass                            \
-        $it2w_mask                  \
+        $warp_opt                         \
+        $it2w_mask                        \
         -wtprefix      WWW.nii.gz         \
         -autoweight                       \
         -final wsinc5                     \
@@ -598,6 +610,7 @@ cat << EOF
       {-matrix MMM}                         \
       {-workdir WWW}                        \
       {-no_fs_prep}                         \
+      {-warp WAR}                           \
       {-no_cmd_out}                         \
       {-no_clean} 
 
@@ -624,6 +637,12 @@ cat << EOF
                   :can input a mask to apply to the t2w volume for
                    alignment purposes; might help in times of aligning 
                    hardship.
+
+   -warp WAR      :can choose which of the possible affine degrees of freedom
+                   are employed in the warping, selecting them in the same
+                   manner described in 3dAllineate's help;  that is, WAR can
+                   be any of shift_only, shift_rotate, shift_rotate_scale, or
+                   affine_general.  Default: WAR = shift_rotate.
 
    -matrix MMM    :one can apply a pre-made matrix that has been made by
                    3dAllineate previously.  With this option.  If you want.
