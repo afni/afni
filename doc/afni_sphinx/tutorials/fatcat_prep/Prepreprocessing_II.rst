@@ -75,7 +75,10 @@ AP-PA pair of dsets::
 this example (again, this is just an example of applying selection in
 the GUI):
 
-#. .. list-table:: 
+#. **After the first function has started and some clicks have been made
+   (described in caption):**
+
+   .. list-table:: 
       :header-rows: 1
       :widths: 90
     
@@ -84,18 +87,23 @@ the GUI):
              :width: 100%
              :align: center
       * - *An example of what the opened GUI looks like after the
-        first function above was executed to sort through the AP vols,
-        with the user having selected the volume with index 12 and
-        then clicked the "Bad-vol" button to add it to the list (as
-        noted in the terminal); then selected the volume with index 13
-        and clicked the "Bad-vol" button to add it to the list (shown
-        in terminal); and then having gone back and selected the
-        volume with index 12 and clicked the "Unbad" button to remove
-        it from the list (reflected in the terminal). After this, the
-        user clicked "Finish", and only index 13 was stored in the bad
-        list.*
+          first function above was executed to sort through the AP
+          vols, with the user having selected the volume with index 12
+          and then clicked the "Bad-vol" button to add it to the list
+          (as noted in the terminal); then selected the volume with
+          index 13 and clicked the "Bad-vol" button to add it to the
+          list (shown in terminal); and then having gone back and
+          selected the volume with index 12 and clicked the "Unbad"
+          button to remove it from the list (reflected in the
+          terminal). After this, the user clicked "Finish", and only
+          index 13 was stored in the bad list.*
 
-#. .. list-table:: 
+   |
+
+#. **After the first function has finished and the second function has
+   just executed-- no clicks made yet:**
+
+   .. list-table:: 
       :header-rows: 1
       :widths: 90
     
@@ -104,13 +112,18 @@ the GUI):
              :width: 100%
              :align: center
       * - *Now, when the second function was executed above, the set
-        of PA volume images is opened, and it can be see in the
-        terminal that there is already the index "13" in the "volumes
-        selected" list, because the prior list of bads was read in
-        during the function call.  Nothing has been clicked on yet in
-        the GUI.*
+          of PA volume images is opened, and it can be see in the
+          terminal that there is already the index "13" in the
+          "volumes selected" list, because the prior list of bads was
+          read in during the function call.  Nothing has been clicked
+          on yet in the GUI.*
 
-#. .. list-table:: 
+   |
+
+#. **After some clicks have been made during the execution of the second
+   function:**
+
+   .. list-table:: 
       :header-rows: 1
       :widths: 90
     
@@ -119,10 +132,11 @@ the GUI):
              :width: 100%
              :align: center
       * - *Now, continuing to navigate the PA volumes, the user has
-        selected the volume with index 22 and clicked "Bad-vol",
-        adding it to the already-started list.  After this, the user
-        clicked "Finish".*
+          selected the volume with index 22 and clicked "Bad-vol",
+          adding it to the already-started list.  After this, the user
+          clicked "Finish".*
 
+   |
 
 
 -> produces one new directory in 'data_proc/SUBJ_001/', called
@@ -166,11 +180,19 @@ the PA (="both") images have fewer volumes here.
        across all volumes, of what would be the new *good* volumes in
        dwi_sel_ap_goods.txt, if the filter string were applied (to the
        AP set)
+   * - 
+     - .. image:: media/dwi_sel_ap_onescl.sag.png
+          :width: 100%   
+          :align: center
    * - **dwi_sel_ap_sepscl.\*.png**
      - autoimages, one slice per DWI volume, with separate scalings
        for each volume; of what would be the new *good* volumes in
        dwi_sel_ap_goods.txt, if the filter string were applied (to the
        AP set)
+   * - 
+     - .. image:: media/dwi_sel_ap_sepscl.sag.png
+          :width: 100%   
+          :align: center
    * - **dwi_sel_both_cmd.txt**
      - textfile, copy of the command that was run, and location
    * - **dwi_sel_both_bads.txt**
@@ -184,11 +206,22 @@ the PA (="both") images have fewer volumes here.
        across all volumes, of what would be the new *good* volumes in
        dwi_sel_both_goods.txt, if the filter string were applied (to
        the PA set)
-   * - **dwi_sel_ap_sepscl.\*.png**
+   * -
+     - .. image:: media/dwi_sel_both_onescl.sag.png
+          :width: 100%   
+          :align: center
+   * - **dwi_sel_both_sepscl.\*.png**
      - autoimages, one slice per DWI volume, with separate scalings
        for each volume; of what would be the new *good* volumes in
        dwi_sel_both_goods.txt, if the filter string were applied (to
        the PA set)
+   * -
+     - .. image:: media/dwi_sel_both_sepscl.sag.png
+          :width: 100%   
+          :align: center
+
+|
+
 
 .. list-table:: 
    :header-rows: 1
@@ -202,7 +235,6 @@ the PA (="both") images have fewer volumes here.
        both the AP and PA data-- note that some of this may be
        counterintuitive. Mainly, the dwi_sel_both_goods.txt files is
        the main output to be used later.*
-
 
 |
 
