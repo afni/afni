@@ -41,14 +41,14 @@ case, your data+study might be in big trouble!
 In AFNI, one can use "sub-brick" selectors to choose subsets of a data
 set to input into a function.  For example, let's say AAA.nii.gz is a
 4D data set containing 20 volumes.  If you wanted to keep only the
-first ten, then you would input AAA.nii.gz'[0..9]'; if you wanted the
-last ten, this could be either AAA.nii.gz'[10..19]' or
-AAA.nii.gz'[10..$]', as the "$" is a special character meaning "to the
-end of the list"; if you wanted only volumes #0-5, 8 and 16-18, you
-would input AAA.nii.gz'[0..5,8,16..18]'; etc.  These selectors can
-also be applied to text files, selecting indices of either rows or
-columns using '[*string*\]' or '{*string*\}'.  See the help of
-``3dcalc`` for more information.
+first ten, then you would input ``AAA.nii.gz'[0..9]'``; if you wanted
+the last ten, this could be either ``AAA.nii.gz'[10..19]'`` or
+``AAA.nii.gz'[10..$]'``, as the "$" is a special character meaning "to
+the end of the list"; if you wanted only volumes #0-5, 8 and 16-18,
+you would input ``AAA.nii.gz'[0..5,8,16..18]'``; etc.  These selectors
+can also be applied to text files, selecting indices of either rows or
+columns using ``BBB.txt'[0..9]'`` or ``BBB'{0..9}'``, etc.  See the
+help of ``3dcalc`` for more information.
 
 Thus, the primary output of ``fat_proc_select_vols`` is a file
 containing the selector string part of those above commands, plain and
@@ -65,16 +65,16 @@ methods.  We do find value in A) users looking at and inspecting their
 own data for artifacts and B) having a written record of what they
 decided to filter.
 
-The ``fat_proc_filter_dwis`` function applies the AFNI-formatted
-selector string from ``fat_proc_select_vols`` (or, from any source,
-actually) to input volume and gradient files.  Yup, that's it.
-
 .. note:: There are no brackets in the desired selector string of
           *good* volumes.  This is because the user may have either
           row or column data of gradient and *b*\-value information,
           which would require different brackets.  We deal with that
           hassle internally in the ``fat_proc_filter_dwis`` function
           so that the user doesn't have to.  You're welcome.
+
+The ``fat_proc_filter_dwis`` function applies the AFNI-formatted
+selector string from ``fat_proc_select_vols`` (or, from any source,
+actually) to input volume and gradient files.  Yup, that's it.
 
 |
 
