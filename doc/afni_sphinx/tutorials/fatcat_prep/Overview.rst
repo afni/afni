@@ -10,11 +10,17 @@ Background and additional software
 Overview
 --------
 
-**[July 2017]** Revamping, and scripts soon to be added to the
-distribution...
+**[July 2017]** Revamping, and most scripts are in the distribution,
+ still finishing the documentation at the moment...
 
 This page provides a preliminary description of using AFNI+FATCAT
-tools in conjunction with `TORTOISE
+tools to develop a flexible pipeline for the processing and analysis
+of diffusion-based images.  We describe the available tools and give
+example commands for real sets of data that have been acquired in
+various ways.
+
+Importantly, these functions combine and are designed to integrate
+smoothly with existing processing tools.  This includes `TORTOISE
 <https://science.nichd.nih.gov/confluence/display/nihpd/TORTOISE>`_
 for processing diffusion weighted (DW) MRI data.  It also uses
 ``dcm2niix`` from `mricron
