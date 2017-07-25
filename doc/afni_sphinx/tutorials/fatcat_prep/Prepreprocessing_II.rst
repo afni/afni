@@ -69,6 +69,13 @@ The ``fat_proc_filter_dwis`` function applies the AFNI-formatted
 selector string from ``fat_proc_select_vols`` (or, from any source,
 actually) to input volume and gradient files.  Yup, that's it.
 
+.. note:: There are no brackets in the desired selector string of
+          *good* volumes.  This is because the user may have either
+          row or column data of gradient and *b*\-value information,
+          which would require different brackets.  We deal with that
+          hassle internally in the ``fat_proc_filter_dwis`` function
+          so that the user doesn't have to.  You're welcome.
+
 |
 
 .. _fp_select_vols:
