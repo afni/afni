@@ -1,7 +1,7 @@
 .. _fp_prepre_I:
 
-Pre-preprocessing, I
-====================
+Pre-preprocessing, I: convert and niceify
+=========================================
 
 .. contents::
    :depth: 3

@@ -1,7 +1,7 @@
 .. _fp_prepre_II:
 
-Pre-preprocessing, II
-=====================
+Pre-preprocessing, II: examine and filter
+=========================================
 
 .. contents::
    :depth: 3
