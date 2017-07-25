@@ -185,6 +185,17 @@ the data and kick out bad volumes pre-TORTOISEing, and I haven't had
 the misfortune to have major formatting trouble whilst doing so (*he
 writes asking The Universe for trouble*...).
 
+.. note:: When converting DICOMs, it seems like one has to be *extra*
+          vigilant when converting data acquired on Philips scanners.
+          This is not to pick on anybody, but there have been many
+          times when reading header information properly has been
+          challenging.  Looking at data, and testing it to make sure
+          it has the properties you expect, is always a Good Thing.
+
+We try to maintain fairly recent copies of ``dcm2niix`` in AFNI.  Any
+deep questions on converting DICOMs with this tool should be directed
+to C. Rorden et al., though we are happy to learn of
+updates/fixes/etc.
 
 .. _suppl_refsets_mni:
 
