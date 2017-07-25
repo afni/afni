@@ -222,7 +222,6 @@ the PA (="both") images have fewer volumes here.
 
 |
 
-
 .. list-table:: 
    :header-rows: 1
    :widths: 90
@@ -234,7 +233,7 @@ the PA (="both") images have fewer volumes here.
    * - *Output text files after both fat_proc_select_vols commands for
        both the AP and PA data-- note that some of this may be
        counterintuitive. Mainly, the dwi_sel_both_goods.txt files is
-       the main output to be used later.*
+       the important output to be used later.*
 
 |
 
