@@ -458,6 +458,12 @@ int main( int argc , char *argv[] )
    cpp = strstr(inset_prefix,"+tlrc")  ; if( cpp != NULL ) *cpp = '\0' ;
    cpp = THD_trailname(inset_prefix,0) ; if( cpp != NULL ) inset_prefix = cpp ;
 
+   { THD_3dim_dataset *qset = THD_remove_allzero(inset) ;  /* 25 Jul 2017 */
+     if( qset != NULL ){
+       DSET_delete(inset) ; inset = qset ;
+     }
+   }
+
    if( (demed || unif || corder ) && DSET_NVALS(inset) < 4 ){
      WARNING_message(
        "-demed and/or -corder and/or -unif ignored: only %d input sub-bricks",

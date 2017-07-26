@@ -445,9 +445,21 @@ void display_help_menu(void)
       "  options are slow, since they will run 1000s of simulated 3D t-tests in\n"
       "  order to get cluster-level statistics about the 1 actual test.\n"
       "\n"
-      "* This program is meant (for many uses) to replace the original 3dttest,\n"
+      "* You can input plain text files of numbers, provided their filenames end\n"
+      "  in the AFNI standard '.1D'. If you have two columns of numbers in files\n"
+      "  AA.1D and BB.1D, you could test their means for equality with a command like\n"
+      "    3dttest++ -prefix stdout: -no1sam setA AA.1D\\' -setB BB.1D\\'\n"
+      "  Here, the \\' at the end of the filename tells the program to transpose\n"
+      "  the column files to row files, since AFNI treats a single row of numbers\n"
+      "  as the multiple values for a single 'voxel'. The output (on stdout) from\n"
+      "  such a command will be one row of numbers: the first value is the\n"
+      "  difference in the means between the 2 samples, and the second value is\n"
+      "  the t-statistic for this difference. (There will also be a bunch of text\n"
+      "  on stderr, with various messages.)\n"
+      "\n"
+      "* This program is meant (for most uses) to replace the original 3dttest,\n"
       "   which was written in 1994, \"When grass was green and grain was yellow\".\n"
-      "  ++ And when the program's author still had hair with color /:(\n"
+      "  ++ And when the program's author still had hair on the top of his head /:(\n"
       "\n"
 
       "------------------\n"
@@ -3729,6 +3741,7 @@ int main( int argc , char *argv[] )
      bbase = ss = bb = 0 ;
      if( do_means ) MEAN_LABEL_2SAM(snam_PPP,snam_MMM,"diff") ;
      if( do_tests ) TEST_LABEL_2SAM_MEAN(snam_PPP,snam_MMM) ;
+     ntwosam = (do_means+do_tests) ; /* 24 Jul 2017 -- oopsie */
      goto LABELS_ARE_DONE ;
    }
 
@@ -4235,7 +4248,7 @@ LABELS_ARE_DONE:  /* target for goto above */
 
    /*---------- finalizationing ----------*/
 
-   if( do_tests && !AFNI_noenv("AFNI_AUTOMATIC_FDR") ){
+   if( do_tests && !AFNI_noenv("AFNI_AUTOMATIC_FDR") && nvox > 20 ){
      INFO_message("Creating FDR curves in output dataset") ;
      mri_fdr_setmask(mask) ;
      kk = THD_create_all_fdrcurves(outset) ;
@@ -4525,7 +4538,8 @@ LABELS_ARE_DONE:  /* target for goto above */
         and gather statistics on them for the sake of amusement and mirth */
 
      if( dryrun ){
-       ININFO_message("(At this point, would compute .5percent.txt file(s) from minmax.1D files)") ;
+       if( do_5percent )
+         ININFO_message("(Would now compute .5percent.txt file(s) from minmax.1D files)") ;
      } else if( do_5percent ){
        MRI_IMAGE *inim , *allim ; MRI_IMARR *inar ; int nbad=0 ;
        INIT_IMARR(inar) ;
@@ -4537,42 +4551,47 @@ LABELS_ARE_DONE:  /* target for goto above */
          }
          ADDTO_IMARR(inar,inim) ; remove(fname) ;
        }
-       if( nbad == 0 ){                   /* if all are OK */
+       if( nbad == 0 ){                   /* if all files were OK */
          for( icase=0 ; icase < ncase ; icase++ ){
-           /* glue this case's minmax results together */
+           /* glue this case's minmax results together from a sub-array of images */
            allim = mri_catvol_1D_ab(inar,1,icase*num_clustsim,(icase+1)*num_clustsim-1) ;
            if( allim != NULL ){
-             int nall=2*allim->nx , n05=(int)rintf(0.05f*nall) ;
+             int nall=2*allim->nx , n05 ;
              float *allar=MRI_FLOAT_PTR(allim) ;
              float oneside_05 , twoside_05 ; FILE *fp ;
+             int ipp ;
 
              for( pp=0 ; pp < nall ; pp++ ) allar[pp] = fabsf(allar[pp]) ;
              qsort_float_rev(nall,allar) ;  /* decreasing order */
-             twoside_05 = allar[n05] ;      /* 5% in all cases */
-             oneside_05 = allar[2*n05] ;    /* 10% in all cases = 5% one side */
-             mri_free(allim) ;
 
              if( clab[icase][0] == '\0' )
                sprintf(fname,"%s.5percent.txt",prefix_clustsim) ;
              else
                sprintf(fname,"%s.%s.5percent.txt",prefix_clustsim,clab[icase]) ;
              fp = fopen(fname,"w") ;
-             INFO_message("Global 5%% FPR points for simulated z-stats:") ;
-             fprintf(stderr,"   %.3f = 1-sided 5%% FPR %s\n",oneside_05,clab[icase]) ;
-             fprintf(stderr,"   %.3f = 2-sided 5%% FPR %s\n",twoside_05,clab[icase]) ;
-             if( fp != NULL ){
-               fprintf(fp," %.3f = 1-sided 5%% FPR\n",oneside_05) ;
-               fprintf(fp," %.3f = 2-sided 5%% FPR\n",twoside_05) ;
-               fclose(fp) ;
-               ININFO_message("    [above results also in file %s]",fname) ;
-             } else {  /* should never happen */
-               WARNING_message("   [for some reason, unable to write above results to a file]") ;
+             INFO_message("Global %% FPR points for simulated z-stats:") ;
+
+             for( ipp=9 ; ipp > 0 ; ipp-- ){
+               n05 = (int)rintf(0.01f*ipp*nall) ;
+               twoside_05 = allar[n05] ;      /* ipp% in all cases */
+               oneside_05 = allar[2*n05] ;    /* 2*ipp% in all cases = ipp% one side */
+               fprintf(stderr,"   %.3f = 1-sided %1d%% FPR %s\n",oneside_05,ipp,clab[icase]) ;
+               fprintf(stderr,"   %.3f = 2-sided %1d%% FPR %s\n",twoside_05,ipp,clab[icase]) ;
+               if( fp != NULL ){
+                 fprintf(fp," %.3f = 1-sided %1d%% FPR\n",oneside_05,ipp) ;
+                 fprintf(fp," %.3f = 2-sided %1d%% FPR\n",twoside_05,ipp) ;
+               } else if( ipp==9 ){  /* should never happen */
+                 WARNING_message("   [for some reason, unable to write above results to a file]") ;
+               }
              }
+             fclose(fp) ;
+             ININFO_message("    [above results also in file %s]",fname) ;
+             mri_free(allim) ;
            }
          }
        }
        DESTROY_IMARR(inar) ;
-     }
+     } /*-- end of 5percent stuff --*/
 
      /* run 3d[X]ClustSim using the outputs from the above as the simulations */
 
