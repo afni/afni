@@ -562,6 +562,13 @@ It contains the following outputs for the T2w data:
 
 At this point, it might be useful to align the T1w anatomical to the
 newly axialized T2w volume.  Then, the T1w itself should be axialized.
+NB: by default, this alignment is just a "solid body" (rotation +
+translation) transformation, so there is no change in shape of the T1w
+volume (besides the minimal amounts of smoothing involved with
+regridding); if desired, one can provide an option to
+``fat_proc_align_anat_pair`` to allow for any set of the full linear
+affine parameters available in ``3dAllineate``.
+
 Additionally, if one is aiming to run FreeSurfer's ``recon-all`` on
 the T1w, this step can be useful for preparing the volume for that.
 In particular, at present (FreeSurfer versions up to 6.0) the function
