@@ -11,7 +11,16 @@
 
    Overview
    GeneralProps
-   Prepreprocessing
+   Prepreprocessing_I
+   Prepreprocessing_II
+   Preprocessing_FS
    TORTOISEing
    Postprocessing
 
+.. list-table:: 
+   :header-rows: 0
+   :widths: 100
+
+   * - .. image:: ../../FATCAT/media/FATCAT_logo.jpg
+          :width: 25%
+          :align: center

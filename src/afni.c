@@ -2040,7 +2040,6 @@ void AFNI_sigfunc_alrm(int sig)
      "Remember to take your brain out and polish it"                 ,
      "What in God's Holy Name are you blathering on about?"          ,
      "Are you a Dada-ist or a Dude-ist?"                             ,
-     "I'm completely innocent. Within reason"                        ,
      "Believe those who seek the truth; doubt those who find it"     ,
      "There is more to truth that just the facts"                    ,
      "There is more to truth than a small p-value"                   ,
@@ -2065,6 +2064,13 @@ void AFNI_sigfunc_alrm(int sig)
      "Insanity is my best and only means of relaxation"              ,
      "The three 'Ups' of life: Grow Up, Shut Up, Lighten Up"         ,
      "I am not a number, I am a free software!"                      ,
+     "Correlation isn't causation, but what else do we have?"        ,
+
+     "I'm completely innocent. Within reason"                          ,
+     "I'm completely innocent. I was just doing what they told me"     ,
+     "I'm completely innocent. It was someone else who looked like me" ,
+     "I'm completely innocent. Or at least, you can't prove anything"  ,
+     "I'm completely innocent. Of what, I'm not saying"                ,
 
      /* paraprosdokians */
 
@@ -2390,10 +2396,12 @@ void AFNI_sigfunc_alrm(int sig)
      "     I know but I'm not telling you\n"
      "     I need to talk to my lawyer\n"
      "     Please repeat the question\n"
+     "     Could you clarify what you mean, exactly?\n"
      "     Quantum indeterminacy makes any answer uncertain\n"
      "     That depends on the truth of the Riemann Hypothesis\n"
      "     Is there an odd perfect number?\n"
      "     Go Fish\n"
+     "     I like eggs\n"
      "     Look, a squirrel" ,
 
      "\n There comes a time when you look into the mirror and you realize\n"

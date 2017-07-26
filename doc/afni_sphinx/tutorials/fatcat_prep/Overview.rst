@@ -10,11 +10,17 @@ Background and additional software
 Overview
 --------
 
-**[July 2017]** Revamping, and scripts soon to be added to the
-distribution...
+**[July 2017]** Revamping, and most scripts are in the distribution,
+ still finishing the documentation at the moment...
 
 This page provides a preliminary description of using AFNI+FATCAT
-tools in conjunction with `TORTOISE
+tools to develop a flexible pipeline for the processing and analysis
+of diffusion-based images.  We describe the available tools and give
+example commands for real sets of data that have been acquired in
+various ways.
+
+Importantly, these functions combine and are designed to integrate
+smoothly with existing processing tools.  This includes `TORTOISE
 <https://science.nichd.nih.gov/confluence/display/nihpd/TORTOISE>`_
 for processing diffusion weighted (DW) MRI data.  It also uses
 ``dcm2niix`` from `mricron
@@ -71,6 +77,18 @@ Is there a T2w anatomical, or only a T1w volume?  Therefore, we
 describe a possible sequence of tools, but mention that not all would
 be necessary (or even appropriate, in some cases) in every single
 pipeline.  The user will be required to do some decision making.
+
+.. list-table:: 
+   :header-rows: 1
+   :widths: 100
+
+   * - A schematic pipeline for some of the main ``fat_proc``
+       functions, as well as how they might incorporate with other
+       tools
+   * - .. image:: media/fat_proc_3prong_pipeline.png
+          :width: 90%
+          :align: center
+   * -
 
 These scripts are examples, not dogma-- they are **a** way to go about
 DWI processing with AFNI, FATCAT and TORTOISE (as well as FreeSurfer
@@ -173,6 +191,17 @@ the data and kick out bad volumes pre-TORTOISEing, and I haven't had
 the misfortune to have major formatting trouble whilst doing so (*he
 writes asking The Universe for trouble*...).
 
+.. note:: When converting DICOMs, it seems like one has to be *extra*
+          vigilant when converting data acquired on Philips scanners.
+          This is not to pick on anybody, but there have been many
+          times when reading header information properly has been
+          challenging.  Looking at data, and testing it to make sure
+          it has the properties you expect, is always a Good Thing.
+
+We try to maintain fairly recent copies of ``dcm2niix`` in AFNI.  Any
+deep questions on converting DICOMs with this tool should be directed
+to C. Rorden et al., though we are happy to learn of
+updates/fixes/etc.
 
 .. _suppl_refsets_mni:
 

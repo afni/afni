@@ -1,7 +1,7 @@
-.. _preTORTOISE:
+.. _fp_prepre_I:
 
-Pre-preprocessing, I
-====================
+Pre-preprocessing, I: convert and niceify
+=========================================
 
 .. contents::
    :depth: 3
@@ -216,10 +216,10 @@ outputs for the PA sets):
    * - **ap_cvec.dat**
      - textfile, column file of (DW scaled) b-vectors (:math:`N\times 3`)
    * - **ap_matA.dat**
-     - textfile, column file of (DW scaled) AFNI-style b-matrix
+     - textfile, column file of (DW scaled) AFNI-style b-matrix 
        (:math:`N\times 6`)
    * - **ap_matT.dat**
-     - textfile, column file of (DW scaled) AFNI-style b-matrix
+     - textfile, column file of (DW scaled) TORTOISE-style b-matrix
        (:math:`N\times 6`)
    * - **ap_onescl.\*.png**
      - autoimages, one slice per DWI volume, with single scaling
@@ -555,11 +555,20 @@ It contains the following outputs for the T2w data:
 
 |
 
+.. _fp_align_anat_pair:
+
 **fat_proc_align_anat_pair**: Align T1w -> T2w
 ----------------------------------------------
 
 At this point, it might be useful to align the T1w anatomical to the
 newly axialized T2w volume.  Then, the T1w itself should be axialized.
+NB: by default, this alignment is just a "solid body" (rotation +
+translation) transformation, so there is no change in shape of the T1w
+volume (besides the minimal amounts of smoothing involved with
+regridding); if desired, one can provide an option to
+``fat_proc_align_anat_pair`` to allow for any set of the full linear
+affine parameters available in ``3dAllineate``.
+
 Additionally, if one is aiming to run FreeSurfer's ``recon-all`` on
 the T1w, this step can be useful for preparing the volume for that.
 In particular, at present (FreeSurfer versions up to 6.0) the function
