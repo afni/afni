@@ -64,9 +64,9 @@ to have administrator privileges on your operating system.
 
 #. **Install prerequisite: Xming X Server for Windows.**
 
-   Click on the following link to start automatic download:
-   `https://sourceforge.net/projects/xming/files/latest/download
-   <https://sourceforge.net/projects/xming/files/latest/download>`_
+   | Click on the following link to start automatic download:
+   | `https://sourceforge.net/projects/xming/files/latest/download
+     <https://sourceforge.net/projects/xming/files/latest/download>`_
 
    The default installation settings appear fine.  To set the DISPLAY
    properly in your run-command file, execute the following::
@@ -80,9 +80,14 @@ to have administrator privileges on your operating system.
 #. **Install prerequisite: AFNI and basic Linux package dependencies.**
 
    Assuming the version of Ubuntu on your system is Ubuntu 16.04, you
-   should now follow the :ref:`instructions here
-   <install_steps_linux_ubuntu16>`, through "Automatically set up
-   AFNI/SUMA profiles."
+   should now follow the following setup instructions through
+   "Automatically set up AFNI/SUMA profiles":
+     
+   .. list-table:: 
+      :header-rows: 0
+      :widths: 80
+
+      * - :ref:`Link to Ubuntu 16+ setup instructions for AFNI <install_steps_linux_ubuntu16>`
 
    **Some things to note.**
 
