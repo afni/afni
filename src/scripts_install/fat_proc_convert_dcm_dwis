@@ -643,7 +643,10 @@ cat << EOF
                      to weirdness later on down the road, depending on the
                      data and headers (ergo, not recommended.)
 
-  -flip_x | -flip_y | -flip_z | -no_flip
+    -flip_x    ..or..
+    -flip_y    ..or..
+    -flip_z    ..or..
+    -no_flip
                     :use any one of these for the ability to flip grads 
                      while processing with 1dDW_Grad_o_Mat++. (Default is 
                      to not flip; it is not necessary to provide that 

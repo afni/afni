@@ -1331,7 +1331,7 @@ void THD_check_vectim( MRI_vectim *mv , char *fname )
      for( ii=1 ; ii < nvals && vpt[ii] == vz ; ii++ ) ; /*nada*/
      if( ii == nvals ) nbad++ ;
    }
-   if( nbad > 0 )
+   if( nbad > 0 && nvals > 1 )
      WARNING_message("%s :: %d vector%s constant",
                      fname , nbad , (nbad==1) ? " is" : "s are" ) ;
 
@@ -1344,7 +1344,7 @@ void THD_check_vectim( MRI_vectim *mv , char *fname )
      }
      if( jj == nvec ) nbad++ ;
    }
-   if( nbad > 0 )
+   if( nbad > 0 && nvec > 1 )
      WARNING_message("%s :: %d volume%s constant",
                      fname , nbad , (nbad==1) ? " is" : "s are" ) ;
    return ;

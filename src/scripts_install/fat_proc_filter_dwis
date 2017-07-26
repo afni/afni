@@ -458,7 +458,10 @@ cat << EOF
   where:
   -in_dwi  DDD      :name of a 4D file of DWIs (required).
 
-  -in_col_matA|-in_col_matT|-in_col_vec|-in_row_vec FFF
+  -in_col_matA   ..or..
+  -in_col_matT   ..or..
+  -in_col_vec    ..or..
+  -in_row_vec   FFF
                     :one of these options must be used to input 
                      a bvec/bmat file from the gradients. Required.
                      Same type of output file is returned.

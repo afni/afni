@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 25 , JUL , 2017 , RWC , "3dttest++" , MICRO , TYPE_ENHANCE ,
+   "Extend '5percent' outputs to cover 1-9 percent range." ,
+   "Just for fun fun fun in the sun sun sun.  Also, the whole replicability\n"
+   "thing that's going down these days." } ,
+
  { 20 , JUL , 2017 , RWC , "3dFWHMx" , MAJOR , TYPE_NEW_OPT ,
    "Require -ShowMeClassicFWHM to get the Forman FWHM estimates" ,
    "Otherwise, these results are shown only as zeros.  The intention is to\n"

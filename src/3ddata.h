@@ -4608,7 +4608,6 @@ extern THD_3dim_dataset * THD_copy_one_sub  ( THD_3dim_dataset * , int ) ;
     " N.B. If AFNI_PATH_SPACES_OK is set to Yes, will be considered as part\n"\
     " of the dataset name, and not as a separator between them.\n"            \
     " \n"                                                                     \
-    " \n"                                                                     \
     " Similar treatment applies when specifying datasets using a wildcard\n"  \
     " pattern, using '*' or '?', as in: 'dset*+tlrc.HEAD'.  Any sub-brick\n"  \
     " selectors would apply to all matching datasets, as with:\n"             \
@@ -5258,6 +5257,8 @@ extern int    mask_union_count    ( int, byte *, byte * ); /* 30 Mar 2009 */
 extern int    mask_count          ( int, byte * ) ;
 extern float_triple mask_rgyrate( int nx, int ny, int nz , byte *mmm ) ;
 extern byte * mri_automask_image2D( MRI_IMAGE *im ) ;      /* 12 Mar 2010 */
+
+extern THD_3dim_dataset * THD_remove_allzero(THD_3dim_dataset *); /* 25 Jul 2017 */
 
 
                                                    /* 13 Nov 2006 [rickr] */
