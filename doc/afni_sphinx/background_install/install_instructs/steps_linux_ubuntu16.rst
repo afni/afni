@@ -28,11 +28,14 @@ relevant :ref:`instructions here <install_steps_linux_ubuntu>`.
        sudo apt-get install -y libglu1-mesa-dev libglw1-mesa     \
                                libxm4 build-essential
 
-     * *Optional, but may be quite useful. The following may take a
-       little while for your system to setup, but it should provide
-       nice terminal behavior*::
+     * *Optional, but may be quite useful (esp. if you are following
+       the* :ref:`BoUoW <install_steps_windows10>` *instructions). The
+       following may take a little while for your system to setup, but
+       it should provide nice terminal behavior*::
 
          sudo apt-get install -y gnome-terminal
+         sudo apt-get install -y nautilus
+         sudo apt-get install -y gnome-icon-theme-symbolic
 
    .. internal note/comment: at this moment, we are eschewing
       including 'mwm', which is the replacement for 'motif-clients'
