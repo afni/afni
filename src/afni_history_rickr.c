@@ -117,7 +117,7 @@ afni_history_struct rickr_history[] = {
    "CentOS 7 and Ubuntu 16 will be new distribution build systems."
  } ,
 
- { 15,  Jun, 2017, RCR, "uber_subject", MICRO, TYPE_BUG_FIX,
+ { 15,  Jun, 2017, RCR, "uber_subject.py", MICRO, TYPE_BUG_FIX,
    "handle empty subj_dir",
    NULL
  } ,
@@ -380,7 +380,7 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
- {  1,  Feb, 2017, RCR, "afni_system_check", MINOR, TYPE_ENHANCE,
+ {  1,  Feb, 2017, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
    "updates for fink and homebrew",
    NULL
  } ,
@@ -654,7 +654,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 15,  Aug, 2016, RCR, "afni_proc.py", MAJOR, TYPE_ENHANCE,
-   "default clustsim method is now ACF",
+   "default clustsim method is now mixed model ACF",
    "This marks afni_proc.py version 5.00.\n"
    "  o run 3dFWHMx with -ACF\n"
    "  o ACF and ClustSim files go into sub-directories, files_ACF/ClustSim\n"
