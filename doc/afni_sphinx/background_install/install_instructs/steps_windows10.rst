@@ -35,11 +35,11 @@ to have administrator privileges on your operating system.
 
 #. **Install prerequisite: "Bash on Windows."**
 
-   * First, follow `these instructions
+   * First, follow the instructions `HERE
      <https://msdn.microsoft.com/en-us/commandline/wsl/install_guide>`_
-     to install "Bash on Windows" from Microsoft. (Here, in
-     particular, requires admin privileges to go into "developer
-     mode.")
+     to install "Bash on Windows" from Microsoft. (This step, in
+     particular, requires having admin privileges to be able to go
+     into "developer mode.")
    
    * To install ``bash`` and Ubuntu on Windows: in the lower left of
      the Desktop, click on "Ask me anything" and type::
