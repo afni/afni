@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27,  Jul, 2017, RCR, "3dNwarpApply", MICRO, TYPE_BUG_FIX,
+   "fix memory alloc for warp file names",
+   NULL
+ } ,
+
  { 24,  Jul, 2017, RCR, "nifti_tool", MINOR, TYPE_MODIFY,
    "treat ANALYZE more as NIFTI-1; apply more PRId64 macros for I/O",
    NULL
