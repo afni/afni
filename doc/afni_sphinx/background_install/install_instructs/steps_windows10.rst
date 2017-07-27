@@ -35,7 +35,11 @@ to have administrator privileges on your operating system.
 
 #. **Install prerequisite: "Bash on Windows."**
 
-   * First, follow the instructions `HERE
+   * First, follow the instructions from the first paragraph `HERE
+     <https://technet.microsoft.com/en-us/library/ff629472.aspx>`_ to get 
+     Windows PowerShell up and running:
+
+   * Then, follow the instructions `HERE
      <https://msdn.microsoft.com/en-us/commandline/wsl/install_guide>`_
      to install "Bash on Windows" from Microsoft. (This step, in
      particular, requires having admin privileges to be able to go
@@ -64,9 +68,9 @@ to have administrator privileges on your operating system.
 
 #. **Install prerequisite: Xming X Server for Windows.**
 
-   Click on the following link to start automatic download:
-   `https://sourceforge.net/projects/xming/files/latest/download
-   <https://sourceforge.net/projects/xming/files/latest/download>`_
+   | Click on the following link to start automatic download:
+   | `https://sourceforge.net/projects/xming/files/latest/download
+     <https://sourceforge.net/projects/xming/files/latest/download>`_
 
    The default installation settings appear fine.  To set the DISPLAY
    properly in your run-command file, execute the following::
@@ -80,9 +84,14 @@ to have administrator privileges on your operating system.
 #. **Install prerequisite: AFNI and basic Linux package dependencies.**
 
    Assuming the version of Ubuntu on your system is Ubuntu 16.04, you
-   should now follow the :ref:`instructions here
-   <install_steps_linux_ubuntu16>`, through "Automatically set up
-   AFNI/SUMA profiles."
+   should now follow the following setup instructions through
+   "Automatically set up AFNI/SUMA profiles":
+     
+   .. list-table:: 
+      :header-rows: 0
+      :widths: 80
+
+      * - :ref:`Link to Ubuntu 16+ setup instructions for AFNI <install_steps_linux_ubuntu16>`
 
    **Some things to note.**
 
