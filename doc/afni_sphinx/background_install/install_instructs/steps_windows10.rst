@@ -35,7 +35,11 @@ to have administrator privileges on your operating system.
 
 #. **Install prerequisite: "Bash on Windows."**
 
-   * First, follow the instructions `HERE
+   * First, follow the instructions from the first paragraph `HERE
+     <https://technet.microsoft.com/en-us/library/ff629472.aspx>`_ to get 
+     Windows PowerShell up and running:
+
+   * Then, follow the instructions `HERE
      <https://msdn.microsoft.com/en-us/commandline/wsl/install_guide>`_
      to install "Bash on Windows" from Microsoft. (This step, in
      particular, requires having admin privileges to be able to go

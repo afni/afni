@@ -20,7 +20,7 @@ You can always check your version by typing::
 questions/comments/etc.)
 
 .. note:: The record of changes (new options, new programs, bug fixes,
-          et al.) is maintained for all the see in the online `AFNI
+          et al.) is maintained for all to see in the online `AFNI
           History
           <https://afni.nimh.nih.gov/pub/dist/doc/misc/history/index.html>`_.
 
