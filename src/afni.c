@@ -2066,6 +2066,16 @@ void AFNI_sigfunc_alrm(int sig)
      "I am not a number, I am a free software!"                      ,
      "Correlation isn't causation, but what else do we have?"        ,
 
+     /* bastardization of Shakespeare */
+
+     "No longer mourn for me when I am crashed"                      ,
+     "If you read this line, remember not the bits that rendered it" ,
+     "Not from the stars do I my statisticks pluck"                  ,
+     "No more be grieved at that which thou hast computed"           ,
+     "Is it thy will thy brain image should stay open?"              ,
+
+     /* Innocence */
+
      "I'm completely innocent. Within reason"                          ,
      "I'm completely innocent. I was just doing what they told me"     ,
      "I'm completely innocent. It was someone else who looked like me" ,
