@@ -28,6 +28,10 @@ set version   = "1.8";  set rev_dat   = "May 25, 2017"
 #   + changed output file names; earlier ones now annoyed me, 
 #     fickly enough
 #
+set version   = "1.81";  set rev_dat   = "July 27, 2017"
+#   + added help note about DR-BUDDI option that seems recommendable
+#     at present
+#
 # ----------------------------------------------------------------
 
 set this_prog = "fat_proc_imit2w_from_t1w"
@@ -457,6 +461,13 @@ cat << EOF
   Some automatic QC images are generated now, as well.  Montages of
   axial, sagittal and coronal views of the final T2w volume are saved
   by default in the same location as the output volumes.
+
+  NB: if you use a volume made this way as a reference in TORTOISE,
+  then at least for ~adult-human-like (imitation) t2w volumes, at
+  present it seems like you should use the option:
+    --enforce_deformation_antisymmetry 1
+  This seems to improve registration.
+
 
   REQUIRES: AFNI.
 
