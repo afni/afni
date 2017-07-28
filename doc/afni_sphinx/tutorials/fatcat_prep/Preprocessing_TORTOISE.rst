@@ -128,7 +128,7 @@ in a directory with the following location and name:
 ``$HOME/DIFF_PREP_WORK``).  For the AP data set, we then execute::
 
     # I/O path, same as above, following earlier steps
-    set path_P_ss = data_proc/SUBJ_001
+    set path_P_ss = data_proc/SUBJ_001 
 
     # make a directory to hold 'starter' data for DIFFPREP, as well
     # as all the files it creates
