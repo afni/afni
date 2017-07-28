@@ -107,7 +107,6 @@ volumes to keep, which will be called dwi_sel_both_goods.txt**::
         -in_img  $path_P_ss/dwi_00/ap_sepscl.sag.png             \
         -prefix  $path_P_ss/dwi_01/dwi_sel_ap
 
-    echo "\n\n++  Select out PA DWIs!\n\n"
     fat_proc_select_vols  \
         -in_dwi  $path_P_ss/dwi_00/pa.nii.gz                     \
         -in_img  $path_P_ss/dwi_00/pa_sepscl.sag.png             \
@@ -289,10 +288,7 @@ and stored in a simple text file, it can be applied to both a 4D DWI
 file and some form of the gradient information.  For the latter, here
 we choose to use the TORTOISE-style *b*\-matrix, which contains both
 the gradient and DW *b*\-value information, because we aim to use
-TORTOISE's DIFFPREP in the subsequent step of DWI processing. (For
-what it's worth, one could use any *b*\-value and/or gradient/matrix
-input allowed by ``1dDW_Grad_o_Mat++``; the choice made here is simply
-for convenience.)
+TORTOISE's DIFFPREP in the subsequent step of DWI processing.   
 
 **Proc:** the filter function will be applied to each of the AP and PA
 dsets individually, though using the same "selection string" in both
