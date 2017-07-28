@@ -51,7 +51,7 @@ afni_history_struct rickr_history[] = {
 
  { 27,  Jul, 2017, RCR, "3dNwarpApply", MICRO, TYPE_BUG_FIX,
    "fix memory alloc for warp file names",
-   NULL
+   "Thanks to L Lebois (and others on MB) for noting the problem."
  } ,
 
  { 24,  Jul, 2017, RCR, "nifti_tool", MINOR, TYPE_MODIFY,
