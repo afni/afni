@@ -1,6 +1,6 @@
 .. _fp_prepre_I:
 
-Pre-preprocessing, I: convert and niceify
+Pre-preproc, I: convert and niceify
 =========================================
 
 .. contents::

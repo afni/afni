@@ -1,6 +1,6 @@
 .. _fp_prepre_II:
 
-Pre-preprocessing, II: examine and filter
+Pre-preproc, II: examine and filter
 =========================================
 
 .. contents::

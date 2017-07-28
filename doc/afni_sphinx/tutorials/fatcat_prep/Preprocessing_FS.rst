@@ -1,7 +1,7 @@
 .. _FreeSurfering:
 
 
-Preprocessing: FreeSurfer (+ @SUMA_Make_Spec_FS)
+Preproc: FreeSurfer (+ @SUMA_Make_Spec_FS)
 ==================================================
 
 .. contents::
