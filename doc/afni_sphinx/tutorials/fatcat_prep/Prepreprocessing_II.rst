@@ -288,23 +288,7 @@ and stored in a simple text file, it can be applied to both a 4D DWI
 file and some form of the gradient information.  For the latter, here
 we choose to use the TORTOISE-style *b*\-matrix, which contains both
 the gradient and DW *b*\-value information, because we aim to use
-TORTOISE's DIFFPREP in the subsequent step of DWI processing. (For
-what it's worth, one could use any *b*\-value and/or gradient/matrix
-input allowed by ``1dDW_Grad_o_Mat++``; the choice made here is simply
-for convenience.)  
-
-The TORTOISE-style *b*\-matrix would be input to ``DIFFPREP`` via a
-listfile.  It is also possible to provide command line-only arguments
-to the function, and these take a different file format: one
-row-oriented file of (unscaled) gradient vectors, and one row-oriented
-file of *b*\-values.  While we could opt for a streamlined path and
-just make these latter files directly with the
-``fat_proc_filter_dwis``, instead here we choose to use that function
-to make a filtered *b*\-matrix file and then use ``1dDW_Grad_o_Mat++``
-to make the other files from that.  Why the extra step, you ask?
-Well, I find it more confusing to try to read the row files, and so
-would rather have the column-formatted ones handy to look at, for
-clarity.
+TORTOISE's DIFFPREP in the subsequent step of DWI processing.   
 
 **Proc:** the filter function will be applied to each of the AP and PA
 dsets individually, though using the same "selection string" in both
@@ -331,19 +315,6 @@ in the "data_proc/SUBJ_001/dwi_01/" directory::
         -select        "$selstr"                         \
         -prefix        $path_P_ss/dwi_02/pa
 
-    # for DIFFPREP command line, need row-vec and row-bval format
-    1dDW_Grad_o_Mat++                                     \
-        -in_col_matT      $path_P_ss/dwi_02/ap_matT.dat   \
-        -unit_mag_out                                     \
-        -out_row_vec      $path_P_ss/dwi_02/ap_rvec.dat   \
-        -out_row_bval_sep $path_P_ss/dwi_02/ap_bval.dat
-
-    1dDW_Grad_o_Mat++                                     \
-        -in_col_matT      $path_P_ss/dwi_02/pa_matT.dat   \
-        -unit_mag_out                                     \
-        -out_row_vec      $path_P_ss/dwi_02/pa_rvec.dat   \
-        -out_row_bval_sep $path_P_ss/dwi_02/pa_bval.dat
-
 -> produces one new directory in 'data_proc/SUBJ_001/', called
 "dwi_02/":
 
@@ -352,12 +323,11 @@ in the "data_proc/SUBJ_001/dwi_01/" directory::
    :widths: 90
 
    * - Directory structure for example data set
-   * - .. image:: media/fp_07_filter_and_GradoMat.png
+   * - .. image:: media/prepre_ii/fp_07_filter_dwis.png
           :width: 100%
           :align: center
    * - *Output files made by calls to fat_proc_filter_dwis commands
-       (with the additional 1dDW_Grad_o_Mat++ calls) for both the AP
-       and PA data.*
+       for both the AP and PA data.*
 
 It contains the following outputs for the AP data (and analogous
 outputs for the PA sets):
@@ -376,11 +346,6 @@ outputs for the PA sets):
    * - **ap_matT.dat**
      - textfile, column file of (DW scaled) TORTOISE-style b-matrix
        (:math:`M\times 6`)
-   * - **ap_bval.dat**
-     - textfile, row file of *b*\-values (:math:`1\times M`)
-   * - **ap_rvec.dat**
-     - textfile, row file of (non-DW scaled) vector gradients
-       (:math:`3\times M`)
    * - **ap_onescl.\*.png**
      - autoimages, one slice per DWI volume, with single scaling
        across all volumes
@@ -395,8 +360,3 @@ outputs for the PA sets):
      - .. image:: media/prepre_ii/ap_sepscl.sag.png
           :width: 100%   
           :align: center
-
-.. note:: In the ``1dDW_Grad_o_Mat++`` commands above, the purpose of
-          the ``-unit_mag_out`` is to have the gradient vector file be
-          unit magnitude, so that the *b*\-value information is solely
-          stored in the separate, partnered *b*\-value file.
