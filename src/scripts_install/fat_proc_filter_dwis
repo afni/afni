@@ -34,13 +34,16 @@
 #   + more I/O work
 #   + more general outputting, when scaling/not scaling
 #
-set version = "2.8"; set rev_dat = "Apr 19, 2017"
+#set version = "2.8"; set rev_dat = "Apr 19, 2017"
 #   + changed input notation
 #   + fixed help example
 #
-set version = "2.9"; set rev_dat = "June 2, 2017"
+#set version = "2.9"; set rev_dat = "June 2, 2017"
 #   + changed output mat/vec/bval extensions from 'txt' -> 'dat';
 #     should me more uniform with other fat* funcs
+#
+set version = "3.0"; set rev_dat = "July 27, 2017"
+#   + fixed some I/O issues with rowvecs and separate bvals
 #
 # ----------------------------------------------------------------
  
@@ -162,11 +165,13 @@ while ( $ac <= $#argv )
         if ( ${aa[3]:gas/,//} < ${aa[6]:gas/,//} ) then
             # -> is rows
             set ll4 = "["
-            set rr4 = "["
+            set rr4 = "]"
+            set outvecmat[3] = "-out_row_bval_sep"
         else
             # -> is cols
             set ll4 = "{"
             set rr4 = "}"
+            set outvecmat[3] = "-out_col_bval_sep"
         endif
 
     else if ( "$argv[$ac]" == "-unit_mag_out" ) then
@@ -304,12 +309,15 @@ set odwi   = "${opref}_dwi.nii.gz"   # name for dwis
 
 # file *types* for output (grad/matrix stuff); [2,4] are filled above
 set outvecmat[1] = ${invecmat[1]:gas/in/out/}
-set outvecmat[3] = ${invecmat[3]:gas/in/out/}
+# [PT: Jul, 2017]: now comes from inp ---> 
+#set outvecmat[3] = ${invecmat[3]:gas/in/out/} 
 set outvecmat[2] = "$odir/${opref}$outvecmat[2]"
+
 if ( "$outvecmat[4]" != "" ) then
     set outvecmat[4] = "$odir/${opref}$outvecmat[4]"
 endif
-if ( "$invecmat[4]" ) then
+
+if ( "$invecmat[4]" != "" ) then
     set KEEP3 = $KEEP
 endif
 
@@ -365,7 +373,7 @@ if ( 1 ) then
         $do_unit_mag                                      \
         "$outvecmat[1]" "$outvecmat[2]"                   \
         "$outvecmat[3]" "$outvecmat[4]"                   \
-        "$invecmat[2]" "$invecmat[4]""$ll4""$KEEP3""$rr4"
+        "$invecmat[3]" "$invecmat[4]""$ll4""$KEEP3""$rr4"
     # NB: the above works somewhat cheatingly by having the empty
     # strings at the end of the function call.
 
@@ -458,10 +466,7 @@ cat << EOF
   where:
   -in_dwi  DDD      :name of a 4D file of DWIs (required).
 
-  -in_col_matA   ..or..
-  -in_col_matT   ..or..
-  -in_col_vec    ..or..
-  -in_row_vec   FFF
+  -in_col_matA|-in_col_matT|-in_col_vec|-in_row_vec FFF
                     :one of these options must be used to input 
                      a bvec/bmat file from the gradients. Required.
                      Same type of output file is returned.
