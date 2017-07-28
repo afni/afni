@@ -178,7 +178,7 @@ set oops2   = "Dataset not copied as 'Data'."
 set draw1   = "Set value to 1 for adding and 0 for removing."
 set draw2   = "\nClick 'Save' often. (you can undo if you like)."
 set draw3   = "\nWhen you are happy click 'Save', 'Done' and Continue (below)."
-set exists1 = "Output folder exits!"
+set exists1 = "Output folder exists!"
 set exists2 = "\nBut the input images do not match!\nExiting."
 
 ###########################################################################
@@ -192,9 +192,14 @@ if ( ! -d $OutFolder) then                      ## all new
     3dcopy $head_path/$HeadImage $OutFolder/$HeadImage
     3dcopy $strip_path/$StripImage $OutFolder/$StripImage
 else
-    if ( ! -f $OutFolder/$HeadImage || ! -f $OutFolder/$StripImage ) then
+    ## folder is there, are the same images there?
+    set HeadOld = `3dinfo -exists $OutFolder/$HeadImage`
+    set StripOld = `3dinfo -exists $OutFolder/$StripImage`
+    if ( $HeadOld == 0 || $StripOld == 0 ) then
         unset check
         set check = `prompt_popup -message "$exists1 $exists2" -b "Quit"`
+        if ( $check == 1 ) then
+            exit 1
     endif
     if ( -f "$OutFolder/$final_out") then      ## already done
         unset check
@@ -202,7 +207,7 @@ else
                     -message "There is a final edit already done!" \
                     -b "Quit" -b "Continue editing" -b "Start over"`
         if ( $check == 1 ) then                      ## do nothing
-            exit
+            exit 1
         else if ( $check == 2 ) then                 ## save old and continue
             set suffix=`date +"%m-%d-%y-%I%M%S"`
             3dcopy $OutFolder/$final_out $OutFolder/anat_strip_${suffix}.nii.gz
@@ -304,7 +309,7 @@ while ( $finished == 0 )        ## keep going until you are satistfied
         sleep 1
         if ( $check == 2 ) then
             \rm -v ${p}_anat_resamp* ${p}_strip_mask*
-            exit
+            exit 1
         endif
     else
         ## check the max value to see if they selected the mask
@@ -317,7 +322,7 @@ while ( $finished == 0 )        ## keep going until you are satistfied
             sleep 1
             if ( $check == 2 ) then
                 \rm -v ${p}_anat_resamp* ${p}_strip_mask*
-                exit
+                exit 1
             endif
         else
 
@@ -398,7 +403,7 @@ while ( $finished == 0 )        ## keep going until you are satistfied
                 sleep 1
 
                 if ( $check == 2 ) then
-                    exit
+                    exit 1
                 endif
             endif	## end strip check
         endif   ## end check value
@@ -407,7 +412,7 @@ end   ## end while
 
 ## close afni
 plugout_drive -com "QUIT" -quit
-exit
+exit 0
 
 SHOW_HELP:
 cat << EOF
