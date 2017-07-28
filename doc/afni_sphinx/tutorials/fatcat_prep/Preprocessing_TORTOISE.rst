@@ -125,10 +125,10 @@ volume (that is what ``--phase vertical`` signifies). Finally, we just
 use the default settings file from the TORTOISE folks (via
 ``--reg_settings *.dmc``; note that this text file should be sitting
 in a directory with the following location and name:
-``$HOME/DIFF_PREP_WORK``).  For the AP data set, we then execute::
+``$HOME/DIFF_PREP_WORK/``).  For the AP data set, we then execute::
 
     # I/O path, same as above, following earlier steps
-    set path_P_ss = data_proc/SUBJ_001 
+    set path_P_ss = data_proc/SUBJ_001
 
     # make a directory to hold 'starter' data for DIFFPREP, as well
     # as all the files it creates
@@ -242,8 +242,8 @@ run::
         --output           $path_P_ss/dwi_04/buddi.list
 
 -> producing a single subdirectory 'data_proc/SUBJ_001/dwi_04/'
- (though some files are also added to the locations of the input
- ``*_proc.list`` files:
+(though some files are also added to the locations of the input
+``*_proc.list`` files):
 
 .. list-table:: 
    :header-rows: 1
@@ -256,3 +256,41 @@ run::
    * - *Output subdirectory made by TORTOISE's DR_BUDDI applied
        to the results of DIFF_PREP, combining the AP and PA sets.*
 
+It contains the following outputs of both DWI and anatomical data sets:
+
+.. list-table:: 
+   :header-rows: 1
+   :widths: 20 80
+   :stub-columns: 0
+
+   * - Outputs of
+     - TORTOISE's ``DR_BUDDI``
+   * - **t1w_cmd.txt**
+     - textfile, copy of the command that was run
+   * - **blip\*.nii, deformation\*nii.gz, b0_corrected_final.nii**
+     - some intermediate volumes
+   * - **structural.nii**
+     - volumetric NIFTI file, 3D (single brick volume), the reference
+       anatomical in the same spatial resolution+grid as the output
+       DWIs (i.e., probably resampled from original).
+   * - **structural_used.nii**
+     - volumetric NIFTI file, 3D (single brick volume), the reference
+       anatomical in the same resolution as it was input, but
+       potentially with a different matrix size.
+   * - **buddi.list**
+     - textfile, list of names of final output DWI volume and
+       *b*-\matrix files, as well as the phase encode direction.
+   * - **buddi.bmtxt**
+     - textfile, column file of (DW scaled) TORTOISE-style *b*\-matrix
+       (:math:`N\times 6`)
+   * - **buddi.nii**
+     - volumetric NIFTI file, 4D (*N*\=31 volumes), the final DWI
+       volumes (AP and PA information combined into one).
+
+
+.. note:: In general (at least for TORTOISE v3.0), the origin and
+          orientation of the FOVs of these volumes will be different
+          than what was input.  Therefore, don't expect other data
+          sets to overlay on these immediately; making these volumes
+          play more nicely with the other data sets is part of the
+          role of later ``fat_proc`` commands.

@@ -216,10 +216,10 @@ outputs for the PA sets):
    * - **ap_cvec.dat**
      - textfile, column file of (DW scaled) b-vectors (:math:`N\times 3`)
    * - **ap_matA.dat**
-     - textfile, column file of (DW scaled) AFNI-style b-matrix 
+     - textfile, column file of (DW scaled) AFNI-style *b*\-matrix
        (:math:`N\times 6`)
    * - **ap_matT.dat**
-     - textfile, column file of (DW scaled) TORTOISE-style b-matrix
+     - textfile, column file of (DW scaled) TORTOISE-style *b*\-matrix
        (:math:`N\times 6`)
    * - **ap_onescl.\*.png**
      - autoimages, one slice per DWI volume, with single scaling
