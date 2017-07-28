@@ -1,4 +1,18 @@
 ========================================================================
+AFNI Digest, week of 2017/07/28.
+
+00) ETAC notes.
+A presentation by Bob describing philosophy+implementation of some new
+clustering options in AFNI:
+https://afni.nimh.nih.gov/afni/community/board/read.php?1,155528,155528#msg-155528
+
+---------------------------------------------------------------------
++ This Digest is not a comprehensive list of code updates.
++ Please direct comments or questions to the AFNI Message Board:
+ https://afni.nimh.nih.gov/afni/community/board/list.php?1
+---------------------------------------------------------------------
+
+========================================================================
 AFNI Digest, week of 2017/07/21.
 
 00) Dartmouth Bootcamp announcement:
