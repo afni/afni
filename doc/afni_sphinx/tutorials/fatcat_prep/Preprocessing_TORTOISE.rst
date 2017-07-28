@@ -7,6 +7,9 @@ Preproc: TORTOISE
 .. contents::
    :depth: 3
 
+Comments
+--------
+
 This stage describes performing the "actual" preprocessing of the DWIs
 themselves, in terms of reducing the effects of distortions due to
 subject motion, eddy currents and B0 inhomogeneities.  This collective
@@ -22,25 +25,76 @@ question, "Are my data clean enough to be appropriate for analysis
 
 These major steps are performed using `the TORTOISE tools
 <https://science.nichd.nih.gov/confluence/display/nihpd/TORTOISE>`_,
-which are also freely available from the NIH (thanks, taxpayers!).  In
-the Dark Ages TORTOISE either required an IDL license to run in
-batchable mode or was run subject-by-subject by clicking through an
-IDL VM GUI (ick).
+which are also freely available from the NIH (thanks, taxpayers!).
+Here, we describe briefly how we use ``DIFFPREP`` and ``DR_BUDDI`` in
+TORTOISE v3.\* (no description of ``DIFF_CALC``; we perform fitting
+with AFNI-FATCAT tools).  
 
-############################################
-At
-present, if you don't have an IDL license, TORTOISE can only be run
-through the GUI (i.e., button clicking!).  A PDF describing **a**
-system of steps for processing with TORTOISE v2.5.2 (though other
-v2.\* are quite similar, mainly with just some of the GUI format
-changing) is provided here:
+The data set used here has the following
+characteristics:
 
-:download:`Running_TORTOISE_v2.5.2.pdf
-<Running_TORTOISE_v2.5.2.pdf>`.
+* pretty clean, not super distorted or noisy
 
-This description is not official, but
-it does tie in directly with the preceding steps in
-:ref:`preTORTOISE`.
+* acquired on a 3T scanner
+
+* from a human
+
+* from an ostensibly healthy adult
+
+**If your data are not so, then you should check with the TORTOISE
+folks about options and flags to use in the commands.** Even if your
+data *do* match these characteristics, you should probably be in touch
+with them about finer points of this processing analysis.  Here, we
+try to work closely with the TORTOISE folks, to keep in touch with the
+latest-and-greatest updates and to represent those here, but it is
+worth being veeery clear about fine details in processing.
+
+.. note:: **Disclaimer:** while we work closely with the TORTOISE
+          folks, trying to keep in touch with the latest-and-greatest
+          updates and to represent those here, we are *not* full
+          experts in it-- and it is worth being veeery clear about
+          fine details in processing.  All TORTOISE-related questions
+          about options or problems should be addressed to the FS
+          gurus themselves.  We are happy to cc'ed or involved in
+          discussions, and any feedback on things to do differently
+          would be welcomed and gladly discussed on our end.
+
+          As noted previously the TORTOISE folks have provided
+          valuable feedback and input here, so we appreciate them for
+          that.
+
+          Finally, we note that there are some differences between the
+          official TORTOISE gurus' recommendations for using TORTOISE
+          tools and what we do here.  For example, they recommend
+          loading DICOMs directly into TORTOISE, so that they can deal
+          with header information directly; if weird things start
+          happening in your data, please consider this. (*Most
+          importantly, again-- please keep looking at your data to
+          know what is happening at each step along the way!*)
+
+.. note:: In the Dark Ages TORTOISE either required an IDL license to
+          run in batchable mode or was run subject-by-subject by
+          clicking through an IDL VM GUI (ick).  A PDF describing
+          **a** system of steps for processing with TORTOISE v2.5.2 is
+          provided here:
+
+          :download:`Running_TORTOISE_v2.5.2.pdf
+          <media/tort_v2.5.2/Running_TORTOISE_v2.5.2.pdf>`.
+
+          for the time being, in part for the nostalgia of youth.
+          Earlier versions of TORTOISE (v2.5.1 and previous) have
+          greater subtlety in processing, and are entirely ignored.
+
+          We don't comment any further about this version of
+          processing here.  
+
+|
+
+.. _fp_preproc_tort_diffprep:
+
+**DIFFPREP**
+------------
+
 
 **INPUT** for TORTOISE: there is some flexibility here.  The above
 notes describe taking a pair of DWI data sets with oppositely encoded
@@ -59,40 +113,5 @@ encoded set. The *b*\-value information is output as a *b*\-matrix
 text file, and this includes information of any rotations made to
 volumes during processing.
 
-.. warning:: We note that versions of TORTOISE **before** v2.5.2
-             (="old," here) contained a slightly different output
-             formats from DIFF_CALC.
-
-             1) The old *b*\-matrix that wasn't in the full AFNI
-                format (though it could be converted to one fairly
-                easily).  Those were called "BMTXT.txt", and you can
-                read more about them `here
-                <https://afni.nimh.nih.gov/afni/community/board/read.php?1,151518,151518#msg-151518>`_
-                on the AFNI MB, particularly how to deal with the old
-                format efficiently.
-
-             2) The old DWI.nii file automatically had the b=0 volumes
-                averaged together, and the resulting average was
-                placed at the [0]th brick of the output
-                file. Nowadays, this is not done (but it is
-                straightforward to mimic the old behavior, as will be
-                shown in :ref:`postTORTOISEing`).
-
-
-
    
-
-
-.. asdf
-
-     .. figure:: media/ROIS/ROI_neigh_img.png
-        :width: 80%
-        :align: center
-        :name: media/ROIS/ROI_neigh_img.png
-   
-        *Basic voxel terminology, and its use in defining three
-        standard, symmetric (nearest-)neighborhoods for an individual
-        voxel. The central voxel is darkened, with each type of
-        neighborhood colored in a 3D, high-tec, separated image.*
-        :ref:`(link)<media/ROIS/ROI_neigh_img.png>`
 
