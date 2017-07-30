@@ -234,6 +234,28 @@ MEMORY_CHECK("b") ;
 
    svd_double( m , m , amat , sval , umat , vmat ) ;
 
+   /* write the singular values out? [30 Jul 2017] */
+
+   if( matpre != NULL ){
+     char *fname ; MRI_IMAGE *qim ; float *qar ;
+     fname = (char *)malloc(sizeof(char)*(strlen(matpre)+32)) ;
+     strcpy(fname,matpre) ;
+     if( strstr(fname,".1D") == NULL ){
+      strcat(fname,".sval.1D") ;
+     } else {
+       char *qname = modify_afni_prefix(fname,NULL,".sval") ;
+       if( qname != NULL && qname != fname ){
+         free(fname) ; fname = qname ;
+       }
+     }
+     qim = mri_new_vol( m,1,1, MRI_float ) ;
+     qar = MRI_FLOAT_PTR(qim) ;
+     for( ii=0 ; ii < m ; ii++ ) qar[ii] = sval[ii] ;
+     mri_write( fname , qim ) ;
+     ININFO_message("wrote singular values to %s [%s]",fname,TIMER) ;
+     mri_free(qim) ; free(fname) ;
+   }
+
    free(amat) ; free(sval) ;
 
    /* compute QQ = output matrix = U V' */
