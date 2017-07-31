@@ -256,7 +256,14 @@ run::
    * - *Output subdirectory made by TORTOISE's DR_BUDDI applied
        to the results of DIFF_PREP, combining the AP and PA sets.*
 
-It contains the following outputs of both DWI and anatomical data sets:
+It contains the following outputs of both DWI and anatomical data
+sets.  Note that the volumes can be grouped into two sets by space, 1)
+ones that are in the "blip_up :math:`$b_0$`" space (which, for our
+purposes, are all early/intermediate files), and 2) ones that are in
+the final "structural" registration space (which are ones that we will
+use).  Further note that some of the names are familiar, so
+doublecheck to make sure that you are using the correct volume in your
+scripts.
 
 .. list-table:: 
    :header-rows: 1
@@ -266,27 +273,29 @@ It contains the following outputs of both DWI and anatomical data sets:
    * - Outputs of
      - TORTOISE's ``DR_BUDDI``
    * - **t1w_cmd.txt**
-     - textfile, copy of the command that was run
+     - textfile, copy of the command that was run.
    * - **blip\*.nii, deformation\*nii.gz, b0_corrected_final.nii**
-     - some intermediate volumes
-   * - **structural.nii**
-     - volumetric NIFTI file, 3D (single brick volume), the reference
-       anatomical in the same spatial resolution+grid as the output
-       DWIs (i.e., probably resampled from original).
+     - some intermediate volumes in "blip_up :math:`b_0`" space.
    * - **structural_used.nii**
      - volumetric NIFTI file, 3D (single brick volume), the reference
-       anatomical in the same resolution as it was input, but
-       potentially with a different matrix size.
+       anatomical in the same resolution as it was input, but in
+       "blip_up :math:`b_0`" space.
+   * - **structural.nii**
+     - volumetric NIFTI file, 3D (single brick volume), the reference
+       anatomical in "structural" space, which will define the spatial
+       resolution+grid as the output DWIs (i.e., it is probably
+       resampled from its own original input); **not** to be confused
+       with *structural_used.nii*, above.
+   * - **buddi.nii**
+     - volumetric NIFTI file in "structural" space, 4D (*N*\=31
+       volumes), the final DWI volumes (AP and PA information combined
+       into one), in which we are highly interested.
+   * - **buddi.bmtxt**
+     - textfile, column file of (DW scaled) TORTOISE-style *b*\-matrix
+       (:math:`N\times 6`), which are also of great interest.
    * - **buddi.list**
      - textfile, list of names of final output DWI volume and
        *b*-\matrix files, as well as the phase encode direction.
-   * - **buddi.bmtxt**
-     - textfile, column file of (DW scaled) TORTOISE-style *b*\-matrix
-       (:math:`N\times 6`)
-   * - **buddi.nii**
-     - volumetric NIFTI file, 4D (*N*\=31 volumes), the final DWI
-       volumes (AP and PA information combined into one).
-
 
 .. note:: In general (at least for TORTOISE v3.0), the origin and
           orientation of the FOVs of these volumes will be different
