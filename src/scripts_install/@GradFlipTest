@@ -26,9 +26,15 @@
 #   + better results summary, no auto-prending of './' on output path 
 #     names (-> can be bad/inappropriate)
 #
-set version   = "2.7";    set rev_dat   = "June 6, 2017"
+#set version   = "2.7";    set rev_dat   = "June 6, 2017"
 #   + in 3dAutomask, take abs val of DWI[0], bc TORTOISE can output
 #     huge neg values that apparently can make a big difference.
+#
+set version   = "2.8";    set rev_dat   = "July 31, 2017"
+#   + echo the useful recommendation stuff into a textfile whose name
+#     is based on the grad-recording file.
+#   + add opt for "-wdir *" name
+#   + also echo "@GradFlipTest ..." command used
 #
 ########################################################################
 
@@ -59,6 +65,7 @@ set in_CMD  = ""               # inputting grads/matr
 set in_BVAL = ""               # inputting bval, a la 1dDW*++
 set in_MASK = ""               # inputting bval, a la 1dDW*++
 set odir    = "."
+
 set out_ff  = "GradFlipTest_rec.txt"
 
 set min_tr_len = 30            # default min tract length
@@ -142,6 +149,12 @@ while ( $ac <= $#argv )
         @ ac += 1
         set odir = "$argv[$ac]"
 
+    # [PT: July 31, 2017] useful if running a lot
+    else if ( "$argv[$ac]" == "-wdir" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set tmpdir = "$argv[$ac]"
+
     else if ( "$argv[$ac]" == "-prefix" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
@@ -218,6 +231,16 @@ if ( ! -e "$tmpdir" ) then
     echo "+* ERROR: Couldn't make working dir '$tmpdir' for some reason."
     goto BAD_EXIT
 endif
+
+# [PT: July 31, 2017]: echo the useful parts dumped to the terminal
+# into a text file
+set eee = ${out_ff:t}
+set out_echo = `basename $eee .dat`
+set out_echo = `basename $eee .txt`
+set out_echo = `basename $eee .log`
+set out_echo = `basename $eee .flip`
+set out_echo = `basename $eee .tex`
+set out_echo = "$odir/${out_echo}_echo.txt"
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 #                 Start the looping
@@ -394,25 +417,43 @@ set L = `printf $#ALL_ARR`
 set MaxI = "1"
 set MaxV = "$ALL_ARR[$MaxI]"
 
-printf "\n"
+# prepare the echo file, clear out anything in their if this is being
+# run again
+printf "" > $out_echo
+echo "# This command:" >> $out_echo
+echo "$this_prog $argv\n\n" >> $out_echo
+
 foreach i ( `seq 1 1 $L` )
     if ( "$ALL_ARR[$i]" > "$MaxV" ) then
         set MaxI = "$i"
         set MaxV = "$ALL_ARR[$MaxI]"
     endif
-    printf "\n The number of tracks for '$FLIPS[$i]' was:    $ALL_ARR[$i]"
+    printf "\n The number of tracks for '$FLIPS[$i]' was:    $ALL_ARR[$i]" \
+        >> $out_echo
 end
 
-echo "$FLIPS[$MaxI]" > $odir/$out_ff
+echo "$FLIPS[$MaxI]" >> $odir/$out_ff
 
-printf "\n\n -->"
-printf "Therefore, I *guess* that the best flip is:   "
-printf "'$FLIPS[$MaxI]'\n\n"
-printf "That recommendation is stored in '$odir/$out_ff'\n\n"
-printf "Volume + tracking results are in directory '$tmpdir'\n"
-printf "You may check the tracking results to verify, e.g.:\n"
-printf "$SUMA_CALL\n"
-printf "DONE.\n\n"
+printf "\n\n -->" >> $out_echo
+printf "Therefore, I *guess* that the best flip is:   " >> $out_echo
+printf "'$FLIPS[$MaxI]'\n\n" >> $out_echo
+printf "\n" >> $out_echo
+printf "  NB: If that isn't a *very* clear winner, then check \n" >> $out_echo
+printf "      for any problems, such as DICOM conversion, etc.\n" >> $out_echo
+printf "\n" >> $out_echo
+printf "That recommendation is stored in '$odir/$out_ff'\n\n" >> $out_echo
+printf "Volume + tracking results are in directory '$tmpdir'\n" >> $out_echo
+echo   "" >> $out_echo
+printf "You may (should!) check the tracking results to verify:\n" >> $out_echo
+printf "$SUMA_CALL\n" >> $out_echo
+printf "DONE.\n\n" >> $out_echo
+
+echo "\n"
+echo "# --------------------- RESULTS ---------------------------\n"
+more $out_echo
+echo "\n"
+echo "# ---------------------------------------------------------"
+
 
 if ( $DO_CLEAN ) then
     echo "++ ... and cleaning up by removing the temp dir: $tmpdir"
@@ -469,7 +510,7 @@ cat << EOF
   COMMAND
 
     $this_prog  \
-    -in_dwi     DWI                                                  \
+    -in_dwi     DWI                                                 \
     { -in_row_vec | -in_col_vec | -in_col_matA | -in_col_matT } FF  \
     { -mask MASK }                                                  \
     { -in_bvals BB }                                                \
@@ -478,6 +519,7 @@ cat << EOF
     { -outdir     OUT }                                             \
     { -prefix     PPP }                                             \
     { -scale_out_1000 }                                             \
+    { -wdir WWW }                                                   \
     { -do_clean }
 
   USAGE
@@ -510,6 +552,9 @@ cat << EOF
 
     -scale_out_1000 :as in 3dDWItoDT.  Probably not necessary, since we 
                      are just checking out trackability
+
+    -wdir WWW       :rename working directory output; useful if running 
+                     multiple iterations.  Default: ${tmpdir}.
 
     -do_clean       :remove temporary directory
 

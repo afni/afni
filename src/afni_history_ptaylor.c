@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 31, Jul , 2017 , PT , "@GradFlipTest" , MICRO , TYPE_MODIFY,
+   "Echo the recommendations into a text file, as well.",
+   "More useful/less lossy if scripting. New '-wdir *' opt, too.\n"
+},
+
 { 3, Jul , 2017 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
    "Some new subbrick-setting optioning.",
    "For utilizing 'SET_SUBBRICKS i j k' functionality in driving afni.\n"
