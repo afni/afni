@@ -25,15 +25,17 @@ There are additional considerations:
   meanings to gradient orientations along a volume's FOV: for example,
   for the *x*\-coordinate, is a positive value in the right or left
   direction? (and so forth for each component).  This is known as the
-  "gradient flipping" problem, and I have whined about it :ref:`here
-  <FlippingGrads>`.  We discuss using ``@GradFlipTest`` to check
-  things, and then apply adjustments in scripts.
+  "gradient flipping" problem, and I have whined about it voluminously
+  in ":ref:`FlippingGrads`".  Here, we briefly discuss using
+  ``@GradFlipTest`` to check things as part of a pipeline and
+  demonstrate how it can be incorporated into scripts (with cautionary
+  notes for doing so!).
 
 * We might find it interesting to estimate the uncertainty of some DTI
   parameters in preparation for either full probabilistic or
   mini-probabilistic tracking.  (If the implications of either of
   terms are unfamiliar, then perhaps check out more information about
-  ``3dTrackID`` :ref:`here <Tracking>`.
+  FATCAT tracking options in ":ref:`Tracking`".
 
 * On a mundane note, the physical scale of many scalar DTI parameters
   is pretty small, for example having :math:`{\rm MD} \approx 0.0007~
@@ -44,3 +46,23 @@ There are additional considerations:
   we find it more convenient to have "number of order unity" in units
   of ":math:`10^{-3}\,{\rm mm}^2~{\rm s}^{-1}`", which is totally legit,
   too.
+
+|
+
+.. _fp_postproc_@gradfliptest:
+
+**@GradFlipTest**
+-----------------
+
+
+
+
+
+
+|
+
+.. _fp_postproc_dwitodt:
+
+**fat_proc_dwi_to_dt** (and **@GradFlipTest**)
+----------------------------------------------
+
