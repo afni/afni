@@ -30,10 +30,25 @@ static char *matpre = NULL ;
 static int do_joshi = 1 ;
 static int do_norm  = 0 ;
 
+static int do_osfilt = 0 ; /* 31 Jul 2017 */
+
 static int ct ;
 #define TIMER nice_time_string(NI_clock_time()-ct)
 
 static THD_3dim_dataset *dsetB=NULL, *dsetC=NULL, *maskset=NULL, *outset=NULL ;
+
+/*----------------------------------------------------------------------------*/
+
+static void osfilt3( int num , float *vec )
+{
+   int ii ; register float aa,bb,cc ;
+   bb = vec[0] ; cc = vec[1] ;
+   for( ii=1 ; ii < num-1 ; ii++ ){
+     aa = bb ; bb = cc ; cc = vec[ii+1] ;
+     vec[ii] = OSFILT(aa,bb,cc) ;         /* see mrilib.h */
+   }
+   return ;
+}
 
 /*----------------------------------------------------------------------------*/
 
@@ -60,6 +75,13 @@ void TSY_help_the_pitiful_user(void)
    "                       This will be the -inset2 dataset transformed\n"
    "                       to be as correlated as possible (in time)\n"
    "                       with the -inset1 dataset.\n"
+   "\n"
+   " -osfilt             = Lightly smooth the data in time.\n"
+   "                       ++ This only applies during the computation of the\n"
+   "                          transformation matrix Q. The actual transformed\n"
+   "                          output will not have been temporally smoothed.\n"
+   "                       ++ The filter is a 3 point order statistics filter:\n"
+   "                            0.70*median(a,b,c)+0.15*(max(a,b,c)+min(a,b,c))\n"
    "\n"
    " -normalize          = Normalize the output dataset so that each\n"
    "                       time series has sum-of-squares = 1.\n"
@@ -234,7 +256,21 @@ MEMORY_CHECK("b") ;
 
    svd_double( m , m , amat , sval , umat , vmat ) ;
 
-   /* write the singular values out? [30 Jul 2017] */
+   bsum = 0.0 ;
+   for( ii=0 ; ii < m ; ii++ ) bsum += sval[ii] ;
+   ININFO_message("first 5 singular values: "
+                  " %.2f [%.2f%%] "
+                  " %.2f [%.2f%%] "
+                  " %.2f [%.2f%%] "
+                  " %.2f [%.2f%%] "
+                  " %.2f [%.2f%%] " ,
+                  sval[0], 100.0*sval[0]/bsum ,
+                  sval[1], 100.0*sval[1]/bsum ,
+                  sval[2], 100.0*sval[2]/bsum ,
+                  sval[3], 100.0*sval[3]/bsum ,
+                  sval[4], 100.0*sval[4]/bsum  ) ;
+
+   /* write the singular values to a file? [30 Jul 2017] */
 
    if( matpre != NULL ){
      char *fname ; MRI_IMAGE *qim ; float *qar ;
@@ -251,7 +287,7 @@ MEMORY_CHECK("b") ;
      qim = mri_new_vol( m,1,1, MRI_float ) ;
      qar = MRI_FLOAT_PTR(qim) ;
      for( ii=0 ; ii < m ; ii++ ) qar[ii] = sval[ii] ;
-     mri_write( fname , qim ) ;
+     mri_write_1D( fname , qim ) ;
      ININFO_message("wrote singular values to %s [%s]",fname,TIMER) ;
      mri_free(qim) ; free(fname) ;
    }
@@ -272,7 +308,7 @@ MEMORY_CHECK("d") ;
 
    free(umat) ; free(vmat) ;
 
-   /* write the matrix out? [20 Jul 2017] */
+   /* write the matrix to a file? [20 Jul 2017] */
 
    if( matpre != NULL ){
      char *fname ; MRI_IMAGE *qim ;
@@ -281,7 +317,7 @@ MEMORY_CHECK("d") ;
      if( strstr(fname,".1D") == NULL ) strcat(fname,".qmat.1D") ;
      qim = mri_new_vol_empty( m,m,1, MRI_float ) ;
      mri_fix_data_pointer( qmat , qim ) ;
-     mri_write( fname , qim ) ;
+     mri_write_1D( fname , qim ) ;
      ININFO_message("wrote Q matrix to %s [%s]",fname,TIMER) ;
      mri_clear_data_pointer( qim ) ; mri_free(qim) ; free(fname) ;
    }
@@ -472,8 +508,16 @@ MEMORY_CHECK("R") ;
      ncut += despike9( mm , cmat+kk*mm ) ;
    }
    if( ncut > 0 )
-     ININFO_message("removed %d spike%s from data vectors [%s]",
+     ININFO_message("squashed %d spike%s from data vectors [%s]",
                     ncut , (ncut==1)?"\0":"s" , TIMER ) ;
+
+   if( do_osfilt ){
+     ININFO_message("smoothing (-osfilt) time series [%s]",TIMER) ;
+     for( kk=0 ; kk < nvmask ; kk++ ){
+       osfilt3( mm , bmat+kk*mm ) ;
+       osfilt3( mm , cmat+kk*mm ) ;
+     }
+   }
 
    /* compute transform matrix qmat */
 
@@ -624,6 +668,12 @@ int main( int argc , char *argv[] )
 
      /*-----*/
 
+     if( strcasecmp(argv[iarg],"-osfilt") == 0 ){
+       do_osfilt = 1 ; iarg++ ; continue ;
+     }
+
+     /*-----*/
+
      if( strcasecmp(argv[iarg],"-prefix") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need value after option '%s'",argv[iarg-1]) ;
        prefix = strdup(argv[iarg]) ;
@@ -690,7 +740,7 @@ int main( int argc , char *argv[] )
    if( maskset != NULL && !EQUIV_GRIDXYZ(dsetB,maskset) )
      ERROR_exit("-mask and -inset1 datsets are NOT on the same 3D grid :(") ;
 
-   INFO_message("reading datasets [%s]",TIMER) ;
+   INFO_message("start reading datasets [%s]",TIMER) ;
    DSET_load(dsetB) ; CHECK_LOAD_ERROR(dsetB) ;
    DSET_load(dsetC) ; CHECK_LOAD_ERROR(dsetC) ;
    if( maskset != NULL ){ DSET_load(maskset) ; CHECK_LOAD_ERROR(maskset) ; }
