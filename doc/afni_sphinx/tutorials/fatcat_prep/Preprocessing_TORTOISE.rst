@@ -272,7 +272,7 @@ scripts.
 
    * - Outputs of
      - TORTOISE's ``DR_BUDDI``
-   * - **t1w_cmd.txt**
+   * - **command.log**
      - textfile, copy of the command that was run.
    * - **blip\*.nii, deformation\*nii.gz, b0_corrected_final.nii**
      - some intermediate volumes in "blip_up :math:`b_0`" space.
