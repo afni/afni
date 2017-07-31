@@ -236,10 +236,10 @@ endif
 # into a text file
 set eee = ${out_ff:t}
 set out_echo = `basename $eee .dat`
-set out_echo = `basename $eee .txt`
-set out_echo = `basename $eee .log`
-set out_echo = `basename $eee .flip`
-set out_echo = `basename $eee .tex`
+set out_echo = `basename $out_echo .txt`
+set out_echo = `basename $out_echo .log`
+set out_echo = `basename $out_echo .flip`
+set out_echo = `basename $out_echo .tex`
 set out_echo = "$odir/${out_echo}_echo.txt"
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
