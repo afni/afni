@@ -97,19 +97,26 @@ orientations.
 During the tensor fitting stage, several useful options are switched
 on for ``3dDWItoDT``:
 
-* nonlinear alignment via ``-nonlinear``, essentially default for
-  primary tensor fitting
+* using nonlinear alignment via ``-nonlinear``, essentially default
+  for primary tensor fitting
 
-* convenient scaling via ``-scale_out_1000``, so numerical values
-  aren't tiny (for adult humans)-- units are in ":math:`10^{-3}\,{\rm
-  mm}^2~{\rm s}^{-1}`"
+* performing an extra round of tensor fitting with ``-reweight``\ing,
+  and the cumulative weight values are output with ``-cumulative_wts``
+
+* scaling physical measures conveniently via ``-scale_out_1000``, so
+  numerical values aren't tiny (for adult humans)-- units are in
+  ":math:`10^{-3}\,{\rm mm}^2~{\rm s}^{-1}`"
+
+* calculating chi-square results via ``-debug_briks``, for
+  goodness-of-(tensor)-fit measures
 
 * masking via the anatomical, which hopefully has more "clarity" and
   less brightness inhomogeneity than the DWI volumes themselves
 
-* chi-square results via ``-debug_briks``, for
-  goodness-of-(tensor)-fit measures
+Additionally, uncertainty values of DTI parameters are calculated with
+``3dDWUncert``, for use with tracking in ``3dTrackID``.
 
-* an extra round of tensor fitting with ``-reweight``\ing, and the
-  cumulative weight values output with ``-cumulative_wts``
-
+QC images are also output. The DWI :math:`b_0` volume is shown
+overlayed and edge-ified on the reference anatomical are made, as well
+as thresholded FA maps (FA>0.2, for the standard proxy of DTI-defined
+WM maps in healthy adult humans; alterable for other cases).
