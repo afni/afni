@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 1, Aug , 2017 , PT , "fat_proc_dwi_to_dt" , MINOR , TYPE_MODIFY,
+   "Turn on reweighting and cumulative weight calc in 3dDWItoDT part.",
+   "More useful fitting+output, hopefully.\n"
+},
+
 { 1, Aug , 2017 , PT , "3dDWItoDT" , MINOR , TYPE_MODIFY,
    "Have the '-cumulative_wts' output also get dumped into a 1D file.",
    "Figured it was nice to not *only* have info in the terminal.\n"

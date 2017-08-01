@@ -45,9 +45,9 @@
 #   + now '3dDWItoDT -debug_briks ...' by default
 #   + Has some fit-type parameters there.
 #
-set version   = "2.21";    set rev_dat   = "July 26, 2017"
-#   + changed helpfile format so apsearch can see all opts
-#
+set version   = "2.3";    set rev_dat   = "Aug 1, 2017"
+#   + now '-reweight' on by default
+#   + now '-cumulative_wts' on by default
 # ----------------------------------------------------------------
 
 set this_prog = "fat_proc_dwi_to_dt"
@@ -81,6 +81,8 @@ set iref     = ""                 # option, for getting orient + orig
 
 set iflip    = ""                 # for 1dDW_*++: can flip (yaaawn)
 set sca      = "-scale_out_1000"  # for 3dDWItoDT: -scale_out_1000
+set do_rwt   = "-reweight"        # on by def
+set do_cwt   = "-cumulative_wts"  # on by def
 
 set odir     = ""
 set opref    = ""
@@ -206,6 +208,12 @@ while ( $ac <= $#argv )
 
     else if ( "$argv[$ac]" == "-no_scale_out_1000" ) then
         set sca = ""
+
+    else if ( "$argv[$ac]" == "-no_reweight" ) then
+        set do_rwt = ""
+
+    else if ( "$argv[$ac]" == "-no_cumulative_wts" ) then
+        set do_cwt = ""
 
     else if ( "$argv[$ac]" == "-qc_fa_thr" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
@@ -765,6 +773,8 @@ echo "++ Fitting tensor, estimating params and fit:  $odir/${dti_par}*"
     -overwrite                         \
     -debug_briks                       \
     -eigs -nonlinear -sep_dsets        \
+    $do_rwt                            \
+    $do_cwt                            \
     $sca                               \
     -prefix       $odir/$dti_par       \
     -mask         $odir/$omask         \
@@ -902,6 +912,8 @@ cat << EOF
    {-prefix_dti   PREFIX_D}                       \
    {-flip_x | -flip_y | -flip_z | -no_flip}       \
    {-no_scale_out_1000}                           \
+   {-no_reweight}                                 \
+   {-no_cumulative_wts}                           \
    {-qc_prefix    QCPREF}                         \
    {-qc_fa_thr    TTT}                            \
    {-qc_fa_max    MMM}                            \
@@ -915,39 +927,33 @@ cat << EOF
 
   where:
 
-    -in_dwi  DWI    :4D volume of N DWIs. Required.
+    -in_dwi  DWI     :4D volume of N DWIs. Required.
 
-    -in_col_matA  ..or..
-    -in_col_matT  ..or..
-    -in_col_vec   ..or..
-    -in_row_vec  GRADMAT
-                    :input text file of N gradient vectors or 
-                     bmatrices. By default, it is assumed that
-                     these still have physical units in them (or that
-                     there is an accompanying BVAL file input), so
-                     scaling physical values by 1000 is on by default;
-                     see turning this scaling off, if unnecessary, by 
-                     using '-no_scale_out_1000', below.
+    -in_col_matA | -in_col_matT | -in_col_vec | -in_row_vec  GRADMAT
+                     :input text file of N gradient vectors or 
+                      bmatrices. By default, it is assumed that
+                      these still have physical units in them (or that
+                      there is an accompanying BVAL file input), so
+                      scaling physical values by 1000 is on by default;
+                      see turning this scaling off, if unnecessary, by 
+                      using '-no_scale_out_1000', below.
 
-    -prefix   PPP   :set prefix for output DWI data; required.
-    
-    -in_bvals   BVAL :optional, if bvalue information is
+   -prefix   PPP     :set prefix for output DWI data; required.
+
+   -in_bvals    BVAL :optional, if bvalue information is
                       in a separate file from the b-vectors
                       or matrices; should have same number N as
                       volumes and vectors/matrices.
-
-    -flip_x   ..or..
-    -flip_y   ..or..
-    -flip_z   ..or..
-    -no_flip         :can flip the DW grads, if needed; for example, 
+   -flip_x | -flip_y | -flip_z | -no_flip
+                     :can flip the DW grads, if needed; for example, 
                       based on the recommendation of @GradFlipTest.
 
-    -mask    MASK    :optional whole brain mask can be input;
+   -mask    MASK     :optional whole brain mask can be input;
                       otherwise, automasking is performed for the 
                       region to be tensor and parameter fit.
-    -mask_from_struc :flag to make a mask using 3dSkullStrip+3dmask_tool
+   -mask_from_struc  :flag to make a mask using 3dSkullStrip+3dmask_tool
                       from the STRUC file.
-           ===> If no "-mask*" option is given, then 3dAutomask is run on 
+          ----> If no "-mask*" option is given, then 3dAutomask is run on 
                 the DWI set.  This often ain't great, so if TORTOISE isn't
                 producing a mask, 1) email Okan and ask him about that, and
                 2) try '-mask_from_struc'.
@@ -956,7 +962,7 @@ cat << EOF
                 pass that in as the MASK, et voila (but then calcs will likely
                 be slooow).
 
-    -in_ref_orig REF :use another data set to adjust the DWI (and
+   -in_ref_orig REF  :use another data set to adjust the DWI (and
                       subsequent parameter) dsets' orientation and
                       origin; for example, TORTOISE has default 
                       orientation and origin for all output DWIs-- it
@@ -967,8 +973,7 @@ cat << EOF
                       merely resampled is *not* used, then you really, 
                       really want REF to have the same contrast as the
                       b=0 DWI volume. *Highly recommended to include!*
-    -in_struc_res STRUC 
-                     :accomplish the alignment of the output DWI to the 
+ -in_struc_res STRUC :accomplish the alignment of the output DWI to the 
                       REF data set via ANAT: a version of the anatomical 
                       that has been resampled to match the DWI set (in 
                       both orientation and origin);  for example, in
@@ -977,12 +982,10 @@ cat << EOF
                       then be well aligned to the original REF (and to  
                       each other). *Highly recommended to include!*
          
-    -prefix_dti PREFIX2 
-                     :set prefix for output DTI data; optional, 
+ -prefix_dti PREFIX2 :set prefix for output DTI data; optional, 
                       default is '${dtipref}'.
 
-    -no_scale_out_1000 
-                     :by default, for tensor fitting it is assumed
+  -no_scale_out_1000 :by default, for tensor fitting it is assumed
                       that 1) the DW b-value information is included
                       in the gradient vectors or grads, and 2) you are
                       happy to have tiny numbers of physical
@@ -999,31 +1002,37 @@ cat << EOF
                       numerical values leading to issues with
                       statistical modeling.
 
-    -qc_fa_thr TTT   :set threshold for overlay FA volume in QC image
+   -no_reweight      :by default, we *do* reweight+refit tensors during 
+                      estimation; should improve fit.  But what do I
+                      know?  This option turns that functionality *off*.
+   -no_cumulative_wts:by default, show  overall weight factors for each 
+                      gradient; may be useful as a quality control, but 
+                      this option will turn that functionality *off*.
+
+   -qc_fa_thr TTT    :set threshold for overlay FA volume in QC image
                       (default:  TTT=0.2, as for healthy adult human 
                       parenchyma).
-    -qc_fa_max MMM   :set cbar max for overlay FA volume in QC image
+   -qc_fa_max MMM    :set cbar max for overlay FA volume in QC image
                       (default:  MMM=0.9, a very large value even for 
                       healthy adult human parenchyma).
    -qc_prefix QCPREF :can set the prefix of the QC image files separately
                       (default is '$opref').
-    -no_qc_view      :can turn off generating QC image files (why?)
-    -no_cmd_out      :don't save the command line call of this program
+   -no_qc_view       :can turn off generating QC image files (why?)
+   -no_cmd_out       :don't save the command line call of this program
                       and the location where it was run (otherwise, it is
                       saved by default in the ODIR/).
 
-    -no_clean        :is an optional switch to NOT remove working 
+   -no_clean         :is an optional switch to NOT remove working 
                       directory '$wdir'; (default: remove working dir).
-    -workdir WWW     :specify a working directory, which can be removed;
+   -workdir WWW      :specify a working directory, which can be removed;
                       (default name = '$wdir').
 
-    -uncert_off      :don't do uncertainty calc (default is to do so); 
+   -uncert_off       :don't do uncertainty calc (default is to do so); 
                       perhaps if it is slow or you want *very* different
                       options.
-    -uncert_iters NN :set the number of Monte Carlo iterations for the
+   -uncert_iters NN  :set the number of Monte Carlo iterations for the
                       uncertainty calc (default NN=300).
-    -uncert_extra_cmds STR
-                     :put in extra commands for the uncertainty calcs
+-uncert_extra_cmds STR:put in extra commands for the uncertainty calcs
                       (see the 3dDWUncert helpfile for more opts).
 
 # -----------------------------------------------------------------------
