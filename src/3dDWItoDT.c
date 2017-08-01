@@ -59,7 +59,7 @@
 
 // Aug, 2017 (PT): 
 // + can now have cumulative weights dumped into a file, as well as
-//   shown in terminal
+//   shown in terminal -> CORRECTLY now...
 
 
 #include "thd_shear3d.h"
@@ -258,6 +258,7 @@ main (int argc, char *argv[])
 
    // [PT: Aug, 2017]
    float tmp_cwvalue=0.0;    // for outputting cumulative_wt values
+   int ncwts=0; 
    FILE *fout1=NULL;
 
 
@@ -992,7 +993,12 @@ main (int argc, char *argv[])
 
       cumulativewtptr = cumulativewt;
       INFO_message("Cumulative Wt. factors (and output to %s:", cwprefix);
-      for(i=0;i<(grad1Dptr->nx + 1);i++){
+      // need to get the number based on whether full mat was input
+      if(bmatrix_given) 
+         ncwts = grad1Dptr->nx;
+      else
+         ncwts = grad1Dptr->nx + 1;
+      for(i=0; i<ncwts; i++){
          *cumulativewtptr = *cumulativewtptr / rewtvoxels;
          tmp_cwvalue = *cumulativewtptr++;
          INFO_message("%5.3f ", tmp_cwvalue);

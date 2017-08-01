@@ -110,3 +110,6 @@ on for ``3dDWItoDT``:
 * chi-square results via ``-debug_briks``, for
   goodness-of-(tensor)-fit measures
 
+* an extra round of tensor fitting with ``-reweight``\ing, and the
+  cumulative weight values output with ``-cumulative_wts``
+
