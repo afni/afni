@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 1, Aug , 2017 , PT , "3dDWItoDT" , MINOR , TYPE_MODIFY,
+   "Have the '-cumulative_wts' output also get dumped into a 1D file.",
+   "Figured it was nice to not *only* have info in the terminal.\n"
+},
+
 { 31, Jul , 2017 , PT , "@GradFlipTest" , MICRO , TYPE_MODIFY,
    "Echo the recommendations into a text file, as well.",
    "More useful/less lossy if scripting. New '-wdir *' opt, too.\n"
