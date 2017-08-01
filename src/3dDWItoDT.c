@@ -57,6 +57,9 @@
 //   ones, at the moment), if user wants; now happens when
 //   '-debug_briks' is used.
 
+// Aug, 2017 (PT): 
+// + can now have cumulative weights dumped into a file, as well as
+//   shown in terminal
 
 
 #include "thd_shear3d.h"
@@ -252,6 +255,11 @@ main (int argc, char *argv[])
    MRI_IMAGE *data_im = NULL;
    double fac;
    int n;
+
+   // [PT: Aug, 2017]
+   float tmp_cwvalue=0.0;    // for outputting cumulative_wt values
+   FILE *fout1=NULL;
+
 
    /*----- Read command line -----*/
    if (argc < 2 || strcmp (argv[1], "-help") == 0)
@@ -956,18 +964,46 @@ main (int argc, char *argv[])
       /* Close NIML stream */
       NI_stream_close(DWIstreamid);
    }
-
+   
    if(cumulative_flag && reweight_flag) {
+      
+      // [PT: Aug, 2017] Functionality to output cumulative weights to
+      // text file
+      char cwprefix[THD_MAX_PREFIX], cprefix[THD_MAX_PREFIX];
+      char *ext, nullch; 
+      sprintf(cprefix,"%s", prefix);
+      if(has_known_non_afni_extension(prefix)){   /* for NIFTI, 3D, Niml,
+                                                     Analyze,...*/
+      ext = find_filename_extension(prefix);
+      cprefix[strlen(prefix) - strlen(ext)] = '\0';  /* remove
+                                                        non-afni-extension
+                                                        for now*/
+      }
+      else {
+         nullch = '\0';
+         ext = &nullch;
+      }
+      sprintf(cwprefix,"%s_cwts.1D", cprefix);
+
+      if( (fout1 = fopen(cwprefix, "w")) == NULL) {
+         fprintf(stderr, "Error opening file %s.",cwprefix);
+         exit(11);
+      }
+
       cumulativewtptr = cumulativewt;
-      INFO_message("Cumulative Wt. factors: ");
+      INFO_message("Cumulative Wt. factors (and output to %s:", cwprefix);
       for(i=0;i<(grad1Dptr->nx + 1);i++){
          *cumulativewtptr = *cumulativewtptr / rewtvoxels;
-         INFO_message("%5.3f ", *cumulativewtptr++);
-      }
+         tmp_cwvalue = *cumulativewtptr++;
+         INFO_message("%5.3f ", tmp_cwvalue);
+         fprintf(fout1,"%5.3f\n",tmp_cwvalue);
+      }      
+      fclose(fout1);
+      
       /* printf("\n");*/
    }
-
-
+   
+   
    if (new_dset != NULL)
       {
          // copy the tensor over.  Ugh.
@@ -1028,10 +1064,9 @@ main (int argc, char *argv[])
       {
          ERROR_exit("*** Error - Unable to compute output dataset!");
       }
-
-      INFO_message("Finished main tensor+parameter calcs.");
-
-
+   
+   INFO_message("Finished main tensor+parameter calcs.");
+   
    if ( debug_briks && (new_dset != NULL) ) {
       // pointer new_dset should just be to the AFNI-style DT, so this
       // should be fine...
