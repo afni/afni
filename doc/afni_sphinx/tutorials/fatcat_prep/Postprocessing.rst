@@ -54,7 +54,8 @@ There are additional considerations:
 **@GradFlipTest**
 -----------------
 
-
+The primary documentation for ``@GradFlipTest`` is provided on this
+page, ":ref:`GradFlipTest`".
 
 
 

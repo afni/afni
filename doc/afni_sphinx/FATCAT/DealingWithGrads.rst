@@ -349,59 +349,66 @@ and a (row) *b*\-value file called ``ALL.bval``.  Let's say that the
 acquisition aquired: 4 *b*\=0 reference images; then 30 DW images with
 *b*\=1000. Then:
 
-    #. The following produces a gradient file with 3 columns and 34
-       rows (unscaled, gradient vectors)::
+#. The following produces a gradient file with 3 columns and 34
+   rows (unscaled, gradient vectors)::
 
-         1dDW_Grad_o_Mat++                         \
-            -in_row_vec   ALL.bvec                 \
-            -out_col_vec  dwi_bvec.dat  
+     1dDW_Grad_o_Mat++                         \
+        -in_row_vec   ALL.bvec                 \
+        -out_col_vec  dwi_bvec.dat  
 
-    #. The following flips the y-component of the input DW gradients
-       and produces a row-first *b*\-matrix (i.e., elements scaled by
-       DW value) file with 6 columns and 34 rows::
+#. The following flips the y-component of the input DW gradients
+   and produces a row-first *b*\-matrix (i.e., elements scaled by
+   DW value) file with 6 columns and 34 rows::
 
-         1dDW_Grad_o_Mat++                         \
-            -in_row_vec   ALL.bvec                 \
-            -in_bvals     ALL.bval                 \
-            -out_col_matA dwi_matA.dat  
-            -flip_y
+     1dDW_Grad_o_Mat++                         \
+        -in_row_vec   ALL.bvec                 \
+        -in_bvals     ALL.bval                 \
+        -out_col_matA dwi_matA.dat  
+        -flip_y
 
-    #. Sometimes, to deal with odd sequence protocol necessities, a
-       single DW scaling is stored for each *b*\-value and the
-       gradients themselves are scaled to less than unity to reflect
-       having a lower, applied weighting.  Weird.  But we can deal
-       with this-- the following example would combine the *b*\-values
-       and gradients, and then output gradient-magnitude (column)
-       vector grads and the effective *b*\-values separately::
+#. An example of including ``@GradFlipTest``\'s guess at an
+   appropriate gradient flip in a pipeline with ``1dDW_Grad_o_Mat++``
+   is provided in ":ref:`gradflip_plus_gradomat`".  
 
-         1dDW_Grad_o_Mat++                         \
-            -in_row_vec   ALL.bvec                 \
-            -in_bvals     ALL.bval                 \
-            -out_col_vec  dwi_gvec.dat             \
-            -out_col_bval_sep dwi_bval.dat         \
-            -unit_mag_out
+   *But be sure to also read* ":ref:`gradfliptest_caveat`" in order to
+   appreciate the importance of still checking ``@GradFlipTest``
+   results by eye yourself (-> something that the function's output
+   assists with, anyways).
 
+#. Sometimes, to deal with odd sequence protocol necessities, a
+   single DW scaling is stored for each *b*\-value and the
+   gradients themselves are scaled to less than unity to reflect
+   having a lower, applied weighting.  Weird.  But we can deal
+   with this-- the following example would combine the *b*\-values
+   and gradients, and then output gradient-magnitude (column)
+   vector grads and the effective *b*\-values separately::
 
+     1dDW_Grad_o_Mat++                         \
+        -in_row_vec   ALL.bvec                 \
+        -in_bvals     ALL.bval                 \
+        -out_col_vec  dwi_gvec.dat             \
+        -out_col_bval_sep dwi_bval.dat         \
+        -unit_mag_out
 
-    #. The following first selects only some of the gradient and
-       associated *b*\-values (for example, if motion had occured).
-       Of the original 34 volumes, this would select :math:`4+1+22=27`
-       gradients, and similar subbrick selection would have to be
-       applied to the set of DWI volumes::
+#. The following first selects only some of the gradient and
+   associated *b*\-values (for example, if motion had occured).
+   Of the original 34 volumes, this would select :math:`4+1+22=27`
+   gradients, and similar subbrick selection would have to be
+   applied to the set of DWI volumes::
 
-         1dDW_Grad_o_Mat                           \
-            -in_row_vec   ALL.bvec'[0..3,8,12..$]' \
-            -in_bvals     ALL.bval'[0..3,8,12..$]' \
-            -out_col_matA dwi_matA_sel.dat 
+     1dDW_Grad_o_Mat                           \
+        -in_row_vec   ALL.bvec'[0..3,8,12..$]' \
+        -in_bvals     ALL.bval'[0..3,8,12..$]' \
+        -out_col_matA dwi_matA_sel.dat 
 
-         3dcalc                                    \
-            -a ALL.nii'[0..3,8,12..$]'             \
-            -expr 'a'                              \
-            -prefix ALL_sel.nii
+     3dcalc                                    \
+        -a ALL.nii'[0..3,8,12..$]'             \
+        -expr 'a'                              \
+        -prefix ALL_sel.nii
 
-       .. note:: Subset selection works similarly as in other AFNI
-                 programs, both for datasets and the row/column
-                 files. For row text files, one uses square-brackets
-                 '[*A*..\ *B*\]' to select the gradients *A* to
-                 *B*. For column text files, one would do the same
-                 using curly brackets '{*A*..\ *B*}'.
+   .. note:: Subset selection works similarly as in other AFNI
+             programs, both for datasets and the row/column
+             files. For row text files, one uses square-brackets
+             '[*A*..\ *B*\]' to select the gradients *A* to
+             *B*. For column text files, one would do the same
+             using curly brackets '{*A*..\ *B*}'.
