@@ -4245,7 +4245,7 @@ STATUS("zeropad weight dataset") ;
      else if ( verb ) {
        if( kk == 0 ) fprintf(stderr,"volume 0");
        else          fprintf(stderr,"..%d", kk);
-       if( kk == DSET_NVALS(dset_targ)-1 ) fputc("\n", stderr);
+       if( kk == DSET_NVALS(dset_targ)-1 ) fputc('\n', stderr);
      }
 
      im_targ = mri_scale_to_float( bfac , DSET_BRICK(dset_targ,kk) ) ;
