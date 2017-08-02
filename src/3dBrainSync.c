@@ -114,7 +114,7 @@ void BSY_help_the_pitiful_user(void)
    "    3dTcorrelate -polort -1 -prefix AB.pcor.nii \\\n"
    "                 dataset1 transformed-dataset2\n"
    "\n"
-   "* Notation:\n"
+   "* Notation used in the explanations below:\n"
    "    M = Number of time points\n"
    "    N = Number of voxels > M (N = size of mask)\n"
    "    B = MxN matrix of time series from -inset1\n"
@@ -122,11 +122,32 @@ void BSY_help_the_pitiful_user(void)
    "        Both matrices have each column normalized to\n"
    "        sum-of-squares = 1 (L2 normalized)\n"
    "    Q = Desired orthgonal MxM matrix to transform C such that B-QC\n"
-   "        is as small as possible (sum-of-squares = Frechet norm)\n"
+   "        is as small as possible (sum-of-squares = Frobenius norm)\n"
    "        normF(A) = sum_{ij} A_{ij}^2 = trace(AA') = trace(A'A)\n"
    "        This norm is different from the matrix L2 norm.\n"
    "\n"
-   "* Joshi method:\n"
+   "* The expansion below shows why the matrix BC' is crucial to the analysis:\n"
+   "    normF(B-QC) = trace( [B-QC][B'-C'Q'] )\n"
+   "                = trace(BB') + trace(QCC'Q') - trace(BC'Q') - trace(QCB')\n"
+   "                = trace(BB') + trace(C'C) - 2 trace(BC'Q')\n"
+   "    The second term collapses because trace(AA') = trace(A'A), so\n"
+   "    trace([QC][QC]') = trace([QC]'[QC]) = trace(C'Q'QC) = trace(C'C)\n"
+   "    because Q is assumed orthogonal. So the first 2 terms in the\n"
+   "    expansion of normF(B-QC) do not depend on Q at all. Thus, to minimize\n"
+   "    normF(B-QC) we have to maximize trace(BC'Q').\n"
+   "\n"
+   "    Since the columns of B and C are the (normalized) time series,\n"
+   "    each row represents the image at a particular time. So the (i,j)\n"
+   "    element of BC' is the dot product of the i-th TR image from\n"
+   "    -inset1 with the j-th TR image from -inset2. Furthermore,\n"
+   "    trace(BC') = trace(C'B) = sum of dot products (correlations)\n"
+   "    of all time series. So maximizing trace(BC'Q') will maximize the\n"
+   "    summed correlations of B (time series from -inset1) and QC\n"
+   "    (transformed time series from -inset2). If you use the '-verb'\n"
+   "    option, these summed correlations ('scores') are printed to stderr\n"
+   "    during the analysis.\n"
+   "\n"
+   "* Joshi method [-Qprefix]:\n"
    "   (a) compute MxM matrix B C'\n"
    "   (b) compute SVD of B C' = U S V' (U, S, V are MxM matrices)\n"
    "   (c) Q = U V'\n"
@@ -136,19 +157,23 @@ void BSY_help_the_pitiful_user(void)
    "   problem (i.e., restricted to have Q be an orthogonal matrix).\n"
    "\n"
    "   A pre-print of their method is available as:\n"
-   "   AA Joshi, M Chong, RM Leahy.\n"
-   "   BrainSync: An Orthogonal Transformation for Synchronization of fMRI\n"
-   "   Data Across Subjects, Proc. MICCAI 2017\n"
+   "     AA Joshi, M Chong, RM Leahy.\n"
+   "     BrainSync: An Orthogonal Transformation for Synchronization of fMRI\n"
+   "     Data Across Subjects, Proc. MICCAI 2017\n"
    "   https://www.dropbox.com/s/tu4kuqqlg6r02kt/brainsync_miccai2017.pdf\n"
    "   https://www.google.com/search?q=joshi+brainsync\n"
    "\n"
-   "* Permutation method:\n"
-   "   (a) compute B C' (as above)\n"
-   "   (b) find a permutation p(i) of the integers {0..M-1} such\n"
+   "* Permutation method [-Pprefix]:\n"
+   "   (a) Compute B C' (as above)\n"
+   "   (b) Find a permutation p(i) of the integers {0..M-1} such\n"
    "       that sum_i { (BC')[i,p(i)] } is as large as possible.\n"
+   "       This permutation is equivalent to post-multiplying BC'\n"
+   "       by an orthogonal matrix Q representing the permutation;\n"
+   "       such a Q is full of 0s except for a single 1 in each row\n"
+   "       and each column.\n"
    "   Only an approximate (greedy) algorithm is used to find this\n"
    "   permutation; that is, the 'best' permutation is not found\n"
-   "   (just a 'good' permutation).\n"
+   "   (just a 'good' permutation -- it's the best I could code quickly :).\n"
    "\n"
    "* Results from the permutation method must be less correlated with -inset1\n"
    "   than the Joshi method's results: the permutation can be thought of\n"
@@ -158,17 +183,10 @@ void BSY_help_the_pitiful_user(void)
    "   (re-ordering time points), while the general method linearly combines\n"
    "   different time points; the interpretation of this combination in terms\n"
    "   of synchronizing brain 'activity' is harder to intuit (at least for me).\n"
-#if 0
-   "\n"
-   "* non-orthogonal method:\n"
-   "    Q = inv(C C') B C'\n"
-   "      = solution to unrestricted least squares problem\n"
-   "        (i.e., Q can be any MxM matrix).\n"
-#endif
    "\n"
    "* The input datasets should be pre-processed first to remove\n"
    "  undesirable components (motions, baseline, spikes, breathing, etc).\n"
-   "  Otherwise, you'll be trying to match artifacts between the\n"
+   "  Otherwise, you will be trying to match artifacts between the\n"
    "  datasets, which is not likely to be interesting or useful.\n"
    "  3dTproject would be one way to do this. Even better: afni_proc.py.\n"
    "\n"
@@ -208,7 +226,7 @@ void BSY_help_the_pitiful_user(void)
 static int * find_best_permutation( int m , float *qmat , double *amat )
 {
    int nrand ;
-   float *rvec,*qvec , rcost=0.0f, bestcost, rval ;
+   float *rvec,*qvec , rcost=0.0f, qcost=0.0f , bestcost, rval ;
    int *perm , *bestperm=NULL , ii,jj,rr,qq ;
 
    if( m < 2 || amat == NULL ) return NULL ; /* should not happen */
@@ -218,8 +236,8 @@ ENTRY("find_best_permutation") ;
    /* find score of the Q matrix [for comparison] */
 
    if( qmat != NULL ){
-     for( rcost=0.0f,jj=0 ; jj < m ; jj++ ){
-       for( ii=0 ; ii < m ; ii++ ) rcost += A(ii,jj)*QQ(ii,jj) ;
+     for( qcost=0.0f,jj=0 ; jj < m ; jj++ ){
+       for( ii=0 ; ii < m ; ii++ ) qcost += A(ii,jj)*QQ(ii,jj) ;
      }
      if( verb > 1 )
        INFO_message("permutation search: qmat score = %g [%s]",rcost,TIMER) ;
@@ -317,8 +335,12 @@ ENTRY("find_best_permutation") ;
 
    free(perm);
 
-   if( verb > 1 )
-     ININFO_message(" perm hunt finished [%s]",TIMER) ;
+   if( verb && qcost > 0.0f ){
+     for( rcost=0.0f,ii=0 ; ii < m ; ii++ ) rcost += A(ii,ii) ;
+     ININFO_message("correlation scores: "
+                    "no transform=%g  Q matrix=%g  permutation=%g",
+                    rcost, qcost, bestcost ) ;
+   }
    RETURN(bestperm) ;
 }
 
@@ -502,27 +524,6 @@ MEMORY_CHECK("d") ;
 
    EXRETURN ;
 }
-
-#if 0
-/*----------------------------------------------------------------------------*/
-/* Given m X n matrices bmat and cmat, compute the non-orthogonal m X m matrix
-   qmat that 'best' transforms cmat to bmat.
-    1) normalize all columns of bmat and cmat
-    2) compute m X m matrix amat = [bmat] * [cmat]'
-    3) compute m X m matrix dmat = [cmat] * [cmat]'
-    4) qmat = inv[dmat] * [amat]
-*//*--------------------------------------------------------------------------*/
-
-static void compute_nonorth_matrix( int m , int n ,
-                                    float *bmat , float *cmat , float *qmat )
-{
-ENTRY("compute_nonorth_matrix") ;
-
-   /* a LITTLE more code needed here :) */
-
-   EXRETURN ;
-}
-#endif
 
 /*----------------------------------------------------------------------------*/
 
