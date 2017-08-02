@@ -22,6 +22,7 @@ int main( int argc , char * argv[] )
    char abet[] = "abcdefghijklmnopqrstuvwxyz" ;
    int         isfix[26] ;  /* 22 Jan 2016 */
    double      azfix[26] ;  /* for fixed (constant) variables */
+   int        isfree[26] ;
 
    /*-- help? --*/
 
@@ -167,6 +168,7 @@ int main( int argc , char * argv[] )
    for( ii=0 ; ii < 26 ; ii++ ){
       atoz[ii] = 0.0 ; inim[ii] = NULL ; inar[ii] = NULL ;
       isfix[ii] = 0 ; azfix[ii] = 0.0 ;  /* 22 Jan 2016 */
+      isfree[ii] = 0 ;                   /* 01 Aut 2017 */
    }
 
    /*----- read options -----*/
@@ -345,6 +347,7 @@ int main( int argc , char * argv[] )
       if( PARSER_has_symbol(sym,pcode) ){
          if( inim[ii] == NULL && isfix[ii] == 0 ){       /* unbound variable */
             qvar++ ; if( kvar < 0 ) kvar = ii ;
+            isfree[ii] = 1 ;
          }
       } else if( inim[ii] != NULL || isfix[ii] != 0 ){ /* bound, not in expr */
          WARNING_message("Symbol %c defined but not used!\n",abet[ii]) ;
@@ -355,6 +358,12 @@ int main( int argc , char * argv[] )
                      "++   but there should only be 0 or 1.\n"
                      "++   Will use symbol %c as the variable.\n" ,
               qvar , abet[kvar] ) ;
+      fprintf(stderr," + Unbound symbols:") ;
+      for( ii=0 ; ii < 26 ; ii++ )
+        if( isfree[ii] ) fprintf(stderr," %c",abet[ii]) ;
+      fprintf(stderr,"\n") ;
+      if( isfree[25] )
+      fprintf(stderr," + Will use symbol z for simple recursion\n") ;
    }
 
    /*-- evaluate --*/

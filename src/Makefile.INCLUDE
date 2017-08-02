@@ -101,7 +101,8 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dToyProg 3dRankizer nifti1_tool gifti_tool cifti_tool images_equal  \
            uniq_images tokens 3dLocalACF 3dXClustSim 3dtoXdataset 3dMultiThresh \
            3dLFCD 3dDegreeCentrality 3dECM 3dMSE 3dsvm_linpredict 3dTfilter     \
-           3dTsplit4D 3dSharpen 3dExtractGroupInCorr dcm2niix_afni 3dTto1D \
+           3dTsplit4D 3dSharpen 3dExtractGroupInCorr dcm2niix_afni 3dTto1D      \
+           3dBrainSync                                                          \
            $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
