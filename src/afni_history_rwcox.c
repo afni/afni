@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 2 , AUG , 2017 , RWC , "3dBrainSync" , MAJOR , TYPE_NEW_PROG ,
+   "BrainSync algorithm of Joshi, from OHBM 2017" ,
+   "Also, my own permutation method (to avoid linear combination of\n"
+   "disparate time points)." } ,
+
  { 25 , JUL , 2017 , RWC , "3dttest++" , MICRO , TYPE_ENHANCE ,
    "Extend '5percent' outputs to cover 1-9 percent range." ,
    "Just for fun fun fun in the sun sun sun.  Also, the whole replicability\n"
