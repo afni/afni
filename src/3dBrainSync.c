@@ -70,7 +70,7 @@ void BSY_help_the_pitiful_user(void)
    "                       files as datasets. When doing so, remember that\n"
    "                       a ROW in the .1D file is interpreted as a time series\n"
    "                       (single voxel's data). If your .1D files are oriented\n"
-   "                       so that time runs in down the COLUMNS, you'll have to\n"
+   "                       so that time runs in down the COLUMNS, you will have to\n"
    "                       transpose the inputs, which can be done on the command\n"
    "                       line with the \\' operator, or externally using the\n"
    "                       1dtranspose program.\n"
@@ -79,7 +79,7 @@ void BSY_help_the_pitiful_user(void)
    "                    the orthogonal matrix transformation.\n"
    "                    ++ This will be the -inset2 dataset transformed\n"
    "                       to be as correlated as possible (in time)\n"
-   "                       with the -inset1 dataset, given the constraint.\n"
+   "                       with the -inset1 dataset, given the constraint\n"
    "                       that the transformation applied to each time\n"
    "                       series is an orthogonal matrix.\n"
    "\n"
@@ -93,7 +93,7 @@ void BSY_help_the_pitiful_user(void)
    " -normalize       = Normalize the output dataset so that each\n"
    "                    time series has sum-of-squares = 1.\n"
    "                    ++ This option is not usually needed in AFNI\n"
-   "                       (e.g., 3dTcorrelate doesn't care).\n"
+   "                       (e.g., 3dTcorrelate does not care).\n"
    "\n"
    " -mask mset       = Only operate on nonzero voxels in the mset dataset.\n"
    "                    ++ Voxels outside the mask will not be used in computing\n"
@@ -221,8 +221,16 @@ void BSY_help_the_pitiful_user(void)
    "  and another step is used to improve it:\n"
    "    3) For all pairs (i,j), p(i) and p(j) are swapped and that permutation\n"
    "       is tested to see if the trace gets bigger.\n"
-   "    4) This pair-wise swapping is repeated until it doesn't improve things\n"
+   "    4) This pair-wise swapping is repeated until it does not improve things\n"
    "       any more (typically, it improves the trace about 1%% -- not much).\n"
+   "  The purpose of the pair swapping is to avoid situations where A looks\n"
+   "  something like this: [  1 70 ]\n"
+   "                       [ 70 99 ]\n"
+   "  Step 1 would pick out 99, and Step 2 would pick out 1; that is,\n"
+   "  p(2)=2 and then p(1)=1, for a total trace/score of 100. But swapping\n"
+   "  1 and 2 would give a total trace/score of 140. In practice, such extreme\n"
+   "  situations do not seem common with real FMRI data, probably because\n"
+   "  the subject's brain isn't actually conspiring against this algorithm.\n"
    "\n"
    "  This whole permutation optimization procedure is very fast: about 1 second.\n"
    "  In the RS-FMRI data I've tried this on, the average time series correlation\n"
@@ -294,10 +302,10 @@ ENTRY("find_best_permutation") ;
        for( ii=0 ; ii < m ; ii++ ) qcost += A(ii,jj)*QQ(ii,jj) ;
      }
      if( verb > 1 )
-       INFO_message("permutation search: qmat score = %g [%s]",qcost,TIMER) ;
+       ININFO_message("-- permutation search: qmat score = %g [%s]",qcost,TIMER) ;
    } else {
      if( verb > 1 )
-       INFO_message("permutation search starts [%s]",TIMER) ;
+       ININFO_message("-- permutation search starts [%s]",TIMER) ;
    }
 
    perm     = (int *)malloc(sizeof(int)*m) ;
@@ -340,8 +348,6 @@ ENTRY("find_best_permutation") ;
      if( bestperm != NULL ){  /* swap pairs, look for improvement */
        int ntry=0, ndone ;    /* usually doesn't get much better */
        do{
-         if( verb > 1 )
-           ININFO_message(" -- trying to improve #%d --",ntry+1) ;
          for( ndone=ii=0 ; ii < m-1 ; ii++ ){
           for( jj=ii+1 ; jj < m ; jj++ ){
            memcpy(perm,bestperm,sizeof(int)*m) ;
@@ -351,10 +357,11 @@ ENTRY("find_best_permutation") ;
              free(bestperm); bestperm = perm; bestcost = rcost;
              perm = (int *)malloc(sizeof(int)*m); ndone++ ;
              if( verb > 1 )
-               ININFO_message(" improved perm score = %g [%d,%d]",rcost,ii,jj) ;
+               ININFO_message(" improved perm score = %g swap [%d,%d]",rcost,ii,jj) ;
            }
          }}
        } while( ndone > 0 && ++ntry < 19 ) ; /* don't try forever! */
+       if( verb > 1 ) ININFO_message("-- exit after swap loop #%d",ntry) ;
      }                             /* usually finishes by try #4-7 */
    }
 #undef AA
