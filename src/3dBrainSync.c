@@ -83,7 +83,8 @@ void BSY_help_the_pitiful_user(void)
    "\n"
    " -normalize       = Normalize the output dataset so that each\n"
    "                    time series has sum-of-squares = 1.\n"
-   "                    ++ This option is not usually needed in AFNI.\n"
+   "                    ++ This option is not usually needed in AFNI\n"
+   "                       (e.g., 3dTcorrelate doesn't care).\n"
    "\n"
    " -mask mset       = Only operate on nonzero voxels in the mset dataset.\n"
    "                    ++ Voxels outside the mask will not be used in computing\n"
@@ -165,6 +166,7 @@ void BSY_help_the_pitiful_user(void)
    "     Data Across Subjects, Proc. MICCAI 2017\n"
    "   https://www.dropbox.com/s/tu4kuqqlg6r02kt/brainsync_miccai2017.pdf\n"
    "   https://www.google.com/search?q=joshi+brainsync\n"
+   "   http://neuroimage.usc.edu/neuro/Resources/BrainSync\n"
    "\n"
    "* Permutation method [-Pprefix]:\n"
    "   (a) Compute B C' (as above)\n"
@@ -200,7 +202,7 @@ void BSY_help_the_pitiful_user(void)
    "  some other (text formatted) files are written out:\n"
    "   {Qprefix}.sval.1D = singular values from the BC' decomposition\n"
    "   {Qprefix}.qmat.1D = Q matrix\n"
-   "   {Pprefix}.perm.1D = permutation indexes\n"
+   "   {Pprefix}.perm.1D = permutation indexes p(i)\n"
    "  You probably do not have any use for these files; they are mostly\n"
    "  present to diagnose any problems.\n"
    "\n"
@@ -307,7 +309,7 @@ ENTRY("find_best_permutation") ;
                ININFO_message(" improved perm score = %g [%d,%d]",rcost,ii,jj) ;
            }
          }}
-       } while( ndone > 0 && ++ntry < 9 ) ; /* don't try forever! */
+       } while( ndone > 0 && ++ntry < 19 ) ; /* don't try forever! */
      }
    }
 #undef AA
