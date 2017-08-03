@@ -315,7 +315,7 @@ ENTRY("find_best_permutation") ;
 #undef  AA
 #define AA(i,j) aamat[(i)+(j)*m]
    { int kk,pi,pj , mmm=m*m , *jdone ;
-     float *aamat = (float *)malloc(sizeof(float)*m*m) ;
+     float *aamat=(float *)malloc(sizeof(float)*m*m) , bbcost=0.0f ;
      for( kk=0 ; kk < mmm ; kk++ ) aamat[kk] = (float)amat[kk] ;
      bestperm = (int *)malloc(sizeof(int)*m) ;
      jdone    = (int *)malloc(sizeof(int)*m) ;
@@ -340,9 +340,9 @@ ENTRY("find_best_permutation") ;
        free(bestperm); bestperm = NULL;  /* should never happen */
      } else {
        for( rcost=0.0f,ii=0 ; ii < m ; ii++ ) rcost += A(ii,bestperm[ii]) ;
-       bestcost = rcost ;
+       bestcost = bbcost = rcost ;
        if( verb > 1 )
-         ININFO_message(" initial greedy perm score = %g",rcost) ;
+         ININFO_message(" initial greedy perm score = %g",bbcost) ;
      }
 
      if( bestperm != NULL ){  /* swap pairs, look for improvement */
@@ -361,8 +361,12 @@ ENTRY("find_best_permutation") ;
            }
          }}
        } while( ndone > 0 && ++ntry < 29 ) ; /* don't try forever! */
-       if( verb > 1 )
-         ININFO_message("-- exit after swap loop #%d, %d swaps",ntry,ntot) ;
+       if( verb > 1 ){
+         if( bbcost > 0.0f ) bbcost = 100.0f*(bestcost-bbcost)/bbcost ;
+         else                bbcost =   0.0f ;
+         ININFO_message("-- finish after %d swaps: %.2f%% improvement",
+                        ntot,bbcost) ;
+       }
      }
    }
 #undef AA
