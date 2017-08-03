@@ -346,7 +346,7 @@ ENTRY("find_best_permutation") ;
      }
 
      if( bestperm != NULL ){  /* swap pairs, look for improvement */
-       int ntry=0, ndone ;    /* usually doesn't get much better */
+       int ntry=0, ndone, ntot=0 ;
        do{
          for( ndone=ii=0 ; ii < m-1 ; ii++ ){
           for( jj=ii+1 ; jj < m ; jj++ ){
@@ -355,14 +355,15 @@ ENTRY("find_best_permutation") ;
            for( rcost=0.0f,kk=0 ; kk < m ; kk++ ) rcost += A(kk,perm[kk]) ;
            if( rcost > bestcost ){
              free(bestperm); bestperm = perm; bestcost = rcost;
-             perm = (int *)malloc(sizeof(int)*m); ndone++ ;
+             perm = (int *)malloc(sizeof(int)*m); ndone++ ; ntot++ ;
              if( verb > 1 )
                ININFO_message(" improved perm score = %g swap [%d,%d]",rcost,ii,jj) ;
            }
          }}
-       } while( ndone > 0 && ++ntry < 19 ) ; /* don't try forever! */
-       if( verb > 1 ) ININFO_message("-- exit after swap loop #%d",ntry) ;
-     }                             /* usually finishes by try #4-7 */
+       } while( ndone > 0 && ++ntry < 29 ) ; /* don't try forever! */
+       if( verb > 1 )
+         ININFO_message("-- exit after swap loop #%d, %d swaps",ntry,ntot) ;
+     }
    }
 #undef AA
 
