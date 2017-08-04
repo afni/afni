@@ -1167,6 +1167,8 @@ void display_help_menu(void)
       "                 rate of 0.01, so that reducing the number of simulations below\n"
       "                 10000 will produce notably less accurate results for such small\n"
       "                 FPR (alpha) values.\n"
+      "        **-->>++ The primary reason for reducing AFNI_TTEST_NUMCSIM below its\n"
+      "                 default value is testing '-Clustsim' and/or '-ETAC' more quickly\n"
       "          -->>++ The clever scripter can pick out a particular value from a\n"
       "                 particular 3dClustSim output .1D file using the '{row}[col]'\n"
       "                 syntax of AFNI, as in the tcsh command\n"
@@ -4313,8 +4315,9 @@ LABELS_ARE_DONE:  /* target for goto above */
 
      /* how many cases? */
 
-     ncase = (Xclu_nblur == 0 || !do_Xclustsim) ? 1 : Xclu_nblur ;
-     clab  = (char **)malloc(sizeof(char *)*ncase) ;
+     ncase   = (Xclu_nblur == 0 || !do_Xclustsim) ? 1 : Xclu_nblur ;
+     clab    = (char **)malloc(sizeof(char *)*ncase) ;
+     cprefix = (char **)malloc(sizeof(char *)*ncase) ;
 
      /* cmd = command for randomize/permute 3dttest++ runs */
 
@@ -4330,7 +4333,9 @@ LABELS_ARE_DONE:  /* target for goto above */
        bmd = (char *)malloc(sizeof(char)*(32768+mcov*256+(nval_AAA+nval_BBB)*512)) ;
        strcpy( bprefix , prefix ) ;
        if( !PREFIX_IS_NIFTI(prefix) ) strcat( bprefix , ".nii" ) ;
-       cprefix = (char **)malloc(sizeof(char *)*ncase) ;
+     } else {
+       cprefix[0] = strdup(DSET_HEADNAME(outset)) ;  /* 04 Aug 2017 */
+INFO_message("cprefix[0] = %s",cprefix[0]) ;
      }
 
      /* loop to start randomize jobs */
@@ -4361,7 +4366,7 @@ LABELS_ARE_DONE:  /* target for goto above */
          INFO_message("------ start simulations for blur case %.1f (%s) : elapsed = %.1f s ------",
                       cblur , fname , COX_clock_time() ) ;
        } else {
-         clab[icase] = strdup("\0") ;
+         clab[icase] = strdup("A") ;
        }
 
        /* start setting up the re-run command for blurring [19 Apr 2017] */
@@ -4741,10 +4746,17 @@ LABELS_ARE_DONE:  /* target for goto above */
                for( icase=0 ; icase < ncase ; icase++ ){
                  sprintf( cmd , "3dMultiThresh -quiet -input %s -1tindex 1 -maskonly \\\n   " ,
                                 cprefix[icase] ) ;
-                 sprintf( cmd+strlen(cmd) , " -prefix %s.ETACtmask.%s.nii" ,
+                 if( clab[icase][0] != '\0' ){
+                   sprintf( cmd+strlen(cmd) , " -prefix %s.ETACtmask.%s.nii" ,
                                             prefix_clustsim , clab[icase] ) ;
-                 sprintf( cmd+strlen(cmd) , " -mthresh %s.%s.ETAC.mthresh.%s.nii" ,
-                                            prefix_clustsim , nam , clab[icase] ) ;
+                   sprintf( cmd+strlen(cmd) , " -mthresh %s.%s.ETAC.mthresh.%s.nii" ,
+                                              prefix_clustsim , nam , clab[icase] ) ;
+                 } else {
+                   sprintf( cmd+strlen(cmd) , " -prefix %s.ETACtmask.nii" ,
+                                            prefix_clustsim ) ;
+                   sprintf( cmd+strlen(cmd) , " -mthresh %s.%s.ETAC.mthresh.nii" ,
+                                              prefix_clustsim , nam ) ;
+                 }
                  system(cmd) ;
                }
                sprintf( cmd ,
@@ -4756,10 +4768,17 @@ LABELS_ARE_DONE:  /* target for goto above */
                for( icase=0 ; icase < ncase ; icase++ ){
                  sprintf( cmd , "3dMultiThresh -quiet -input %s -1tindex 1 -maskonly -pos \\\n   " ,
                                 cprefix[icase] ) ;
-                 sprintf( cmd+strlen(cmd) , " -prefix %s.ETACtmask.1pos.%s.nii" ,
-                                            prefix_clustsim , clab[icase] ) ;
-                 sprintf( cmd+strlen(cmd) , " -mthresh %s.%s.ETAC.mthresh.%s.nii" ,
-                                            prefix_clustsim , nam , clab[icase] ) ;
+                 if( clab[icase][0] != '\0' ){
+                   sprintf( cmd+strlen(cmd) , " -prefix %s.ETACtmask.1pos.%s.nii" ,
+                                              prefix_clustsim , clab[icase] ) ;
+                   sprintf( cmd+strlen(cmd) , " -mthresh %s.%s.ETAC.mthresh.%s.nii" ,
+                                              prefix_clustsim , nam , clab[icase] ) ;
+                 } else {
+                   sprintf( cmd+strlen(cmd) , " -prefix %s.ETACtmask.1pos.nii" ,
+                                              prefix_clustsim ) ;
+                   sprintf( cmd+strlen(cmd) , " -mthresh %s.%s.ETAC.mthresh.nii" ,
+                                              prefix_clustsim , nam ) ;
+                 }
                  system(cmd) ;
                }
                sprintf( cmd ,
@@ -4770,10 +4789,17 @@ LABELS_ARE_DONE:  /* target for goto above */
                for( icase=0 ; icase < ncase ; icase++ ){
                  sprintf( cmd , "3dMultiThresh -quiet -input %s -1tindex 1 -maskonly -neg \\\n   " ,
                                 cprefix[icase] ) ;
-                 sprintf( cmd+strlen(cmd) , " -prefix %s.ETACtmask.1neg.%s.nii" ,
-                                            prefix_clustsim , clab[icase] ) ;
-                 sprintf( cmd+strlen(cmd) , " -mthresh %s.%s.ETAC.mthresh.%s.nii" ,
-                                            prefix_clustsim , nam , clab[icase] ) ;
+                 if( clab[icase][0] != '\0' ){
+                   sprintf( cmd+strlen(cmd) , " -prefix %s.ETACtmask.1neg.%s.nii" ,
+                                              prefix_clustsim , clab[icase] ) ;
+                   sprintf( cmd+strlen(cmd) , " -mthresh %s.%s.ETAC.mthresh.%s.nii" ,
+                                              prefix_clustsim , nam , clab[icase] ) ;
+                 } else {
+                   sprintf( cmd+strlen(cmd) , " -prefix %s.ETACtmask.1neg.nii" ,
+                                              prefix_clustsim ) ;
+                   sprintf( cmd+strlen(cmd) , " -mthresh %s.%s.ETAC.mthresh.nii" ,
+                                              prefix_clustsim , nam ) ;
+                 }
                  system(cmd) ;
                }
                sprintf( cmd ,
@@ -4793,8 +4819,7 @@ LABELS_ARE_DONE:  /* target for goto above */
 
      if( do_clustsim != 3 && do_Xclustsim != 2 ){
        strcpy(cmd,"\\rm -vf") ;
-
-         sprintf(cmd+strlen(cmd)," %s",prefix_resid) ;
+       sprintf(cmd+strlen(cmd)," %s",prefix_resid) ;
 
        if( prefix_savedata != NULL )
          sprintf(cmd+strlen(cmd)," %s",prefix_savedata) ;
