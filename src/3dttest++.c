@@ -1211,12 +1211,18 @@ void display_help_menu(void)
       "                           was also close to the threshold at which the FDR\n"
       "                           q=1/43000, which may not be a coincidence.\n"
       "\n"
-      " -no5percent         = Don't output the 'cc'.5percent.txt file.\n"
+      " -no5percent         = Don't output the 'cc'.5percent.txt file that comes\n"
+      "                       for free with '-Clustsim' and/or '-ETAC'.\n"
+      "                     ++ But whyyy? Don't you like free things?\n"
       "\n"
       " -tempdir ttt        = Store temporary files for '-Clustsim' in this directory,\n"
-      "                       rather than in the current working directory: this option\n"
-      "                       is for use when you have access to a fast local disk\n"
-      "                       (e.g., SSD) compared to general storage on a RAID.\n"
+      "                       rather than in the current working directory.\n"
+      "                 -->>++ This option is for use when you have access to a fast\n"
+      "                        local disk (e.g., SSD) compared to general storage\n"
+      "                        on a rotating disk, RAID, or network storage.\n"
+      "                     ++ Using '-tempdir' can make a significant difference\n"
+      "                        in '-Clustsim' and '-ETAC' runtime, if you have\n"
+      "                        a local solid state drive available!\n"
       "                       [NOTE: with '-CLUSTSIM', these files aren't deleted!]\n"
       "\n"
       " -seed X [Y] = This option is used to set the random number seed for\n"
@@ -4347,13 +4353,21 @@ INFO_message("cprefix[0] = %s",cprefix[0]) ;
      ct1 = COX_clock_time() ;
 
      if( use_sdat ){
-       int64_t nsdat ;
+       int64_t nsdat , nsysmem ;
        nsdat = (int64_t)(ncsim) * (int64_t)(ncase) * (int64_t)(nmask_hits) * 2 ;
        ININFO_message("=== creating %s (%s) bytes of pseudo-data in .sdat files ===",
                      commaized_integer_string(nsdat) ,
                      approximate_number_string((double)nsdat) ) ;
        ININFO_message("--- %s reads .sdat files to compute cluster-threshold statistics ---",
                       (do_clustsim) ? "3dClustSim" : "3dXClustSim" ) ;
+       nsysmem = AFNI_get_memsize() ;
+       if( nsysmem > 0 ){
+         ININFO_message("--- there is %s (%s) bytes of memory on your system ---",
+                        commaized_integer_string(nsysmem) ,
+                        approximate_number_string((double)nsysmem) ) ;
+         if( (double)nsdat > 0.888f*(double)nsysmem )
+           WARNING_message("--- runs may be slow (or crash) due to memory requirements :( ---") ;
+       }
      }
 
      for( icase=0 ; icase < ncase ; icase++ ){  /* loop over blur cases */
