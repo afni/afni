@@ -44,6 +44,12 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 4 , AUG , 2017 , RWC , "3dttest++" , MINOR , TYPE_BUG_FIX ,
+   "-ETAC failed without multiple blur cases" ,
+   "Addition of -ETAC_blur broke the non-blur runs, due to lack of the\n"
+   "correct 'label' for dealing with the results from 3dXClustSim.\n"
+   "Obviously, this was the work of saboteurs." } ,
+
  { 2 , AUG , 2017 , RWC , "3dBrainSync" , MAJOR , TYPE_NEW_PROG ,
    "BrainSync algorithm of Joshi, from OHBM 2017" ,
    "Also, my own permutation method (to avoid linear combination of\n"
