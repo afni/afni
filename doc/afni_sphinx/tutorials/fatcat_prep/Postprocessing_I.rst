@@ -185,7 +185,7 @@ in '\*/dwi_04/' (Grad\* and _tmp\*/) were made by @GradFlipTest.
    :stub-columns: 0
 
    * - Outputs of
-     - @GradFlipTest
+     - ``@GradFlipTest``
    * - **GradFlipTest_rec_echo.txt**
      - textfile, with a record exact command that was run at the top;
        importantly, it also contains the number of tract counts that
@@ -266,8 +266,151 @@ in '\*/dwi_04/' (Grad\* and _tmp\*/) were made by @GradFlipTest.
           judgments users need to make-- and *another* reason to look
           at your data!!
 
+\.\.\. and with the flip guessed, we can then continue on to the
+actual tensor fitting et al.
+
 |
 
 **Part B: fat_proc_dwi_to_dt.** All of the output from
 ``fat_proc_dwi_to_dt`` in '\*/dwi_05/' should overlay the original T2w
 reference that was input into TORTOISE.
+
+.. list-table:: 
+   :header-rows: 1
+   :widths: 20 80
+   :stub-columns: 0
+
+   * - Outputs of
+     - ``fat_proc_dwi_to_dt``
+   * - **dwi_cmd.txt**
+     - textfile, copy of the command that was run, and location
+   * - **dwi_dwi.nii.gz**
+     - volumetric NIFTI file, 4D (*M*\=31 volumes)
+   * - **dwi_bvec.txt**
+     - textfile, column file of (DW scaled) b-vectors (:math:`M\times
+       3`)
+   * - **dwi_bval.dat**
+     - textfile, column file of *M* b-values
+   * - **dwi_matA.dat**
+     - textfile, column file of (DW scaled) AFNI-style *b*\-matrix
+       (:math:`M\times 6`)
+   * - **dwi_anat.nii.gz**
+     - volumetric NIFTI file, 3D; structural output by TORTOISE that
+       was aligned with DWIs and had same spatial resolution; it was
+       used to align to the initial T2w reference, and should be
+       aligned with that and the dwi_dwi.nii.gz file.
+   * - **dwi__qc00_ref_u_struc.\*.png**
+     - autoimages, multiple slices within single volume; ulay =
+       reference T2w anatomical that was input into TORTOISE (b/w);
+       olay = dwi_anat.nii.gz, which was structural.nii file output by
+       TORTOISE (translucent with 'plasma' colorbar). Should match
+       *very* well.
+   * - **dwi__qc01_ref_u_eb0.\*.png**
+     - autoimages, multiple slices within single volume; ulay =
+       reference T2w anatomical that was input into TORTOISE (b/w);
+       olay = edge-ified dwi_dwi.nii.gz[0]. Use this image to check
+       TORTOISE alignment of DWIs with reference anatomical. Very
+       useful!
+   * - **dwi__qc02_ref_u_b0.\*.png**
+     - same as \*qc01\*png, but the olay is the full dwi_dwi.nii.gz[0]
+       with translucent-'plasma' coloration.  Probably the edge-ified
+       one is more useful.
+   * - **dwi_mask.nii.gz**
+     - volumetric NIFTI file, 3D; mask made by (here) automasking
+       dwi_anat.nii.gz.  Applied to DT and parameter files
+       (dt_\*.nii.gz).
+   * - **dt_\*.nii.gz**
+     - volumetric NIFTI files from ``3dDWItoDT`` being run with fancy
+       options mentioned :ref:`HERE <fp_postproc_dwitodt>` and
+       ``3dDWUncert``: tensor fit ("_DT"); eigenvectors ("_V*");
+       eigenvalues ("_L*"); fractional anisotropy ("_FA"); mean
+       diffusivity ("_MD"); radial diffusivity ("_RD"); goodness of
+       fit measures ("_CHI"); more fun fit extras ("_debug\*"); and 
+       uncertainty of V1  and FA ("_UNC").
+   * - **dt_cwts.1D**
+     - text file, column of *M* numbers, the cumulative weights for
+       each gradient volume.
+   * - **dwi__qc03_MD_u_FA_thr0.2.\*.png**
+     - autoimages, multiple slices within single volume; ulay = mean
+       diffusivity from tensor fit (b/w); olay = FA volume thresholded
+       at >0.2 ('plasma' colorbar).
+
+|
+
+.. list-table:: 
+   :header-rows: 1
+   :widths: 50 50
+
+   * - Autoimages of ``fat_proc_dwi_to_dt`` 
+     - (just axi and sag views)
+   * - .. image:: media/postpre_i/dwi__qc00_ref_u_struc.axi.png
+          :width: 100%   
+          :align: center
+     - .. image:: media/postpre_i/dwi__qc00_ref_u_struc.sag.png
+          :width: 100%   
+          :align: center
+
+.. list-table:: 
+   :header-rows: 0
+   :widths: 100
+
+   * - *Aligment of post-TORTOISE reference anatomical (translucent
+       olay) with pre-TORTOISE one (b/w ulay); should be very good
+       fit.*
+
+.. list-table:: 
+   :header-rows: 0
+   :widths: 50 50
+
+   * - .. image:: media/postpre_i/dwi__qc01_ref_u_eb0.axi.png
+          :width: 100%   
+          :align: center
+     - .. image:: media/postpre_i/dwi__qc01_ref_u_eb0.sag.png
+          :width: 100%   
+          :align: center
+
+.. list-table:: 
+   :header-rows: 0
+   :widths: 100
+
+   * - *Aligment of DWI [0] volume (edge-ified olay) with pre-TORTOISE
+       one (b/w ulay); useful judge of processing alignment,
+       distortion correction, etc.*
+
+.. list-table:: 
+   :header-rows: 0
+   :widths: 50 50
+
+   * - .. image:: media/postpre_i/dwi__qc02_ref_u_b0.axi.png
+          :width: 100%   
+          :align: center
+     - .. image:: media/postpre_i/dwi__qc02_ref_u_b0.sag.png
+          :width: 100%   
+          :align: center
+
+.. list-table:: 
+   :header-rows: 0
+   :widths: 100
+
+   * - *Aligment of DWI [0] volume (translucent olay) with
+       pre-TORTOISE one (b/w ulay); useful judge of processing
+       alignment, distortion correction, etc.*
+     
+.. list-table:: 
+   :header-rows: 0
+   :widths: 50 50
+
+   * - .. image:: media/postpre_i/dwi__qc03_MD_u_FA_thr0.2.axi.png
+          :width: 100%   
+          :align: center
+     - .. image:: media/postpre_i/dwi__qc03_MD_u_FA_thr0.2.sag.png
+          :width: 100%   
+          :align: center
+
+.. list-table:: 
+   :header-rows: 0
+   :widths: 100
+
+   * - *Thresholded FA>0.2 map (olay) on MD (b/w ulay); check for full
+       coverage, lack of abormalities, etc.*
+
