@@ -51,8 +51,8 @@ There are additional considerations:
 
 .. _fp_postproc_@gradfliptest:
 
-Note about **@GradFlipTest**
-----------------------------
+Re. **@GradFlipTest**
+---------------------
 
 The primary documentation for ``@GradFlipTest`` is provided on this
 page, ":ref:`GradFlipTest`".
