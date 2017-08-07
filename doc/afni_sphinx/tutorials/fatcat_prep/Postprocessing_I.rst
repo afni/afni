@@ -452,9 +452,16 @@ different forms:
     :math:`SS=0.7` since that is an "upper percentile" value (and it 
     probably would be in much of DTI).
 
-**Proc:**
+.. note:: As you might notice by the definition of V1-to-RGB
+          calculations, the coloration of a structure will depend on
+          how it is "aligned" with respect to the dset's FOV.  This is
+          one major reason why we want to have an "axialized" (or
+          "AC-PC" aligned) dset for analysis-- so we can expect fairly
+          consistent coloration across subjects.
 
-run::
+**Proc:** The inputs are pretty basic.  All that is needed are the
+first eigenvector ("V1") and fractional anisotropy ("FA") volumes,
+with an optional mask::
 
     # I/O path, same as above, following earlier steps
     set path_P_ss = data_proc/SUBJ_001
@@ -464,3 +471,107 @@ run::
         -in_v1       $path_P_ss/dwi_05/dt_V1.nii.gz     \
         -mask        $path_P_ss/dwi_05/dwi_mask.nii.gz  \
         -prefix      $path_P_ss/dwi_05/DEC
+
+-> putting the DEC map volume and images into
+'data_proc/SUBJ_001/dwi_05/':
+
+.. list-table:: 
+   :header-rows: 1
+   :widths: 90
+
+   * - Directory substructure for example data set
+   * - .. image:: media/postpre_i/fp_11_decmap_files.png
+          :width: 100%
+          :align: center
+   * - *Output from fat_proc_decmap.*
+
+While having the NIFTI volumes might be useful, the main point of the
+``fat_proc_decmap`` function is really to make these quickly visible
+PNG images.  
+
+.. list-table:: 
+   :header-rows: 1
+   :widths: 20 80
+   :stub-columns: 0
+
+   * - Outputs of
+     - ``fat_proc_dwi_to_dt``
+   * - **DEC_cmd.txt**
+     - textfile, copy of the command that was run, and location
+   * - **DEC_dec.nii**
+     - volumetric NIFTI file, 3D volume of the 'rgb' datum type;
+       unscaled DEC map.
+   * - **DEC_dec_sca.nii**
+     - volumetric NIFTI file, 3D volume of the 'rgb' datum type;
+       DEC map scaled by FA value.
+   * - **DEC_dec_unwt_thr.nii**
+     - volumetric NIFTI file, 3D volume of the 'rgb' datum type;
+       DEC map unweighted/scaled, but thresholded where FA>0.2.
+   * - **DEC__qc0_dec.\*.png**
+     - autoimages, multiple slices within single volume; the
+       "standard" DEC map: V1-to-RGB with FA scaling.*
+   * - **DEC__qc1_dec_unwt_thr_0.2.\*.png**
+     - autoimages, multiple slices within single volume; the
+       "unscaled" DEC map: V1-to-RGB with no scaling, but also
+       thresholded where FA>0.2.*
+   * - **DEC__qc2_dec_sca_0.7.\*.png**
+     - autoimages, multiple slices within single volume; the
+       "scaled+weighted" DEC map: V1-to-RGB with FA scaling, but the
+       FA value itself is scaled (here, with a scale of 0.7).*
+
+|
+
+.. list-table:: 
+   :header-rows: 1
+   :widths: 50 50
+
+   * - Autoimages of ``fat_proc_decmap`` 
+     - (just axi and sag views)
+   * - .. image:: media/postpre_i/DEC__qc0_dec.axi.png
+          :width: 100%   
+          :align: center
+     - .. image:: media/postpre_i/DEC__qc0_dec.sag.png
+          :width: 100%   
+          :align: center
+
+.. list-table:: 
+   :header-rows: 0
+   :widths: 100
+
+   * - *"Standard" DEC map, scaled by FA.*
+
+.. list-table:: 
+   :header-rows: 0
+   :widths: 50 50
+
+   * - .. image:: media/postpre_i/DEC__qc2_dec_sca_0.7.axi.png
+          :width: 100%   
+          :align: center
+     - .. image:: media/postpre_i/DEC__qc2_dec_sca_0.7.sag.png
+          :width: 100%   
+          :align: center
+
+.. list-table:: 
+   :header-rows: 0
+   :widths: 100
+
+   * - *DEC map scaled by FA, but that FA itself is weighted/scaled by
+       FA=0.7 (so it is a bit brighter than the "standard" one).*
+     
+.. list-table:: 
+   :header-rows: 0
+   :widths: 50 50
+
+   * - .. image:: media/postpre_i/DEC__qc1_dec_unwt_thr_0.2.axi.png
+          :width: 100%   
+          :align: center
+     - .. image:: media/postpre_i/DEC__qc1_dec_unwt_thr_0.2.sag.png
+          :width: 100%   
+          :align: center
+
+.. list-table:: 
+   :header-rows: 0
+   :widths: 100
+
+   * - *Unscaled DEC map, thresholded where FA>0.2.*
+
