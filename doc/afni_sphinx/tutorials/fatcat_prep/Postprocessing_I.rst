@@ -51,8 +51,8 @@ There are additional considerations:
 
 .. _fp_postproc_@gradfliptest:
 
-**@GradFlipTest** note
-----------------------
+Note about **@GradFlipTest**
+----------------------------
 
 The primary documentation for ``@GradFlipTest`` is provided on this
 page, ":ref:`GradFlipTest`".
@@ -73,7 +73,7 @@ In the usage example of ``fat_proc_dwi_to_dt``, below, we show how
 
 .. _fp_postproc_dwitodt:
 
-**fat_proc_dwi_to_dt** (and **@GradFlipTest**)
+**fat_proc_dwi_to_dt** (+ **@GradFlipTest**)
 ----------------------------------------------
 
 At the end of the DWI preprocessing step, there may be several data
@@ -414,3 +414,53 @@ reference that was input into TORTOISE.
    * - *Thresholded FA>0.2 map (olay) on MD (b/w ulay); check for full
        coverage, lack of abormalities, etc.*
 
+|
+
+.. _fp_postproc_decmap:
+
+**fat_proc_decmap**
+-------------------
+
+Another useful kind of image for investigating DT data is the DEC
+(directionally-encoded color) map. In DTI the first eigenvector ("V1")
+provides the main orientation of interest in a voxel; in a DEC map,
+the :math:`(x,\,y\,z)` components of that 3D vector are converted into
+an RGB (red-green-blue) coloration for that voxel. FA values can be
+used to scale the brightness.  The coloration shows the relative
+degree that a vector is oriented along a major axis:
+
+* red : left <-> right,
+
+* blue : inferior <-> superior,
+
+* green : anterior <-> posterior.
+
+Here, the unweighted DEC map dset is calculated and the viewed in
+different forms:
+
+* | *Standard DEC*. RGB from V1 and brightness scaled by FA:
+  | :math:`(R, G, B) = |V1| * FA`.
+
+* | *Unweighted DEC*. RGB from V1 and no brightness scaling:
+  | :math:`(R, G, B) = |V1|`.
+
+* | *Scaled (weighted) DEC*. RGB from V1 and scaled by FA, which itself
+    is weighted by some value SS: 
+  | :math:`(R, G, B) = |V1| * FA / SS`.  
+  | This might be useful in cases where the volume looks "too dark"
+    for standard FA brightness scaling.  In the present example, we use
+    :math:`SS=0.7` since that is an "upper percentile" value (and it 
+    probably would be in much of DTI).
+
+**Proc:**
+
+run::
+
+    # I/O path, same as above, following earlier steps
+    set path_P_ss = data_proc/SUBJ_001
+
+    fat_proc_decmap                                     \
+        -in_fa       $path_P_ss/dwi_05/dt_FA.nii.gz     \
+        -in_v1       $path_P_ss/dwi_05/dt_V1.nii.gz     \
+        -mask        $path_P_ss/dwi_05/dwi_mask.nii.gz  \
+        -prefix      $path_P_ss/dwi_05/DEC
