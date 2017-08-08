@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 8, Aug , 2017 , PT , "fat_proc_map_to_dti" , MINOR , TYPE_NEW_OPT,
+   "Can have surfaces, niml.dsets and spec files move along with vols.",
+   "Added capability to mapping volume dsets.\n"
+},
+
 { 8, Aug , 2017 , PT , "@suma_reprefixize_spec" , MINOR , TYPE_NEW_PROG,
    "Helper function to copy a spec file whilst renaming files inside.",
    "Useful when copying a lot of *.gii or other surface files.\n"
