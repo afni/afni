@@ -97,6 +97,11 @@
    + got rid of occasional nan in sBL (rounding err neg -> sqrt ->
      nan) with IF
 
+   Aug 2017:
+   + change readglob function to get only 3D vol files where 
+     appropriate-- previous condition would get 1D files and give 
+     error
+
 */
 
 
