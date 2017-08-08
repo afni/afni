@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 8, Aug , 2017 , PT , "3dTrackID" , MICRO , TYPE_BUG_FIX,
+   "More specific glob for 3D vol files *only*; had gotten 1D text in list.",
+   "Getting 1D text files would throw error.  More specific search now.\n"
+},
+
 { 1, Aug , 2017 , PT , "fat_proc_dwi_to_dt" , MINOR , TYPE_MODIFY,
    "Turn on reweighting and cumulative weight calc in 3dDWItoDT part.",
    "More useful fitting+output, hopefully.\n"
