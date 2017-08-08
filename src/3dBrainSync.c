@@ -364,6 +364,8 @@ ENTRY("find_best_permutation") ;
        }
        if( pi < 0 ) break ;  /* should not be possible */
        bestperm[pi] = pj ; jdone[pj] = 1 ;
+       if( verb > 2 )
+         ININFO_message("   perm[%d]=%d  A[%d,%d]=%g",pi,pj,pi,pj,rval) ;
        for( kk=0 ; kk < m ; kk++ ){  /* strike out this row+col */
          AA(pi,kk) = AA(kk,pj) = -BIGG;
        }
