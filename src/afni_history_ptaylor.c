@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 8, Aug , 2017 , PT , "@suma_reprefixize_spec" , MINOR , TYPE_NEW_PROG,
+   "Helper function to copy a spec file whilst renaming files inside.",
+   "Useful when copying a lot of *.gii or other surface files.\n"
+},
+
 { 8, Aug , 2017 , PT , "3dTrackID" , MICRO , TYPE_BUG_FIX,
    "More specific glob for 3D vol files *only*; had gotten 1D text in list.",
    "Getting 1D text files would throw error.  More specific search now.\n"
