@@ -24,8 +24,12 @@
 #   + change option names
 #   + allow 3dAllineate matrix to be input+applied
 #
-set version   = "1.5";  set rev_dat   = "Apr 26, 2017"
+#set version   = "1.5";  set rev_dat   = "Apr 26, 2017"
 #   + better naming wdir
+#
+set version   = "1.6";  set rev_dat   = "Aug 8, 2017"
+#   + allow surface files to be input+move
+#   + take *.niml.dsets and *spec files with them
 #
 # ---------------------------------------------------------------
 
@@ -61,6 +65,9 @@ set opref      = ""
 
 set fNN        = ()              # followers to be interpolated with NN
 set fWS5       = ()              # followers to be interpolated with wsinc5
+set fss        = ()              # followers that are surfaces
+set fsniml     = ()              # followers that are niml files
+set fsspec     = ()              # followers that are spec files
 
 set DO_VIEWER  = 1               # def: do viewing
 set DO_CLEAN   = "1"
@@ -188,6 +195,98 @@ while ( $ac <= $#argv )
             endif
         endif
 
+    # [PT: Aug 8, 2017] Allow surfaces to be input to move
+    else if ( "$argv[$ac]" == "-followers_surf" ) then
+        set i0 = $ac
+        # check that this ain't the end of argv[] entries
+        if ( $i0 == $#argv ) then
+            echo "** ERROR: need at least one dset after $argv[$ac]!"
+            goto BAD_EXIT
+        else 
+            # check that next argv[] member isn't a new option: shd be
+            # a dset
+            @ i0 += 1
+            set c0 = ""
+            while ( ( $i0 <= $#argv ) && ( "$c0" != "-" )  )
+                set fss = ( $fss "$argv[$i0]" )
+                @ ac += 1
+
+                @ i0 += 1
+                if ( $i0 <= $#argv ) then
+                    set c0 = `echo $argv[$i0] | awk '{print substr($0,1,1)}'`
+                endif
+            end
+
+            if ( $#fss == 0 ) then
+                echo "** ERROR: need at least one dset after $argv[$ac]!"
+                goto BAD_EXIT
+            else
+                echo "++ User has listed $#fss followers_surf dsets"
+            endif
+        endif
+
+    # [PT: Aug 8, 2017] Allow niml to be input to move
+    else if ( "$argv[$ac]" == "-followers_ndset" ) then
+        set i0 = $ac
+        # check that this ain't the end of argv[] entries
+        if ( $i0 == $#argv ) then
+            echo "** ERROR: need at least one dset after $argv[$ac]!"
+            goto BAD_EXIT
+        else 
+            # check that next argv[] member isn't a new option: shd be
+            # a dset
+            @ i0 += 1
+            set c0 = ""
+            while ( ( $i0 <= $#argv ) && ( "$c0" != "-" )  )
+                set fsniml = ( $fsniml "$argv[$i0]" )
+                @ ac += 1
+
+                @ i0 += 1
+                if ( $i0 <= $#argv ) then
+                    set c0 = `echo $argv[$i0] | awk '{print substr($0,1,1)}'`
+                endif
+            end
+
+            if ( $#fsniml == 0 ) then
+                echo "** ERROR: need at least one dset after $argv[$ac]!"
+                goto BAD_EXIT
+            else
+                echo "++ User has listed $#fsniml followers_niml dsets"
+            endif
+        endif
+
+    # [PT: Aug 8, 2017] Allow spec to be input to move
+    else if ( "$argv[$ac]" == "-followers_spec" ) then
+        set i0 = $ac
+        # check that this ain't the end of argv[] entries
+        if ( $i0 == $#argv ) then
+            echo "** ERROR: need at least one spec file after $argv[$ac]!"
+            goto BAD_EXIT
+        else 
+            # check that next argv[] member isn't a new option: shd be
+            # a dset
+            @ i0 += 1
+            set c0 = ""
+            while ( ( $i0 <= $#argv ) && ( "$c0" != "-" )  )
+                set fsspec = ( $fsspec "$argv[$i0]" )
+                @ ac += 1
+
+                @ i0 += 1
+                if ( $i0 <= $#argv ) then
+                    set c0 = `echo $argv[$i0] | awk '{print substr($0,1,1)}'`
+                endif
+            end
+
+            if ( $#fsspec == 0 ) then
+                echo "** ERROR: need at least one spec file after $argv[$ac]!"
+                goto BAD_EXIT
+            else
+                echo "++ User has listed $#fsspec followers_spec dsets"
+            endif
+        endif
+
+    # ---------------------------------------------------------------------
+
     else
         echo "** unexpected option #$ac = '$argv[$ac]'"
         goto BAD_EXIT
@@ -216,6 +315,17 @@ endif
 # make sure we can read volumes OK
 foreach ff ( "$isrc" "$ibase" $fNN $fWS5 )
     set check = `3dinfo "$ff"`
+    if ( "$#check" == "0" ) then
+        echo "** ERROR: can't find input file:  $ff !"
+        goto BAD_EXIT
+    else
+        echo "++ Found input file:   $ff"
+    endif
+end
+
+# [PT: Aug 8, 2017] make sure we can read surfs OK -- can't use 3dinfo
+foreach ff ( $fss $fsniml $fsspec )
+    set check = `ls "$ff"`
     if ( "$#check" == "0" ) then
         echo "** ERROR: can't find input file:  $ff !"
         goto BAD_EXIT
@@ -438,6 +548,59 @@ foreach i ( `seq 1 1 $#fWS5` )
     set list_ofWS5 = ( $list_ofWS5 $off )
 end
 
+# [PT: Aug 8, 2017] map all surf followers
+set list_ofsurf = ()
+foreach i ( `seq 1 1 $#fss` ) 
+
+    set ffi = "$fss[$i]"
+    set ffe = "$ffi:e"    # ext
+    set ppi = "$ffi:t:r"  # fname, no path, no ext
+    set off = "$odir/${opref}_${ppi}.$ffe"
+
+    ConvertSurface                       \
+        -ixmat_1D $imtrx                 \
+        -i $ffi                          \
+        -o $off
+
+    set list_ofsurf = ( $list_ofsurf $off )
+end
+
+# [PT: Aug 8, 2017] map all niml followers
+set list_ofniml = ()
+foreach i ( `seq 1 1 $#fsniml` ) 
+
+    set ffi = "$fsniml[$i]"
+    set ffe = "$ffi:e"    # ext
+    set ppi = "$ffi:t"    # fname, no path, KEEP ext
+    set off = "$odir/${opref}_${ppi}"
+
+    # appears to be all we need? formats get recognized by extension,
+    # methinks...
+    ConvertDset                          \
+        -input     $ffi                  \
+        -prefix    $off
+
+    set list_ofniml = ( $list_ofniml $off )
+end
+
+# [PT: Aug 8, 2017] map all spec followers
+set list_ofspec = ()
+foreach i ( `seq 1 1 $#fsspec` ) 
+
+    set ffi = "$fsspec[$i]"
+    set ffe = "$ffi:e"    # ext
+    set ppi = "$ffi:t"    # fname, no path, KEEP ext
+    #set off = "$odir/${opref}_${ppi}"
+
+    # experimental new function: rename LabelDsets and 
+    @suma_reprefixize_spec                  \
+        -input      $ffi                    \
+        -preprefix  ${opref}                \
+        -odir       $odir
+
+    set list_ofspec = ( $list_ofspec $off )
+end
+
 set T1TOCOPY = $t1mapped
 set fdims = `3dinfo -n4 ${T1TOCOPY}`
 set fres  = `3dinfo -ad3 ${T1TOCOPY}`
@@ -652,6 +815,9 @@ cat << EOF
       -prefix  PPP                                   \
       {-followers_NN      DSET01 DSET02 DSET03 ...}  \
       {-followers_wsinc5  DSET1 DSET2 DSET3 ...}     \
+      {-followers_surf    SURF1 SURF2 SURF3 ...}     \
+      {-followers_ndset   NDSET1 NDSET2 NDSET3 ...}  \
+      {-followers_spec    SPEC1 SPEC2 SPEC3 ...}     \
       {-matrix MMM}                                  \
       {-workdir WWW}                                 \
       {-no_cmd_out}                                  \
@@ -695,7 +861,25 @@ cat << EOF
                    selectors) can be provided here.  No labeltable is
                    propagated for these sets (I doubt they would have one,
                    anyways).
-
+   -followers_surf    SURF1 SURF2 SURF3 ...
+                  :similar to the above '-followers_* ...', except in 
+                   this case the mapping is applied to surface dsets, such 
+                   as '*.gii'.  Per usual, a list of one or more surfaces  
+                   can be provided here. 
+   -followers_ndset   NDSET1 NDSET2 NDSET3 ...
+                  :similar to the above '-followers_* ...', except in 
+                   this case the mapping is applied to '*.niml.dset' files,  
+                   such as '*.annot.niml.dset'.  Per usual, a list of one or 
+                   more surfaces can be provided here. Prob wouldn't make  
+                   sense to use this without using '-followers_surf ...'.
+   -followers_spec    SPEC1 SPEC2 SPEC3 ...
+                  :similar to the above '-followers_* ...', except in 
+                   this case the mapping is applied to '*.spec' files.
+                   Per usual, a list of one or more surfaces can be 
+                   provided here.  Wouldn't make sense to use this without 
+                   using both '-followers_surf ...' and '-followers_ndset ...'
+                   to map the dsets referred to in the file!
+ 
    -matrix MMM    :one can apply a pre-made matrix that has been made by
                    3dAllineate previously.  With this option.  If you want.
 
@@ -713,11 +897,13 @@ cat << EOF
   EXAMPLE
 
     $this_prog  \
-        -source       brain.nii            \
-        -base         dwi_dwi.nii.gz'[0]'  \
-        -prefix       indti                \
-        -followers_NN  aparc*_REN_*.nii.gz 
-
+        -source          brain.nii            \
+        -base            dwi_dwi.nii.gz'[0]'  \
+        -prefix          indt                 \
+        -followers_NN    aparc*_REN_*.nii.gz  \
+        -followers_surf  std.141.*gii         \
+        -followers_ndset std.141.*niml.dset   \
+        -followers_spec  std.141.*.spec
 
 # -----------------------------------------------------------------------
 
