@@ -64,13 +64,18 @@ volumetric files (see ``@SUMA_renumber_FS``, which is run as part of
 ``@SUMA_Make_Spec_FS`` for more info); many of these aren't likely to
 be directly useful since they contain maps of "unknown" or "other"
 regions from FS, but they don't take up much disk space when
-compressed.  
+compressed.  These will all have auto-snapshot images made of them in
+the new space.
 
 Finally, we chose to map the higher resolution standardized mesh
 surfaces ("ld 141") from ``@SUMA_Make_Spec_FS``, as well as their
 accompanying \*.niml.dsets and \*.spec files, for simpler viewing
-later. This was all done by running (note the use of wildcards in
-selecting many dsets per follower type)::
+later. At present, there is not auto-snapshot capability for SUMA
+viewing; we describe some simplish ways to use the \*.spec files to
+view the output, below.
+
+This was all done by running (note the use of wildcards in selecting
+many dsets per follower type)::
 
     # I/O path, same as above, following earlier steps
     set path_P_ss = data_proc/SUBJ_001
