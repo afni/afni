@@ -16,10 +16,12 @@ functions.  The present description page may look long, but much of
 that is to including snapshots of terminals and autoimages along the
 way.
 
-The purposes of this set of scripts are to: 
+The purposes of this set of scripts are: 
 
-* convert DICOMs to NIFTIs, putting (0, 0, 0) at the volume's center
-  of mass (useful for alignment, viewing, rotating)
+* to convert DICOMs to NIFTIs, putting (0, 0, 0) at the volume's
+  center of mass (useful for alignment, viewing, rotating) and giving
+  all the same orientation (in particular, one with "x,y,z"-ordered
+  coordinates, making the application of transformations simpler)
   
 * to allow the DWIs to be viewed, quality-checked and filtered
   according to the user's judgment (e.g., remove dropout volumes

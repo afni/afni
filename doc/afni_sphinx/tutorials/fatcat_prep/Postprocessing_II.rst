@@ -8,3 +8,92 @@ Post-preproc, II: mapping ROIs to DTI space
 
 Overview
 --------
+
+We might be interested in bringing other data into the processed
+DWI/DT space.  For example, we could have FreeSurfer (FS) surfaces and
+parcellations from an anatomical T1w volume (and we do!), which have
+already been brought into AFNI+SUMAable formats by
+``@SUMA_Make_Spec_FS``.  We can choose to bring just the volumetric
+part of that (e.g., the segmentation+parcellation NIFTI files), or we
+could bring both the volumes and surfaces. For the latter, this can
+include the "\*.gii" surfaces themselves, as well as the supplementary
+information in the "\*.niml.dset" files (such as the
+annotation/labelling of nodes) and the "\*.spec" files (which describe
+how all the surface states relate and which annotation files go with
+each).
+
+The above describes the role of ``fat_proc_map_to_dti``. In the
+parlance of our times, we create a transformation map to the DWI's
+[0]th volume from the FS-output T1w volume, and then we can
+apply that mapping to the other "follower" volume, surface,
+supplementary, etc. files.  The transformation is a 12 DOF linear
+affine transform (made using ``3dAllineate``).  
+
+One specifies the followers by their category. For volume files, one
+can select whether the dset contains integers that should *stay*
+integers (possibly with labeltables) with nearest neighbor ("NN")
+resampling, or whether it has floating points values that can be
+interpolated (with "wsinc5").  For surfaces, one specifies surface
+files, supplementary NIML dsets and specification files separately;
+however, we note that it only makes sense to map, say, \*.spec files
+if one has matching surfaces and \*.niml.dset files\.\.\.
+
+.. note:: In this example we map from a FS-processed T1w
+          volume to DT space, bringing along FS parcellation
+          maps and surfaces as followers.  
+
+          However, one could also use this program to bring, say, FMRI
+          data into DT space, since most FMRI processing pipelines
+          involve aligning EPI to the subject's anatomical. One could
+          make a map from the subject's T1w anatomical and have the
+          FMRI maps be follower dsets.
+
+.. _fp_postproc_map_to_dti:
+
+**fat_proc_map_to_dti**
+-----------------------
+
+**Proc:** One specifies a source (here, the skull-stripped "brain.nii"
+anatomical from FreeSurfer) and a base (the reference :math:`b_0` file
+that is likely the [0]th brick in the post-TORTOISE DWI data set) for
+making the transformation. 
+
+One then can specify volumetric and surfacey follower data sets by
+category.  Here, we select all the "renumbered" parcellation
+volumetric files (see ``@SUMA_renumber_FS``, which is run as part of
+``@SUMA_Make_Spec_FS`` for more info); many of these aren't likely to
+be directly useful since they contain maps of "unknown" or "other"
+regions from FS, but they don't take up much disk space when
+compressed.  
+
+Finally, we chose to map the higher resolution standardized mesh
+surfaces ("ld 141") from ``@SUMA_Make_Spec_FS``, as well as their
+accompanying \*.niml.dsets and \*.spec files, for simpler viewing
+later. This was all done by running (note the use of wildcards in
+selecting many dsets per follower type)::
+
+    # I/O path, same as above, following earlier steps
+    set path_P_ss = data_proc/SUBJ_001
+
+    fat_proc_map_to_dti                                                \
+        -source          $path_P_ss/anat_02/SUMA/brain.nii             \
+        -followers_NN    $path_P_ss/anat_02/SUMA/aparc*_REN_*.nii.gz   \
+        -followers_surf  $path_P_ss/anat_02/SUMA/std.141.*.gii         \
+        -followers_ndset $path_P_ss/anat_02/SUMA/std.141.*.niml.dset   \
+        -followers_spec  $path_P_ss/anat_02/SUMA/std.141.*.spec        \
+        -base            $path_P_ss/dwi_05/dwi_dwi.nii.gz'[0]'         \
+        -prefix          $path_P_ss/dwi_05/indt
+
+-> putting all of the outputs into the existing
+'data_proc/SUBJ_001/dwi_05/' directory, since all the files there
+should be in the same DT space:
+
+.. list-table:: 
+   :header-rows: 1
+   :widths: 90
+
+   * - Directory substructure for example data set
+   * - .. image:: media/postpre_ii/fp_12_map_to_dti_files.png
+          :width: 100%
+          :align: center
+   * - *Output from fat_proc_map_to_dti.*
