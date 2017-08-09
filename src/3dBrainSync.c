@@ -364,8 +364,6 @@ ENTRY("find_best_permutation") ;
        }
        if( pi < 0 ) break ;  /* should not be possible */
        bestperm[pi] = pj ; jdone[pj] = 1 ;
-       if( verb > 2 )
-         ININFO_message("   perm[%d]=%d  A[%d,%d]=%g",pi,pj,pi,pj,rval) ;
        for( kk=0 ; kk < m ; kk++ ){  /* strike out this row+col */
          AA(pi,kk) = AA(kk,pj) = -BIGG;
        }
@@ -379,6 +377,12 @@ ENTRY("find_best_permutation") ;
        bestcost = bbcost = rcost ;
        if( verb > 1 )
          ININFO_message(" initial greedy perm score = %g",bbcost) ;
+       if( verb > 2 ){
+         fprintf(stderr,"  perm:") ;
+         for( ii=0 ; ii < m ; ii++ )
+           fprintf(stderr," A[%d,%d]=%g",ii,bestperm[ii],A(ii,bestperm[ii])) ;
+         fprintf(stderr,"\n") ;
+       }
      }
 
      if( bestperm != NULL ){  /* swap pairs, look for improvement */
@@ -402,6 +406,12 @@ ENTRY("find_best_permutation") ;
          else                bbcost =   0.0f ;
          ININFO_message("-- finish after %d swaps: %.2f%% improvement",
                         ntot,bbcost) ;
+       }
+       if( verb > 2 ){
+         fprintf(stderr,"  perm:") ;
+         for( ii=0 ; ii < m ; ii++ )
+           fprintf(stderr," A[%d,%d]=%g",ii,bestperm[ii],A(ii,bestperm[ii])) ;
+         fprintf(stderr,"\n") ;
        }
      }
    }
