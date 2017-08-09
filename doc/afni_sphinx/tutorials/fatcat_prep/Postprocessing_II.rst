@@ -102,3 +102,49 @@ should be in the same DT space:
           :width: 100%
           :align: center
    * - *Output from fat_proc_map_to_dti.*
+
+|
+
+!!!!!!!!!!!
+
+.. list-table:: 
+   :header-rows: 1
+   :widths: 20 80
+   :stub-columns: 0
+
+   * - Outputs of
+     - ``fat_proc_dwi_to_dt``
+   * - **indt_cmd.txt**
+     - textfile, copy of the command that was run, and location
+   * - **indt.nii.gz**
+     - volumetric NIFTI file, 3D; the "source" dset (here, the
+       skull-stripped T1w output from FS) in the DT space; how well
+       this aligns to the "base" diffusion volume determines the
+       appropriateness of the transformation/mapping.
+   * - **indt_map_allin.aff12.1D**
+     - textfile, the 12 DOF linear affine registration parameters for
+       the mapping process; gets applied to all the volumetric
+       followers, and its inverse gets applied to the surface
+       followers (AFNI and SUMA transforms work in opposite ways).
+   * - **indt_aparc+aseg_REN_\*.nii.gz**
+     - volumetric NIFTI files, 3D; each contains a parcellation and/or
+       segmentation map from the FS "2000" parcellation, renumbered by
+       ``@SUMA_renumber_FS`` into one of the following categories:
+       all, csf, gm, othr, unkn, vent, wmat.
+   * - **indt_aparc.a2009s+aseg_REN_\*.nii.gz**
+     - volumetric NIFTI files, 3D; each contains a parcellation and/or
+       segmentation map from the FS "2009" parcellation, renumbered by
+       ``@SUMA_renumber_FS`` into one of the following categories:
+       all, csf, gm, othr, unkn, vent, wmat.
+   * - **indt_std.141.\*.gii**
+     - surface GIFTI files; FS surfaces translated over, in this case
+       the "ld 141" version of the standardized surface from
+       ``@SUMA_Make_Spec_FS``.
+   * - **indt_std.141.\*.niml.dset**
+     - NIML format surface data sets; these contain things like
+       parc/seg labeltables, etc. (made by ``@SUMA_Make_Spec_FS``).
+   * - **indt_std.141.\*.spec**
+     - specification files for defining relative states of surface
+       dsets, as well as matching the \*.niml.dset label dsets with
+       the appropriate surfaces (made by ``@SUMA_Make_Spec_FS``).
+
