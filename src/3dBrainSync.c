@@ -217,6 +217,9 @@ void BSY_help_the_pitiful_user(void)
    "    (d) transform each time series from -inset2 using Q\n"
    "  This matrix Q is the solution to the restricted least squares\n"
    "  problem (i.e., restricted to have Q be an orthogonal matrix).\n"
+   "  NOTE: The sum of the singular values in S is equal to the sum\n"
+   "        of the time series dot products (correlations) in B and QC,\n"
+   "        when Q is calculated as above.\n"
    "\n"
    "  A pre-print of this method is available as:\n"
    "    AA Joshi, M Chong, RM Leahy.\n"
@@ -456,7 +459,7 @@ ENTRY("find_best_permutation") ;
    if( verb && qcost > 0.0f ){
      for( rcost=0.0f,ii=0 ; ii < m ; ii++ ) rcost += A(ii,ii) ;
      ININFO_message("correlation scores: "
-                    "no transform=%g  Q matrix=%g  permutation=%g",
+                    "no transform=%.1f  Q matrix=%.1f  permutation=%.1f",
                     rcost, qcost, bestcost ) ;
    }
    RETURN(bestperm) ;
@@ -573,12 +576,12 @@ MEMORY_CHECK("b") ;
                     " %.2f [%.2f%%] "
                     " %.2f [%.2f%%] "
                     " %.2f [%.2f%%] "
-                    " %.2f [%.2f%%] " ,
+                    " %.2f [%.2f%%] ... sum = %.1f" ,
                     sval[0], 100.0*sval[0]/bsum ,
                     sval[1], 100.0*sval[1]/bsum ,
                     sval[2], 100.0*sval[2]/bsum ,
                     sval[3], 100.0*sval[3]/bsum ,
-                    sval[4], 100.0*sval[4]/bsum  ) ;
+                    sval[4], 100.0*sval[4]/bsum , bsum ) ;
 
    /* write the singular values to a file? [30 Jul 2017] */
 
