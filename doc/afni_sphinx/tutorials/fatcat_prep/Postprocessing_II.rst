@@ -147,4 +147,117 @@ should be in the same DT space:
      - specification files for defining relative states of surface
        dsets, as well as matching the \*.niml.dset label dsets with
        the appropriate surfaces (made by ``@SUMA_Make_Spec_FS``).
+   * - **indt__qc00_base_u_esrc.\*.png**
+     - autoimages, multiple slices within single volume; ulay =
+       reference [0]th DWI volume (b/w); olay = FS structural file
+       brain.nii, edgified (red); use these images to judge the
+       quality of alignment.
+   * - **indt__qc01_base_u_src.\*.png**
+     - autoimages, multiple slices within single volume; ulay =
+       reference [0]th DWI volume (b/w); olay = FS structural file
+       brain.nii (translucent, "plasma" colorbar); use these images to
+       judge the quality of alignment.
+   * - **indt__qc_aparc+aseg_REN_\*.\*.png,
+       indt__qc_aparc.a2009s+aseg_REN_\*.\*.png**
+     - autoimages, multiple slices within single volume; ulay =
+       reference [0]th DWI volume; olay = FS parcellation/segmentation
+       maps for a given tissue grouping/classification (translucent,
+       "ROI_i256" colorbar); can also use these images to judge the
+       quality of alignment, as well as the parcellation/segmentation
+       itself.
 
+|
+
+.. list-table:: 
+   :header-rows: 1
+   :widths: 50 50
+
+   * - Autoimages of ``fat_proc_map_to_dti`` 
+     - (just axi and sag views)
+   * - .. image:: media/postpre_ii/indt__qc_aparc+aseg_REN_gm.axi.png
+          :width: 100%   
+          :align: center
+     - .. image:: media/postpre_ii/indt__qc_aparc+aseg_REN_gm.sag.png
+          :width: 100%   
+          :align: center
+
+.. list-table:: 
+   :header-rows: 0
+   :widths: 100
+
+   * - *FS "2000" parc/seg map: the GM ROIs from AFNI renumbering
+       (translucent olay) [0]th DWI volume as (b/w ulay).*
+
+.. list-table:: 
+   :header-rows: 0
+   :widths: 50 50
+
+   * - .. image:: media/postpre_ii/indt__qc_aparc.a2009s+aseg_REN_gm.axi.png
+          :width: 100%   
+          :align: center
+     - .. image:: media/postpre_ii/indt__qc_aparc.a2009s+aseg_REN_gm.sag.png
+          :width: 100%   
+          :align: center
+
+.. list-table:: 
+   :header-rows: 0
+   :widths: 100
+
+   * - *FS "2009" parc/seg map: the GM ROIs from AFNI renumbering
+       (translucent olay) [0]th DWI volume as (b/w ulay).*
+
+.. list-table:: 
+   :header-rows: 0
+   :widths: 50 50
+
+   * - .. image:: media/postpre_ii/indt__qc_aparc.a2009s+aseg_REN_wmat.axi.png
+          :width: 100%   
+          :align: center
+     - .. image:: media/postpre_ii/indt__qc_aparc.a2009s+aseg_REN_wmat.sag.png
+          :width: 100%   
+          :align: center
+
+.. list-table:: 
+   :header-rows: 0
+   :widths: 100
+
+   * - *FS "2009" parc/seg map: the WM ROIs from AFNI renumbering
+       (translucent olay) [0]th DWI volume as (b/w ulay).*
+
+
+.. list-table:: 
+   :header-rows: 0
+   :widths: 50 50
+
+   * - .. image:: media/postpre_ii/indt__qc_aparc.a2009s+aseg_REN_csf.axi.png
+          :width: 100%   
+          :align: center
+     - .. image:: media/postpre_ii/indt__qc_aparc.a2009s+aseg_REN_csf.sag.png
+          :width: 100%   
+          :align: center
+
+.. list-table:: 
+   :header-rows: 0
+   :widths: 100
+
+   * - *FS "2009" parc/seg map: the CSF ROIs from AFNI renumbering
+       (translucent olay) [0]th DWI volume as (b/w ulay).*
+
+
+.. list-table:: 
+   :header-rows: 0
+   :widths: 50 50
+
+   * - .. image:: media/postpre_ii/indt__qc_aparc.a2009s+aseg_REN_vent.axi.png
+          :width: 100%   
+          :align: center
+     - .. image:: media/postpre_ii/indt__qc_aparc.a2009s+aseg_REN_vent.sag.png
+          :width: 100%   
+          :align: center
+
+.. list-table:: 
+   :header-rows: 0
+   :widths: 100
+
+   * - *FS "2009" parc/seg map: the ventricle ROIs from AFNI
+       renumbering (translucent olay) [0]th DWI volume as (b/w ulay).*
