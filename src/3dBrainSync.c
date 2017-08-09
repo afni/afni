@@ -26,12 +26,14 @@ static char *Pprefix = NULL , *Pbase = NULL ;
 static int do_norm   = 0 ;
 
 static int ct ;
-#define TIMER nice_time_string(NI_clock_time()-ct)
+#define TIMER nice_time_string(NI_clock_time()-ct)+1
 
 static THD_3dim_dataset *dsetB=NULL, *dsetC=NULL, *maskset=NULL ;
 
 static int *bperm = NULL ;
 static THD_3dim_dataset *permset=NULL , *ortset=NULL ;;
+
+#undef DO_DESPIKE
 
 /*----------------------------------------------------------------------------*/
 
@@ -639,13 +641,14 @@ MEMORY_CHECK("d") ;
 
 /*----------------------------------------------------------------------------*/
 
-static int is_vector_constant( int n , float *v )
+static INLINE int is_vector_constant( int n , float *v )
 {
    int ii ;
    for( ii=1 ; ii < n && v[ii] == v[0] ; ii++ ) ; /*nada*/
    return (ii==n) ;
 }
 
+#ifdef DO_DESPIKE
 /*------------------- 08 Oct 2010: functions for despiking ----------------*/
 
 #undef  SWAP
@@ -712,6 +715,8 @@ static int despike9( int num , float *vec )
    free(zme) ; return nsp ;
 }
 #undef mead9
+/*----------------------------------------------------------------------------*/
+#endif /* DO_DESPIKE */
 
 /*----------------------------------------------------------------------------*/
 /* compute the output datasets */
@@ -721,7 +726,8 @@ void BSY_process_data(void)
    byte *vmask ;
    int nvmask , ii,jj,kk , mm , nvox , ncut=0 ;
    MRI_IMAGE *bim, *cim ;
-   float *bar, *car, *bmat, *cmat, *qmat, *cvec, csum ;
+   float *bar, *car, *bmat, *cmat, *qmat, *cvec ;
+   register float csum ;
 
 ENTRY("BSY_process_data") ;
 
@@ -796,6 +802,7 @@ MEMORY_CHECK("Q") ;
    DSET_unload(dsetB) ;
 MEMORY_CHECK("R") ;
 
+#ifdef DO_DESPIKE  /*-----------------------------------------------------*/
    /* despike matrix columns */
 
    if( verb > 1 )
@@ -809,6 +816,7 @@ MEMORY_CHECK("R") ;
      if( verb > 1 )
        ININFO_message("  squashed %d spike%s from data vectors [%s]",
                       ncut , (ncut==1)?"\0":"s" , TIMER ) ;
+#endif /* DO_DESPIKE */  /*-----------------------------------------------*/
 
    /* compute transform matrix qmat and permutation bperm */
 
@@ -841,9 +849,10 @@ MEMORY_CHECK("S") ;
 #define C(i,j)  cmat[(i)+(j)*mm]
 
      for( jj=0 ; jj < nvox ; jj++ ){
+       for( kk=0 ; kk < mm && C(kk,jj)==0.0f ; kk++ ) ; /*nada*/
+       if( kk == mm ) continue ;  /* skip all zero vector */
        for( ii=0 ; ii < mm ; ii++ ){
-         csum = 0.0f ;
-         for( kk=0 ; kk < mm ; kk++ ) csum += QQ(ii,kk) * C(kk,jj) ;
+         for( csum=0.0f,kk=0 ; kk < mm ; kk++ ) csum += QQ(ii,kk) * C(kk,jj) ;
          cvec[ii] = csum ;
        }
        if( do_norm ){  /* -normalize column cvec */
@@ -892,6 +901,8 @@ MEMORY_CHECK("U") ;
      if( verb > 1 )
        ININFO_message("permuting C matrix [%s]",TIMER) ;
      for( jj=0 ; jj < nvox ; jj++ ){
+       for( kk=0 ; kk < mm && C(kk,jj)==0.0f ; kk++ ) ; /*nada*/
+       if( kk == mm ) continue ;  /* skip all zero vector */
        for( ii=0 ; ii < mm ; ii++ ) cvec[ii] = C(bperm[ii],jj) ;
        if( do_norm ){  /* -normalize */
          for( csum=0.0f,ii=0 ; ii < mm ; ii++ ) csum += cvec[ii]*cvec[ii] ;
@@ -1099,6 +1110,9 @@ int main( int argc , char *argv[] )
    if( ortset == NULL && permset == NULL )
      ERROR_exit("Processing the data failed for some reason :(") ;
 
+   if( verb > 1 ) 
+     ININFO_message("Writing results [%s]" , TIMER ) ;
+
    if( ortset != NULL ){
      tross_Copy_History( dsetB , ortset ) ;
      tross_Make_History( "3dBrainSync" , argc,argv , ortset ) ;
@@ -1114,7 +1128,7 @@ int main( int argc , char *argv[] )
    }
 
    if( verb )
-     INFO_message("=== 3dBrainSync clock time =%s" , TIMER ) ;
+     INFO_message("=== 3dBrainSync clock time = %s" , TIMER ) ;
 
    exit(0) ;
 }
