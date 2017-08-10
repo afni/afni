@@ -1,6 +1,6 @@
 .. _fp_postpre_III:
 
-Post-preproc, III: ROI making and prep
+Post-preproc, III: ROI map preparation
 ======================================
 
 .. contents::
@@ -51,10 +51,10 @@ ROI selection and **3dROIMaker**
 run::
 
     # for I/O, same path variable as above
-    set odir    = "$path_P_ss/dwi_05"
+    set path_P_ss = data_proc/SUBJ_001
 
-    # for path/variable simplicity, just move to that directory
-    cd $odir
+    # for variable simplicity, just go to the dir with the ROI maps
+    cd $path_P_ss/dwi_05
 
     # list all (= 2, probably) renumbered GM maps
     set ren_gm  = `ls indt_*_REN_gm.nii.gz`
