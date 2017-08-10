@@ -46,9 +46,18 @@ ROI selection and **3dROIMaker**
           describe one example of how the GM regions can be selected
           and then inflated.
 
-**Proc:**
+**Proc:** We demonstrate de-selecting the non-clustered regions that
+may (or may not, depending on FS) be in the GM parc/seg map.  This
+pretty much depends on knowing what one wants to get rid of, by ROI
+number designation.  The labeltable from the original file is
+reattached.  
 
-run::
+Finally, ``3dROIMaker`` is run to controlledly inflate the regions
+that are left, with respect to the FA data (if one had non-adult or
+non-human data, one might reconsider the FA-derived proxy for defining
+where WM is). NB: I think I might most prefer using the
+``-skel_stop_strict`` option to constrain the inflation. The resulting
+set of commands are here::
 
     # for I/O, same path variable as above
     set path_P_ss = data_proc/SUBJ_001
@@ -98,3 +107,143 @@ run::
 
     end
 
+-> produces output in the same directory 'data_proc/SUBJ_001/dwi_05/',
+since all volume files occupy the same space/grid:
+
+.. list-table:: 
+   :header-rows: 1
+   :widths: 90
+
+   * - Directory structure for example data set
+   * - .. image:: media/postpre_iii/fp_13_roi_sel_make.png
+          :width: 100%
+          :align: center
+   * - *Output files made to select only clumpy GM ROIs and then to
+       perform controlled inflation.*
+
+|
+
+.. list-table:: 
+   :header-rows: 1
+   :widths: 20 80
+   :stub-columns: 0
+
+   * - Outputs of
+     - the above ``3dcalc``/\ ``3drefit``/\ ``3dROIMaker``
+   * - **sel_indt_aparc\*+aseg_REN_gm.nii.gz**
+     - volumetric NIFTI file, 3D; the GM region map without the
+       deselected ROIs. The same labeltable from the original input is
+       contained within the file's header.
+   * - **sel_indt_aparc\*+aseg_REN_gm_GMI.nii.gz**
+     - volumetric NIFTI file, 3D; the output of ``3dROIMaker`` which
+       contains the inflated map of ROIs.
+   * - **sel_indt_aparc\*+aseg_REN_gm_GMI.niml.lt**
+     - text file; the labeltable of the NIFTI file with the same root
+       name.
+   * - **sel_indt_aparc\*+aseg_REN_gm_GM.nii.gz**
+     - volumetric NIFTI file, 3D; the output of ``3dROIMaker`` which
+       contains the *non*\-inflated map of ROIs. (Having this output
+       is useful if, for example, one uses ``3dROIMaker`` to subtract
+       any regions from tissues, though that was not done here.)
+   * - **sel_indt_aparc\*+aseg_REN_gm_GM.niml.lt**
+     - text file; the labeltable of the NIFTI file with the same root
+       name.
+
+|
+
+To view the dual points of 1) inflating the GM ROIs and 2)
+constraining that inflation, we show images of before-and-after
+inflation, for both the "2000" and "2009" parcellations.  The b/w ulay
+is the binary mask where FA>0.2, representing the DTI-based proxy for
+WM (and within which tracking normally occurs for healthy adult
+humans).  Note that in the pre-inflation cases, one can often see GM
+ROIs following the contours of the FA-WM, but there might be slight
+gaps due to either transformation, partial voluming, etc. Such regions
+might create artificial "misses" in the tracts, which don't leave the
+FA>0.2 boundaries to reach the GM they (possibly) should.  Conversely,
+in cases where the GM follows the FA-WM boundary well, we wouldn't
+want inflation pouring out into the WM unnecessarily.
+
+.. note:: When viewing the following montages, it might make sense to
+          open corresponding montages of the inflated and non-inflated
+          maps in browser tabs and then toggling views between them--
+          that should highlight both of the main points.
+
+.. list-table:: 
+   :header-rows: 1
+   :widths: 50 50
+
+   * - Images comparing the "2000" inflated and non-inflated GM maps 
+     - (just axi and sag views)
+   * - .. image:: media/postpre_iii/sel__qc2000_uFA02_gm.axi.png
+          :width: 100%   
+          :align: center
+     - .. image:: media/postpre_iii/sel__qc2000_uFA02_gm.sag.png
+          :width: 100%   
+          :align: center
+
+.. list-table:: 
+   :header-rows: 0
+   :widths: 100
+
+   * - *Non-inflated "2000" parc/seg map (after the non-regional ROIs
+       were removed) olayed on FA>0.2 binary map ulay.*
+
+.. list-table:: 
+   :header-rows: 0
+   :widths: 50 50
+
+   * - .. image:: media/postpre_iii/sel__qc2000_uFA02_GMI.axi.png
+          :width: 100%   
+          :align: center
+     - .. image:: media/postpre_iii/sel__qc2000_uFA02_GMI.sag.png
+          :width: 100%   
+          :align: center
+
+.. list-table:: 
+   :header-rows: 0
+   :widths: 100
+
+   * - *Inflated "2000" parc/seg map (after the non-regional ROIs were
+       removed) olayed on FA>0.2 binary map ulay.*
+
+|
+
+
+.. list-table:: 
+   :header-rows: 1
+   :widths: 50 50
+
+   * - Images comparing the "2009" inflated and non-inflated GM maps 
+     - (just axi and sag views)
+   * - .. image:: media/postpre_iii/sel__qc2009_uFA02_gm.axi.png
+          :width: 100%   
+          :align: center
+     - .. image:: media/postpre_iii/sel__qc2009_uFA02_gm.sag.png
+          :width: 100%   
+          :align: center
+
+.. list-table:: 
+   :header-rows: 0
+   :widths: 100
+
+   * - *Non-inflated "2009" parc/seg map (after the non-regional ROIs
+       were removed) olayed on FA>0.2 binary map ulay.*
+
+.. list-table:: 
+   :header-rows: 0
+   :widths: 50 50
+
+   * - .. image:: media/postpre_iii/sel__qc2009_uFA02_GMI.axi.png
+          :width: 100%   
+          :align: center
+     - .. image:: media/postpre_iii/sel__qc2009_uFA02_GMI.sag.png
+          :width: 100%   
+          :align: center
+
+.. list-table:: 
+   :header-rows: 0
+   :widths: 100
+
+   * - *Inflated "2009" parc/seg map (after the non-regional ROIs were
+       removed) olayed on FA>0.2 binary map ulay.*
