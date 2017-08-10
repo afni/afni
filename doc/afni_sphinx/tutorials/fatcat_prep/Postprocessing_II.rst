@@ -376,7 +376,9 @@ surfaces in SUMA::
         -vol   dwi_anat.nii.gz                      \
         -tract TTT_000.niml.tract &
 
-    # Drive SUMA to start it 'talking' with AFNI
+    # Drive SUMA to start it 'talking' with AFNI; also puts image at 
+    # straight-ahead "coronal" view, and hides one hemisphere surface,
+    # so tracts inside are visible
     DriveSuma                                       \
         -npb $cport                                 \
         -com viewer_cont -key '.' -key 't'          \
