@@ -286,7 +286,7 @@ SUMA are provided :ref:`HERE <self_guided_scripts>`, with lists of
 drivable functionalities `HERE
 <https://afni.nimh.nih.gov/pub/dist/doc/program_help/DriveSuma.html>`_.
 Lists of AFNI drivable functions are given `HERE
-<https://afni.nimh.nih.gov/pub/dist/doc/program_help/README.driver.html`_.
+<https://afni.nimh.nih.gov/pub/dist/doc/program_help/README.driver.html>`_.
 You can also check out more FATCAT-specific examples in the FATCAT
 Demo, which is obtainable as described `HERE
 <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/FATCAT/FATCAT_All.html#demo-data-sets-and-scripts>`_.
