@@ -275,13 +275,13 @@ void BSY_help_the_pitiful_user(void)
    "  resulting from this optimization is 50-65%% of that which comes from\n"
    "  optimizing over ALL orthogonal matrices (Joshi method). If you use '-verb',\n"
    "  the stderr output line that looks like this\n"
-   " + correlation scores: no transform=1940.61 Q matrix=46415.1 permutation=30309.7\n"
+   "   + corr scores: original=-722.5 Q matrix=22366.0 permutation=12918.7 57.8%%\n"
    "  shows trace(BC') before any transforms, with the Q matrix transform,\n"
    "  and with the permutation transform. As explained above, trace(BC') is\n"
    "  the summed correlations of the time series (since the columns of B and C\n"
    "  are normalized prior to the optimizations); in this example, the ratio of\n"
    "  the average time series correlation between the permutation method and the\n"
-   "  Joshi method is about 63%% (in a gray matter mask).\n"
+   "  Joshi method is about 58%% (in a gray matter mask with 72221 voxels).\n"
    "\n"
    "* Results from the permutation method MUST be less correlated (on average)\n"
    "  with -inset1 than the Joshi method's results: the permutation can be\n"
@@ -458,9 +458,9 @@ ENTRY("find_best_permutation") ;
 
    if( verb && qcost > 0.0f ){
      for( rcost=0.0f,ii=0 ; ii < m ; ii++ ) rcost += A(ii,ii) ;
-     ININFO_message("correlation scores: "
-                    "no transform=%.1f  Q matrix=%.1f  permutation=%.1f",
-                    rcost, qcost, bestcost ) ;
+     ININFO_message("corr scores: "
+                    "original=%.1f Q matrix=%.1f permutation=%.1f %.1f%%",
+                    rcost, qcost, bestcost , 100.0f*bestcost/qcost ) ;
    }
    RETURN(bestperm) ;
 }
