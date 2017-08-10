@@ -358,7 +358,7 @@ surfaces in SUMA::
     # Open talkable AFNI
     afni -npb $cport -niml -yesplugouts &
 
-    # Choose ulay/olay in AFNI
+    # Choose ulay (anat) and olay (FA>0.2) in AFNI
     plugout_drive                                   \
         -npb $cport                                 \
         -com 'SWITCH_UNDERLAY  dwi_anat.nii.gz'     \
@@ -397,7 +397,8 @@ or afni_layout settings):
           :width: 100%
           :align: center
    * - *Viewing AFNI and SUMA talking together to display lots of
-       structural data.*
+       structural data.  The overlay in AFNI is the FA map thresholded
+       at FA>0.2.*
 
 .. note:: This is just the tip of the ice berg in terms of AFNI+SUMA
           viewing of structure, combining data and interactively
