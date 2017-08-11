@@ -31,6 +31,9 @@ set version   = "1.6";  set rev_dat   = "Aug 8, 2017"
 #   + allow surface files to be input+move
 #   + take *.niml.dsets and *spec files with them
 #
+set version   = "1.7";  set rev_dat   = "Aug 11, 2017"
+#   + set cbar range to 256
+#
 # ---------------------------------------------------------------
 
 set this_prog = "fat_proc_map_to_dti"
@@ -685,12 +688,14 @@ if ( $DO_VIEWER == 1 ) then
             set vprefnn = ${qc_prefix}${postfix}_qc_$ppp
         endif
 
+        # NB: with this colorbar, use full 256 for range
         $my_viewer                            \
             -ulay "$ibase"                    \
             -ulay_range "2%" "98%"            \
             -olay "$ff"                       \
             -pbar_posonly                     \
             -cbar "ROI_i256"                  \
+            -func_range 256                   \
             -opacity 4                        \
             -prefix $vprefnn                  \
             -outdir "$odir"                   \
