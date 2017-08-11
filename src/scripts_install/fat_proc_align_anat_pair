@@ -27,9 +27,12 @@
 #set version   = "1.5";    set rev_dat   = "June 20, 2017"
 #   + new opt: can have mask for t2w vol
 #
-set version   = "1.6";    set rev_dat   = "July 25, 2017"
+#set version   = "1.6";    set rev_dat   = "July 25, 2017"
 #   + new opt: can have more than warp = shift+rot only; default is
 #   just that, still
+#
+set version   = "1.7";    set rev_dat   = "Aug 11, 2017"
+#   + switch a ">>" to ">" for general system compatability
 #
 # ---------------------------------------------------------------
 
@@ -368,7 +371,7 @@ if ( "$imtrx" == "" ) then
     echo "++ Inverting alignment matrix (to get t1w -> t2w)."
     cat_matvec -ONELINE                   \
         $mt_t2_t1 -I                      \
-        >> $mt_t1_t2
+        > $mt_t1_t2
     
     set imtrx = $mt_t1_t2
 endif
