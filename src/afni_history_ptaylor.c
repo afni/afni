@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 11, Aug , 2017 , PT , "fat_proc_align_anat_pair" , MINOR , TYPE_MODIFY,
+   "Change a '>>' to '>' for wider compatability.",
+   "Yup.\n"
+},
+
 { 11, Aug , 2017 , PT , "fat_proc_map_to_dti" , MINOR , TYPE_MODIFY,
    "Make range associated with ROI map images =256 for all.",
    "This provides better consistency in coloration with ROI_i256 cbar.\n"
