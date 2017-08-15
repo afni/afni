@@ -100,7 +100,7 @@ directories:
   preferable.
 
 * "t1w/": a T1w anatomical (standard MPRAGE) with
-  :math:`1\times1\times1~{\rm mm}^3` spatial resolution.
+  :math:`1\times1\times1 {\rm mm}^3` spatial resolution.
 
 
 .. list-table:: 
@@ -532,7 +532,7 @@ It contains the following outputs for the T2w data:
   isotropic, fairly high resolution both for viewing and later
   registration purposes.  This could be done by outputting on the
   refset's grid, or also by specifying an isotropic resolution, such
-  as to isotropic :math:`1~{\rm mm}^{3}` using::
+  as to isotropic :math:`1 {\rm mm}^{3}` using::
 
     -extra_al_opts "-newgrid 1.0"
 
@@ -578,7 +578,7 @@ seems to tacitly require having:
 
 * **isotropic voxels**:
 
-  - 1~mm edges, by default.
+  - 1 mm edges, by default.
 
   - | for higher resolution (sub-millimeter) data, the `FreeSurfer website
       <https://surfer.nmr.mgh.harvard.edu/fswiki/SubmillimeterRecon>`_ 
@@ -601,7 +601,7 @@ These properties can be conveyed to the T1w dset at this stage.
 
 **Proc:** Align the T1w (in "data_proc/SUBJ_001/anat_00/") and align
 it to the axialized T2w volume (in "data_proc/SUBJ_001/anat_01/"); the
-T2w volume here has both isotropic voxels with 1~mm edges and even
+T2w volume here has both isotropic voxels with 1 mm edges and even
 numbers of slices in all directions, so we make the T1w volume output
 be on the same grid, so it has these properties, as well (there are
 other options for controlling these things, as well)::

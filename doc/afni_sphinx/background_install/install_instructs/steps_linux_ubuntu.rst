@@ -19,7 +19,7 @@ list parallel instructions for each.
    There are several packages and libraries that are needed to run the
    afni and shell programs, often even including ``tcsh``:
         
-   * *for versions upto and including 15.04*::
+   * *for versions 15.04 and earlier*::
       
        sudo apt-get install -y tcsh libxp6 xfonts-base python-qt4             \
                                libmotif4 libmotif-dev motif-clients           \
@@ -27,7 +27,7 @@ list parallel instructions for each.
                                libjpeg62 xterm
        sudo apt-get update
 
-   * *for versions 15.10 and higher*::
+   * *for version 15.10*::
       
        sudo apt-get install -y tcsh xfonts-base python-qt4                    \
                                libmotif4 libmotif-dev motif-clients           \
