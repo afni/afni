@@ -1906,6 +1906,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Be careful out there"                                          ,
      "Yesterday, all my troubles seemed so far away"                 ,
      "Stochastic delights have deterministic ends"                   ,
+     "Remember -- To prolong doubt is to prolong hope"               ,
      "Remember -- Time and tide wait for no brain imaging software"  ,
      "Remember -- AFNI is free, but worth at least 1000 times more"  ,
      "Remember -- Nothing is always absolutely so"                   ,
@@ -2063,10 +2064,11 @@ void AFNI_sigfunc_alrm(int sig)
      "Give into temptation; it might not come again"                 ,
      "Insanity is my best and only means of relaxation"              ,
      "The three 'Ups' of life: Grow Up, Shut Up, Lighten Up"         ,
-     "I am not a number, I am a free software!"                      ,
+     "I am not a hexadecimal number, I am a free software!"          ,
      "Correlation isn't causation, but what else do we have?"        ,
+     "Are you indeed there, my skylark?"                             ,
 
-     /* bastardization of Shakespeare */
+     /* bastardizations of Shakespeare */
 
      "No longer mourn for me when I am crashed"                      ,
      "If you read this line, remember not the bits that rendered it" ,
@@ -2093,6 +2095,8 @@ void AFNI_sigfunc_alrm(int sig)
      "We never really grow up; we only learn how to act in public"        ,
      "I didn't say it was your fault; I said I was blaming you"           ,
      "Money can't buy happiness, but it makes misery easier to live with" ,
+
+     /* self referential */
 
      "The 'Lead Standard' for neuroimaging since 1994"               ,
      "Shedding new light on the brain since 1994"                    ,
