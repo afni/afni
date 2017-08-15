@@ -807,7 +807,7 @@ class SysInfo:
       ind = '%8s' % ' '
       indn = '\n%8s' % ' '
       proglist = ['afni', 'suma', '3dSkullStrip', 'uber_subject.py',
-                   '3dAllineate', '3dRSFC', 'SurfMesh']
+                   '3dAllineate', '3dRSFC', 'SurfMesh', '3dClustSim']
       fcount = 0
       for prog in proglist:
          st, so, se = BASE.shell_exec2('%s -help'%prog, capture=1)

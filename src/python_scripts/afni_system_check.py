@@ -192,9 +192,10 @@ g_history = """
    0.26 Feb  1, 2017 - updates for brew/fink, and check for fink python link
    0.27 Jun 16, 2017 - check for libXt.7.dylib without flat_namespace
    0.28 Jul 12, 2017 - idiot; forget libXt.7 checks
+   0.29 Aug 15, 2017 - check 3dClustSim, for OpenMP library
 """
 
-g_version = "afni_system_check.py version 0.28, July 12, 2017"
+g_version = "afni_system_check.py version 0.29, August 15, 2017"
 
 
 class CmdInterface:
