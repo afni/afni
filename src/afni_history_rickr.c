@@ -49,105 +49,110 @@
 
 afni_history_struct rickr_history[] = {
 
- { 27,  Jul, 2017, RCR, "3dNwarpApply", MICRO, TYPE_BUG_FIX,
+ { 15, Aug, 2017, RCR, "Makefile.macos_10.12_local", MINOR, TYPE_NEW_OPT,
+   "this is a Makefile for a Mac 10.12 system, with local linking",
+   NULL
+ } ,
+
+ { 27, Jul, 2017, RCR, "3dNwarpApply", MICRO, TYPE_BUG_FIX,
    "fix memory alloc for warp file names",
    "Thanks to L Lebois (and others on MB) for noting the problem."
  } ,
 
- { 24,  Jul, 2017, RCR, "nifti_tool", MINOR, TYPE_MODIFY,
+ { 24, Jul, 2017, RCR, "nifti_tool", MINOR, TYPE_MODIFY,
    "treat ANALYZE more as NIFTI-1; apply more PRId64 macros for I/O",
    NULL
  } ,
 
- { 21,  Jul, 2017, RCR, "@update.afni.binaries", MICRO, TYPE_MODIFY,
+ { 21, Jul, 2017, RCR, "@update.afni.binaries", MICRO, TYPE_MODIFY,
    "relative -bindir test needs quotes to block eval",
    NULL
  } ,
 
- { 19,  Jul, 2017, RCR, "3dTto1D", MAJOR, TYPE_NEW_PROG,
+ { 19, Jul, 2017, RCR, "3dTto1D", MAJOR, TYPE_NEW_PROG,
    "time series to 1D : e.g. compute enorm, DVARS(RMS), SRMS",
    "Given time series data such as EPI or motion parameters, compute\n"
    "things like Euclidean norm and RMS (a.k.a. DVARS)."
  } ,
 
- { 19,  Jul, 2017, RCR, "3dDeconvolve", MICRO, TYPE_BUG_FIX,
+ { 19, Jul, 2017, RCR, "3dDeconvolve", MICRO, TYPE_BUG_FIX,
    "adjust looking for good stim times to handle global timing",
    "Max time was previously that of the longest run.  For global timing,\n"
    "accumulate across runs.\n"
    "Thanks to B Callaghan, Michael, ace327 and Jeff for noting the problem."
  } ,
 
- { 12,  Jul, 2017, RCR, "afni_system_check.py", MICRO, TYPE_MODIFY,
+ { 12, Jul, 2017, RCR, "afni_system_check.py", MICRO, TYPE_MODIFY,
    "ignore /opt/X11/lib/libXt.dylib check",
    "Undo Xt.7 and /opt/X11/lib/libXt.6.dylib checks."
  } ,
 
- { 11,  Jul, 2017, RCR, "afni_system_check.py", MICRO, TYPE_MODIFY,
+ { 11, Jul, 2017, RCR, "afni_system_check.py", MICRO, TYPE_MODIFY,
    "check if /opt/X11/lib/libXt.dylib points to Xt.6",
    "This is useless, pulling it out."
  } ,
 
- { 10,  Jul, 2017, RCR, "@update.afni.binaries", MICRO, TYPE_MODIFY,
+ { 10, Jul, 2017, RCR, "@update.afni.binaries", MICRO, TYPE_MODIFY,
    "if -bindir is relative, require -no_recur",
    NULL
  } ,
 
- {  5,  Jul, 2017, RCR, "3dAllineate", MICRO, TYPE_MODIFY,
+ {  5, Jul, 2017, RCR, "3dAllineate", MICRO, TYPE_MODIFY,
    "make quieter: only report sub-brick messages if verbose",
    "Applied to 3dAllinate and 3dmerge."
  } ,
 
- { 28,  Jun, 2017, RCR, "afni-general", MINOR, TYPE_GENERAL,
+ { 28, Jun, 2017, RCR, "afni-general", MINOR, TYPE_GENERAL,
    "add afni_src/other_builds files for Fedora 25 (Makefile, OS_notes)",
    NULL
  } ,
 
- { 23,  Jun, 2017, RCR, "@update.afni.binaries", MICRO, TYPE_MODIFY,
+ { 23, Jun, 2017, RCR, "@update.afni.binaries", MICRO, TYPE_MODIFY,
    "unalias grep; update cur_afni only when not abin",
    NULL
  } ,
 
- { 19,  Jun, 2017, RCR, "Dimon", MICRO, TYPE_NEW_OPT,
+ { 19, Jun, 2017, RCR, "Dimon", MICRO, TYPE_NEW_OPT,
    "add -assume_dicom_mosaic to handle Siemens 3D format",
    "Done for A. Jahn."
  } ,
 
- { 16,  Jun, 2017, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
+ { 16, Jun, 2017, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
    "check for libXt.7.dylib without flat_namespace",
    NULL
  } ,
 
- { 16,  Jun, 2017, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+ { 16, Jun, 2017, RCR, "afni-general", MICRO, TYPE_ENHANCE,
    "add Makefile.linux_centos_7_64",
    "CentOS 7 and Ubuntu 16 will be new distribution build systems."
  } ,
 
- { 15,  Jun, 2017, RCR, "uber_subject.py", MICRO, TYPE_BUG_FIX,
+ { 15, Jun, 2017, RCR, "uber_subject.py", MICRO, TYPE_BUG_FIX,
    "handle empty subj_dir",
    NULL
  } ,
 
- { 15,  Jun, 2017, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+ { 15, Jun, 2017, RCR, "afni-general", MICRO, TYPE_ENHANCE,
    "add OS_notes.linux_centos_7.txt",
    NULL
  } ,
 
- { 15,  Jun, 2017, RCR, "@SUMA_Make_Spec_FS", MICRO, TYPE_ENHANCE,
+ { 15, Jun, 2017, RCR, "@SUMA_Make_Spec_FS", MICRO, TYPE_ENHANCE,
    "remove -f from top tcsh command; fix some bad tab indenting",
    NULL
  } ,
 
- { 5,  Jun, 2017, RCR, "RetroTS.py", MINOR, TYPE_BUG_FIX,
+ { 5, Jun, 2017, RCR, "RetroTS.py", MINOR, TYPE_BUG_FIX,
    "peak_finder(): fix lengths of r['t'] and r['tR']",
    "Be more cautious with ratios that are very close to integers."
  } ,
 
- { 5,  Jun, 2017, RCR, "RetroTS.py", MINOR, TYPE_BUG_FIX,
+ { 5, Jun, 2017, RCR, "RetroTS.py", MINOR, TYPE_BUG_FIX,
    "merge phase_base() fix by D Nielson",
    "range() is closed in matlab but half-open in python."
  } ,
 
- {  2,  Jun, 2017, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+ {  2, Jun, 2017, RCR, "afni-general", MINOR, TYPE_ENHANCE,
    "add Makefile.linux_ubuntu_16_64 and OS_notes.linux_ubuntu_16_64",
    "This is for setting up an Ubuntu 16 build machine."
  } ,
