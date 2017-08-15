@@ -49,8 +49,8 @@
 
 afni_history_struct rickr_history[] = {
 
- { 15, Aug, 2017, RCR, "Makefile.macos_10.12_local", MINOR, TYPE_NEW_OPT,
-   "this is a Makefile for a Mac 10.12 system, with local linking",
+ { 15, Aug, 2017, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
+   "test 3dClustSim as well, to check for OpenMP library linking",
    NULL
  } ,
 
