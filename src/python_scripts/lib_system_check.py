@@ -612,10 +612,10 @@ class SysInfo:
     
       if shell == '':
          shell = self.cur_shell
-         print '-- recent OS X, cannot check %s in cur shell, cheating ...' \
-               % evar
+         print "-- recent OS X, cheating to check %s in cur shell '%s'..." \
+               % (evar, shell)
       else:
-         print "-- recent OS X, cannot check %s in shell '%s', cheating ..." \
+         print "-- recent OS X, cheating to check %s in shell '%s'..." \
                % (evar, shell)
 
       s, so = self.get_shell_value(shell, evar)
@@ -640,7 +640,7 @@ class SysInfo:
 
    def get_shell_value(self, shell, evar, verb=0):
       """really cheap way to grab a value from a new shell"""
-      cmd = "%s -c 'echo $%s'" % (shell, evar)
+      cmd = "%s -ci 'echo $%s'" % (shell, evar)
       s, so, se = UTIL.limited_shell_exec(cmd)
 
       if len(so) > 0: so = so[-1]
