@@ -319,6 +319,7 @@ STATUS("init pval_save") ;
 
    /* ZSS: Jan 13 Now add some funky ones */
 
+   PBAR_define_bigmap( R_AND_B_INV_256_CMD ); // [PT: Aug 17, 2017]
    PBAR_define_bigmap( CB_CS_35 );
    PBAR_define_bigmap( CB_CS );
    PBAR_define_bigmap( CYTOARCH_ROI_256_CMD );
