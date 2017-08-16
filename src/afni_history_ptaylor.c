@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 16,  Aug , 2017, PT, "afni", MICRO, TYPE_NEW_OPT,
+   "Added color map (applies to both afni and suma): Reds_and_Blues_Inv",
+   "So, new color opt readily available.\n"
+} ,
+
 { 11, Aug , 2017 , PT , "fat_proc_align_anat_pair" , MINOR , TYPE_MODIFY,
    "Change a '>>' to '>' for wider compatability.",
    "Yup.\n"
