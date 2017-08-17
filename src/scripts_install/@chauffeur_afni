@@ -46,8 +46,11 @@
 #set version   = "2.6";   set rev_dat   = "June 1, 2017"
 #     + default interpolation to NN, but add in option to set
 # 
-set version   = "2.7";   set rev_dat   = "June 20, 2017"
+#set version   = "2.7";   set rev_dat   = "June 20, 2017"
 #     + new opts, for SET_SUBBRICKS
+# 
+set version   = "2.8";   set rev_dat   = "Aug 17, 2017"
+#     + new opt, allow SET_XYZ
 # 
 # =====================================================================
 
@@ -97,6 +100,7 @@ set delcor = -1                  # (int) slice space in cor orient
 set USER_COORS = 0               # switch to let user pick IJK
 set coors  = ( 0 0 0 )
 set gapord = ( 0 0 0 )
+set coor_type = "SET_IJK"        # default, can switch to SET_XYZ
 
 # for SET_PBAR_ALL
 set pbar_sign = "-"              # + is pos. only, - is both (switch for both)
@@ -288,6 +292,18 @@ while ( $ac <= $#argv )
         set coors[3] = "$argv[$ac]"
         set USER_COORS = 1
 
+    # [PT: Aug 17, 2017] takes 3 numbers!!!
+    else if ( "$argv[$ac]" == "-set_dicom_xyz" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set coor_type = "SET_DICOM_XYZ"
+        set coors[1] = "$argv[$ac]"
+        @ ac += 1
+        set coors[2] = "$argv[$ac]"
+        @ ac += 1
+        set coors[3] = "$argv[$ac]"
+        set USER_COORS = 1
+
     else if ( "$argv[$ac]" == "-montx" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
@@ -339,6 +355,12 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         setenv AFNI_IMAGE_LABEL_SETBACK  "$argv[$ac]"
+
+    # [PT: Aug 17, 2017] probably need quotes...
+    else if ( "$argv[$ac]" == "-label_string" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        setenv AFNI_IMAGE_LABEL_STRING  "$argv[$ac]"
 
     # Feb, 2017: useful when each slice is a from a sep vol, i.e., for
     # @djunct*imager
@@ -620,7 +642,14 @@ echo "++ pfrac = $pfrac"
 # These need to reflect the order of the original.  Ugh, annoying
 # conditions.
 if ( $USER_COORS == 1 ) then
-    echo "++ Will have user's chosen: SET_IJK $coors"
+    if ( "$coor_type" == "SET_IJK" ) then
+        echo "++ Will have user's chosen: $coor_type $coors"
+    else if ( "$coor_type" == "SET_DICOM_XYZ" ) then
+        echo "++ Will have user's chosen: $coor_type $coors"
+    else
+        echo "** ERRROR: unknown coor_type somehow?: $coor_type"
+        goto BAD_EXIT
+    endif
 else
     foreach i ( `seq 1 1 3` )
         set qfrac = `echo "scale=5; ( $pfrac ) " | bc` # frac to center
@@ -635,7 +664,7 @@ else
         set nn        = `echo "scale=0; ( ( $Dim[$i] * $qfrac ) $qsh )" | bc`
         set coors[$i] = `echo $nn | perl -nl -MPOSIX -e 'print floor($_);'`
     end
-    echo "++ Will have: SET_IJK $coors"
+    echo "++ Will have: $coor_type $coors"
 endif
 
 echo "\n------------------- end of optionizing -------------------\n" 
@@ -693,7 +722,7 @@ afni -noplugins -no_detach  -echo_edu                           \
      -com "$OW sagittalimage opacity=${opac} mont=${mx}x${my}:${gapord[1]}" \
      -com "$OW coronalimage  opacity=${opac} mont=${mx}x${my}:${gapord[2]}" \
      -com "$OW axialimage    opacity=${opac} mont=${mx}x${my}:${gapord[3]}" \
-     -com "SET_IJK $coors"                                          \
+     -com "$coor_type $coors"                                          \
      -com "SAVE_${ftype} sagittalimage ${odir}/${impref}.sag blowup=${bufac}" \
      -com "SAVE_${ftype} coronalimage  ${odir}/${impref}.cor blowup=${bufac}" \
      -com "SAVE_${ftype} axialimage    ${odir}/${impref}.axi blowup=${bufac}" \
