@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17, Aug, 2017, RCR, "3dcalc", MICRO, TYPE_MODIFY,
+   "fixed typos in help for minabove, maxbelow, acfwxm",
+   "Thanks to A Wong for noting the minabove and maxbelow typos."
+ } ,
+
  { 15, Aug, 2017, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
    "test 3dClustSim as well, to check for OpenMP library linking",
    NULL
