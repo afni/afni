@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 17, Aug , 2017 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
+   "Some new labelling, etc. optioning.",
+   "Make some new labels, locationing based on XYZ and more.\n"
+},
+
 { 16,  Aug , 2017, PT, "afni", MICRO, TYPE_NEW_OPT,
    "Added color map (applies to both afni and suma): Reds_and_Blues_Inv",
    "So, new color opt readily available.\n"
