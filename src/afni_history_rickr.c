@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18, Aug, 2017, RCR, "3dTto1D", MICRO, TYPE_MODIFY,
+   "modify help",
+   NULL
+ } ,
+
  { 17, Aug, 2017, RCR, "3dcalc", MICRO, TYPE_MODIFY,
    "fixed typos in help for minabove, maxbelow, acfwxm",
    "Thanks to A Wong for noting the minabove and maxbelow typos."
