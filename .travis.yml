@@ -18,6 +18,6 @@ script:
     - export PATH=$PATH:$PWD/$FLAVOR  # to gain access to built binaries
     - mkdir ../testing; cd ../testing # from here will run tests
     - cmake -DAFNI_BUILD_TESTS:BOOL=ON ..
-    - ctest
+    - ctest --verbose
     # Smoke tests for some additional commands
     - 3dinfo
