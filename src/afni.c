@@ -1958,6 +1958,7 @@ void AFNI_sigfunc_alrm(int sig)
      "All this Dark Matter whizzing around makes it hard to think"   ,
      "Thank you so so so very much"                                  ,
      "Will you miss me?"                                             ,
+     "It wasn't me that did it. It was my brain"                     ,
      "Was there life before Google?"                                 ,
      "If you can't be good, be careful"                              ,
      "What sweet madness has seized me?"                             ,

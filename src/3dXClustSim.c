@@ -53,6 +53,8 @@ static int *ijk_to_vec=NULL ;
 
 static Xdataset *xinset=NULL ;  /* global struct of input dataset(s) */
 
+static int do_unmap = 0 ;       /* unmap/remap xinset? [22 Aug 2017] */
+
 static int   nx ;     /* 3D grid stuff */
 static int   ny ;
 static int   nz ;
@@ -325,14 +327,20 @@ ENTRY("get_options") ;
       nopt++ ; continue ;
     }
 
-    /*----   -quiet   ----*/
+    /*----   -quiet and -verb   ----*/
 
     if( strcasecmp(argv[nopt],"-quiet") == 0 ){  /* why would you want this? */
       verb = 0 ; nopt++ ; continue ;
     }
 
-    if( strcasecmp(argv[nopt],"-verb") == 0 ){
+    if( strcasecmp(argv[nopt],"-verb") == 0 ){   /* more fun fun fun! */
       verb++ ; nopt++ ; continue ;
+    }
+
+    /*----   -unmap    ----*/
+
+    if( strcasecmp(argv[nopt],"-unmap") == 0 ){
+      do_unmap++ ; nopt++ ; continue ;
     }
 
 #ifdef ALLOW_EXTRAS
@@ -940,6 +948,8 @@ int main( int argc , char *argv[] )
        " -prefix    something\n"
        " -verb      be more verbose\n"
        " -quiet     silentium est aureum\n"
+       " -unmap     unmap data after clustering, remap before final steps;\n"
+       "            can save some memory space, at the cost of some I/O time\n"
 #if 0
        " -FOMcount  turn on FOMcount output\n"
        " -FARvox    turn on FARvox output\n"
@@ -1064,10 +1074,11 @@ int main( int argc , char *argv[] )
 
    MEMORY_CHECK("after clustering") ;
 
-#if 0
-   /* don't need xinset's data any more */
-   unmap_Xdataset(xinset) ;
-#endif
+   /* don't need xinset's data for the nonce */
+   if( do_unmap ){
+     if( verb > 1 ) ININFO_message("un-mapping input datasets") ;
+     unmap_Xdataset(xinset) ;
+   }
 
    /*=====================================================================*/
    /* STEP 1b: count num clusters total, and merge them into one big list */
@@ -1613,6 +1624,11 @@ int main( int argc , char *argv[] )
    if( verb )
      INFO_message("STEP 4: adjusting per-voxel FOM thresholds to reach FPR=%.2f%%",farp_goal) ;
    if( verb > 1 ) ININFO_message("  Elapsed time = %.1f s",COX_clock_time()) ;
+
+   if( do_unmap ){
+     if( verb > 1 ) ININFO_message("re-mapping input datasets") ;
+     remap_Xdataset(xinset) ;  /* the nonce is over */
+   }
 
    /* tfrac = FOM count fractional threshold;
               will be adjusted to find the 5% FPR goal */
