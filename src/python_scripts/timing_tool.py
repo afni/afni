@@ -290,6 +290,23 @@ examples:
          timing_tool.py -timing stim_times.txt -run_len 300     \\
                         -marry_AM lin_run_fraw -write_timing stim_mod.txt
 
+   Example 16. Use end times to imply event durations.
+
+      Given timing files A.txt and B.txt, suppose that B always follows A
+      and that there is no rest between them.  Then the durations of the A
+      events would be defined by the B-A differences.  To apply durations
+      to class A events as such, use -apply_end_times_as_durations.
+
+         timing_tool.py -timing A.txt -apply_end_times_as_durations B.txt \\
+                        -write_timing A_with_durs.txt
+
+   Example 17. Show duration statistics.
+
+      Given a timing file with durations, show the min, mean, max and stdev
+      of the list of event durations.
+
+         timing_tool.py -timing stimes.txt -show_duration_stats
+
 --------------------------------------------------------------------------
 Notes:
 
@@ -405,6 +422,17 @@ action options (apply to single timing element, only):
         time, so that the times match the modified EPI data.
 
             Consider '-write_timing'.
+
+   -apply_end_times_as_durations NEW_FILE : compute durations based on offsets
+
+        e.g. -apply_end_times_as_durations next_events.txt
+
+        Treat each NEW_FILE event time as the ending of the corresponding
+        INPUT (via -timing) event time to create a duration list.  So they
+        should have the same number of events, and each NEW_FILE time should
+        be just after the corresponding INPUT time.
+
+            Consider '-write_timing' and '-show_duration_stats'.
 
    -add_rows NEW_FILE           : append these timing rows to main element
 
@@ -538,6 +566,11 @@ action options (apply to single timing element, only):
         the stimulus frequency, if it is regular.
 
             Consider '-write_timing'.
+
+   -show_duration_stats         : display min/mean/max/stdev of event durations
+
+        Show the minimum, mean, maximum and standard deviation of the list of
+        all event durations.
 
    -show_timing                 : display the current single timing data
 
@@ -1008,9 +1041,11 @@ g_history = """
    2.15 Mar 15, 2016 - help_basis update: max of BLOCK() is ~5.1 (not 5.4)
    2.16 Aug  5, 2016 - added -marry_AM for J Wiggins
    2.17 Jan  9, 2017 - timediff for event list should use prev duration
+   2.18 Aug 22, 2017
+        - added -apply_end_times_as_durations and -show_duration_stats
 """
 
-g_version = "timing_tool.py version 2.17, January 9, 2017"
+g_version = "timing_tool.py version 2.18, August 22, 2017"
 
 
 
