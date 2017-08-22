@@ -44,6 +44,13 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 22 , AUG , 2017 , RWC , "3dttest++" , MICRO , TYPE_ENHANCE ,
+   "Small changes in running ETAC" ,
+   "1) Option -ETAC_mem prints out ETAC memory usage (and stops) to help\n"
+   "user setup\n"
+   "2) If usage is high, runs 3dXClustSim with -unmap option to unmap/remap\n"
+   "datasets to economize memory usage" } ,
+
  { 4 , AUG , 2017 , RWC , "3dttest++" , MINOR , TYPE_BUG_FIX ,
    "-ETAC failed without multiple blur cases" ,
    "Addition of -ETAC_blur broke the non-blur runs, due to lack of the\n"
