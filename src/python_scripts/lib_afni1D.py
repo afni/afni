@@ -3754,9 +3754,9 @@ class AfniData(object):
       """show min, mean, max, stdev for each column (unless col specified)"""
 
       if self.verb:
-         form = "min = %7.4f, mean = %7.4f, max = %7.4f, stdev = %7.4f"
+         form = "min = %g, mean = %g, max = %g, stdev = %g"
       else:
-         form = "%7.4f %7.4f %7.4f %7.4f"
+         form = "%g %g %g %g"
 
       # apply newdata as end times, whine if negative
       dlist = []
