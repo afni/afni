@@ -1211,6 +1211,9 @@ class ATInterface:
       self.valid_opts.add_opt('-add_rows', 1, [], 
                          helpstr='append the rows (runs) from the given file')
 
+      self.valid_opts.add_opt('-apply_end_times_as_durations', 1, [], 
+                         helpstr='use as end times to apply as durations')
+
       self.valid_opts.add_opt('-extend', 1, [], 
                          helpstr='extend the rows lengths from the given file')
 
@@ -1234,6 +1237,9 @@ class ATInterface:
 
       self.valid_opts.add_opt('-shift_to_run_offset', 1, [], 
                          helpstr='shift each run to start at time OFFSET')
+
+      self.valid_opts.add_opt('-show_duration_stats', 0, [], 
+                         helpstr='display min/mean/max/stdev of event durs')
 
       self.valid_opts.add_opt('-show_timing', 0, [], 
                          helpstr='display timing contents')
@@ -1503,6 +1509,19 @@ class ATInterface:
             if val != None and err: return 1
             if self.timing.add_val(val): return 1
 
+         elif opt.name == '-apply_end_times_as_durations':
+            if not self.timing:
+               print "** '%s' requires -timing" % opt.name
+               return 1
+            val, err = uopts.get_string_opt('', opt=opt)
+            if val != None and err: return 1
+
+            # get end timing
+            newrd = LT.AfniTiming(val,dur=self.stim_dur,verb=self.verb)
+            if not newrd.ready: return 1
+
+            if self.timing.apply_end_times_as_durs(newrd): return 1
+
          elif opt.name == '-scale_data':
             if not self.timing:
                print "** '%s' requires -timing" % opt.name
@@ -1552,6 +1571,12 @@ class ATInterface:
                print "** '%s' requires -timing" % opt.name
                return 1
             self.timing.sort()
+
+         elif opt.name == '-show_duration_stats':
+            if not self.timing:
+               print "** '%s' requires -timing" % opt.name
+               return 1
+            if self.timing.show_duration_stats(): return 1
 
          elif opt.name == '-show_timing':
             if not self.timing:
