@@ -2763,6 +2763,52 @@ class AfniData(object):
 
       return 0
 
+   def apply_end_times_as_durs(self, newdata):
+      """treat newdata as ending times for the events in self
+         - sort both to be sure
+         - whine on negatives
+         - result will include MTYPE_DUR
+      """
+      
+      if not self.ready or not newdata.ready:
+         print '** timing elements not ready for end_times (%d,%d)' % \
+               (self.ready, newdata.ready)
+         return 1
+
+      if self.nrows != newdata.nrows:
+         print '** timing nrows differ for end_times (%d, %d)' % \
+               (self.nrows,newdata.nrows)
+
+      # check that each row is the same length
+      okay = 1
+      for rind in range(self.nrows):
+         l0 = len(self.data[rind])
+         l1 = len(newdata.data[rind])
+         if l0 != l1:
+            print '** num events differs for run %d' % (rind+1)
+            okay = 0
+      if not okay:
+         return 1
+
+      if self.verb > 1: print '++ MTiming: applying end_times as durs'
+
+      # sort both to be sure
+      self.sort()
+      newdata.sort()
+
+      # apply newdata as end times, whine if negative
+      for rind in range(self.nrows):
+         for eind in range(len(self.data[rind])):
+             dur = newdata.mdata[rind][eind][0] - self.mdata[rind][eind][0]
+             if dur < 0:
+                print '** end_times as durs: have negative duration %f' % dur
+             self.mdata[rind][eind][2] = dur
+
+      # set mtype to include MTYPE_DUR (might already)
+      self.mtype |= MTYPE_DUR
+
+      return 0
+
    def promote_nrows(self, newdata, dataval=None, maryval=None):
       """if differing nrows, extend to match
 
@@ -3703,6 +3749,30 @@ class AfniData(object):
                if verb < 2: return 0
       if errs: return 0
       return 1
+
+   def show_duration_stats(self, per_run=0):
+      """show min, mean, max, stdev for each column (unless col specified)"""
+
+      if self.verb:
+         form = "min = %7.4f, mean = %7.4f, max = %7.4f, stdev = %7.4f"
+      else:
+         form = "%7.4f %7.4f %7.4f %7.4f"
+
+      # apply newdata as end times, whine if negative
+      dlist = []
+      for rind, run in enumerate(self.mdata):
+         if per_run:
+            mmms = form % UTIL.min_mean_max_stdev([event[2] for event in run])
+            print (('run %d : ' % rind) + mmms)
+         else:
+            dlist.extend([event[2] for event in run])
+
+      # if per_run, we are finished
+      if per_run: return 0
+
+      print form % UTIL.min_mean_max_stdev(dlist)
+
+      return 0
 
    def show(self, mesg=''):
       print self.make_show_str(mesg=mesg)
