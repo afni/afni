@@ -53,7 +53,7 @@ static int *ijk_to_vec=NULL ;
 
 static Xdataset *xinset=NULL ;  /* global struct of input dataset(s) */
 
-static int do_unmap = 0 ;       /* unmap/remap xinset? [22 Aug 2017] */
+static int do_unmap = 1 ;       /* unmap/remap xinset? [22 Aug 2017] */
 
 static int   nx ;     /* 3D grid stuff */
 static int   ny ;
@@ -337,11 +337,13 @@ ENTRY("get_options") ;
       verb++ ; nopt++ ; continue ;
     }
 
+#if 1
     /*----   -unmap    ----*/
 
     if( strcasecmp(argv[nopt],"-unmap") == 0 ){
       do_unmap++ ; nopt++ ; continue ;
     }
+#endif
 
 #ifdef ALLOW_EXTRAS
     /*----   -FOMcount   ----*/
@@ -948,8 +950,10 @@ int main( int argc , char *argv[] )
        " -prefix    something\n"
        " -verb      be more verbose\n"
        " -quiet     silentium est aureum\n"
+#if 0
        " -unmap     unmap data after clustering, remap before final steps;\n"
        "            can save some memory space, at the cost of some I/O time\n"
+#endif
 #if 0
        " -FOMcount  turn on FOMcount output\n"
        " -FARvox    turn on FARvox output\n"
@@ -1376,7 +1380,7 @@ int main( int argc , char *argv[] )
      } /* end of loop over dilation steps */
      if( verb > 1 )
        ININFO_message("     %d dilation loops; %d total cluster dilations :: Case %s pthr=%.5f",
-                      ndilstep+1,ndiltot,lcase[qcase],pthr[qpthr]) ;
+                      ndilstep,ndiltot,lcase[qcase],pthr[qpthr]) ;
     } /* end of loop over p-value thresh cluster collection */
    } /* end of loop over cases */
 

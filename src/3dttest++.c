@@ -4361,7 +4361,6 @@ LABELS_ARE_DONE:  /* target for goto above */
      char **tfname=NULL  , *bmd=NULL  , *qmd=NULL ;
      char   bprefix[1024], **clab=NULL, **cprefix=NULL ;
      int ncmin = (do_Xclustsim) ? 40000 : 10000 ;
-     int do_unmap = 0 ; /* 22 Aug 2017 */
 
      use_sdat = do_Xclustsim ||
                 ( name_mask != NULL && !AFNI_yesenv("AFNI_TTEST_NIICSIM") ) ;
@@ -4418,10 +4417,8 @@ INFO_message("cprefix[0] = %s",cprefix[0]) ;
          ININFO_message("--- there is %s (%s) bytes of memory on your system ---",
                         commaized_integer_string(nsysmem) ,
                         approximate_number_string((double)nsysmem) ) ;
-         if( (double)nsdat > 0.666f*(double)nsysmem ){
-           WARNING_message("--- runs may be slow (or crash) due to memory requirements :( ---") ;
-           do_unmap = 1 ;
-         }
+         if( (double)nsdat > 0.666f*(double)nsysmem )
+           WARNING_message("--- runs may be slow (or crash) due to memory needs :( ---") ;
        }
      }
 
@@ -4760,8 +4757,6 @@ INFO_message("cprefix[0] = %s",cprefix[0]) ;
          sprintf( cmd , "3dXClustSim -DAFNI_DONT_LOGFILE=YES"
                         " -DAFNI_XCLUSTSIM_FGOAL=%.2f%%"
                         " -prefix %s.%s.ETAC.nii" , fgoal , prefix_clustsim , nam ) ;
-         if( do_unmap )
-           sprintf( cmd+strlen(cmd) , " -unmap" ) ;
 
          sprintf( cmd+strlen(cmd) , " \\\n   ") ;
 
