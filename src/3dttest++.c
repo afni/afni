@@ -186,6 +186,7 @@ typedef struct {
 } Xclu_opt ;
 
 static int    do_Xclustsim = 0 ;    /* 30 Aug 2016 */
+static int    do_ETACmem   = 0 ;    /* 22 Aug 2017 */
 static int     nnopt_Xclu  = 0 ;
 static Xclu_opt **opt_Xclu = NULL ;
 static char *Xclu_arg      = NULL ; /* 10 Sep 2016 */
@@ -1353,6 +1354,15 @@ void display_help_menu(void)
       "                          to be used after the '-ETAC' option, or let the\n"
       "                          program figure out how many to use.\n"
       "\n"
+      " -ETAC_mem            = This option tells the program to print out the\n"
+      "                        estimate of how much memory is required by the ETAC\n"
+      "                        run ordered, and then stop.\n"
+      "                       ++ No data analysis of any kind will be performed.\n"
+      "                       ++ You have to give all the options (-setA, -ETAC, etc.)\n"
+      "                          that you would use to run the analysis.\n"
+      "                       ++ The purpose of this option is to help you choose\n"
+      "                          the computer setup for your run.\n"
+      "\n"
       " -ETAC_blur b1 b2 ... = This option says to use multiple levels of spatial\n"
       "                        blurring in the t-tests and ETAC analysis.\n"
       "                       ++ If you do NOT use -ETAC_blur, then no extra\n"
@@ -2301,6 +2311,12 @@ int main( int argc , char *argv[] )
        }
 
        continue ;
+     }
+
+     /*-----  -ETAC_mem [22 Aug 2017]  -----*/
+
+     if( strncasecmp(argv[nopt],"-ETAC_mem",10) == 0 ){
+       do_ETACmem = 1 ; nopt++ ; continue ;
      }
 
      /*-----  -Xclu_opt STUFF  [03 Sep 2016]  -----*/
@@ -3364,6 +3380,42 @@ int main( int argc , char *argv[] )
      }
    } /* end of polymorphic permute perturbations */
 
+   /*----- ETAC memory check [22 Aug 2017] -----*/
+
+   if( do_Xclustsim ){
+     int64_t nsdat , nsysmem ;
+     int ncsim , ncase , ncmin=40000 ;
+
+     ncsim = (int)AFNI_numenv("AFNI_TTEST_NUMCSIM") ;
+          if( ncsim <     1000 ) ncsim =  ncmin ;
+     else if( ncsim > 10000000 ) ncsim = 10000000 ;    /* that's a lot */
+
+     ncase = (Xclu_nblur == 0) ? 1 : Xclu_nblur ;
+
+     nsdat = (int64_t)(ncsim) * (int64_t)(ncase) * (int64_t)(nmask_hits) * 2 ;
+
+     INFO_message  ("=== ETAC memory requirements:") ;
+     ININFO_message("  = %s (%s) bytes of pseudo-data in temporary .sdat files." ,
+                   commaized_integer_string(nsdat) ,
+                   approximate_number_string((double)nsdat) ) ;
+     ININFO_message("  = It is best to store these files on a solid-state disk (SSD)") ;
+     ININFO_message("  = using the '-tempdir' option.") ;
+     nsysmem = AFNI_get_memsize() ;
+     if( nsysmem > 0 ){
+       ININFO_message("  = There are %s (%s) bytes of memory on your system.",
+                      commaized_integer_string(nsysmem) ,
+                      approximate_number_string((double)nsysmem) ) ;
+       if( (double)nsdat > 0.666f*(double)nsysmem )
+         ININFO_message("  = ETAC runs may be slow (or crash) due to memory requirements :(") ;
+     }
+     if( do_ETACmem ){
+       ININFO_message("=== 3dttest++ ends: -ETAC_mem option was used.") ;
+       exit(0) ;
+     }
+   }
+
+   /*----- end ETAC memory check -----*/
+
 #ifdef ALLOW_RANK
    if( do_ranks && !twosam ){
      WARNING_message("-rankize only works with two-sample tests ==> ignoring") ;
@@ -4309,6 +4361,7 @@ LABELS_ARE_DONE:  /* target for goto above */
      char **tfname=NULL  , *bmd=NULL  , *qmd=NULL ;
      char   bprefix[1024], **clab=NULL, **cprefix=NULL ;
      int ncmin = (do_Xclustsim) ? 40000 : 10000 ;
+     int do_unmap = 0 ; /* 22 Aug 2017 */
 
      use_sdat = do_Xclustsim ||
                 ( name_mask != NULL && !AFNI_yesenv("AFNI_TTEST_NIICSIM") ) ;
@@ -4365,8 +4418,10 @@ INFO_message("cprefix[0] = %s",cprefix[0]) ;
          ININFO_message("--- there is %s (%s) bytes of memory on your system ---",
                         commaized_integer_string(nsysmem) ,
                         approximate_number_string((double)nsysmem) ) ;
-         if( (double)nsdat > 0.888f*(double)nsysmem )
+         if( (double)nsdat > 0.666f*(double)nsysmem ){
            WARNING_message("--- runs may be slow (or crash) due to memory requirements :( ---") ;
+           do_unmap = 1 ;
+         }
        }
      }
 
@@ -4705,6 +4760,9 @@ INFO_message("cprefix[0] = %s",cprefix[0]) ;
          sprintf( cmd , "3dXClustSim -DAFNI_DONT_LOGFILE=YES"
                         " -DAFNI_XCLUSTSIM_FGOAL=%.2f%%"
                         " -prefix %s.%s.ETAC.nii" , fgoal , prefix_clustsim , nam ) ;
+         if( do_unmap )
+           sprintf( cmd+strlen(cmd) , " -unmap" ) ;
+
          sprintf( cmd+strlen(cmd) , " \\\n   ") ;
 
          if( Xclu_nblur > 0 ){
