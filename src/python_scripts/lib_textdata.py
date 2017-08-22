@@ -171,11 +171,12 @@ def read_married_file(filename, nlines = -1, verb = 1):
         lnum += 1
 
     # now just check for consistency
-    if not married_mat_is_consistent(retmat, filename): return None, None, None
+    if not married_mat_is_consistent(retmat, filename, verb=verb):
+       return None, None, None
 
     return retmat, clines, astcounts
 
-def married_mat_is_consistent(mmat, fname):
+def married_mat_is_consistent(mmat, fname, verb=1):
     """just check for consistency: same number of modulators and
                                    if one duration, all have one
     """
@@ -193,17 +194,21 @@ def married_mat_is_consistent(mmat, fname):
          line = mmat[lind]
          for entry in line:
             if len(entry[1]) != modlen:
-               print "** married file %s, line %d: inconsistent num modulators"\
-                     ": %d vs %d" % (fname, lind, modlen, len(entry[1]))
+               if verb:
+                  print "** married file %s, line %d: inconsistent num" \
+                        " modulators: %d vs %d"                         \
+                        % (fname, lind, modlen, len(entry[1]))
                return 0
             if moddur and entry[2]<=0:
-               print "** married file %s, line %d:"                  \
-                     " inconsistent use of duration: dur (%g) <= 0"  \
-                     % (fname, lind, entry[2])
+               if verb:
+                  print "** married file %s, line %d:"                  \
+                        " inconsistent use of duration: dur (%g) <= 0"  \
+                        % (fname, lind, entry[2])
             if not moddur and entry[2]>0:
-               print "** married file %s, line %d:"                   \
-                     " inconsistent use of duration: should be zero"  \
-                     % (fname, lind)
+               if verb:
+                  print "** married file %s, line %d:"                   \
+                        " inconsistent use of duration: should be zero"  \
+                        % (fname, lind)
                return 0
 
     return 1 # yay
