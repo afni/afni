@@ -53,7 +53,7 @@ static int *ijk_to_vec=NULL ;
 
 static Xdataset *xinset=NULL ;  /* global struct of input dataset(s) */
 
-static int do_unmap = 0 ;       /* unmap/remap xinset? [22 Aug 2017] */
+static int do_unmap = 1 ;       /* unmap/remap xinset? [22 Aug 2017] */
 
 static int   nx ;     /* 3D grid stuff */
 static int   ny ;
@@ -337,11 +337,13 @@ ENTRY("get_options") ;
       verb++ ; nopt++ ; continue ;
     }
 
+#if 1
     /*----   -unmap    ----*/
 
     if( strcasecmp(argv[nopt],"-unmap") == 0 ){
       do_unmap++ ; nopt++ ; continue ;
     }
+#endif
 
 #ifdef ALLOW_EXTRAS
     /*----   -FOMcount   ----*/
@@ -948,8 +950,10 @@ int main( int argc , char *argv[] )
        " -prefix    something\n"
        " -verb      be more verbose\n"
        " -quiet     silentium est aureum\n"
+#if 0
        " -unmap     unmap data after clustering, remap before final steps;\n"
        "            can save some memory space, at the cost of some I/O time\n"
+#endif
 #if 0
        " -FOMcount  turn on FOMcount output\n"
        " -FARvox    turn on FARvox output\n"
