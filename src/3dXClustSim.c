@@ -1376,7 +1376,7 @@ int main( int argc , char *argv[] )
      } /* end of loop over dilation steps */
      if( verb > 1 )
        ININFO_message("     %d dilation loops; %d total cluster dilations :: Case %s pthr=%.5f",
-                      ndilstep+1,ndiltot,lcase[qcase],pthr[qpthr]) ;
+                      ndilstep,ndiltot,lcase[qcase],pthr[qpthr]) ;
     } /* end of loop over p-value thresh cluster collection */
    } /* end of loop over cases */
 
