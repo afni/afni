@@ -1248,15 +1248,19 @@ class Afni1D:
                                           self.nruns, self.tr, invert)
       if err: return 1
 
-      try: fp = open(fname, 'r')
-      except:
-         print "** failed to open file '%s'" % fname
-         err = 1
+      if fname == '-' or fname == 'stdout':
+         fp = sys.stdout
+      else:
+         try: fp = open(fname, 'r')
+         except:
+            print "** failed to open file '%s'" % fname
+            err = 1
 
-      if err: return 1
+         if err: return 1
 
       fp.write(tstr)
-      fp.close()
+      if fp != sys.stdout:
+         fp.close()
 
       return 0
 
@@ -2800,7 +2804,7 @@ class AfniData(object):
       for rind in range(self.nrows):
          for eind in range(len(self.data[rind])):
              dur = newdata.mdata[rind][eind][0] - self.mdata[rind][eind][0]
-             if dur < 0:
+             if dur < 0 and self.verb:
                 print '** end_times as durs: have negative duration %f' % dur
              self.mdata[rind][eind][2] = dur
 
@@ -3131,16 +3135,21 @@ class AfniData(object):
 
       if fname == '': fname = self.fname
 
-      fp = open(fname, 'w')
-      if not fp:
-         print "** failed to open '%s' for writing Mtiming" % fname
-         return 1
+      if fname == '-' or fname == 'stdout':
+         fp = sys.stdout
+      else:
+         fp = open(fname, 'w')
+         if not fp:
+            print "** failed to open '%s' for writing Mtiming" % fname
+            return 1
 
       if self.verb > 0:
          print "++ writing %d MTiming rows to %s" % (self.nrows, fname)
 
       fp.write(self.make_data_string(nplaces=nplaces, flag_empty=1))
-      fp.close()
+
+      if fp != sys.stdout:
+         fp.close()
 
       return 0
 
