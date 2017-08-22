@@ -197,12 +197,12 @@ def married_mat_is_consistent(mmat, fname):
                      ": %d vs %d" % (fname, lind, modlen, len(entry[1]))
                return 0
             if moddur and entry[2]<=0:
-               print "** married file %s, line %d:"                   \
-                     " inconsistent use of duration: zero duration"  \
-                     % (fname, lind)
+               print "** married file %s, line %d:"                  \
+                     " inconsistent use of duration: dur (%g) <= 0"  \
+                     % (fname, lind, entry[2])
             if not moddur and entry[2]>0:
                print "** married file %s, line %d:"                   \
-                     " inconsistent use of duration: should be zero" \
+                     " inconsistent use of duration: should be zero"  \
                      % (fname, lind)
                return 0
 
