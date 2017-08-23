@@ -49,13 +49,18 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22, Aug, 2017, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
+   "add -apply_end_times_as_durations and -show_duration_stats",
+   "For B Benson and P Vidal-Ribas."
+ } ,
+
  { 18, Aug, 2017, RCR, "3dTto1D", MICRO, TYPE_MODIFY,
    "modify help",
    NULL
  } ,
 
  { 17, Aug, 2017, RCR, "3dcalc", MICRO, TYPE_MODIFY,
-   "fixed typos in help for minabove, maxbelow, acfwxm",
+   "fix typos in help for minabove, maxbelow, acfwxm",
    "Thanks to A Wong for noting the minabove and maxbelow typos."
  } ,
 
