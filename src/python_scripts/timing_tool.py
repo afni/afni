@@ -156,7 +156,7 @@ examples:
       Here, 11.83 would get truncated down to 10, the largest multiple of 2.5
       less than or equal to the original time.
 
-    Example 7b. Instead of just truncating the times, round them to the nearest
+   Example 7b. Instead of just truncating the times, round them to the nearest
       TR, based on some TR fraction.  In this example, round up to the next TR
       when a stimulus occurs at least 70% into a TR, otherwise round down to
       the beginning.
@@ -433,6 +433,7 @@ action options (apply to single timing element, only):
         be just after the corresponding INPUT time.
 
             Consider '-write_timing' and '-show_duration_stats'.
+            Consider example 16.
 
    -add_rows NEW_FILE           : append these timing rows to main element
 
