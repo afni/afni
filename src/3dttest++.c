@@ -185,6 +185,11 @@ typedef struct {
   char name[32] ;
 } Xclu_opt ;
 
+/* lines directly below copied from 3dXClustSim.c:
+   only change these if you change them there as well! */
+#define NFARP 8
+static float farplist[NFARP] = { 2.f, 3.f, 4.f, 5.f, 6.f, 7.f, 8.f, 9.f } ;
+
 static int    do_Xclustsim = 0 ;    /* 30 Aug 2016 */
 static int    do_ETACmem   = 0 ;    /* 22 Aug 2017 */
 static int     nnopt_Xclu  = 0 ;
@@ -1391,7 +1396,10 @@ void display_help_menu(void)
       "                    sid=1 or sid=2       } 1-sided or 2-sided t-tests\n"
       "                    pthr=p1,p2,...       } list of p-values to use\n"
       "                    hpow=h1,h2,...       } list of H powers to use\n"
-      "                    fpr=value            } FPR goal, between 2 and 10 (percent)\n"
+      "                    fpr=value            } FPR goal, between 2 and 9 (percent)\n"
+      "                                         } - must be an integer\n"
+      "                                         } - or the word 'ALL' to output\n"
+      "                                         }   results for 2, 3, 4, ..., 9.\n"
       "                    name=Something       } a label to distinguish this case\n"
       "                        For example:\n"
       "             -ETAC_opt NN=2:sid=2:hpow=0,2:pthr=0.01,0.005,0.002,0.01:name=Fred\n"
@@ -1417,7 +1425,7 @@ void display_help_menu(void)
       "                            pthr=0.01,0.0056,0.0031,0.0018,0.0010\n"
       "                                =0.01 * 0.1^(i/4) for i=0..4\n"
       "                                =geometrically distributed from 0.001 to 0.01\n"
-      "                            fpr=5.0\n"
+      "                            fpr=5\n"
       "\n"
       " -ETAC_arg something  = This option is used to pass extra options to the\n"
       "                        3dXClustSim program (which is what implements ETAC).\n"
@@ -1439,11 +1447,15 @@ void display_help_menu(void)
       "sided-ness of the t-tests specified in '-ETAC_opt'. In the filenames below,\n"
       "'P' refers to '-prefix_clustsim' and 'N' refers to 'name' (in -ETAC_opt):\n"
       "\n"
-      "  For sid=2 (2-sided t-test thresholding): P.N.ETACmask.2sid.nii.gz\n"
+      "  For sid=2 (2-sided t-test thresholding): P.N.ETACmask.2sid.5perc.nii.gz\n"
       "\n"
-      "  For sid=1 (1-sided t-test thresholding): P.N.ETACmask.1pos.nii.gz\n"
-      "                                           P.N.ETACmask.1neg.nii.gz\n"
+      "  For sid=1 (1-sided t-test thresholding): P.N.ETACmask.1pos.5perc.nii.gz\n"
+      "                                           P.N.ETACmask.1neg.5perc.nii.gz\n"
       "        (for 1-sided positive and 1-sided negative thresholds, respectively)\n"
+      "\n"
+      "In the ETACmask filenames above, the '5perc' refers to the 5%% FPR goal.\n"
+      "If you use a different FPR goal (in '-ETAC_opt'), this part of the filename\n"
+      "will change to match the new FPR goal.\n"
       "\n"
       "*** WARNING: ETAC consumes a lot of CPU time, and a lot of memory ***\n"
       "***         (especially if many -ETAC_blur cases are used)!       ***\n"
@@ -2426,15 +2438,20 @@ int main( int argc , char *argv[] )
 
        cpt = strcasestr(acp,"fpr=") ;   /* 14 Jun 2017 */
        if( cpt != NULL ){
-         float fgoal = (float)strtod(cpt+4,NULL) ;
-         if( fgoal < 2.0f ){
-           WARNING_message("fpr=%.4f%% too small in -ETAC_opt name=%s: setting fpr=2",
-                           opx->name,fgoal) ;
-           fgoal = 2.0f ;
-         } else if( fgoal > 10.0f ){
-           WARNING_message("fpr=%.4f%% too large in -ETAC_opt name=%s: setting fpr=10",
-                           opx->name,fgoal) ;
-           fgoal = 10.0f ;
+         float fgoal ;
+         if( strncasecmp(cpt+4,"ALL",3) == 0 ){  /* 23 Aug 2017 */
+           fgoal = -666.0f ;
+         } else {
+           fgoal = (float)rint(strtod(cpt+4,NULL)) ;
+           if( fgoal < 2.0f ){
+             WARNING_message("fpr=%.1f%% too small in -ETAC_opt name=%s: setting fpr=2",
+                             opx->name,fgoal) ;
+             fgoal = 2.0f ;
+           } else if( fgoal > 9.0f ){
+             WARNING_message("fpr=%.9f%% too large in -ETAC_opt name=%s: setting fpr=9",
+                             opx->name,fgoal) ;
+             fgoal = 9.0f ;
+           }
          }
          opx->farp_goal = fgoal ;
        }
@@ -4635,10 +4652,7 @@ INFO_message("cprefix[0] = %s",cprefix[0]) ;
              for( pp=0 ; pp < nall ; pp++ ) allar[pp] = fabsf(allar[pp]) ;
              qsort_float_rev(nall,allar) ;  /* decreasing order */
 
-             if( clab[icase][0] == '\0' )
-               sprintf(fname,"%s.5percent.txt",prefix_clustsim) ;
-             else
-               sprintf(fname,"%s.%s.5percent.txt",prefix_clustsim,clab[icase]) ;
+             sprintf(fname,"%s.%s.5percent.txt",prefix_clustsim,clab[icase]) ;
              fp = fopen(fname,"w") ;
              INFO_message("Global %% FPR points for simulated z-stats:") ;
 
@@ -4735,6 +4749,7 @@ INFO_message("cprefix[0] = %s",cprefix[0]) ;
        int ixx , nxx=MAX(nnopt_Xclu,1) ; Xclu_opt *opx ;
        int nnlev, sid, npthr ; float *pthr ; char *nam ;
        int do_hpow0, do_hpow1, do_hpow2 ; float fgoal ;
+       int numfarp=1 ; float *flist=NULL ;
 
        for( ixx=0 ; ixx < nxx ; ixx++ ){   /* loop over -Xclu_opt cases */
          if( ixx < nnopt_Xclu ){   /* and run 3dXClustSim once for each */
@@ -4755,8 +4770,17 @@ INFO_message("cprefix[0] = %s",cprefix[0]) ;
          }
 
          sprintf( cmd , "3dXClustSim -DAFNI_DONT_LOGFILE=YES"
-                        " -DAFNI_XCLUSTSIM_FGOAL=%.2f%%"
-                        " -prefix %s.%s.ETAC.nii" , fgoal , prefix_clustsim , nam ) ;
+                        " -prefix %s.%s.ETAC.nii" , prefix_clustsim , nam ) ;
+
+         if( fgoal > 0.0f ){
+           sprintf( cmd+strlen(cmd) , " -FPR %.1f" , fgoal ) ;
+           numfarp = 1 ;
+           flist   = &fgoal ;
+         } else {
+           sprintf( cmd+strlen(cmd) , " -multiFPR" ) ;
+           numfarp = NFARP ;
+           flist   = farplist ;
+         }
 
          sprintf( cmd+strlen(cmd) , " \\\n   ") ;
 
@@ -4805,82 +4829,67 @@ INFO_message("cprefix[0] = %s",cprefix[0]) ;
            ININFO_message("===== starting 3dXClustSim : elapsed = %.1f s =====",
                           COX_clock_time() ) ;
 #endif
-           system(cmd) ;  /* run 3dXClustSim here */
+                          /*----------------------------------------------------*/
+           system(cmd) ;  /*----- run 3dXClustSim here (will take a while) -----*/
+                          /*----------------------------------------------------*/
 
            if( ncase >= 1 ){ /* use 3dXClustSim results to make a union mask */
-             if( sid == 2 ){
-               INFO_message("--- merging %d blur cases to make 2-sided activation mask ---",ncase) ;
-               for( icase=0 ; icase < ncase ; icase++ ){
-                 sprintf( cmd , "3dMultiThresh -quiet -input %s -1tindex 1 -maskonly \\\n   " ,
-                                cprefix[icase] ) ;
-                 if( clab[icase][0] != '\0' ){
+             int ifarp , farp ; char sfarp[8] ;
+             for( ifarp=0 ; ifarp < numfarp ; ifarp++ ){ /* loop over FPR goals [23 Aug 2017] */
+               farp = (int)rintf(flist[ifarp]) ;
+               sprintf(sfarp,"%dperc",farp) ;
+               if( sid == 2 ){
+                 INFO_message("--- merging %d blur cases to make 2-sided activation mask ---",ncase) ;
+                 for( icase=0 ; icase < ncase ; icase++ ){ /* make masks for each blur case */
+                   sprintf( cmd , "3dMultiThresh -quiet -input %s -1tindex 1 -maskonly \\\n   " ,
+                                  cprefix[icase] ) ;
                    sprintf( cmd+strlen(cmd) , " -prefix %s.ETACtmask.%s.nii" ,
-                                            prefix_clustsim , clab[icase] ) ;
-                   sprintf( cmd+strlen(cmd) , " -mthresh %s.%s.ETAC.mthresh.%s.nii" ,
-                                              prefix_clustsim , nam , clab[icase] ) ;
-                 } else {
-                   sprintf( cmd+strlen(cmd) , " -prefix %s.ETACtmask.nii" ,
-                                            prefix_clustsim ) ;
-                   sprintf( cmd+strlen(cmd) , " -mthresh %s.%s.ETAC.mthresh.nii" ,
-                                              prefix_clustsim , nam ) ;
+                                              prefix_clustsim , clab[icase] ) ;
+                   sprintf( cmd+strlen(cmd) , " -mthresh %s.%s.ETAC.mthresh.%s.%s.nii" ,
+                                              prefix_clustsim , nam , clab[icase],sfarp ) ;
+                   system(cmd) ;
                  }
+                 sprintf( cmd ,  /* combine the masks */
+                          "3dmask_tool -input %s.ETACtmask.*.nii -union -prefix %s.%s.ETACmask.2sid.%s.nii.gz" ,
+                          prefix_clustsim , prefix_clustsim , nam , sfarp ) ;
                  system(cmd) ;
-               }
-               sprintf( cmd ,
-                        "3dmask_tool -input %s.ETACtmask.*.nii -union -prefix %s.%s.ETACmask.2sid.nii.gz" ,
-                              prefix_clustsim , prefix_clustsim , nam ) ;
-               system(cmd) ;
-             } else {
-               INFO_message("--- merging %d blur cases to make pos 1-sided activation mask ---",ncase) ;
-               for( icase=0 ; icase < ncase ; icase++ ){
-                 sprintf( cmd , "3dMultiThresh -quiet -input %s -1tindex 1 -maskonly -pos \\\n   " ,
-                                cprefix[icase] ) ;
-                 if( clab[icase][0] != '\0' ){
+               } else {
+                 INFO_message("--- merging %d blur cases to make pos 1-sided activation mask ---",ncase) ;
+                 for( icase=0 ; icase < ncase ; icase++ ){
+                   sprintf( cmd , "3dMultiThresh -quiet -input %s -1tindex 1 -maskonly -pos \\\n   " ,
+                                  cprefix[icase] ) ;
                    sprintf( cmd+strlen(cmd) , " -prefix %s.ETACtmask.1pos.%s.nii" ,
                                               prefix_clustsim , clab[icase] ) ;
-                   sprintf( cmd+strlen(cmd) , " -mthresh %s.%s.ETAC.mthresh.%s.nii" ,
-                                              prefix_clustsim , nam , clab[icase] ) ;
-                 } else {
-                   sprintf( cmd+strlen(cmd) , " -prefix %s.ETACtmask.1pos.nii" ,
-                                              prefix_clustsim ) ;
-                   sprintf( cmd+strlen(cmd) , " -mthresh %s.%s.ETAC.mthresh.nii" ,
-                                              prefix_clustsim , nam ) ;
+                   sprintf( cmd+strlen(cmd) , " -mthresh %s.%s.ETAC.mthresh.%s.%s.nii" ,
+                                              prefix_clustsim , nam , clab[icase],sfarp ) ;
+                   system(cmd) ;
                  }
+                 sprintf( cmd ,
+                          "3dmask_tool -input %s.ETACtmask.1pos.*.nii -union -prefix %s.%s.ETACmask.1pos.%s.nii.gz" ,
+                          prefix_clustsim , prefix_clustsim , nam , sfarp ) ;
                  system(cmd) ;
-               }
-               sprintf( cmd ,
-                        "3dmask_tool -input %s.ETACtmask.1pos.*.nii -union -prefix %s.%s.ETACmask.1pos.nii.gz" ,
-                              prefix_clustsim , prefix_clustsim , nam ) ;
-               system(cmd) ;
-               INFO_message("--- merging %d blur cases to make neg 1-sided activation mask ---",ncase) ;
-               for( icase=0 ; icase < ncase ; icase++ ){
-                 sprintf( cmd , "3dMultiThresh -quiet -input %s -1tindex 1 -maskonly -neg \\\n   " ,
-                                cprefix[icase] ) ;
-                 if( clab[icase][0] != '\0' ){
+                 INFO_message("--- merging %d blur cases to make neg 1-sided activation mask ---",ncase) ;
+                 for( icase=0 ; icase < ncase ; icase++ ){
+                   sprintf( cmd , "3dMultiThresh -quiet -input %s -1tindex 1 -maskonly -neg \\\n   " ,
+                                  cprefix[icase] ) ;
                    sprintf( cmd+strlen(cmd) , " -prefix %s.ETACtmask.1neg.%s.nii" ,
                                               prefix_clustsim , clab[icase] ) ;
-                   sprintf( cmd+strlen(cmd) , " -mthresh %s.%s.ETAC.mthresh.%s.nii" ,
-                                              prefix_clustsim , nam , clab[icase] ) ;
-                 } else {
-                   sprintf( cmd+strlen(cmd) , " -prefix %s.ETACtmask.1neg.nii" ,
-                                              prefix_clustsim ) ;
-                   sprintf( cmd+strlen(cmd) , " -mthresh %s.%s.ETAC.mthresh.nii" ,
-                                              prefix_clustsim , nam ) ;
+                   sprintf( cmd+strlen(cmd) , " -mthresh %s.%s.ETAC.mthresh.%s.%s.nii" ,
+                                              prefix_clustsim , nam , clab[icase],sfarp ) ;
+                   system(cmd) ;
                  }
+                 sprintf( cmd ,
+                          "3dmask_tool -input %s.ETACtmask.1neg.*.nii -union -prefix %s.%s.ETACmask.1neg.%s.nii.gz" ,
+                                prefix_clustsim , prefix_clustsim , nam , sfarp ) ;
                  system(cmd) ;
                }
-               sprintf( cmd ,
-                        "3dmask_tool -input %s.ETACtmask.1neg.*.nii -union -prefix %s.%s.ETACmask.1neg.nii.gz" ,
-                              prefix_clustsim , prefix_clustsim , nam ) ;
-               system(cmd) ;
-             }
-             sprintf( cmd , "\\rm %s.ETACtmask.*.nii" , prefix_clustsim ) ;
-             system(cmd) ;
+               sprintf( cmd , "\\rm %s.ETACtmask.*.nii" , prefix_clustsim ) ; system(cmd) ;
+             } /* end of loop over farp goals */
            } /* end of multi-blur mask making */
          } /* not dryrun */
        }  /* loop over 3dXClustSim (-Xclu_opt) cases to run */
 
-     } /* end 3dXClustSim runs */
+     } /*--- end 3dXClustSim runs ---*/
 
      /* remove intermediate files */
 
