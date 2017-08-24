@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 24, Aug , 2017 , PT , "@GradFlipTest" , MINOR , TYPE_MODIFY,
+   "The file storing the flip recommendation will *overwrite* a previous one.",
+   "Previous version of this would *append to*, which seems pointless.\n"
+},
+
 { 17, Aug , 2017 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
    "Some new labelling, etc. optioning.",
    "Make some new labels, locationing based on XYZ and more.\n"
