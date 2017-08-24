@@ -1402,12 +1402,14 @@ typedef struct { int nar ; double *ar , dx,x0 ; } doublevec ;
   do{ (fv) = (floatvec *)malloc(sizeof(floatvec)) ;     \
       (fv)->nar = (n) ; (fv)->dx=1.0f; (fv)->x0=0.0f;   \
       (fv)->ar  = (float *)calloc(sizeof(float),(n)) ;  \
+      if( (fv)->ar == NULL ) fprintf(stderr,"** ERROR: MAKE_floatvec malloc fails\n"); \
   } while(0)
 
 #define MAKE_doublevec(dv,n)                              \
   do{ (dv) = (doublevec *)malloc(sizeof(doublevec)) ;     \
       (dv)->nar = (n) ; (dv)->dx=1.0; (dv)->x0=0.0;       \
       (dv)->ar  = (double *)calloc(sizeof(double),(n)) ;  \
+      if( (dv)->ar == NULL ) fprintf(stderr,"** ERROR: MAKE_doublevec malloc fails\n"); \
   } while(0)
 
 #define COPY_floatvec(ev,fv)                          \
@@ -1420,6 +1422,7 @@ typedef struct { int nar ; double *ar , dx,x0 ; } doublevec ;
   do{ if( (fv)->nar != (m) ){                                     \
         (fv)->nar = (m) ;                                         \
         (fv)->ar  = (float *)realloc((fv)->ar,sizeof(float)*(m)); \
+        if( (fv)->ar == NULL ) fprintf(stderr,"** ERROR: RESIZE_floatvec malloc fails\n"); \
   }} while(0)
 
 extern float  interp_floatvec ( floatvec  *fv , float  x ) ;
@@ -1445,12 +1448,14 @@ typedef struct { int nvec ; intvec *ivar ; } intvecvec ;
   do{ (iv) = (intvec *)malloc(sizeof(intvec)) ;     \
       (iv)->nar = (n) ;                             \
       (iv)->ar  = (int *)calloc(sizeof(int),(n)) ;  \
+      if( (iv)->ar == NULL ) fprintf(stderr,"** ERROR: MAKE_intvec malloc fails\n"); \
   } while(0)
 
 #define RESIZE_intvec(iv,m)                                   \
   do{ if( (iv)->nar != (m) ){                                 \
         (iv)->nar = (m) ;                                     \
         (iv)->ar  = (int *)realloc((iv)->ar,sizeof(int)*(m)); \
+        if( (iv)->ar == NULL ) fprintf(stderr,"** ERROR: RESIZE_intvec malloc fails\n"); \
   }} while(0)
 
 #define APPEND_intvec(iv,jv)                                   \
@@ -1473,6 +1478,7 @@ typedef struct { int nar ; int64_t *ar ; } int64vec ;
   do{ (iv) = (int64vec *)malloc(sizeof(int64vec)) ;        \
       (iv)->nar = (n) ;                                    \
       (iv)->ar  = (int64_t *)calloc(sizeof(int64_t),(n)) ; \
+      if( (iv)->ar == NULL ) fprintf(stderr,"** ERROR: MAKE_int64vec malloc fails\n"); \
   } while(0)
 
 /*----------*/
@@ -1488,12 +1494,14 @@ typedef struct { int nar ; short *ar ; } shortvec ;
   do{ (iv) = (shortvec *)malloc(sizeof(shortvec)) ;   \
       (iv)->nar = (n) ;                                \
       (iv)->ar  = (short *)calloc(sizeof(short),(n)) ;  \
+      if( (iv)->ar == NULL ) fprintf(stderr,"** ERROR: MAKE_shortvec malloc fails\n"); \
   } while(0)
 
 #define RESIZE_shortvec(iv,m)                                  \
   do{ if( (iv)->nar != (m) ){                                   \
         (iv)->nar = (m) ;                                        \
         (iv)->ar  = (short *)realloc((iv)->ar,sizeof(short)*(m)); \
+        if( (iv)->ar == NULL ) fprintf(stderr,"** ERROR: RESIZE_shortvec malloc fails\n"); \
   }} while(0)
 
 /*----------*/
@@ -1510,12 +1518,14 @@ typedef struct { int nar ; byte *ar ; } bytevec ;
   do{ (iv) = (bytevec *)malloc(sizeof(bytevec)) ;   \
       (iv)->nar = (n) ;                              \
       (iv)->ar  = (byte *)calloc(sizeof(byte),(n)) ;  \
+      if( (iv)->ar == NULL ) fprintf(stderr,"** ERROR: MAKE_bytevec malloc fails\n"); \
   } while(0)
 
 #define RESIZE_bytevec(iv,m)                                 \
   do{ if( (iv)->nar != (m) ){                                 \
         (iv)->nar = (m) ;                                      \
         (iv)->ar  = (byte *)realloc((iv)->ar,sizeof(byte)*(m)); \
+        if( (iv)->ar == NULL ) fprintf(stderr,"** ERROR: RESIZE_bytevec malloc fails\n"); \
   }} while(0)
 
 /*----------*/
