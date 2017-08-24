@@ -4446,7 +4446,7 @@ INFO_message("cprefix[0] = %s",cprefix[0]) ;
        if( bmd != NULL ){
          sprintf( fname , "B%.1f" , cblur ) ;
          clab[icase] = strdup(fname) ;
-         INFO_message("------ start simulations for blur case %.1f (%s) : elapsed = %.1f s ------",
+         INFO_message("3dttest++ ------ start simulations for blur case %.1f (%s) : elapsed = %.1f s",
                       cblur , fname , COX_clock_time() ) ;
        } else {
          clab[icase] = strdup("A") ;
@@ -4619,7 +4619,7 @@ INFO_message("cprefix[0] = %s",cprefix[0]) ;
      NI_sleep(1) ;
      ct2 = COX_clock_time() ;
      if( !dryrun )
-       ININFO_message("===== simulation jobs have finished (%.1f s elapsed) =====",ct2-ct1) ;
+       ININFO_message("3dttest++ ===== simulation jobs have finished (%.1f s elapsed)",ct2-ct1) ;
      ct1 = ct2 ;
 
      /* read in the *.minmax.1D files from the above [16 Mar 2017],
@@ -4654,7 +4654,7 @@ INFO_message("cprefix[0] = %s",cprefix[0]) ;
 
              sprintf(fname,"%s.%s.5percent.txt",prefix_clustsim,clab[icase]) ;
              fp = fopen(fname,"w") ;
-             INFO_message("Global %% FPR points for simulated z-stats:") ;
+             INFO_message("3dttest++ ----- Global %% FPR points for simulated z-stats:") ;
 
              for( ipp=9 ; ipp > 0 ; ipp-- ){
                n05 = (int)rintf(0.01f*ipp*nall) ;
@@ -4709,12 +4709,8 @@ INFO_message("cprefix[0] = %s",cprefix[0]) ;
          if( dryrun ){
            ININFO_message("3dClustSim command:\n  %s",cmd) ;
          } else {
-#if 0
-           ININFO_message("===== starting 3dClustSim =====\n   %s",cmd) ;
-#else
-           ININFO_message("===== starting 3dClustSim %s: elapsed = %.1f s =====",
+           ININFO_message("3dttest++ ===== starting 3dClustSim %s: elapsed = %.1f s",
                           clab[icase] , COX_clock_time() ) ;
-#endif
            system(cmd) ;
 
            /* load the 3drefit command from 3dClustSim */
@@ -4823,12 +4819,8 @@ INFO_message("cprefix[0] = %s",cprefix[0]) ;
            ININFO_message("3dXClustSim command:\n   %s",cmd) ;
            ININFO_message("(would be followed by 3dMultiThresh and 3dmask_tool commands)") ;
          } else {
-#if 0
-           ININFO_message("===== starting 3dXClustSim =====\n   %s",cmd) ;
-#else
-           ININFO_message("===== starting 3dXClustSim : elapsed = %.1f s =====",
+           ININFO_message("3dttest++ ===== starting 3dXClustSim : elapsed = %.1f s",
                           COX_clock_time() ) ;
-#endif
                           /*----------------------------------------------------*/
            system(cmd) ;  /*----- run 3dXClustSim here (will take a while) -----*/
                           /*----------------------------------------------------*/
@@ -4839,7 +4831,7 @@ INFO_message("cprefix[0] = %s",cprefix[0]) ;
                farp = (int)rintf(flist[ifarp]) ;
                sprintf(sfarp,"%dperc",farp) ;
                if( sid == 2 ){
-                 INFO_message("--- merging %d blur cases to make 2-sided activation mask ---",ncase) ;
+                 INFO_message("3dttest++ ----- merging %d blur cases to make 2-sided activation mask",ncase) ;
                  for( icase=0 ; icase < ncase ; icase++ ){ /* make masks for each blur case */
                    sprintf( cmd , "3dMultiThresh -quiet -input %s -1tindex 1 -maskonly \\\n   " ,
                                   cprefix[icase] ) ;
@@ -4854,7 +4846,7 @@ INFO_message("cprefix[0] = %s",cprefix[0]) ;
                           prefix_clustsim , prefix_clustsim , nam , sfarp ) ;
                  system(cmd) ;
                } else {
-                 INFO_message("--- merging %d blur cases to make pos 1-sided activation mask ---",ncase) ;
+                 INFO_message("3dttest++ ----- merging %d blur cases to make pos 1-sided activation mask",ncase) ;
                  for( icase=0 ; icase < ncase ; icase++ ){
                    sprintf( cmd , "3dMultiThresh -quiet -input %s -1tindex 1 -maskonly -pos \\\n   " ,
                                   cprefix[icase] ) ;
@@ -4868,7 +4860,7 @@ INFO_message("cprefix[0] = %s",cprefix[0]) ;
                           "3dmask_tool -input %s.ETACtmask.1pos.*.nii -union -prefix %s.%s.ETACmask.1pos.%s.nii.gz" ,
                           prefix_clustsim , prefix_clustsim , nam , sfarp ) ;
                  system(cmd) ;
-                 INFO_message("--- merging %d blur cases to make neg 1-sided activation mask ---",ncase) ;
+                 INFO_message("3dttest++ ----- merging %d blur cases to make neg 1-sided activation mask",ncase) ;
                  for( icase=0 ; icase < ncase ; icase++ ){
                    sprintf( cmd , "3dMultiThresh -quiet -input %s -1tindex 1 -maskonly -neg \\\n   " ,
                                   cprefix[icase] ) ;
@@ -4909,7 +4901,7 @@ INFO_message("cprefix[0] = %s",cprefix[0]) ;
        if( dryrun ){
          INFO_message("file cleanup command:\n  %s",cmd) ;
        } else {
-         INFO_message("Cleaning up intermediate files:") ;
+         INFO_message("3dttest++ ----- Cleaning up intermediate files:") ;
          system(cmd) ;
        }
      }
@@ -4921,7 +4913,7 @@ INFO_message("cprefix[0] = %s",cprefix[0]) ;
      for( pp=0 ; pp < num_clustsim ; pp++ ) free(tfname[pp]) ;
      free(tfname) ;
 #endif
-     ININFO_message("=============== %s work is finished :) ===============",clustsim_opt) ;
+     ININFO_message("3dttest++ =============== %s work is finished :) ===============",clustsim_opt) ;
 
    } /*--------------------- end of Cluster Simulation ----------------------*/
 

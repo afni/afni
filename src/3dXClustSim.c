@@ -157,6 +157,8 @@ static float farplist[NFARP] = { 2.f, 3.f, 4.f, 5.f, 6.f, 7.f, 8.f, 9.f } ;
 static int do_multifarp = 0 ;
 static int numfarp = 1 ;
 
+static char *abcd[NFARP]     = { "a", "b", "c", "d", "e", "f", "g", "h" } ;
+
 #define FG_GOAL  (farp_goal*fgfac)
 #define MAXITE   13
 
@@ -1688,7 +1690,8 @@ int main( int argc , char *argv[] )
      farp_goal = farplist[ifarp] ;
 
      if( verb )
-       INFO_message("STEP 4: adjusting per-voxel FOM thresholds to reach FPR=%.2f%%",farp_goal) ;
+       INFO_message("STEP 4%s: adjusting per-voxel FOM thresholds to reach FPR=%.2f%%",
+                    ((numfarp==1) ? "\0" : abcd[ifarp]) , farp_goal) ;
      if( verb > 1 ) ININFO_message("  Elapsed time = %.1f s",COX_clock_time()) ;
 
      /* tfrac = FOM count fractional threshold;
