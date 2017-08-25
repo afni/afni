@@ -180,16 +180,21 @@ header information.  However, there are no guarantees in life, and the
 user will be expected to look over her/his own data for sanity
 checking everything. 
 
-It is important to note that the TORTOISE folks generally recommend
-reading in DICOM files to TORTOISE directly.  They do this because
-they feel that they stay up-to-date with vendor changes and it is
-therefore the most stable way to go.  So, dear user, by all means skip
-the DICOM conversion steps below guilt free, if you prefer (it may
-even be recommended if you acquire data with special, non-standard
-sequences).  I *do* like to convert DICOMS to NIFTI so that I can view
-the data and kick out bad volumes pre-TORTOISEing, and I haven't had
-the misfortune to have major formatting trouble whilst doing so (*he
-writes asking The Universe for trouble*...).
+Previously, the TORTOISE folks have typically recommended reading in
+DICOM files to TORTOISE directly.  This is because they have managed
+their own set of DICOM-readers and felt that they stay up-to-date with
+vendor changes and it is therefore the most stable way to go.  As of
+TOROISE v3.1, however, I believe they also now implement dcm2niix for
+most cases, so this difference is also much reduced.  The choice of
+whether to convert or not before TORTOISEing is still yours, though,
+dear user.  Note that for special kinds of acquisitions (e.g., those
+made with: oblique acquisitions, home-cooked sequences, some scanner
+vendors, image gradients wrapped in with the diffusion gradients,
+etc.), extra care must be taken and talking with the TORTOISE folks
+directly is recommended.  I *do* like to convert DICOMS to NIFTI so
+that I can view the data and kick out bad volumes pre-TORTOISEing, and
+I haven't had the misfortune to have major formatting trouble whilst
+doing so (*he writes asking The Universe for trouble*...).
 
 .. note:: When converting DICOMs, it seems like one has to be *extra*
           vigilant when converting data acquired on Philips scanners.

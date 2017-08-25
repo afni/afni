@@ -68,7 +68,7 @@ static float dz ;
 static int   niter=0 ;  /* number of iterations (realizations per case) */
 static float nit33=0.0f ;
 
-/*-- stuff for extra outputs --*/
+/*-- stuff for extra outputs (don't enable this without good reason) --*/
 
 #undef ALLOW_EXTRAS
 
@@ -144,15 +144,23 @@ static MRI_IMAGE *imtemplate = NULL ;
 #undef  PSMALL
 #define PSMALL 1.e-15
 
-#define FARP_GOAL 5.00f    /* 5 percent -- non-adjustable by user */
+#define FARP_GOAL 5.00f    /* 5 percent */
 #define FGFAC     0.98f    /* fudge factor (1 = no fudge for you) */
 
 static float fgfac     = FGFAC ;
 static float farp_goal = FARP_GOAL ;
 
-#define FG_GOAL   (farp_goal*fgfac)
+/* lines directly below are also in 3dttest++.c
+   only change them here if you change them there as well! */
+#define NFARP 8
+static float farplist[NFARP] = { 2.f, 3.f, 4.f, 5.f, 6.f, 7.f, 8.f, 9.f } ;
+static int do_multifarp = 0 ;
+static int numfarp = 1 ;
 
-#define MAXITE 13
+static char *abcd[NFARP]     = { "a", "b", "c", "d", "e", "f", "g", "h" } ;
+
+#define FG_GOAL  (farp_goal*fgfac)
+#define MAXITE   13
 
 /*----------------------------------------------------------------------------*/
 /*! Threshold for upper tail probability of N(0,1) = 1-inverseCDF(pval) */
@@ -186,19 +194,10 @@ static void vstep_print(void)
 
 void get_options( int argc , char **argv )
 {
-  char * ep;
+  char *ep;
   int nopt=1 , ii ;
 
 ENTRY("get_options") ;
-
-  /*-- sneaky ways to change default parameters --*/
-
-  fgfac = AFNI_numenv("AFNI_XCLUSTSIM_FGFAC") ;
-  if( fgfac < 0.1f || fgfac > 1.0f ) fgfac = FGFAC ;
-
-  farp_goal = AFNI_numenv("AFNI_XCLUSTSIM_FGOAL") ;
-  if( farp_goal < 2.0f || farp_goal > 10.0f ) farp_goal = FARP_GOAL ;
-  INFO_message("FPR goal of %.2f%% will be used",farp_goal) ;
 
   while( nopt < argc ){
 
@@ -432,10 +431,29 @@ ENTRY("get_options") ;
       continue ;
     }
 
-    /*-----  -FG  [for debugging only]  -----*/
+    /*-----  -multiFPR [23 Aug 2017]  -----*/
 
-    if( strcmp(argv[nopt],"-FG") == 0 ){
-      INFO_message("FG=%g  FG_GOAL=%g",fgfac,FG_GOAL) ; exit(0) ;
+    if( strcasecmp(argv[nopt],"-multiFPR") == 0 ){
+      do_multifarp = 1 ;
+      nopt++ ; continue ;
+    }
+
+    /*-----  -FPR xx [23 Aug 2017]  -----*/
+
+    if( strcasecmp(argv[nopt],"-FPR") == 0 ){
+      float fgoal ;
+      nopt++; if( nopt >= argc )  ERROR_exit("need argument after %s",argv[nopt-1]);
+      do_multifarp = 0 ;
+      fgoal = (float)rint(strtod(argv[nopt],NULL)) ;
+      if( fgoal < 2.0f ){
+        WARNING_message("fpr=%.1f%% too small : setting fpr=2",fgoal) ;
+        fgoal = 2.0f ;
+      } else if( fgoal > 9.0f ){
+        WARNING_message("fpr=%.1f%% too large : setting fpr=9",fgoal) ;
+        fgoal = 9.0f ;
+      }
+      farp_goal = fgoal ;
+      nopt++ ; continue ;
     }
 
     /*----- unknown option -----*/
@@ -443,6 +461,23 @@ ENTRY("get_options") ;
     ERROR_exit("3dXClustSim -- unknown option '%s' :(",argv[nopt]) ;
 
   } /* end loop over command line args */
+
+  /*-- sneaky way to change default parameters --*/
+
+  fgfac = AFNI_numenv("AFNI_XCLUSTSIM_FGFAC") ;
+  if( fgfac < 0.1f || fgfac > 1.0f ) fgfac = FGFAC ;
+
+  if( !do_multifarp ){
+    numfarp = 1 ; farplist[0] = farp_goal ;
+    INFO_message("Single FPR goal: %.1f%%",farp_goal) ;
+  } else {
+    char msg[256] ;
+    numfarp = NFARP ;
+    strcpy(msg,"Multiple FPR goals:") ;
+    for( ii=0 ; ii < numfarp ; ii++ )
+      sprintf( msg+strlen(msg) , " %.1f%%%%" , farplist[ii] ) ;
+    INFO_message(msg) ;
+  }
 
   /*------- finalize some simple setup stuff --------*/
 
@@ -894,7 +929,8 @@ int main( int argc , char *argv[] )
    float     ***car0 =NULL , ***car1 =NULL , ***car2 =NULL , **carHP ;
    float *farar=NULL ;
    int nfomkeep , nfar , itrac , ithresh , hp,ibr, ithresh_list[MAXITE] ;
-   float tfrac , farperc,farcut , tfracold,farpercold,ttemp ;
+   float tfrac=0.0006f , farperc=0.0f,farcut , tfracold,farpercold,ttemp ;
+   int ifarp ;
 
    /*----- help me if you can (I'm feeling down) -----*/
 
@@ -903,18 +939,19 @@ int main( int argc , char *argv[] )
        "This program takes as input random field simulations\n"
        "(e.g., from 3dttest++) and does the ETAC processing to\n"
        "find cluster figure of merit (FOM) thresholds that are\n"
-       "equitable across\n"
+       "equitable (AKA balanced) across\n"
        "  * voxel-wise p-values (-pthr option)\n"
        "  * blurring cases      (-ncase option)\n"
-       "  * H power values      (-hpow option)\n"
+       "  * H power values      (-hpow option) -- probably not useful\n"
        "as well as being balanced across space to produce\n"
        "a False Positive Rate (FPR) that is approximately the\n"
        "same for each location and for each sub-case listed\n"
-       "above. The goal is a global FPR of 5%%.\n"
+       "above. The usual goal is a global FPR of 5%%.\n"
        "\n"
-       "* This program can be slow and consume a lot of memory!\n"
+       "* This program can be slow and consume a LOT of memory!\n"
+       "  (And I mean a BIG LOT, not a small lot.)\n"
        "\n"
-       "* The output is a set of multi-threshold (.mthresh.nii)\n"
+       "* The output is a set of multi-threshold (*.mthresh.*.nii)\n"
        "  files -- one for each of the -ncase inputs.\n"
        "\n"
        "* These files can be used via program 3dMultiThresh\n"
@@ -923,8 +960,8 @@ int main( int argc , char *argv[] )
        "* 3dXClustSim is intended to be used from 3dttest++\n"
        "  (via its '-ETAC' option) or some other script.\n"
        "\n"
-       "* It is not intended to be run directly by any but the\n"
-       "  most knowledgeable users. Which is why this help is so terse.\n"
+       "* It is not intended to be run directly by any but the most\n"
+       "  knowledgeable and astute users. Which is why this help is so terse.\n"
      ) ;
 
      printf("\n"
@@ -946,6 +983,11 @@ int main( int argc , char *argv[] )
        " -pthr      list of values [default = 0.0100 0.0056 0.0031 0.0018 0.0010]\n"
        "                           [equiv z1= 2.326  2.536  2.731  2.911  3.090 ]\n"
        "                           [equiv z2= 2.576  2.770  2.958  3.121  3.291 ]\n"
+       "\n"
+       " -FPR ff    set global FPR goal to ff%%, where ff is an integer\n"
+       "            from 2 to 9 (inclusive). Default value is 5.\n"
+       "\n"
+       " -multiFPR  compute results for multiple FPR goals (2%%, 3%%, ... 9%%)\n"
        "\n"
        " -prefix    something\n"
        " -verb      be more verbose\n"
@@ -1581,6 +1623,13 @@ int main( int argc , char *argv[] )
    /*========================================================*/
    /*--- STEP 4: test FOM count thresholds to find FAR=5% ---*/
 
+   /* get the noise simulations back, if we tossed them aside before */
+
+   if( do_unmap ){
+     if( verb > 1 ) ININFO_message("re-mapping input datasets") ;
+     remap_Xdataset(xinset) ;  /* the nonce is over */
+   }
+
    /* create voxel-specific FOM threshold images (for each p-value thresh) */
 
    if( do_hpow0 ){
@@ -1625,68 +1674,80 @@ int main( int argc , char *argv[] )
      }
    }
 
-   if( verb )
-     INFO_message("STEP 4: adjusting per-voxel FOM thresholds to reach FPR=%.2f%%",farp_goal) ;
-   if( verb > 1 ) ININFO_message("  Elapsed time = %.1f s",COX_clock_time()) ;
-
-   if( do_unmap ){
-     if( verb > 1 ) ININFO_message("re-mapping input datasets") ;
-     remap_Xdataset(xinset) ;  /* the nonce is over */
-   }
-
-   /* tfrac = FOM count fractional threshold;
-              will be adjusted to find the 5% FPR goal */
-
-   tfrac = 0.0006f ; itrac = 0 ;
-   farpercold = 0.0f ; tfracold = tfrac ;
-   nit33 = 1.0f/(niter+0.333f) ;
-
    /* array to make map of false alarm count at each voxel */
 
+#ifdef ALLOW_EXTRAS
    if( do_FARvox )
      farar = (float *)malloc(sizeof(float)*nxyz) ;
+#endif
+
+   /*--- loop over different FRP (farp) goals ---*/
+
+   nit33 = 1.0f/(niter+0.333f) ;
+
+   for( ifarp=0 ; ifarp < numfarp ; ifarp++ ){ /* 23 Aug 2017 */
+
+     farp_goal = farplist[ifarp] ;
+
+     if( verb )
+       INFO_message("STEP 4%s: adjusting per-voxel FOM thresholds to reach FPR=%.2f%%",
+                    ((numfarp==1) ? "\0" : abcd[ifarp]) , farp_goal) ;
+     if( verb > 1 ) ININFO_message("  Elapsed time = %.1f s",COX_clock_time()) ;
+
+     /* tfrac = FOM count fractional threshold;
+                will be adjusted to find the 5% FPR goal */
+
+     if( ifarp == 0 )                               /* first time thru */
+       tfrac = (7.0f+farp_goal)*0.00005f ;
+     else
+       tfrac *= ( farp_goal / farplist[ifarp-1] ) ; /* adjust previous result */
+
+     itrac = 0 ;
+     farpercold = farperc = 0.0f ; tfracold = tfrac ;
 
    /*--- Loop back to here with adjusted tfrac ---*/
 
 FARP_LOOPBACK:
-   {
-     float min_tfrac ; int nedge,nmin ;
-     min_tfrac = 6.0f / niter ; if( min_tfrac > 0.0001f ) min_tfrac = 0.0001f ;
+     {
+       float min_tfrac ; int nedge,nmin ;
+       min_tfrac = 6.0f / niter ; if( min_tfrac > 0.0001f ) min_tfrac = 0.0001f ;
 
-     itrac++ ;                                        /* number of iterations */
-     nfar = 0 ;                                            /* total FAR count */
-     nedge = nmin = 0 ;                               /* number of edge cases */
+       itrac++ ;                                      /* number of iterations */
+       nfar = 0 ;                                          /* total FAR count */
+       nedge = nmin = 0 ;                             /* number of edge cases */
 
-     /* we take the ithresh-th largest FOM at each voxel as its FOM threshold */
+         /* we take ithresh-th largest FOM at each voxel as its FOM threshold */
 #if 0
-     ithresh = (int)(tfrac*niter) ;                    /* FOM count threshold */
+       ithresh = (int)(tfrac*niter) ;                  /* FOM count threshold */
 #else
-     ithresh = (int)rintf(tfrac*(niter-0.666f)+0.333f) ;
+       ithresh = (int)rintf(tfrac*(niter-0.666f)+0.333f) ;
 #endif
 
-     /* Check if trying to re-litigate a previous case [Cinco de Mayo 2017] */
+         /* Check if trying to re-litigate previous case [Cinco de Mayo 2017] */
 
-     ithresh_list[itrac-1] = ithresh ;
-     if( itrac > 3 &&
-         (ithresh_list[itrac-2] == ithresh || ithresh_list[itrac-3] == ithresh) ){
-       ININFO_message("     #%d: would re-iterate at %g ==> %d ; breaking out",
-                      itrac,tfrac,ithresh ) ;
-       goto FARP_BREAKOUT ;
-     }
+       ithresh_list[itrac-1] = ithresh ;
+       if( itrac > 3 &&
+           (ithresh_list[itrac-2] == ithresh || ithresh_list[itrac-3] == ithresh) ){
+         ININFO_message("     #%d: would re-iterate at %g ==> %d ; breaking out",
+                        itrac,tfrac,ithresh ) ;
+         goto FARP_BREAKOUT ;
+       }
 
-     if( verb )
-       ININFO_message("     #%d: Testing threshold images at %g ==> %d",itrac,tfrac,ithresh) ;
+       if( verb )
+         ININFO_message("     #%d: Testing threshold images at %g ==> %d",itrac,tfrac,ithresh) ;
 
-     for( qcase=0 ; qcase < ncase ; qcase++ ){  /* initialize FOM thresholds to 0 */
-     for( qpthr=0 ; qpthr < npthr ; qpthr++ ){
-       if( do_hpow0 ){ AAmemset(car0[qcase][qpthr],0,sizeof(float)*nxyz) ; }
-       if( do_hpow1 ){ AAmemset(car1[qcase][qpthr],0,sizeof(float)*nxyz) ; }
-       if( do_hpow2 ){ AAmemset(car2[qcase][qpthr],0,sizeof(float)*nxyz) ; }
-     }}
+       for( qcase=0 ; qcase < ncase ; qcase++ ){  /* initialize FOM thresholds to 0 */
+       for( qpthr=0 ; qpthr < npthr ; qpthr++ ){
+         if( do_hpow0 ){ AAmemset(car0[qcase][qpthr],0,sizeof(float)*nxyz) ; }
+         if( do_hpow1 ){ AAmemset(car1[qcase][qpthr],0,sizeof(float)*nxyz) ; }
+         if( do_hpow2 ){ AAmemset(car2[qcase][qpthr],0,sizeof(float)*nxyz) ; }
+       }}
 
-     if( do_FARvox ){
-       AAmemset(farar,0,sizeof(float)*nxyz) ;  /* zero out FARvox array */
-     }
+#ifdef ALLOW_EXTRAS
+       if( do_FARvox ){
+         AAmemset(farar,0,sizeof(float)*nxyz) ;  /* zero out FARvox array */
+       }
+#endif
 
  AFNI_OMP_START ;     /*------------ start parallel section ----------*/
 #pragma omp parallel
@@ -1773,9 +1834,11 @@ FARP_LOOPBACK:
          if( tfim != NULL ){   /* nothing found ==> NULL is returned */
            tfar = MRI_FLOAT_PTR(tfim) ;
            for( qq=0 ; qq < nxyz ; qq++ ){
+#ifdef ALLOW_EXTRAS
              if( do_FARvox && tfar[qq] != 0.0f )
 #pragma omp atomic
                farar[qq]++ ;  /* count of FA at this voxel */
+#endif
            }
 #pragma omp critical
            { mri_free(tfim) ; nfar++ ;} /* nfar = count of total FA */
@@ -1789,10 +1852,10 @@ FARP_LOOPBACK:
  }
  AFNI_OMP_END ;  /*------------ end parallel section ------------*/
 
-     /* compute the FAR percentage */
+     /* compute the FAR percentage at this tfrac */
 
      farpercold = farperc ;               /* save what we got last time */
-     farperc    = (100.0*nfar)/(float)niter ;  /* what we got this time */
+     farperc    = (100.0f*nfar)/(float)niter ; /* what we got this time */
      if( verb )
        ININFO_message("         FPR = %.2f%%", farperc/fgfac ) ;
      MEMORY_CHECK(" ") ;
@@ -1800,9 +1863,9 @@ FARP_LOOPBACK:
      /* do we need to try another tfrac to get closer to our goal? */
 
           if( itrac < 5 ) farcut = 0.222f ; /* precision of goal meeting */
-     else if( itrac < 7 ) farcut = 0.444f ;
-     else if( itrac < 9 ) farcut = 0.666f ;
-     else                 farcut = 0.888f ;
+     else if( itrac < 7 ) farcut = 0.333f ;
+     else if( itrac < 9 ) farcut = 0.444f ;
+     else                 farcut = 0.555f ; /* despair */
      if( itrac < MAXITE && fabsf(farperc-FG_GOAL) > farcut ){
        float fff ;
        if( itrac == 1 || (farperc-FG_GOAL)*(farpercold-FG_GOAL) > 0.0f ){ /* scale */
@@ -1819,77 +1882,79 @@ FARP_LOOPBACK:
        goto FARP_LOOPBACK ;
      }
 
-FARP_BREAKOUT: ;
+FARP_BREAKOUT: ; /*nada*/
    } /* end of iterations to find the ideal farperc */
 
-   /*============================================*/
-   /*--- Write stuff out, then quit quit quit ---*/
+     /*=====================================================*/
+     /*--- Write stuff out, then this farp_goal is done ---*/
 
-   for( qcase=0 ; qcase < ncase ; qcase++ ){ /* one dataset per case */
+     for( qcase=0 ; qcase < ncase ; qcase++ ){ /* one dataset per case */
 
-     qset = EDIT_empty_copy(mask_dset) ;
+       qset = EDIT_empty_copy(mask_dset) ;
 
-     sprintf(qpr,".mthresh.%s",lcase[qcase]) ; /* prefix modifier */
+       sprintf(qpr,".mthresh.%s.%dperc",lcase[qcase],(int)rintf(farp_goal)) ; /* prefix modifier */
 
-     EDIT_dset_items( qset ,
-                        ADN_prefix    , modify_afni_prefix(prefix,NULL,qpr) ,
-                        ADN_nvals     , npthr*nhpow ,
-                        ADN_datum_all , MRI_float ,
-                      ADN_none ) ;
+       EDIT_dset_items( qset ,
+                          ADN_prefix    , modify_afni_prefix(prefix,NULL,qpr) ,
+                          ADN_nvals     , npthr*nhpow ,
+                          ADN_datum_all , MRI_float ,
+                        ADN_none ) ;
 
-     /* attach bricks for each pthr, for each hpow */
+       /* attach bricks for each pthr, for each hpow */
 
-     for( ibr=0,qpthr=0 ; qpthr < npthr ; qpthr++ ){
-      for( hp=0 ; hp < 3 ; hp++ ){
-       if( hp==0 ){ if( !do_hpow0 ) continue ; else carHP = car0[qcase] ; }
-       if( hp==1 ){ if( !do_hpow1 ) continue ; else carHP = car1[qcase] ; }
-       if( hp==2 ){ if( !do_hpow2 ) continue ; else carHP = car2[qcase] ; }
-       EDIT_substitute_brick( qset , ibr , MRI_float , NULL ) ;
-       qar = DSET_ARRAY(qset,ibr) ;
-       AAmemcpy( qar , carHP[qpthr] , sizeof(float)*nxyz ) ;
-       sprintf(qpr,"Mth:%.4f:h=%d",pthr[qpthr],hp) ;
-       EDIT_BRICK_LABEL(qset,ibr,qpr) ; ibr++ ;
-     }}
+       for( ibr=0,qpthr=0 ; qpthr < npthr ; qpthr++ ){
+        for( hp=0 ; hp < 3 ; hp++ ){
+         if( hp==0 ){ if( !do_hpow0 ) continue ; else carHP = car0[qcase] ; }
+         if( hp==1 ){ if( !do_hpow1 ) continue ; else carHP = car1[qcase] ; }
+         if( hp==2 ){ if( !do_hpow2 ) continue ; else carHP = car2[qcase] ; }
+         EDIT_substitute_brick( qset , ibr , MRI_float , NULL ) ;
+         qar = DSET_ARRAY(qset,ibr) ;
+         AAmemcpy( qar , carHP[qpthr] , sizeof(float)*nxyz ) ;
+         sprintf(qpr,"Mth:%.4f:h=%d",pthr[qpthr],hp) ;
+         EDIT_BRICK_LABEL(qset,ibr,qpr) ; ibr++ ;
+       }}
 
-     /* attach an attribute describing the multi-threshold setup */
+       /* attach an attribute describing the multi-threshold setup */
 
-     { float *afl=malloc(sizeof(float)*(npthr+4)) ;
-       afl[0] = (float)nnlev ;
-       afl[1] = (float)nnsid ;
-       afl[2] = (float)qpthr ;
-       afl[3] = (float)(do_hpow0 + 2*do_hpow1 + 4*do_hpow2) ;
-       for( qpthr=0 ; qpthr < npthr ; qpthr++ )
-         afl[qpthr+4] = zthr_used[qpthr] ;
-       THD_set_float_atr( qset->dblk ,
-                          "MULTI_THRESHOLDS" , npthr+4 , afl ) ;
-       free(afl) ;
-     }
+       { float *afl=malloc(sizeof(float)*(npthr+4)) ;
+         afl[0] = (float)nnlev ;
+         afl[1] = (float)nnsid ;
+         afl[2] = (float)qpthr ;
+         afl[3] = (float)(do_hpow0 + 2*do_hpow1 + 4*do_hpow2) ;
+         for( qpthr=0 ; qpthr < npthr ; qpthr++ )
+           afl[qpthr+4] = zthr_used[qpthr] ;
+         THD_set_float_atr( qset->dblk ,
+                            "MULTI_THRESHOLDS" , npthr+4 , afl ) ;
+         free(afl) ;
+       }
 
-     /* output dataset */
+       /* output dataset */
 
-     tross_Make_History( "3dXClustSim" , argc,argv , qset ) ;
-     DSET_write(qset); WROTE_DSET(qset);
-     DSET_delete(qset); qset = NULL; qar = NULL;
+       tross_Make_History( "3dXClustSim" , argc,argv , qset ) ;
+       DSET_write(qset); WROTE_DSET(qset);
+       DSET_delete(qset); qset = NULL; qar = NULL;
 
-   } /* end of loop over cases */
+     } /* end of loop over cases (blurs) */
 
 #ifdef ALLOW_EXTRAS
-   if( do_FARvox ){                       /* output the per-voxel false alarm count */
-     qset = EDIT_empty_copy(mask_dset) ;
-     sprintf(qpr,".FARvox") ;
-     EDIT_dset_items( qset ,
-                        ADN_prefix , modify_afni_prefix(prefix,NULL,qpr) ,
-                        ADN_nvals  , 1 ,
-                      ADN_none ) ;
-     EDIT_BRICK_LABEL(qset,0,"FARcount") ;
-     EDIT_substitute_brick( qset , 0 , MRI_float , NULL ) ;
-     qar = DSET_ARRAY(qset,0) ;
-     AAmemcpy( qar , farar , sizeof(float)*nxyz ) ;
-     tross_Make_History( "3dXClustSim" , argc,argv , qset ) ;
-     DSET_write(qset); WROTE_DSET(qset);
-     DSET_delete(qset); qset = NULL; qar = NULL;
-   }
-#endif
+     if( do_FARvox ){                       /* output the per-voxel false alarm count */
+       qset = EDIT_empty_copy(mask_dset) ;
+       sprintf(qpr,".FARvox") ;
+       EDIT_dset_items( qset ,
+                          ADN_prefix , modify_afni_prefix(prefix,NULL,qpr) ,
+                          ADN_nvals  , 1 ,
+                        ADN_none ) ;
+       EDIT_BRICK_LABEL(qset,0,"FARcount") ;
+       EDIT_substitute_brick( qset , 0 , MRI_float , NULL ) ;
+       qar = DSET_ARRAY(qset,0) ;
+       AAmemcpy( qar , farar , sizeof(float)*nxyz ) ;
+       tross_Make_History( "3dXClustSim" , argc,argv , qset ) ;
+       DSET_write(qset); WROTE_DSET(qset);
+       DSET_delete(qset); qset = NULL; qar = NULL;
+     }
+  #endif
+
+   } /* end of loop over farp goals */
 
    /* It's the end of the world, Calvin */
 

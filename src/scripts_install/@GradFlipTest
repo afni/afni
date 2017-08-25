@@ -36,6 +36,10 @@ set version   = "2.8";    set rev_dat   = "July 31, 2017"
 #   + add opt for "-wdir *" name
 #   + also echo "@GradFlipTest ..." command used
 #
+set version   = "2.9";    set rev_dat   = "Aug 24, 2017"
+#   + output text file with single grad will overwrite previous, not
+#     append to
+#
 ########################################################################
 
 set this_prog = "@GradFlipTest"
@@ -432,6 +436,8 @@ foreach i ( `seq 1 1 $L` )
         >> $out_echo
 end
 
+# [PT: Aug 24, 2017] overwrite any previous run, if it exists
+printf "" > $out_ff
 echo "$FLIPS[$MaxI]" >> $odir/$out_ff
 
 printf "\n\n -->" >> $out_echo
