@@ -40,7 +40,7 @@ ENTRY("THD_dset_to_vectim") ;
 #pragma omp critical (MALLOC)
      mmm   = (byte *)malloc(sizeof(byte)*nmask) ;
      if( mmm == NULL ){
-       ERROR_message("THD_dset_to_vectim: out of memory") ;
+       ERROR_message("THD_dset_to_vectim: out of memory A") ;
        RETURN(NULL) ;
      }
      memset( mmm , 1 , sizeof(byte)*nmask ) ;
@@ -63,7 +63,7 @@ ENTRY("THD_dset_to_vectim") ;
 #pragma omp critical (MALLOC)
    mrv->fvec  = (float *)malloc(ntot) ;
    if( mrv->fvec == NULL ){
-     ERROR_message("THD_dset_to_vectim: out of memory -- tried to get %lld bytes",(long long)ntot) ;
+     ERROR_message("THD_dset_to_vectim: out of memory B -- tried to get %lld bytes",(long long)ntot) ;
      free(mrv->ivec) ; free(mrv) ; if( mmm != mask ) free(mmm) ;
      RETURN(NULL) ;
    } else if( ntot > 1000000000 ){  /* one BILLION bytes */
@@ -150,7 +150,7 @@ ENTRY("THD_dset_censored_to_vectim") ;
 #pragma omp critical (MALLOC)
      mmm   = (byte *)malloc(sizeof(byte)*nmask) ;
      if( mmm == NULL ){
-       ERROR_message("THD_dset_to_vectim: out of memory") ;
+       ERROR_message("THD_dset_to_vectim: out of memory C") ;
        RETURN(NULL) ;
      }
      memset( mmm , 1 , sizeof(byte)*nmask ) ;
@@ -165,14 +165,14 @@ ENTRY("THD_dset_censored_to_vectim") ;
 #pragma omp critical (MALLOC)
    mrv->ivec   = (int *)malloc(sizeof(int)*nmask) ;
    if( mrv->ivec == NULL ){
-     ERROR_message("THD_dset_to_vectim: out of memory") ;
+     ERROR_message("THD_dset_to_vectim: out of memory D") ;
      free(mrv) ; if( mmm != mask ) free(mmm) ;
      RETURN(NULL) ;
    }
 #pragma omp critical (MALLOC)
    mrv->fvec  = (float *)malloc(sizeof(float)*(size_t)nmask*(size_t)nvals) ;
    if( mrv->fvec == NULL ){
-     ERROR_message("THD_dset_to_vectim: out of memory") ;
+     ERROR_message("THD_dset_to_vectim: out of memory E") ;
      free(mrv->ivec) ; free(mrv) ; if( mmm != mask ) free(mmm) ;
      RETURN(NULL) ;
    }
@@ -276,7 +276,7 @@ ENTRY("THD_dset_to_vectim_stend") ;
 #pragma omp critical (MALLOC)
      mmm   = (byte *)malloc(sizeof(byte)*nmask) ;
      if( mmm == NULL ){
-       ERROR_message("THD_dset_to_vectim: out of memory") ;
+       ERROR_message("THD_dset_to_vectim: out of memory F") ;
        RETURN(NULL) ;
      }
      memset( mmm , 1 , sizeof(byte)*nmask ) ;
@@ -291,14 +291,14 @@ ENTRY("THD_dset_to_vectim_stend") ;
 #pragma omp critical (MALLOC)
    mrv->ivec   = (int *)malloc(sizeof(int)*nmask) ;
    if( mrv->ivec == NULL ){
-     ERROR_message("THD_dset_to_vectim: out of memory") ;
+     ERROR_message("THD_dset_to_vectim: out of memory G") ;
      free(mrv) ; if( mmm != mask ) free(mmm) ;
      RETURN(NULL) ;
    }
 #pragma omp critical (MALLOC)
    mrv->fvec  = (float *)malloc(sizeof(float)*(size_t)nmask*(size_t)nvals) ;
    if( mrv->fvec == NULL ){
-     ERROR_message("THD_dset_to_vectim: out of memory") ;
+     ERROR_message("THD_dset_to_vectim: out of memory H") ;
      free(mrv->ivec) ; free(mrv) ; if( mmm != mask ) free(mmm) ;
      RETURN(NULL) ;
    }
@@ -424,7 +424,7 @@ ENTRY("THD_2dset_to_vectim") ;
 #pragma omp critical (MALLOC)
          mmmv[id]   = (byte *)malloc(sizeof(byte)*nmaskv[id]) ;
          if( mmmv[id] == NULL ){
-            ERROR_message("THD_2dset_to_vectim: out of memory") ;
+            ERROR_message("THD_2dset_to_vectim: out of memory I") ;
             RETURN(NULL) ;
          }
          memset( mmmv[id] , 1 , sizeof(byte)*nmaskv[id] ) ;
@@ -442,7 +442,7 @@ ENTRY("THD_2dset_to_vectim") ;
 #pragma omp critical (MALLOC)
    ivvectmp    = (int *)malloc(sizeof(int)*(nmaskv[1])) ;
    if( mrv->ivec == NULL || ivvectmp == NULL){
-     ERROR_message("THD_2dset_to_vectim: out of memory") ;
+     ERROR_message("THD_2dset_to_vectim: out of memory J") ;
      if (mrv->ivec) free(mrv->ivec) ;
      if (ivvectmp)  free(ivvectmp) ;
      free(mrv) ;
@@ -453,7 +453,7 @@ ENTRY("THD_2dset_to_vectim") ;
 #pragma omp critical (MALLOC)
    mrv->fvec  = (float *)malloc(sizeof(float)*(nmaskv[0]+nmaskv[1])*(size_t)nvals) ;
    if( mrv->fvec == NULL ){
-     ERROR_message("THD_2dset_to_vectim: out of memory") ;
+     ERROR_message("THD_2dset_to_vectim: out of memory K") ;
      if (ivvectmp)  free(ivvectmp) ;
      free(mrv->ivec) ; free(mrv) ;
      if( mmmv[0] != mask1 ) free(mmmv[0]) ;
