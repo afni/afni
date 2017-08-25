@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 23 , AUG , 2017 , RWC , "3dttest++" , MINOR , TYPE_ENHANCE ,
+   "All 'fpr=ALL' in -ETAC_opt" ,
+   "To let user get results for FPR goals from 2-9 percent." } ,
+
  { 22 , AUG , 2017 , RWC , "3dttest++" , MICRO , TYPE_ENHANCE ,
    "Small changes in running ETAC" ,
    "1) Option -ETAC_mem prints out ETAC memory usage (and stops) to help\n"
