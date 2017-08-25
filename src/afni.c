@@ -2464,7 +2464,7 @@ void AFNI_sigfunc_alrm(int sig)
 #define NDUN (sizeof(dun)/sizeof(char *))
        static char *dun[] = { "is done" , "wraps up"   , "concludes" ,
                               "is over" , "terminates" , "finishes"   } ;
-       fprintf(stderr,"\n** AFNI %s: %s!\n\n",dun[lrand48()%NDUN],msg[nn]) ;
+       fprintf(stderr,"\n** AFNI %s: %s!  [%d/%d]\n\n",dun[lrand48()%NDUN],msg[nn],nn+1,(int)NMSG) ;
        if( sig < 0 ){
          int ss ;
          for( ss=-1 ; ss > sig ; ss-- ){
