@@ -2199,6 +2199,28 @@ void AFNI_sigfunc_alrm(int sig)
 
      /* Longer quotes */
 
+     "It is a poem in our eyes, its ample analyses dazzle the imagination"            ,
+     "Do not go where the path leads; go instead where there is no path"              ,
+     "Be yourself, in a world that is always trying to make you something else"       ,
+     "Beauty is the handwriting of God"                                               ,
+     "Glory lies not in never failing, but in rising every time we fail"              ,
+     "A hero is no braver than others: she is just braver 5 minutes longer"           ,
+     "It is not length of life, but depth of life, that matters"                      ,
+     "Foolish consistency is the hobgoblin of little minds"                           ,
+     "The years teach much that the days never know"                                  ,
+     "Keep your face to the sunshine, and the shadows will fall behind you"           ,
+     "Be curious, but not judgmental"                                                 ,
+     "And my very code shall be a great poem"                                         ,
+     "Either define the moment, or the moment will define you"                        ,
+     "Let your soul stand cool and composed before a million universes"               ,
+     "I cannot travel the road for you; you must travel it by yourself"               ,
+     "The truth is simple. If it was complicated, everyone would understand it"       ,
+     "I hate, commas, in the wrong, place"                                            ,
+     "The only true wisdom is in knowing you know nothing"                            ,
+     "There is no harm in repeating a good thing! There is no harm in ..."            ,
+     "It is in our darkest moments that we must focus to see the light"               ,
+     "Dignity does not consist of possessing honors, but in deserving them"           ,
+
      "I look to that which is, and beyond, to that which will ever be"                ,
      "To steal ideas from one person is plagiarism; to steal from many is research"   ,
      "The early bird gets the worm, but the second mouse gets the cheese"             ,
@@ -2242,7 +2264,10 @@ void AFNI_sigfunc_alrm(int sig)
      "Next time, just for fun, I'll toss in some extra blobs in CSF for you"          ,
      "Next time, just for fun, I'll toss in some extra blobs in air just for you"     ,
      "What do you mean, you don't believe all those clusters in white matter?"        ,
+     "What do you mean, you don't believe all those clusters in empty space?"         ,
+     "Those results scream 'ARTIFACT' to me, but what do I know?"                     ,
      "For an extra pumpernickel bagel, I'll put a blob wherever you want it"          ,
+     "For a Torcik Wedlowski, I'll colorize TWO extra regions for you -- anywhere"    ,
      "I don't know about you, but my amygdala is lighting up like it's on fire"       ,
      "My hippocampus stopped working years ago -- what did you say?"                  ,
      "Will all great Neptune's ocean wash this modeling error from my regression?"    ,
@@ -2382,7 +2407,7 @@ void AFNI_sigfunc_alrm(int sig)
      "  for happiness; though if stupidity is lacking, all is lost"                           ,
 
      "\n  May the following be true for you:\n"
-     "    'Work is about a search for daily meaning as well as daily bread,\n"
+     "   'Work is about a search for daily meaning as well as daily bread,\n"
      "    for recognition as well as cash, for astonishment rather than torpor;\n"
      "    in short, for a sort of life rather than a Monday through Friday sort of dying.'\n"
      "  ... especially if you are working on a Saturday!"                                     ,
