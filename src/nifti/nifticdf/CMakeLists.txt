@@ -3,6 +3,8 @@ include_directories(${NIFTI_SOURCE_DIR}/niftilib)
 #include_directories(/usr/include/nifti)
 set(NIFTICDFLIB_SRC nifticdf.c)
 
+set_source_files_properties(${NIFTICDFLIB_SRC} PROPERTIES COMPILE_DEFINITIONS "__COMPILE_UNUSED_FUNCTIONS__")
+
 set(NIFTI_CDFLIB_NAME ${PACKAGE_PREFIX}nifticdf)
 
 add_library(${NIFTI_CDFLIB_NAME} ${NIFTICDFLIB_SRC} )

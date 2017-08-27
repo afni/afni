@@ -6,7 +6,15 @@ if(COMMAND cmake_policy)
     cmake_policy(SET CMP0003 NEW)
 endif(COMMAND cmake_policy)
 
-subdirs(znzlib niftilib)
+set(NIFTI_INCLUDE_DIRS
+	"${PROJECT_SOURCE_DIR}/nifti2"
+	"${PROJECT_SOURCE_DIR}/niftilib"
+	"${PROJECT_SOURCE_DIR}/nifticdf"
+	"${PROJECT_SOURCE_DIR}/znzlib"
+)
+set(NIFTI_INCLUDE_DIRS ${NIFTI_INCLUDE_DIRS} PARENT_SCOPE)
+
+subdirs(znzlib niftilib cifti nifti2)
 add_definitions(-DHAVE_ZLIB)
 
 # add option to build shared libraries. The default is OFF to maintain the
@@ -101,8 +109,7 @@ set(CPACK_PACKAGE_VENDOR "NIFTI DFWG")
 set(CPACK_SOURCE_GENERATOR "TGZ;TZ")
 #set(CPACK_SOURCE_IGNORE_FILES "/CVS/;/\\.svn/;\\.swp$;\\.#;/#;\\.*~")
 set(CPACK_SOURCE_IGNORE_FILES "")
-set(CPACK_PACKAGE_EXECUTABLES "NIFTI";"A program for registering medical
-images with mutual information.")
+set(CPACK_PACKAGE_EXECUTABLES "NIFTI" "A program for registering medical images with mutual information.")
 
 if(WIN32 AND NOT UNIX)
   set(CPACK_PACKAGE_INSTALL_REGISTRY_KEY

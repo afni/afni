@@ -8,6 +8,13 @@ set(NIFTI_NIFTILIB_NAME ${PACKAGE_PREFIX}niftiio)
 add_library(${NIFTI_NIFTILIB_NAME} ${NIFTILIB_SRC} )
 target_link_libraries( ${NIFTI_NIFTILIB_NAME} ${PACKAGE_PREFIX}znz)
 
+set_property(TARGET ${NIFTI_NIFTILIB_NAME} PROPERTY INTERFACE_INCLUDE_DIRECTORIES
+	"${PROJECT_SOURCE_DIR}/nifti2"
+	"${PROJECT_SOURCE_DIR}/niftilib"
+	"${PROJECT_SOURCE_DIR}/nifticdf"
+	"${PROJECT_SOURCE_DIR}/znzlib"
+)
+
 # Set library version when building shared libs.
 if(BUILD_SHARED_LIBS)
   set_target_properties(${NIFTI_NIFTILIB_NAME} PROPERTIES ${NIFTI_LIBRARY_PROPERTIES})

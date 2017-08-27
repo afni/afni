@@ -1,17 +1,14 @@
-## Rudimentary cmake setup for now just to run tests
+cmake_minimum_required(VERSION 3.2)
 
-PROJECT(AFNI)
+enable_testing()
 
-##
-## Define options to customize the build-process
-##
+set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-OPTION(AFNI_BUILD_TESTS
-       "Enable testing and build available tests"
-       OFF)
+include(GNUInstallDirs OPTIONAL RESULT_VARIABLE GNUInstallDirs_FOUND)
+if(NOT GNUInstallDirs_FOUND)
+	# XXX add windows paths
+endif(NOT GNUInstallDirs_FOUND)
 
-IF(AFNI_BUILD_TESTS)
-  ENABLE_TESTING()
-  ADD_SUBDIRECTORY(tests)
-ENDIF(AFNI_BUILD_TESTS)
-
+add_subdirectory(doc)
+add_subdirectory(src)
+add_subdirectory(tests)

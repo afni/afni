@@ -9,25 +9,16 @@ SET(GIFTI_INSTALL_BIN_DIR "${CMAKE_INSTALL_PREFIX}/bin")
 SET(GIFTI_INSTALL_LIB_DIR "${CMAKE_INSTALL_PREFIX}/lib")
 SET(GIFTI_INSTALL_INCLUDE_DIR "${CMAKE_INSTALL_PREFIX}/include/gifti")
 
-FIND_PACKAGE(ITK)
-IF(ITK_FOUND)
-# ITK provides expat and zlib.
-   INCLUDE(${ITK_USE_FILE})
-   SET(EXPAT_LIBRARIES ITKEXPAT)
-   SET(ZLIB_LIBRARIES ITKznz)
-   SET(NIFTI_LIBRARIES ITKniftiio)
-ELSE(ITK_FOUND)
-# Otherwise, get it from elsewhere.
-  FIND_PACKAGE(EXPAT)
-  FIND_PACKAGE(ZLIB)
-  FIND_LIBRARY(NIFTI_LIBRARY NAMES niftiio PATH /usr/local/nifti/lib )
-  SET(NIFTI_LIBRARIES ${NIFTI_LIBRARY} znz m)
-  FIND_PATH(NIFTI_INCLUDE_DIR nifti1.h /usr/local/nifti/include/nifti
-                                       /usr/include/nifti)
-  GET_FILENAME_COMPONENT(GIFTI_LINK_DIRECTORIES ${NIFTI_LIBRARY} PATH)
-  LINK_DIRECTORIES(${GIFTI_LINK_DIRECTORIES})
-  INCLUDE_DIRECTORIES(${NIFTI_INCLUDE_DIR})
-ENDIF(ITK_FOUND)
+find_package(ITK REQUIRED)
+include(${ITK_USE_FILE})
+include_directories(
+	${ITK_INCLUDE_DIRS}
+)
+
+find_package(EXPAT REQUIRED)
+find_package(ZLIB REQUIRED)
+
+set(NIFTI_LIBRARIES ITKniftiio)
 
 # shared library API versioning -- NOT the same as the release version
 SET(GIFTI_SHAREDLIB_VERSION "0.0.0")
@@ -38,7 +29,10 @@ IF(ZLIB_FOUND)
   ADD_DEFINITIONS(-DHAVE_ZLIB)
 ENDIF(ZLIB_FOUND)
 
+set(GIFTI_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR} PARENT_SCOPE)
+
 INCLUDE_DIRECTORIES(
+"../nifti/nifti2"
 ${CRKIT_SOURCE_DIR}/External
 ${gifticlib_SOURCE_DIR}
 ${gifticlib_BINARY_DIR}
@@ -50,15 +44,10 @@ SET(GIFTIIO_SRC gifti_io.c gifti_xml.c)
 ADD_LIBRARY(giftiio SHARED ${GIFTIIO_SRC})
 # Set library version when building shared libs.
 SET_TARGET_PROPERTIES(giftiio PROPERTIES ${GIFTI_LIBRARY_PROPERTIES})
-TARGET_LINK_LIBRARIES(giftiio ${EXPAT_LIBRARIES} ${NIFTI_LIBRARIES})
+TARGET_LINK_LIBRARIES(giftiio ${ITK_LIBRARIES} ${EXPAT_LIBRARIES} ${NIFTI_LIBRARIES})
 IF(ZLIB_FOUND)
   TARGET_LINK_LIBRARIES(giftiio ${ZLIB_LIBRARIES})
 ENDIF(ZLIB_FOUND)
-
-# static version
-ADD_LIBRARY(giftiio_static STATIC ${GIFTIIO_SRC})
-#The library target "via_static" has a default OUTPUT_NAME of "via_static", can be changed with
-SET_TARGET_PROPERTIES(giftiio_static PROPERTIES ${GIFTI_LIBRARY_PROPERTIES} OUTPUT_NAME "giftiio")
 
 LINK_DIRECTORIES(${gifticlib_BINARY_DIR})
 
@@ -68,13 +57,15 @@ TARGET_LINK_LIBRARIES(gifti_tool giftiio ${EXPAT_LIBRARIES} ${ZLIB_LIBRARIES} ${
 ADD_EXECUTABLE(gifti_test gifti_test.c)
 TARGET_LINK_LIBRARIES(gifti_test giftiio ${EXPAT_LIBRARIES} ${ZLIB_LIBRARIES} ${NIFTI_LIBRARIES})
 
-# binaries
-INSTALL(TARGETS giftiio giftiio_static gifti_tool gifti_test
-    RUNTIME DESTINATION ${GIFTI_INSTALL_BIN_DIR} COMPONENT RuntimeLibraries
-    LIBRARY DESTINATION ${GIFTI_INSTALL_LIB_DIR} COMPONENT RuntimeLibraries
-    ARCHIVE DESTINATION ${GIFTI_INSTALL_LIB_DIR} COMPONENT Development)
+# install
+set_target_properties(giftiio PROPERTIES
+	PUBLIC_HEADER "gifti_io.h;gifti_xml.h"
+)
 
-# headers
-INSTALL(FILES gifti_io.h gifti_xml.h
-    DESTINATION ${GIFTI_INSTALL_INCLUDE_DIR}
-    COMPONENT Development)
+install(TARGETS giftiio gifti_tool gifti_test
+	EXPORT GiftiTargets
+	RUNTIME DESTINATION "${GIFTI_INSTALL_BIN_DIR}" COMPONENT bin
+	LIBRARY DESTINATION "${GIFTI_INSTALL_LIB_DIR}" COMPONENT shlib
+	PUBLIC_HEADER DESTINATION "${GIFTI_INSTALL_INCLUDE_DIR}"
+	COMPONENT dev
+)
