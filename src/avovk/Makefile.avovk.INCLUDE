@@ -96,7 +96,7 @@ Aclustering:Aclustering_floatNOMASK.c cluster_floatNOMASK.o
 	${CC} -o $@ 3dkmeans.c \
          ${AFNI_3dOBJS} ${CCOPT} ${WARNOPT}   \
          ${AVOVK_INCLUDE_PATH} ${AVOVK_LINK_PATH} \
-         ${AVOVKLIB} ${AVOVK_LINK_LIB} -lf2c -lgsl -lgslcblas 
+         ${AVOVKLIB} ${AVOVK_LINK_LIB} -lconverted_from_fortran -lgsl -lgslcblas 
 	
 
 progs_exp: fit_onesign Aclustering 3dfit_onesign 3dkmeans  # 3dAclustering

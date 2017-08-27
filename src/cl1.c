@@ -2,7 +2,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "f2c.h"
+#include "converted_from_fortran.h"
 
 /* prototype for function at end (from TOMS, via Netlib and f2c) */
 
@@ -383,7 +383,7 @@ int cl1_pos_sum( int ndim , int nvec ,
 
 /* cl1.f -- translated by f2c (version 19970805).
    You must link the resulting object file with the libraries:
-	-lf2c -lm   (in that order)
+	-lconverted_from_fortran -lm   (in that order)
 */
 
 static int cl1_fort(integer *k, integer *l, integer *m, integer *n,

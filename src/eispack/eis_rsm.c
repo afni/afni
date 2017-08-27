@@ -1,9 +1,9 @@
 /* rsm.f -- translated by f2c (version 19961017).
    You must link the resulting object file with the libraries:
-	-lf2c -lm   (in that order)
+	-lconverted_from_fortran -lm   (in that order)
 */
 
-#include "f2c.h"
+#include "converted_from_fortran.h"
 
 /* Subroutine */ int rsm_(integer *nm, integer *n, doublereal *a, doublereal *
 	w, integer *m, doublereal *z__, doublereal *fwork, integer *iwork, 

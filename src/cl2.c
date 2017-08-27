@@ -6,7 +6,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "f2c.h"
+#include "converted_from_fortran.h"
 
 /*---------------------------------------------------------------------------*/
 /**--- prototypes for functions in translated part of this file, at end ----**/
@@ -197,7 +197,7 @@ float cl2_solve( int ndim, int nvec, float *z, float **A, float *y, int cony )
 
 /* cl2.f -- translated by f2c (version 20030320).
    You must link the resulting object file with the libraries:
-	-lf2c -lm   (in that order)
+	-lconverted_from_fortran -lm   (in that order)
 */
 
 #undef INLINE

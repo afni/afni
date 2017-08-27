@@ -8,7 +8,7 @@
  * compile example:
  *
  *    gcc -DREAD_WRITE_64 -o 3dexample1 3dexample1.c    \
- *        -I$HOME/abin -L$HOME/abin -lmri -lf2c -lXt -lz -lexpat -lm
+ *        -I$HOME/abin -L$HOME/abin -lmri -lconverted_from_fortran -lXt -lz -lexpat -lm
  *
  * Author: R Reynolds  19 Sep, 2014
  */

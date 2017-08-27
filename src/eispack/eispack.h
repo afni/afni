@@ -1,7 +1,7 @@
 #ifndef _MCW_EISPACK_HEADER_
 #define _MCW_EISPACK_HEADER_
 
-#include "f2c.h"
+#include "converted_from_fortran.h"
 
 /*---------------------- prototypes from "f2c -P"   ---------------------------*/
 

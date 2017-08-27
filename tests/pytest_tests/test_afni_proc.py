@@ -1,3 +1,5 @@
+#! /usr/bin/env python
+
 """Automated tests for afni_proc.py
 
 To run:

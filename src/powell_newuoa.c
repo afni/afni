@@ -10,14 +10,14 @@
 
 /* powell_newuoa.f -- translated by f2c (version 19961017).
    You must link the resulting object file with the libraries:
-	-lf2c -lm   (in that order)
+	-lconverted_from_fortran -lm   (in that order)
 */
 
 #undef  STATIC
 #define STATIC /*static*/   /*** disable use of static internal variables ***/
                             /*** all local variables instead init to =0   ***/
 
-#include "f2c.h"
+#include "converted_from_fortran.h"
 
 /* CC      SUBROUTINE NEWUOA (N,NPT,X,RHOBEG,RHOEND,IPRINT,MAXFUN,W) */
 /* Subroutine */ int newuoa_(integer *n, integer *npt, doublereal *x,

@@ -825,7 +825,7 @@ int main(int argc, char **argv)
    /* How to compile:
    I copied Aclustering.c and cluster.c to /usr/local/bin/afni/src
    then compile with:
-   gcc -Wall -Wno-unused Aclustering2.c cluster.c -o Aclustering -Inifti/niftilib -Inifti/nifticdf -Inifti/znzlib -L. -bind_at_load -l3DEdge -lmri -lf2c -lmri /usr/lib64/libXm.a -lXm -lXmu -lXp -lXpm -lXext -lXt -lX11 -lz -lexpat -lm -lc
+   gcc -Wall -Wno-unused Aclustering2.c cluster.c -o Aclustering -Inifti/niftilib -Inifti/nifticdf -Inifti/znzlib -L. -bind_at_load -l3DEdge -lmri -lconverted_from_fortran -lmri /usr/lib64/libXm.a -lXm -lXmu -lXp -lXpm -lXext -lXt -lX11 -lz -lexpat -lm -lc
 
    The output are 3 files
    - cluster_out.kgg -- as before, index number and cluster number

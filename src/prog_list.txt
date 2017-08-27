@@ -332,6 +332,9 @@
 @VolCenter
 @afni.run.me
 @afni_R_package_install
+@afni_refacer_make_master
+@afni_refacer_make_onebigA12
+@afni_refacer_run
 @align_partial_oblique
 @auto_align
 @auto_tlrc
@@ -347,6 +350,9 @@
 @djunct_4d_imager
 @djunct_4d_slices_to_3d_vol
 @djunct_dwi_selector.tcsh
+@djunct_edgy_align_check
+@djunct_montage_coordinator
+@djunct_slice_space
 @djunct_vol_3slice_select
 @escape-
 @extract_meica_ortvec
@@ -384,6 +390,7 @@ AFNI_Batch_R
 AlphaSim
 AnalyzeTrace
 BrainSkin
+CMakeLists.txt
 CompareSurfaces
 ConvertDset
 ConvertSurface
@@ -448,7 +455,6 @@ aiv
 align_epi_anat.py
 apsearch
 auto_warp.py
-balloon
 byteorder
 cat_matvec
 ccalc
@@ -528,7 +534,6 @@ myget
 neuro_deconvolve.py
 nicat
 niccc
-nifti1_test
 nifti1_tool
 nifti_tool
 niml_feedme

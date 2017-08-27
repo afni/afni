@@ -23,7 +23,7 @@ ALLO = color.o curve.o frame.o frstpt.o labmod.o memplt.o    \
 # AR     = /usr/bin/ar
 # RANLIB = /usr/bin/ranlib
 # RM     = /bin/rm -f
-# LFLAGS = -s -L. -L.. -L/usr/X11R6/lib -lcoxplot -lf2c \
+# LFLAGS = -s -L. -L.. -L/usr/X11R6/lib -lcoxplot -lconverted_from_fortran \
 #          -lXm -lXp -lXpm -lXext -lXmu -lXt -lX11 -lm
 
 libcoxplot.a:$(ALLO) coxplot.h
@@ -34,11 +34,11 @@ libcoxplot.a:$(ALLO) coxplot.h
 xxx:xxx.o libcoxplot.a
 	$(RM) $@
 	$(CC) -o xxx xxx.o $(LFLAGS) -L. -L.. -L/usr/X11/lib \
-              -lcoxplot -lf2c -lXm -lXp -lXpm -lXext -lXmu -lXt -lX11 -lm
+              -lcoxplot -lconverted_from_fortran -lXm -lXp -lXpm -lXext -lXmu -lXt -lX11 -lm
 
 qqq:qqq.o libcoxplot.a
 	$(RM) $@
-	$(CC) -o qqq qqq.o -s -L. -L.. -L/usr/X11R6/lib -lcoxplot -lf2c -lX11 -lm
+	$(CC) -o qqq qqq.o -s -L. -L.. -L/usr/X11R6/lib -lcoxplot -lconverted_from_fortran -lX11 -lm
 
 clean:
 	$(RM) *.o *.P

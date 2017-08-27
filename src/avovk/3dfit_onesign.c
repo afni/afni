@@ -28,7 +28,7 @@ To compile with AFNI library:
    compile distribution with make cleanest vastness
    compile this file with:
    
-gcc -Wall -Wno-unused fit_onesign.c -lgsl -lgslcblas -lm -o fitanje_1sign -I/sw/include/ -L/sw/lib -I. -Inifti/niftilib -Inifti/nifticdf -Inifti/znzlib -L. -L/sw/lib -L/usr/X11R6/lib -L/usr/local/lib -Wl,-x -Wl,-multiply_defined -Wl,warning -Wl,-bind_at_load -l3DEdge -lmri -lf2c -lmri /sw/lib/libXm.a -lXm -lXmu -lXp -lXpm -lXext -lXt -lX11 -lz -lexpat -lm -lc
+gcc -Wall -Wno-unused fit_onesign.c -lgsl -lgslcblas -lm -o fitanje_1sign -I/sw/include/ -L/sw/lib -I. -Inifti/niftilib -Inifti/nifticdf -Inifti/znzlib -L. -L/sw/lib -L/usr/X11R6/lib -L/usr/local/lib -Wl,-x -Wl,-multiply_defined -Wl,warning -Wl,-bind_at_load -l3DEdge -lmri -lconverted_from_fortran -lmri /sw/lib/libXm.a -lXm -lXmu -lXp -lXpm -lXext -lXt -lX11 -lz -lexpat -lm -lc
     
 */
 

@@ -1,3 +1,5 @@
+#! /usr/bin/env python
+
 import subprocess
 import sys
 from pathlib import Path
@@ -9,7 +11,7 @@ from test_utils.diff import diff_parser
 def test_3dClustSim():
     wd = Path(__file__).parent.as_posix()
     print(wd)
-    cp = subprocess.run(f'cd {wd}/test_dirs/3dClustSim && tcsh runit',
+    cp = subprocess.run('cd %s/test_dirs/3dClustSim && tcsh runit'% wd,
                         check=True,
                         close_fds=True,
                         shell=True)
@@ -17,12 +19,12 @@ def test_3dClustSim():
 
     # Grab diff path for OMP_NO
     # This is expected to be identicle
-    dr = diff_parser(f'{wd}/test_dirs/3dClustSim/OMP_NO_diff.out')
+    dr = diff_parser('%s/test_dirs/3dClustSim/OMP_NO_diff.out')
     assert (not dr)
 
     # Grab diff path for OMP_YES
     # This is expected to have small differences
-    dr = pd.DataFrame(diff_parser(f'{wd}/test_dirs/3dClustSim/OMP_YES_diff.out'))
+    dr = pd.DataFrame(diff_parser('%s/test_dirs/3dClustSim/OMP_YES_diff.out'))
     bl_vals = np.array(
         list(
             dr

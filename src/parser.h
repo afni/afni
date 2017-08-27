@@ -50,7 +50,7 @@ extern float * PARSER_fitter( int nval, float *indval, float *depval,   /* 26 Ja
 #endif
 
 #ifdef NEED_PARSER_INTERNALS
-#include "f2c.h"
+#include "converted_from_fortran.h"
 
 #ifdef  __cplusplus
 extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */

@@ -5725,7 +5725,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 8, APR, 2011, RCR, "Makefile", MICRO, TYPE_MODIFY,
-   "removed -lf2c from Makefile.INCLUDE, added to LLIBS in Makefile.*",
+   "removed -lconverted_from_fortran from Makefile.INCLUDE, added to LLIBS in Makefile.*",
    "Also removed redundant -lmri from many Makefiles and Makefile.INCLUDE."
  } ,
 

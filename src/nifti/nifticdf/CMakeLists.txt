@@ -1,16 +1,14 @@
 set(NIFTI_CDFLIB_NAME ${NIFTI_PACKAGE_PREFIX}nifticdf)
 
-add_library(${NIFTI_CDFLIB_NAME} nifticdf.c )
-target_link_libraries(${NIFTI_CDFLIB_NAME} PUBLIC ${NIFTI_PACKAGE_PREFIX}niftiio)
-target_include_directories(${NIFTI_CDFLIB_NAME} PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-        $<INSTALL_INTERFACE:${NIFTI_INSTALL_INCLUDE_DIR}>
-        )
-if(NIFTI_BUILD_APPLICATIONS)
-  add_executable(${NIFTI_PACKAGE_PREFIX}nifti_stats nifti_stats.c)
-  target_link_libraries( ${NIFTI_PACKAGE_PREFIX}nifti_stats PUBLIC ${NIFTI_PACKAGE_PREFIX}niftiio ${NIFTI_PACKAGE_PREFIX}nifticdf)
-  set(NIFTICDF_APPS ${NIFTI_PACKAGE_PREFIX}nifti_stats)
-endif()
+include_directories(${NIFTI_SOURCE_DIR}/niftilib)
+#include_directories(/usr/include/nifti)
+set(NIFTICDFLIB_SRC nifticdf.c)
+
+set_source_files_properties(${NIFTICDFLIB_SRC} PROPERTIES COMPILE_DEFINITIONS "__COMPILE_UNUSED_FUNCTIONS__")
+
+set(NIFTI_CDFLIB_NAME ${PACKAGE_PREFIX}nifticdf)
+
+add_library(${NIFTI_CDFLIB_NAME} ${NIFTICDFLIB_SRC} )
 
 if(BUILD_SHARED_LIBS)
   set_target_properties(${NIFTI_CDFLIB_NAME} PROPERTIES ${NIFTI_LIBRARY_PROPERTIES})

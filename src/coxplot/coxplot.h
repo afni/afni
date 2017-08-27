@@ -399,7 +399,7 @@ extern void ps_rect( int,int,int,int) ;                    /* filled rectangle *
 
 /*-- routines from PLOTPAK, after running through f2c --*/
 
-#include "f2c.h"
+#include "converted_from_fortran.h"
 #undef complex
 
 #ifdef  __cplusplus

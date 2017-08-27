@@ -1,25 +1,31 @@
 language: c
-cache:
-    - apt
-    - ccache
-env:
- global:
-    - FLAVOR=linux_ubuntu_12_64
-before_install:
-    # install build-dependencies as the doc says
-    - sudo sh src/other_builds/OS_notes.$FLAVOR
-    # install packages needed for testing
-    - sudo apt-get install xvfb xauth libgl1-mesa-dri mesa-utils tcsh libjpeg-progs
+
+addons:
+  apt:
+    packages:
+      - f2c
+      - freeglut3-dev
+      - libf2c2-dev
+      - libglew-dev
+      - libglw1-mesa-dev
+      - libinsighttoolkit4-dev
+      - libmotif-dev
+      - libnifti-dev
+      - libxp-dev
+      - libgsl0-dev
+
 install:
-    - cd src
-    - cp other_builds/Makefile.$FLAVOR Makefile
-    - make vastness
+    - F2C_PKG='libf2c2'
+    - F2C_MOD='-dev'
+    - F2C_VERSION='20130926-2_amd64'
+
+    - wget "http://archive.ubuntu.com/ubuntu/pool/universe/libf/${F2C_PKG}/${F2C_PKG}_${F2C_VERSION}.deb"
+           "http://archive.ubuntu.com/ubuntu/pool/universe/libf/${F2C_PKG}/${F2C_PKG}${F2C_MOD}_${F2C_VERSION}.deb"
+    - sudo dpkg -i "${F2C_PKG}${F2C_MOD}_${F2C_VERSION}.deb"
+                   "${F2C_PKG}_${F2C_VERSION}.deb"
+
 script:
-    # to gain access to built binaries, include path first
-    # (otherwise the wrong `count` binary may be used in the tests)
-    - export PATH=$PWD/$FLAVOR:$PATH
-    - mkdir ../testing; cd ../testing # from here will run tests
-    - cmake -DAFNI_BUILD_TESTS:BOOL=ON ..
-    - ctest --verbose
-    # Smoke tests for some additional commands
-    - 3dinfo
+    - mkdir build; cd build
+    - cmake ..
+    - make -j$(nproc)
+    - make test
