@@ -579,9 +579,11 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
- { 12,  Oct, 2016, RCR, "RetroTS.py", MICRO, TYPE_MODIFY,
-   "updated Makefile.INCLUDE to distribute this",
-   NULL
+ { 12,  Oct, 2016, RCR, "RetroTS.py", MAJOR, TYPE_NEW_PROG,
+   "distribute RetroTS.py (RetroTS.m converted to python)",
+   "This should behave almost exactly as the MATLAB version.\n"
+   "See 'RetroTS.py -help' for details.\n"
+   "Much thanks to J Zosky for this contribution!"
  } ,
 
  { 11,  Oct, 2016, RCR, "RetroTS.py", MICRO, TYPE_MODIFY,
