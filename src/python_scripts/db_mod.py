@@ -6974,10 +6974,10 @@ g_help_string = """
         Example 5a. RETROICOR example a, resting state data.
 
            Assuming the class data is for resting-state and that we have the
-           appropriate slice-based regressors from RetroTS.m, apply the despike
-           and ricor processing blocks.  Note that '-do_block' is used to add
-           non-default blocks into their default positions.  Here the 'despike'
-           and 'ricor' processing blocks would come before 'tshift'.
+           appropriate slice-based regressors from RetroTS.py, apply the
+           despike and ricor processing blocks.  Note that '-do_block' is used
+           to add non-default blocks into their default positions.  Here the
+           'despike' and 'ricor' processing blocks would come before 'tshift'.
 
            Remove 3 TRs from the ricor regressors to match the EPI data.  Also,
            since degrees of freedom are not such a worry, regress the motion
@@ -7708,12 +7708,15 @@ g_help_string = """
     There are 3 main steps (generate ricor regs, pre-process, group analysis):
 
         step 0: If physio recordings were made, generate slice-based regressors
-                using RetroTS.  Such regressors can be used by afni_proc.py via
-                the 'ricor' processing block.
+                using RetroTS.py.  Such regressors can be used by afni_proc.py
+                via the 'ricor' processing block.
 
-                RetroTS is Ziad Saad's MATLAB routine to convert the 2 time 
-                series into 13 slice-based regressors.  RetroTS requires the
+                RetroTS.m is Ziad Saad's MATLAB routine to convert the 2 time 
+                series into 13 slice-based regressors.  RetroTS.m requires the
                 signal processing toolkit for MATLAB.
+
+                RetroTS.py is a conversion of RetroTS.m to python by J Zosky,
+                which depends on scipy.  See "RetroTS.py -help" for details.
 
         step 1: analyze with afni_proc.py
 
