@@ -1068,6 +1068,7 @@ class ATInterface:
       self.tr              = 0          # applies to some output
       self.per_run         = 0          # conversions done per run
       self.part_init       = 'INIT'     # default for -part_init
+      self.write_married   = 0          # for -write_as_married
 
       # user options - single var
       self.timing          = None       # main timing element
@@ -1107,6 +1108,32 @@ class ATInterface:
 
       self.timing = timing
       self.fname = fname
+      self.status = 0
+
+      return 0
+
+   def set_fsl_timing(self, flist):
+      """load a list of FSL timing files (as a list of runs)"""
+
+      self.status = 1 # init to failure
+      timing = LT.AfniTiming(fsl_flist=flist, verb=self.verb)
+
+      if not timing.ready:
+         print "** failed to read timing from '%s'" % fname
+         return 1
+
+      # success, so nuke and replace the old stuff
+
+      if self.timing:
+         if self.verb > 0:
+            print "-- replacing old timing with that from '%s'" % fname
+         del(self.timing)
+         del(self.fname)
+         self.timing = None
+         self.fname = None
+
+      self.timing = timing
+      self.fname = flist[0]
       self.status = 0
 
       return 0
@@ -1223,7 +1250,8 @@ class ATInterface:
       if not self.timing:
          print '** no timing to write'
          return 1
-      return self.timing.write_times(fname, nplaces=self.nplaces)
+      return self.timing.write_times(fname, nplaces=self.nplaces,
+                                            force_married=self.write_married)
 
    def init_options(self):
       self.valid_opts = OL.OptionList('valid opts')
@@ -1312,6 +1340,10 @@ class ATInterface:
       self.valid_opts.add_opt('-stim_dur', 1, [], 
                          helpstr='provide a stimulus duration for main timing')
 
+      # halfway case for FSL timing list
+      self.valid_opts.add_opt('-fsl_timing_files', -1, [], okdash=0,
+                         helpstr='load the given list of FSL timing files')
+
       # action options - multi
       self.valid_opts.add_opt('-multi_timing', -1, [], okdash=0,
                          helpstr='load the given list of timing files')
@@ -1350,6 +1382,8 @@ class ATInterface:
                          helpstr='set the verbose level (default is 1)')
       self.valid_opts.add_opt('-write_all_rest_times', 1, [], 
                          helpstr='in isi_stats, save rest durations to file')
+      self.valid_opts.add_opt('-write_as_married', 0, [], 
+                         helpstr='attempt to write timing files as married')
 
       return 0
 
@@ -1469,11 +1503,20 @@ class ATInterface:
             self.set_stim_dur(val)
          uopts.olist.pop(oind)
 
+      oind = uopts.find_opt_index('-fsl_timing_files')
+      if oind >= 0:
+         val, err = uopts.get_string_list('-fsl_timing_files')
+         if type(val) == type([]) and not err:
+            if self.set_fsl_timing(val): return 1
+         else: return 1
+         uopts.olist.pop(oind)
+
       oind = uopts.find_opt_index('-multi_timing')
       if oind >= 0:
          val, err = uopts.get_string_list('-multi_timing')
          if type(val) == type([]) and not err:
             if self.multi_set_timing(val): return 1
+         else: return 1
          uopts.olist.pop(oind)
 
       oind = uopts.find_opt_index('-multi_stim_dur')
@@ -1488,6 +1531,11 @@ class ATInterface:
          val, err = uopts.get_string_opt('-write_all_rest_times')
          if val and not err:
             self.all_rest_file = val
+         uopts.olist.pop(oind)
+
+      oind = uopts.find_opt_index('-write_as_married')
+      if oind >= 0:
+         if uopts.find_opt('-write_as_married'): self.write_married = 1
          uopts.olist.pop(oind)
 
       # ------------------------------------------------------------

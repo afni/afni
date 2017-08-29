@@ -24,10 +24,11 @@ g_marry_AM_methods = ['lin_run_fraq', 'lin_event_index']
 #                    either time intervals or magnitudes
 
 class AfniTiming(LD.AfniData):
-   def __init__(self, filename="", dur=-1, mdata=None, verb=1):
+   def __init__(self, filename="", dur=-1, mdata=None, fsl_flist=[], verb=1):
       """AFNI married stimulus timing class"""
 
-      super(AfniTiming, self).__init__(filename, mdata=mdata, verb=verb)
+      super(AfniTiming, self).__init__(filename, mdata=mdata, 
+                                       fsl_flist=fsl_flist, verb=verb)
 
       # additional variables (on top of those in AfniData)
       self.dur_len = -1           # if MTYPE_DUR, length of equal intervals
@@ -478,10 +479,18 @@ class AfniTiming(LD.AfniData):
 
       return 0
 
-   def write_times(self, fname='', nplaces=-1):
-      """write the current M timing out, with nplaces right of the decimal"""
+   def write_times(self, fname='', nplaces=-1, force_married=0):
+      """write the current M timing out, with nplaces right of the decimal
 
-      self.write_as_timing(fname, nplaces)
+         if force_married, force to married timing, if appropriate
+      """
+
+      # inherited from lib_afni1D
+      simple = 1
+      if force_married:
+         self.write_dm = 1
+         simple = 0
+      self.write_as_timing(fname, nplaces, check_simple=simple)
 
       return 0
 
