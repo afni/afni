@@ -2607,7 +2607,7 @@ ERR_ST_TOO_BIG    = 16       # val >= run length
 
 
 class AfniData(object):
-   def __init__(self, filename="", mdata=None, verb=1):
+   def __init__(self, filename="", mdata=None, fsl_flist=[], verb=1):
       """akin to a 2D float class, but do not require a square matrix
 
          init from filename
@@ -2656,6 +2656,8 @@ class AfniData(object):
          if self.init_from_filename(self.fname): return None
       elif mdata:
          if self.init_from_mdata(mdata): return None
+      elif len(fsl_flist) > 0:
+         if self.init_from_fsl_flist(fsl_flist): return None
 
    # some accessor functions to match Afni1D
    def set_nruns(nruns):
@@ -3127,7 +3129,7 @@ class AfniData(object):
 
       return rv, cdur
 
-   def write_as_timing(self, fname='', nplaces=-1):
+   def write_as_timing(self, fname='', nplaces=-1, check_simple=1):
       """write the current M timing out, with nplaces right of the decimal"""
       if not self.ready:
          print '** M Timing: not ready to write'
@@ -3146,7 +3148,8 @@ class AfniData(object):
       if self.verb > 0:
          print "++ writing %d MTiming rows to %s" % (self.nrows, fname)
 
-      fp.write(self.make_data_string(nplaces=nplaces, flag_empty=1))
+      fp.write(self.make_data_string(nplaces=nplaces, flag_empty=1,
+                                     check_simple=check_simple))
 
       if fp != sys.stdout:
          fp.close()
@@ -3675,6 +3678,62 @@ class AfniData(object):
       self.ready = 1
       
       return 0
+
+   def init_from_fsl_flist(self, flist):
+      """Convert FSL flist files into a married data structure,
+         and then init from that.
+
+         Files in flist are considered to be in the FSL format:
+            time  duration  amplitude
+         and are considered to be one run per file.
+
+         --> So basically just swap amp and dur, and put amp in list.
+
+         Output is a array of mdata lists, of the form:
+            [
+               [ [time [AM list] duration] [] [] ... ]
+               [ [time [AM list] duration] [] [] ... ]
+            ]
+
+         mdata[0] is the event list for the first run
+         mdata[0][0] is the first event for the first run
+         mdata[0][0][0] is the first event start time
+         mdata[0][0][1] is the array of first event amplitudes
+         mdata[0][0][1][0] is the first amplitude of the first event
+         mdata[0][0][2] is the first event duration
+
+         FSL files have only single amplitudes
+      """
+
+      if len(flist) < 1: return 1
+
+      mdata = []
+      amp_all = [] # track all amplitudes
+
+      if self.verb > 1:
+         print '-- reading FSL timing for %d runs' % len(flist)
+
+      for find, fname in enumerate(flist):
+         try: td = TD.read_1D_file(fname)
+         except:
+            print '** failed to read FSL timing file %d, %s' % (find, fname)
+            return 1
+         elist = [[ev[0], [ev[2]], ev[1]] for ev in td]
+         amp_all.extend([ev[2] for ev in td])
+         mdata.append(elist)
+
+      # if all amplitudes are constand 0 or 1, remove them
+      if   UTIL.vals_are_constant(amp_all, cval=0): cval = 0
+      elif UTIL.vals_are_constant(amp_all, cval=1): cval = 1
+      else:                                         cval = 2
+      if cval <= 1:
+          if self.verb > 1:
+             print '-- FSL amplitudes are all %s, removing...' % cval
+          for mrow in mdata:
+             for event in mrow:
+                event[1] = []
+
+      return self.init_from_mdata(mdata)
 
    def init_from_mdata(self, mdata):
       """mdata should be of the form:
