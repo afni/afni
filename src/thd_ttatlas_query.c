@@ -4232,7 +4232,7 @@ char *approx_string_diff_info(APPROX_STR_DIFF *D, APPROX_STR_DIFF_WEIGHTS *Dwi)
 {
    static char res[10][512];
    static int icall=-1;
-   char sbuf[32];
+   char sbuf[40];
    int i;
 
    if (!Dwi) Dwi = init_str_diff_weights(Dwi);
