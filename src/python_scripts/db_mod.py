@@ -7090,7 +7090,8 @@ g_help_string = """
            '-do_block align tlrc', '-volreg_align_e2a', '-volreg_tlrc_warp'.
 
            As an added bonus, censor TR pairs where the Euclidean Norm of the
-           motion derivative exceeds 1.0.
+           motion derivative exceeds 1.0.  Also, regress motion parameters
+           separately for each run.
 
                 afni_proc.py -subj_id sb23.e6.align                        \\
                         -dsets sb23/epi_r??+orig.HEAD                      \\
@@ -7104,6 +7105,7 @@ g_help_string = """
                         -regress_stim_labels tneg tpos tneu eneg epos      \\
                                              eneu fneg fpos fneu           \\
                         -regress_basis 'BLOCK(30,1)'                       \\
+                        -regress_motion_per_run                            \\
                         -regress_censor_motion 0.3                         \\
                         -regress_opts_3dD                                  \\
                             -gltsym 'SYM: +eneg -fneg'                     \\
@@ -7187,6 +7189,7 @@ g_help_string = """
                            'BLOCK(30,1)' 'TENT(0,45,16)' 'BLOCK(30,1)'     \\
                            'BLOCK(30,1)' 'TENT(0,45,16)' 'BLOCK(30,1)'     \\
                         -regress_apply_mot_types demean deriv              \\
+                        -regress_motion_per_run                            \\
                         -regress_censor_motion 0.3                         \\
                         -regress_censor_outliers 0.1                       \\
                         -regress_compute_fitts                             \\
@@ -7248,6 +7251,7 @@ g_help_string = """
                     -regress_stim_times FT/AV1_vis.txt FT/AV2_aud.txt    \\
                     -regress_stim_labels vis aud                         \\
                     -regress_basis 'BLOCK(20,1)'                         \\
+                    -regress_motion_per_run                              \\
                     -regress_censor_motion 0.3                           \\
                     -regress_opts_3dD                                    \\
                         -jobs 2                                          \\
@@ -7459,6 +7463,7 @@ g_help_string = """
                   -volreg_align_to MIN_OUTLIER                               \\
                   -volreg_align_e2a                                          \\
                   -volreg_tlrc_warp                                          \\
+                  -regress_motion_per_run                                    \\
                   -regress_ROI_PC FSvent 3                                   \\
                   -regress_make_corr_vols aeseg FSvent                       \\
                   -regress_anaticor_fast                                     \\
@@ -7508,6 +7513,7 @@ g_help_string = """
                   -mask_segment_erode yes                                    \\
                   -mask_import Tvent template_ventricle_2.5mm+tlrc           \\
                   -mask_intersect Svent CSFe Tvent                           \\
+                  -regress_motion_per_run                                    \\
                   -regress_ROI_PC Svent 3                                    \\
                   -regress_ROI_PC_per_run Svent 3                            \\
                   -regress_make_corr_vols WMe Svent                          \\
