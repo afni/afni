@@ -107,7 +107,7 @@ ENTRY("AFNI_dataset_slice") ;
 #endif
 
 if(PRINT_TRACING)
-{ char str[256] ;
+{ char str[1280] ;
   sprintf(str,"Input dataset = %s",DSET_FILECODE(dset)) ; STATUS(str) ;
   sprintf(str,"nxx=%d nyy=%d nzz=%d",nxx,nyy,nzz) ;  STATUS(str) ;
   sprintf(str,"fixed_axis=%d fixed_index=%d ival=%d resam=%d",
@@ -274,7 +274,7 @@ STATUS("setting parent_to_child_warp to identity") ;
          (dset->dblk->diskptr->storage_mode == STORAGE_BY_BRICK ||
           dset->dblk->diskptr->storage_mode == STORAGE_UNDEFINED  ) ){
 if(PRINT_TRACING)
-{ char str[256] ;
+{ char str[4096] ;
   sprintf(str,"setting parent_dset to stored warp_parent=%p  this dset=%p",
           (void *)dset->warp_parent , (void *)dset ) ; STATUS(str) ;
   sprintf(str,"parent_dset=%s  this=%s",
