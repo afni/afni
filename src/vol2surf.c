@@ -2630,7 +2630,7 @@ ENTRY("v2s_free_cmd");
 */
 int v2s_make_command( v2s_opts_t * opt, v2s_param_t * p )
 {
-    char ** argv = NULL, str[512];
+    char ** argv = NULL, str[2048];
     char  * dset_file = NULL, * sv_file = NULL;
     int     argc = 0, acnall = 0;
 
