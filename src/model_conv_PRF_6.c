@@ -815,7 +815,7 @@ static int signal_model
   int      debug        /* make some noise */
 )
 {
-  int    maxind;        /* largest dimension */
+  int    maxind, tmpmax;/* largest dimension */
   float  A, x, y, sigma;/* model params */
   float  sigrat, theta;
 
@@ -834,8 +834,14 @@ static int signal_model
   if( ! ISVALID_3DIM_DATASET(g_saset) ) return 0;
 
   maxind = ts_length;
-  if( maxind > DSET_NX(g_saset) ) maxind = DSET_NX(g_saset);
+  if( genv_on_grid ) tmpmax = DSET_NX(g_saset);
+  else               tmpmax = DSET_NVALS(g_saset);
+
+  if( maxind > tmpmax ) maxind = tmpmax;
   if( maxind == 0 ) return 0;
+
+  if( debug ) 
+      fprintf( stderr,"-d NT orig=%d, applied=%d\n", ts_length, maxind);
 
   /* time array must be ordered according to stim dset */
   if( genv_on_grid ) /* scale data directly from grid */

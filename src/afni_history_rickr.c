@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 30, Aug, 2017, RCR, "model_conv_PRF", MICRO, TYPE_BUG_FIX,
+   "determine NT restriction based on reorg",
+   "Was limited to NT.  Applies to PRF, PRF_6, PRF_DOG\n"
+   "Thanks to E Silson for noting the problem."
+ } ,
+
  { 30, Aug, 2017, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
    "add -fsl_timing_files and -write_as_married",
    "This is for converting FSL timing files to AFNI format."
