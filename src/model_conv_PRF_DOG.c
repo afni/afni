@@ -132,9 +132,17 @@ static int signal_model
 
   if( ! ISVALID_3DIM_DATASET(g_saset) ) return 0;
 
+  /* possibly restrict the length, via nx if on grid, else nt */
+  /* (was just NX)    30 Aug 2017 */
   maxind = ts_length;
-  if( maxind > DSET_NX(g_saset) ) maxind = DSET_NX(g_saset);
+  if( genv_on_grid ) ind = DSET_NX(g_saset);
+  else               ind = DSET_NVALS(g_saset);
+
+  if( maxind > ind ) maxind = ind;
   if( maxind == 0 ) return 0;
+
+  if( debug )
+      fprintf( stderr,"-d NT orig=%d, applied=%d\n", ts_length, maxind);
 
   /* make space for computational array */
   if( ts2 == NULL )
