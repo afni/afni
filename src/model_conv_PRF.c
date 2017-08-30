@@ -128,8 +128,8 @@ static int signal_model
   if( maxind > tmpmax ) maxind = tmpmax;
   if( maxind == 0 ) return 0;
 
-  if( debug && maxind < ts_length )
-      fprintf( stderr,"-d truncating NT from %d to %d\n", ts_length, maxind);
+  if( debug )
+      fprintf( stderr,"-d NT orig=%d, applied=%d\n", ts_length, maxind);
 
   /* time array must be ordered according to stim dset */
   if( genv_on_grid ) /* scale data directly from grid */
