@@ -130,4 +130,7 @@ ss += static_script
 
 # and write output
 U.write_text_to_file(outfile, ss)
-os.chmod(outfile, 0755)
+try:
+    os.chmod(outfile, 0755)
+except OSError, e:
+    print e

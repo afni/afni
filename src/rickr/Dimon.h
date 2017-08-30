@@ -91,6 +91,7 @@ typedef struct  /* user options */
     int              debug;         /* debug level                      */
     int              quit;          /* quit when no new images found    */
     int              no_wait;       /* never wait for more data         */
+    int              assume_dicom_mosaic; /* useful for 3D format       */
     int              use_last_elem; /* use last element in DICOM images */
     int              use_slice_loc; /* use Slice Loc for zoff           */
     int              use_obl_origin;/* maybe apply to3d -oblique_origin */
@@ -100,6 +101,7 @@ typedef struct  /* user options */
     int              gert_reco;     /* output GERT_Reco script          */
     char           * gert_filename; /* GERT_Reco script name            */
     char           * gert_prefix;   /* to3d prefix in GERT_Reco script  */
+    char           * chan_prefix;   /* _chan_ par of prefix in script   */
     int              gert_nz;       /* override nz=1 in script          */
     int              gert_format;   /* dataset format: 0=AFNI, 1=NIFTI  */
                                     /* (see -gert_write_as_*)           */

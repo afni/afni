@@ -34,6 +34,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    if( ncall > 0 ) return NULL ;  /* only one interface */
 
+   CHECK_IF_ALLOWED("DATASETDUP","Dataset Dup") ;  /* 30 Sep 2016 */
+
    /*-- set titles and call point --*/
 
    plint = PLUTO_new_interface( "Dataset Dup" , "Warp-on-Demand duplicate" , helpstring ,

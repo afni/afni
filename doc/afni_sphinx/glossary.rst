@@ -26,6 +26,16 @@ Glossary
    WB 
       Whole brain.
 
+   olay
+      Overlay (typically in an image/viewer window).
+
+   ulay 
+      Underlay (typically in an image/viewer window).
+
+   DEC map
+      "Directionally-encoded color" map, typically used to view DTI
+      directionality of the first eigenvector (V1).  
+
    index
    indexing
       A system of referring to an element in an ordered set, such as a

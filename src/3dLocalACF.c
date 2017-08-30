@@ -531,13 +531,15 @@ double ACF_fhwm_cost( int npar , double *par )
 
 float ACF_fwhm( float apar , float bpar , float cpar )
 {
-   double rhalf , rtop ;
+   double rhalf , rtop , rbot ;
 
    rtop = (double)(2.0f*bpar+cpar) ;
+   rbot = 0.0333*rtop ;
 
    AO_VALUE(apar) = apar; AO_VALUE(bpar) = bpar; AO_VALUE(cpar) = cpar;
 
-   rhalf = minimize_in_1D( 0.01 , rtop , ACF_fhwm_cost ) ;
+   rhalf = minimize_in_1D( rbot        , rtop      , ACF_fhwm_cost ) ;
+   rhalf = minimize_in_1D( 0.666*rhalf , 1.5*rhalf , ACF_fhwm_cost ) ;
 
    return (float)(2.0*rhalf) ;
 }

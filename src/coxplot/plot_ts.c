@@ -340,12 +340,15 @@ void plot_ts_setthik_12( int n1, int n2, float thk )
 
 #undef  VBOX
 #define VBOX  1
+#undef  RBOX
+#define RBOX  2   /* 29 Jan 2017 */
 
 typedef struct {
   int code ;
   int ygr ;
   float x1 , x2 ;
   float rr , gg , bb ;
+  float rb_y1 , rb_y2 , rb_rr,rb_gg,rb_bb ;  /* RBOX stuff [29 Jan 2017] */
 } TS_vbox ;
 
 static int     nvbox = 0 ;
@@ -362,6 +365,28 @@ void plot_ts_add_vbox( int ygr , float x1 , float x2 ,
    vbox[nvbox].rr   = rr ;
    vbox[nvbox].gg   = gg ;
    vbox[nvbox].bb   = bb ;
+   nvbox++ ;
+}
+
+void plot_ts_add_rbox( int ygr ,
+                       float x1,float y1 , float x2,float y2 ,
+                       float rr,float gg,float bb,
+                       float r2,float g2,float b2 )  /* 29 Jan 2017 */
+{
+   vbox = (TS_vbox *)realloc( (void *)vbox , sizeof(TS_vbox)*(nvbox+1) ) ;
+   vbox[nvbox].code = RBOX ;
+   vbox[nvbox].ygr  = ygr ;
+   vbox[nvbox].x1   = x1 ;
+   vbox[nvbox].x2   = x2 ;
+   vbox[nvbox].rr   = rr ;
+   vbox[nvbox].gg   = gg ;
+   vbox[nvbox].bb   = bb ;
+
+   vbox[nvbox].rb_y1 = y1 ;  /* spec for rectangle (RBOX) */
+   vbox[nvbox].rb_y2 = y2 ;  /* with filled color (above) */
+   vbox[nvbox].rb_rr = r2 ;  /* and outline around it (color here) */
+   vbox[nvbox].rb_gg = g2 ;
+   vbox[nvbox].rb_bb = b2 ;
    nvbox++ ;
 }
 
@@ -686,12 +711,27 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
       /* 24 Apr 2012: add vbox stuff now, before other plotting */
 
       for( iv=0 ; iv < nvbox ; iv++ ){
-        set_color_memplot( vbox[iv].rr , vbox[iv].gg , vbox[iv].bb ) ;
-        set_thick_memplot( 0 ) ;
-        xb1 = vbox[iv].x1 ; xb2 = vbox[iv].x2 ;
-        yb1 = ybot        ; yb2 = ytop        ;
-        zzphys_(&xb1,&yb1); zzphys_(&xb2,&yb2);
-        plotfrect_memplot( xb1,yb1 , xb2,yb2 ) ;
+        if( vbox[iv].code == VBOX ){
+          set_color_memplot( vbox[iv].rr , vbox[iv].gg , vbox[iv].bb ) ;
+          set_thick_memplot( 0 ) ;
+          xb1 = vbox[iv].x1 ; xb2 = vbox[iv].x2 ;
+          yb1 = ybot        ; yb2 = ytop        ;
+          zzphys_(&xb1,&yb1); zzphys_(&xb2,&yb2);
+          plotfrect_memplot( xb1,yb1 , xb2,yb2 ) ;
+        } else if( vbox[iv].code == RBOX ){  /* 15 Jun 2017 */
+          xb1 = vbox[iv].x1    ; xb2 = vbox[iv].x2    ;
+          yb1 = vbox[iv].rb_y1 ; yb2 = vbox[iv].rb_y2 ;
+          set_color_memplot( vbox[iv].rb_rr , vbox[iv].rb_gg , vbox[iv].rb_bb ) ;
+          set_thick_memplot( thik ) ;
+          plotpak_line( xb1,yb1 , xb1,yb2 ) ;
+          plotpak_line( xb1,yb2 , xb2,yb2 ) ;
+          plotpak_line( xb2,yb2 , xb2,yb1 ) ;
+          plotpak_line( xb2,yb1 , xb1,yb1 ) ;
+          set_color_memplot( vbox[iv].rr , vbox[iv].gg , vbox[iv].bb ) ;
+          zzphys_(&xb1,&yb1); zzphys_(&xb2,&yb2);
+          set_thick_memplot( 0 ) ;
+          plotfrect_memplot( xb1,yb1 , xb2,yb2 ) ;
+        }
       }
 
       set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
@@ -821,11 +861,13 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
          set_thick_memplot(0.0f) ;
          for( iv=0 ; iv < nvbox ; iv++ ){
            if( vbox[iv].ygr == jj || vbox[iv].ygr < 0 ){
-             set_color_memplot( vbox[iv].rr , vbox[iv].gg , vbox[iv].bb ) ;
-             xb1 = vbox[iv].x1 ; xb2 = vbox[iv].x2 ;
-             yb1 = ylo[jj]     ; yb2 = yhi[jj]     ;
-             zzphys_(&xb1,&yb1); zzphys_(&xb2,&yb2);
-             plotfrect_memplot( xb1,yb1 , xb2,yb2 );
+             if( vbox[iv].code == VBOX ){
+               set_color_memplot( vbox[iv].rr , vbox[iv].gg , vbox[iv].bb ) ;
+               xb1 = vbox[iv].x1 ; xb2 = vbox[iv].x2 ;
+               yb1 = ylo[jj]     ; yb2 = yhi[jj]     ;
+               zzphys_(&xb1,&yb1); zzphys_(&xb2,&yb2);
+               plotfrect_memplot( xb1,yb1 , xb2,yb2 );
+             }
            }
          }
 

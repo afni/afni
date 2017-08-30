@@ -7,7 +7,7 @@ env:
     - FLAVOR=linux_ubuntu_12_64
 before_install:
     # install build-dependencies as the doc says
-    - sudo sh src/other_builds/OS_notes.linux_ubuntu_12_64
+    - sudo sh src/other_builds/OS_notes.$FLAVOR
     # install packages needed for testing
     - sudo apt-get install xvfb xauth libgl1-mesa-dri mesa-utils tcsh libjpeg-progs gifsicle
     # for Debian pkg build testing
@@ -15,7 +15,12 @@ before_install:
 install:
     - if [ ! -e debian ]; then cd src; cp other_builds/Makefile.$FLAVOR Makefile; make vastness; cd ..; fi
 script:
-    - export PATH=$PATH:$PWD/src/$FLAVOR  # to gain access to built binaries if built natively
+    # to gain access to built binaries, include path first
+    # (otherwise the wrong `count` binary may be used in the tests)
+    - export PATH=$PWD/$FLAVOR:$PATH
     - if [ -e debian ]; then tools/ci/debian_run_tests; else tools/ci/run_tests; fi
+    - mkdir ../testing; cd ../testing # from here will run tests
+    - cmake -DAFNI_BUILD_TESTS:BOOL=ON ..
+    - ctest --verbose
     # Smoke tests for some additional commands
     - 3dinfo

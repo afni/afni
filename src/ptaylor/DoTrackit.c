@@ -23,6 +23,7 @@ int ByeByeBundle( int A,
                   int B,
                   int NET,
                   int **Prob_grid,
+                  float ***Prob_grid_L,
                   float ***Param_grid,
                   int L_paramgrid,
                   int ***NETROI,
@@ -35,6 +36,9 @@ int ByeByeBundle( int A,
    lll = MatrInd_to_FlatUHT(A, B, NROI[NET]);
 
    Prob_grid[NET][lll] = 0;
+
+   Prob_grid_L[NET][lll][0] = 0; // Nov,2016
+   Prob_grid_L[NET][lll][1] = 0;
 
    for( i=0 ; i<L_paramgrid ; i++ )
       Param_grid[NET][lll][i] = 0;
@@ -207,7 +211,7 @@ int CheckNotMask(int id, int br, short **amask, int AO){
   varied length version
 
  */
-int ScoreTrackGrid_M( float ***PG,int idx, int h, int C,
+int ScoreTrackGrid_M( float ***PG, int idx, int h, int C,
                       THD_3dim_dataset **inset, int bot, int top)
 {
    int i,j=1;
@@ -225,7 +229,7 @@ int ScoreTrackGrid_M( float ***PG,int idx, int h, int C,
       j+=2;
    }
 	
-	RETURN(1);
+	RETURN(0);
 }
 
 

@@ -1,0 +1,572 @@
+#!/bin/tcsh -e
+
+# --------------------- revision history -------------------------
+# Jan, 2017
+#   + rename
+#
+# Jan, 2017b
+#   + drive QC snapshots
+#
+#set version   = "1.3";    set rev_dat   = "March 21, 2017"
+#   + consistent option/help names
+#
+#set version   = "1.4";    set rev_dat   = "April 10, 2017"
+#   + wdir-ize
+#
+#set version   = "1.5";    set rev_dat   = "April 11, 2017"
+#   + fixed printfs
+#
+#set version   = "1.6";    set rev_dat   = "April 24, 2017"
+#   + make outside brain less bright
+#   + new wdir naming
+#   + redone final file naming
+#
+#set version   = "1.7";  set rev_dat   = "Apr 26, 2017"
+#   + better naming wdir
+#
+set version   = "1.8";  set rev_dat   = "May 25, 2017"
+#   + changed output file names; earlier ones now annoyed me, 
+#     fickly enough
+#
+set version   = "1.81";  set rev_dat   = "July 27, 2017"
+#   + added help note about DR-BUDDI option that seems recommendable
+#     at present
+#
+# ----------------------------------------------------------------
+
+set this_prog = "fat_proc_imit2w_from_t1w"
+set tpname    = "${this_prog:gas/fat_proc_//}"
+set here      = $PWD
+
+# ----------------- find AFNI and set viewer ---------------------
+
+# find AFNI binaries directory and viewer location
+set adir      = ""
+set my_viewer = ""
+which afni >& /dev/null
+if ( $status ) then
+    echo "** Cannot find 'afni' (?!)."
+    goto BAD_EXIT
+else
+    set aa   = `which afni`
+    set adir = $aa:h
+endif
+
+# default location of viewer: user could modify!
+set my_viewer = "$adir/@chauffeur_afni"
+
+# ----------------------- set defaults --------------------------
+
+set ifile     = ""                # nec input: T1w vol
+set imask     = ""                # optional, if SS'ing elsewhere
+set odir      = ""                # will be output dir
+set opref     = ""                # for final output files
+set tpref     = "ttt"             # for intermed files
+set DO_CLEAN   = "1"               # clean by default
+
+set wdir       = "__WORKING_$tpname"
+set WDIR_EX    = "1"             # put opref on wdir (unless user names)
+set output_cmd = 1               # def: output copy of this command
+set cmd_file   = ""              # def: same name as viewer
+
+set qc_prefix = ""
+set DO_VIEWER = 1                 # def: do QC image visualization
+set postfix   = "_"               # stick into name
+
+# ------------------- process options, a la rr ----------------------
+
+if ( $#argv == 0 ) goto SHOW_HELP
+
+set ac = 1
+while ( $ac <= $#argv )
+    # terminal options
+    if ( ("$argv[$ac]" == "-h" ) || ("$argv[$ac]" == "-help" )) then
+        goto SHOW_HELP
+    endif
+    if ( "$argv[$ac]" == "-ver" ) then
+        goto SHOW_VERSION
+    endif
+
+    # required 
+    if ( "$argv[$ac]" == "-inset" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set ifile = "$argv[$ac]"
+        
+    # ---------- other opts ----------------
+
+    else if ( "$argv[$ac]" == "-mask" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set imask = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-workdir" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set wdir = "$argv[$ac]"
+        set WDIR_EX  = "0"
+
+    else if ( "$argv[$ac]" == "-prefix" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set opref = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-no_clean" ) then
+        set DO_CLEAN = "0"
+
+    else if ( "$argv[$ac]" == "-no_qc_view" ) then
+        set DO_VIEWER = 0
+
+    else if ( "$argv[$ac]" == "-qc_prefix" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set qc_prefix = "$argv[$ac]"
+
+    else
+        echo "** unexpected option #$ac = '$argv[$ac]'"
+        exit 2
+
+    endif
+    @ ac += 1
+end
+
+# =======================================================================
+# ============================ ** SETUP ** ==============================
+# =======================================================================
+
+echo "++ Start script version: $version"
+
+# ============================= input file ==============================
+
+set check = `3dinfo "$ifile"`
+if ( "$#check" == "0" ) then
+    echo "** ERROR: can't find file $ifile !"
+    goto BAD_EXIT
+endif
+
+if ( $imask != "" ) then
+    set check = `3dinfo "$imask"`
+    if ( "$#check" == "0" ) then
+        echo "** ERROR: can't find file $imask !"
+        goto BAD_EXIT
+    endif
+endif
+
+# ===================== output and working dirs =========================
+
+if ( "$opref" == "" ) then
+    echo "** ERROR: need '-prefix ...' option provided!"
+    echo "   See the helpfile for more information."
+    goto BAD_EXIT
+else
+    set odir = `dirname $opref`
+    set opref = `basename $opref`
+    echo ""
+    echo "++ Based on prefix, the output directory will be:"
+    echo "     $odir"
+    echo "++ Based on prefix, the output prefix will be:"
+    echo "     $opref"
+    echo ""
+endif
+
+# check output directory, use input one if nothing given
+
+# default output dir, if nothing input.
+if ( ! -e "$odir" ) then
+    echo "+* Output directory didn't exist.  Trying to make it now."
+    mkdir "$odir"
+endif
+
+# and put working directory as subdirectory.
+if ( "$WDIR_EX" == "1" ) then
+    set wdir = $odir/${wdir}_$opref
+else
+    set wdir = $odir/$wdir
+endif
+
+# make the working directory
+if ( ! -e $wdir ) then
+    echo "++ Making working directory: $wdir"
+    mkdir $wdir
+else
+    echo "+* WARNING: Somehow found a premade working directory (?):"
+    echo "      $wdir"
+
+    # don't clean preexisting directories-- could be user mistake.
+    echo "   NB: will *not* clean it afterwards."
+    set DO_CLEAN = "0"
+endif
+
+# =======================================================================
+# =========================== ** PROCESS ** =============================
+# =======================================================================
+
+echo "\n-----> STARTING $this_prog ---->"
+
+# ---------------------------- CMD ---------------------------------
+
+echo "\n\nThis command:"
+echo "$this_prog $argv\n\n"
+
+set ocmd   = "${opref}_cmd.txt"      # name for output command
+
+if ( "$cmd_file" == "" ) then
+    set cmd_file = "$odir/$ocmd"
+endif
+
+# copy original command:
+# dump copy of command into workdir/..
+if ( $output_cmd == 1 ) then
+    echo "++ Echoing the command to: $cmd_file"
+
+    set rec_afni_ver = `afni -ver`
+    echo "### AFNI version:"  > $cmd_file
+    echo "# $rec_afni_ver\n"            >> $cmd_file
+
+    echo "### Executed from the directory location:"  >> $cmd_file
+    echo "# $here\n"            >> $cmd_file
+    echo "### The command was:" >> $cmd_file
+    echo "# $this_prog $argv"   >> $cmd_file
+    echo "\n"                   >> $cmd_file
+endif
+
+# ----------- init: cp data + move to wdir ----------------
+
+echo "++ Copying input files to working dir."
+
+set idx = 0
+
+# cp data to wdir
+set fin  = "$ifile"
+set fout = "${tpref}_${idx}_cp0.nii"
+3dcalc -echo_edu         \
+    -overwrite           \
+    -a $fin              \
+    -expr 'a'            \
+    -prefix $wdir/$fout
+
+if ( "$imask" != "" ) then
+
+    set foutm = "${tpref}_${idx}_mask0.nii"
+    3dcalc -echo_edu         \
+        -overwrite           \
+        -a $imask            \
+        -expr 'a'            \
+        -prefix $wdir/$foutm
+
+    set imask = $foutm
+endif
+
+@ idx += 1
+
+# move to wdir
+cd $wdir
+
+# ---------- continue proc in wdir ------------
+
+set amask = "${tpref}_${idx}_automask.nii.gz"
+set fin = $fout
+echo "\nPre-brightening: ON\n"
+3dAutomask  -echo_edu                            \
+    -overwrite                                   \
+    -prefix $amask                               \
+    $fin 
+@ idx += 1
+
+# calc to-be max as 99percentile of in-brain distr: prob still
+# generous?
+set NUMS = `3dBrickStat -mask ${amask} -percentile 90 1 90  ${fin}`
+set P_THR = "$NUMS[2]"
+
+echo "\nThresh value will be: $P_THR"
+
+set fout = "${tpref}_${idx}_pre.nii"
+set fout_thr = $fout
+3dcalc                                            \
+    -echo_edu                                     \
+    -a "$fin"                                     \
+    -expr "maxbelow(${P_THR},a)"                  \
+    -prefix "$fout"                               \
+    -float                                        \
+    -overwrite
+@ idx += 1
+
+if ( $imask == "" ) then
+    set fin  = "$fout"
+    set fout = "${tpref}_${idx}_ani.nii"
+    3danisosmooth -echo_edu       \
+        -overwrite                \
+        -iters 2                  \
+        -prefix $fout             \
+        -3D                       \
+        "$fin"
+    @ idx += 1
+
+    set fin  = "$fout"
+    set fout = "${tpref}_${idx}_ss.nii"
+    set imask = $fout
+    3dSkullStrip -echo_edu               \
+        -input $fin                      \
+        -prefix $fout                    \
+        -blur_fwhm 2                     \
+        -orig_vol                        \
+        -overwrite
+    @ idx += 1
+endif
+
+# wherever SS brain came from, use it now as binary mask.
+set finm  = "$imask"
+set foutm = "${tpref}_${idx}_mask1.nii"
+3dcalc                                \
+    -echo_edu                         \
+    -a $finm                          \
+    -expr 'step(a)'                   \
+    -prefix ${foutm}                  \
+    -overwrite
+@ idx += 1
+
+set finm  = "$foutm"
+set foutm = "${tpref}_${idx}_mask2.nii"
+3dmask_tool                           \
+    -echo_edu                         \
+    -inputs ${finm}                   \
+    -dilate_inputs 2 -1               \
+    -prefix ${foutm}                  \
+    -overwrite
+@ idx += 1
+
+# unifize the *unmasked* one
+set fin  = "$fout_thr"
+set fout = "${tpref}_${idx}_uni.nii.gz"
+3dUnifize                    \
+    -echo_edu                \
+    -prefix $fout            \
+    -input $fin              \
+    -overwrite
+@ idx += 1
+
+# calc to-be max as 99percentile of in-brain distr: prob still
+# generous?
+set NUMS = `3dBrickStat -mask ${foutm}  -percentile 90 1 90  ${fout}`
+set P_THR = "$NUMS[2]"
+
+echo "\nThresh value will be: $P_THR \n"
+
+set fin1  = "$fout"
+set fin2  = "$foutm"
+set t1out  = "${opref}_orig.nii.gz"
+# [PT: now weight as 10% values outside brain]
+3dcalc                                            \
+    -echo_edu                                     \
+    -a $fin1                                      \
+    -b $fin2                                      \
+    -expr "maxbelow(${P_THR},a)*(1*b+0.1*not(b))" \
+    -prefix ../$t1out                             \
+    -float                                        \
+    -overwrite
+
+set fin1  = "../$t1out"
+set fin2  = "$foutm"
+set fout  = "${opref}_orig_ss.nii.gz"
+set t1ss  = $fout
+3dcalc                                            \
+    -echo_edu                                     \
+    -a $fin1                                      \
+    -b $fin2                                      \
+    -expr "maxbelow(${P_THR},a)*(1*b)"            \
+    -prefix ../$fout                              \
+    -float                                        \
+    -overwrite
+
+# try making an imitation T2;
+# same fin* as above
+set t2out = "${opref}.nii.gz"
+3dcalc                                            \
+    -echo_edu                                     \
+    -a $fin1                                      \
+    -b $fin2                                      \
+    -expr "(1.1*${P_THR}-a)*b+not(b)*a"           \
+    -prefix ../$t2out                             \
+    -float                                        \
+    -overwrite
+
+# ---------------------------- VIEWER ---------------------------------
+
+if ( $DO_VIEWER ) then
+
+    echo "++ Making QC images."
+
+    if( $qc_prefix == "" ) then
+        set vpref1 = ${opref}${postfix}_qc1_origss
+        set vpref2 = ${opref}${postfix}_qc2_imit2w
+    else
+        set vpref1 = ${qc_prefix}${postfix}_qc1_origss
+        set vpref2 = ${qc_prefix}${postfix}_qc2_imit2w
+    endif
+
+    echo "++ QC image #1 (intermed T1w skullstripped ulay): $vpref1"
+    $my_viewer      -ulay ../$t1ss                  \
+                    -prefix $vpref1                 \
+                    -outdir ".."                    \
+                    -montx 5 -monty 3               \
+                    -set_xhairs OFF                 \
+                    -label_mode 1 -label_size 3     \
+                    -do_clean
+
+    echo "++ QC image #2 (final output ulay): $vpref2"
+    $my_viewer      -ulay ../$t2out                 \
+                    -prefix $vpref2                 \
+                    -outdir ".."                    \
+                    -montx 5 -monty 3               \
+                    -set_xhairs OFF                 \
+                    -label_mode 1 -label_size 3     \
+                    -do_clean
+endif
+
+# ------------------- clean + final message(s) -----------------------
+
+if ( "$DO_CLEAN" == "1" ) then
+    cd $here
+    echo "\n Removing temporary working directory ($wdir).\n"
+    \rm -rf $wdir
+else
+    echo "\n NOT Removing temporary working directory.\n"
+endif
+
+echo "\n DONE!\n View T1w file:\n    $odir/${t1out}\n"
+echo "\n DONE!\n View skullstripped T1w file (check for qc):\n    $odir/${t1ss}\n"
+echo "\n DONE!\n View imitation T2w file:\n   $odir/${t2out}\n\n"
+
+# ---------------------------------------------------------------------
+
+goto GOOD_EXIT
+
+# ========================================================================
+# ========================================================================
+
+SHOW_HELP:
+cat << EOF
+-------------------------------------------------------------------------
+
+  Some basic processing of T1w anatomical images, particularly for
+  preparation in using as a reference structural in TORTOISE -> makes
+  an imitation T2w-contrast image, in terms of relative tissue
+  contrast.  Make sure to verify all results visually!
+
+  This does: unifizing of brightness, anisosmoothing, some skull
+  stripping, and also generates an imitation T2w-contrast image
+  through **very** simple means.  The output T2w volume is *not* for
+  quantitative use, but for registrative purposes.
+
+  Some automatic QC images are generated now, as well.  Montages of
+  axial, sagittal and coronal views of the final T2w volume are saved
+  by default in the same location as the output volumes.
+
+  NB: if you use a volume made this way as a reference in TORTOISE,
+  then at least for ~adult-human-like (imitation) t2w volumes, at
+  present it seems like you should use the option:
+    --enforce_deformation_antisymmetry 1
+  This seems to improve registration.
+
+
+  REQUIRES: AFNI.
+
+  Ver. $version (PA Taylor, ${rev_dat})
+
+  For use, example images, and citation, see (esp. Appendix A):
+     Taylor PA, Alhamud A, van der Kouwe AJ, Saleh MG, Laughton B,
+     Meintjes EM.  Assessing the performance of different DTI motion
+     correction strategies in the presence of EPI distortion
+     correction.  Hum Brain Mapp (in press).
+
+-------------------------------------------------------------------------
+
+  RUNNING:
+
+  This script has one required argument ('-inset ...'), and the rest are
+    optional:
+
+    $this_prog  \
+        -inset  T1_FILE                       \
+        -prefix PPP                           \
+        {-workdir WWW}                        \
+        {-mask    MASK}                       \
+        {-no_clean}                           \
+        {-no_qc_view}                         \
+        {-qc_prefix QCP}
+
+  where: 
+  -inset  T1_FILE  :is the full name of the input T1w volume;
+
+  -prefix  PPP     :output prefix for files and snapshots (required).
+
+  -mask   MASK     :an optional input of a pre-skullstripped T1_FILE
+                    (this can be either a mask or a skullstripped volume).
+                    This can be useful if the default skullstripping
+                    options in this script ain't getting the job done
+                    and other ones have to be done (skullstripping is
+                    probably the slowest part of this set of steps).
+
+  -workdir WWW     :specify a working directory, which can be removed;
+                    (default name = '$wdir')
+
+  -no_qc_view      :turn off the automatic creation of QC montages (which
+                    are produced by default).
+
+  -qc_prefix QCP   :change the prefix of the QC images (default: use the
+                    prefix of the volumes).
+
+  -no_clean        :is an optional switch to NOT remove working directory
+                    '$wdir'; (default: remove working dir).
+
+ ------------------------------------------------------------------------
+
+  OUTPUTS:
+
+    PREFIX.nii.gz         :a volume with T2w-like tissue contrast made
+                           from a T1w one; the outside of the brain
+                           has scaled skull and noise, for having a
+                           non-zero SNR estimation.
+    PREFIX_orig.nii.gz    :a somewhat cleaned/processed version of the
+                           input T1w volume; it also has a scaled skull 
+                           and noise outside the brain.
+    PREFIX_orig_ss.nii.gz :a skull-stripped version of PREFIX_t1w.nii.gz.
+
+    PREFIX${postfix}_qc*
+                          :QC images of the skull-stripped T1w volume
+                           and of the final imitation-T2w volume.
+
+-------------------------------------------------------------------------
+
+  EXAMPLE:
+    
+    $this_prog  \
+        -inset T1.nii.gz                        \
+        -prefix imit2w
+  or
+
+    $this_prog  \
+        -inset T1.nii.gz                        \
+        -mask  mask_WB.nii.gz                   \
+        -prefix imit2w
+        -no_clean
+
+-------------------------------------------------------------------------
+
+EOF
+
+    goto GOOD_EXIT
+
+SHOW_VERSION:
+    echo "version  $version (${rev_dat})"
+    goto GOOD_EXIT
+
+FAIL_MISSING_ARG:
+    echo "** ERROR! Missing an argument after option flag: '$argv[$ac]'"
+    goto BAD_EXIT
+
+BAD_EXIT:
+    exit 1
+
+GOOD_EXIT:
+    exit 0

@@ -318,7 +318,7 @@ int main( int argc , char *argv[] )
    MRI_IMAGE *im_base, *im_targ, *im_weig=NULL, *im_mask=NULL, *qim ;
    MRI_IMAGE *im_bset, *im_wset, *im_tmask=NULL ;
    GA_setup stup ;
-   int iarg , ii,jj,kk , nmask=0 , nfunc , rr , ntask , ntmask=0 ;
+   int iarg , ii,jj,kk , nmask=0 , nfunc , rr , ntask , ntmask=0 , nnz ;
    int   nx_base,ny_base,nz_base , nx_targ,ny_targ,nz_targ , nxy_base ;
    float dx_base,dy_base,dz_base , dx_targ,dy_targ,dz_targ , dxyz_top ;
    int   nxyz_base[3] , nxyz_targ[3] , nxyz_dout[3] ;
@@ -362,7 +362,7 @@ int main( int argc , char *argv[] )
    float auto_wpow             = 1.0f ;         /* 10 Sep 2007 */
    char *auto_string           = "-autobox" ;
    int auto_dilation           = 0 ;            /* for -automask+N */
-   int wtspecified             = 0 ;            /* 10 Sep 2007 */
+   int wtspecified             = 0 ;            /* 10 Sep 2007 (was weight specified?) */
    double dxyz_mast            = 0.0  ;         /* implemented 24 Jul 2007 */
    int meth_code               = GA_MATCH_HELLINGER_SCALAR ;
    int sm_code                 = GA_SMOOTH_GAUSSIAN ;
@@ -463,10 +463,21 @@ int main( int argc , char *argv[] )
    double micho_crA            = 0.4 ;
    double micho_hel            = 0.4 ;
    double micho_ov             = 0.4 ;           /* 02 Mar 2010 */
+   int    micho_fallthru       = 0 ;             /* 19 Nov 2016 */
 
    int do_zclip                = 0 ;             /* 29 Oct 2010 */
 
    bytevec *emask              = NULL ;          /* 14 Feb 2013 */
+
+#undef ALLOW_UNIFIZE
+#ifdef ALLOW_UNIFIZE
+   int do_unifize_base         = 0 ;             /* 23 Dec 2016 */
+   int do_unifize_targ         = 0 ;             /* not implemented */
+   MRI_IMAGE *im_ubase         = NULL ;
+   MRI_IMAGE *im_utarg         = NULL ;
+#endif
+
+#define APPLYING ( apply_1D != NULL || apply_mode != 0 )  /* 13 Mar 2017 */
 
    /**----------------------------------------------------------------------*/
    /**----------------- Help the pitifully ignorant user? -----------------**/
@@ -550,11 +561,11 @@ int main( int argc , char *argv[] )
 "               field inhomogeneities.\n"
 "\n"
 " ** NOTA BENE: The base and source dataset do NOT have to be defined **\n"
-" **            on the same 3D grids; the alignment process uses the  **\n"
-" **            coordinate systems defined in the dataset headers to  **\n"
-" **            make the match between spatial locations, rather than **\n"
-" **            matching the 2 datasets on a voxel-by-voxel basis     **\n"
-" **            (as 3dvolreg and 3dWarpDrive do).                     **\n"
+" ** [that's]   on the same 3D grids; the alignment process uses the  **\n"
+" ** [Latin ]   coordinate systems defined in the dataset headers to  **\n"
+" ** [  for ]   make the match between spatial locations, rather than **\n"
+" ** [ NOTE ]   matching the 2 datasets on a voxel-by-voxel basis     **\n"
+" ** [ WELL ]   (as 3dvolreg and 3dWarpDrive do).                     **\n"
 " **       -->> However, this coordinate-based matching requires that **\n"
 " **            image volumes be defined on roughly the same patch of **\n"
 " **            of (x,y,z) space, in order to find a decent starting  **\n"
@@ -564,6 +575,8 @@ int main( int argc , char *argv[] )
 " **       -->> Or the '-cmass' option to this program might be       **\n"
 " **            sufficient to solve this problem, maybe, with luck.   **\n"
 " **            (Another reason why you should use align_epi_anat.py) **\n"
+" **       -->> If the coordinate system in the dataset headers is    **\n"
+" **            WRONG, then 3dAllineate will probably not work well!  **\n"
 "\n"
 " -prefix ppp = Output the resulting dataset to file 'ppp'.  If this\n"
 "   *OR*        option is NOT given, no dataset will be output!  The\n"
@@ -1388,10 +1401,12 @@ int main( int argc , char *argv[] )
               "     '-lpc+hel*0.5+nmi*0+mi*0+crA*1.0+ov*0.5'\n"
               " * The quotes are needed to prevent the shell from wild-card expanding\n"
               "   the '*' character.\n"
+              "   --> You can now use ':' in place of '*' to avoid this wildcard problem:\n"
+              "         -lpc+hel:0.5+nmi:0+mi:0+crA:1+ov:0.5+ZZ\n"
               " * Notice the weight factors FOLLOW the name of the extra functionals.\n"
               "   ++ If you want a weight to be 0 or 1, you have to provide for that\n"
               "      explicitly -- if you leave a weight off, then it will get its\n"
-              "      default value.\n"
+              "      default value!\n"
               "   ++ The order of the weight factor names is unimportant here:\n"
               "        '-lpc+hel*0.5+nmi*0.8' == '-lpc+nmi*0.8+hel*0.5'\n"
               " * Only the 5 functionals listed (hel,crA,nmi,mi,ov) can be used in '-lpc+'.\n"
@@ -1676,6 +1691,19 @@ int main( int argc , char *argv[] )
 
    iarg = 1 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
+
+     /*------*/
+
+#ifdef ALLOW_UNIFIZE
+     if( strcmp(argv[iarg],"-unifize_base") == 0 ){    /* 23 Dec 2016 */
+       do_unifize_base++ ; iarg++ ; continue ;
+     }
+# if 0
+     if( strcmp(argv[iarg],"-unifize_source") == 0 ){  /* 23 Dec 2016 */
+       do_unifize_targ++ ; iarg++ ; continue ;
+     }
+# endif
+#endif
 
      /*------*/
 
@@ -2147,20 +2175,38 @@ int main( int argc , char *argv[] )
        jj = meth_name_to_code( argv[iarg] ) ;
        if( jj > 0 ){ meth_code = jj ; iarg++ ; continue ; }
 
-       ERROR_exit("Unknown code '%s' after -cost :-(",argv[iarg]) ;
+       /* fail here, UNLESS the method is 'lpc+something' */
+
+       if( ! (strlen(argv[iarg]) > 5 && strncasecmp(argv[iarg],"lpc+",4) == 0) )
+         ERROR_exit("Unknown code '%s' after -cost :-(",argv[iarg]) ;
+
+       /* fall through to lpc+ code */
+
+       micho_fallthru = 1 ;
      }
 
      /* 24 Feb 2010: special option for -lpc+stuff */
 
-     if( strlen(argv[iarg]) > 6 && strncasecmp(argv[iarg],"-lpc+",5) == 0 ){
+     if( micho_fallthru ||
+         (strlen(argv[iarg]) > 6 && strncasecmp(argv[iarg],"-lpc+",5) == 0) ){
        char *cpt ;
+       micho_fallthru = 0 ;
        meth_code = GA_MATCH_LPC_MICHO_SCALAR ;
        cpt = strcasestr(argv[iarg],"+hel*"); if( cpt != NULL ) micho_hel = strtod(cpt+5,NULL);
+       cpt = strcasestr(argv[iarg],"+hel:"); if( cpt != NULL ) micho_hel = strtod(cpt+5,NULL);
        cpt = strcasestr(argv[iarg],"+mi*" ); if( cpt != NULL ) micho_mi  = strtod(cpt+4,NULL);
+       cpt = strcasestr(argv[iarg],"+mi:" ); if( cpt != NULL ) micho_mi  = strtod(cpt+4,NULL);
        cpt = strcasestr(argv[iarg],"+nmi*"); if( cpt != NULL ) micho_nmi = strtod(cpt+5,NULL);
+       cpt = strcasestr(argv[iarg],"+nmi:"); if( cpt != NULL ) micho_nmi = strtod(cpt+5,NULL);
        cpt = strcasestr(argv[iarg],"+crA*"); if( cpt != NULL ) micho_crA = strtod(cpt+5,NULL);
+       cpt = strcasestr(argv[iarg],"+crA:"); if( cpt != NULL ) micho_crA = strtod(cpt+5,NULL);
        cpt = strcasestr(argv[iarg],"+ov*" ); if( cpt != NULL ) micho_ov  = strtod(cpt+4,NULL);
+       cpt = strcasestr(argv[iarg],"+ov:" ); if( cpt != NULL ) micho_ov  = strtod(cpt+4,NULL);
        cpt = strcasestr(argv[iarg],"ZZ")   ; micho_zfinal = (cpt != NULL) ;
+
+       INFO_message("lpc+ parameters: hel=%.2f mi=%.2f nmi=%.2f crA=%.2f ov=%.2f %s",
+                    micho_hel , micho_mi , micho_nmi , micho_crA , micho_ov ,
+                    micho_zfinal ? "[to be zeroed at Final iteration]" : "\0" ) ;
        iarg++ ; continue ;
      }
 
@@ -2250,16 +2296,20 @@ int main( int argc , char *argv[] )
      /*-----*/
 
      if( strncmp(argv[iarg],"-twobest",7) == 0 ){
+       static int first=1 ; int tbold=tbest ;
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s' :-(",argv[iarg-1]) ;
        tbest = (int)strtod(argv[iarg],NULL) ; twopass = 1 ;
        if( tbest < 0 ){
          WARNING_message("-twobest %d is illegal: replacing with 0",tbest) ;
          tbest = 0 ;
        } else if( tbest > PARAM_MAXTRIAL ){
-         WARNING_message("-twobest %d is illegal: replacing with %d",tbest,PARAM_MAXTRIAL) ;
+         INFO_message("-twobest %d is too big: replaced with %d",tbest,PARAM_MAXTRIAL) ;
          tbest = PARAM_MAXTRIAL ;
+       } else if( !first && tbold > tbest ){
+         INFO_message("keeping older/larger -twobest value of %d",tbold) ;
+         tbest = tbold ;
        }
-       iarg++ ; continue ;
+       first = 0 ; iarg++ ; continue ;
      }
 
      if( strncmp(argv[iarg],"-num_rtb",7) == 0 ){
@@ -2340,7 +2390,7 @@ int main( int argc , char *argv[] )
          strncmp(argv[iarg],"-1Dparam_apply",13) == 0   ){
        char *fname ;
 
-       if( apply_1D != NULL || apply_mode != 0 )
+       if( APPLYING )
          ERROR_exit("Can't have multiple 'apply' options :-(") ;
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s' :-(",argv[iarg-1]) ;
 #if 0
@@ -2363,7 +2413,7 @@ int main( int argc , char *argv[] )
 
      if( strncmp(argv[iarg],"-1Dmatrix_apply",13) == 0 ){
        char *fname ;
-       if( apply_1D != NULL || apply_mode != 0 )
+       if( APPLYING )
          ERROR_exit("Can't have multiple 'apply' options :-(") ;
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s' :-(",argv[iarg-1]) ;
 #if 0
@@ -2895,9 +2945,10 @@ int main( int argc , char *argv[] )
      ERROR_message("Unknown and Illegal option '%s' :-( :-( :-(",argv[iarg]) ;
      suggest_best_prog_option(argv[0], argv[iarg]);
      exit(1);
-   }
 
-   if( iarg < argc )
+   } /*---- end of loop over command line args ----*/
+
+   if( iarg < argc )  /* oopsie */
      WARNING_message("Processing command line options stopped at '%s'",argv[iarg]);
 
    /*---------------------------------------------------------------*/
@@ -2906,25 +2957,27 @@ int main( int argc , char *argv[] )
    if( seed == 0 ) seed = (long)time(NULL)+(long)getpid() ;
    srand48(seed) ;
 
-   if( meth_code == GA_MATCH_PEARSON_SCALAR && !wtspecified ){ /* 10 Sep 2007 */
-     auto_weight = 1 ;  /* for '-ls', use '-autoweight' */
-     if( verb ) INFO_message("Cost 'ls' ==> using '-autoweight' default") ;
+   /* ls/lpc/lpa: turn -autoweight on unless it was forced off. */
+   /* [changed from pure warning to current status 23 Jan 2017] */
+
+   if( !wtspecified &&
+       ( meth_code == GA_MATCH_PEARSON_SCALAR  ||
+         meth_code == GA_MATCH_PEARSON_LOCALS  ||
+         meth_code == GA_MATCH_PEARSON_LOCALA  ||
+         meth_code == GA_MATCH_LPC_MICHO_SCALAR  ) ){
+     auto_weight = 1 ;
+     WARNING_message(
+       "Cost 'ls' or 'lpc' or 'lpa' ==> turning '-autoweight' on\n"
+       "          If you DO NOT want this to happen, then use one\n"
+       "          of '-autobox' or '-automask' or '-noauto'.\n"     ) ;
    }
 
-   /* warn the stoopid lusers out there [01 Jun 2009] */
-
-   if( meth_code == GA_MATCH_PEARSON_LOCALS  ||
-       meth_code == GA_MATCH_PEARSON_LOCALA  ||
-       meth_code == GA_MATCH_LPC_MICHO_SCALAR  ){
-
-     if( dset_weig == NULL && !auto_weight )
+   if( im_tmask == NULL && !auto_tmask &&
+       ( meth_code == GA_MATCH_PEARSON_LOCALS  ||
+         meth_code == GA_MATCH_PEARSON_LOCALA  ||
+         meth_code == GA_MATCH_LPC_MICHO_SCALAR  ) ){
        WARNING_message(
-        "'-weight' or '-autoweight' is recommended when using -lpc or -lpa;\n"
-        "    For example, see the align_epi_anat.py script." ) ;
-
-     if( im_tmask == NULL && !auto_tmask )
-       WARNING_message(
-        "-source_automask is strongly recommended when using -lpc or -lpa") ;
+        "'-source_automask' is strongly recommended when using -lpc or -lpa") ;
    }
 
    if( !hist_setbyuser ){   /* 25 Jul 2007 */
@@ -3188,6 +3241,7 @@ int main( int argc , char *argv[] )
      DSET_load(dset_base) ; CHECK_LOAD_ERROR(dset_base) ;
      im_base = mri_scale_to_float( DSET_BRICK_FACTOR(dset_base,0) ,
                                    DSET_BRICK(dset_base,0)         ) ;
+
      DSET_unload(dset_base) ;
      dx_base = fabsf(DSET_DX(dset_base)) ;
      dy_base = fabsf(DSET_DY(dset_base)) ;
@@ -3207,6 +3261,13 @@ int main( int argc , char *argv[] )
    nx_base = im_base->nx ;
    ny_base = im_base->ny ; nxy_base  = nx_base *ny_base ;
    nz_base = im_base->nz ; nvox_base = nxy_base*nz_base ;
+
+   if( !APPLYING ){                     /* 13 Mar 2017 */
+     nnz = mri_nonzero_count(im_base) ;
+     if( nnz < 100 )
+       ERROR_exit("3dAllineate fails :: base image has %d nonzero voxel%s (< 100)",
+                  nnz , (nnz==1) ? "\0" : "s" ) ;
+   }
 
    /* Check emask for OK-ness [14 Feb 2013] */
 
@@ -3412,7 +3473,16 @@ STATUS("zeropad weight dataset") ;
      }
      if( im_weig->nx != nx_base ||
          im_weig->ny != ny_base || im_weig->nz != nz_base )
-       ERROR_exit("-weight and base volumes don't match grid dimensions :-(") ;
+       ERROR_exit("-weight and base volumes don't match in 3D grid dimensions :-(") ;
+
+     /*-- convert to 0..1 range [23 Mar 2017] --*/
+     { float clip=0.0f, *wf=MRI_FLOAT_PTR(im_weig); int ii,nxyz=im_weig->nvox;
+       for( ii=0 ; ii < nxyz ; ii++ ) if( wf[ii] > clip ) clip = wf[ii] ;
+       if( clip == 0.0f )
+         ERROR_exit("Input -weight is never positive!") ;
+       clip = 1.0f / clip ;
+       for( ii=0 ; ii < nxyz ; ii++ ) wf[ii] *= clip ;
+     }
 
    } else if( auto_weight ){  /* manufacture weight from the base */
      if( meth_noweight[meth_code-1] && auto_weight == 1 && auto_wclip == 0.0f ){
@@ -3459,6 +3529,9 @@ STATUS("zeropad weight dataset") ;
      nmask = THD_countmask(im_mask->nvox,mf) ;
      if( verb ) INFO_message("%d voxels [%.1f%%] in weight mask",
                              nmask, 100.0*nmask/(float)im_mask->nvox ) ;
+     if( !APPLYING && nmask < 100 )
+       ERROR_exit("3dAllineate fails: not enough voxels in weight mask") ;
+
    } else {
      nmask = nvox_base ;  /* the universal 'mask' */
    }
@@ -4066,6 +4139,47 @@ STATUS("zeropad weight dataset") ;
    im_bset = im_base ;  /* base image for first loop */
    im_wset = im_weig ;
 
+   /** 3dUnifize the base image? [23 Dec 2016] **/
+
+#ifdef ALLOW_UNIFIZE
+   if( do_unifize_base && dset_base != NULL && nz_base > 5 && apply_1D == NULL ){
+     THD_3dim_dataset *qset, *uset ;
+     char *uuu, bname[32], uname[32] , cmd[1024] ;
+     float *bar , urad ;
+
+     uuu = UNIQ_idcode_11() ;
+     sprintf(uname,"UU.%s.nii",uuu) ;
+     sprintf(bname,"BB.%s.nii",uuu) ;
+
+     qset = THD_image_to_dset(im_bset,bname) ;
+     qset->dblk->diskptr->storage_mode = STORAGE_BY_NIFTI ;
+     DSET_write(qset) ;
+
+     urad = 18.3f / cbrtf(dx_base*dy_base*dz_base) ;
+          if( urad < 5.01f ) urad = 5.01f ;
+     else if( urad > 23.3f ) urad = 23.3f ;
+     sprintf(cmd,
+             "3dUnifize -input %s -prefix %s -T2 -Urad %.2f -clfrac 0.333",
+             bname , uname , urad ) ;
+     INFO_message("About to do -unifize_base:\n  %s",cmd) ;
+     system(cmd) ;
+     THD_delete_3dim_dataset(qset,True) ;
+
+     uset = THD_open_dataset(uname) ;
+     if( uset == NULL ){
+       WARNING_message("-unifize_base failed :(") ;
+     } else {
+       DSET_load(uset) ;
+       if( !DSET_LOADED(uset) ){
+         WARNING_message("-unifize_base did something weird :((") ;
+       } else {
+         im_bset = im_ubase = mri_copy(DSET_BRICK(uset,0)) ;
+       }
+       THD_delete_3dim_dataset(uset,True) ;
+     }
+   } /* end of -unifize_base */
+#endif
+
    stup.ajmask_ranfill = 0 ;                          /* 02 Mar 2010: oops */
    if( im_tmask != NULL ){
      mri_genalign_set_targmask( im_tmask , &stup ) ;  /* 07 Aug 2007 */
@@ -4073,7 +4187,7 @@ STATUS("zeropad weight dataset") ;
      if( fill_source_mask ) stup.ajmask_ranfill = 1 ; /* 01 Mar 2010 */
    }
 
-   if( micho_ov != 0.0 ){
+   if( !APPLYING && micho_ov != 0.0 ){
      byte *mmm ; int ndil=auto_tdilation ; MRI_IMAGE *bsm ;
      mmm = mri_automask_image(im_base) ;
      if( mmm != NULL ){
@@ -4124,9 +4238,15 @@ STATUS("zeropad weight dataset") ;
 
      /* make copy of target brick, and deal with that */
 
-     if( verb )
+     /* show if verbose, else use light output     7 Jul 2017 [rickr] */
+     if( verb > 1 )
        INFO_message("========== sub-brick #%d ========== [total CPU to here=%.1f s]",
                     kk , COX_cpu_time() ) ;
+     else if ( verb ) {
+       if( kk == 0 ) fprintf(stderr,"volume 0");
+       else          fprintf(stderr,"..%d", kk);
+       if( kk == DSET_NVALS(dset_targ)-1 ) fputc('\n', stderr);
+     }
 
      im_targ = mri_scale_to_float( bfac , DSET_BRICK(dset_targ,kk) ) ;
      DSET_unload_one(dset_targ,kk) ;
@@ -4135,6 +4255,11 @@ STATUS("zeropad weight dataset") ;
        float *bar = MRI_FLOAT_PTR(im_targ) ;
        for( ii=0 ; ii < im_targ->nvox ; ii++ ) if( bar[ii] < 0.0f ) bar[ii] = 0.0f ;
      }
+
+     nnz = mri_nonzero_count(im_targ) ;
+     if( nnz < 66 )
+       WARNING_message("3dAllineate :: source image #%d has %d nonzero voxel%s (< 66)",
+                       kk , nnz , (nnz==1) ? "\0" : "s" ) ;
 
      /*** if we are just applying input parameters, set up for that now ***/
 
@@ -4633,10 +4758,14 @@ STATUS("zeropad weight dataset") ;
        stup.need_hist_setup = 1 ;
        if( meth_code == GA_MATCH_LPC_MICHO_SCALAR && micho_zfinal ){
          GA_setup_micho( 0.0 , 0.0 , 0.0 , 0.0 , 0.0 ) ;
-         if( verb > 1 ) ININFO_message(" - Set lpc+ parameters back to pure lpc before Final") ;
+         if( verb > 1 )
+           ININFO_message(" - Set lpc+ parameters back to pure lpc before Final") ;
+         rad *= 1.666f ;
+       } else {
+         rad *= 0.666f ;
        }
        if( powell_mm == 0.0f ) powell_set_mfac( 3.0f , 3.0f ) ;  /* 07 Jun 2011 */
-       nfunc = mri_genalign_scalar_optim( &stup , 0.666f*rad, conv_rad,6666 );
+       nfunc = mri_genalign_scalar_optim( &stup , rad, conv_rad,6666 );
        powell_set_mfac( powell_mm , powell_aa ) ;                /* 07 Jun 2011 */
      }
 
@@ -5376,7 +5505,10 @@ mri_genalign_set_pgmat(1) ;
    /*--- unload stuff we no longer need ---*/
 
    DSET_unload(dset_targ) ;
-   mri_free(im_base) ; mri_free(im_weig) ; mri_free(im_mask) ;
+   mri_free(im_base); mri_free(im_weig); mri_free(im_mask);
+#ifdef ALLOW_UNIFIZE
+   mri_free(im_ubase);
+#endif
 
    MRI_FREE(stup.bsim); MRI_FREE(stup.bsims);
    MRI_FREE(stup.ajim); MRI_FREE(stup.ajims); MRI_FREE(stup.bwght);
@@ -5449,11 +5581,21 @@ mri_genalign_set_pgmat(1) ;
                   COX_cpu_time() , COX_clock_time() ) ;
    MEMORY_CHECK("end of program (after final cleanup)") ;
    if( verb && apply_1D == NULL && prefix != NULL ){
-    INFO_message("###########################################################");
-    INFO_message("### Please check results visually for alignment quality ###");
+    INFO_message(  "###########################################################");
+    INFO_message(  "#   Please check results visually for alignment quality   #");
+
+    if( (meth_code == GA_MATCH_PEARSON_LOCALS  ||
+         meth_code == GA_MATCH_PEARSON_LOCALA  ||
+         meth_code == GA_MATCH_LPC_MICHO_SCALAR  ) &&
+        auto_weight != 1                              ){
+      INFO_message("###########################################################");
+      INFO_message("#   '-autoweight' is recommended when using -lpc or -lpa  #");
+      INFO_message("#   If your results are not good, please try again.       #");
+     }
    }
-   if( verb )
-    INFO_message("###########################################################");
+   if( verb ){
+      INFO_message("###########################################################");
+   }
 
    exit(0) ;
 }

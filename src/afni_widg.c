@@ -8,6 +8,9 @@
 #include "afni_plugout.h"
 #include "thd_ttatlas_query.h"
 
+extern SUMA_Boolean SUMA_Register_Widget_Help(Widget w, int type, char *name,
+                                              char *hint, char *help) ;
+
 /*---------------------------------------------------------------*/
 /*------------ Stuff for logos and pixmap definitions -----------*/
 #undef MAIN
@@ -1817,7 +1820,8 @@ STATUS("making view->rowcol") ;
 
    im3d->vinfo->func_visible = False ;
    if( AFNI_yesenv("AFNI_SEE_OVERLAY") ) im3d->vinfo->func_visible = True ;
-   im3d->vinfo->func_visible_count = 0 ;
+   im3d->vinfo->func_visible_count  = 0 ;
+   im3d->vinfo->func_init_subbricks = 0 ;
 
    view->func_frame =
       XtVaCreateManagedWidget(
@@ -5678,13 +5682,19 @@ STATUS("making prog->rowcol") ;
       prog->hidden_melter_pb =
             XtVaCreateManagedWidget(
                "dialog" , xmPushButtonWidgetClass , prog->hidden_menu ,
+#if 0
                   LABEL_ARG("AFNI Meltdown") ,
+#else
+                  LABEL_ARG("Activate Omega-13") ,
+#endif
                   XmNmarginHeight , 0 ,
                   XmNtraversalOn , True  ,
                   XmNinitialResourcesPersistent , False ,
                NULL ) ;
       XtAddCallback( prog->hidden_melter_pb , XmNactivateCallback ,
                      AFNI_hidden_CB , im3d ) ;
+      MCW_set_widget_bg( prog->hidden_melter_pb , "black" , 0 ) ;        \
+      MCW_set_widget_fg( prog->hidden_melter_pb , "#ffbb88" ) ;          \
 
       /*----------*/
 
@@ -6003,7 +6013,8 @@ ENTRY("new_AFNI_controller") ;
    im3d->vinfo->force_anat_wod    = False ;   /* don't force warp-on-demand */
    im3d->vinfo->force_func_wod    = False ;   /* don't force warp-on-demand */
    im3d->vinfo->func_visible      = (Boolean)AFNI_yesenv("AFNI_SEE_OVERLAY") ;
-   im3d->vinfo->func_visible_count=0 ;
+   im3d->vinfo->func_visible_count  = 0 ;
+   im3d->vinfo->func_init_subbricks = 0 ;
 #ifdef ALLOW_DATASET_VLIST
    im3d->vinfo->pts_visible       = False ;   /* don't show points */
    im3d->vinfo->pts_color         = 0 ;
@@ -6536,9 +6547,9 @@ ENTRY("AFNI_lock_button") ;
                              "together in their viewpoint\n"
                              "coordinates.\n"
                              "N.B.: The lock will only take\n"
-                             "  effect when you next move\n"
-                             "  the crosshairs, or click\n"
-                             "  on the 'Enforce' button."
+                             " effect when you next move\n"
+                             " the crosshairs, or click\n"
+                             " on the 'Enforce All' button."
                     ) ;
    MCW_register_hint( cbut , "Lock AFNI controller viewpoints" ) ;
 
@@ -6670,6 +6681,12 @@ ENTRY("AFNI_lock_button") ;
                   AFNI_lock_clear_CB , (XtPointer)im3d ) ;
    XmStringFree(xstr) ;
    MCW_register_hint( dmode->lock_clear_pb , "Clear all locked controllers" ) ;
+   MCW_set_widget_bg( dmode->lock_clear_pb , "#002288" , 0 ) ;
+
+   (void) XtVaCreateManagedWidget(
+            "dialog" , xmSeparatorWidgetClass , menu ,
+               XmNseparatorType , XmSINGLE_LINE ,
+            NULL ) ;
 
    /*** to set all locks right now [19 Apr 1999] ***/
 
@@ -6686,10 +6703,16 @@ ENTRY("AFNI_lock_button") ;
                   AFNI_lock_setall_CB , (XtPointer)im3d ) ;
    XmStringFree(xstr) ;
    MCW_register_hint( dmode->lock_setall_pb , "Set all locked controllers" ) ;
+   MCW_set_widget_bg( dmode->lock_setall_pb , "#882200" , 0 ) ;
+
+   (void) XtVaCreateManagedWidget(
+            "dialog" , xmSeparatorWidgetClass , menu ,
+               XmNseparatorType , XmSINGLE_LINE ,
+            NULL ) ;
 
    /*** to enforce locks right now ***/
 
-   xstr = XmStringCreateLtoR( "Enforce" , XmFONTLIST_DEFAULT_TAG ) ;
+   xstr = XmStringCreateLtoR( "Enforce All" , XmFONTLIST_DEFAULT_TAG ) ;
    dmode->lock_enforce_pb =
          XtVaCreateManagedWidget(
             "dialog" , xmPushButtonWidgetClass , menu ,
@@ -6702,6 +6725,7 @@ ENTRY("AFNI_lock_button") ;
                   AFNI_lock_enforce_CB , (XtPointer)im3d ) ;
    XmStringFree(xstr) ;
    MCW_register_hint( dmode->lock_enforce_pb , "Make lock work NOW" ) ;
+   MCW_set_widget_bg( dmode->lock_enforce_pb , "#443344" , 0 ) ;
 
    XtManageChild( rc ) ;
    EXRETURN ;
@@ -7685,7 +7709,7 @@ float * get_3Dview_sort(Three_D_View *im3d, char *sel) /* ZSS April 26 2012 */
 
 /*--------------------------------------------------------------------------*/
 
-float get_3Dview_func_thresh( Three_D_View *im3d, int apply_power)
+float get_3Dview_func_thresh( Three_D_View *im3d, int apply_power )
 {
    float thresh = 0.0;
 

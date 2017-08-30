@@ -9,9 +9,9 @@ extern void THD_estimate_FWHM_moments_all( THD_3dim_dataset *dset,
 #ifdef USE_OMP
 # include <omp.h>
 # include "mri_fwhm.c"
+#else
+extern void mri_fwhm_mom12_set_stdev_fac(double) ;
 #endif
-
-#undef ADD_COL5  /* for -acf: add the old Gaussian model column (in blue) */
 
 int main( int argc , char *argv[] )
 {
@@ -23,7 +23,7 @@ int main( int argc , char *argv[] )
    double fx,fy,fz , cx,cy,cz , ccomb ; int nx,ny,nz , ncomb ;
    int geom=1 , demed=0 , unif=0 , corder=0 , combine=0 ;
    char *newprefix=NULL ;
-   int do_acf = 0 ; float acf_rad=0.0f ; int do_classic=0 ; int add_col5=0 ;
+   int do_acf = -1 ; float acf_rad=0.0f ; int do_classic=0 ; int addcol5=0 ;
    char *acf_fname="3dFWHMx.1D" ; MRI_IMAGE *acf_im=NULL ; float_quad acf_Epar ;
    double ct ;
 
@@ -35,14 +35,34 @@ int main( int argc , char *argv[] )
      printf(
       "Usage: 3dFWHMx [options] dataset\n"
       "\n"
-      "Unlike the older 3dFWHM, this program computes FWHMs for all sub-bricks\n"
-      "in the input dataset, each one separately.  The output for each one is\n"
-      "written to the file specified by '-out'.  The mean (arithmetic or geometric)\n"
-      "of all the FWHMs along each axis is written to stdout.  (A non-positive\n"
-      "output value indicates something bad happened; e.g., FWHM in z is meaningless\n"
-      "for a 2D dataset; the estimation method computed incoherent intermediate results.)\n"
+      "**** NOTICE ****\n"
+      " You should use the '-acf' option (which is what afni_proc.py uses now).\n"
+      " The 'Classic' method giving just a Gaussian FWHM can no longer be\n"
+      " considered reliable for FMRI statistical analyses!\n"
+      "****************\n"
       "\n"
-      "(Classic) METHOD:\n"
+      " >>>>> 20 July 2017: Results from the 'Classic' method are no longer output!\n"
+      " >>>>>               If you want to see these values, you must give the\n"
+      " >>>>>               command line option '-ShowMeClassicFWHM'.\n"
+      " >>>>>               You no longer need to give the '-acf' option, as it\n"
+      " >>>>>               is now the default method of calculation (and\n"
+      " >>>>>               cannot be turned off). Note that if you need the\n"
+      " >>>>>               FWHM estimate, the '-acf' method gives a value\n"
+      " >>>>>               for that as its fourth output.\n"
+      " >>>>> Options and comments that only apply to the 'Classic' FWHM estimation\n"
+      " >>>>> method are now marked below with this '>>>>>' marker, to indicate that\n"
+      " >>>>> they are obsolete, archaic, and endangered (as well as fattening).\n"
+      "\n"
+#if 1
+      ">>>>> Unlike the older 3dFWHM, this program computes FWHMs for all sub-bricks\n"
+      ">>>>> in the input dataset, each one separately.  The output for each one is\n"
+      ">>>>> written to the file specified by '-out'.  The mean (arithmetic or geometric)\n"
+      ">>>>> of all the FWHMs along each axis is written to stdout.  (A non-positive\n"
+      ">>>>> output value indicates something bad happened; e.g., FWHM in z is meaningless\n"
+      ">>>>> for a 2D dataset; the estimation method computed incoherent intermediate results.)\n"
+#endif
+      "\n"
+      "(Classic) METHOD: <<<<< NO LONGER OUTPUT -- SEE ABOVE >>>>>\n"
       " - Calculate ratio of variance of first differences to data variance.\n"
       " - Should be the same as 3dFWHM for a 1-brick dataset.\n"
       "   (But the output format is simpler to use in a script.)\n"
@@ -104,14 +124,15 @@ int main( int argc , char *argv[] )
       "  -detrend [q]= Instead of demed (0th order detrending), detrend to\n"
       "                order 'q'.  If q is not given, the program picks q=NT/30.\n"
       "                -detrend disables -demed, and includes -unif.\n"
-      "        **N.B.: I recommend this option, and it is not the default\n"
-      "                only for historical compatibility reasons.  It may\n"
-      "                become the default someday. Depending on my mood.\n"
-      "                It is already the default in program 3dBlurToFWHM.\n"
+      "        **N.B.: I recommend this option IF you are running 3dFWHMx on\n"
+      "                functional MRI time series that have NOT been processed\n"
+      "                to remove any activation and/or physiological artifacts.\n"
+      "           **** If you are running 3dFWHMx on the residual (errts) time\n"
+      "                series from afni_proc.py, you don't need -detrend.\n"
       "        **N.B.: This is the same detrending as done in 3dDespike;\n"
       "                using 2*q+3 basis functions for q > 0.\n"
-      "        ******* If you don't use '-detrend', the program now [Aug 2010]\n"
-      "                checks if a large number of voxels are have significant\n"
+      "        ******* If you don't use '-detrend', the program checks\n"
+      "                if a large number of voxels are have significant\n"
       "                nonzero means. If so, the program will print a warning\n"
       "                message suggesting the use of '-detrend', since inherent\n"
       "                spatial structure in the image will bias the estimation\n"
@@ -121,18 +142,22 @@ int main( int argc , char *argv[] )
       "                Used mostly to figure out what the hell is going on,\n"
       "                when strange results transpire.\n"
       "\n"
+      ">>>>>\n"
       "  -geom      }= If the input dataset has more than one sub-brick,\n"
       "    *OR*     }= compute the final estimate as the geometric mean\n"
       "  -arith     }= or the arithmetic mean of the individual sub-brick\n"
       "                FWHM estimates. [Default = -geom, for no good reason]\n"
       "\n"
+      ">>>>>\n"
       "  -combine    = combine the final measurements along each axis into\n"
       "                one result\n"
       "\n"
+      ">>>>>\n"
       "  -out ttt    = Write output to file 'ttt' (3 columns of numbers).\n"
       "                If not given, the sub-brick outputs are not written.\n"
       "                Use '-out -' to write to stdout, if desired.\n"
       "\n"
+      ">>>>>\n"
       "  -compat     = Be compatible with the older 3dFWHM, where if a\n"
       "                voxel is in the mask, then its neighbors are used\n"
       "                for differencing, even if they are not themselves in\n"
@@ -149,13 +174,17 @@ int main( int argc , char *argv[] )
       "                and outputs the 3 model parameters (a,b,c) to stdout.\n"
       "              * The model fit assumes spherical symmetry in the ACF.\n"
       "              * The results shown on stdout are in the format\n"
+      "          >>>>> The first 2 lines below will only be output <<<<<\n"
+      "          >>>>> if you use the option '-ShowMeClassicFWHM'. <<<<<\n"
+      "          >>>>> Otherwise, the 'old-style' FWHM values will <<<<<\n"
+      "          >>>>> show up as all zeros (0 0 0 0).             <<<<<\n"
       "  # old-style FWHM parameters\n"
       "   10.4069  10.3441  9.87341     10.2053\n"
       "  # ACF model parameters for a*exp(-r*r/(2*b*b))+(1-a)*exp(-r/c) plus effective FWHM\n"
       "   0.578615  6.37267  14.402     16.1453\n"
       "                The lines that start with '#' are comments.\n"
-      "                The first numeric line contains the 'old style' FWHM estimates,\n"
-      "                  FWHM_x FWHM_y FHWM_z  FWHM_combined\n"
+      "          >>>>> The first numeric line contains the 'old style' FWHM estimates,\n"
+      "          >>>>>   FWHM_x FWHM_y FHWM_z  FWHM_combined\n"
       "                The second numeric line contains the a,b,c parameters, plus the\n"
       "                combined estimated FWHM from those parameters.  In this example,\n"
       "                the fit was about 58%% Gaussian shape, 42%% exponential shape,\n"
@@ -191,19 +220,19 @@ int main( int argc , char *argv[] )
       "                'classic' FWHM calculations.\n"
       "                To reduce this sloth, 3dFWHMx now uses OpenMP to speed things up.\n"
 #ifndef USE_OMP
-      "                (Unfortunately, this version was NOT compiled to use OpenMP :-)\n"
+      "                (: Unfortunately, this version was NOT compiled to use OpenMP :)\n"
 #endif
       "              * The ACF modeling is intended to enhance 3dClustSim, and\n"
       "                may or may not be useful for any other purpose!\n"
       "\n"
-      "SAMPLE USAGE: (tcsh)\n"
-      "  set zork = ( `3dFWHMx -automask -input junque+orig` )\n"
-      "Captures the FWHM-x, FWHM-y, FWHM-z values into shell variable 'zork'.\n"
+      ">>>>> SAMPLE USAGE: (tcsh)\n"
+      ">>>>>   set zork = ( `3dFWHMx -automask -input junque+orig` )\n"
+      ">>>>> Captures the FWHM-x, FWHM-y, FWHM-z values into shell variable 'zork'.\n"
       "\n"
       "INPUT FILE RECOMMENDATIONS:\n"
-      "* For FMRI statistical purposes, you DO NOT want the FWHM to reflect\n"
-      "  the spatial structure of the underlying anatomy.  Rather, you want\n"
-      "  the FWHM to reflect the spatial structure of the noise.  This means\n"
+      "* For FMRI statistical purposes, you DO NOT want the FWHM or ACF to reflect\n"
+      "  any spatial structure of the underlying anatomy.  Rather, you want\n"
+      "  the FWHM/ACF to reflect the spatial structure of the NOISE.  This means\n"
       "  that the input dataset should not have anatomical (spatial) structure.\n"
       "* One good form of input is the output of '3dDeconvolve -errts', which is\n"
       "  the dataset of residuals left over after the GLM fitted signal model is\n"
@@ -219,6 +248,17 @@ int main( int argc , char *argv[] )
       " *** the smoothness of the time series NOISE, not of the statistics. This ***\n"
       " *** proscription is especially true if you plan to use 3dClustSim next!! ***\n"
       "\n"
+      " *** -------------------                                                  ***\n"
+      " *** NOTE FOR SPM USERS:                                                  ***\n"
+      " *** -------------------                                                  ***\n"
+      " *** If you are using SPM for your analyses, and wish to use 3dFHWMX plus ***\n"
+      " *** 3dClustSim for cluster-level thresholds, you need to understand the  ***\n"
+      " *** process that AFNI uses. Otherwise, you will likely make some simple  ***\n"
+      " *** mistake (such as using 3dFWHMx on the statistical maps from SPM)     ***\n"
+      " *** that will render your cluster-level thresholding completely wrong!   ***\n"
+#if 1
+      "\n"
+      ">>>>>\n"
       "IF YOUR DATA HAS SMOOTH-ISH SPATIAL STRUCTURE YOU CAN'T GET RID OF:\n"
       "For example, you only have 1 volume, say from PET imaging.  In this case,\n"
       "the standard estimate of the noise smoothness will be mixed in with the\n"
@@ -228,6 +268,7 @@ int main( int argc , char *argv[] )
       "rather than just first-neighbor differences, and uses the MAD of the differences\n"
       "rather than the standard deviation.  (If you must know the details, read the\n"
       "source code in mri_fwhm.c!)                    [For Jatin Vaidya, March 2010]\n"
+#endif
 #if 0
       "\n"
       "IF YOU WISH TO ALLOW FOR SPATIAL VARIABILITY IN NOISE SMOOTHNESS:\n"
@@ -246,16 +287,22 @@ int main( int argc , char *argv[] )
 #endif
       "\n"
       "ALSO SEE:\n"
-      "* The older program 3dFWHM is now superseded by 3dFWHMx.\n"
-      "* The program 3dClustSim takes as input the FHWM estimates and then\n"
+      "* The older program 3dFWHM is now completely superseded by 3dFWHMx.\n"
+      "* The program 3dClustSim takes as input the ACF estimates and then\n"
       "  estimates the cluster sizes thresholds to help you get 'corrected'\n"
       "  (for multiple comparisons) p-values.\n"
+#if 1
+      ">>>>>\n"
       "* 3dLocalstat -stat FWHM will estimate the FWHM values at each voxel,\n"
       "  using the same first-difference algorithm as this program, but applied\n"
       "  only to a local neighborhood of each voxel in turn.\n"
-      "* 3dBlurToFWHM will iteratively blur a dataset (inside a mask) to have a\n"
-      "  given global FWHM.\n"
-      "* 3dBlurInMask will blur a dataset inside a mask, but doesn't measure FWHM.\n"
+#endif
+      "* 3dLocalACF will estimate the 3 ACF parameters in a local neighborhood\n"
+      "  around each voxel.\n"
+      ">>>>>\n"
+      "* 3dBlurToFWHM will iteratively blur a dataset (inside a mask) to have\n"
+      "  a given global FWHM. This program may or may not be useful :)\n"
+      "* 3dBlurInMask will blur a dataset inside a mask, but doesn't measure FWHM or ACF.\n"
       "\n"
       "-- Zhark, Ruler of the (Galactic) Cluster!\n"
      ) ;
@@ -338,8 +385,17 @@ int main( int argc , char *argv[] )
        continue ;
      }
 
-     if( strncasecmp(argv[iarg],"-classic",6) == 0 ){   /* 01 Dec 2015 */
-       do_classic = 1 ; iarg++ ; continue ;           /* not used yet! */
+     if( strcasecmp(argv[iarg],"-addcol5") == 0 ){
+       addcol5++ ; iarg++ ; continue ;
+     }
+
+     if( strcasecmp(argv[iarg],"-ShowMeClassicFWHM") == 0 ){  /* 20 Jul 2017 */
+       do_classic = 1 ; iarg++ ;
+       WARNING_message("Using the 'Classic' Gaussian FWHM is not recommended :(") ;
+       ININFO_message (" The '-acf' method gives a FWHM estimate which is more robust;") ;
+       ININFO_message (" however, assuming the spatial correlation of FMRI noise has") ;
+       ININFO_message (" a Gaussian shape is not a good model.") ;
+       continue ;
      }
 
      if( strncmp(argv[iarg],"-out",4) == 0 ){
@@ -388,7 +444,7 @@ int main( int argc , char *argv[] )
 
    } /*--- end of loop over options ---*/
 
-   /*---- deal with input dataset ----*/
+   /*-------------- deal with input dataset --------------*/
 
    if( inset == NULL ){
      if( iarg >= argc ) ERROR_exit("No input dataset on command line?") ;
@@ -401,6 +457,12 @@ int main( int argc , char *argv[] )
    cpp = strstr(inset_prefix,"+orig")  ; if( cpp != NULL ) *cpp = '\0' ;
    cpp = strstr(inset_prefix,"+tlrc")  ; if( cpp != NULL ) *cpp = '\0' ;
    cpp = THD_trailname(inset_prefix,0) ; if( cpp != NULL ) inset_prefix = cpp ;
+
+   { THD_3dim_dataset *qset = THD_remove_allzero(inset) ;  /* 25 Jul 2017 */
+     if( qset != NULL ){
+       DSET_delete(inset) ; inset = qset ;
+     }
+   }
 
    if( (demed || unif || corder ) && DSET_NVALS(inset) < 4 ){
      WARNING_message(
@@ -505,7 +567,8 @@ int main( int argc , char *argv[] )
 
    /*-- do the FWHM-izing work --*/
 
-   INFO_message("start FWHM calculations") ;
+   if( do_classic )
+     INFO_message("start Classic FWHM calculations") ;
 
    outim = THD_estimate_FWHM_all( inset , mask , demed,unif ) ;
 
@@ -563,17 +626,21 @@ int main( int argc , char *argv[] )
      if( ncomb > 1 ) ccomb /= ncomb ;
    }
 
-   ININFO_message("FWHM done (%.2f CPU s thus far)",COX_cpu_time()-ct) ;
+   if( do_classic )
+     ININFO_message("Classic FWHM done (%.2f CPU s thus far)",COX_cpu_time()-ct) ;
 
    if( do_acf ){
-     MCW_cluster *acf ; int pp ;
+     MCW_cluster *acf ; int pp ; float dx,dy,dz,arr ;
+
      if( acf_rad <= 0.0f ) acf_rad = 2.999f * ccomb ;
+     dx = fabsf(DSET_DX(inset)); dy = fabsf(DSET_DY(inset)); dz = fabsf(DSET_DZ(inset));
+     arr = 3.999f * cbrtf(dx*dy*dz) ; if( acf_rad < arr ) acf_rad = arr ;
      INFO_message("start ACF calculations out to radius = %.2f mm",acf_rad) ;
+
      acf = THD_estimate_ACF( inset , mask , demed,unif , acf_rad ) ;
      if( acf == NULL ) ERROR_exit("Error calculating ACF :-(") ;
 #if 0
-     printf("# ACF dx=%g dy=%g dz=%g\n",
-            fabsf(DSET_DX(inset)) , fabsf(DSET_DY(inset)) , fabsf(DSET_DZ(inset)) ) ;
+     printf("# ACF dx=%g dy=%g dz=%g\n", dx,dy,dz ) ;
      printf("dx  dy  dz  ACF\n") ;
      printf("--- --- --- ------\n") ;
      for( pp=0 ; pp < acf->num_pt ; pp++ )
@@ -591,18 +658,21 @@ int main( int argc , char *argv[] )
 
      if( do_acf > 0 )
        printf("# old-style FWHM parameters\n") ;
-     printf(" %g  %g  %g     %g",cx,cy,cz,ccomb) ;
+     if( do_classic )
+       printf(" %g  %g  %g     %g",cx,cy,cz,ccomb) ;
+     else
+       printf(" 0  0  0    0") ;
      printf("\n") ;
 
      if( do_acf > 0 )
        printf("# ACF model parameters for a*exp(-r*r/(2*b*b))+(1-a)*exp(-r/c) plus effective FWHM\n") ;
-     printf(" %g  %g  %g     %g\n",acf_Epar.a,acf_Epar.b,acf_Epar.c,acf_Epar.d) ;
+     printf(" %g  %g  %g    %g\n",acf_Epar.a,acf_Epar.b,acf_Epar.c,acf_Epar.d) ;
 
      if( acf_im != NULL ){
        char cmd[4096] ;
 
-#ifdef ADD_COL5
-       { MRI_IMAGE *qim,*pim ; float *rar, *qar, sig ; MRI_IMARR *imar ;
+       if( addcol5 ){
+         MRI_IMAGE *qim,*pim ; float *rar, *qar, sig ; MRI_IMARR *imar ;
          qim = mri_new( acf_im->nx , 1 , MRI_float ) ;
          qar = MRI_FLOAT_PTR(qim) ; rar = MRI_FLOAT_PTR(acf_im) ;
          sig = FWHM_TO_SIGMA(ccomb) ;
@@ -611,11 +681,10 @@ int main( int argc , char *argv[] )
          INIT_IMARR(imar) ; ADDTO_IMARR(imar,acf_im) ; ADDTO_IMARR(imar,qim) ;
          pim = mri_catvol_1D(imar,2) ; DESTROY_IMARR(imar) ; acf_im = pim ;
        }
-#endif
 
        mri_write_1D( acf_fname , acf_im ) ;
 
-#ifdef ADD_COL5
+      if( addcol5 ){
        INFO_message("ACF 1D file [radius ACF mixed_model gaussian_NEWmodel gaussian_OLDmodel] written to %s",acf_fname) ;
        sprintf(cmd,
          "1dplot -one -xlabel 'r (mm)'"
@@ -627,7 +696,7 @@ int main( int argc , char *argv[] )
          inset_prefix ,
          acf_Epar.a , acf_Epar.b , 1.0f-acf_Epar.a , acf_Epar.c ,
          acf_fname, acf_fname, acf_fname, acf_fname, acf_fname, acf_fname ) ;
-#else
+      } else {
        INFO_message("ACF 1D file [radius ACF mixed_model gaussian_NEWmodel] written to %s",acf_fname) ;
        sprintf(cmd,
          "1dplot -one -xlabel 'r (mm)'"
@@ -639,12 +708,13 @@ int main( int argc , char *argv[] )
          inset_prefix ,
          acf_Epar.a , acf_Epar.b , 1.0f-acf_Epar.a , acf_Epar.c ,
          acf_fname, acf_fname, acf_fname, acf_fname, acf_fname ) ;
-#endif
+      }
+
        system(cmd) ;
        ININFO_message("and 1dplot-ed to file %s.png",acf_fname) ;
      }
 
-   } else {  /* no ACF -- the OLD way */
+   } else if( do_classic ){  /* no ACF -- the OLD way */
 
      printf(" %g  %g  %g",cx,cy,cz) ;
      if( combine ) printf("     %g",ccomb) ;

@@ -1,0 +1,447 @@
+#!/bin/tcsh -e
+
+###########################################################################
+## 07/05/2017 Justin Rajendra
+## skull stripping touch up
+## This is for when automatic skull stripping fails
+## resample to 2mm (or not), edit, then change back
+## you need the failed strip and the original head
+## this will create a new folder with the edits
+
+###########################################################################
+## parse command line arguments
+
+## get the current program name
+set prog = `basename $0`
+
+## set the defaults
+set HeadImage = ""
+set StripImage = ""
+set prefix = "disco"
+set orig_dim = 0
+set mask_out = 0
+
+## show help
+if ( $#argv < 2 ) then
+    goto SHOW_HELP
+endif
+
+set narg = 1
+@  amax = $#argv - 0
+
+while ( $narg <= $amax )
+    if ( "$argv[$narg]" == "-head" ) then
+        @ narg ++
+        set HeadImage = `echo $argv[$narg]`
+    else if ( "$argv[$narg]" == "-brain" ) then
+        @ narg ++
+        set StripImage = `echo $argv[$narg]`
+    else if ( "$argv[$narg]" == "-prefix" ) then
+        @ narg ++
+        set prefix = `echo $argv[$narg]`
+    else if ( "$argv[$narg]" == "-orig_dim" ) then
+        set orig_dim = 1
+    else if ( "$argv[$narg]" == "-mask_out" ) then
+        set mask_out = 1
+    else if ( "$argv[$narg]" == "-help" || "$argv[$narg]" == "-h" ) then
+        goto SHOW_HELP
+    else
+        goto SHOW_HELP
+    endif
+    @ narg ++
+end
+
+###########################################################################
+## check the head and brain images
+
+## make sure that the head and brain are different
+if ( $HeadImage == $StripImage ) then
+    echo
+    echo Error: -head $HeadImage is the same as -brain $StripImage.
+    echo If you want to strip from scratch, rename one of the images.
+    echo
+    exit 1
+endif
+
+## make sure you specified input images
+if ( $HeadImage == "" ) then
+    echo
+    echo Error: -head file name not specified!
+    echo
+    exit 1
+endif
+if ( $StripImage == "" ) then
+    echo
+    echo Error: -brain file name not specified!
+    echo
+    exit 1
+endif
+
+## see if the files are there and valid images
+set head_exists = `3dinfo -exists $HeadImage`
+set brain_exists = `3dinfo -exists $StripImage`
+
+if ( $head_exists == 0 ) then
+    echo
+    echo Error: $HeadImage not found!
+    echo
+    exit 1
+endif
+if ( $brain_exists == 0 ) then
+    echo
+    echo Error: $StripImage not found!
+    echo
+    exit 1
+endif
+
+## make sure that the spaces match
+set head_space = `3dinfo -space $HeadImage`
+set brain_space = `3dinfo -space $StripImage`
+if ( ! ( $head_space == $brain_space ) ) then
+    echo
+    echo Error: $HeadImage and $StripImage are in different spaces!
+    echo
+    exit 1
+endif
+
+## make sure the grids match
+set same_grid = `3dinfo -same_grid $HeadImage $StripImage`
+if ( "$same_grid" != "1 1" ) then
+    echo
+    echo Error: $HeadImage and $StripImage have different grids!
+    echo
+    exit 1
+endif
+
+## split out the path
+cd `dirname $HeadImage`
+set head_path = `pwd`
+cd -
+set HeadImage = `basename $HeadImage`
+
+cd `dirname $StripImage`
+set strip_path = `pwd`
+cd -
+set StripImage = `basename $StripImage`
+
+###########################################################################
+## parse the prefix to check for stuff
+
+## check to see if it has a path
+cd `dirname $prefix`
+set out_path = `pwd`
+cd -
+set prefix = `basename $prefix`
+
+## search for nii (case insensitive)
+set prefix_end = `echo $prefix:e | tr A-Z a-z`
+set prefix_pre_end = `echo $prefix:r:e | tr A-Z a-z`
+
+## get the basename from the prefix
+if ( $prefix_end == "nii"  ) then
+    set prefix = `echo $prefix:r`
+    set final_out = ${prefix}.nii.gz
+    set final_mask = ${prefix}_mask.nii.gz
+else if ( $prefix_pre_end == "nii"  ) then
+    set prefix = `echo $prefix:r:r`
+    set final_out = ${prefix}.nii.gz
+    set final_mask = ${prefix}_mask.nii.gz
+else
+    ## make sure they didn't add a +orig or +tlrc check for tlrc or orig
+    set temp_prefix = `echo $prefix | awk -F \+ '{for (i=1; i<NF; i++) \
+                  printf("%s+", $i)}' | rev | cut -c2- | rev`
+    set temp_space = `echo $prefix | awk '{print tolower($0)}' | \
+                      awk -F + '{print $NF}'`
+    if ( $temp_prefix != "" ) then
+        if ( !( $temp_space != "orig" && $temp_space != "tlrc" ) ) then
+            set prefix = $temp_prefix
+        endif
+    endif
+
+    ## match the output name to the input space
+    set out_space = `3dinfo -av_space $head_path/$HeadImage`
+    set final_out = ${prefix}${out_space}.HEAD
+    set final_mask = ${prefix}_mask${out_space}.HEAD
+endif
+
+###########################################################################
+##  messages  to keep in 80 characters...Rick
+
+## random prefix just in case the names match the temp files
+set p = "00"
+set select1 = "Change 'Copy Dataset Zero' to 'Copy Dataset Data'."
+set select2 = "\nClick the green 'Choose dataset for copying'."
+set select3 = "\nSelect ${p}_strip_mask_resamp.nii.gz"
+set select4 = "\nThen click Continue (below)."
+set oops1   = "Wrong dataset selected."
+set oops2   = "Dataset not copied as 'Data'."
+set draw1   = "Set value to 1 for adding and 0 for removing."
+set draw2   = "\nClick 'Save' often. (you can undo if you like)."
+set draw3   = "\nWhen you are happy click 'Save', 'Done' and Continue (below)."
+set exists1 = "Output folder exists!"
+set exists2 = "\nBut the input images do not match!\nExiting."
+
+###########################################################################
+## make the output folder if needed and copy images
+
+## set the output folder
+set OutFolder = $out_path/${prefix}_SS_touch_up
+
+if ( ! -d $OutFolder) then                      ## all new
+    \mkdir -p $OutFolder
+    3dcopy $head_path/$HeadImage $OutFolder/$HeadImage
+    3dcopy $strip_path/$StripImage $OutFolder/$StripImage
+else
+    ## folder is there, are the same images there?
+    set HeadOld = `3dinfo -exists $OutFolder/$HeadImage`
+    set StripOld = `3dinfo -exists $OutFolder/$StripImage`
+    if ( $HeadOld == 0 || $StripOld == 0 ) then
+        unset check
+        set check = `prompt_popup -message "$exists1 $exists2" -b "Quit"`
+        if ( $check == 1 ) then
+            exit 1
+    endif
+    if ( -f "$OutFolder/$final_out") then      ## already done
+        unset check
+        set check = `prompt_popup \
+                    -message "There is a final edit already done!" \
+                    -b "Quit" -b "Continue editing" -b "Start over"`
+        if ( $check == 1 ) then                      ## do nothing
+            exit 1
+        else if ( $check == 2 ) then                 ## save old and continue
+            set suffix=`date +"%m-%d-%y-%I%M%S"`
+            3dcopy $OutFolder/$final_out $OutFolder/anat_strip_${suffix}.nii.gz
+            3dcopy -overwrite $OutFolder/$final_out $OutFolder/$StripImage
+            \rm -v $OutFolder/$final_out
+        else if ( $check == 3 ) then                 ## start over
+            \rm -rv $OutFolder
+            \mkdir -p $OutFolder
+            3dcopy $head_path/$HeadImage $OutFolder/$HeadImage
+            3dcopy $strip_path/$StripImage $OutFolder/$StripImage
+        endif
+    endif
+endif
+cd $OutFolder
+
+###########################################################################
+## get info, make masks and resample
+
+## get the original voxel dimensions
+set vox_dim=( `3dinfo -ad3 $HeadImage` )
+
+## if you want you can keep not resample (Daniel)
+if ( $orig_dim == 1 ) then
+    set resamp_dim = ( $vox_dim )
+else
+    set resamp_dim = ( 2 2 2 )
+endif
+
+## if there is a previous one, see if they want to start over or continue
+## check if you want to continue from last time
+if ( -f "${p}_anat_resamp.nii.gz" ) then
+    unset check
+    set check = `prompt_popup \
+                -message "There is a previous edited strip" \
+                -b "Continue editing?" -b "Start over"`
+    if ( $check == 2 ) then
+        ## turn stripped image into mask
+        3dcalc -overwrite -a $StripImage -expr 'step(a)' \
+               -prefix ${p}_strip_mask.nii.gz
+        ## resample the mask and whole head images to 2 mm
+        3dresample -overwrite -dxyz ${resamp_dim} -rmode NN \
+                   -master ${p}_strip_mask.nii.gz \
+                   -prefix ${p}_strip_mask_resamp.nii.gz \
+                   -inset ${p}_strip_mask.nii.gz
+        3dresample -overwrite -dxyz ${resamp_dim} -rmode Cu \
+                   -master ${p}_strip_mask.nii.gz \
+                   -prefix ${p}_anat_resamp.nii.gz -inset ${HeadImage}
+    endif
+else
+    ## turn stripped image into mask
+    3dcalc -overwrite -a $StripImage -expr 'step(a)' \
+           -prefix ${p}_strip_mask.nii.gz
+    ## resample the mask and whole head images to 2 mm
+    3dresample -overwrite -dxyz ${resamp_dim} -rmode NN \
+               -master ${p}_strip_mask.nii.gz \
+               -prefix ${p}_strip_mask_resamp.nii.gz \
+               -inset ${p}_strip_mask.nii.gz
+    3dresample -overwrite -dxyz ${resamp_dim} -rmode Cu \
+               -master ${p}_strip_mask.nii.gz \
+		       -prefix ${p}_anat_resamp.nii.gz -inset ${HeadImage}
+endif   ## end check previous
+
+###########################################################################
+## main loop
+
+## check if the mask copy was created as data
+set finished = 0
+while ( $finished == 0 )        ## keep going until you are satistfied
+
+    ##################################
+    ## run afni and set to strip
+    afni -yesplugouts &
+    sleep 5
+    plugout_drive -com 'QUIET_PLUGOUTS' \
+                  -com "SWITCH_UNDERLAY ${p}_anat_resamp.nii.gz" \
+                  -com "SWITCH_OVERLAY ${p}_strip_mask_resamp.nii.gz" \
+                  -com "ALTER_WINDOW A.axialimage opacity=4" \
+                  -com "ALTER_WINDOW A.sagittalimage opacity=4" \
+                  -com "ALTER_WINDOW A.coronalimage opacity=4" \
+                  -com "SET_PBAR_ALL A.+99 1.0 Spectrum:yellow_to_cyan" \
+                  -com "SET_FUNC_AUTORANGE A.+" -com "SET_PBAR_SIGN A.-" \
+                  -com "CLOSE_PANEL A.Etc" \
+                  -com "OPEN_WINDOW A.plugin.Draw_Dataset" \
+                  -quit
+    sleep 1
+    ## give instructions
+    prompt_popup -message "$select1 $select2 $select3 $select4" -b Continue \
+                 >& /dev/null
+
+    ##################################
+    ## verify the selection
+
+    ## check the file is not there
+    if ( ! -f "COPY_${p}_strip_mask_resamp.nii.gz") then
+        unset check
+        set check = `prompt_popup -message "$oops1" -b "Try again" -b Quit`
+        \rm -v COPY*
+        plugout_drive -com "QUIT" -quit
+        sleep 1
+        if ( $check == 2 ) then
+            \rm -v ${p}_anat_resamp* ${p}_strip_mask*
+            exit 1
+        endif
+    else
+        ## check the max value to see if they selected the mask
+        set max_val = `3dBrickStat COPY_${p}_strip_mask_resamp.nii.gz`
+        if ( $max_val != 1 ) then
+            unset check
+            set check = `prompt_popup -message "$oops2" -b "Try again" -b Quit`
+            \rm COPY_${p}_strip_mask_resamp.nii.gz
+            plugout_drive -com "QUIT" -quit
+            sleep 1
+            if ( $check == 2 ) then
+                \rm -v ${p}_anat_resamp* ${p}_strip_mask*
+                exit 1
+            endif
+        else
+
+            ## give instructions to do the editing
+            prompt_popup -message "$draw1 $draw2 $draw3" -b Continue \
+                         >& /dev/null
+
+            ##################################
+            ## done editing
+
+            ## resample back, fill holes, and mask the original
+            3dresample -overwrite -dxyz $vox_dim -rmode NN \
+                       -master ${HeadImage} \
+		               -prefix ${p}_strip_mask.orig_dim.nii.gz \
+		               -inset COPY_${p}_strip_mask_resamp.nii.gz
+		    3dmask_tool -overwrite -inputs ${p}_strip_mask.orig_dim.nii.gz \
+                        -prefix ${p}_strip_mask_dil.nii.gz \
+                        -dilate_inputs 1 -1 -fill_holes
+            3dcalc -overwrite -a ${HeadImage} -b ${p}_strip_mask_dil.nii.gz \
+                   -expr "a*step(b)" -prefix ${p}_strip_manual.nii.gz
+
+            ## check the strip in original voxel dimensions
+            plugout_drive -com 'QUIET_PLUGOUTS' -com "RESCAN_THIS" \
+			  -com "SWITCH_UNDERLAY ${HeadImage}" \
+			  -com "SWITCH_OVERLAY ${p}_strip_manual.nii.gz" \
+			  -com "ALTER_WINDOW A.axialimage opacity=9" \
+			  -com "ALTER_WINDOW A.sagittalimage opacity=9" \
+			  -com "ALTER_WINDOW A.coronalimage opacity=9" \
+              -com "OPEN_PANEL A.Etc" \
+              -com "OPEN_PANEL A.Define_Overlay" \
+			  -quit
+
+            ## check if it is good
+            unset check
+            set check = `prompt_popup -message "Is ${final_out} strip good?" \
+                                      -b Good -b Bad`
+
+            ##################################
+            ## it is good, clean up and quit
+            if ( $check == 1 ) then
+                ## make the final one and remove the intermediate
+                3dcopy -overwrite ${p}_strip_manual.nii.gz ${final_out}
+                \rm -v ${p}_strip_manual.nii.gz ${p}_anat_resamp* \
+                       ${p}_strip_mask* COPY_${p}*
+
+                ## get the originals just in case you started over
+                3dcopy -overwrite $head_path/$HeadImage $OutFolder/$HeadImage
+                3dcopy -overwrite $strip_path/$StripImage $OutFolder/$StripImage
+
+                ## save as a mask
+                if ( $mask_out == 1 ) then
+                    3dcalc -overwrite -a ${final_out} -expr 'step(a)' \
+                           -prefix ${final_mask}
+                endif
+
+                ## all done! stop
+                prompt_popup -b Quit -message "Final image is ${final_out}" \
+                             >& /dev/null
+                set finished = 1
+
+            ##################################
+            ## it is bad, clean up some and start over
+            else if ( $check == 2 ) then
+                ## make a copy of the last strip with a funny suffix
+                set suffix=`date +"%m-%d-%y-%I%M%S"`
+                3dcopy -overwrite ${StripImage} anat_strip_${suffix}.nii.gz
+
+                ## overwrite previous image and remove the intermediate
+                3dcopy -overwrite COPY_${p}_strip_mask_resamp.nii.gz \
+                       ${p}_strip_mask_resamp.nii.gz
+                \rm -v ${p}_strip_manual.nii.gz \
+                      COPY_${p}_strip_mask_resamp.nii.gz
+                unset check
+                set check = `prompt_popup \
+                            -message "Click continue to keep editing." \
+                            -b Continue -b "Quit (you can continue later)"`
+                plugout_drive -com "QUIT" -quit
+                sleep 1
+
+                if ( $check == 2 ) then
+                    exit 1
+                endif
+            endif	## end strip check
+        endif   ## end check value
+    endif  ## end check file
+end   ## end while
+
+## close afni
+plugout_drive -com "QUIT" -quit
+exit 0
+
+SHOW_HELP:
+cat << EOF
+
+   ----------------------------------------------------------------------------
+   $prog - helper program to touch up failed skull stripping
+
+      By default, resample to 2mm voxel dimensions to speed up editing.
+      Drives afni to the draw data set panel for manual editing.
+      Then re-resamples back to the original voxel dimensions.
+      You can quit and continue where you left off later.
+      Creates a folder PREFIX_SS_touch_up.
+
+   -----------------------------------------------------------------------------
+   options:
+
+      -prefix PREFIX    : output file and folder name
+      -brain DSET       : skull stripped data set to touch up
+      -head DSET        : whole head anatomical data set
+      -mask_out         : output a binary mask in addition to actual data
+      -orig_dim         : edit in the original image dimensions
+      -help             : show this help
+
+   -----------------------------------------------------------------------------
+   examples:
+
+   $prog -prefix disco -brain disco_brain+orig -head disco_anat+orig
+
+   -----------------------------------------------------------------------------
+   Justin Rajendra 07/05/2017
+
+EOF

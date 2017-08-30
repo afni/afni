@@ -1,4 +1,4 @@
-__version__="v2.5 beta9"
+__version__="v2.5 beta10"
 welcome_block="""
 # Multi-Echo ICA, Version %s
 #
@@ -300,6 +300,11 @@ def selcomps(seldict,debug=False,olevel=2,oversion=99,knobargs=''):
 	Kappas_elbow = min(Kappas_lim[getelbow(Kappas_lim)],Kappas[getelbow(Kappas)])
 	Rhos_elbow = np.mean([Rhos_lim[getelbow(Rhos_lim)]  , Rhos_sorted[getelbow(Rhos_sorted)], getfbounds(ne)[0]])
 	good_guess = ncls[andb([Kappas[ncls]>=Kappas_elbow, Rhos[ncls]<Rhos_elbow])==2]
+	if debug:
+		import ipdb
+		ipdb.set_trace()
+	if len(good_guess)==0:
+		return [],sorted(rej),[],sorted(np.setdiff1d(nc,rej))
 	Kappa_rate = (max(Kappas[good_guess])-min(Kappas[good_guess]))/(max(varex[good_guess])-min(varex[good_guess]))
 	Kappa_ratios = Kappa_rate*varex/Kappas
 	varex_lb = scoreatpercentile(varex[good_guess],LOW_PERC )

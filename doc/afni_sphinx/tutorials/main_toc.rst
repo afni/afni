@@ -1,8 +1,8 @@
 :tocdepth: 2
 
-################
-Tutorials, Demos
-################
+###################
+Tutorials, Examples
+###################
 
 .. toctree::
    :maxdepth: 2

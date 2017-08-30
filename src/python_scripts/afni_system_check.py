@@ -185,9 +185,19 @@ g_history = """
    0.19 May 20, 2016 - added -dot_file_list/_pack/_show
    0.20 Jul  7, 2016 - check for partial PyQt4 (for OS X 10.11)
    0.21 Aug 29, 2016 - added a few more FALLBACK tests
+   0.22 Nov  2, 2016 - handle OS X 10.12 version string
+   0.23 Nov 17, 2016 - look for flat_namespace on macs
+   0.24 Dec  7, 2016 - check for python2 and python3
+   0.25 Jan 25, 2017 - new OS X, check any DYLD vars via sub-shells
+   0.26 Feb  1, 2017 - updates for brew/fink, and check for fink python link
+   0.27 Jun 16, 2017 - check for libXt.7.dylib without flat_namespace
+   0.28 Jul 12, 2017 - idiot; forget libXt.7 checks
+   0.29 Aug 15, 2017 
+        - check 3dClustSim, for OpenMP library
+        - for mac, force cheating variable check via interactive shell
 """
 
-g_version = "afni_system_check.py version 0.21, August 29, 2016"
+g_version = "afni_system_check.py version 0.29, August 15, 2017"
 
 
 class CmdInterface:

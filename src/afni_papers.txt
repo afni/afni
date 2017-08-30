@@ -253,3 +253,39 @@ Taylor PA, Chen G, Cox RW, Saad ZS.
     connectivity).
   * http://dx.doi.org/10.1089/brain.2015.0363
   * https://afni.nimh.nih.gov/pub/dist/papers/ASF_2015_draft_BCinpress.pdf
+----------------------------------------------------------------------------
+G Chen, Y-W Shin, PA Taylor, DR GLen, RC Reynolds, RB Israel, RW Cox.
+  Untangling the relatedness among correlations, part I: Nonparametric
+  approaches to inter-subject correlation analysis at the group level.
+  NeuroImage 142:248-259, 2016.
+
+  Proper statistical analysis (FPR control) when correlating FMRI time
+  series data amongst multiple subjects, using nonparametric methods.
+  * https://doi.org/10.1016/j.neuroimage.2016.05.023
+----------------------------------------------------------------------------
+G Chen, PA Taylor, Y-W Shin, RC Reynolds, RW Cox.
+  Untangling the relatedness among correlations, Part II: Inter-subject
+  correlation group analysis through linear mixed-effects modeling.
+  NeuroImage 147:825-840 2017.
+
+  * Just when you thought it was safe to go back into the brain data:
+    this time, using parametric methods.
+  * https://doi.org/10.1016/j.neuroimage.2016.08.029
+----------------------------------------------------------------------------
+RW Cox, G Chen, DR Glen, RC Reynolds, PA Taylor.
+  fMRI clustering and false-positive rates.
+  PNAS 114:E3370-E3371, 2017.
+
+  * Response to Eklund's (et al.) paper about clustering in PNAS 2016.
+  * https://arxiv.org/abs/1702.04846
+  * https://doi.org/10.1073/pnas.1614961114
+----------------------------------------------------------------------------
+RW Cox, G Chen, DR Glen, RC Reynolds, PA Taylor.
+  FMRI Clustering in AFNI: False Positive Rates Redux.
+  accepted for publication, Brain Connectivity 7:152-171, 2017.
+
+  * A discussion of the cluster-size thresholding updates made to
+    AFNI in early 2017.
+  * https://arxiv.org/abs/1702.04845
+  * https://doi.org/10.1089/brain.2016.0475
+----------------------------------------------------------------------------

@@ -2810,7 +2810,7 @@ void REND_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
        " * 'Remove Small Clusters', if pressed IN, will cause clusters\n"
        "     of voxels below a given threshold volume to be excised before\n"
        "     rendering.  The parameters defining this cluster editing are\n"
-       "     determined by the controls immmediately beneath, which use the\n"
+       "     determined by the controls immediately beneath, which use the\n"
        "     same conventions as program 3dclust.\n"
        "\n"
        " * None of the overlay controls are hooked up to 'DynaDraw' or to\n"

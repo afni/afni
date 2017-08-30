@@ -56,6 +56,11 @@
     Aug 2015:
         minor bug fix: don't crash if no GM ROIs survive
 
+    Jun 2017:
+        new opt: -skel_stop_strict.  Perhaps better inflation
+                 properties than -skel_stop, because it won't
+                 go in any further to the WM itself.
+
 */
 
 
@@ -190,6 +195,11 @@ void usage_ROIMaker(int detail)
 "     -skel_stop       :switch to stop inflation at locations which are \n"
 "                       already on WM skeleton (default: off; and need\n"
 "                       `-wm_skel' to be able to use).\n"
+"   -skel_stop_strict  :similar to '-skel_stop', but this also does not\n"
+"                       allow any inflation *into* the skel-region.  The\n"
+"                       '-skel_stop' let's the inflation go one layer\n"
+"                       *into* the skel-region, so this is stricter. This\n"
+"                       option might be my preference these days.\n"
 "     -csf_skel CSF_SK :similar to SKEL, a 3D volume containing info of CSF.\n"
 "                       NB: however, with CSF_SK, info must just be a binary\n"
 "                       mask already, and it will only be applied in trimming\n"
@@ -247,7 +257,7 @@ void usage_ROIMaker(int detail)
 "         -volthr 100                 \\\n"
 "         -inflate 2                  \\\n"
 "         -wm_skel WM_T1+orig.        \\\n"
-"         -skel_stop \n"
+"         -skel_stop_strict \n"
 "\n"
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "\n"
@@ -548,6 +558,12 @@ int main(int argc, char *argv[]) {
 			iarg++ ; continue ;
 		}
 
+      // [PT: June 6, 2017]: new stricter conditions with this opt
+		if( strcmp(argv[iarg],"-skel_stop_strict") == 0) {
+			SKEL_STOP=2;
+			iarg++ ; continue ;
+		}
+
 		if( strcmp(argv[iarg],"-csf_skel") == 0 ) {
 			iarg++ ; if( iarg >= argc ) 
 							ERROR_exit("Need argument after '-csf_skel'");
@@ -658,12 +674,11 @@ int main(int argc, char *argv[]) {
          ERROR_exit("When using '-preinfl_inset', need a '-wm_skel'");
 
       if( !SKEL_STOP ) {
-         WARNING_message("When using '-preinfl_inset', you need '-skel_stop'"
-                         "also.\n    It will be set for you here.");
+         WARNING_message("When using '-preinfl_inset', you need '-skel_stop' "
+                         "also.\n    It will be set for you here, just "
+                         "to the basic one.");
          SKEL_STOP = 1;
       }
-
-
    }
 
 	INFO_message("Value of threshold is: %f",THR);
@@ -889,7 +904,7 @@ int main(int argc, char *argv[]) {
       // book counting of WM intersections, etc.
       i = ROI_make_inflate( Dim, 
                             PREINFL_NUM,
-                            1,
+                            SKEL_STOP, // updated here: 1 -> SKEL_STOP
                             NEIGHBOR_LIMIT,
                             HAVE_MASK,
                             MASK,

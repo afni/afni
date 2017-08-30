@@ -121,6 +121,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    /*---------------- set titles and call point ----------------*/
 
+   CHECK_IF_ALLOWED("L2FIT","LSqFit & Dtr") ;  /* 30 Sep 2016 */
+
    plint = PLUTO_new_interface( "LSqFit & Dtr" ,
                                 "Control LSqFit and LSqDtr Functions" ,
                                 helpstring ,
@@ -450,6 +452,8 @@ PLUGIN_interface * TSGEN_init(void)
    PLUGIN_interface * plint ;
 
    /*---------------- set titles and call point ----------------*/
+
+   CHECK_IF_ALLOWED("TSGENERATE","TS Generate") ;
 
    plint = PLUTO_new_interface( "TS Generate" ,
                                 "Generate a Timeseries" ,

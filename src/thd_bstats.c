@@ -7,9 +7,9 @@
 #include "mrilib.h"
 #include "thd.h"
 
-/*----------------------------------------------------------------------*/
-/*! Load the statistics of a dataset (modified Nov 15 1995)
-------------------------------------------------------------------------*/
+/*-------------------------------------------------------------------------*/
+/*! Load the statistics of a dataset [modified Nov 15 1995]
+---------------------------------------------------------------------------*/
 
 void THD_load_statistics( THD_3dim_dataset *dset )
 {
@@ -324,13 +324,13 @@ void THD_update_one_bstat( THD_3dim_dataset *dset , int iv )
    Multiply values in dset by fac
    Return number of sub-bricks for which scaling could not be done.
 */
-int THD_dset_scale(THD_3dim_dataset *aset, float fac) 
+int THD_dset_scale(THD_3dim_dataset *aset, float fac)
 {
    int ii, jj, err=0;
    float fac0 = 1.0, *fv=NULL;
-   
+
    ENTRY("THD_dset_scale");
-   
+
    for (ii=0; ii<DSET_NVALS(aset); ++ii) {
       switch (DSET_BRICK_TYPE(aset,ii)) {
          case MRI_short:
@@ -348,7 +348,7 @@ int THD_dset_scale(THD_3dim_dataset *aset, float fac)
          default:
             if (!err) {
                ERROR_message( "Function THD_dset_scale not ready for type %d\n"
-                           "Sub-bricks of such types are untouched.\n", 
+                           "Sub-bricks of such types are untouched.\n",
                            DSET_BRICK_TYPE(aset,ii));
             }
             ++err;
@@ -358,7 +358,29 @@ int THD_dset_scale(THD_3dim_dataset *aset, float fac)
    if (err > 1) {
       ERROR_message( "A total of %d sub-bricks were not scaled", err);
    }
-   
+
    RETURN(err);
 }
 
+/*--------------------------------------------------------------*/
+/* Number of sub-bricks with nonzero data somewhere inside.
+   If this returns zero, the dataset is all zero. [17 Jan 2017]
+*//*------------------------------------------------------------*/
+
+int THD_count_nonzero_bricks( THD_3dim_dataset *dset )
+{
+   int nzc=0 , iv , nvals ;
+
+   if( !ISVALID_DSET(dset) ) return 0 ;
+
+   DSET_load(dset) ;
+   iv = THD_count_databricks( dset->dblk ) ;
+   if( iv == 0 ) return 0 ;
+
+   nvals = DSET_NVALS(dset) ;
+   for( iv=0 ; iv < nvals ; iv++ ){
+     nzc += ( mri_allzero(DSET_BRICK(dset,iv)) == 0 ) ;
+   }
+
+   return nzc ;
+}

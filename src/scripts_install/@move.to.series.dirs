@@ -13,10 +13,11 @@ set testing = 0         # set for just a test, clear to actually move
 set prog = `basename $0`
 set dprefix = ''                # directory prefix
 set fprefix = tmp
+set globform = ''               # allow users to input, say 'd1/I* d2/I*'
 set infiles = ()
 set series_tag = 0020,0011
 set action = copy                # copy or move
-set version = '0.0, 24 Apr 2013'
+set version = '0.2, 19 September 2016'
 
 if ( $#argv < 1 ) goto SHOW_HELP
 
@@ -48,6 +49,14 @@ while ( $ac <= $#argv )
       endif
       set dprefix = $argv[$ac]
 
+   else if ( "$argv[$ac]" == "-glob" ) then
+      @ ac += 1
+      if ( $#argv < $ac ) then
+         echo "** missing argument for -glob"
+         exit 1
+      endif
+      set globform = "$argv[$ac]"
+
    else if ( "$argv[$ac]" == "-tag" ) then
       @ ac += 1
       if ( $#argv < $ac ) then
@@ -67,10 +76,7 @@ while ( $ac <= $#argv )
    @ ac += 1
 end
 
-if ( $#infiles < 1 ) then
-   echo "** missing input files..."
-   exit
-endif
+# ----------------------------------------------------------------------
 
 # set the file manipulation command
 if ( $action == move ) then
@@ -81,7 +87,21 @@ endif
 
 # get all series numbers
 set slist_file = $fprefix.series.list.txt
-dicom_hinfo -tag $series_tag $infiles > $slist_file
+echo -n "" > $slist_file
+
+# allow globbing and/or infiles
+if ( "$globform" != "" ) then
+   echo -- globbing on: "'$globform'"
+   # pass through stdin so we do not need to delimit a list of glob forms
+   echo "$globform" | afni_util.py -listfunc glob2stdout - \
+                    | xargs dicom_hinfo -tag $series_tag >> $slist_file
+   set nfiles = `cat $slist_file | wc -l`
+   echo -- globbing to process $nfiles files
+endif
+if ( $#infiles > 0 ) then
+   echo -- processing $#infiles input files ...
+   dicom_hinfo -tag $series_tag $infiles >> $slist_file
+endif
 
 # parse down to unique list
 set slist = ( `awk '{print $2}' $slist_file | sort | uniq` )
@@ -157,6 +177,11 @@ examples:
     $prog -test IMG*
     $prog -action move IMG*
 
+  If the file list is too long for the shell, consider using -glob
+  as in the testing example:
+
+    $prog -test -glob 'dir1/IMG*'
+
 terminal option:
 
    -help        : show hist help
@@ -189,6 +214,7 @@ $prog modification history:
 
    0.0  : Apr 24, 2013: initial version
    0.1  : Jul 18, 2013: added -dprefix option
+   0.2  : Sep 19, 2016: added -glob option
 
 EOF
 

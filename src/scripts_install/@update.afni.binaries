@@ -52,6 +52,13 @@ history for $prog :
   2.8  04 May 2016 : added -do_dotfiles and -do_extras
                      (dot files and apsearch are now only done on request)
   2.9  05 May 2016 : -defaults implies -do_dotfiles and -apsearch yes
+  3.0  02 Feb 2017 : default OS X package is macosx_10.7_local
+  3.1  08 Feb 2017 : (by David Abbott) fix crash in and finish case of
+                     -local_package with updated install script
+  3.2  23 Jun 2017 : unalias grep; only update cur_afni if not abin
+  3.3  10 Jul 2017 : if bindir is relative, fail without -no_recur
+  3.4  21 Jul 2017 : oops, apparently that needs quotes to block eval
+
 -------------------------------------------------------------------------------
 EOF
 exit
@@ -59,7 +66,7 @@ POST_HIST:
 # end history section
 # ----------------------------------------------------------------------
 
-set aub_version = "2.9, May 5, 2016"
+set aub_version = "3.4, July 21, 2017"
 
 # ----------------------------------------------------------------------
 # apply any options
@@ -70,7 +77,7 @@ set package = ""
 set local_package = ""          # existing .tgz package to use (no download)
 set prog_list = ()              # update programs or entire package
 set tmp_dir = ".tmp.install"    # should start with '.'
-set make_backup = 1             # backup previous binaires
+set make_backup = 1             # backup previous binaries
 
 set sys_ok = 0                  # OK to update having system programs
 set system_progs = ( apt-get at cc cpp cmp diff du gcc less man md5sum od \
@@ -236,6 +243,15 @@ if ( $quick ) then
    set do_dotfiles = 0
 endif
 
+# if abin and do_recur, abin must be absolute
+if ( $abin != "" && $do_recur ) then
+   set c1 = `echo $abin | cut -b 1`
+   if ( "$c1" != "/" ) then
+      echo "** when -bindir is relative, please include -no_recur"
+      echo "   have -bindir = '$abin'"
+      exit 1
+   endif
+endif
 
 # if requested, show help and exit
 if ( $help ) then
@@ -250,7 +266,7 @@ examples:
 
     individual user: initial install or udpate
 
-       The default package is linux_openmp_64 (Linux) or macosx_10.7_Intel_64
+       The default package is linux_openmp_64 (Linux) or macosx_10.7_local
        (OS X).  The default binary directory is ~/abin.
 
        $prog -defaults -do_extras
@@ -270,7 +286,7 @@ examples:
        $prog -package linux_openmp_64 -programs suma 3dRSFC
        $prog -package linux_openmp_64 -programs file_tool python_scripts/*.py
 
-       $prog -local_package macosx_10.7_Intel_64.tgz
+       $prog -local_package macosx_10.7_local.tgz
 
 options:
 
@@ -423,7 +439,7 @@ echo "-- running $prog version $aub_version"
 # note any current AFNI location
 which afni >& /dev/null
 if ( $status ) then
-   echo "-- no current AFNI package..."
+   echo "-- no current AFNI package found in path..."
    set cur_afni = ""
 else
    set cur_afni = `which afni`
@@ -474,6 +490,8 @@ if ( $local_package != "" ) then
 
    # use package for extensionless name
    set package = $local_package:r
+
+   echo "-- will install from local package file: $local_package"
 endif
 
 # possibly apply default package
@@ -513,7 +531,7 @@ if ( $package == "" ) then
          endif
       else if ( $sysname == Darwin ) then
          # default to no.omp.glib for now
-         set package = macosx_10.7_Intel_64
+         set package = macosx_10.7_local
       else
          @ errs ++
       endif
@@ -557,7 +575,7 @@ if ( ! $cert_verify ) then
    endif
 endif
 
-echo "-- will download from $hostsite via $get_prog"
+echo "-- any downloads will be from $hostsite via $get_prog"
 echo ""
 
 # make sure package is set to the base name
@@ -678,7 +696,7 @@ if ( $do_recur ) then
       set retry = 1
    else
       # see if we have this text (and therefore the actual program)
-      grep 'upgrade the AFNI binaries' $prog > /dev/null
+      \grep 'upgrade the AFNI binaries' $prog > /dev/null
       if ( $status ) then
          set retry = 1
          \rm -f $prog
@@ -694,7 +712,7 @@ if ( $do_recur ) then
          set retry = 1
       else
          # see if we have this text (and therefore the actual program)
-         grep 'upgrade the AFNI binaries' $prog > /dev/null
+         \grep 'upgrade the AFNI binaries' $prog > /dev/null
          if ( $status ) then
             set retry = 1
             \rm -f $prog
@@ -726,9 +744,12 @@ if ( $do_recur ) then
       if ( $local_package != "" ) then
          set ind = 1
          while ( $ind < $#args )
-            if ( $args[$ind] == "-local_package" ) then
-               set args[$ind+1] = $local_package_dir/$local_package
+            if ( "$args[$ind]" == "-local_package" ) then
+               @ ind += 1
+               set args[$ind] = $local_package_dir/$local_package
                break
+            else
+               @ ind += 1
             endif
          end
       endif
@@ -778,7 +799,7 @@ if ( $test_protos ) then
 
       # make sure we have a good download, even if $status is okay
       if ( ! $st ) then
-         grep 'upgrade the AFNI binaries' $prog > /dev/null
+         \grep 'upgrade the AFNI binaries' $prog > /dev/null
          set st = $status
          if ( $st ) then
             echo "** okay status but bad download"
@@ -1020,7 +1041,7 @@ if ( $do_dotfiles && -d $abin && $?USER ) then
          touch $rcfile
       endif
 
-      grep $abin:t $rcfile >& /dev/null
+      \grep $abin:t $rcfile >& /dev/null
       if ( $status ) then
          # finally, update .csrhc and our current path
          echo "++ adding $abin to path in $rcfile ..."
@@ -1028,9 +1049,13 @@ if ( $do_dotfiles && -d $abin && $?USER ) then
          set path = ( $path $abin )
       endif
 
-      rehash
-      set cur_afni = `which afni`
-      set cur_afni = $cur_afni:h
+      # if cur_afni_does not point to abin, reset it
+      if ( $cur_afni != $abin ) then
+         set path = ( $abin $path )
+         rehash
+         set cur_afni = `which afni`
+         set cur_afni = $cur_afni:h
+      endif
 
       # ---------------------------
       # do this for .bashrc, too...
@@ -1039,7 +1064,7 @@ if ( $do_dotfiles && -d $abin && $?USER ) then
       if ( ! -f $brcfile ) touch $brcfile
 
       # and possibly edit
-      grep $abin:t $brcfile >& /dev/null
+      \grep $abin:t $brcfile >& /dev/null
       if ( $status ) then
          # not found, so append to file
          echo "++ adding $abin to PATH in $brcfile ..."
@@ -1056,7 +1081,7 @@ if ( $do_apsearch && $cur_afni == $abin && $#prog_list == 0 ) then
    echo "++ running $cmd ..."
    $cmd
    
-   grep afni_help_dir $rcfile >& /dev/null
+   \grep afni_help_dir $rcfile >& /dev/null
    if ( $status && -f $rcfile ) then
       cat << EOF >> $rcfile
 

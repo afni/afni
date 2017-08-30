@@ -841,13 +841,15 @@ g_history = """
         - look for new ACF/FWHM blur estimates
         - get each last estimate (so prefer err_reml > errts > epits)
         - update -help_fields
+   0.49 Jan 19, 2017: fix for -final_anat (thanks to N Anderson)
+   0.50 Mar 30, 2017: clust with AFNI_ORIENT=RAI, to match afni -com SET_DICOM_XYZ
+   0.51 May 30, 2017: plot volreg params with enorm/outlier plot
 """
 
-g_version = "gen_ss_review_scripts.py version 0.48, August 17, 2016"
+g_version = "gen_ss_review_scripts.py version 0.51, May 30, 2017"
 
 g_todo_str = """
    - add @epi_review execution as a run-time choice (in the 'drive' script)?
-   - execute basic?  save output?
 """
 
 # todo notes:
@@ -1455,7 +1457,10 @@ class MyInterface:
       """
 
       # check if already set
-      if self.uvar_already_set('final_anat'): return 0
+      if self.uvar_already_set('final_anat'):
+         if self.dsets.is_empty('final_anat'):
+            self.dsets.final_anat = BASE.afni_name(self.uvars.final_anat)
+         return 0
 
       # go after known file
       gstr = 'anat_final.%s+%s.HEAD' % (self.uvars.subj, self.uvars.final_view)
@@ -1647,15 +1652,18 @@ class MyInterface:
    def guess_motion_dset(self):
       """set uvars.motion_dset"""
 
+      mot_files = ['dfile_rall.1D', 'dfile.rall.1D', 'motion_demean.1D']
+
       # check if already set
       if self.uvar_already_set('motion_dset'): return 0
 
-      gstr = 'dfile_rall.1D'
-      if not os.path.isfile(gstr): gstr = 'dfile.rall.1D'
-
-      if os.path.isfile(gstr):
-         self.uvars.motion_dset = gstr
-         return 0
+      # check the defaults, in order
+      for gstr in mot_files:
+         if os.path.isfile(gstr):
+            self.uvars.motion_dset = gstr
+            if self.cvars.verb > 1:
+               print '-- setting motion_dset = %s' % self.uvars.motion_dset
+            return 0
 
       # else go 1D or text files with motion in the name
       glist = glob.glob('*motion*.1D')
@@ -2294,8 +2302,8 @@ class MyInterface:
        '# locate peak coords of biggest masked cluster and jump there\n'  \
        '3dcalc -a %s"[0]" -b %s -expr "a*b" \\\n'                         \
        '       -overwrite -prefix .tmp.F\n'  \
-       'set maxcoords = ( `3dclust -1thresh $thresh -dxyz=1 1 2 .tmp.F+%s \\\n'\
-       '       | & awk \'/^ / {print $14, $15, $16}\' | head -n 1` )\n'\
+       'set maxcoords = ( `3dclust -DAFNI_ORIENT=RAI -1thresh $thresh -dxyz=1 1 2 \\\n' \
+       '       .tmp.F+%s | & awk \'/^ / {print $14, $15, $16}\' | head -n 1` )\n'\
        'echo -- jumping to max coords: $maxcoords\n'                      \
        % (sset.pv(), mset.pv(), self.uvars.final_view)
 
@@ -2319,7 +2327,7 @@ class MyInterface:
 
       txt += '\n'                                                      \
              'prompt_user -pause "                                 \\\n' \
-             '   review: peruse statistical retsults               \\\n' \
+             '   review: peruse statistical results                \\\n' \
              '      - thresholding Full-F at masked 90 percentile  \\\n' \
              '        (thresh = $thresh)                           \\\n' \
              '                                                     \\\n' \
@@ -2566,6 +2574,7 @@ class MyInterface:
       # note the enorm and outcount files
       efile = self.uvars.val('enorm_dset')
       ofile = self.uvars.val('outlier_dset')
+      mfile = self.uvars.val('motion_dset')
 
       errs = 0
       if not os.path.isfile(efile):
@@ -2575,6 +2584,11 @@ class MyInterface:
          print '** missing outlier file %s' % ofile
          errs += 1
       if errs: return 1
+
+      # don't require motion file
+      if not os.path.isfile(mfile):
+         print '** missing volreg motion file %s' % mfile
+         mfile = None
 
       # maybe include -censor option
       cstr = ''
@@ -2588,13 +2602,6 @@ class MyInterface:
             cpad2 = '%s \\\n       ' % cstr
 
 
-      txt = 'echo ' + UTIL.section_divider('outliers and motion',
-                                           maxlen=60, hchar='-') + '\n\n'
-
-      txt += '1dplot -wintitle "motion, outliers" -ynames Mot OFrac \\\n' \
-             '%s'                                                         \
-             '       -sepscl %s %s &\n' % (cpad1, efile, ofile)
-
       # get total TRs from any uncensored X-matrix
       if self.dsets.is_not_empty('xmat_ad_nocen'):
          xmat = self.dsets.xmat_ad_nocen
@@ -2607,27 +2614,39 @@ class MyInterface:
       if self.dsets.is_empty('censor_dset'):
          colorstr = ':' + ' ' * len(colorstr)
 
-      txt += '1dplot -one %s%s "1D: %d@%g" &\n' % (cpad2, ofile, nt, olimit)
-      txt += '1dplot -one %s%s "1D: %d@%g" &\n' % (cpad2, efile, nt, mlimit)
+      # separate motion plot and outlier plot commands
+      ocmd = '1dplot -one %s%s "1D: %d@%g" &\n' % (cpad2, ofile, nt, olimit)
+      ecmd = '1dplot -one %s%s "1D: %d@%g" &\n' % (cpad2, efile, nt, mlimit)
+
+      # motion and outlier plot command, possibly with volreg params
+      if mfile:
+         mocmd = '1dplot -sepscl -volreg -ynames enorm outliers - \\\n'        \
+                 '       -wintitle "mot params, enorm, outliers" %s %s %s &\n' \
+                 % (mfile, efile, ofile)
+         motxt = 'enorm and mot params'
+      else:
+         mocmd = '1dplot -wintitle "motion, outliers" -ynames Mot OFrac \\\n' \
+                 '%s'                                                         \
+                 '       -sepscl %s %s &\n' % (cpad1, efile, ofile)
+         motxt = 'plotted together'
+
+      txt = 'echo ' + UTIL.section_divider('outliers and motion',
+                                           maxlen=60, hchar='-') + '\n\n'
+
+      txt += mocmd + ocmd + ecmd 
 
       txt += '\n'                                                       \
              'prompt_user -pause "                              \\\n'   \
              '   review plots %s       \\\n'                            \
-             '     - outliers and motion (plotted together)     \\\n'   \
-             '     - outliers with limit %g                    \\\n' \
-             '     - motion with limit %g                      \\\n' \
+             '     - outliers and motion (%s)     \\\n'   \
+             '     - outliers with limit %g                    \\\n'    \
+             '     - motion with limit %g                      \\\n'    \
              '                                                  \\\n'   \
              '   --- close plots and click OK when finished --- \\\n'   \
              '   "\n'                                                   \
-             'echo ""\n\n\n' % (colorstr, olimit, mlimit)
+             'echo ""\n\n\n' % (colorstr, motxt, olimit, mlimit)
 
-      self.commands_drive += \
-         '1dplot -wintitle "motion, outliers" -ynames Mot OFrac \\\n' \
-         '       -sepscl %s%s %s &\n' % (cstr, efile, ofile)
-      self.commands_drive += '1dplot -one %s%s "1D: %d@%g" &\n' \
-                             % (cstr, ofile, nt, olimit)
-      self.commands_drive += '1dplot -one %s%s "1D: %d@%g" &\n' \
-                             % (cstr, efile, nt, mlimit)
+      self.commands_drive += mocmd + ocmd + ecmd
 
       self.text_drive += txt
 

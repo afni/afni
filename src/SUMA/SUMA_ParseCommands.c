@@ -275,8 +275,9 @@ int SUMA_CommandCode(char *Scom)
    /*if (!strcmp(Scom,"")) SUMA_RETURN(SE_);*/
    /* Last one is Bad Code */
    SUMA_RETURN (SE_BadCode);
-     
 }
+
+
 SUMA_NI_COMMAND_CODE SUMA_niCommandCode(char *Scom)
 {   
    static char FuncName[]={"SUMA_niCommandCode"};
@@ -294,6 +295,7 @@ SUMA_NI_COMMAND_CODE SUMA_niCommandCode(char *Scom)
    if (!strcmp(Scom,"viewer_cont")) SUMA_RETURN(SE_niSetViewerCont);
    if (!strcmp(Scom,"recorder_cont")) SUMA_RETURN(SE_niSetRecorderCont);
    if (!strcmp(Scom,"kill_suma")) SUMA_RETURN(SE_niKillSuma);
+   if (!strcmp(Scom,"get_label")) SUMA_RETURN(SE_GetLabel);
    /*if (!strcmp(Scom,"")) SUMA_RETURN(SE_ni);*/
    
    /* Last one is Bad Code */
@@ -3867,7 +3869,7 @@ int SUMA_setenv_option(char *s)
    }
    if (s[0] != '\'' && s[0] != '\"') {
       SUMA_S_Errv("You must enclose env expression with ' or \" quotes\n"
-                  "Have open %s\n", s);
+                  "Have >>%s<<\n", s);
       SUMA_RETURN(0);
    } 
 

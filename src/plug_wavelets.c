@@ -136,6 +136,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
   PLUGIN_interface * plint ;     /* will be the output of this routine */
   int is;                        /* filter index */
 
+  CHECK_IF_ALLOWED("WAVELETS","Wavelets") ;  /* 30 Sep 2016 */
 
   if( ncall > 0 ) return NULL ;  /* generate interface for ncall 0 */
 

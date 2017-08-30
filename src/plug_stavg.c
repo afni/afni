@@ -82,6 +82,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    if( ncall > 0 ) return NULL ;  /* one interfaces */
 
+   CHECK_IF_ALLOWED("SINGLETRIALAVG","SingleTrial Avg") ;  /* 30 Sep 2016 */
+
    /*---------------- set titles and call point ----------------*/
 
    plint = PLUTO_new_interface( "SingleTrial Avg" ,

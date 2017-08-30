@@ -84,6 +84,7 @@ static int   MRG_be_quiet     = 0 ;
 static int   MRG_cflag_gthr   = THFLAG_NONE ;  /* 29 Aug 1996 */
 static int   MRG_doall        = 0;             /* 02 Feb 1998 */
 static int   MRG_verbose      = 0;             /* 29 Jul 2003 */
+static int   MRG_nozero       = 0;             /* 18 Jan 2017 */
 
 static char  MRG_output_session[THD_MAX_NAME]   = "./" ;
 static char  MRG_output_prefix [THD_MAX_PREFIX] = "mrg" ;
@@ -137,6 +138,12 @@ int MRG_read_opts( int argc , char * argv[] )
          continue ;
       }
 
+      /*** 18 Jan 2017: -nozero ***/
+
+      if( strcasecmp(argv[nopt],"-nozero") == 0 ){
+        MRG_nozero = 1 ; nopt++ ; continue ;
+      }
+
       /*** 29 Jul 2003: -verbose ***/
 
       if( strncmp(argv[nopt],"-verb",5) == 0 ){
@@ -161,7 +168,7 @@ int MRG_read_opts( int argc , char * argv[] )
          MRG_ivthr = MRG_edopt.iv_thr = (int) strtod( argv[nopt++] , NULL ) ;
          continue ;
       }
-      
+
       if( strncmp(argv[nopt],"-1rank", 5) == 0) {
          MRG_rank = MRG_edopt.rank = 1;
          nopt++ ; continue;
@@ -554,28 +561,28 @@ DUMP1 ;
       MCW_strncpy( MRG_output_label , MRG_output_prefix , THD_MAX_LABEL ) ;
    }
 #endif
-   
+
    /* if -1rank is used, pass the prefix */
    if (MRG_rank) {
       char prefix[THD_MAX_PREFIX];
       FILENAME_TO_PREFIX(MRG_output_prefix, prefix);
       if (prefix[0] == '\0') strcpy(prefix, MRG_output_prefix);
-      /*fprintf(stderr,"Prefix >>>%s<<< >>>%s<<<\n", 
+      /*fprintf(stderr,"Prefix >>>%s<<< >>>%s<<<\n",
                        MRG_output_prefix, prefix); */
       if (PREFIX_IS_NIFTI(prefix)) {
-         char *p2=NULL; 
+         char *p2=NULL;
          if (STRING_HAS_SUFFIX( prefix,".nii")) {
-            p2 = strstr( prefix, ".nii"); 
+            p2 = strstr( prefix, ".nii");
             prefix[p2- prefix]='\0';
          } else if (STRING_HAS_SUFFIX( prefix,".nii.gz")) {
             p2 = strstr( prefix, ".nii.gz");
             prefix[p2- prefix]='\0';
-         } 
-      } 
-      sprintf(MRG_edopt.rankmapname,"%s/%s.rankmap.1D", 
+         }
+      }
+      sprintf(MRG_edopt.rankmapname,"%s/%s.rankmap.1D",
                                  MRG_output_session, prefix);
    }
-   
+
    return( nopt );
 }
 
@@ -663,11 +670,14 @@ void MRG_Syntax(void)
 
    printf(
     "OTHER OPTIONS:\n"
+    "  -nozero     = Do NOT write the output dataset if it would be all zero.\n"
+    "\n"
     "  -datum type = Coerce the output data to be stored as the given type,\n"
     "                  which may be byte, short, or float.\n"
     "          N.B.: Byte data cannot be negative.  If this datum type is chosen,\n"
     "                  any negative values in the edited and/or merged dataset\n"
     "                  will be set to zero.\n"
+    "\n"
     "  -keepthr    = When using 3dmerge to edit exactly one dataset of a\n"
     "                  functional type with a threshold statistic attached,\n"
     "                  normally the resulting dataset is of the 'fim'\n"
@@ -692,6 +702,7 @@ void MRG_Syntax(void)
     "                  the responsibility of the user to verify that these \n"
     "                  are appropriate.  Note that sub-brick auxiliary data \n"
     "                  can be modified using program 3drefit. \n"
+    "\n"
     "  -quiet      = Reduce the number of messages shown\n"
     "\n"
     "  -1dindex j  = Uses sub-brick #j as the data source , and uses sub-brick\n"
@@ -828,7 +839,7 @@ void MRG_Syntax(void)
     "     of integral data types. 'float' values are typecast to 'int' \n"
     "     before being ranked.\n"
     "\n"
-    "     See also program 3dRank\n" 
+    "     See also program 3dRank\n"
     "\n"
     "MERGING OPTIONS APPLIED TO FORM THE OUTPUT DATASET:\n"
     " [That is, different ways to combine results. The]\n"
@@ -1190,12 +1201,13 @@ int main( int argc , char * argv[] )
   /*----- Iterate over sub-bricks -----*/
   for (iv = iv_bot;  iv < iv_top;  iv++)
     {
-      if ((!MRG_be_quiet) && MRG_doall) printf ("Editing sub-brick %d\n", iv);
+      /* show if requested */
+      if ((MRG_verbose) && MRG_doall) printf ("Editing sub-brick %d\n", iv);
 
       MRG_edopt.iv_fim = iv;
       EDIT_one_dataset( dset , &MRG_edopt ) ;  /* all the real work */
 
-      if( !MRG_be_quiet && !MRG_doall ){ printf(".") ; fflush(stdout) ; }
+      if( !MRG_be_quiet && !MRG_verbose ) { printf(".") ; fflush(stdout) ; }
 
     }  /* end of loop over sub-bricks */
 
@@ -1203,7 +1215,7 @@ int main( int argc , char * argv[] )
       free(MRG_edopt.fmask) ; MRG_edopt.fmask = NULL ; MRG_edopt.nfmask = 0 ;
     }
 
-    if( !MRG_be_quiet && !MRG_doall ) printf("\n") ;
+    if( !MRG_be_quiet ) printf("\n") ;
 
       /** 17 Sep 1998: NOW create the new dataset **/
 
@@ -1393,6 +1405,11 @@ int main( int argc , char * argv[] )
 
     }  /* iv    End of iteration over sub-bricks */
 
+
+      if( MRG_nozero && THD_count_nonzero_bricks(new_dset) == 0 ){ /* 17 Jan 2017 */
+        INFO_message("output dataset is all zero ==> not writing because of -allzero") ;
+        exit(0) ;
+      }
 
       THD_load_statistics( new_dset ) ;
       THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
@@ -1796,8 +1813,7 @@ int main( int argc , char * argv[] )
    if( (rmm >= dx || rmm >= dy || rmm >= dz) && ptmin > 1 ){
       if( ! MRG_be_quiet ) printf("-- editing merger for cluster size\n") ;
 
-      
-      clar  = MCW_find_clusters( nx,ny,nz , dx,dy,dz , MRI_float,gfim , rmm) ;   
+      clar  = MCW_find_clusters( nx,ny,nz , dx,dy,dz , MRI_float,gfim , rmm) ;
       nclu  = 0 ;
       if( clar != NULL ){
          for( iclu=0 ; iclu < clar->num_clu ; iclu++ ){
@@ -1912,6 +1928,11 @@ int main( int argc , char * argv[] )
 
 
    /*** write to disk!!! ***/
+
+   if( MRG_nozero && THD_count_nonzero_bricks(new_dset) == 0 ){ /* 17 Jan 2017 */
+     INFO_message("output dataset is all zero ==> not writing because of -allzero") ;
+     exit(0) ;
+   }
 
    tross_Make_History( "3dmerge" , argc , argv , new_dset ) ;
    THD_load_statistics( new_dset ) ;

@@ -501,6 +501,12 @@ void AFNI_syntax(void)
      "   -noplugins   Tells the program not to load plugins.\n"
      "                  (Plugins can also be disabled by setting the\n"
      "                   environment variable AFNI_NOPLUGINS.)\n"
+     "   -seehidden   Tells the program to show you which plugins\n"
+     "                  are hidden.\n"
+     "   -DAFNI_ALLOW_ALL_PLUGINS=YES\n"
+     "                Tells the program NOT to hide plugins from you.\n"
+     "                  Note that there are a lot of hidden plugins,\n"
+     "                  most of which are not very useful!\n"
      "   -yesplugouts Tells the program to listen for plugouts.\n"
      "                  (Plugouts can also be enabled by setting the\n"
      "                   environment variable AFNI_YESPLUGOUTS.)\n"
@@ -568,6 +574,7 @@ void AFNI_syntax(void)
      SUMA_Offset_SLines(get_help_help(),3), get_gopt_help()
    ) ;
 
+#if 0
    printf(
      "\n"
      "-----------------------------------------------------\n"
@@ -623,11 +630,12 @@ void AFNI_syntax(void)
      " N.B.: The program 'aiv' (AFNI image viewer) can also be used to\n"
      "        get a quick look at images (but not time series graphs).\n"
    ) ;
+#endif
 
    printf(
      "\n"
      "-------------------------------------------------------\n"
-     "USAGE 3: read in datasets specified on the command line\n"
+     "USAGE 2: read in datasets specified on the command line\n"
      "-------------------------------------------------------\n"
      "\n"
      "  afni -dset [options] dname1 dname2 ...\n"
@@ -635,10 +643,19 @@ void AFNI_syntax(void)
      "where 'dname1' is the name of a dataset, etc.  With this option, only\n"
      "the chosen datasets are read in, and they are all put in the same\n"
      "'session'.  Follower datasets are not created.\n"
+     "\n"
      "* If you wish to be very tricksy, you can read in .1D files as datasets\n"
      "  using the \\' transpose syntax, as in\n"
      "     afni Fred.1D\\'\n"
      "  However, this isn't very useful (IMHO).\n"
+     "\n"
+     "* AFNI can also read image files (.jpg and .png) from the command line.\n"
+     "  For just viewing images, the 'aiv' program (AFNI image viewer) is\n"
+     "  simpler; but unlike aiv, you can do basic image processing on an\n"
+     "  image 'dataset' using the AFNI GUI's feature. Sample command:\n"
+     "     afni *.jpg\n"
+     "  Each image file is a single 'dataset'; to switch between images,\n"
+     "  use the 'Underlay' button. To view an image, open the 'Axial' viewer.\n"
      "\n");
     printf(MASTER_HELP_STRING);   putchar('\n');
     printf(CATENATE_HELP_STRING); putchar('\n');
@@ -687,7 +704,9 @@ void AFNI_syntax(void)
      "   -no_detach   Do not detach from the terminal.\n"
      "   -get_processed_env   Show applied AFNI/NIFTI environment varables.\n"
      "   -global_opts Show options that are global to all AFNI programs.\n"
-     "   -goodbye     Print a 'goodbye' message and exit (just for fun).\n"
+     "   -goodbye [n] Print a 'goodbye' message and exit (just for fun).\n"
+     "                If an integer is supplied afterwards, will print that\n"
+     "                many (random) goodbye messages.\n"
      "   -ver         Print the current AFNI version and exit.\n"
      "\n"
      "N.B.: Many of these options, as well as the initial color set up,\n"
@@ -1008,7 +1027,8 @@ ENTRY("AFNI_parse_args") ;
 
    strcpy(GLOBAL_argopt.title_name,"AFNI") ;           /* default title bar name */
 
-   GLOBAL_argopt.left_is_left = AFNI_yesenv( "AFNI_LEFT_IS_LEFT" ) ;
+   GLOBAL_argopt.left_is_left      = AFNI_yesenv( "AFNI_LEFT_IS_LEFT" ) ;
+   GLOBAL_argopt.left_is_posterior = AFNI_yesenv( "AFNI_LEFT_IS_POSTERIOR" ) ;
 
    GLOBAL_argopt.read_tim = 0 ;   /* 19 Oct 1999 */
 
@@ -1039,6 +1059,11 @@ ENTRY("AFNI_parse_args") ;
         narg++ ; continue ;                 /* go to next arg */
       }
 #endif
+
+      if( strcmp(argv[narg],"-seehidden") == 0 ){
+        first_plugin_check = 1 ;
+        narg++ ; continue ;
+      }
 
       /*----- -layout (23 Sep 2000) -----*/
 
@@ -1116,11 +1141,11 @@ ENTRY("AFNI_parse_args") ;
         int ii , ll ; char *cm , *cs , *cq ;
         if( ++narg >= argc ) ERROR_exit("need an argument after -com!");
         cm = argv[narg] ; ll = strlen(cm) ; cs = strchr(cm,comsep) ;
-             if( ll > 1024   ) ERROR_message("argument after -com is too long" );
-        else if( ll <   3   ) ERROR_message("argument after -com is too short");
+             if( ll > 1024   ) ERROR_message("argument after -com is too long:\n'%s'" ,argv[narg] );
+        else if( ll <   3   ) ERROR_message ("argument after -com is too short:\n'%s'",argv[narg] );
         else if( cs == NULL ) {
            if (COM_num < MAX_N_COM) COM_com[ COM_num++ ] = strdup(argv[narg]) ;
-           else ERROR_message("Too many commands");
+           else ERROR_message("Too many commands (max allowed=%d)",MAX_N_COM);
         } else {  /* 22 Feb 2007: break into sub-commands */
           cq = cm = strdup(argv[narg]) ;
           for( ii=ll-1 ; isspace(cm[ii]) ; ii-- ) cm[ii] = '\0' ; /* trim end */
@@ -1684,6 +1709,8 @@ void AFNI_sigfunc(int sig)
    This catenation of events is for Jerzy 'the Mad Pole' Bodurka.
 ------------------------------------------------------------------------------*/
 
+extern int selenium_close(void) ;
+
 void AFNI_sigfunc_alrm(int sig)
 {
 #undef  NMSG
@@ -1745,6 +1772,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Out of Benedictine Error: How do you expect me get work done?" ,
      "More cheese, Gromit!"                                          ,
      "Life can be tough sometimes -- so have a chocolate (or two)"   ,
+     "Sweet sweet caffeine -- is there anything it can't do?"        ,
      "If at first you don't succeed -- call it version 1.0"          ,
      "Never trust a statistic you haven't faked yourself"            ,
      "May your teeth never be replaced by damp woolen socks"         ,
@@ -1783,16 +1811,12 @@ void AFNI_sigfunc_alrm(int sig)
      "Drink! for you know not why you go, or where"                  ,
      "Tomorrow we feast with us at home"                             ,
      "Forgive your enemies; but never forget their names"            ,
-     "Always forgive your enemies - nothing annoys them so much"     ,
      "A friend is one who has the same enemies as you have"          ,
      "Am I not destroying my enemies when I make friends of them?"   ,
      "True friends will stab you in the FRONT"                       ,
      "I am so clever I don't understand a word of what I'm saying"   ,
      "Some cause happiness wherever they go; others whenever they go",
      "A man who does not think for himself does not think at all"    ,
-     "The truth is rarely pure and never simple"                     ,
-     "A thing is not necessarily true because a man dies for it"     ,
-     "Experience is the name men give to their mistakes"             ,
      "Whenever people agree with me, I think I must be wrong"        ,
      "We are each our own devil, and make this world our hell"       ,
      "I have nothing to declare except my genius"                    ,
@@ -1864,7 +1888,26 @@ void AFNI_sigfunc_alrm(int sig)
      "O Brave New World, that has such software in it"               ,
      "When I ask for advice, what I really want is an accomplice"    ,
      "Above all -- Don't let your brain lie to you"                  ,
-     "Remember -- You are absolutely unique. Just like everone else" ,
+     "I like nonsense -- it shakes the neurons out of their naps"    ,
+     "I'm glad you finished up now -- I'm ready for a quick nap"     ,
+     "Using it is like going to the gym for your brain"              ,
+     "We are all mad here"                                           ,
+     "Working for improved brain-ology not just 24/7 but 25/8!"      ,
+     "If Ziad were here, we'd be going for gelato just about now"    ,
+     "Trust me, I know what I'm doing"                               ,
+     "Never tell me the odds"                                        ,
+     "If you're good at something, never do it for free"             ,
+     "I'm Spartacus"                                                 ,
+     "Abandon all hope, ye who leave here"                           ,
+     "From a little spark may burst a flame"                         ,
+     "I love to doubt as well as to know"                            ,
+     "At this moment, ability fails my capacity to describe"         ,
+     "I'll miss you -- come back soon"                               ,
+     "Be careful out there"                                          ,
+     "Yesterday, all my troubles seemed so far away"                 ,
+     "Stochastic delights have deterministic ends"                   ,
+     "Remember -- To prolong doubt is to prolong hope"               ,
+     "Remember -- Time and tide wait for no brain imaging software"  ,
      "Remember -- AFNI is free, but worth at least 1000 times more"  ,
      "Remember -- Nothing is always absolutely so"                   ,
      "Remember -- 90% of everything is cr*p"                         ,
@@ -1873,7 +1916,6 @@ void AFNI_sigfunc_alrm(int sig)
      "Remember -- Murphy was an optimist"                            ,
      "Remember -- Statistics are no substitute for judgment"         ,
      "Remember -- A thing can be true, and still be desperate folly" ,
-     "Remember -- Everything popular is wrong"                       ,
      "Remember -- Aquaman cares"                                     ,
      "Remember -- She who laughs, lasts"                             ,
      "Remember -- He who laughs, lasts"                              ,
@@ -1882,6 +1924,8 @@ void AFNI_sigfunc_alrm(int sig)
      "Remember -- Men are always willing to believe what they wish"  ,
      "Remember -- What I tell you three times is true"               ,
      "Remember -- A monad is the same as an endofunctor"             ,
+     "Remember -- Things aren't always what they seem"               ,
+     "Remember -- eggs cannot be unscrambled"                        ,
      "Fools give you reasons, wise men never try"                    ,
      "People willingly trust the statistics they wish to believe"    ,
      "Heaven's last best gift, my ever new delight"                  ,
@@ -1904,6 +1948,7 @@ void AFNI_sigfunc_alrm(int sig)
      "If I can find the man calling me ruthless, I'll destroy him"   ,
      "'It remains to be seen' == 'When pigs fly'"                    ,
      "Do not scorn pity that is the gift of a gentle heart"          ,
+     "Do not go gentle into that good abend"                         ,
      "The best laid statistics of mice and men gang aft agley"       ,
      "A thousand farewells pass in one moment"                       ,
      "Did you see hyperconnectivity in the disconnected fibers?"     ,
@@ -1913,13 +1958,14 @@ void AFNI_sigfunc_alrm(int sig)
      "All this Dark Matter whizzing around makes it hard to think"   ,
      "Thank you so so so very much"                                  ,
      "Will you miss me?"                                             ,
+     "It wasn't me that did it. It was my brain"                     ,
      "Was there life before Google?"                                 ,
      "If you can't be good, be careful"                              ,
      "What sweet madness has seized me?"                             ,
      "Which is more accurate: Haruspicy or Statistical Inference?"   ,
      "Forgive your enemy -- but remember the bastard's name"         ,
      "If the facts don't fit the theory, change the facts"           ,
-     "All generalizations are false, including this one"             ,
+     "All generalizations are false: including this one"             ,
      "Facts are stubborn, but statistics are pliable"                ,
      "I can prove anything with statistics, except the truth"        ,
      "The chief function of the body is to carry the brain around"   ,
@@ -1950,7 +1996,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Do you still miss the NIH Bear? I do"                          ,
      "Always be patient with the rich and powerful"                  ,
      "Better to visit hell in your lifetime than afterwards"         ,
-     "Halfway is 12 miles, when you have 14 miles to go"             ,
+     "Halfway is 12 miles, when you are on a 14 mile hike"           ,
      "How beautiful it is to do nothing, then rest afterwards"       ,
      "When the sky falls, hold up your hands"                        ,
      "If you can't bite, don't show your teeth"                      ,
@@ -1961,8 +2007,6 @@ void AFNI_sigfunc_alrm(int sig)
      "Was it the silver bullet you were hoping for?"                 ,
      "Why is 'gold' the standard for data analysis, anyway?"         ,
      "Did you find the Holy Grail of neuroimaging yet?"              ,
-     "Shedding new light on the brain since 1994!"                   ,
-     "Brain-ology at the cutting edge since 1994!"                   ,
      "Don't you wish it had a 'Write Nature Paper' button?"          ,
      "Coming REAL soon: the 'Write Science Paper' interface"         ,
      "And flights of angels sing thee to thy rest"                   ,
@@ -1987,18 +2031,83 @@ void AFNI_sigfunc_alrm(int sig)
      "When life gives you lemons, throw them right back at it"       ,
      "Happiness isn't good enough for me; I demand euphoria"         ,
      "Judge a person by her questions, rather than her answers"      ,
-     "Be yourself; everyone else is already taken"                   ,
      "I have not failed; I've just found 10,000 ways that don't work",
      "Statistics are good, but dark chocolate is better"             ,
+     "Espresso chocolate -- mmmmmm -- good"                          ,
      "After every tempest comes the calm"                            ,
      "I've got MY story about the brain; what's yours?"              ,
      "I came, I saw, I got confused"                                 ,
      "Computers are useless -- they can only give you answers"       ,
+     "If nothing else, this software is a great toy"                 ,
+     "Remember to take your brain out and polish it"                 ,
+     "What in God's Holy Name are you blathering on about?"          ,
+     "Are you a Dada-ist or a Dude-ist?"                             ,
+     "Believe those who seek the truth; doubt those who find it"     ,
+     "There is more to truth that just the facts"                    ,
+     "There is more to truth than a small p-value"                   ,
+     "If you think you are free, no escape is possible"              ,
+     "If you chase two rabbits at once, you will not catch either"   ,
+     "It is better to know the questions than the answers"           ,
+     "Inventing Hell is easy, but inventing Heaven impossible"       ,
+     "When you are climbing the ladder, do not forget the rungs"     ,
+     "You have to do it yourself, but you cannot do it alone"        ,
+     "When you look into the abyss, the abyss looks back at you"     ,
+     "Just say NO -- to arbitrary p-value thresholds"                ,
+     "Did you have fun with your data? I had fun showing it to you"  ,
+     "Are you ready to drink from the Big Data fire hose?"           ,
+     "In God we trust; all others must have Big Data"                ,
+     "Torment the data enough and it will tell you anything you want",
+     "p-hacking? Bah -- I'll take a chainsaw to your p-values"       ,
+     "Did you like your p-values? If not, I can 'fix' them for you"  ,
+     "Honesty is the best policy, but insanity is a better defense"  ,
+     "A desk is a dangerous place from which to view the world"      ,
+     "If you can't be kind, at least be vague"                       ,
+     "Give into temptation; it might not come again"                 ,
+     "Insanity is my best and only means of relaxation"              ,
+     "The three 'Ups' of life: Grow Up, Shut Up, Lighten Up"         ,
+     "I am not a hexadecimal number, I am a free software!"          ,
+     "Correlation isn't causation, but what else do we have?"        ,
+     "Are you indeed there, my skylark?"                             ,
+
+     /* bastardizations of Shakespeare */
+
+     "No longer mourn for me when I am crashed"                      ,
+     "If you read this line, remember not the bits that rendered it" ,
+     "Not from the stars do I my statisticks pluck"                  ,
+     "No more be grieved at that which thou hast computed"           ,
+     "Is it thy will thy brain image should stay open?"              ,
+
+     /* Innocence */
+
+     "I'm completely innocent. Within reason"                          ,
+     "I'm completely innocent. I was just doing what they told me"     ,
+     "I'm completely innocent. It was someone else who looked like me" ,
+     "I'm completely innocent. Or at least, you can't prove anything"  ,
+     "I'm completely innocent. Of what, I'm not saying"                ,
+
+     /* paraprosdokians */
+
+     "If I agreed with you, we'd both be wrong"                           ,
+     "I didn't say it was your fault; I said I was blaming you"           ,
+     "I used to be indecisive, but now I'm not so sure"                   ,
+     "You're never too old to learn something stupid"                     ,
+     "Borrow money from a pessimist; he won't expect it back"             ,
+     "I used to be conceited, but now I'm perfect"                        ,
+     "We never really grow up; we only learn how to act in public"        ,
+     "I didn't say it was your fault; I said I was blaming you"           ,
+     "Money can't buy happiness, but it makes misery easier to live with" ,
+
+     /* self referential */
+
+     "The 'Lead Standard' for neuroimaging since 1994"               ,
+     "Shedding new light on the brain since 1994"                    ,
+     "Brain-ology at the cutting edge since 1994"                    ,
+     "Putting the 'wit' in 'twit' since 1994"                        ,
+     "Confusing neuroscientists successfully since 1994"             ,
 
      "Returning control of your brain (images) back to yourself"     ,
      "Returning your endofunctors back to their co-monads"           ,
      "Returning you from brain-blob land to actual thinking land"    ,
-
 
      /* This set of quotes is from Paradise Lost,
         by John Milton (a very very early AFNI user) */
@@ -2006,7 +2115,7 @@ void AFNI_sigfunc_alrm(int sig)
      "With hideous ruin and combustion, down to bottomless perdition"                    ,
      "The mind and spirit remains invincible"                                            ,
      "The thought both of lost happiness and lasting pain"                               ,
-     "Clothed with transcendent brightness"                                              ,
+     "Still clothed with transcendent brightness"                                        ,
      "All is not lost: the unconquerable will, and courage never to submit or yield"     ,
      "Too well I see and rue the dire event that hath lost us Heaven"                    ,
      "Happy state here swallowed up in endless misery"                                   ,
@@ -2039,6 +2148,10 @@ void AFNI_sigfunc_alrm(int sig)
      "This horror will grow mild, this darkness will light"                              ,
      "Whose eye views all things at one view"                                            ,
      "Thus uplifted high beyond hope"                                                    ,
+     "Returning you to the dark illimitable ocean without bound"                         ,
+     "With thoughts inflamed of highest design"                                          ,
+     "Flying far off into a Limbo large and broad"                                       ,
+     "Ascending by degrees magnificent"                                                  ,
 
      /* These are to make it clear that Cox is not to be blamed for ANYTHING */
 
@@ -2053,19 +2166,110 @@ void AFNI_sigfunc_alrm(int sig)
      "If you have any questions about AFNI, ask ... Rick Reynolds :)"          ,
      "If you have any questions about AFNI, ask ... Paul Taylor :)"            ,
      "If you have any questions about AFNI, ask ... Gang Chen :)"              ,
+     "If you have any questions about AFNI, ask ... Justin Rajendra :)"        ,
+     "AFNI user's mantra: Bob, Bob, there is one Bob, He spells it B-O-B"      ,
 
+     /* The Manchurian Candidate */
+
+     "The kindest, bravest, warmest, most wonderful software you've ever used" ,
+     "Your brains have not only been washed, but have been dry cleaned"        ,
+     "Why don't you pass the time by playing a little solitaire?"              ,
+
+     /* Carrie Fisher */
+
+     "Resentment is like drinking poison and waiting for the other person to die" ,
+     "I'm not happy about getting old, but what are the options?"                 ,
+     "I'm very sane about how crazy I am"                                         ,
+     "Instant gratification takes too long"                                       ,
+
+     /* Oscar Wilde */
+
+     "We are all in the gutter, but some of us are looking at the stars"        ,
+     "Always forgive your enemies - nothing annoys them so much"                ,
+     "Experience is the name men give to their mistakes"                        ,
+     "The truth is rarely pure and never simple"                                ,
+     "Be yourself; everyone else is already taken"                              ,
+     "I have simple tastes: I am easily satisfied with the best"                ,
+     "Remember -- Everything popular is wrong"                                  ,
+     "Experience is one thing you can't get for nothing"                        ,
+     "A thing is not necessarily true because a man dies for it"                ,
+     "Moderation is fatal - nothing succeeds like excess"                       ,
+     "The world is a stage - but the play is badly cast"                        ,
+     "An idea that is not dangerous is unworthy of being called an idea at all" ,
+
+     /* Longer quotes */
+
+     "It is a poem in our eyes, its ample analyses dazzle the imagination"            ,
+     "Do not go where the path leads; go instead where there is no path"              ,
+     "Be yourself, in a world that is always trying to make you something else"       ,
+     "Beauty is the handwriting of God"                                               ,
+     "Glory lies not in never failing, but in rising every time we fail"              ,
+     "A hero is no braver than others: she is just braver 5 minutes longer"           ,
+     "It is not length of life, but depth of life, that matters"                      ,
+     "Foolish consistency is the hobgoblin of little minds"                           ,
+     "The years teach much that the days never know"                                  ,
+     "Keep your face to the sunshine, and the shadows will fall behind you"           ,
+     "Be curious, but not judgmental"                                                 ,
+     "And my very code shall be a great poem"                                         ,
+     "Either define the moment, or the moment will define you"                        ,
+     "Let your soul stand cool and composed before a million universes"               ,
+     "I cannot travel the road for you; you must travel it by yourself"               ,
+     "The truth is simple. If it was complicated, everyone would understand it"       ,
+     "I hate, commas, in the wrong, place"                                            ,
+     "The only true wisdom is in knowing you know nothing"                            ,
+     "There is no harm in repeating a good thing! There is no harm in ..."            ,
+     "It is in our darkest moments that we must focus to see the light"               ,
+     "Dignity does not consist of possessing honors, but in deserving them"           ,
+
+     "I look to that which is, and beyond, to that which will ever be"                ,
+     "To steal ideas from one person is plagiarism; to steal from many is research"   ,
+     "The early bird gets the worm, but the second mouse gets the cheese"             ,
+     "I believe in giving everybody a fair and equal chance to foul things up"        ,
+     "Remember -- at least half of all the brains on Earth belong to women"           ,
+     "When human judgment and big data interact, peculiar things happen"              ,
+     "FMRI is at best like reading source code with blurring goggles over your eyes"  ,
+     "Do you prefer red blobs or blue blobs? That's the real FMRI question"           ,
+     "I wish we had a taste interface -- I'd make my blobs cherry-chocolate flavor"   ,
+     "We cannot solve our problems with the same thinking that created them"          ,
+     "My brain starts working when I wake up, and stops when I have to give a talk"   ,
+     "Biology gives you a brain. Life turns it into a mind"                           ,
+     "Your thoughts, your actions, your experiences, are the sculptor of your brain"  ,
+     "Why isn't there an award for getting dressed and out of the house?"             ,
+     "I like the word 'indolence': it makes my laziness seem classy"                  ,
+     "Laziness is just the habit of resting before you get tired"                     ,
+     "Laziness takes work and it isn't easy, but look at the rewards!"                ,
+     "A practical truth: no man has eaten an entire elephant in one day"              ,
+     "From now on, let's just reject the null hypothesis, and then have a beer"       ,
+     "Home is the sailor, home from the sea; And the hunter home from the hill"       ,
+     "Glad did I run, and gladly end, and I turn me off with a will"                  ,
+     "I'm not as smart as you, but I'm not as dumb as you think I am"                 ,
+     "If you haven't anything nice to say about anybody, come sit next to me"         ,
+     "Hmmm -- I think your p-value is 0.050001 -- better luck next time"              ,
+     "Wow! Your p-value is 0.049999 -- you are incredibly lucky"                      ,
+     "Are you a special snowflake, or a normal cloddish lump of ice?"                 ,
+     "Remember -- You are absolutely incredibly unique. Just like everone else"       ,
      "Remember -- Belief is not Truth. No matter how much you want it to be"          ,
      "Remember -- Truth is not always believed, even when it is under your nose"      ,
      "Remember -- Screaming is the next best thing to solving a problem"              ,
      "Remember -- Swearing is almost as good as solving a problem"                    ,
      "Remember -- Closure operators are monads on preorder categories"                ,
+     "Remember -- There is more to life than getting a small p-value"                 ,
+     "Always read something that will make you look good if you die in the middle"    ,
+     "When I die, I hope to go to Heaven -- wherever the Hell that is"                ,
      "How about you and me climb Mt Belford next weekend? Meet me at the trailhead"   ,
-     "Math is the only place where truth and beauty mean the same thing"              ,
+     "The difference between stupidity and genius is that genius has its limits"      ,
+     "If we knew what we are doing, it wouldn't be called research, would it?"        ,
+     "Mathematics is the only place where truth and beauty mean the same thing"       ,
      "I may be going to hell in a bucket, but at least I'm enjoying the ride"         ,
      "Next time, just for fun, I'll toss in some extra blobs in CSF for you"          ,
+     "Next time, just for fun, I'll toss in some extra blobs in air just for you"     ,
      "What do you mean, you don't believe all those clusters in white matter?"        ,
+     "What do you mean, you don't believe all those clusters in empty space?"         ,
+     "Those results scream 'ARTIFACT' to me, but what do I know?"                     ,
      "For an extra pumpernickel bagel, I'll put a blob wherever you want it"          ,
+     "For a Torcik Wedlowski, I'll colorize TWO extra regions for you -- anywhere"    ,
      "I don't know about you, but my amygdala is lighting up like it's on fire"       ,
+     "My hippocampus stopped working years ago -- what did you say?"                  ,
      "Will all great Neptune's ocean wash this modeling error from my regression?"    ,
      "Data which passes through so many steps can hardly have much truth left"        ,
      "One man's way may be as good as another's, but we all like our own best"        ,
@@ -2078,9 +2282,9 @@ void AFNI_sigfunc_alrm(int sig)
      "Dreams are true while they last, and do we not live in dreams?"                 ,
      "Have you made your long term (trillion year) research plan yet? Get busy now"   ,
      "Why is 'Gold Standard' used in science? Gold is pretty but almost useless"      ,
-     "The 'Lead Standard' for neuroimaging since 1994"                                ,
      "Oh well, you can always end your paper with 'Further research needed'"          ,
      "It's not true my youth was wild and crazy -- only half of that is true"         ,
+     "Your theory is crazy, just not crazy enough to be true"                         ,
      "Not yet quite as powerful as the totalized and integrated mind of Arisia"       ,
      "Are you testing for the Dull Hypothesis? It's never significant"                ,
      "For every complex problem there is an answer that is clear, simple, and wrong"  ,
@@ -2106,6 +2310,11 @@ void AFNI_sigfunc_alrm(int sig)
      "Get your statistics first, then you can distort them as you please"             ,
      "A man who carries a cat by the tail learns something he can learn no other way" ,
      "Three things cannot long be hidden: the Sun, the Moon, and the Truth"           ,
+     "The truth does not change, just because you don't want to hear it"              ,
+     "Everything we see is a perspective, not the truth"                              ,
+     "The truth will set you free, but first it will make you miserable"              ,
+     "We live in a world of illusion; the great task of life is to find reality"      ,
+     "Better than a thousand hollow words is one word that brings peace"              ,
      "May the Dark Side of the Force get lost on the way to your data"                ,
      "The Andromeda Galaxy is on a collision course with us -- be prepared"           ,
      "Stellar formation will cease in just a trillion years -- what will we do then?" ,
@@ -2123,13 +2332,49 @@ void AFNI_sigfunc_alrm(int sig)
      "Analyze your data rigorously -- you can fake the conclusions all you want later",
      "O wad some Pow'r the giftie gie us, To see oursels as ithers see us"            ,
      "One half the world cannot understand the statistics of the other"               ,
+     "It is better to create than to learn. Creating is the essence of life"          ,
+     "Events of importance are often the result of trivial causes"                    ,
+     "Men worry more about what they can't see than about what they can"              ,
+     "The best revenge is to be unlike him who performed the injury"                  ,
+     "The art of living is more like wrestling than dancing"                          ,
+     "If the genome is the source code, it should have come with comments"            ,
+     "So the days float through my eyes, but still the days seem the same"            ,
 
+     "You know you're in trouble when it takes a 64 bit integer to count your unread emails"  ,
+     "Once you've done what you have to do, no one will let you do what you want to do"       ,
      "My name is AFNImandias, Brain of Brains; Look on my Statistics, ye Clever, and Despair" ,
      "Statistically Significant is NOT the same as Significant -- they're not even similar"   ,
      "If you drink a liquid that has p=0.06 of being poison, do you feel significantly safe?" ,
+     "You must accept finite disappointments, but never lose your infinite hopes"             ,
+     "We may all have come on different ships, but we're all in the same boat now"            ,
+     "You can always find me out on the Long Line -- I hang out by the Church-Kleene ordinal" ,
+     "Outside of a dog, a book is Man's best friend. Inside of a dog, it's too dark to read"  ,
+
+     "Someday I'll tell you of the Giant Rat of Sumatra, a tale for which the world is not prepared"    ,
+     "People have to learn to live with newly-discovered facts; if they don't, they die of them"        ,
+     "It is the pardonable vanity of lonely people everywhere to assume that they have no counterparts" ,
+
+     /* Multi-line quotes */
+
+     "\n  Ever returning spring, trinity sure to me you bring\n"
+     "  Lilac blooming perennial, drooping star in the West,\n"
+     "  And thought of him I love"                                                            ,
+
+     "\nIn the words of H Beam Piper:\n"
+     "   If you don't like the facts, ignore them.\n"
+     "   And if you need facts, dream up some you DO like"                                    ,
+
+     "\n  We shall not cease from exploration\n"
+     "  And the end of all our exploring\n"
+     "  Will be to arrive where we started\n"
+     "  And know the place for the first time."
+
+     "Remember:\n"
+     "  To argue with those who have renounced the use and authority\n"
+     "  of reason is as futile as to administer medicine to the dead"                         ,
 
      "\n  It is a truth universally acknowledged, that a single scientist\n"
-     "  in possession of a large data collection, is in need of an AFNI."                     ,
+     "  in possession of a large FMRI data collection, is in need of an AFNI"                 ,
 
      "\n  The great thing about the human condition:\n"
      "  No matter how bad it is, it can always get worse"                                     ,
@@ -2161,6 +2406,12 @@ void AFNI_sigfunc_alrm(int sig)
      "\n  To be stupid, selfish, and have good health are three requirements\n"
      "  for happiness; though if stupidity is lacking, all is lost"                           ,
 
+     "\n  May the following be true for you:\n"
+     "   'Work is about a search for daily meaning as well as daily bread,\n"
+     "    for recognition as well as cash, for astonishment rather than torpor;\n"
+     "    in short, for a sort of life rather than a Monday through Friday sort of dying.'\n"
+     "  ... especially if you are working on a Saturday!"                                     ,
+
      "\n xkcd's translation of p-values into words:\n"
      "     0.001  = Highly significant\n"
      "     0.01   = Highly significant\n"
@@ -2175,22 +2426,51 @@ void AFNI_sigfunc_alrm(int sig)
      "     0.08   = Highly suggestive\n"
      "     0.09   = Significant at the p < 0.1 level\n"
      "     0.099  = Significant at the p < 0.1 level\n"
-     "     > 0.1  = Hey! Look at this interesting subgroup analysis"
+     "     > 0.1  = Hey! Look at this interesting subgroup analysis"   ,
+
+     "\n Possible answers to a binary question:\n"
+     "     Yes\n"
+     "     No\n"
+     "     Maybe\n"
+     "     I don't know\n"
+     "     I know but I'm not telling you\n"
+     "     I need to talk to my lawyer\n"
+     "     Please repeat the question\n"
+     "     Could you clarify what you mean, exactly?\n"
+     "     Quantum indeterminacy makes any answer uncertain\n"
+     "     That depends on the truth of the Riemann Hypothesis\n"
+     "     Is there an odd perfect number?\n"
+     "     Go Fish\n"
+     "     I like eggs\n"
+     "     Look, a squirrel" ,
+
+     "\n There comes a time when you look into the mirror and you realize\n"
+     " what you see is all that you will ever be. And then you accept it.\n"
+     " Or you stop looking in mirrors"
+
    } ;
 #undef NTOP
 #ifdef USE_SONNETS
-# define NTOP (NMSG+3)
+# define NTOP (NMSG+1)
 #else
 # define NTOP NMSG
 #endif
-   int nn = (lrand48()>>3) % NTOP ;
+   int nn ;
+   srand48((long)time(NULL)+(long)getpid()) ; /* reset random number generator */
+   nn = (lrand48()>>3) % NTOP ;
    if( !AFNI_yesenv("AFNI_NEVER_SAY_GOODBYE") ){
      if( nn < NMSG ){
 #undef  NDUN
 #define NDUN (sizeof(dun)/sizeof(char *))
        static char *dun[] = { "is done" , "wraps up"   , "concludes" ,
                               "is over" , "terminates" , "finishes"   } ;
-       fprintf(stderr,"\n** AFNI %s: %s!\n\n",dun[lrand48()%NDUN],msg[nn]) ;
+       fprintf(stderr,"\n** AFNI %s: %s!  [%d/%d]\n\n",dun[lrand48()%NDUN],msg[nn],nn+1,(int)NMSG) ;
+       if( sig < 0 ){
+         int ss ;
+         for( ss=-1 ; ss > sig ; ss-- ){
+           nn = (lrand48()>>3) % NMSG ; fprintf(stderr,"%s!\n\n",msg[nn]) ;
+         }
+       }
      }
 #ifdef USE_SONNETS
      else {
@@ -2208,7 +2488,7 @@ void AFNI_sigfunc_alrm(int sig)
      /** MCHECK ; **/
    }
 
-   if( sig == 0 && !NO_frivolities ){
+   if( sig <= 0 && !NO_frivolities ){
      Three_D_View *im3d = AFNI_find_open_controller() ;
      char *eee = getenv("AFNI_SPLASH_MELT") ;
      if( eee == NULL ) eee = "?" ; else eee[0] = toupper(eee[0]) ;
@@ -2218,8 +2498,9 @@ void AFNI_sigfunc_alrm(int sig)
        XMapRaised( XtDisplay(im3d->vwid->top_shell) ,
                    XtWindow(im3d->vwid->top_shell)   ) ; /* raise controller */
        AFNI_sleep(111);
-       MCW_melt_widget( im3d->vwid->top_form ) ;
+       /* MCW_melt_widget( im3d->vwid->top_form ) ; */
      }
+     sig = 0 ;
    }
    selenium_close(); /* close any selenium opened browser windows if open */
    exit(sig);
@@ -2269,15 +2550,17 @@ int main( int argc , char *argv[] )
 
    /*--- help the pitiful user? ---*/
 
-   init_rand_seed(0) ;
-
-   if( argc > 1 && strcmp(argv[1],"-help")    == 0 ) AFNI_syntax() ;
-   if( argc > 1 && strcmp(argv[1],"-goodbye") == 0 ) AFNI_sigfunc_alrm(0) ;
+   if( argc > 1 && strcasecmp(argv[1],"-help")    == 0 ) AFNI_syntax() ;
+   if( argc > 1 && strcasecmp(argv[1],"-goodbye") == 0 ){
+     ii = (argc > 2 ) ? abs((int)rintf((strtod(argv[2],NULL)))) : 0 ;
+     AFNI_sigfunc_alrm(-ii) ;
+   }
 
    /** Check for -version [15 Aug 2003] **/
 
 
-   if( check_string("-ver",argc,argv) || check_string("--ver",argc,argv) ) {
+   if( check_string("-ver"    ,argc,argv) || check_string("--ver"    ,argc,argv) ||
+       check_string("-version",argc,argv) || check_string("--version",argc,argv)   ){
       show_AFNI_version() ;
       dienow++ ;
    }
@@ -2397,6 +2680,8 @@ int main( int argc , char *argv[] )
    signal(SIGBUS ,AFNI_sigfunc) ;
    signal(SIGSEGV,AFNI_sigfunc) ;
    signal(SIGTERM,AFNI_sigfunc) ;
+
+   first_plugin_check = -1 ;  /* 16 Nov 2016 */
 
 #if 0
 #ifdef USE_TRACING
@@ -2559,6 +2844,32 @@ int main( int argc , char *argv[] )
 
    /*--- now ready to start X11 for true --*/
 
+#ifdef DARWIN
+   { char *eee = getenv("DYLD_LIBRARY_PATH") ;
+     if( eee == NULL || strstr(eee,"flat_namespace") == NULL ){
+       int vmajor=0, vminor=0 , vmicro=0 ;
+       eee = get_XQuartz_version() ;  /* Check XQuartz version [27 Jan 2017] */
+       if( eee != NULL && isdigit(*eee) ){
+         sscanf(eee,"%d.%d.%d",&vmajor,&vminor,&vmicro) ;
+         /* INFO_message("XQuartz version: %d %d %d",vmajor,vminor,vmicro) ; */
+       }
+       if( vmajor == 0 || vminor == 0 || vmajor > 2                   ||
+           (vmajor == 2 && vminor >  7)                               ||
+           (vmajor == 2 && vminor == 7 && (vmicro > 9 || vmicro == 0))  ){
+         fprintf(stderr,
+          "\n"
+          "++ If you are using XQuartz 2.7.10 (or later), and AFNI crashes when\n"
+          " + opening windows, or you cannot type text into AFNI popup windows,\n"
+          " + you might need to set an environment variable to solve this problem:\n"
+          " +   setenv DYLD_LIBRARY_PATH /opt/X11/lib/flat_namespace\n"
+          " + This command is best put in your startup ~/.cshrc file, so that\n"
+          " + it will be invoked for every (t)csh shell you open.\n\n"
+         ) ;
+       }
+     }
+   }
+#endif
+
    memset(&MAIN_app, 0, sizeof(MAIN_app)) ;  /* 11 Feb 2009 [lesstif patrol] */
    MAIN_shell = XtVaAppInitialize( &MAIN_app , "AFNI" , NULL , 0 ,
                                    &argc , argv ,
@@ -2566,6 +2877,14 @@ int main( int argc , char *argv[] )
                                    NULL ) ;
 
    if( MAIN_shell == NULL ) ERROR_exit("Cannot initialize X11") ;
+
+#if 1
+{ Display *dpy = XtDisplay(MAIN_shell) ;
+  char msg[256] , *xsv ; int xvr ;
+  xsv = XServerVendor(dpy) ; xvr = XVendorRelease(dpy) ;
+  if( xsv != NULL ){ sprintf(msg,"[%s v %d]",xsv,xvr); REPORT_PROGRESS(msg); }
+}
+#endif
 
    /* if we used xrdb to set X11 resources, re-set them back to their old
       state so that other AFNIs don't use these new settings by default   */
@@ -2900,14 +3219,30 @@ STATUS("call 13") ;
         AFNI_register_0D_function( "SSqrt" , ssqrt_func ) ;
 
         AFNI_register_1D_function( "Median3"   , median3_func) ;
+#if 0
         AFNI_register_1D_function( "OSfilt3"   , osfilt3_func) ;
+#endif
         AFNI_register_1D_function( "AdptMean9" , adpt_wt_mn9 ) ;       /* 04 Sep 2009 */
+        AFNI_register_1D_function( "AdptMean19", adpt_wt_mn19 );       /* 29 Sep 2016 */
+
+        { int nad = AFNI_numenv("AFNI_AdptMeanWidth1D") ;              /* 30 Sep 2016 */
+          char lab[16] ;                                      /* user specified width */
+          if( nad > 9 && nad != 19 && nad < 100 ){
+            if( nad%2 == 0 ){ nad++; INFO_message("increased AFNI_AdptMeanWidth1D to %d",nad); }
+            sprintf(lab,"AdptMean%d",nad) ;
+            AFNI_register_1D_function( lab , adpt_wt_mnXX ) ;
+            adpt_wt_mnXX(nad,0.0,0.0,NULL) ;
+          }
+        }
+
         AFNI_register_1D_function( "Despike"   , despike9_func);       /* 08 Oct 2010 */
         AFNI_register_1D_function( "HRF decon" , hrfdecon_func);       /* 29 Oct 2010 */
         AFNI_register_1D_function( "|FFT()|"   , absfft_func ) ;
+#if 0
         AFNI_register_1D_function( "ZeroToOne" , ztone_func  ) ;       /* 02 Sep 2009 */
         AFNI_register_1D_function( "Normlz_L1" , L1normalize_func  ) ; /* 03 Sep 2009 */
         AFNI_register_1D_function( "Normlz_L2" , L2normalize_func  ) ; /* 03 Sep 2009 */
+#endif
 
         AFNI_register_2D_function( "Median9" , median9_box_func ) ;
         AFNI_register_2D_function( "Winsor9" , winsor9_box_func ) ;
@@ -2988,6 +3323,13 @@ STATUS("initialize plugins") ;
 STATUS("call 14") ;
 
         OPEN_CONTROLLER( MAIN_im3d ) ;
+
+        if( GLOBAL_argopt.only_images ){   /* 24 Feb 2017 */
+          AV_assign_ival( MAIN_im3d->vwid->imag->crosshair_av,0) ;
+          MAIN_im3d->vinfo->crosshair_visible = False ;
+          GLOBAL_argopt.left_is_left = 0 ;
+          putenv("AFNI_LEFT_IS_LEFT=NO" ) ;
+        }
 
         AFNI_initialize_controller( MAIN_im3d ) ;  /* decide what to see */
         AFNI_initialize_view( NULL, MAIN_im3d ) ;  /* set up to see it */
@@ -3474,6 +3816,10 @@ INFO_message("AFNI controller xroot=%d yroot=%d",(int)xroot,(int)yroot) ;
       !AFNI_yesenv("AFNI_ENABLE_MARKERS")    )
      fprintf(stderr,"++ NOTE: 'Define Markers' is hidden: right-click 'DataDir' to see it\n") ;
 
+   if( MAIN_im3d->type == AFNI_3DDATA_VIEW && first_plugin_check < 0 && !GLOBAL_argopt.noplugins )
+     fprintf(stderr,"++ NOTE: Use '-seehidden' option to see which plugins are hidden\n") ;
+
+#if 0
    /**--- Apr 2013: delete this message in a few months ---**/
 
    if( __DATE__[10] == '3' && (__DATE__[0] == 'A' || __DATE__[0] == 'M') )
@@ -3487,6 +3833,7 @@ INFO_message("AFNI controller xroot=%d yroot=%d",(int)xroot,(int)yroot) ;
        "         environment variable AFNI_DETACH to NO.  To kill all running copies\n"
        "         of AFNI, you could use the Unix command 'killall afni'. -- [Apr 2013]\n"
      ) ;
+#endif
 
    if( AFNI_check_environ_done() == 0 )
      fprintf(stderr,
@@ -3497,7 +3844,19 @@ INFO_message("AFNI controller xroot=%d yroot=%d",(int)xroot,(int)yroot) ;
 
    /*--- splash window down -- moved here 29 May 2013 ---*/
 
+#ifndef NO_FRIVOLITIES
+   if( lrand48()%7 == 3 )
+     INFO_message("Want your picture in the AFNI splash screen? Email us a square JPEG!") ;
+#endif
+
    AFNI_splashdown(); STATUS("splashed down");
+
+   /* this is for me only! */
+
+   { char *eee = getenv("USER") ;
+     set_program_name("afni") ;
+     if( eee != NULL && strcmp(eee,"rwcox") == 0 ) atexit(clock_time_atexit) ;
+   }
 
    /*--- and AWAY WE GO (how sweet it is!) ---*/
 
@@ -4445,47 +4804,72 @@ STATUS("drawing crosshairs") ;
       double dval;
       THD_3dim_dataset *dset=NULL ;
 
-
       if( im3d->type != AFNI_3DDATA_VIEW ) RETURN(NULL) ;
 
       LOAD_IVEC3(iv,0,0,n) ;
       ivp = THD_fdind_to_3dind( br , iv ) ;
-      fvp = THD_3dind_to_3dmm ( br->dset , ivp ) ;
-      fvp = THD_3dmm_to_dicomm( br->dset , fvp ) ;
 
       if( n == 0 ) LOAD_IVEC3(iv,0,0,1) ;
       else         LOAD_IVEC3(iv,0,0,n-1) ;
       ivm = THD_fdind_to_3dind( br , iv ) ;
-      fvm = THD_3dind_to_3dmm ( br->dset , ivm ) ;
-      fvm = THD_3dmm_to_dicomm( br->dset , fvm ) ;
 
-      dxyz = MIN(br->del1,br->del2) ;
-      dxyz = MIN(dxyz    ,br->del3) ; dxyz *= 0.1 ;
+      if( AFNI_yesenv("AFNI_IMAGE_LABEL_IJK") ){ /* 27 Feb 2017 */
 
-      if( fabs(fvm.xyz[0]-fvp.xyz[0]) > dxyz ){ /* +=R -=L */
-         cc = fvp.xyz[0] ;
-         dd = ( cc >= 0.0 ) ? "L" : "R" ;
-      } else if( fabs(fvm.xyz[1]-fvp.xyz[1]) > dxyz ){ /* +=P -=A */
-         cc = fvp.xyz[1] ;
-         dd = ( cc >= 0.0 ) ? "P" : "A" ;
-      } else if( fabs(fvm.xyz[2]-fvp.xyz[2]) > dxyz ){ /* +=S -=I */
-         cc = fvp.xyz[2] ;
-         dd = ( cc >= 0.0 ) ? "S" : "I" ;
+        int nnn ; char *fmt ;
+        nnn = MAX(br->n1,br->n2) ; nnn = MAX(nnn,br->n3) ;
+        fmt =  (nnn < 10)  ? "#%1d"
+             : (nnn < 100) ? "#%02d"
+             : (nnn < 1000)? "#%03d"
+             :               "#%04d" ;
+
+        if( ivm.ijk[0] != ivp.ijk[0] ){
+          sprintf(str,fmt,ivp.ijk[0]) ;
+
+        } else if( ivm.ijk[1] != ivp.ijk[1] ){
+          sprintf(str,fmt,ivp.ijk[1]) ;
+
+        } else if( ivm.ijk[2] != ivp.ijk[2] ){
+          sprintf(str,fmt,ivp.ijk[2]) ;
+
+        } else {  /* should never happen */
+          RETURN(NULL) ;
+        }
+
       } else {
-        RETURN(NULL) ;   /* should never happen */
-      }
+        fvp = THD_3dind_to_3dmm ( br->dset , ivp ) ;
+        fvp = THD_3dmm_to_dicomm( br->dset , fvp ) ;
 
-      sprintf(str,"%6.2f",fabs(cc)) ;
-      for( ii=strlen(str)-1 ; ii > 0 && str[ii] == '0' ; ii-- ) str[ii] = '\0' ;
-      if( str[ii] == '.' ) str[ii] = '\0' ;
-      strcat(str, dd) ;
+        fvm = THD_3dind_to_3dmm ( br->dset , ivm ) ;
+        fvm = THD_3dmm_to_dicomm( br->dset , fvm ) ;
+
+        dxyz = MIN(br->del1,br->del2) ;
+        dxyz = MIN(dxyz    ,br->del3) ; dxyz *= 0.1 ;
+
+        if( fabs(fvm.xyz[0]-fvp.xyz[0]) > dxyz ){ /* +=R -=L */
+           cc = fvp.xyz[0] ;
+           dd = ( cc >= 0.0 ) ? "L" : "R" ;
+        } else if( fabs(fvm.xyz[1]-fvp.xyz[1]) > dxyz ){ /* +=P -=A */
+           cc = fvp.xyz[1] ;
+           dd = ( cc >= 0.0 ) ? "P" : "A" ;
+        } else if( fabs(fvm.xyz[2]-fvp.xyz[2]) > dxyz ){ /* +=S -=I */
+           cc = fvp.xyz[2] ;
+           dd = ( cc >= 0.0 ) ? "S" : "I" ;
+        } else {
+          RETURN(NULL) ;   /* should never happen */
+        }
+
+        sprintf(str,"%6.2f",fabs(cc)) ;
+        for( ii=strlen(str)-1 ; ii > 0 && str[ii] == '0' ; ii-- ) str[ii] = '\0' ;
+        if( str[ii] == '.' ) str[ii] = '\0' ;
+        strcat(str, dd) ;
+      }
 
       if (!FD_brick_montized(br)){ /* Show labels if any.  ZSS Dec. 2011*/
          dset = Get_UO_Dset(br, 'U', 1, &ival);
          if ((dval = (double)THD_get_voxel_dicom(dset,
                               im3d->vinfo->xi,
                               im3d->vinfo->yj,
-                              im3d->vinfo->zk, ival))>0.0f) {
+                              im3d->vinfo->zk, ival))>0.0) {
             AFNI_get_dset_val_label(dset,         /* Dec 7 2011 ZSS */
                                     dval, labstra);
          }
@@ -4493,7 +4877,7 @@ STATUS("drawing crosshairs") ;
          if ((dval = (double)THD_get_voxel_dicom(dset,
                               im3d->vinfo->xi,
                               im3d->vinfo->yj,
-                              im3d->vinfo->zk, ival))>0.0f) {
+                              im3d->vinfo->zk, ival))>0.0) {
             AFNI_get_dset_val_label(dset,         /* Dec 7 2011 ZSS */
                                     dval, labstrf);
          }
@@ -5905,6 +6289,7 @@ void AFNI_read_inputs( int argc , char *argv[] )
    int id , last_color ;
    Boolean isfunc ;
 
+
 ENTRY("AFNI_read_inputs") ;
 
    /* create empty library of dataset sessions */
@@ -5913,6 +6298,7 @@ ENTRY("AFNI_read_inputs") ;
    GLOBAL_library.sslist->type = SESSIONLIST_TYPE ;
    BLANK_SESSIONLIST(GLOBAL_library.sslist) ;
    GLOBAL_library.sslist->parent = NULL ;
+   GLOBAL_argopt.only_images = 0 ;  /* 24 Feb 2017 */
 
    /*----- read files -----*/
 
@@ -6093,6 +6479,8 @@ STATUS("normalizing directory list") ;
 
       /*----- read each session, set parents, put into session list -----*/
 
+      GLOBAL_argopt.only_images = 1 ;  /* 24 Feb 2017 */
+
       qlist = dlist ;
    RESTART_DIRECTORY_SCAN:   /* 18 Feb 2007 */
       num_ss = qlist->num ;
@@ -6119,6 +6507,8 @@ if(PRINT_TRACING)
                SET_SESSION_DSET(dset, dss, qd, dset->view_type);
 /*               dss->dsset_xform_table[qd][dset->view_type] = dset ;*/
                dss->num_dsset ++ ;
+               if( dset->dblk->diskptr->storage_mode != STORAGE_BY_IMAGE_FILE )
+                 GLOBAL_argopt.only_images = 0 ;  /* 24 Feb 2017 */
                AFNI_inconstancy_check(NULL,dset) ; /* 06 Sep 2006 */
              } else if( qlist == dlist ){
                fprintf(stderr,
@@ -6133,6 +6523,7 @@ if(PRINT_TRACING)
 
            /* set parent pointers */
 
+           GLOBAL_argopt.only_images = 0 ;  /* 24 Feb 2017 */
            new_ss->parent = NULL ;
            for( qd=0 ; qd < new_ss->num_dsset ; qd++ ){
              for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ ){
@@ -6276,6 +6667,7 @@ if(PRINT_TRACING)
          /** manufacture a minimal dataset [cf. thd_dumdset.c] **/
 
          new_ss->num_dsset = 1 ;
+         GLOBAL_argopt.only_images = 0 ;  /* 24 Feb 2017 */
 
          cpt = getenv("AFNI_DUMMY_DATASET") ;
 
@@ -6295,7 +6687,10 @@ if(PRINT_TRACING)
 
       } else {  /* 04 Jan 2000: show total number of datasets */
 
-         sprintf(str,"\n dataset count = %d" , num_dsets ) ;
+         if( GLOBAL_argopt.only_images ) /* 24 Feb 2017 */
+           sprintf(str,"\n image count   = %d" , num_dsets ) ;
+         else
+           sprintf(str,"\n dataset count = %d" , num_dsets ) ;
          GLOBAL_num_dsets = num_dsets ;
          REPORT_PROGRESS(str) ;
       }
@@ -7232,6 +7627,7 @@ ENTRY("AFNI_view_xyz_CB") ;
        snew  = &(im3d->s231) ;
        brnew = im3d->b231_ulay ;
        pboff = pb_yzx ;
+       mirror= GLOBAL_argopt.left_is_posterior ;
 
     } else if( w == pb_zxy && szxy == NULL ){  /* coronal image */
        snew  = &(im3d->s312) ;
@@ -7249,6 +7645,7 @@ ENTRY("AFNI_view_xyz_CB") ;
        gnew  = &(im3d->g231) ;
        brnew = im3d->b231_ulay ;
        pboff = gr_yzx ;
+       mirror= GLOBAL_argopt.left_is_posterior ;
 
     } else if( w == gr_zxy && gzxy == NULL ){  /* coronal graph */
        gnew  = &(im3d->g312) ;
@@ -8587,7 +8984,7 @@ if(PRINT_TRACING)
    if( rgbov != NULL ){
      if( im != NULL ){
        MRI_IMAGE *qim ;
-       qim = ISQ_overlay( im3d->dc , rgbov , im , 1.0 ) ;
+       qim = ISQ_overlay( im3d->dc , rgbov , im , 1.0f ) ;
        mri_free(rgbov); mri_free(im); rgbov = qim;
      }
      im = rgbov ;
@@ -9573,7 +9970,6 @@ STATUS("deciding whether to use function WOD") ;
 
       /*- The Ides of March, 2000: allow switching back to "view brick" -*/
 
-
       if( func_brick_possible                       &&
           ( ( im3d->vinfo->force_func_wod  &&
               im3d->vinfo->tempflag == 0   &&
@@ -9633,18 +10029,24 @@ STATUS("forcing function WOD") ;
       if( im3d->vinfo->thr_index >= DSET_NVALS(im3d->fim_now) )
           im3d->vinfo->thr_index = DSET_NVALS(im3d->fim_now) - 1 ;
 
-      /* first time in for this controller,
-         set thr_index to 1 if have sub-brick #1 [29 Jul 2003] */
+      /* first time in for this controller (or if so ordered),
+         set fim_index and thr_index to reasonable values (IMHO)
+         -- modified 12 Jan 2017 to define 'reasonable' more reasonably */
 
       { static int first=1, ffim[MAX_CONTROLLERS] ; int qq ;
         if( first ){
           first=0; for( qq=0; qq < MAX_CONTROLLERS; qq++ ) ffim[qq]=1;
         }
         qq = AFNI_controller_index(im3d) ;
-        if( ffim[qq] && im3d->vinfo->thr_index == 0 && DSET_NVALS(im3d->fim_now) > 1 ){
-          im3d->vinfo->thr_index = 1 ; ffim[qq] = 0 ;
+        if( ffim[qq] || im3d->vinfo->func_init_subbricks ){
+          int_pair otp = find_reasonable_overlay_indexes(im3d->fim_now) ;
+          if( otp.i >= 0 ) im3d->vinfo->fim_index = otp.i ;
+          if( otp.j >= 0 ) im3d->vinfo->thr_index = otp.j ;
+          ffim[qq] = 0 ;
         }
       }
+
+      im3d->vinfo->func_init_subbricks = 0 ;  /* 12 Jan 2017 */
 
       /* 29 Jan 2008: enable/disable the FDR-izing button */
 
@@ -10744,16 +11146,17 @@ ENTRY("AFNI_imag_pop_CB") ;
 
       {  /* initialize labels */
          char **at_labels=NULL ;
-         int iii;
+         int iii , flipxy=(GLOBAL_library.cord.xxsign < 0 && GLOBAL_library.cord.yysign < 0);
          char title_str[256];
 
-         at_labels = atlas_chooser_formatted_labels(
-                           Current_Atlas_Default_Name());
+         at_labels = atlas_chooser_formatted_labels( Current_Atlas_Default_Name() , flipxy ) ;
          if( ISQ_REALZ(seq) && at_labels ){
            if( AFNI_yesenv("AFNI_DATASET_BROWSE") ) MCW_set_browse_select(1) ;
 
-           sprintf(title_str, "Brain Structure (from %s)",
-                        Current_Atlas_Default_Name());
+           sprintf(title_str, "Brain Structure (%s) [%s]",
+                        Current_Atlas_Default_Name() ,
+                        (flipxy) ? "SPM order" : "DICOM order"
+                   ) ;
            MCW_choose_strlist( seq->wbar ,
                        title_str ,
                        atlas_n_points(Current_Atlas_Default_Name()) ,

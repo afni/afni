@@ -2,7 +2,7 @@
 .. _Making_ROIs:
 
 *****************************************
-**Making (networks of) ROIs: 3dROIMaker**
+**3dROIMaker: making (networks of) ROIs**
 *****************************************
 
 .. contents::
@@ -72,7 +72,7 @@ Broadly, ``3dROIMaker`` can be used to:
   * for a given network (brick) of regions, the epansion is done layer
     by layer, aiming to limit biases among growing ROIs;
   * inflation can be controlled to stop at boundaries of guiding maps
-    (``-skel_stop``).
+    (``-skel_stop`` or the newer ``-skel_stop_strict``).
 
 * numbering of thresholded ROIs can be guided by a reference set, to
   keep similar regions in different data sets having the same integer
@@ -293,9 +293,10 @@ where possible continuations are given by the following variations:
 .. note:: CSF must be input as a mask (i.e., a volume of all zeros or
           ones), and it does not restrict inflation.  WM may be input
           as a map, whose values can be thresholded (`-skel_thr *`)
-          and used to restrict inflation (`-skel_stop`). Any WM and
-          CSF skeletons can be cut away from the input map
-          (`-trim_off_wm`) before regionalizing.
+          and used to restrict inflation (`-skel_stop`,
+          `-skel_stop_strict`). Any WM and CSF skeletons can be cut
+          away from the input map (`-trim_off_wm`) before
+          regionalizing.
 
 #. Use T1w-WM to stop inflation::
 

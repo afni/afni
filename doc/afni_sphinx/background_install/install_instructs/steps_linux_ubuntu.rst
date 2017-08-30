@@ -3,12 +3,13 @@
 .. _install_steps_linux_ubuntu:
 
 
-*The essential system setup for:*  **Ubuntu Linux**
+**Ubuntu Linux (15.10 and earlier)**: *The essential system setup*
 ===================================================
 
 Here we describe installation and system setup for reasonably modern
-Ubuntu Linux versions (e.g., 14.04+, though it might very well work
-even for 12.\* and higher).
+Ubuntu Linux versions, up through version 15.10 (Wily Werewolf).  For
+later systems, please see the :ref:`instructions here
+<install_steps_linux_ubuntu16>`.
 
 Several of the following steps are version number dependent, so we
 list parallel instructions for each.
@@ -18,18 +19,19 @@ list parallel instructions for each.
    There are several packages and libraries that are needed to run the
    afni and shell programs, often even including ``tcsh``:
         
-   * *for versions upto and including 15.04*::
+   * *for versions 15.04 and earlier*::
       
        sudo apt-get install -y tcsh libxp6 xfonts-base python-qt4             \
                                libmotif4 libmotif-dev motif-clients           \
-                               gsl-bin netpbm gnome-tweak-tool libjpeg62
+                               gsl-bin netpbm xvfb gnome-tweak-tool           \
+                               libjpeg62 xterm
        sudo apt-get update
 
-   * *for versions 15.10 and higher*::
+   * *for version 15.10*::
       
        sudo apt-get install -y tcsh xfonts-base python-qt4                    \
                                libmotif4 libmotif-dev motif-clients           \
-                               gsl-bin netpbm gnome-tweak-tool libjpeg62
+                               gsl-bin netpbm xvfb gnome-tweak-tool libjpeg62
        sudo apt-get update
        sudo ln -s /usr/lib/x86_64-linux-gnu/libgsl.so /usr/lib/libgsl.so.0
        sudo dpkg -i http://mirrors.kernel.org/ubuntu/pool/main/libx/libxp/libxp6_1.0.2-2_amd64.deb
@@ -49,16 +51,18 @@ list parallel instructions for each.
 
    First, get the install script::
       
-      curl -O https://afni.nimh.nih.gov/pub/dist/bin/linux_fedora_21_64/@update.afni.binaries
+      curl -O https://afni.nimh.nih.gov/pub/dist/bin/linux_ubuntu_16_64/@update.afni.binaries
       
    Then install the appropriate AFNI package.  Note that most other
    Linux systems will probably work with linux_openmp_64::
 
      tcsh @update.afni.binaries -package linux_openmp_64 -do_extras
 
-   .. note:: If the binary package has already been downloaded, one can use ``-local_package``, followed by the location+name of the binary file, e.g.:
+   .. note:: If the binary package has already been downloaded, one
+             can use ``-local_package``, followed by the location+name
+             of the binary file, e.g.::
 
-      tcsh @update.afni.binaries -local_package linux_openmp_64.tgz -do_extras
+               tcsh @update.afni.binaries -local_package linux_openmp_64.tgz -do_extras
 
 #. **Reboot.**
 
@@ -122,6 +126,7 @@ list parallel instructions for each.
 
    .. include:: substep_evaluate.rst
 
+.. _install_steps_linux_ubuntu_niceify:
 
 #. **(optional) Niceifying interfaces: it's a magical terminal.**
 

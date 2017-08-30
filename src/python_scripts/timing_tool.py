@@ -156,7 +156,7 @@ examples:
       Here, 11.83 would get truncated down to 10, the largest multiple of 2.5
       less than or equal to the original time.
 
-    Example 7b. Instead of just truncating the times, round them to the nearest
+   Example 7b. Instead of just truncating the times, round them to the nearest
       TR, based on some TR fraction.  In this example, round up to the next TR
       when a stimulus occurs at least 70% into a TR, otherwise round down to
       the beginning.
@@ -290,6 +290,23 @@ examples:
          timing_tool.py -timing stim_times.txt -run_len 300     \\
                         -marry_AM lin_run_fraw -write_timing stim_mod.txt
 
+   Example 16. Use end times to imply event durations.
+
+      Given timing files A.txt and B.txt, suppose that B always follows A
+      and that there is no rest between them.  Then the durations of the A
+      events would be defined by the B-A differences.  To apply durations
+      to class A events as such, use -apply_end_times_as_durations.
+
+         timing_tool.py -timing A.txt -apply_end_times_as_durations B.txt \\
+                        -write_timing A_with_durs.txt
+
+   Example 17. Show duration statistics.
+
+      Given a timing file with durations, show the min, mean, max and stdev
+      of the list of event durations.
+
+         timing_tool.py -timing stimes.txt -show_duration_stats
+
 --------------------------------------------------------------------------
 Notes:
 
@@ -405,6 +422,18 @@ action options (apply to single timing element, only):
         time, so that the times match the modified EPI data.
 
             Consider '-write_timing'.
+
+   -apply_end_times_as_durations NEW_FILE : compute durations based on offsets
+
+        e.g. -apply_end_times_as_durations next_events.txt
+
+        Treat each NEW_FILE event time as the ending of the corresponding
+        INPUT (via -timing) event time to create a duration list.  So they
+        should have the same number of events, and each NEW_FILE time should
+        be just after the corresponding INPUT time.
+
+            Consider '-write_timing' and '-show_duration_stats'.
+            Consider example 16.
 
    -add_rows NEW_FILE           : append these timing rows to main element
 
@@ -538,6 +567,11 @@ action options (apply to single timing element, only):
         the stimulus frequency, if it is regular.
 
             Consider '-write_timing'.
+
+   -show_duration_stats         : display min/mean/max/stdev of event durations
+
+        Show the minimum, mean, maximum and standard deviation of the list of
+        all event durations.
 
    -show_timing                 : display the current single timing data
 
@@ -1007,9 +1041,12 @@ g_history = """
    2.14 Feb 24, 2016 - fix crash in -warn_tr_stats if no timing events
    2.15 Mar 15, 2016 - help_basis update: max of BLOCK() is ~5.1 (not 5.4)
    2.16 Aug  5, 2016 - added -marry_AM for J Wiggins
+   2.17 Jan  9, 2017 - timediff for event list should use prev duration
+   2.18 Aug 22, 2017
+        - added -apply_end_times_as_durations and -show_duration_stats
 """
 
-g_version = "timing_tool.py version 2.16, August 5, 2016"
+g_version = "timing_tool.py version 2.18, August 22, 2017"
 
 
 
@@ -1031,6 +1068,7 @@ class ATInterface:
       self.tr              = 0          # applies to some output
       self.per_run         = 0          # conversions done per run
       self.part_init       = 'INIT'     # default for -part_init
+      self.write_married   = 0          # for -write_as_married
 
       # user options - single var
       self.timing          = None       # main timing element
@@ -1070,6 +1108,32 @@ class ATInterface:
 
       self.timing = timing
       self.fname = fname
+      self.status = 0
+
+      return 0
+
+   def set_fsl_timing(self, flist):
+      """load a list of FSL timing files (as a list of runs)"""
+
+      self.status = 1 # init to failure
+      timing = LT.AfniTiming(fsl_flist=flist, verb=self.verb)
+
+      if not timing.ready:
+         print "** failed to read timing from '%s'" % fname
+         return 1
+
+      # success, so nuke and replace the old stuff
+
+      if self.timing:
+         if self.verb > 0:
+            print "-- replacing old timing with that from '%s'" % fname
+         del(self.timing)
+         del(self.fname)
+         self.timing = None
+         self.fname = None
+
+      self.timing = timing
+      self.fname = flist[0]
       self.status = 0
 
       return 0
@@ -1186,7 +1250,8 @@ class ATInterface:
       if not self.timing:
          print '** no timing to write'
          return 1
-      return self.timing.write_times(fname, nplaces=self.nplaces)
+      return self.timing.write_times(fname, nplaces=self.nplaces,
+                                            force_married=self.write_married)
 
    def init_options(self):
       self.valid_opts = OL.OptionList('valid opts')
@@ -1209,6 +1274,9 @@ class ATInterface:
 
       self.valid_opts.add_opt('-add_rows', 1, [], 
                          helpstr='append the rows (runs) from the given file')
+
+      self.valid_opts.add_opt('-apply_end_times_as_durations', 1, [], 
+                         helpstr='use as end times to apply as durations')
 
       self.valid_opts.add_opt('-extend', 1, [], 
                          helpstr='extend the rows lengths from the given file')
@@ -1233,6 +1301,9 @@ class ATInterface:
 
       self.valid_opts.add_opt('-shift_to_run_offset', 1, [], 
                          helpstr='shift each run to start at time OFFSET')
+
+      self.valid_opts.add_opt('-show_duration_stats', 0, [], 
+                         helpstr='display min/mean/max/stdev of event durs')
 
       self.valid_opts.add_opt('-show_timing', 0, [], 
                          helpstr='display timing contents')
@@ -1268,6 +1339,10 @@ class ATInterface:
                          helpstr='display info about the main timing element')
       self.valid_opts.add_opt('-stim_dur', 1, [], 
                          helpstr='provide a stimulus duration for main timing')
+
+      # halfway case for FSL timing list
+      self.valid_opts.add_opt('-fsl_timing_files', -1, [], okdash=0,
+                         helpstr='load the given list of FSL timing files')
 
       # action options - multi
       self.valid_opts.add_opt('-multi_timing', -1, [], okdash=0,
@@ -1307,6 +1382,8 @@ class ATInterface:
                          helpstr='set the verbose level (default is 1)')
       self.valid_opts.add_opt('-write_all_rest_times', 1, [], 
                          helpstr='in isi_stats, save rest durations to file')
+      self.valid_opts.add_opt('-write_as_married', 0, [], 
+                         helpstr='attempt to write timing files as married')
 
       return 0
 
@@ -1426,11 +1503,20 @@ class ATInterface:
             self.set_stim_dur(val)
          uopts.olist.pop(oind)
 
+      oind = uopts.find_opt_index('-fsl_timing_files')
+      if oind >= 0:
+         val, err = uopts.get_string_list('-fsl_timing_files')
+         if type(val) == type([]) and not err:
+            if self.set_fsl_timing(val): return 1
+         else: return 1
+         uopts.olist.pop(oind)
+
       oind = uopts.find_opt_index('-multi_timing')
       if oind >= 0:
          val, err = uopts.get_string_list('-multi_timing')
          if type(val) == type([]) and not err:
             if self.multi_set_timing(val): return 1
+         else: return 1
          uopts.olist.pop(oind)
 
       oind = uopts.find_opt_index('-multi_stim_dur')
@@ -1445,6 +1531,11 @@ class ATInterface:
          val, err = uopts.get_string_opt('-write_all_rest_times')
          if val and not err:
             self.all_rest_file = val
+         uopts.olist.pop(oind)
+
+      oind = uopts.find_opt_index('-write_as_married')
+      if oind >= 0:
+         if uopts.find_opt('-write_as_married'): self.write_married = 1
          uopts.olist.pop(oind)
 
       # ------------------------------------------------------------
@@ -1502,6 +1593,19 @@ class ATInterface:
             if val != None and err: return 1
             if self.timing.add_val(val): return 1
 
+         elif opt.name == '-apply_end_times_as_durations':
+            if not self.timing:
+               print "** '%s' requires -timing" % opt.name
+               return 1
+            val, err = uopts.get_string_opt('', opt=opt)
+            if val != None and err: return 1
+
+            # get end timing
+            newrd = LT.AfniTiming(val,dur=self.stim_dur,verb=self.verb)
+            if not newrd.ready: return 1
+
+            if self.timing.apply_end_times_as_durs(newrd): return 1
+
          elif opt.name == '-scale_data':
             if not self.timing:
                print "** '%s' requires -timing" % opt.name
@@ -1551,6 +1655,12 @@ class ATInterface:
                print "** '%s' requires -timing" % opt.name
                return 1
             self.timing.sort()
+
+         elif opt.name == '-show_duration_stats':
+            if not self.timing:
+               print "** '%s' requires -timing" % opt.name
+               return 1
+            if self.timing.show_duration_stats(): return 1
 
          elif opt.name == '-show_timing':
             if not self.timing:
@@ -1760,13 +1870,16 @@ class ATInterface:
             if eind == 0:
                cprev = self.part_init
                tprev = 0
+               dprev = 0
             else:
                 cprev  = allevents[eind-1][3]
                 tprev = allevents[eind-1][0]
+                dprev = allevents[eind-1][2]
 
             if s1d_type != '':
                etlist.append(self.make_s1d_estr_list(s1d_type,cind,cprev=cprev,
-                                   etime=event[0], tprev=tprev, dur=event[2]))
+                                   etime=event[0], tprev=tprev, dur=event[2],
+                                   pdur=dprev))
             elif style == 'index': fp.write('%d ' % cind)
             elif style == 'part':
                if cind != 1: continue # only write predecessors of class 1
@@ -1806,7 +1919,8 @@ class ATInterface:
       return wlist
 
    def make_s1d_estr_list(self, stypes, cind=0, cprev=0,
-                             etime=0.0, tprev=0.0, dur=0.0, maxfilelen=10):
+                             etime=0.0, tprev=0.0, dur=0.0, pdur=0.0,
+                             maxfilelen=10):
       tlist = self.m_timing
 
       # apply special case of ALL for types
@@ -1820,7 +1934,7 @@ class ATInterface:
          elif st == 'f': astr = '%-*s' % (maxfilelen,tlist[cind-1].fname)
          elif st == 'd': astr = '%8.3f' % dur
          elif st == 'o':
-            offset = etime-tprev-dur
+            offset = etime-tprev-pdur
             # check for first event per run
             if tprev == 0.0: offset = etime
             if offset == 0.0:

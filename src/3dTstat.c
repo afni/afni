@@ -71,7 +71,9 @@
 static int perc_val = -666;
 
 #define METH_FIRSTVALUE    41 /* returns the 1st value - to avoid exiting on invalid 1-input-methods */
-#define MAX_NUM_OF_METHS   42
+#define METH_TSNR          42 /* JKR 10 April 2017 */
+
+#define MAX_NUM_OF_METHS   43
 
 /* allow single inputs for some methods (test as we care to add) */
 #define NUM_1_INPUT_METHODS 12
@@ -101,7 +103,7 @@ static char *meth_names[] = {
    "ArgMin+1"      , "ArgMax+1"     , "ArgAbsMax+1"   , "CentroMean"  ,
    "CVarInv"       , "CvarInv (NOD)", "ZeroCount"     , "NZ Median"   ,
    "Signed Absmax" , "L2 Norm"      , "NonZero Count" , "NZ Stdev"    ,
-   "Percentile %d" , "FirstValue"
+   "Percentile %d" , "FirstValue"   , "TSNR"
 };
 
 static void STATS_tsfunc( double tzero , double tdelta ,
@@ -114,7 +116,7 @@ static int Calc_duration(float *ts, int npts, float vmax, int max_index,
    int *onset, int *offset);
 static float Calc_centroid(float *ts, int npts);
 
-void usage_3dTstat(int detail) 
+void usage_3dTstat(int detail)
 {
 
      printf(
@@ -142,6 +144,8 @@ void usage_3dTstat(int detail)
  "                   options only, to turn off detrending, as in\n"
  "                     -stdevNOD  and/or  -cvarNOD  and/or  -cvarinvNOD\n"
  "\n"
+ " -tsnr      = compute temporal signal to noise ratio\n"
+ "                fabs(mean)/stdev NOT DETRENDED (same as -cvarinvNOD)\n"
  " -MAD       = compute MAD (median absolute deviation) of\n"
  "                input voxels = median(|voxel-median(voxel)|)\n"
  "                [N.B.: the trend is NOT removed for this]\n"
@@ -269,9 +273,9 @@ void usage_3dTstat(int detail)
   "option, then the output will be written into a NIML-formatted 1D\n"
   "dataset, which you might find slightly confusing (but still usable).\n"
  ) ;
-   
-   PRINT_COMPILE_DATE ;  
-   
+
+   PRINT_COMPILE_DATE ;
+
    return;
 }
 
@@ -312,7 +316,7 @@ int main( int argc , char *argv[] )
       if( strcmp(argv[nopt],"-verb") == 0 ){
         verb++ ; nopt++ ; continue ;
       }
-      
+
       /*-- methods --*/
 
       if( strcasecmp(argv[nopt],"-centromean") == 0 ){ /* 01 Nov 2010 */
@@ -453,6 +457,12 @@ int main( int argc , char *argv[] )
          meth[nmeths++] = METH_CVARINVNOD ;
          nbriks++ ;
          nopt++ ; continue ;
+      }
+
+     if( strcasecmp(argv[nopt],"-tsnr") == 0 ){     /* 10 April 2017 */
+        meth[nmeths++] = METH_TSNR ;
+        nbriks++ ;
+        nopt++ ; continue ;
       }
 
       if( strcasecmp(argv[nopt],"-min") == 0 ){
@@ -640,7 +650,7 @@ int main( int argc , char *argv[] )
       if( strcasecmp(argv[nopt],"-nscale") == 0 ){  /* 25 May 2011 */
         nscale = 1 ; nopt++ ; continue ;
       }
-      
+
       /*-- datum --*/
 
       if( strcasecmp(argv[nopt],"-datum") == 0 ){
@@ -991,6 +1001,19 @@ static void STATS_tsfunc( double tzero, double tdelta ,
           val[out_index] = (ts_mean != 0.0) ? sum/fabs(ts_mean) : 0.0 ;
         else
           val[out_index] = (sum     != 0.0) ? fabs(ts_mean)/sum : 0.0 ;
+      }
+      break ;
+
+      case METH_TSNR:{
+        register int ii ;
+        register double std = 0.0;
+        register double sum = 0.0;
+
+        /* no detrending */
+        for( ii=0 ; ii < npts ; ii++ ) sum += (ts[ii]-ts_mean)
+                                           *(ts[ii]-ts_mean) ;
+        std = sqrt( sum/(npts-1.0) ) ;  /* stdev */
+        val[out_index] = (std != 0.0) ? fabs(ts_mean)/std : 0.0 ;
       }
       break ;
 

@@ -110,6 +110,68 @@ class Afni1D:
 
       return 0
 
+   def reduce_by_run_list(self, rlist):
+      """extract the list of (1-based) runs from the dataset
+         return 0 on success"""
+
+      if not self.ready:
+         print '** reduce_by_run_list: Afni1D is not ready'
+         return 1
+
+      # are all of the runs valid?
+      errs = 0
+      for run in rlist:
+         if run < 1:
+            print '** reduce_by_run_list: min run index is 1'
+            errs += 1
+         if run > self.nruns:
+            print '** reduce_by_run_list: %d exceeds max run index %d' \
+                  % (run, self.nruns)
+            errs += 1
+      if errs: return 1
+
+      if len(self.runstart) != self.nruns:
+         print '** run_list: missing %d run positions (-set_run_lengths?)' \
+               % self.nruns
+         errs += 1
+      if len(self.run_len) != self.nruns:
+         print '** run_list: missing %d run lengths (-set_run_lengths?)' \
+               % self.nruns
+         errs += 1
+      if errs: return 1
+
+      # make useful runstart list to begin with, which will be trashed anyway
+      runstart = []
+      ntotal = 0
+      for rlen in self.run_len:
+         runstart.append(ntotal)
+         ntotal += rlen
+      self.runstart = runstart
+
+      # finally ready?  
+      # make tlist, clear groups, reduce_by_tlist
+      # and then update nruns, run_len, runstart
+      self.groups = []
+      tlist = []
+      run_len = []      # make new lists as we go
+      runstart = []     # make new lists as we go
+      ntotal = 0        # for runstart list
+      for run in rlist:
+         r0 = run - 1
+         nt = self.run_len[r0]
+         tlist.extend([self.runstart[r0]+i for i in range(nt)])
+         run_len.append(nt)
+         runstart.append(ntotal)
+         ntotal += nt
+
+      if self.reduce_by_tlist(tlist): return 1
+
+      self.nruns = len(rlist)
+      self.run_len = run_len
+      self.runstart = runstart
+
+      return 0
+
    def reduce_by_vec_list(self, vlist):
       """reduce the dataset according to the vector list
          return 0 on success"""
@@ -1032,8 +1094,8 @@ class Afni1D:
       if run_index < 0: return 0, tr_list
 
       if run_index >= self.nruns:
-         print '** cannot restrict TR list for (0-based) run %d, have %d' \
-               (run_index, self.nruns)
+         print '** cannot restrict TR list for (1-based) run %d, have %d' \
+               % (run_index+1, self.nruns)
          return 1, []
 
       if self.nrowfull > 0: nt = self.nrowfull
@@ -1067,10 +1129,19 @@ class Afni1D:
          print "** Afni1D not ready for write_timing to '%s'" % fname
          return 1
 
-      ccount = self.mat[0].count(0)             # start with censor count
+      ccount = self.mat[0].count(0)             # start by counting 0
+      lstr = '(simple form)'
+
+      # if it is a valid x-mat, override (should be a separate function)
+      if self.havelabs:
+         lstr = '(from xmat header)'
+         rv, tplist = self.get_censored_trs()
+         if not rv:
+            ccount = len(tplist)
+
       if invert: ccount = self.nt - ccount
 
-      if self.verb: print 'total number of censored TRs = %d' % ccount
+      if self.verb: print 'total number of censored TRs %s = %d'%(lstr, ccount)
       else:         print ccount
 
       return 0
@@ -1177,15 +1248,19 @@ class Afni1D:
                                           self.nruns, self.tr, invert)
       if err: return 1
 
-      try: fp = open(fname, 'r')
-      except:
-         print "** failed to open file '%s'" % fname
-         err = 1
+      if fname == '-' or fname == 'stdout':
+         fp = sys.stdout
+      else:
+         try: fp = open(fname, 'r')
+         except:
+            print "** failed to open file '%s'" % fname
+            err = 1
 
-      if err: return 1
+         if err: return 1
 
       fp.write(tstr)
-      fp.close()
+      if fp != sys.stdout:
+         fp.close()
 
       return 0
 
@@ -2263,13 +2338,15 @@ class Afni1D:
              "++ labels   : %s\n" \
              "++ groups   : %s\n" \
              "++ goodlist : %s\n" \
+             "++ runstart : %s\n" \
              "++ tr       : %s\n" \
              "++ nrowfull : %d\n" \
              "++ nruns    : %d\n" \
              "++ run_len  : %s\n" \
              "++ run_len_nc: %s\n" % \
              (self.name, rstr, self.fname, self.nvec, self.nt,
-             self.labels, self.groups, self.goodlist, self.tr, self.nrowfull,
+             self.labels, self.groups, self.goodlist, self.runstart,
+             self.tr, self.nrowfull,
              self.nruns, self.run_len, self.run_len_nc)
 
       return mstr
@@ -2345,6 +2422,8 @@ class Afni1D:
          might be '-' or stdin"""
 
       aname = BASE.afni_name(self.fname)
+
+      if self.verb > 3: print "-- Afni1D: init_from_gen name '%s'" % name
 
       if self.init_from_1D(aname.rpve()): return 1 # failure
 
@@ -2528,7 +2607,7 @@ ERR_ST_TOO_BIG    = 16       # val >= run length
 
 
 class AfniData(object):
-   def __init__(self, filename="", verb=1):
+   def __init__(self, filename="", mdata=None, fsl_flist=[], verb=1):
       """akin to a 2D float class, but do not require a square matrix
 
          init from filename
@@ -2555,6 +2634,7 @@ class AfniData(object):
       self.mtype     = 0        # married type (bits, amp, dur)
       self.minlen    = 0        # min and max row lengths
       self.maxlen    = 0
+      self.dur_len   = 0.0
 
       self.ready     = 0        # data is ready
 
@@ -2564,6 +2644,7 @@ class AfniData(object):
       self.run_lens  = []       # run lengths, in seconds or TRs
       self.verb      = verb
       self.hist      = g_AfniData_hist
+      self.write_dm  = 1        # if found include durations when printing
 
       # computed variables
       self.cormat      = None   # correlation mat (normed xtx)
@@ -2573,6 +2654,10 @@ class AfniData(object):
       # initialize...
       if self.fname: 
          if self.init_from_filename(self.fname): return None
+      elif mdata:
+         if self.init_from_mdata(mdata): return None
+      elif len(fsl_flist) > 0:
+         if self.init_from_fsl_flist(fsl_flist): return None
 
    # some accessor functions to match Afni1D
    def set_nruns(nruns):
@@ -2654,7 +2739,7 @@ class AfniData(object):
 
       if self.mtype != newdata.mtype:
          print '** timing elements differ in married type (%s, %s)' \
-	       % (self.married_type_string(self.mtype),
+               % (self.married_type_string(self.mtype),
                   self.married_type_string(newdata.mtype))
          if not promote_mtype: return 1
          print '   promoting mtypes between %s and %s'%(self.name, newdata.name)
@@ -2663,15 +2748,15 @@ class AfniData(object):
       if self.verb > 1: print '++ MTiming: extending %d rows' % self.nrows
 
       for ind in range(self.nrows):
-	 if self.verb > 3:
+         if self.verb > 3:
             print '++ edr m #%d: extending %d rows from %d cols by %d' \
-	       % (ind, self.nrows, len(self.data[ind]), len(newdata.data[ind]))
+               % (ind, self.nrows, len(self.data[ind]), len(newdata.data[ind]))
          self.data[ind].extend(newdata.data[ind])
 
       for ind in range(self.nrows):
-	 if self.verb > 3:
+         if self.verb > 3:
             print '++ EDR M #%d: extending %d rows from %d cols by %d' \
-	       % (ind, self.nrows, len(self.mdata[ind]),len(newdata.mdata[ind]))
+               % (ind, self.nrows, len(self.mdata[ind]),len(newdata.mdata[ind]))
          self.mdata[ind].extend(newdata.mdata[ind])
 
       # and update ncols
@@ -2681,6 +2766,52 @@ class AfniData(object):
          print self.make_data_string(nplaces=1, flag_empty=0, check_simple=0,
                         mesg='\nnew mdata for %s'%self.name)
          print '-- min, max dur = %s %s' % self.get_min_max_duration()
+
+      return 0
+
+   def apply_end_times_as_durs(self, newdata):
+      """treat newdata as ending times for the events in self
+         - sort both to be sure
+         - whine on negatives
+         - result will include MTYPE_DUR
+      """
+      
+      if not self.ready or not newdata.ready:
+         print '** timing elements not ready for end_times (%d,%d)' % \
+               (self.ready, newdata.ready)
+         return 1
+
+      if self.nrows != newdata.nrows:
+         print '** timing nrows differ for end_times (%d, %d)' % \
+               (self.nrows,newdata.nrows)
+
+      # check that each row is the same length
+      okay = 1
+      for rind in range(self.nrows):
+         l0 = len(self.data[rind])
+         l1 = len(newdata.data[rind])
+         if l0 != l1:
+            print '** num events differs for run %d' % (rind+1)
+            okay = 0
+      if not okay:
+         return 1
+
+      if self.verb > 1: print '++ MTiming: applying end_times as durs'
+
+      # sort both to be sure
+      self.sort()
+      newdata.sort()
+
+      # apply newdata as end times, whine if negative
+      for rind in range(self.nrows):
+         for eind in range(len(self.data[rind])):
+             dur = newdata.mdata[rind][eind][0] - self.mdata[rind][eind][0]
+             if dur < 0 and self.verb:
+                print '** end_times as durs: have negative duration %f' % dur
+             self.mdata[rind][eind][2] = dur
+
+      # set mtype to include MTYPE_DUR (might already)
+      self.mtype |= MTYPE_DUR
 
       return 0
 
@@ -2896,18 +3027,16 @@ class AfniData(object):
 
       return 1
 
-   def make_single_row_string(self, row=-1, nplaces=3, flag_empty=0,
-                              check_simple=1):
+   def make_single_row_string(self, row=-1, nplaces=3, flag_empty=0, simple=1):
       """return a string of row data, to the given number of decimal places
-         if row is non-negative, return a string for the given row"""
+         if row is non-negative, return a string for the given row
+
+         if not simple, show_durs controls display of durations
+      """
       if not self.ready: return ''
       if row < 0 or row >= self.nrows:
          if self.verb > 0: print '** row %d out of range for printing' % row
          return ''
-
-      if check_simple and self.dur_len == 0.0: simple = 1
-      elif self.mtype == 0:                    simple = 1
-      else:                                    simple = 0
 
       data = self.mdata[row]
       rstr = ''
@@ -2928,7 +3057,8 @@ class AfniData(object):
                astr = ''.join(alist)
             else: astr = ''
 
-            if self.mtype & MTYPE_DUR:
+            # if married and want durations, include them
+            if self.write_dm and (self.mtype & MTYPE_DUR):
                dstr = ':%s' % val[2]
             else: dstr = ''
 
@@ -2949,22 +3079,57 @@ class AfniData(object):
             mesg         : display the message before data
       """
 
+      if check_simple and self.dur_len == 0.0: simple = 1
+      elif self.mtype == 0:                    simple = 1
+      else:                                    simple = 0
+
       # init return string based on message
       if len(mesg) > 0: rstr = "%s :\n" % mesg
       else:             rstr = ''
 
+      if self.verb > 2:
+         print '-- writing %s, simple=%d, wdm=%d, const=%d, dur_len=%d' \
+               % (self.name, simple, self.write_dm, self.durs_are_constant(),
+                  self.dur_len)
+
       if row >=0:
          return rstr+self.make_single_row_string(row, nplaces, flag_empty,
-                                                 check_simple)
+                                                 simple)
 
       # make it for all rows
       for ind in range(self.nrows):
-         rstr += self.make_single_row_string(ind, nplaces, flag_empty,
-                                             check_simple)
+         rstr += self.make_single_row_string(ind, nplaces, flag_empty, simple)
 
       return rstr
 
-   def write_as_timing(self, fname='', nplaces=-1):
+   def durs_are_constant(self):
+      """just check mdata"""
+      if self.mdata == None: return 1
+      dall = []
+      for mrow in self.mdata:
+         dall.extend([e[2] for e in mrow])
+      return UTIL.vals_are_constant(dall)
+
+   def check_constant_duration(self):
+      """return whether constant, and duration if so
+         (akin to durs_are_constant(), but also return that duration)
+         return -1 for duration, if unknown
+      """
+      cdur = -1
+      if self.mdata == None: return 1, cdur
+      dall = []
+      for mrow in self.mdata:
+         dall.extend([e[2] for e in mrow])
+
+      if UTIL.vals_are_constant(dall):
+         if len(dall) > 0: cdur = dall[0]
+         rv = 1
+      else:
+         rv = 0
+
+      return rv, cdur
+
+   def write_as_timing(self, fname='', nplaces=-1, check_simple=1):
       """write the current M timing out, with nplaces right of the decimal"""
       if not self.ready:
          print '** M Timing: not ready to write'
@@ -2972,16 +3137,22 @@ class AfniData(object):
 
       if fname == '': fname = self.fname
 
-      fp = open(fname, 'w')
-      if not fp:
-         print "** failed to open '%s' for writing Mtiming" % fname
-         return 1
+      if fname == '-' or fname == 'stdout':
+         fp = sys.stdout
+      else:
+         fp = open(fname, 'w')
+         if not fp:
+            print "** failed to open '%s' for writing Mtiming" % fname
+            return 1
 
       if self.verb > 0:
          print "++ writing %d MTiming rows to %s" % (self.nrows, fname)
 
-      fp.write(self.make_data_string(nplaces=nplaces, flag_empty=1))
-      fp.close()
+      fp.write(self.make_data_string(nplaces=nplaces, flag_empty=1,
+                                     check_simple=check_simple))
+
+      if fp != sys.stdout:
+         fp.close()
 
       return 0
 
@@ -3508,6 +3679,169 @@ class AfniData(object):
       
       return 0
 
+   def init_from_fsl_flist(self, flist):
+      """Convert FSL flist files into a married data structure,
+         and then init from that.
+
+         Files in flist are considered to be in the FSL format:
+            time  duration  amplitude
+         and are considered to be one run per file.
+
+         --> So basically just swap amp and dur, and put amp in list.
+
+         Output is a array of mdata lists, of the form:
+            [
+               [ [time [AM list] duration] [] [] ... ]
+               [ [time [AM list] duration] [] [] ... ]
+            ]
+
+         mdata[0] is the event list for the first run
+         mdata[0][0] is the first event for the first run
+         mdata[0][0][0] is the first event start time
+         mdata[0][0][1] is the array of first event amplitudes
+         mdata[0][0][1][0] is the first amplitude of the first event
+         mdata[0][0][2] is the first event duration
+
+         FSL files have only single amplitudes
+      """
+
+      if len(flist) < 1: return 1
+
+      mdata = []
+      amp_all = [] # track all amplitudes
+
+      if self.verb > 1:
+         print '-- reading FSL timing for %d runs' % len(flist)
+
+      for find, fname in enumerate(flist):
+         try: td = TD.read_1D_file(fname)
+         except:
+            print '** failed to read FSL timing file %d, %s' % (find, fname)
+            return 1
+         elist = [[ev[0], [ev[2]], ev[1]] for ev in td]
+         amp_all.extend([ev[2] for ev in td])
+         mdata.append(elist)
+
+      # if all amplitudes are constand 0 or 1, remove them
+      if   UTIL.vals_are_constant(amp_all, cval=0): cval = 0
+      elif UTIL.vals_are_constant(amp_all, cval=1): cval = 1
+      else:                                         cval = 2
+      if cval <= 1:
+          if self.verb > 1:
+             print '-- FSL amplitudes are all %s, removing...' % cval
+          for mrow in mdata:
+             for event in mrow:
+                event[1] = []
+
+      return self.init_from_mdata(mdata)
+
+   def init_from_mdata(self, mdata):
+      """mdata should be of the form:
+            one row per run, where each row is a list of events:
+               [time [AM list] duration]
+      """
+
+      if not self.mdata_looks_valid(mdata):
+         return 1
+
+      self.mdata    = mdata
+
+      # note whether the data is married (modulation or duration)
+      self.mtype = TD.married_type(mdata)
+      if self.mtype: self.married = 1
+
+      # if durs, but constant, set dur_len instead
+      if self.mtype & MTYPE_DUR:
+         if self.durs_are_constant():
+            self.write_dm = 0
+         else:
+            self.dur_len = -1
+
+      # data will ignore any married information
+      self.data     = [[val[0] for val in row] for row in mdata]
+      self.clines   = None
+
+      # init alist to be 0, 1 or 2, for each run so at least 2 "events"
+      self.alist    = [0] * len(mdata)
+      for rind, run in enumerate(mdata):
+         if len(run) == 0:
+            self.alist[rind] = 2
+         elif len(run) == 1:
+            self.alist[rind] = 1
+
+      self.nrows    = len(self.data)
+      self.row_lens = [len(row) for row in self.data]
+
+      # empty data includes existing but empty runs
+      if len(self.data) == 0:
+         self.maxlen = 0
+         self.minlen = 0
+      else:
+         self.maxlen = max([len(drow) for drow in self.data])
+         self.minlen = min([len(drow) for drow in self.data])
+
+      # accept an empty file?
+      if self.nrows == 0 or self.maxlen == 0:
+         self.empty = 1
+         self.ready = 1
+         return 0
+
+      # if row lengths are all the same, use ncols, instead
+      if UTIL.vals_are_constant(self.row_lens):
+         self.ncols = self.row_lens[0]
+         del(self.row_lens)
+         self.row_lens = []
+
+      # check to see if it is a 0/1 file
+      self.binary = 1
+      for row in self.data:
+         if not UTIL.vals_are_0_1(row):
+            self.binary = 0
+            break
+
+      self.ready = 1
+      
+      return 0
+
+   def mdata_looks_valid(self, mdata, verb=0):
+      """show be rows of [float [float list] float]"""
+      errs = 0
+      for rind, row in enumerate(mdata):
+         for eind, event in enumerate(row):
+            # check for bad event
+            if len(event) != 3:
+               if verb <= 0: return 0   # quiet failure
+               errs += 1
+               print '** (0-based) run %d, event %d: bad form: %s' \
+                     % (rind, eind, event)
+               if verb < 2: return 0
+      if errs: return 0
+      return 1
+
+   def show_duration_stats(self, per_run=0):
+      """show min, mean, max, stdev for each column (unless col specified)"""
+
+      if self.verb:
+         form = "min = %g, mean = %g, max = %g, stdev = %g"
+      else:
+         form = "%g %g %g %g"
+
+      # apply newdata as end times, whine if negative
+      dlist = []
+      for rind, run in enumerate(self.mdata):
+         if per_run:
+            mmms = form % UTIL.min_mean_max_stdev([event[2] for event in run])
+            print (('run %d : ' % rind) + mmms)
+         else:
+            dlist.extend([event[2] for event in run])
+
+      # if per_run, we are finished
+      if per_run: return 0
+
+      print form % UTIL.min_mean_max_stdev(dlist)
+
+      return 0
+
    def show(self, mesg=''):
       print self.make_show_str(mesg=mesg)
 
@@ -3539,6 +3873,25 @@ class AfniData(object):
                 self.verb)
 
       return mstr
+
+def show_multi_isi_stats(adlist, run_lens, tr, verb=0):
+   import lib_timing as LT
+
+   nad = len(adlist)
+   if nad == 0:
+      print '** show_multi_isi_stats: no elements to list'
+      return 1
+
+   AD0 = adlist[0]
+   MT = LT.AfniTiming(mdata=AD0.mdata)
+   for ind in range(1, nad):
+      tt = LT.AfniTiming(mdata=adlist[ind].mdata)
+      MT.extend_rows(tt)
+
+   if verb:
+     MT.show('multistim timing')
+
+   MT.show_isi_stats(mesg='%d elements'%nad, run_len=run_lens, tr=tr)
 
 if __name__ == '__main__':
    print '** this is not a main module'

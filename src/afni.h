@@ -77,6 +77,9 @@ typedef struct {
       char *script_fname ;    /* 21 Jan 2003 */
 
       int cat_sess ;          /* 02 Jun 2016 */
+
+      int only_images ;       /* 24 Feb 2017 */
+      int left_is_posterior ; /* 27 Mar 2017 */
 } AF_options ;
 
 #ifdef MAIN
@@ -269,7 +272,7 @@ typedef struct {
 
       Boolean    func_visible , force_anat_wod , force_func_wod ,
                  pts_visible , show_voxind ;
-      int        func_visible_count ;
+      int        func_visible_count , func_init_subbricks ;
       float      func_threshold , resam_vox ;
       float      func_thresh_top ;              /* 23 Jul 1997 */
       int        func_resam_mode , anat_resam_mode , pts_color ;
@@ -1547,6 +1550,10 @@ extern int AFNI_get_todays_trivia( char *** ) ; /* 27 Nov 2007 */
 }
 #endif
 
+#ifdef MAIN
+int first_plugin_check = 1 ;     /* 30 Sep 2016 */
+#endif
+
 #include "afni_plugin.h"
 
 #ifdef  __cplusplus
@@ -1809,6 +1816,8 @@ extern MRI_IMAGE * AFNI_overlay( int n , FD_brick * br );
 extern void AFNI_invert_CB( Widget, XtPointer, XtPointer ) ; /* 02 Feb 2007 */
 extern void AFNI_nimlpo_CB( Widget, XtPointer, XtPointer ) ; /* 02 Feb 2007 */
 extern void AFNI_process_NIML_data( int , void * , int ) ;   /* 01 Feb 2008 */
+
+extern int_pair find_reasonable_overlay_indexes( THD_3dim_dataset *dset ) ;
 
 extern char * AFNI_controller_label( Three_D_View * im3d ); /* 01 Apr 1999 */
 extern void AFNI_set_window_titles( Three_D_View * im3d );
@@ -2342,6 +2351,8 @@ extern void median3_func( int, double,double, float * ) ;
 extern void absfft_func ( int, double,double, float * ) ;
 extern void ztone_func  ( int, double,double, float * ) ; /* 02 Sep 2009 */
 extern void adpt_wt_mn9 ( int, double,double, float * ) ; /* 04 Sep 2009 */
+extern void adpt_wt_mn19( int, double,double, float * ) ; /* 29 Sep 2016 */
+extern void adpt_wt_mnXX( int, double,double, float * ) ; /* 30 Sep 2016 */
 extern void despike7_func  (int, double,double, float *); /* 07 Oct 2010 */
 extern void despike9_func  (int, double,double, float *); /* 08 Oct 2010 */
 extern void hrfdecon_func  (int, double,double, float *); /* 29 Oct 2010 */

@@ -21,6 +21,8 @@
 #ifndef IND_T
   typedef unsigned char ind_t ;
 # define IND_T unsigned char
+# define USE_UBYTE
+# define MAX_IND 255u
 #endif
 #include "thd_Xdataset.c"                         /** reading .sdat datasets **/
 /*----------------------------------------------------------------------------*/
@@ -259,6 +261,50 @@ void display_help_menu()
    "Program to estimate the probability of false positive (noise-only) clusters.\n"
    "An adaptation of Doug Ward's AlphaSim, streamlined for various purposes.\n"
    "\n"
+   "-----------------------------------------------------------------------------\n"
+   "This program has several different modes of operation, each one involving\n"
+   "simulating noise-only random volumes, thresholding and clustering them,\n"
+   "and counting statistics of how often data 'survives' these processes at\n"
+   "various threshold combinations (per-voxel and cluster-size).\n"
+   "\n"
+   "OLDEST method = simulate noise volume assuming the spatial auto-correlation\n"
+   "                function (ACF) is given by a Gaussian-shaped function, where\n"
+   "                this shape is specified using the FWHM parameter. The FWHM\n"
+   "                parameter can be estimated by program 3dFWHMx.\n"
+   "          ** THIS METHOD IS NO LONGER RECOMMENDED **\n"
+   "\n"
+   "NEWER method  = simulate noise volume assuming the ACF is given by a mixed-model\n"
+   "                of the form a*exp(-r*r/(2*b*b))+(1-a)*exp(-r/c), where a,b,c\n"
+   "                are 3 parameters giving the shape, and can also be estimated\n"
+   "                by program 3dFWHMx.\n"
+   "          ** THIS METHOD IS ACCEPTABLE **\n"
+   "\n"
+   "NEWEST method = program 3dttest++ simulates the noise volumes by randomizing\n"
+   "                and permuting input datasets, and sending those volumes into\n"
+   "                3dClustSim directly. There is no built-in math model for the\n"
+   "                spatial ACF.\n"
+   "          ** THIS METHOD IS MOST ACCURATE AT CONTROLLING FALSE POSITIVE RATE **\n"
+   "          ** You invoke this method with the '-Clustsim' option in 3dttest++ **\n"
+   "\n"
+   "3dClustSim computes a cluster-size threshold for a given voxel-wise p-value\n"
+   "threshold, such that the probability of anything surviving the dual thresholds\n"
+   "is at some given level (specified by the '-athr' option).\n"
+   "\n"
+   "Note that this cluster-size threshold is the same for all brain regions.\n"
+   "There is an implicit assumption that the noise spatial statistics are\n"
+   "the same everywhere.\n"
+   "\n"
+   "Program 3dXClustSim introduces the idea of spatially variable cluster-size\n"
+   "thresholds, which may be more useful in some cases. 3dXClustSim's method is\n"
+   "invoked by using the '-ETAC' option in 3dttest++.\n"
+   "-----------------------------------------------------------------------------\n"
+   "\n"
+   "**** NOTICE ****\n"
+   "You should use the -acf method, NOT the -fwhm method, when determining\n"
+   "cluster-size thresholds for FMRI data. The -acf method will give more\n"
+   "accurate false positive rate (FPR) control.\n"
+   "****************\n"
+   "\n"
    "In particular, this program lets you run with multiple p-value thresholds\n"
    "(the '-pthr' option) and only outputs the cluster size threshold at chosen\n"
    "values of the alpha significance level (the '-athr' option).\n"
@@ -400,6 +446,12 @@ void display_help_menu()
    "                  is the 'consent form' for such strange shenanigans.\n"
    "                 * If you use this option, it must come BEFORE '-mask'.\n"
    "                 * Also read the 'CAUTION and CAVEAT' section, far below.\n"
+   "            -->>** This option is really only recommended for users who\n"
+   "                   understand what they are doing. Misuse of this option\n"
+   "                   could easily be construed as 'p-hacking'; for example,\n"
+   "                   finding results, but your favorite cluster is too small\n"
+   "                   to survive thresholding, so you post-hoc put a small mask\n"
+   "                   down in that region. DON'T DO THIS!\n"
    "\n"
    "    ** '-mask' means that '-nxyz' & '-dxyz' & '-BALL' will be ignored. **\n"
    "\n"
@@ -422,6 +474,9 @@ void display_help_menu()
    "                    axis, you can instead use option\n"
    "                      -fwhmxyz sx sy sz\n"
    "                    to specify the three values separately.\n"
+   "       **** This option is no longer recommended, since FMRI data    ****\n"
+   "       **** does not have a Gaussian-shaped spatial autocorrelation. ****\n"
+   "       **** Consider using '-acf' or '3dttest++ -Clustsim' instead.  ****\n"
    "\n"
    "-acf a b c      = Alternative to Gaussian filtering: use the spherical\n"
    "                  autocorrelation function parameters output by 3dFWHMx\n"
@@ -431,8 +486,10 @@ void display_help_menu()
    "                  * The 'b' and 'c' parameters (scale radii) must be positive.\n"
    "                  * The spatial autocorrelation function is given by\n"
    "                      ACF(r) = a * exp(-r*r/(2*b*b)) + (1-a)*exp(-r/c)\n"
-   "  >>---------->>*** Combined with 3dFWHMx, the '-acf' method is now the\n"
+   "  >>---------->>*** Combined with 3dFWHMx, the '-acf' method is now a\n"
    "                    recommended way to generate clustering statistics in AFNI!\n"
+   "                *** Alternative methods we also recommend:\n"
+   "                    3dttest++ with the -Clustsim and/or -ETAC options.\n"
    "\n"
    "-nopad          = The program now [12 May 2015] adds 'padding' slices along\n"
    "                   each face to allow for edge effects of the smoothing process.\n"
@@ -454,6 +511,11 @@ void display_help_menu()
    "                  image having a noise-only cluster of size C is less than 'a'\n"
    "                  is the output (cf. the sample output, below)\n"
    "                  [default = 0.10 0.05 0.02 0.01]\n"
+   "\n"
+   "         ** It is possible to use only ONE value in each of '-pthr' and     **\n"
+   "         ** '-athr', and then you will get exactly one line of output       **\n"
+   "         ** for each sided-ness and NN case. For example:                   **\n"
+   "         **   -pthr 0.001 -athr 0.05                                        **\n"
    "\n"
    "         ** Both lists '-pthr' and '-athr' (of values between 0 and 0.2)    **\n"
    "         ** should be given in DESCENDING order.  They will be sorted to be **\n"
@@ -491,7 +553,8 @@ void display_help_menu()
    "\n"
    "-prefix ppp    = Write output for NN method #k to file 'ppp.NNk_Xsided.1D',\n"
    "                  for k=1, 2, 3, and for X=1sided, 2sided, bisided.\n"
-   "                  * If '-prefix is not used, results go to standard output.\n"
+   "                  * If '-prefix is not used, all results go to standard output.\n"
+   "                    You will probably find this confusing.\n"
    "                  * If '-niml' is used, the filename is 'ppp.NNk_Xsided.niml'.\n"
    "                    To be clear, the 9 files that will be named\n"
    "                      ppp.NN1_1sided.niml ppp.NN1_2sided.niml ppp.NN1_bisided.niml\n"
@@ -527,7 +590,7 @@ void display_help_menu()
    "                        integer (the iteration index), starting at 000000.\n"
    "                        (You can use SOMETHING.nii as a prefix; it will work OK.)\n"
    "                        N.B.: This option will slow the program down a lot,\n"
-   "                              and is intended to help just one specific user.\n"
+   "                              and was intended to help just one specific user.\n"
    "\n"
    "------\n"
    "NOTES:\n"
@@ -535,7 +598,7 @@ void display_help_menu()
    "* This program is like running AlphaSim once for each '-pthr' value and then\n"
    "  extracting the relevant information from its 'Alpha' output column.\n"
    " ++ One reason for 3dClustSim to be used in place of AlphaSim is that it will\n"
-   "    be faster than running AlphaSim multiple times.\n"
+   "    be much faster than running AlphaSim multiple times.\n"
    " ++ Another reason is that the resulting table can be stored in an AFNI\n"
    "    dataset's header, and used in the AFNI Clusterize GUI to see estimated\n"
    "    cluster significance (alpha) levels.\n"
@@ -554,8 +617,8 @@ void display_help_menu()
    "\n"
    "* To add the cluster simulation C(p,alpha) table to the header of an AFNI\n"
    "  dataset, something like the following can be done [tcsh syntax]:\n"
-   "     set fwhm = ( `3dFWHMx -combine -detrend time_series_dataset+orig` )\n"
-   "     3dClustSim -mask mask+orig -fwhm $fwhm[4] -niml -prefix CStemp\n"
+   "     set fx = ( `3dFWHMx -detrend time_series_dataset+orig` )\n"
+   "     3dClustSim -mask mask+orig -acf $fx[5] $fx[6] $fx[7] -niml -prefix CStemp\n"
    "     3drefit -atrstring AFNI_CLUSTSIM_NN1_1sided file:CStemp.NN1_1sided.niml \\\n"
    "             -atrstring AFNI_CLUSTSIM_MASK file:CStemp.mask    \\\n"
    "             statistics_dataset+orig\n"
@@ -592,24 +655,13 @@ void display_help_menu()
    "  interface if they are all stored in the statistics dataset header,\n"
    "  depending on the NN level chosen in the Clusterize controller.\n"
    "\n"
-   "* The blur estimates (provided via -fwhm, say) can come from various\n"
-   "  sources.\n"
-   "     1) If '3dmerge -1blur_fwhm SIZE' is used to apply the blur to EPI\n"
-   "        data, that blur is on top of what is already in the data.  It is\n"
-   "        then appropriate to estimate the final blur size using 3dFWHMx on\n"
-   "        the residual EPI time series (after regression).  The final blur\n"
-   "        will generally be a bit larger than SIZE.  Consider how this is\n"
-   "        done by afni_proc.py.\n"
-   "     2) If '3dBlurToFWHM -FWHM SIZE' is used, then one can use SIZE\n"
-   "        directly (since the resulting blur is SIZE, it is not on top of\n"
-   "        what is in the data to begin with).\n"
-   "     3) Some people prefer to estimate the smoothness from the stdev of\n"
-   "        error in the given statistical test, rather than the residuals.\n"
+   "* The blur estimates (provided to 3dClustSim via -acf) comes from using\n"
+   "  program 3dFWHMx.\n"
    "\n"
    "-------------------\n"
    "CAUTION and CAVEAT: [January 2011]\n"
    "-------------------\n"
-   "* If you use a small ROI mask and also have a large FWHM, then it might happen\n"
+   "* If you use a small ROI mask and also have a large blur, then it might happen\n"
    "  that it is impossible to find a cluster size threshold C that works for a\n"
    "  given (p,alpha) combination.\n"
    "\n"
@@ -628,6 +680,7 @@ void display_help_menu()
    "* 3dClustSim will report a cluster size threshold of C=1 for such cases.\n"
    "  It will also print (to stderr) a warning message for all the (p,alpha)\n"
    "  combinations that had this problem.\n"
+#if 0
    "\n"
    "* This issue arises because 3dClustSim reports C for a given alpha.\n"
    "  In contrast, AlphaSim reports alpha for each given C, and leaves\n"
@@ -645,6 +698,7 @@ void display_help_menu()
    "\n"
    "*+ WARNING: Simulation not effective for these cases:\n"
    "   NN=1  pthr= 0.001000  alpha= 0.100 [max simulated alpha= 0.087]\n"
+#endif
    "\n"
    "-----------------------------\n"
    "---- RW Cox -- July 2010 ----\n"
@@ -853,6 +907,9 @@ ENTRY("get_options") ;
       fwhm_x = (float)strtod(argv[nopt],&ep) ;
       if( fwhm_x < 0.0f || ep == argv[nopt] )
          ERROR_exit("illegal value after -fwhm") ;
+      WARNING_message(
+         "Use of -fwhm is not advised; consider using -acf instead\n"
+         "           FMRI data does not have Gaussian-shaped smoothness!" ) ;
       fwhm_y = fwhm_z = fwhm_x ; nopt++; continue;
     }
 
@@ -895,6 +952,9 @@ ENTRY("get_options") ;
       fwhm_z = (float)strtod(argv[nopt++],&ep) ;
       if( fwhm_z < 0.0f || ep == argv[nopt-1] )
          ERROR_exit("illegal z value after -fwhmxyz") ;
+      WARNING_message(
+         "Use of -fwhmxyz is not advised; consider using -acf instead\n"
+         "           FMRI data does not have Gaussian-shaped smoothness!" ) ;
       continue;
     }
 
@@ -1079,7 +1139,7 @@ ENTRY("get_options") ;
     /*----   -NN   ----*/
 
     if( strcasecmp(argv[nopt],"-NN") == 0 ){
-      WARNING_message("-NN option is no longer supported! All NN cases are computed now.") ;
+      WARNING_message("-NN option is no longer supported! All NN cases are computed now :)") ;
       nopt++ ; if( isdigit(argv[nopt][0]) ) nopt++ ;
       continue ;
     }
@@ -1131,6 +1191,17 @@ ENTRY("get_options") ;
   }
 
   /*------- finalize some simple setup stuff --------*/
+
+  if( fwhm_x > 0.0f ){
+    WARNING_message("**************************************************") ;
+    WARNING_message(
+      "I repeat:\n"
+      "           -fwhm uses a Gaussian-shaped autocorrelation function,\n"
+      "           which is not accurate for most FMRI data :(\n"
+      "           Consider using -acf instead, or 3dttest++ -Clustsim :)"
+    ) ;
+    WARNING_message("**************************************************") ;
+  }
 
   if( do_athr_sum && (athr_sum_bot < 0 || athr_sum_top < 0) ){  /* 18 Dec 2015 */
     do_athr_sum = 0 ;
@@ -1212,7 +1283,7 @@ ENTRY("get_options") ;
   if( do_acf ){  /* 30 Nov 2015 */
     float val ; int_triple ijk ;
     if( fwhm_x > 0.0f )
-      WARNING_message("-acf option ==> -fwhm options are ignored!") ;
+      WARNING_message("-acf option ==> any -fwhm options are ignored!") ;
     if( nx < 4 || ny < 4 || nz < 4 )
       ERROR_exit("-acf option: minimum grid is 4x4x4, but you have %dx%dx%d",nx,ny,nz) ;
     fwhm_x = fwhm_y = fwhm_z = 0.0f ;
@@ -2644,7 +2715,7 @@ int main( int argc , char **argv )
   for( iter=1 ; iter <= niter ; iter++ ){
 
     if( verb && ithr == 0 ){
-      vii++ ; if( vii%vstep == vstep/2 ) vstep_print() ;
+      vii++ ; if( vii%vstep == 2 ) vstep_print() ;
     }
 
     generate_image( fim , pfim , xran , iter ) ;
@@ -2736,7 +2807,7 @@ int main( int argc , char **argv )
      }
    }
 
-#if 0
+#if 1
    if( AFNI_yesenv("AFNI_CLUSTSIM_SAVE") ){
      FILE *fp; char fname[128]; static char *lnn[3] = { "NN1","NN2","NN3" }; int cc;
      for( nnn=1 ; nnn <= 3 ; nnn++ ){
@@ -3080,8 +3151,10 @@ MPROBE ;
    destroy_shave() ;
 #endif
 
+#if 0
    if( verb )
      INFO_message("Clock time now = %.1f s",COX_clock_time()) ;
+#endif
 
   } /* end of outputizationing */
 

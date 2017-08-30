@@ -113,7 +113,7 @@ extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
   "    sind , cosd , tand , median, lmode , hmode , mad  ,       \n"           \
   "    gran , uran , iran , eran  , lran  , orstat, mod  ,       \n"           \
   "    mean , stdev, sem  , Pleg  , cbrt  , rhddc2, hrfbk4,hrfbk5\n"           \
-  "    minbelow, maxabove, extreme, absextreme\n"                              \
+  "    minabove, maxbelow, extreme, absextreme    , acfwxm\n"                  \
   "\n"                                                                         \
   " where some of the less obvious funcions are:\n"                            \
   " * qg(x)    = reversed cdf of a standard normal distribution\n"             \
@@ -132,7 +132,7 @@ extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
   " * orstat(n,a,b,c,...) computes the n-th order statistic of\n"              \
   "    {a,b,c,...} - that is, the n-th value in size, starting\n"              \
   "    at the bottom (e.g., orstat(1,a,b,c) is the minimum)\n"                 \
-  " * minbelow(X,a,b,c,...) computes the smallest value amongst {a,b,c,...}\n" \
+  " * minabove(X,a,b,c,...) computes the smallest value amongst {a,b,c,...}\n" \
   "    that is LARGER than the first argument X; if all values are smaller\n"  \
   "    than X, then X will be returned\n"                                      \
   " * maxbelow(X,a,b,c,...) similarly returns the largest value amongst\n"     \
@@ -159,6 +159,12 @@ extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
   "    and t is the time in sec since start of stimulus); for example:\n"      \
   " 1deval -del 0.1 -num 400 -expr 'hrfbk5(t-2,20)' | 1dplot -stdin -del 0.1\n"\
   "    These HRF functions are scaled to return values in the range [0..1]\n"  \
+  "\n"                                                                         \
+  " * ACFWXM(a,b,c,x) returns the Full Width at X Maximum for the mixed\n"     \
+  "   model ACF function\n"                                                    \
+  "     f(r) = a*expr(-r*r/(2*b*b))+(1-a)*exp(-r/c)\n"                         \
+  "   for X between 0 and 1 (not inclusive).  This is the model function\n"    \
+  "   estimated in program 3dFWHMx.\n"                                         \
   "\n"                                                                         \
   " You may use the symbol 'PI' to refer to the constant of that name.\n"      \
   " This is the only 2 letter symbol defined; all variables are\n"             \

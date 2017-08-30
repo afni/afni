@@ -44,7 +44,8 @@ SOMEAFOBJS = parser_int.o afni_warp.o afni_slice_byte.o afni_slice_short.o \
 T3OBJS  = to3d.o
 
 MISC    = AFNI_atlas_spaces.niml AFNI.Xdefaults AFNI.afnirc AFNI.sumarc \
-          3d*.lib gmovie* afni_papers.txt AFNI_version_base.txt
+          3d*.lib gmovie* afni_papers.txt AFNI_version_base.txt		\
+	  AFNI_digest_history.txt
 
 ## The following programs are "extras" not really part of the
 ## AFNI package, but included because they are useful.  Some of
@@ -98,7 +99,10 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            column_cat 3dUnifize 3dNwarpCat 3dQwarp 3dLocalHistog 3dNwarpAdjust  \
            3dNwarpFuncs 3dTproject afni_open 3dConformist 3dNwarpXYZ 3dTRfix    \
            3dToyProg 3dRankizer nifti1_tool gifti_tool cifti_tool images_equal  \
-           uniq_images tokens 3dLocalACF 3dClustSimX 3dtoXdataset 3dMultiThresh \
+           uniq_images tokens 3dLocalACF 3dXClustSim 3dtoXdataset 3dMultiThresh \
+           3dLFCD 3dDegreeCentrality 3dECM 3dMSE 3dsvm_linpredict 3dTfilter     \
+           3dTsplit4D 3dSharpen 3dExtractGroupInCorr dcm2niix_afni 3dTto1D      \
+           3dBrainSync                                                          \
            $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
@@ -136,6 +140,8 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
                   3dNwarpFuncs 3dTproject  afni_open   3dConformist 3dNwarpXYZ      \
                   3dToyProg nifti1_tool gifti_tool cifti_tool images_equal          \
                   uniq_images stimband 1dNLfit tokens 3dLocalACF                    \
+                  3dDegreeCentrality 3dECM 3dLFCD 3dMSE 3dsvm_linpredict            \
+                  3dTto1D \
                   $(EXTRAS)
 
 # For CYGWIN (look for "exe" to find various places below)
@@ -171,7 +177,8 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
                3dTcorrMap 3dABoverlap 3dRank 3dFFT 3dTcorr1D 3dClustSim 3dTRfix   \
                3dRetinoPhase 3dMaskToASCII 3dttest++ 3dDTtoDWI niccc 3dXYZcat     \
                column_cat GLTsymtest nifti1_tool gifti_tool cifti_tool            \
-               images_equal uniq_images stimband 1dNLfit
+               images_equal uniq_images stimband 1dNLfit                          \
+               3dDegreeCentrality 3dECM 3dLFCD 3dMSE 3dsvm_linpredict
 
 # put all scripts to install here (no SCRIPTS variable)
 SCRIPTS_DIR = scripts_install
@@ -190,7 +197,7 @@ PY_SCRIPTS = 1d_tool.py afni_proc.py afni_restproc.py afni_system_check.py   \
              slow_surf_clustsim.py timing_tool.py                            \
              uber_align_test.py uber_proc.py uber_skel.py uber_subject.py    \
              uber_ttest.py xmat_tool.py read_matlab_files.py afni_skeleton.py\
-	     parse_fs_lt_log.py
+	     parse_fs_lt_log.py RetroTS.py
 
 R_DIR = R_scripts
 
@@ -479,6 +486,10 @@ imand:imand.o
 	$(RM) $@
 	$(CC) -o imand imand.o $(LFLAGS) $(LLIBS)
 
+img:img.o
+	$(RM) $@
+	$(CC) -o img img.o $(LFLAGS) $(LLIBS)
+
 imrotate:imrotate.o
 	$(RM) $@
 	$(CC) -o imrotate imrotate.o $(LFLAGS) $(LLIBS)
@@ -569,6 +580,14 @@ dsetdup:dsetdup.o
 	$(RM) $@
 	$(CC) -o 3dTcat 3dTcat.o $(LFLAGS) $(LLIBS)
 
+3dBrainSync.o:3dBrainSync.c
+	$(RM) $@
+	$(CCFAST) -c 3dBrainSync.c $(INFLAGS)
+
+3dBrainSync:3dBrainSync.o
+	$(RM) $@
+	$(CC) -o 3dBrainSync 3dBrainSync.o $(LFLAGS) $(LLIBS)
+
 3dToyProg:3dToyProg.o
 	$(RM) $@
 	$(CC) -o 3dToyProg 3dToyProg.o $(LFLAGS) $(LLIBS)
@@ -605,6 +624,10 @@ dsetdup:dsetdup.o
 3dTsort:3dTsort.o
 	$(RM) $@
 	$(CC) -o 3dTsort 3dTsort.o $(LFLAGS) $(LLIBS)
+
+3dTfilter:3dTfilter.o
+	$(RM) $@
+	$(CC) -o 3dTfilter 3dTfilter.o $(LFLAGS) $(LLIBS)
 
 3dPeriodogram:3dPeriodogram.o
 	$(RM) $@
@@ -660,11 +683,11 @@ csfft_cache:csfft_cache.o
 	$(RM) $@
 	$(CCFAST) -o 3danisosmooth 3danisosmooth.o DWIstructtensor.o \
           $(LFLAGS) $(LLIBS)
-	
+
 3dToutcount:3dToutcount.o
 	$(RM) $@
 	$(CC) -o 3dToutcount 3dToutcount.o $(LFLAGS) $(LLIBS)
-	
+
 3dCountSpikes:3dCountSpikes.o
 	$(RM) $@
 	$(CC) -o 3dCountSpikes 3dCountSpikes.o $(LFLAGS) $(LLIBS)
@@ -888,6 +911,7 @@ afni_open:afni_open.c
 	$(RM) $@
 	$(CC) -o 3duuu2 3duuu2.o $(LFLAGS) $(LLIBS)
 
+
 3ddot:3ddot.o
 	$(RM) $@
 	$(CC) -o 3ddot 3ddot.o $(LFLAGS) $(LLIBS)
@@ -1007,6 +1031,10 @@ qm:qm.o
 3dExtractGroupInCorr:3dExtractGroupInCorr.o
 	$(RM) $@
 	$(CCFAST) -o 3dExtractGroupInCorr 3dExtractGroupInCorr.o $(LFLAGS) $(LLIBS)
+
+3dSharpen:3dSharpen.o
+	$(RM) $@
+	$(CC) -o 3dSharpen 3dSharpen.o $(LFLAGS) $(LLIBS)
 
 rotcom:rotcom.o
 	$(RM) $@
@@ -1309,21 +1337,21 @@ AlphaSim:AlphaSim.o
 	$(RM) $@
 	$(CCOMP) -o 3dClustSim 3dClustSim.o $(LFLAGS) $(LLIBS)
 
-3dClustSimX.o:3dClustSimX.c mri_threshX.c
+3dXClustSim.o:3dXClustSim.c mri_threshX.c thd_Xdataset.c
 	$(RM) $@
-	$(CCOMP) -c 3dClustSimX.c $(INFLAGS)
+	$(CCOMP) -c 3dXClustSim.c $(INFLAGS)
 
-3dClustSimX:3dClustSimX.o libmri.a
+3dXClustSim:3dXClustSim.o libmri.a
 	$(RM) $@
-	$(CCOMP) -o 3dClustSimX 3dClustSimX.o $(LFLAGS) $(LLIBS)
+	$(CCOMP) -o 3dXClustSim 3dXClustSim.o $(LFLAGS) $(LLIBS)
 
-## this program is not OpenMP, but goes with 3dClustSimX above
+## this program is not OpenMP, but goes with 3dXClustSim above
 
 3dtoXdataset:3dtoXdataset.o
 	$(RM) $@
 	$(CC) -o 3dtoXdataset 3dtoXdataset.o $(LFLAGS) $(LLIBS)
 
-## this program is not OpenMP, but goes with 3dClustSimX above
+## this program is not OpenMP, but goes with 3dXClustSim above
 
 3dMultiThresh.o:3dMultiThresh.c mri_threshX.c
 
@@ -1423,14 +1451,6 @@ AlphaSim:AlphaSim.o
 	$(RM) $@
 	$(CCOMP) -o 3dRBFdset 3dRBFdset.o $(LFLAGS) $(LLIBS)
 
-3dDegreeCentrality.o:3dDegreeCentrality.c
-	$(RM) $@
-	$(CCOMP) -c 3dDegreeCentrality.c $(INFLAGS)
-
-3dDegreeCentrality:3dDegreeCentrality.o
-	$(RM) $@
-	$(CCOMP) -o 3dDegreeCentrality 3dDegreeCentrality.o $(LFLAGS) $(LLIBS)
-
 3dAutoTcorrelate.o:3dAutoTcorrelate.c
 	$(RM) $@
 	$(CCOMP) -c 3dAutoTcorrelate.c $(INFLAGS)
@@ -1482,6 +1502,51 @@ mri_rbfinterp.o:mri_rbfinterp.c
 3dTcorr1D.o:3dTcorr1D.c
 	$(RM) $@
 	$(CCOMP) -c 3dTcorr1D.c $(INFLAGS)
+
+#### programs contributed by R. Cameron Craddock
+# cameron.craddock@gmail.com
+3dDegreeCentrality.o:3dDegreeCentrality.c
+	$(RM) $@
+	$(CCOMP) -c 3dDegreeCentrality.c $(INFLAGS)
+
+3dDegreeCentrality:3dDegreeCentrality.o
+	$(RM) $@
+	$(CCOMP) -o 3dDegreeCentrality 3dDegreeCentrality.o $(LFLAGS) $(LLIBS)
+
+sparse_array.o:sparse_array.c sparse_array.h
+	$(RM) $@
+	$(CCOMP) -c sparse_array.c $(INFLAGS)
+
+3dLFCD.o:3dLFCD.c
+	$(RM) $@
+	$(CCOMP) -c 3dLFCD.c $(INFLAGS)
+
+3dLFCD:3dLFCD.o
+	$(RM) $@
+	$(CCOMP) -o 3dLFCD 3dLFCD.o $(LFLAGS) $(LLIBS)
+
+3dECM.o:3dECM.c
+	$(RM) $@
+	$(CCOMP) -c 3dECM.c $(INFLAGS)
+
+3dECM:3dECM.o sparse_array.o
+	$(RM) $@
+	$(CCOMP) -o 3dECM 3dECM.o sparse_array.o $(LFLAGS) $(LLIBS)
+
+3dMSE.o:3dMSE.c
+	$(RM) $@
+	$(CCOMP) -c 3dMSE.c $(INFLAGS)
+
+3dMSE:3dMSE.o sparse_array.o
+	$(RM) $@
+	$(CCOMP) -o 3dMSE 3dMSE.o $(LFLAGS) $(LLIBS)
+
+# This one doens't need OpenMP, but goes with other RCC progs
+3dsvm_linpredict:3dsvm_linpredict.o
+	$(RM) $@
+	$(CC) -o 3dsvm_linpredict 3dsvm_linpredict.o $(LFLAGS) $(LLIBS)
+
+# - end of programs contributed by RCC
 
 ## ------- end of OpenMP compilations -------
 
@@ -1890,7 +1955,7 @@ afni_src.tgz:
 	$(MKDIR) afni_src
 	$(CP) -p *.c *.f *.inc *.h *.hhh Makefile.* *.xbm $(MINDOCS) $(MISC)     ./afni_src
 	$(CP) -pr coxplot volpack moveup moveAFNI* eispack                       ./afni_src
-	$(CP) -pr avovk ptaylor pkundu 					         ./afni_src
+	$(CP) -pr avovk ptaylor pkundu jzosky crorden                            ./afni_src
 	$(CP) -pr $(SCRIPTS_DIR) $(SCRIPTS_SRC) $(PY_DIR) $(R_DIR)               ./afni_src
 	$(CP) -pr gifsicledir qhulldir f2cdir mpeg_encodedir                     ./afni_src
 	$(CP) -pr 3DEdge netcdf-3.5.0 jpeg-6b niml Makefile_* nifti dlcompat     ./afni_src
@@ -1923,9 +1988,11 @@ afni_doc.tgz:
 
 ### Put things in their places
 
-install: $(INSTALLDIR) $(INSTALL_PREREQ) ptaylor_install pkundu_install
-	$(MV) $(PROGRAMS) $(INSTALLDIR)
+install_devs: ptaylor_install pkundu_install jzosky_install
+
+install: $(INSTALLDIR) $(INSTALL_PREREQ) install_devs
 	$(CP) $(SCRIPTS_DIR)/* $(INSTALLDIR)
+	$(MV) $(PROGRAMS) $(INSTALLDIR)
 	$(CP) $(PY_DIR)/*.py  $(R_DIR)/*.R $(INSTALLDIR)
 	$(CP) html/??*.* $(EXTRA_INSTALL_FILES) $(INSTALLDIR)
 	if [ -f README.environment ]; then $(CP) README.*    $(INSTALLDIR); fi;
@@ -2104,6 +2171,10 @@ thd_correlate.o:thd_correlate.c
 	$(RM) $@
 	$(CCFAST) -c thd_correlate.c $(INFLAGS)
 
+thd_notes.o:thd_notes.c
+	$(RM) $@
+	$(CC) -c thd_notes.c $(INFLAGS) $(SHOWOFF)
+
 thd_incorrelate.o:thd_incorrelate.c
 	$(RM) $@
 	$(CCFAST) -c thd_incorrelate.c $(INFLAGS)
@@ -2202,7 +2273,7 @@ MRI_OBJS = mri_cfft.o mri_complex_arith.o mri_fft_complex.o mri_free.o    \
            mri_warpfield.o mri_dicom_stuff.o mri_check.o mri_allzero.o         \
            mri_subset.o mri_to_fvect.o mri_genalign_util.o rcmat.o dmat44.o    \
            mri_sharpness.o mri_genARMA11.o mri_catvol.o mri_polyfit.o          \
-           mri_nwarp.o mri_extract.o mri_to_pval.o
+           mri_nwarp.o mri_extract.o mri_to_pval.o mri_sharpen3D.o
 
 THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_auxdata.o thd_editdaxes.o thd_initdblk.o thd_sarr.o  \
@@ -2234,7 +2305,8 @@ THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_bandpass.o thd_instacorr.o thd_svdblur.o thd_satcheck.o    \
            thd_dumdset.o ktaub.o bilinear_warp3D.o thd_table.o            \
            thd_atlas.o thd_warp_tables.o thd_lasso.o thd_mean_dset.o      \
-           thd_despike_L1.o thd_Tcorr1D.o thd_openimage.o
+           thd_despike_L1.o thd_Tcorr1D.o thd_openimage.o                 \
+           thd_remove_allzero.o
 
 # these are now included in NIML
 
@@ -2375,7 +2447,7 @@ models: model_constant.$(SO) model_linear.$(SO) model_quadratic.$(SO)  \
         model_zero.$(SO) model_demri_3.$(SO) model_expr2.$(SO)         \
         model_conv_diffgamma.$(SO) model_expMEMRI.$(SO)                \
         model_expMEMRI3.$(SO) model_conv_cosine4.$(SO)                 \
-        model_conv_PRF.$(SO) model_conv_PRF_6.$(SO)
+        model_conv_PRF.$(SO) model_conv_PRF_6.$(SO) model_conv_PRF_DOG.$(SO)
 
 # Contributed plugins go last, since they might not compile well
 
@@ -2431,16 +2503,16 @@ plug_crender.$(SO):plug_crender.c
 	$(PLUGIN_CC) -c plug_crender.c $(INFLAGS)
 	$(LD) $(PLUGIN_LFLAGS) -o plug_crender.$(SO) plug_crender.o -L.
 
-plug_maxima.$(SO):plug_maxima.c maxima.o
+plug_maxima.$(SO):plug_maxima.c maxima.c
 	$(RM) $@
-	$(PLUGIN_CC) -c plug_maxima.c $(INFLAGS)
+	$(PLUGIN_CC) -c plug_maxima.c maxima.c $(INFLAGS)
 	$(LD) $(PLUGIN_LFLAGS) -o plug_maxima.$(SO) plug_maxima.o maxima.o -L.
 
 ### From Fred Tam
 
-plug_retroicor.$(SO):plug_retroicor.c retroicor.o
+plug_retroicor.$(SO):plug_retroicor.c retroicor.c
 	$(RM) $@
-	$(PLUGIN_CC) -c plug_retroicor.c $(INFLAGS)
+	$(PLUGIN_CC) -c plug_retroicor.c retroicor.c $(INFLAGS)
 	$(LD) $(PLUGIN_LFLAGS) -o plug_retroicor.$(SO) plug_retroicor.o \
       retroicor.o
 
@@ -2583,6 +2655,22 @@ r_misc.o: rickr/r_misc.c rickr/r_misc.h
 	$(CC) -c rickr/r_misc.c $(INFLAGS)
 
 #######
+# Peter Molfese programs
+
+3dTsplit4D: 3dTsplit4D.o libmri.a
+	$(RM) $@
+	$(CC) -o 3dTsplit4D 3dTsplit4D.o $(LFLAGS) $(LLIBS)
+
+#######
+# make Chris Rorden's dcm2niix, but rename it with _afni to avoid conflicts
+
+dcm2niix_afni:
+	( cd crorden/dcm2niix_console ;		\
+	  make ;				\
+	  $(MV) dcm2niix ../../dcm2niix_afni ; 	\
+	  cd ../../ ; )
+
+#######
 # rickr programs
 
 3dmaxima: 3dmaxima.o maxima.o libmri.a
@@ -2656,6 +2744,11 @@ tokens: rickr/tokens.c
 	$(MAKE) tokens 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(ISFLAGS)'      	\
 			'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' ;           \
 	$(MV) tokens .. ; )
+
+3dTto1D: 3dTto1D.o libmri.a
+	$(RM) $@
+	$(CC) -o 3dTto1D 3dTto1D.o $(LFLAGS) $(LLIBS)
+
 
 
 selenium_test: selenium_test.o
@@ -2875,7 +2968,7 @@ imcalc:imcalc.o parser.o parser_int.o
 AFNI_HIST_FILES  = afni_history.c					     \
 	afni_history_bpittman.c afni_history_christip.c afni_history_dglen.c \
 	afni_history_gangc.c afni_history_rickr.c afni_history_rwcox.c	     \
-	afni_history_ziad.c afni_history_ptaylor.c
+	afni_history_ziad.c afni_history_ptaylor.c afni_history_discoraj.c
 
 afni_history: $(AFNI_HIST_FILES)
 	$(RM) $@
@@ -3225,6 +3318,12 @@ pkundu_install:
 #	cd ../	;		)
 
 #############
+# jzosky directory
+
+jzosky_install:
+	$(CP) -r jzosky/RetroTS.py jzosky/lib_RetroTS $(INSTALLDIR)
+
+#############
 #SUMA
 
 libSUMA.a: libmri.a libmrix.a libcoxplot.a libf2c.a libtracktools.a
@@ -3277,24 +3376,22 @@ libGLws.a:
 	$(CP) SUMA/libGLws.a ${INSTALLDIR}; \
 	$(CP) SUMA/libGLws.a ./;	)
 
-SUMA_PROGS = testGL suma ScaleToMap CompareSurfaces \
-	MakeColorMap ROI2dataset 3dVol2Surf \
-	3dSurf2Vol SurfMeasures SurfFWHM \
-	ConvertSurface ConvertDset SurfClust IsoSurface \
-   ConvexHull MapIcosahedron CreateIcosahedron SurfaceMetrics \
-   SurfSmooth inspec quickspec FSread_annot SurfPatch SurfQual SampBias \
-   3dSkullStrip 3dCRUISEtoAFNI 3dBRAIN_VOYAGERtoAFNI 3dSurfMask\
-   SurfToSurf Surf2VolCoord ROIgrow SurfDsetInfo SurfInfo AnalyzeTrace \
-   DriveSuma SurfDist SpharmReco SpharmDeco prompt_user SurfRetinoMap \
-   ParseName 3dGenPriors 3dGenFeatureDist 3dSeg SurfExtrema 3dinfill \
-   3dHist HalloSuma InstaTract niprobe SUMA_glxdino SUMA_paperplane \
+SUMA_PROGS = testGL suma ScaleToMap CompareSurfaces MakeColorMap ROI2dataset  \
+   3dVol2Surf 3dSurf2Vol SurfMeasures SurfFWHM ConvertSurface ConvertDset     \
+   SurfClust IsoSurface ConvexHull MapIcosahedron CreateIcosahedron 	      \
+   SurfaceMetrics SurfSmooth inspec quickspec FSread_annot SurfPatch SurfQual \
+   SampBias 3dSkullStrip 3dCRUISEtoAFNI 3dBRAIN_VOYAGERtoAFNI 3dSurfMask      \
+   SurfToSurf Surf2VolCoord ROIgrow SurfDsetInfo SurfInfo AnalyzeTrace        \
+   DriveSuma SurfDist SpharmReco SpharmDeco prompt_user prompt_popup          \
+   SurfRetinoMap ParseName 3dGenPriors 3dGenFeatureDist 3dSeg SurfExtrema     \
+   3dinfill 3dHist HalloSuma InstaTract niprobe SUMA_glxdino SUMA_paperplane  \
    SUMA_pixmap2eps BrainSkin
 
 SUMA_GTS_PROGS = SurfMesh
 
 
 ###
-#link executables but check for libraries first and create them if needed	
+#link executables but check for libraries first and create them if needed
 suma_exec:libGLws.a libSUMA.a libtracktools.a libmri.a xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.a libf2c.a
 	( cd SUMA ;	\
 	$(MAKE) -f $(SUMA_MAKEFILE_NAME) $(SUMA_PROGS) \
@@ -3312,7 +3409,7 @@ suma_exec:libGLws.a libSUMA.a libtracktools.a libmri.a xutil.o LiteClue.o parser
 	cd ../	;)
 
 ###
-#Do the GTS related stuff 	
+#Do the GTS related stuff
 suma_gts_progs: libgts.a
 	( cd SUMA ;	\
 	$(MAKE) -f $(SUMA_MAKEFILE_NAME) SurfMesh 'INSTALLDIR=$(INSTALLDIR)' \
@@ -3329,7 +3426,7 @@ suma_gts_progs: libgts.a
 	cd ../	;)
 
 ###
-#run make all in SUMA directory, USE FOR DEVELOPMENT ONLY	
+#run make all in SUMA directory, USE FOR DEVELOPMENT ONLY
 suma_all:libmri.a libtracktools.a xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.a libf2c.a
 	( cd SUMA ;	\
 	$(MAKE) -f $(SUMA_MAKEFILE_NAME) all 'INSTALLDIR=$(INSTALLDIR)' 'INSTALLDIR_SUMA=$(INSTALLDIR)' \
@@ -3346,7 +3443,7 @@ suma_all:libmri.a libtracktools.a xutil.o LiteClue.o parser.o parser_int.o libmr
 	cd ../	;)
 
 ###
-#run make anew in SUMA directory, USE FOR DEVELOPMENT ONLY	
+#run make anew in SUMA directory, USE FOR DEVELOPMENT ONLY
 suma_anew:libmri.a xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.a libf2c.a libtracktools.a
 	( cd SUMA ;	\
 	$(MAKE) -f $(SUMA_MAKEFILE_NAME) anew 'INSTALLDIR=$(INSTALLDIR)' 'INSTALLDIR_SUMA=$(INSTALLDIR)' \
@@ -3363,7 +3460,7 @@ suma_anew:libmri.a xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot
 	cd ../	;)
 
 suma_clean:
-	$(RM) SUMA/libSUMA.a libSUMA.a SUMA/libGLws.a libGLws.a	
+	$(RM) SUMA/libSUMA.a libSUMA.a SUMA/libGLws.a libGLws.a
 	if [ -f SUMA/suma ]; then $(RM) SUMA/suma; fi;
 	if [ -f suma ]; then $(RM) suma; fi;
 	if [ -f SUMA/MakeColorMap ]; then $(RM) SUMA/MakeColorMap; fi;
@@ -3481,29 +3578,27 @@ suma_link:
 	( cd SUMA ;	\
 	tar -xf $(SUMA_BIN_ARCHIVE)	;\
 	touch *.a	;\
-	$(CP) libmri.a libtractools.a libmrix.a libcoxplot.a libf2c.a ../	;\
-	$(RM) suma MakeColorMap ROI2dataset 3dVol2Surf 3dSurf2Vol \
-   SurfMeasures  SurfFWHM \
-   ScaleToMap MapIcosahedron \
-   CreateIcosahedron CompareSurfaces ConvertSurface ConvertDset SurfClust \
-   IsoSurface ConvexHull SurfaceMetrics SurfSmooth inspec \
-   quickspec FSread_annot SurfPatch SurfQual SampBias 3dSkullStrip \
-   3dCRUISEtoAFNI 3dBRAIN_VOYAGERtoAFNI 3dSurfMask\
-   SurfToSurf Surf2VolCoord ROIgrow SurfDsetInfo SurfInfo AnalyzeTrace \
-   DriveSuma SurfDist SpharmReco SpharmDeco prompt_user SurfRetinoMap \
-   ParseName 3dGenPriors 3dGenFeatureDist 3dSeg SurfExtrema 3dinfill \
-   3dHist HalloSuma niprobe BrainSkin \
-   InstaTract; \
-	$(MAKE) -f $(SUMA_MAKEFILE_NAME) testGL suma MakeColorMap ROI2dataset \
-   3dVol2Surf 3dSurf2Vol ScaleToMap SurfMeasures SurfFWHM \
-	MapIcosahedron CreateIcosahedron CompareSurfaces ConvertSurface ConvertDset \
-	SurfClust IsoSurface ConvexHull SurfaceMetrics SurfSmooth inspec \
-   quickspec FSread_annot SurfPatch SurfQual SampBias 3dSkullStrip \
-   3dCRUISEtoAFNI 3dBRAIN_VOYAGERtoAFNI 3dSurfMask \
-	SurfToSurf Surf2VolCoord ROIgrow SurfDsetInfo SurfInfo AnalyzeTrace \
-   DriveSuma SurfDist SpharmReco SpharmDeco prompt_user SurfRetinoMap \
-   ParseName 3dGenPriors 3dGenFeatureDist 3dSeg SurfExtrema 3dinfill \
-   3dHist HalloSuma InstaTract niprobe BrainSkin \
+	$(CP) libmri.a libtractools.a libmrix.a libcoxplot.a libf2c.a ../ ;\
+	$(RM) suma MakeColorMap ROI2dataset 3dVol2Surf 3dSurf2Vol 	\
+   SurfMeasures  SurfFWHM ScaleToMap MapIcosahedron CreateIcosahedron 	\
+   CompareSurfaces ConvertSurface ConvertDset SurfClust IsoSurface 	\
+   ConvexHull SurfaceMetrics SurfSmooth inspec 				\
+   quickspec FSread_annot SurfPatch SurfQual SampBias 3dSkullStrip 	\
+   3dCRUISEtoAFNI 3dBRAIN_VOYAGERtoAFNI 3dSurfMask SurfToSurf		\
+   Surf2VolCoord ROIgrow SurfDsetInfo SurfInfo AnalyzeTrace DriveSuma 	\
+   SurfDist SpharmReco SpharmDeco prompt_user prompt_popup SurfRetinoMap\
+   ParseName 3dGenPriors 3dGenFeatureDist 3dSeg SurfExtrema 3dinfill 	\
+   3dHist HalloSuma niprobe BrainSkin InstaTract; 			\
+	$(MAKE) -f $(SUMA_MAKEFILE_NAME) testGL suma MakeColorMap	\
+   ROI2dataset 3dVol2Surf 3dSurf2Vol ScaleToMap SurfMeasures SurfFWHM 	\
+   MapIcosahedron CreateIcosahedron CompareSurfaces ConvertSurface 	\
+   ConvertDset SurfClust IsoSurface ConvexHull SurfaceMetrics SurfSmooth\
+   inspec quickspec FSread_annot SurfPatch SurfQual SampBias 		\
+   3dSkullStrip 3dCRUISEtoAFNI 3dBRAIN_VOYAGERtoAFNI 3dSurfMask 	\
+   SurfToSurf Surf2VolCoord ROIgrow SurfDsetInfo SurfInfo AnalyzeTrace  \
+   DriveSuma SurfDist SpharmReco SpharmDeco prompt_user prompt_popup	\
+   SurfRetinoMap ParseName 3dGenPriors 3dGenFeatureDist 3dSeg 		\
+   SurfExtrema 3dinfill 3dHist HalloSuma InstaTract niprobe BrainSkin 	\
 	'INSTALLDIR=$(INSTALLDIR)' \
 	'SUMA_MDEFS=$(SUMA_MDEFS)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
@@ -3520,27 +3615,27 @@ suma_link:
 ###
 #install suma
 suma_install:
-	( if [ ! -d $(INSTALLDIR) ]; then $(MKDIR) -p $(INSTALLDIR); echo WARNING: directory $(INSTALLDIR) has been created. ; fi	;\
+	( if [ ! -d $(INSTALLDIR) ]; then $(MKDIR) -p $(INSTALLDIR); echo WARNING: directory $(INSTALLDIR) has been created. ; fi	; 		 \
 	$(CP) SUMA/suma SUMA/MakeColorMap SUMA/ROI2dataset SUMA/3dVol2Surf \
-	SUMA/3dSurf2Vol SUMA/SurfMeasures SUMA/SurfFWHM \
-	SUMA/ScaleToMap SUMA/MapIcosahedron SUMA/CreateIcosahedron \
-	SUMA/CompareSurfaces \
-	SUMA/ConvertSurface SUMA/ConvertDset SUMA/SurfClust SUMA/IsoSurface \
-	SUMA/ConvexHull SUMA/SUMA_glxdino SUMA/SUMA_pixmap2eps SUMA/SurfaceMetrics \
-   SUMA/inspec SUMA/quickspec SUMA/FSread_annot SUMA/SurfPatch SUMA/SurfQual \
-	SUMA/SurfSmooth SUMA/SUMA_paperplane \
-   SUMA/SampBias SUMA/3dSkullStrip SUMA/3dCRUISEtoAFNI \
-   SUMA/3dBRAIN_VOYAGERtoAFNI SUMA/3dSurfMask \
-   SUMA/SurfToSurf  SUMA/Surf2VolCoord  SUMA/ROIgrow SUMA/SurfDsetInfo \
-   SUMA/SurfInfo SUMA/AnalyzeTrace SUMA/DriveSuma SUMA/SurfDist \
-   SUMA/SpharmReco SUMA/SpharmDeco SUMA/prompt_user SUMA/SurfRetinoMap \
-   SUMA/ParseName SUMA/3dGenPriors SUMA/3dGenFeatureDist SUMA/3dSeg \
-   SUMA/SurfExtrema SUMA/3dinfill \
+	SUMA/3dSurf2Vol SUMA/SurfMeasures SUMA/SurfFWHM 		 \
+	SUMA/ScaleToMap SUMA/MapIcosahedron SUMA/CreateIcosahedron 	 \
+	SUMA/CompareSurfaces SUMA/ConvertSurface SUMA/ConvertDset	 \
+    	SUMA/SurfClust SUMA/IsoSurface SUMA/ConvexHull SUMA/SUMA_glxdino \
+	SUMA/SUMA_pixmap2eps SUMA/SurfaceMetrics SUMA/inspec		 \
+	SUMA/quickspec SUMA/FSread_annot SUMA/SurfPatch SUMA/SurfQual 	 \
+	SUMA/SurfSmooth SUMA/SUMA_paperplane SUMA/SampBias		 \
+	SUMA/3dSkullStrip SUMA/3dCRUISEtoAFNI 				 \
+   SUMA/3dBRAIN_VOYAGERtoAFNI SUMA/3dSurfMask 				 \
+   SUMA/SurfToSurf  SUMA/Surf2VolCoord  SUMA/ROIgrow SUMA/SurfDsetInfo 	 \
+   SUMA/SurfInfo SUMA/AnalyzeTrace SUMA/DriveSuma SUMA/SurfDist 	 \
+   SUMA/SpharmReco SUMA/SpharmDeco SUMA/prompt_user SUMA/prompt_popup 	 \
+   SUMA/SurfRetinoMap SUMA/ParseName SUMA/3dGenPriors			 \
+   SUMA/3dGenFeatureDist SUMA/3dSeg SUMA/SurfExtrema SUMA/3dinfill 	 \
    SUMA/3dHist SUMA/HalloSuma SUMA/InstaTract SUMA/niprobe SUMA/BrainSkin \
    ${INSTALLDIR} ; \
 	if [ -f SUMA/SurfMesh ]; then $(CP) SUMA/SurfMesh ${INSTALLDIR} ; fi; \
 	$(CP) scripts_install/@SUMA_* ${INSTALLDIR} ;)
-	
+
 suma: suma_clean suma_exec suma_install
 suma_gts: suma_clean suma_exec suma_gts_progs suma_install
 suma_fromobjs: suma_link suma_install
@@ -3575,7 +3670,7 @@ R_io.so:R_io.c libmri.a
 	( if which R >/dev/null ; then \
 	echo PKG_CPPFLAGS = $(INFLAGS)  > Makevars ;\
 	echo PKG_LIBS =  $(LFLAGS) $(LLIBS) >> Makevars ;\
-	R CMD SHLIB R_io.c ; \
+	R CMD SHLIB -o R_io.so R_io.c ; \
 	else echo WARNING: Cannot build R_io.so because R is not installed;\
 	fi ; )
 
@@ -3589,7 +3684,15 @@ R_io.so:R_io.c libmri.a
 #    all:     depends on AFNI_version.txt
 #    install: installs AFNI_version.txt
 
-mrilib.h: AFNI_version.h
+mrilib.h: Startup_Commands AFNI_version.h
+
+# the purpose of this is to run any commands needed before
+# actually starting compilation:
+#   in particular, for the NIH Biowulf, it is necessary to
+#   do 'module load intel' to gain access to the Intel C compiler
+
+Startup_Commands:
+	$(STARTUP_COMMANDS)
 
 AFNI_version.h: AFNI_version_base.txt
 	echo "#undef  AFNI_VERSION_LABEL" > AFNI_version.h ;                 \

@@ -21,7 +21,7 @@
 	      }  \
          /* SUMAg_CF->scm = SUMA_Build_Color_maps();  require X connection*/\
       SUMA_ParseInput_basics_s (argv, argc);   \
-      glutInit(& argc, argv); \
+      /* glutInit(& argc, argv);  fails for remote connections 4 Sep 2016 */ \
    }
 #endif   
 

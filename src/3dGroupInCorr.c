@@ -1147,6 +1147,13 @@ void GIC_help(int junque)    /* Dispense the Wisdom of the Ages [07 Apr 2016] */
       ) ;
 
       printf(
+       "\n"
+       "* If you have only the .niml and .data files, and not original datasets,\n"
+       "  you can partially reconstruct the datasets by using the program\n"
+       "  3dExtractGroupInCorr.\n"
+      ) ;
+
+      printf(
       "\n"
       "===================================================================\n"
       "                       COMMAND LINE OPTIONS\n"

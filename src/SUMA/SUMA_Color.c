@@ -833,6 +833,7 @@ SUMA_AFNI_COLORS *SUMA_Get_AFNI_Default_Color_Maps ()
    SUMA_PBARDEF_ADD("init_bigmaps_2");
    SUMA_PBARDEF_ADD("init_bigmaps_1");
    SUMA_PBARDEF_ADD("init_bigmaps_0");
+   SUMA_PBARDEF_ADD(R_AND_B_INV_256_CMD); // [PT: Aug 17, 2017]
    SUMA_PBARDEF_ADD(CB_CS_35); 
    SUMA_PBARDEF_ADD(CB_CS);
    SUMA_PBARDEF_ADD(CYTOARCH_ROI_256_CMD);
@@ -8534,7 +8535,7 @@ SUMA_Boolean SUMA_ListOrderToPlaneOrder (DList *listop)
 int SUMA_GetLargestBackroundOrder (DList *listop)
 {
    static char FuncName[]={"SUMA_GetLargestBackroundOrder"};
-   int Order, i;
+   int Order, i=0;
    DListElmt *Elmop=NULL;
    SUMA_OVERLAY_LIST_DATUM *OvD = NULL;
    SUMA_Boolean LocalHead = NOPE;
@@ -8566,7 +8567,7 @@ int SUMA_GetLargestBackroundOrder (DList *listop)
 int SUMA_GetSmallestForegroundOrder (DList *listop)
 {
    static char FuncName[]={"SUMA_GetSmallestForegroundOrder"};
-   int Order, i;
+   int Order, i=0;
    DListElmt *Elmop=NULL;
    SUMA_OVERLAY_LIST_DATUM *OvD = NULL, *oOvD = NULL;
    SUMA_Boolean LocalHead = NOPE;

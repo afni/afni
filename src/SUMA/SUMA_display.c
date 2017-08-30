@@ -2319,7 +2319,7 @@ void SUMA_display_one(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                break;
             case ANY_DSET_type:
             case MD_DSET_type:
-	    case GDSET_type: /* Should not be in DO list */
+            case GDSET_type: /* Should not be in DO list */
                SUMA_S_Warn("Should not have such objects as registrered DOs");
                break;
             case CDOM_type:
@@ -2492,19 +2492,19 @@ void SUMA_display_one(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                break;
             case ANY_DSET_type:
             case MD_DSET_type:
-	    case GDSET_type:
+            case GDSET_type:
                SUMA_S_Warn("Should not have type in DO list to be rendered");
                break;
             case CDOM_type:
                #if 0
-	          /* A CIFTI DO is not drawn directly, not any more */
-	       if (!SUMA_Draw_CIFTI_DO (
+                  /* A CIFTI DO is not drawn directly, not any more */
+               if (!SUMA_Draw_CIFTI_DO (
                      (SUMA_CIFTI_DO *)dov[sRegistDO[i].dov_ind].OP, csv)) {
                   fprintf( SUMA_STDERR, 
                            "Error %s: Failed in SUMA_Draw_CIFTI_DO.\n", 
                            FuncName);
                }
-	       #endif
+               #endif
                break;
             case MASK_type:
                if (!SUMA_DrawMaskDO (
@@ -4278,7 +4278,7 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
          SUMAg_SVv[ic].X->VISINFO = SUMAg_SVv[0].X->VISINFO;
          SUMAg_SVv[ic].X->DOUBLEBUFFER = SUMAg_SVv[0].X->DOUBLEBUFFER;
       }
-		
+                
       #ifdef USING_LESSTIF 
          SUMA_LH("Using LessTif Libraries.");
       #else
@@ -4289,7 +4289,7 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
          /* see Kilgard's OpenGL Programming for the X window system */
          /* create main window */
          SUMA_LH("Creating Main Window");
-	   /* Next call Causes Seg. fault on Fedora Core 4. 
+           /* Next call Causes Seg. fault on Fedora Core 4. 
          Not much I can do. Same happens with demo code paperplane.c 
          by Kilgard */
          Gmainw = XmCreateMainWindow (  SUMAg_SVv[ic].X->TOPLEVEL, 
@@ -4365,15 +4365,44 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
         SUMA_LH("MOTIF Drawing Area");
         /* Step 6. */
          /* glwMDrawingAreaWidgetClass requires libMesaGLwM.a */
-         SUMAg_SVv[ic].X->GLXAREA = XtVaCreateManagedWidget("glxarea",
+
+        if( glwMDrawingAreaWidgetClass == NULL ) {
+            fprintf(stderr,"** ERROR: glwMDrawingAreaWidgetClass is NULL\n"
+            "   This might be an error in GLwDrawA.h where the class is\n"
+            "   not referenced using 'extern'.  An alternative is to use\n"
+            "   the local build of libGLws.a.\n");
+            exit(1);
+        }
+
+        SUMAg_SVv[ic].X->GLXAREA = XtVaCreateManagedWidget("glxarea",
           glwMDrawingAreaWidgetClass, SUMAg_SVv[ic].X->FRAME,
           GLwNvisualInfo, SUMAg_SVv[ic].X->VISINFO,
           XtNcolormap, SUMAg_SVv[ic].X->CMAP,
           NULL);
       #else
         SUMA_LH("GL Drawing Area");
-         /* glwDrawingAreaWidgetClass requires libMesaGLw.a */
-         SUMAg_SVv[ic].X->GLXAREA = XtVaCreateManagedWidget("glxarea",
+
+        /* glwDrawingAreaWidgetClass requires libMesaGLw.a */
+
+        /* -------------------------------------------------------------------
+         * check for NULL glwDrawingAreaWidgetClass        23 May 2017 [rickr]
+         *
+         * If glwDrawingAreaWidgetClass was declared without extern, we might
+         * be seeing a local version of it (with a NULL value), rather than a
+         * reference to the existing library verison (if the library is loaded
+         * dynamically, the variable might not be seen at compile time).
+         *
+         * see https://www.cygwin.com/ml/cygwin-xfree/2014-10/msg00040.html
+         * ------------------------------------------------------------------ */
+        if( glwDrawingAreaWidgetClass == NULL ) {
+            fprintf(stderr,"** ERROR: glwDrawingAreaWidgetClass is NULL\n"
+            "   This might be an error in GLwDrawA.h where the class is\n"
+            "   not referenced using 'extern'.  An alternative is to use\n"
+            "   the local build of libGLws.a.\n");
+            exit(1);
+        }
+
+        SUMAg_SVv[ic].X->GLXAREA = XtVaCreateManagedWidget("glxarea",
           glwDrawingAreaWidgetClass, SUMAg_SVv[ic].X->FRAME,
           GLwNvisualInfo, SUMAg_SVv[ic].X->VISINFO,
           XtNcolormap, SUMAg_SVv[ic].X->CMAP,
@@ -6567,14 +6596,14 @@ int SUMA_OpenCloseSurfaceCont(Widget w,
          }
       }
       if (!SUMA_isADO_Cont_Created(ado)) {
-      	SUMA_LH("Creationism");
-      	SUMA_cb_createSurfaceCont( sv->X->TOPLEVEL, (XtPointer)ado, NULL); 
+        SUMA_LH("Creationism");
+        SUMA_cb_createSurfaceCont( sv->X->TOPLEVEL, (XtPointer)ado, NULL); 
       } else {
         /* must have been closed, open it */
-	if (!SUMA_viewSurfaceCont( sv->X->TOPLEVEL, ado, sv)) {
-	   SUMA_S_Err("Failed to open surf cont anew");
-	   SUMA_RETURN(0);
-	}
+        if (!SUMA_viewSurfaceCont( sv->X->TOPLEVEL, ado, sv)) {
+           SUMA_S_Err("Failed to open surf cont anew");
+           SUMA_RETURN(0);
+        }
       }
    }
    SUMA_LH("Initializing ColPaneShell");
@@ -6586,8 +6615,8 @@ int SUMA_OpenCloseSurfaceCont(Widget w,
                                           it is more annoying than useful */
       SUMA_LH("Closism")
       #if 0 /* Not a good idea to do this because widgets get unrealized and
-   	   The main reason for calling this function is to be sure that
-	   the widgets are alive and well for setting and queries ZSS Nov 9 2012 */
+           The main reason for calling this function is to be sure that
+           the widgets are alive and well for setting and queries ZSS Nov 9 2012 */
       SUMA_cb_closeSurfaceCont(NULL, (XtPointer) ado, NULL);
       #else
       XIconifyWindow(SUMAg_CF->X->DPY_controller1, XtWindow(SurfCont->TLS), 0);
@@ -6681,7 +6710,7 @@ SUMA_ALL_DO **SUMA_DOsInSurfContNotebook(Widget NB)
             switch(SUMAg_DOv[j].ObjectType) {
                case CDOM_type:
                   SUMA_LH("%s objects are no longer to get their own controller",
-		    SUMA_ObjectTypeCode2ObjectTypeName(SUMAg_DOv[j].ObjectType));
+                    SUMA_ObjectTypeCode2ObjectTypeName(SUMAg_DOv[j].ObjectType));
                   break;
                default:
                   break;
@@ -6785,7 +6814,7 @@ int SUMA_viewSurfaceCont(Widget w, SUMA_ALL_DO *ado,
    
    if (ado->do_type == CDOM_type) {
       SUMA_LH("I thought we decided to not have a separate "
-      	      "controller for CIFTI_DO!");
+              "controller for CIFTI_DO!");
       SUMA_RETURN(0);
    }
    if (!sv) {
@@ -7586,10 +7615,10 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
          break; 
       case CDOM_type:
          SUMA_LH("No longer planning on separate controllers for CIFTI");
-	 #if 0
-	 SUMA_cb_createSurfaceCont_CO(w, (XtPointer)ado,  callData);
+         #if 0
+         SUMA_cb_createSurfaceCont_CO(w, (XtPointer)ado,  callData);
          #endif
-	 break;
+         break;
       case GDSET_type:
          SUMA_S_Err("Cannot create a controller for a dataset"
                     "with no rendering variant");
@@ -12111,7 +12140,7 @@ SUMA_Boolean SUMA_InitializeColPlaneShell_SO (
       if (!SOpar) {
          SUMA_SL_Warn(  "No domain parent for dset %s found.\n"
                         "Proceeding with next best option.", 
-			SDSET_LABEL(ColPlane->dset_link));
+                        SDSET_LABEL(ColPlane->dset_link));
          SOpar = SO;
       }
       

@@ -200,6 +200,8 @@ static void * malloc_track( size_t n , char *fn , int ln )
 #pragma omp critical (MCW_MALLOC_mt)
  { size_t nn = n + 2*NEXTRA ; int ii ;
 
+/* fprintf(stderr,"malloc_track(%u,%s,%d)\n",(unsigned int)n,fn,ln) ; */
+
    fred = (char *) malloc(nn) ;
    if( fred == NULL ){                                     /* real bad news */
       long long val ;
@@ -384,7 +386,7 @@ char * mcw_malloc_status(const char *fn , int ln)
    static char buf[128] = "\0" ;
    if( ! use_tracking ) return NULL ;
 
-#pragma omp critical (MCW_MALLOC_statusfunc)
+#pragma omp critical (MCW_MALLOC_stat)
  { int jj,kk , nptr=0 ; long long nbyt=0 ;
 
    for( jj=0 ; jj < SLOTS ; jj++ ){
@@ -462,7 +464,7 @@ void mcw_malloc_dump_fp(FILE *fp)
 {
    if( ! use_tracking || fp == NULL ) return ;
 
-#pragma omp critical (MCW_MALLOC_dump)
+#pragma omp critical (MCW_MALLOC_dumpfp)
  { int ii,jj,kk,nptr=0 ; char *str ; int *ss , *jk ;
 
    /* count number of entries in the hash table */
@@ -571,7 +573,7 @@ void enable_mcw_malloc()       /* cannot be disabled */
 {
    char *str = getenv("AFNI_NO_MCW_MALLOC") ;  /* NOT my_getenv */
 
-#pragma omp critical (MCW_MALLOC_enable)
+#pragma omp critical (MCW_MALLOC_emm)
  {
    if( use_tracking ) goto IAMDONE ;
    use_tracking = 1 ;
@@ -600,7 +602,7 @@ void enable_mcw_malloc()       /* cannot be disabled */
 static int pz = 0;   /* flag to indicate pause */
 void pause_mcw_malloc()
 {
-#pragma omp critical (MCW_MALLOC_pause)
+#pragma omp critical (MCW_MALLOC_pmm)
  {
    if (!pz && use_tracking) {
       pz = 1; use_tracking = 0;
@@ -610,7 +612,7 @@ void pause_mcw_malloc()
 }
 void resume_mcw_malloc()
 {
-#pragma omp critical (MCW_MALLOC_pause)
+#pragma omp critical (MCW_MALLOC_rmm)
  {
    if( pz ){
      pz = 0; use_tracking = 1;
@@ -719,9 +721,10 @@ void mcw_free( void *fred , char *fnam , int lnum )
    mallitem *ip ;
 
    if( fred == NULL ) return ;
-   if( use_tracking && (ip=shift_tracker(fred)) != NULL )
+   if( use_tracking && (ip=shift_tracker(fred)) != NULL ){
+/* fprintf(stderr,"mcw_free(%s,%d) -- from %s,%d\n",fnam,lnum,ip->pfn,ip->pln) ; */
      free_track( ip ) ;
-   else {
+   } else {
 #ifdef USE_TRACING
       if( use_tracking ){
         char buf[1024] ;

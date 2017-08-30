@@ -263,7 +263,7 @@ typedef enum { SE_Empty,
 typedef enum { SE_niEmpty,
                SE_niSetSurfCont, SE_niSetObjectCont, SE_niSetViewerCont, 
                SE_niSetRecorderCont, 
-               SE_niKillSuma,
+               SE_niKillSuma, SE_GetLabel,
                SE_niBadCode} SUMA_NI_COMMAND_CODE;
                                 
 typedef enum { SEF_Empty, 

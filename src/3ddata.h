@@ -99,15 +99,15 @@ extern "C" {
 
 #define THD_MAX_SBLABEL     64     /* added 11/03/2011 drg */
 
-/*! Max length of a dataset prefix. */
+/*! Max length of a dataset prefix. [increased to 999 by RWCox 17 Oct 2016] */
 
-#define THD_MAX_PREFIX     (255+1)  /* must be more than THD_MAX_LABEL
+#define THD_MAX_PREFIX     (999+1)  /* must be more than THD_MAX_LABEL
                                     (  ZSS Jan 07 need room for path specified
                                        with prefix on command line    ) */
 
 /*! Max length of a "name" of a file, or stuff like that. */
 
-#define THD_MAX_NAME      (256+THD_MAX_PREFIX)     /* (ZSS Jan 07)*/
+#define THD_MAX_NAME      (999+THD_MAX_PREFIX)     /* (ZSS Jan 07)*/
 
 /*! Max length of a dataset view code (+orig, etc). */
 
@@ -1213,6 +1213,13 @@ typedef struct {
       float master_bot ;      /*!< range of data values to keep from master - bottom */
       float master_top ;      /*!< range of data values to keep from master - top */
 
+      /* for angle bracket selectors - input restricted to an integer list of */
+      /* CSV (comma separated values) - akin to master_bot and master_top,    */
+      /* but a list, not a range                          21 Nov 2016 [rickr] */
+      /* --> of course, this will probably change to a list of float ranges...*/
+      int    master_ncsv ;    /*!< Number of values in master_csv             */
+      int *  master_csv  ;    /*!< list of non-zero values that can be stored */
+
       THD_diskptr * diskptr ; /*!< where the data is on disk (if anywhere!) */
 
       int       natr ;        /*!< number of attributes read from disk (or to write to disk) */
@@ -1285,6 +1292,13 @@ typedef struct {
 
 #define DBLK_IS_MASTERED(db) \
   ((db)->master_nvals > 0 && (db)->master_ival != NULL && (db)->master_bytes != NULL)
+
+/*! Check if brick is mastered and has subranges to be applied */
+
+#define DBLK_IS_MASTER_SUBRANGED(db)                    \
+   (DBLK_IS_MASTERED(db) &&                             \
+      ( ((db)->master_bot <= (db)->master_top) ||       \
+        ((db)->master_ncsv > 0 && (db)->master_csv != NULL) ))
 
 extern void THD_delete_datablock         ( THD_datablock * ) ;
 extern void THD_init_datablock_brick     ( THD_datablock * , int , void * ) ;
@@ -1579,6 +1593,16 @@ typedef struct {
 
 #define EQUIV_DELTAXYZ(d1,d2) \
  ( ISVALID_DSET(d1) && ISVALID_DSET(d2) && EQUIV_DATADELTAXYZ((d1)->daxes,(d2)->daxes) )
+
+#define EQUIV_DATA_NXYZ(cax,dax)    \
+ ( ISVALID_DATAXES((cax))        && \
+   ISVALID_DATAXES((dax))        && \
+   (cax)->nxx == (dax)->nxx      && \
+   (cax)->nyy == (dax)->nyy      && \
+   (cax)->nzz == (dax)->nzz  )
+
+#define EQUIV_GRIDS_NXYZ(d1,d2) \
+ ( ISVALID_DSET(d1) && ISVALID_DSET(d2) && EQUIV_DATA_NXYZ((d1)->daxes,(d2)->daxes) )
 
 extern void THD_edit_dataxes( float , THD_dataxes * , THD_dataxes * ) ;
 
@@ -4031,20 +4055,21 @@ typedef struct {
       XtPointer parent ;        /*!< generic pointer to "owner" of session */
 } THD_session ;
 
-char * THD_get_space(THD_3dim_dataset *dset);
-int THD_space_code(char *space);
+extern char * THD_get_space(THD_3dim_dataset *dset);
+extern int THD_space_code(char *space);
 
+extern int is_surface_storage_mode( int smode ) ;
 
-THD_3dim_dataset *
-get_session_dset_id(THD_session *sess, MCW_idcode idcode, int space_index);
-THD_3dim_dataset *
-get_session_dset(THD_session *sess, int index, int space_index);
-int
-set_session_dset(THD_3dim_dataset *dset, THD_session *sess,
-   int index, int space_index);
-void set_nspaces(int n);
-void set_atlas_nspaces(void);
-int get_nspaces(void);
+extern THD_3dim_dataset *
+        get_session_dset_id(THD_session *sess, MCW_idcode idcode, int space_index);
+extern THD_3dim_dataset *
+        get_session_dset(THD_session *sess, int index, int space_index);
+extern int
+        set_session_dset(THD_3dim_dataset *dset, THD_session *sess,
+                           int index, int space_index);
+extern void set_nspaces(int n);
+extern void set_atlas_nspaces(void);
+extern int get_nspaces(void);
 
 #ifdef oldsessions
    #define GET_SESSION_DSET(session, index, space) \
@@ -4398,6 +4423,7 @@ extern int THD_slow_minmax_dset(THD_3dim_dataset *dset,
                 float *dmin, float *dmax, int iv_bot, int iv_top);
 extern float THD_dset_max(THD_3dim_dataset *dset, int scl);
 extern float THD_dset_min(THD_3dim_dataset *dset, int scl);
+extern float THD_dset_extent(THD_3dim_dataset *dset, char ret,float *RL_AP_IS);
 
 extern void THD_show_dataset_names( THD_3dim_dataset *dset,
                                     char *head, FILE *out);
@@ -4477,15 +4503,18 @@ extern MRI_IMAGE *        THD_fetch_1D           (char *) ; /* 26 Mar 2001 */
 
 extern void THD_set_storage_mode( THD_3dim_dataset *,int ); /* 21 Mar 2003 */
 
-extern int * get_count_intlist ( char *str , int *nret , int maxval );
+extern int * get_count_intlist    (char *str, int *nret, int maxval );
+extern int * get_count_intlist_eng(char *str, int *nret, int maxval, int ok_neg);
 /* get_1dcat_intlist: May 15 2012 ZSS    ; added maxval 4 Jan 2016 [rickr] */
-int * get_1dcat_intlist ( char *str , int *nret, int maxval);
+int * get_1dcat_intlist    ( char *str , int *nret, int maxval);
+int * get_1dcat_intlist_eng( char *str , int *nret, int maxval, int ok_neg);
 
 extern int * MCW_get_intlist( int , char * ) ;
 extern int * MCW_get_labels_intlist( char ** , int,  char * ); /* ZSS Dec 09 */
 extern int * MCW_get_thd_intlist( THD_3dim_dataset * , char * ); /* ZSS Dec 09 */
 extern void MCW_intlist_allow_negative( int ) ;             /* 22 Nov 1999 */
 extern int  MCW_get_angle_range(THD_3dim_dataset *, char *, float *, float *);
+extern int  thd_check_angle_selector(THD_3dim_dataset *, char *); /* 21 Nov 2016 */
 
 
 /* copy a dataset, given a list of sub-bricks          [rickr] 26 Jul 2004 */
@@ -4578,7 +4607,6 @@ extern THD_3dim_dataset * THD_copy_one_sub  ( THD_3dim_dataset * , int ) ;
     " \n"                                                                     \
     " N.B. If AFNI_PATH_SPACES_OK is set to Yes, will be considered as part\n"\
     " of the dataset name, and not as a separator between them.\n"            \
-    " \n"                                                                     \
     " \n"                                                                     \
     " Similar treatment applies when specifying datasets using a wildcard\n"  \
     " pattern, using '*' or '?', as in: 'dset*+tlrc.HEAD'.  Any sub-brick\n"  \
@@ -4740,6 +4768,7 @@ extern THD_3dim_dataset * THD_mean_dataset( int nds, THD_3dim_dataset **dsin, in
 
 extern void    THD_zerofill_dataset( THD_3dim_dataset * ) ;  /* 18 Mar 2005 */
 extern int     THD_apply_master_subrange( THD_datablock * ); /* 14 Apr 2006 */
+extern int     THD_apply_master_subrange_list(THD_datablock *);/* 30 Nov 2016 */
 extern void    THD_patch_brickim( THD_3dim_dataset * ) ;     /* 20 Oct 2006 */
 
 extern int THD_datum_constant( THD_datablock * ) ;           /* 30 Aug 2002 */
@@ -4768,8 +4797,9 @@ extern void THD_check_idcodes( THD_sessionlist * ) ; /* 08 Jun 1999 */
 extern void THD_load_statistics( THD_3dim_dataset * ) ;
 extern void THD_update_statistics( THD_3dim_dataset * ) ;
 extern THD_brick_stats THD_get_brick_stats( MRI_IMAGE * ) ;
-extern void THD_update_one_bstat( THD_3dim_dataset * , int ) ; /* 29 Mar 2005 */
-extern int THD_dset_scale(THD_3dim_dataset *aset, float fac); /* Jan 31 2015 */
+extern void THD_update_one_bstat( THD_3dim_dataset * , int ) ;  /* 29 Mar 2005 */
+extern int THD_dset_scale(THD_3dim_dataset *aset, float fac);   /* 31 Jan 2015 */
+extern int THD_count_nonzero_bricks( THD_3dim_dataset *dset ) ; /* 17 Jan 2017 */
 
 extern THD_fvec3 THD_3dind_to_3dmm( THD_3dim_dataset * , THD_ivec3 ) ;
 extern THD_fvec3 THD_3dind_to_3dmm_no_wod( THD_3dim_dataset * , THD_ivec3 ) ;
@@ -4807,9 +4837,10 @@ extern float THD_timeof_slice( int , int , THD_3dim_dataset * ) ;  /* BDW */
 extern float * TS_parse_tpattern( int, float, char * ) ;  /* 11 Dec 2007 */
 
 extern THD_fvec3 THD_dataset_center( THD_3dim_dataset * ) ;  /* 01 Feb 2001 */
-extern THD_fvec3 THD_cmass( THD_3dim_dataset *xset , int iv , byte *mmm );
+extern THD_fvec3 THD_cmass( THD_3dim_dataset *xset , int iv , byte *mmm,
+                               int cmode);
 extern float *THD_roi_cmass(THD_3dim_dataset *xset , int iv ,
-                            int *rois, int N_rois);
+                            int *rois, int N_rois, int cmode);
 extern int THD_dataset_mismatch(THD_3dim_dataset *, THD_3dim_dataset *) ;
 extern double THD_diff_vol_vals(THD_3dim_dataset *d1, THD_3dim_dataset *d2,
                                 int scl);
@@ -4973,6 +5004,8 @@ extern int THD_vectim_data_tofile( MRI_vectim *mrv , char *fnam ) ;
 extern int THD_vectim_reload_fromfile( MRI_vectim *mrv , char *fname ) ;
 extern void THD_vector_fromfile( int nvals , int iv , float *vv , FILE *fp ) ;
 
+void THD_check_vectim( MRI_vectim *mv , char *fname ) ;                         /* 13 Mar 2017 */
+
 extern void mri_blur3D_vectim( MRI_vectim *vim , float fwhm ) ;
 extern void THD_vectim_normalize( MRI_vectim *mrv ) ;
 extern void THD_vectim_dotprod  ( MRI_vectim *mrv, float *vec, float *dp, int ata ) ;
@@ -4988,6 +5021,9 @@ extern void THD_vectim_pearson_section( MRI_vectim *mrv, float *vec,
 extern void THD_vectim_applyfunc( MRI_vectim *mrv , void *vp ) ;        /* 10 May 2012 */
 
 extern void THD_vectim_pearsonBC( MRI_vectim *mrv, float srad, int sijk, int pv, float *par ) ;
+
+extern void THD_vectim_distance( MRI_vectim *mrv , float *vec ,
+                                 float *dp, int abs, char *xform) ;
 
 extern float kendallNlogN ( float *arr1, float *arr2, int len ) ;  /* in ktaub.c */
 extern float kendallSmallN( float *arr1, float *arr2, int len ) ;
@@ -5005,7 +5041,7 @@ extern MRI_vectim * THD_dset_list_to_vectim( int, THD_3dim_dataset **, byte * );
 typedef struct {
   THD_3dim_dataset *dset , *mset ;
   byte *mmm ;
-  MRI_IMAGE *gortim ;
+  MRI_IMAGE *gortim ; int gortnpc ;
   int start,end , automask , mindex ;
   int clen,cnum,cstep ;
   float fbot , ftop , blur , sblur ;
@@ -5041,6 +5077,8 @@ extern int         THD_instacorr_prepare( ICOR_setup *iset ) ;
 extern MRI_IMAGE * THD_instacorr        ( ICOR_setup *iset, int ijk ) ;
 extern int         THD_instacorr_cmeth_needs_normalize( int cmeth );
 extern MRI_IMARR * THD_instacorr_collection( ICOR_setup *iset, int ijk ) ;
+
+extern int THD_instacorr_cmeth_needs_norm(int cmeth) ;
 /*---------------------------------------------------------------------------*/
 
 extern int THD_extract_array      ( int, THD_3dim_dataset *, int, void * ) ;
@@ -5219,6 +5257,8 @@ extern int    mask_union_count    ( int, byte *, byte * ); /* 30 Mar 2009 */
 extern int    mask_count          ( int, byte * ) ;
 extern float_triple mask_rgyrate( int nx, int ny, int nz , byte *mmm ) ;
 extern byte * mri_automask_image2D( MRI_IMAGE *im ) ;      /* 12 Mar 2010 */
+
+extern THD_3dim_dataset * THD_remove_allzero(THD_3dim_dataset *); /* 25 Jul 2017 */
 
 
                                                    /* 13 Nov 2006 [rickr] */
@@ -5473,13 +5513,16 @@ extern void mri_3dalign_initvals( float,float,float,float,float,float ) ;
 extern MRI_IMARR * mri_3dalign_oneplus( MRI_3dalign_basis * , MRI_IMARR * ,
                                         float *, float *, float *,
                                         float *, float *, float * ) ;
+extern MRI_IMARR * mri_3dalign_apply( MRI_3dalign_basis * , MRI_IMARR * ,
+                                        float, float, float,
+                                        float, float, float, int ) ;
 
 /*---------------------------------------------------------------------*/
 
   /*-- see mri_warp3D_align.c for these routines --*/
 
 #undef  PARAM_MAXTRIAL
-#define PARAM_MAXTRIAL 11
+#define PARAM_MAXTRIAL 22
 typedef struct {
   float min, max, siz, ident, delta, toler ;
   float val_init , val_out , val_fixed , val_pinit ;
@@ -5735,7 +5778,7 @@ extern THD_3dim_dataset * TT_retrieve_atlas_big_old(void) ; /* 01 Aug 2001 */
 extern void TT_purge_atlas_big(void);
 
 extern THD_3dim_dataset * TT_retrieve_atlas_either_old(void); /* 22 Aug 2001 */
-extern char **atlas_chooser_formatted_labels(char *atname);
+extern char **atlas_chooser_formatted_labels(char *atname,int flipxy);
 
 #define TT_ATLAS_NZ_SMALL 141 /* 01 Aug 2001 */
 #define TT_ATLAS_NZ_BIG   151
@@ -5756,10 +5799,11 @@ extern float THD_ktaub_corr   ( int,float *,float *) ;  /* 29 Apr 2010 */
 extern float THD_eta_squared  ( int,float *,float *) ;  /* 25 Jun 2010 */
 extern double THD_eta_squared_masked(int,float *,float *,byte *);/* 16 Jun'11 */
 extern float THD_dice_coef_f_masked(int,float *,float *,byte *);/* 28 Jul'15 */
+// orig- Apr. 2014;  updated- Jan. 2017, as part of some attempted saBobtage:
 extern THD_3dim_dataset * THD_Tcorr1D(THD_3dim_dataset *xset,
                               byte *mask, int nmask,
                               MRI_IMAGE *ysim,
-                              char *smethod, char *prefix); /* Apr. 2014 */
+                              char *smethod, char *prefix,int do_short);
 extern float THD_quantile_corr( int,float *,float *) ;  /* 10 May 2012 */
 extern float quantile_corr( int n , float *x , float rv , float *r ) ;
 extern void THD_quantile_corr_setup( int ) ;

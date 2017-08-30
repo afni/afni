@@ -1,3 +1,4 @@
+
 /** cf. afni_history.h **/
 
 #include "afni_history.h"
@@ -49,6 +50,50 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 11, JUL, 2017 , DRG , "DriveSuma quiet variable" , 
+    MICRO , TYPE_NEW_OPT, 
+    "SUMA_DriveSumaQuiet",
+    "Make suma a little quieter with DriveSuma"
+},
+{ 19, APR, 2017 , DRG , "3dMean min, max options" , 
+    MINOR , TYPE_NEW_OPT, 
+    "3dMean computes min and max voxelwise across datasets",
+    "Options -min, -max give min and max values. This can be\n"
+    "combined with -non-zero to restrict to non-zero min and max."
+},
+{ 19, APR, 2017 , DRG , "3dLocalstat has_mask, has_mask2 options" , 
+    MINOR , TYPE_NEW_OPT, 
+    "3dLocalstat can report if neighborhood intersects specified values",
+    "Options -has_mask and -has_mask2 allow flagging with unfillvalue"
+},
+{ 5, APR, 2017 , DRG , "3dVol2Surf nzoptions" , 
+    MINOR , TYPE_NEW_OPT, 
+    "3dVol2Surf nonzero min, nonzero max, nonzero ave",
+    "Options allowing for statistics that ignore zero values"
+},
+{ 30, MAR, 2017 , DRG , "3dLocalstat" , 
+    MINOR , TYPE_NEW_OPT, 
+    "simple statistics of filled or unfilled",
+    "These options provide binary tests for whether the neighborhood shape\n"
+    "entirely fits within a mask or dataset around each voxel\n"
+    "A value can be specified for a fill and unfill value"
+},
+{ 27, MAR, 2017 , DRG , "align_epi_anat.py" , 
+    MINOR , TYPE_BUG_FIX, 
+    "rm of temporary files could delete all files in current directory",
+    "rm deletes all files that have tabs/spaces inserted in dataset names\n"
+    "The tab  or space character can be somewhat invisible if after\n"
+    "line continuation character in input script. Fix removes whitespace\n"
+    "before deleting"
+},
+{ 5, JAN, 2017 , DRG , "align_epi_anat.py" , 
+    MINOR , TYPE_BUG_FIX, 
+    "NIFTI output and output directories not always handled correctly or completely"
+},
+{ 17, NOV, 2016 , DRG , "DriveSuma" , 
+    MINOR , TYPE_NEW_OPT, 
+    "Ask suma to send current surface name to SUMA_OUTPLUG file or stdout"
+},
 { 19, AUG, 2016 , DRG , "3dLocalstat" , 
     MINOR , TYPE_BUG_FIX, 
     "Neighborhoods miscalculated"

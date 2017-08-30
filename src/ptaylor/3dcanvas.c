@@ -12,7 +12,7 @@
 #include <3ddata.h>    
 //#include <rsfc.h>    
 //#include <gsl/gsl_rng.h>
-//#include "DoTrackit.h"
+#include "DoTrackit.h"
 
 void usage_FUNCNAME(int detail) 
 {
@@ -52,18 +52,20 @@ void usage_FUNCNAME(int detail)
 }
 
 int main(int argc, char *argv[]) {
-   // int i,j,k,m,n,mm;
-   // int idx;
-   // int iarg;
-   // THD_3dim_dataset *insetTIME = NULL;
-   // THD_3dim_dataset *MASK=NULL;
-   // char *prefix="REHO" ;
+   int i,j,k,m,n,mm;
+   int idx=0;
+   int iarg;
+
+   THD_3dim_dataset *insetA = NULL;
+   THD_3dim_dataset *MASK=NULL;
+   char *prefix="PREFIX" ;
    // char in_name[300];
-   // char in_mask[300];
 
    // FILE *fout0, *fout1;
-   // int Nvox=-1;   // tot number vox
-   // int *Dim=NULL;
+
+   int Nvox=-1;   // tot number vox
+   int *Dim=NULL;
+   int ***mskd=NULL; // define mask of where time series are nonzero
 
    int TEST_OK = 0;
 
@@ -106,16 +108,16 @@ int main(int argc, char *argv[]) {
          iarg++ ; if( iarg >= argc ) 
                      ERROR_exit("Need argument after '-insetA'");
 
-         sprintf(in_name,"%s", argv[iarg]); 
-         insetTIMEA = THD_open_dataset(in_name) ;
-         if( (insetTIMEA == NULL ))
-            ERROR_exit("Can't open time series dataset '%s'.",in_name);
+         insetA = THD_open_dataset(argv[iarg]);
+         if( (insetA == NULL ))
+            ERROR_exit("Can't open time series dataset '%s'.",
+                       argv[iarg]);
 
          Dim = (int *)calloc(4,sizeof(int));
-         DSET_load(insetTIMEA); CHECK_LOAD_ERROR(insetTIMEA);
-         Nvox = DSET_NVOX(insetTIMEA) ;
-         Dim[0] = DSET_NX(insetTIMEA); Dim[1] = DSET_NY(insetTIMEA); 
-         Dim[2] = DSET_NZ(insetTIMEA); Dim[3] = DSET_NVALS(insetTIMEA); 
+         DSET_load(insetA); CHECK_LOAD_ERROR(insetA);
+         Nvox = DSET_NVOX(insetA) ;
+         Dim[0] = DSET_NX(insetA); Dim[1] = DSET_NY(insetA); 
+         Dim[2] = DSET_NZ(insetA); Dim[3] = DSET_NVALS(insetA); 
 
          iarg++ ; continue ;
       }
@@ -124,12 +126,11 @@ int main(int argc, char *argv[]) {
       if( strcmp(argv[iarg],"-mask") == 0 ){
          iarg++ ; if( iarg >= argc ) 
                      ERROR_exit("Need argument after '-mask'");
-         HAVE_MASK=1;
 
-         sprintf(in_mask,"%s", argv[iarg]); 
-         MASK = THD_open_dataset(in_mask) ;
-         if( (MASK == NULL ))
-            ERROR_exit("Can't open time series dataset '%s'.",in_mask);
+         MASK = THD_open_dataset(argv[iarg]);
+         if( MASK == NULL )
+            ERROR_exit("Can't open time series dataset '%s'.",
+                       argv[iarg]);
 
          DSET_load(MASK); CHECK_LOAD_ERROR(MASK);
 			
@@ -164,7 +165,7 @@ int main(int argc, char *argv[]) {
       exit(5);
    }
 
-   if 
+   
 
 	
    // ****************************************************************
@@ -173,6 +174,12 @@ int main(int argc, char *argv[]) {
    // ****************************************************************
    // ****************************************************************
 
+   mskd = (int ***) calloc( Dim[0], sizeof(int **) );
+   for ( i = 0 ; i < Dim[0] ; i++ ) 
+      mskd[i] = (int **) calloc( Dim[1], sizeof(int *) );
+   for ( i = 0 ; i < Dim[0] ; i++ ) 
+      for ( j = 0 ; j < Dim[1] ; j++ ) 
+         mskd[i][j] = (int *) calloc( Dim[2], sizeof(int) );
 
 
 
@@ -188,16 +195,16 @@ int main(int argc, char *argv[]) {
    for( k=0 ; k<Dim[2] ; k++ ) 
       for( j=0 ; j<Dim[1] ; j++ ) 
          for( i=0 ; i<Dim[0] ; i++ ) {
-            if( HAVE_MASK ) {
+            if( MASK ) {
                if( THD_get_voxel(MASK,idx,0)>0 )
                   mskd[i][j][k] = 1;
             }
             else
-               if( fabs(THD_get_voxel(insetTIMEA,idx,0))+
-                   fabs(THD_get_voxel(insetTIMEA,idx,1))+
-                   fabs(THD_get_voxel(insetTIMEA,idx,2))+
-                   fabs(THD_get_voxel(insetTIMEA,idx,3))+
-                   fabs(THD_get_voxel(insetTIMEA,idx,4)) > EPS_V)
+               if( fabs(THD_get_voxel(insetA,idx,0))+
+                   fabs(THD_get_voxel(insetA,idx,1))+
+                   fabs(THD_get_voxel(insetA,idx,2))+
+                   fabs(THD_get_voxel(insetA,idx,3))+
+                   fabs(THD_get_voxel(insetA,idx,4)) > EPS_V)
                   mskd[i][j][k] = 1;
             idx+= 1; // skip, and mskd and KW are both still 0 from calloc
          }
@@ -216,11 +223,33 @@ int main(int argc, char *argv[]) {
    // ************************************************************
    // ************************************************************
 	
-   if(insetTIMEA)
-      free(insetTIMEA);
+   if(insetA){
+      DSET_delete(insetA);
+      free(insetA);
+   }
 
-   if( MASK )
+   if( MASK ) {
+      DSET_delete(MASK);
       free(MASK);
+   }
+      
+
+   if(mskd) {
+      for( i=0 ; i<Dim[0] ; i++) 
+         for( j=0 ; j<Dim[1] ; j++) {
+            free(mskd[i][j]);
+         }
+      for( i=0 ; i<Dim[0] ; i++) {
+         free(mskd[i]);
+      }
+      free(mskd);
+   }
+
+   if(prefix)
+      free(prefix);
+
+   if(Dim)
+      free(Dim);
 	
    return 0;
 }

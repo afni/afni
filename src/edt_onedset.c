@@ -484,10 +484,10 @@ STATUS("abs applied to meaningless type: will be ignored") ;
          /** threshold datum is shorts **/
 
          case MRI_short:{
-            short thrplu , thrmin ;
+            float thrplu , thrmin ;
             float fplu = edit_thresh / thrfac ;
             float fmin = edit_thbot  / thrfac ;
-            thrplu = SHORTIZE(fplu) ; thrmin = SHORTIZE(fmin) ;
+            thrplu = THRESH_SHORTIZE(fplu) ; thrmin = THRESH_SHORTIZE(fmin) ;
             switch( fim_type ){
                case MRI_short:   /* fim datum is shorts */
                  for( ii=0 ; ii < nxyz ; ii++ )

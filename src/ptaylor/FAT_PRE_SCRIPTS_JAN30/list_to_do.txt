@@ -1,0 +1,6 @@
+make consistent deletion of working dirs
+
+make list of co-installs/check script?
+
+make fail if no xvfb-run detected
+

@@ -179,6 +179,9 @@ void TPR_help_the_pitiful_user(void)
    "                          2, if you are bandpassing out the lower frequencies!\n"
    "                       ++ For catenated datasets, each run gets a separate set\n"
    "                          set of pp+1 Legendre polynomial regressors.\n"
+   "                       ++ Use of -polort -1 is not advised (if data mean != 0),\n"
+   "                          even if -ort contains constant terms, as all means are\n"
+   "                          removed.\n"
    " -dsort fset         = Remove the 3D+time time series in dataset fset.\n"
    "                       ++ That is, 'fset' contains a different nuisance time\n"
    "                          series for each voxel (e.g., from AnatICOR).\n"
@@ -628,7 +631,9 @@ STATUS("count un-censored points") ;
                   nt , nt-ntkeep , ntkeep ) ;
 
    if( ntkeep < MIN_RUN )
-     ERROR_exit("only %d points left after censoring -- cannot continue",ntkeep) ;
+     ERROR_exit(
+       "only %d points left after censoring -- cannot continue (need at least %d)",
+       ntkeep,MIN_RUN) ;
 
    /** The number of time points to use in regression [06 Dec 2013] **/
 
@@ -643,7 +648,9 @@ STATUS("count un-censored points in each run") ;
        aa = bla[tt] ; bb = blb[tt] ;
        for( nnk=0,jj=aa ; jj <= bb ; jj++ ) if( tp->censar[jj] != 0.0f ) nnk++ ;
        if( nnk < MIN_RUN ){
-         ERROR_message("run #%d has only %d points after censoring",tt+1,nnk) ;
+         ERROR_message(
+           "run #%d has only %d points after censoring (need at least %d)",
+           tt+1,nnk,MIN_RUN) ;
          nerr++ ;
        }
      }
@@ -771,7 +778,7 @@ STATUS("checking ortar for goodness") ;
    if( nort_fixed >= ntkeep ){
      ERROR_message(
        "total number of fixed regressors (%d) is too many for %d retained time points!",
-       nort_fixed , nt ) ;
+       nort_fixed , ntkeep ) ;
      nbad++ ;
    }
 
@@ -807,8 +814,18 @@ STATUS("checking dsortar for goodness") ;
 
    if( nbad > 0 ) ERROR_exit("Cannot continue after above errors :-( :-( :-( !!") ;
 
-   INFO_message("%d retained time points MINUS %d regressors ==> %d D.O.F. left",
-                ntkeep , nort_fixed+nort_voxel , ntkeep-nort_fixed-nort_voxel    ) ;
+   { int ndof = ntkeep-nort_fixed-nort_voxel ;
+     INFO_message("%d retained time points MINUS %d regressors ==> %d D.O.F. left",
+                  ntkeep , nort_fixed+nort_voxel , ndof ) ;
+     if( ndof < 30 ){
+       if( ndof > 19 )
+         WARNING_message("Be careful when your data has so few D.O.F.!") ;
+       else if( ndof > 9 )
+         WARNING_message("Statistics using data with so few D.O.F. might be meretricious!") ;
+       else
+         WARNING_message("Statistics using data with so few D.O.F. will be meretricious!") ;
+     }
+   }
 
    /*----- make voxel mask, if present -----*/
 
@@ -830,11 +847,11 @@ STATUS("making explicit mask") ;
 STATUS("making automask") ;
      vmask = THD_automask( tp->inset ) ;
      if( vmask == NULL )
-       ERROR_exit("Can't mask automask for some reason :-( !!") ;
+       ERROR_exit("Can't mask automask for some unknown reason :-( !!") ;
      nvmask = THD_countmask( DSET_NVOX(tp->inset) , vmask ) ;
      INFO_message("%d voxels in the spatial automask",nvmask) ;
      if( nvmask == 0 )
-       ERROR_exit("autoask from input dataset %s has 0 voxels",DSET_BRIKNAME(tp->inset)) ;
+       ERROR_exit("automask from input dataset %s has 0 voxels",DSET_BRIKNAME(tp->inset)) ;
 
    } else {   /*** all voxels */
 
@@ -930,7 +947,9 @@ STATUS("censoring orts") ;
        if( is_vector_zero(ntkeep,opp) ) qort-- ;
      }
      if( qort < nort_fixed ){  /* it might have shrunk above */
-       INFO_message("%d fixed ort vectors discarded as all zero, after censoring",nort_fixed-qort) ;
+       INFO_message(
+         "%d fixed ort vectors (out of %d original) discarded as all zero, after censoring",
+         nort_fixed-qort,nort_fixed) ;
        nort_fixed = qort ;
      }
      if( nort_fixed == 0 )
@@ -984,6 +1003,7 @@ STATUS("loading censored datasets") ;
      inset_mrv = THD_dset_censored_to_vectim( tp->inset, vmask, ntkeep, keep ) ;
    }
    DSET_unload(tp->inset) ;
+   THD_check_vectim(inset_mrv,"3dTproject input data") ;
 
    if( tp->dsortar != NULL ){
 STATUS("loading dsortar") ;
@@ -996,6 +1016,7 @@ STATUS("loading dsortar") ;
                                                       vmask, ntkeep, keep ) ;
        DSET_unload(tp->dsortar->ar[jj]) ;
        THD_vectim_applyfunc( dsort_mrv[jj] , vector_demean ) ;
+       THD_check_vectim(dsort_mrv[jj],"3dTproject dsort data") ;
      }
    }
 
@@ -1412,7 +1433,7 @@ int main( int argc , char *argv[] )
      ERROR_exit("input dataset has fewer than %d time points?",MIN_RUN) ;
 
    if( tinp->maskset != NULL && !EQUIV_GRIDXYZ(tinp->inset,tinp->maskset) )
-     ERROR_exit("mask and input datasets are NOT on the same 3D grid?") ;
+     ERROR_exit("mask and input datasets are NOT on the same 3D grid -- do you need 3dresample?") ;
 
    DSET_load(tinp->inset) ; CHECK_LOAD_ERROR(tinp->inset) ;
    if( tinp->maskset != NULL ){
@@ -1480,7 +1501,7 @@ int main( int argc , char *argv[] )
    if( tinp->censar != NULL   ) nact++ ;
    if( tinp->num_CENSOR > 0   ) nact++ ;
    if( nact == 0 )
-     ERROR_exit("Don't you want to DO something?") ;
+     ERROR_exit("Don't you want to DO something? Please read the help!") ;
 
    /*----- process the data -----*/
 
@@ -1496,7 +1517,7 @@ int main( int argc , char *argv[] )
      DSET_write(tinp->outset) ;
      if( tinp->verb ) WROTE_DSET(tinp->outset) ;
    } else {
-     ERROR_exit("Processing the data failed for unknown reasons!") ;
+     ERROR_exit("Processing the data failed for unknown reasons :(") ;
    }
 
    if( tinp->verb )

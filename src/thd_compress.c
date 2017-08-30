@@ -34,6 +34,7 @@ static void COMPRESS_setup_programs(void)  /* 03 May 2013 */
    static char *uprog_gzip=NULL , *uprog_bzip2=NULL ;
    static int first=1 ;
    int        cind=-1;
+   int    skip_pigz=AFNI_yesenv("AFNI_DONT_USE_PIGZ") ;
 
    if( !first ) return ;
    first = 0 ;
@@ -47,8 +48,8 @@ static void COMPRESS_setup_programs(void)  /* 03 May 2013 */
    else                              pgname = NULL ;
 
    /* if that failed (ignore which), just start clean */
-   if( pgname == NULL ) pgname = THD_find_executable("pigz") ;
-   if( pgname == NULL ) pgname = THD_find_executable("gzip") ;
+   if( pgname == NULL && !skip_pigz ) pgname = THD_find_executable("pigz") ;
+   if( pgname == NULL               ) pgname = THD_find_executable("gzip") ;
    if( pgname == NULL ){
      COMPRESS_program_ok[0] = COMPRESS_program_ok[3] = 0 ;
    } else {
