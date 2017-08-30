@@ -97,8 +97,10 @@ static int signal_model
   int      debug        /* make some noise */
 )
 {
-  int    maxind;        /* largest dimension */
   float  A, x, y, sigma;/* model params */
+  int    maxind;        /* largest dimension */
+  int    tmpmax;
+
 
   /* assign parameters */
   A = gs[0];
@@ -107,17 +109,27 @@ static int signal_model
   if( debug ) {
      fprintf(stderr, "-d model_conv_PRF parameters: "
                      "A = %f, x = %f, y = %f, sigma = %f\n"
-                     "   nz = %d, nvals = %d, ts_len = %d\n",
+                     "   nx = %d, nz = %d, nvals = %d, ts_len = %d\n",
                      A, x, y, sigma,
-                     DSET_NZ(g_saset), DSET_NVALS(g_saset), ts_length);
+                     DSET_NX(g_saset), DSET_NZ(g_saset), DSET_NVALS(g_saset),
+                     ts_length);
      show_malloc_stats("signal model");
   }
 
   if( ! ISVALID_3DIM_DATASET(g_saset) ) return 0;
 
+  /* possibly restrict the length, via nx if on grid, else nt */
+  /* (was just NX)    30 Aug 2017 */
   maxind = ts_length;
-  if( maxind > DSET_NX(g_saset) ) maxind = DSET_NX(g_saset);
+
+  if( genv_on_grid ) tmpmax = DSET_NX(g_saset);
+  else               tmpmax = DSET_NVALS(g_saset);
+
+  if( maxind > tmpmax ) maxind = tmpmax;
   if( maxind == 0 ) return 0;
+
+  if( debug && maxind < ts_length )
+      fprintf( stderr,"-d truncating NT from %d to %d\n", ts_length, maxind);
 
   /* time array must be ordered according to stim dset */
   if( genv_on_grid ) /* scale data directly from grid */
