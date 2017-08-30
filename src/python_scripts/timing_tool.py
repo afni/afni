@@ -307,13 +307,32 @@ examples:
 
          timing_tool.py -timing stimes.txt -show_duration_stats
 
+   Example 18. Convert FSL formatted timing files to AFNI timing format.
+
+      A set of FSL timing files (for a single class), one file per run,
+      can be read using -fsl_timing_files (rather than -timing, say).  At
+      that point, 
+      If the files have varying durations, the result will
+      be in AFNI duration modulation format.  If the files have amplitudes
+      that are not constant 0 or constant 1, the result will have amplitude
+      modulators.
+
+         timing_tool.py -fsl_timing_files fsl_r1.txt fsl_r2.txt fsl_r3.txt \\
+                        -write_timing combined.txt
+
+      And possibly force to married format, via -write_as_married.
+
+         timing_tool.py -fsl_timing_files fsl_r1.txt fsl_r2.txt fsl_r3.txt \\
+                        -write_timing combined.txt -write_as_married
+
 --------------------------------------------------------------------------
 Notes:
 
    1. Action options are performed in the order of the options.
       Note: -chrono has been removed.
 
-   2. Either -timing or -multi_timing is required for processing.
+   2. One of -timing or -multi_timing or -fsl_timing_files is required
+      for processing.
 
    3. Option -run_len applies to single or multiple stimulus classes.  A single
       parameter would be used for all runs.  Otherwise one duration per run
@@ -360,6 +379,51 @@ options with both single and multi versions (all single first):
 
             Consider '-show_isi_stats' and '-run_len'.
 
+   --------------------
+
+   -fsl_timing_files F1 F2 ...   : read a list of FSL formatted timing files
+
+        e.g. -fsl_timing_files fsl.s1.run1.txt fsl.s1.run2.txt fsl.s1.run3.txt
+        e.g. -fsl_timing_files fsl.stim.class.A.run.*.txt
+
+        This is essentially an alternative to -timing, as the result is a
+        single multi-run timing element.
+
+        Each input file should have FSL formatted timing for a single run,
+        and all for the same stimulus class.  Each file should contain a list
+        of entries like:
+
+            event_time  duration  amplitude
+
+        e.g. with varying durations and amplitudes (fully married)
+
+                0         5         3
+                17.4      4.6       2.5
+                ...
+
+        e.g. with constant durations and (ignored) amplitudes (so not married)
+
+                0         2         1
+                17.4      2         1
+                ...
+
+        e.g. empty (no events)
+
+                0         0         0
+        
+        If all durations are the same, the result will not have duration
+        modulators.
+
+        If all amplitudes are 0 or all are 1, the result will not have
+        amplitude modulators.
+
+        An empty file or one with a single line of '0 0 0' is considered to
+        have no events (note that 0 0 0 means duration and amplitude of zero).
+
+        Comment lines are okay (starting with #).
+
+            Consider -write_as_married.
+        
    --------------------
         
    -multi_timing FILE1 FILE2 ... : specify multiple timing files to load
@@ -687,6 +751,15 @@ action options (apply to single timing element, only):
         This option requires -tr.
 
             Consider example 7.
+
+   -write_as_married            : if possible, force output in married format
+
+        e.g. -write_as_married
+
+        If all durations are equal, the default is to not write with duration
+        modulation (as the constant duration would likely be provided as part
+        of a basis function).  Use -write_as_married to include any constant
+        duration as a modulator.
 
    -write_timing NEW_FILE       : write the current timing to a new file
 
@@ -1042,11 +1115,11 @@ g_history = """
    2.15 Mar 15, 2016 - help_basis update: max of BLOCK() is ~5.1 (not 5.4)
    2.16 Aug  5, 2016 - added -marry_AM for J Wiggins
    2.17 Jan  9, 2017 - timediff for event list should use prev duration
-   2.18 Aug 22, 2017
-        - added -apply_end_times_as_durations and -show_duration_stats
+   2.18 Aug 22, 2017 - -apply_end_times_as_durations and -show_duration_stats
+   2.19 Aug 30, 2017 - added -fsl_timing_files and -write_as_married
 """
 
-g_version = "timing_tool.py version 2.18, August 22, 2017"
+g_version = "timing_tool.py version 2.19, August 30, 2017"
 
 
 
@@ -1119,7 +1192,7 @@ class ATInterface:
       timing = LT.AfniTiming(fsl_flist=flist, verb=self.verb)
 
       if not timing.ready:
-         print "** failed to read timing from '%s'" % fname
+         print "** failed to read FSL timing files"
          return 1
 
       # success, so nuke and replace the old stuff

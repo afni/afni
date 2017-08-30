@@ -3145,7 +3145,7 @@ class AfniData(object):
             print "** failed to open '%s' for writing Mtiming" % fname
             return 1
 
-      if self.verb > 0:
+      if self.verb > 1:
          print "++ writing %d MTiming rows to %s" % (self.nrows, fname)
 
       fp.write(self.make_data_string(nplaces=nplaces, flag_empty=1,
@@ -3716,8 +3716,26 @@ class AfniData(object):
       for find, fname in enumerate(flist):
          try: td = TD.read_1D_file(fname)
          except:
-            print '** failed to read FSL timing file %d, %s' % (find, fname)
+            print "** failed to read FSL timing file %d, '%s'" % (find, fname)
             return 1
+         if td == None:
+            print "** failed to read FSL timing file %d, '%s'" % (find, fname)
+            return 1
+
+         # check for an empty run, either nothing in the file,
+         # or the special case of 0, 0, 0
+         if len(td) == 0:
+            if self.verb > 2:
+               print '-- FSL timing file %s has no events' % fname
+            mdata.append([])
+            continue
+         elif len(td) == 1:
+            if UTIL.vals_are_constant(td[0], cval=0):
+               if self.verb > 2:
+                  print '-- FSL timing file %s shows no events' % fname
+               mdata.append([])
+               continue
+
          elist = [[ev[0], [ev[2]], ev[1]] for ev in td]
          amp_all.extend([ev[2] for ev in td])
          mdata.append(elist)
