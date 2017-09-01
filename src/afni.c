@@ -2305,6 +2305,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Let me be fell, force I must be brief"                                          ,
      "Meet me at the Torre Pendente di Pisa on the feast of St Rainerius"             ,
      "One martini is just right; two is too many; three is never enough"              ,
+     "Martinis -- not just for breakfast anymore"                                     ,
      "If you can't explain it simply, you don't understand it well enough"            ,
      "Even the Universe bends back on itself, but stupidity goes on forever"          ,
      "Get your statistics first, then you can distort them as you please"             ,
