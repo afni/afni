@@ -20,7 +20,6 @@
 #include "gts/config.h"
 #endif
 #include "gts.h"
-#include "gts-private.h"
 
 #include "SUMA_suma.h"
 

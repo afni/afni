@@ -262,9 +262,14 @@ static  gifti_image *afni_surf_to_gifti_surf(NI_group *aSO)
    }
    
    /* form image */
+/* Since this goes into a shared lib, we better do not rely on global symbols --
+ * should not have a huge impact, since this is just a debug message
+ */
+#if 0
    if( G.verb > 1 ) {  
       fprintf(stderr,"++ creating gifti_image \n" );
    }
+#endif
    
    /* basic step - create empty image (with a version string) 
       from gifti_create_image */
@@ -375,10 +380,15 @@ static  gifti_image *afni_surf_to_gifti_surf(NI_group *aSO)
       RETURN(gim);
    }
 
+/* Since this goes into a shared lib, we better do not rely on global symbols --
+ * should not have a huge impact, since this is just a debug message
+ */
+#if 0
    if( G.verb > 1 ) {  
       gifti_disp_gifti_image("afni_surf_to_gifti_surf :",gim, G.verb > 3);  
    }
-   
+#endif
+
    RETURN(gim);
 }
  

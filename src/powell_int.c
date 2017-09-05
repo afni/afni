@@ -19,7 +19,7 @@
 /** cf. powell_newuoa.[fc] **/
 
 #ifdef USE_OMP
-# include "powell_newuoa.c"
+//# include "powell_newuoa.c"
 #else
   extern int newuoa_(integer *n, integer *npt, doublereal *x,
                      doublereal *rhobeg, doublereal *rhoend, integer *maxfun,

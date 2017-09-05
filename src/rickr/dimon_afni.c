@@ -8,8 +8,9 @@
 #include "mri_image.h"
 #include "mri_dicom_hdr.h"
 #include "vecmat.h"
+#include "mcw_malloc.h"
 #include "Amalloc.h"
-#include "dbtrace.h"
+#include "debugtrace.h"
 
 /*----------------------------------------------------------------------
  * dimon_afni.c

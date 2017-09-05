@@ -95,18 +95,18 @@ int mri_siemens_slice_times(int * nalloc, int * nused, float ** times)
 
 /* Dimon needs to compile without libmri     18 May 2006 */
 /* (this allows removal of rickr/l_mri_dicom_hdr.c)      */
-#ifndef FOR_DIMON
+/*#ifndef FOR_DIMON // causes problems linking to libmri (duplicate symbols)*/
 
 #include "mcw_malloc.h"
 #include "Amalloc.h"
 #include "debugtrace.h"    /* 10 Sep 2002 */
 
-#else
-
-#include "Amalloc.h"
-#include "dbtrace.h"
-
-#endif
+/* #else
+ * #include "Amalloc.h"
+ * #include "dbtrace.h"
+ *
+ * #endif
+ */
 
 /* cast int to pointer and vice-versa without warning messages */
 

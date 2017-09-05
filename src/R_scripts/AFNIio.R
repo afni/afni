@@ -9,7 +9,7 @@ SHOW_TRC <<- FALSE
 # Functions for library loading
 #------------------------------------------------------------------
 find.in.path <- function(file) { #Pretty much same as first.in.path
-   ff <- paste(strsplit(Sys.getenv('PATH'),':')[[1]],'/', file, sep='')
+   ff <- paste(strsplit(paste(Sys.getenv('PATH'),'/usr/lib/afni/lib', sep=':'),':')[[1]],'/', file, sep='')
    ff <- ff[lapply(ff,file.exists)==TRUE];
    aa <- gsub('//','/',ff[1], fixed=TRUE)
    if (is.na(aa)) aa <- NULL
@@ -155,11 +155,11 @@ exit.AFNI <- function(str='The piano has been drinking.', stat=0) {
 #Locate and load R_io.so
 set_R_io <- function() {
    rio <- 0
-   ll <- find.in.path('R_io.so')
+   ll <- find.in.path('librio.so')
    if (!is.null(ll)) {
       dd <- try(dyn.load(ll), silent=TRUE)
-      if (dd[[1]]!="R_io") {
-         warn.AFNI(paste("Failed to load R_io.so with this error message:\n"));
+      if (dd[[1]]!="librio") {
+         warn.AFNI(paste("Failed to load librio.so with this error message:\n"));
          dyn.load(ll)
       } else {
          rio <- 1
