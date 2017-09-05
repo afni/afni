@@ -59,7 +59,7 @@ v_align = 'top'
 /T>
 <I
 coord = '1 0 0.9'
-filename = 'funstuff/face_alexmartin2.jpg'
+filename = 'pics/face_alexmartin2.jpg'
 h_align = 'right'
 v_align = 'bot'
 />
@@ -74,7 +74,7 @@ frame_coords = "
 0.0 1.0 1
 1.0 1.0 1
 1.0 0.0 1"
-filename = "funstuff/face_afniman.jpg"
+filename = "pics/face_afniman.jpg"
 />
 <S
 node = '0'
