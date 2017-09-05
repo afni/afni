@@ -42,8 +42,12 @@
 #   + changed output mat/vec/bval extensions from 'txt' -> 'dat';
 #     should me more uniform with other fat* funcs
 #
-set version = "3.0"; set rev_dat = "July 27, 2017"
+#set version = "3.0"; set rev_dat = "July 27, 2017"
 #   + fixed some I/O issues with rowvecs and separate bvals
+#
+set version = "3.1"; set rev_dat = "Sep 04, 2017"
+#   + work with new @chauffeur*, -prefix only
+#   + update help file format for more autoprompting of opts
 #
 # ----------------------------------------------------------------
  
@@ -390,14 +394,12 @@ if ( 1 ) then
 
         $my_viewer_4d  \
             -inset  $odir/${opref}.nii.gz      \
-            -outdir "$odir"                    \
-            -prefix "$img_pref" 
+            -prefix "$odir/$img_pref" 
 
         if ( "$movie" != "" ) then
             $my_viewer_4d \
                 -inset  $odir/${opref}.nii.gz  \
-                -outdir "$odir"                \
-                -prefix "$img_pref"            \
+                -prefix "$odir/$img_pref"      \
                 $movie
         endif
     endif
@@ -466,8 +468,10 @@ cat << EOF
   where:
   -in_dwi  DDD      :name of a 4D file of DWIs (required).
 
-  -in_col_matA|-in_col_matT|-in_col_vec|-in_row_vec FFF
-                    :one of these options must be used to input 
+  -in_col_matA |
+  -in_col_matT |
+  -in_col_vec  |
+  -in_row_vec  FFF  :one of these options must be used to input 
                      a bvec/bmat file from the gradients. Required.
                      Same type of output file is returned.
 
@@ -507,7 +511,7 @@ cat << EOF
                      and the location where it was run (otherwise, it is
                      saved by default in the ODIR/).
 
-    -do_movie AGIF | MPEG:
+    -do_movie AGIF | MPEG
                     :one can use this option with either of the given
                      arguments to output a movie of the newly created
                      dset.  Only those arguments can be used at

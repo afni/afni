@@ -30,7 +30,7 @@
 #   + in 3dAutomask, take abs val of DWI[0], bc TORTOISE can output
 #     huge neg values that apparently can make a big difference.
 #
-set version   = "2.8";    set rev_dat   = "July 31, 2017"
+#set version   = "2.8";    set rev_dat   = "July 31, 2017"
 #   + echo the useful recommendation stuff into a textfile whose name
 #     is based on the grad-recording file.
 #   + add opt for "-wdir *" name

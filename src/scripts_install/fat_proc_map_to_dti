@@ -31,8 +31,11 @@ set version   = "1.6";  set rev_dat   = "Aug 8, 2017"
 #   + allow surface files to be input+move
 #   + take *.niml.dsets and *spec files with them
 #
-set version   = "1.7";  set rev_dat   = "Aug 11, 2017"
+#set version   = "1.7";  set rev_dat   = "Aug 11, 2017"
 #   + set cbar range to 256
+#
+set version   = "1.8";  set rev_dat   = "Sep 04, 2017"
+#   + work with new @chauffeur*, -prefix only
 #
 # ---------------------------------------------------------------
 
@@ -643,8 +646,7 @@ if ( $DO_VIEWER == 1 ) then
         -pbar_posonly                     \
         -cbar "red_monochrome"            \
         -opacity 6                        \
-        -prefix $vpref0                   \
-        -outdir "$odir"                   \
+        -prefix "$odir/$vpref0"           \
         -montx 5 -monty 3                 \
         -set_xhairs OFF                   \
         -label_mode 1 -label_size 3       \
@@ -660,8 +662,7 @@ if ( $DO_VIEWER == 1 ) then
         -olay "$odir/$osrc"               \
         -pbar_posonly                     \
         -opacity 4                        \
-        -prefix $vpref1                   \
-        -outdir "$odir"                   \
+        -prefix "$odir/$vpref1"           \
         -montx 5 -monty 3                 \
         -set_xhairs OFF                   \
         -label_mode 1 -label_size 3       \
@@ -697,8 +698,7 @@ if ( $DO_VIEWER == 1 ) then
             -cbar "ROI_i256"                  \
             -func_range 256                   \
             -opacity 4                        \
-            -prefix $vprefnn                  \
-            -outdir "$odir"                   \
+            -prefix "$odir/$vprefnn"          \
             -montx 5 -monty 3                 \
             -set_xhairs OFF                   \
             -label_mode 1 -label_size 3       \
@@ -733,8 +733,7 @@ if ( $DO_VIEWER == 1 ) then
             -pbar_posonly                     \
             -cbar "Viridis"                   \
             -opacity 4                        \
-            -prefix $vprefnn                  \
-            -outdir "$odir"                   \
+            -prefix "$odir/$vprefnn"          \
             -montx 5 -monty 3                 \
             -set_xhairs OFF                   \
             -label_mode 1 -label_size 3       \

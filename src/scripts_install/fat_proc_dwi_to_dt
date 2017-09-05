@@ -45,9 +45,17 @@
 #   + now '3dDWItoDT -debug_briks ...' by default
 #   + Has some fit-type parameters there.
 #
-set version   = "2.3";    set rev_dat   = "Aug 1, 2017"
+#set version   = "2.3";    set rev_dat   = "Aug 1, 2017"
 #   + now '-reweight' on by default
 #   + now '-cumulative_wts' on by default
+#
+set version   = "2.4";    set rev_dat   = "Sep 04, 2017"
+#   + work with new @chauffeur, -prefix only
+#   + updated format of help file, so that user can be prompted for
+#     more opts
+#   + output QC images for uncert (V12 and FA), and also for showing
+#     anat lines on the dwi vol
+#
 # ----------------------------------------------------------------
 
 set this_prog = "fat_proc_dwi_to_dt"
@@ -93,6 +101,8 @@ set DO_VIEWER   = 1               # def: do viewing
 set qc_prefix   = ""              # def: autoname; user can enter
 set qc_fa_thr   = 0.2             # def: FA olay thr for QC
 set qc_fa_max   = 0.9             # def: FA olay max for QC
+set qc_v12unc_max = 0.349         # def: V12 uncert stdev max, ~20deg
+set qc_faunc_max = 0.05           # def: FA uncert stdev max
 set output_cmd  = 1               # def: output copy of this command
                                   # -> should expand to have all cmds
 set cmd_file    = ""              # def: same name as viewer
@@ -225,6 +235,16 @@ while ( $ac <= $#argv )
         @ ac += 1
         set qc_fa_max = "$argv[$ac]"
 
+    else if ( "$argv[$ac]" == "-qc_fa_unc_max" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set qc_faunc_max = "$argv[$ac]"
+        
+    else if ( "$argv[$ac]" == "-qc_v12_unc_max" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set qc_v12unc_max = "$argv[$ac]"
+        
     else if ( "$argv[$ac]" == "-qc_prefix" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
@@ -602,9 +622,9 @@ if ( "$iref" != "" ) then
         endif
 
         if( $qc_prefix == "" ) then
-            set vpref0 = ${opref}${postfix}_qc00_ref_u_$ffo
+            set vpref0 = ${opref}${postfix}_qc00_ref_$ffo
         else
-            set vpref0 = ${qc_prefix}${postfix}_qc00_ref_u_$ffo
+            set vpref0 = ${qc_prefix}${postfix}_qc00_ref_$ffo
         endif
 
         echo "\n\n"
@@ -617,8 +637,7 @@ if ( "$iref" != "" ) then
             -olay "$isetinref"                \
             -pbar_posonly                     \
             -opacity 4                        \
-            -prefix $vpref0                   \
-            -outdir "$odir"                   \
+            -prefix "$odir/$vpref0"           \
             -montx 5 -monty 3                 \
             -set_xhairs OFF                   \
             -label_mode 1 -label_size 3       \
@@ -737,9 +756,9 @@ if ( $DO_VIEWER ) then
             -input  $b0mskd
 
         if( $qc_prefix == "" ) then
-            set vpref0 = ${opref}${postfix}_qc01_ref_u_eb0
+            set vpref0 = ${opref}${postfix}_qc01a_ref_eb0
         else
-            set vpref0 = ${qc_prefix}${postfix}_qc01_ref_u_eb0
+            set vpref0 = ${qc_prefix}${postfix}_qc01a_ref_eb0
         endif
 
         echo "\n\n"
@@ -754,8 +773,41 @@ if ( $DO_VIEWER ) then
             -pbar_posonly                     \
             -cbar "red_monochrome"            \
             -opacity 6                        \
-            -prefix $vpref0                   \
-            -outdir "$odir"                   \
+            -prefix "$odir/$vpref0"           \
+            -montx 5 -monty 3                 \
+            -set_xhairs OFF                   \
+            -label_mode 1 -label_size 3       \
+            -do_clean 
+
+        # -------------
+            
+        echo "++ More QC images: initial ref on b0."
+
+        set refedge = "$wdir/refedge.nii"   
+        3dedge3                         \
+            -overwrite                  \
+            -prefix $refedge            \
+            -input  $iref
+
+        if( $qc_prefix == "" ) then
+            set vpref0b = ${opref}${postfix}_qc01b_b0_eref
+        else
+            set vpref0b = ${qc_prefix}${postfix}_qc01b_b0_eref
+        endif
+
+        echo "\n\n"
+        echo "++ QC image 01 (edgey $iref on $odir/$odwi'[0]'): $vpref0b"
+        echo "\n\n"
+        # need to put '[0]' on $iref?
+        $my_viewer                            \
+            -ulay $odir/$odwi'[0]'            \
+            -ulay_range "2%" "98%"            \
+            -olay "$refedge"                  \
+            -func_range_perc 50               \
+            -pbar_posonly                     \
+            -cbar "red_monochrome"            \
+            -opacity 6                        \
+            -prefix "$odir/$vpref0b"           \
             -montx 5 -monty 3                 \
             -set_xhairs OFF                   \
             -label_mode 1 -label_size 3       \
@@ -794,6 +846,53 @@ if ( $DO_UNCERT ) then
         -prefix        $odir/$dti_unc      \
         -iters         $Niters             \
         $extra_unc_cmds
+
+    if( $qc_prefix == "" ) then
+        set vpref4 = ${opref}${postfix}_qc04_b0_uncV12
+        set vpref5 = ${opref}${postfix}_qc05_b0_uncFA
+    else
+        set vpref4 = ${qc_prefix}${postfix}_qc04_b0_uncV12
+        set vpref5 = ${qc_prefix}${postfix}_qc05_b0_uncFA
+    endif
+    
+    echo "\n\n"
+    echo "++ QC image 04 (final output uncert-stdev of V1 on b0): $vpref4"
+    echo "   (olay colorbar is 'Viridis', with max value ${qc_v12unc_max})"
+    echo "\n\n"
+
+    $my_viewer                              \
+        -ulay "$odir/$odwi""[0]"            \
+        -ulay_range "2%" "98%"              \
+        -olay "$odir/${dtipref}_UNC.nii.gz""[1]"  \
+        -func_range $qc_v12unc_max          \
+        -pbar_posonly                       \
+        -cbar "Viridis"                     \
+        -opacity 6                          \
+        -prefix "$odir/$vpref4"             \
+        -montx 5 -monty 3                   \
+        -set_xhairs OFF                     \
+        -label_mode 1 -label_size 3         \
+        -do_clean    
+
+    echo "\n\n"
+    echo "++ QC image 05 (final output uncert-stdev of FA on b0): $vpref5"
+    echo "   (olay colorbar is 'Viridis', with max value ${qc_faunc_max})"
+    echo "\n\n"
+
+    $my_viewer                              \
+        -ulay "$odir/$odwi""[0]"            \
+        -ulay_range "2%" "98%"              \
+        -olay "$odir/${dtipref}_UNC.nii.gz""[5]"  \
+        -func_range $qc_faunc_max           \
+        -pbar_posonly                       \
+        -cbar "Viridis"                     \
+        -opacity 6                          \
+        -prefix "$odir/$vpref5"             \
+        -montx 5 -monty 3                   \
+        -set_xhairs OFF                     \
+        -label_mode 1 -label_size 3         \
+        -do_clean    
+
 endif
 
 # ---------------------------- VIEWER ---------------------------------
@@ -803,11 +902,11 @@ if ( $DO_VIEWER ) then
     echo "++ Making QC images."
 
     if( $qc_prefix == "" ) then
-        set vpref0 = ${opref}${postfix}_qc02_ref_u_b0
-        set vpref1 = ${opref}${postfix}_qc03_MD_u_FA_thr${qc_fa_thr}
+        set vpref0 = ${opref}${postfix}_qc02_ref_b0
+        set vpref1 = ${opref}${postfix}_qc03_MD_FA_thr${qc_fa_thr}
     else
-        set vpref0 = ${qc_prefix}${postfix}_qc02_ref_u_b0
-        set vpref1 = ${qc_prefix}${postfix}_qc03_MD_u_FA_thr${qc_fa_thr}
+        set vpref0 = ${qc_prefix}${postfix}_qc02_ref_b0
+        set vpref1 = ${qc_prefix}${postfix}_qc03_MD_FA_thr${qc_fa_thr}
     endif
 
     if( "$iref" != "" ) then
@@ -822,8 +921,7 @@ if ( $DO_VIEWER ) then
             -olay "$odir/${odwi}""[0]"        \
             -pbar_posonly                     \
             -opacity 4                        \
-            -prefix $vpref0                   \
-            -outdir "$odir"                   \
+            -prefix "$odir/$vpref0"           \
             -montx 5 -monty 3                 \
             -set_xhairs OFF                   \
             -label_mode 1 -label_size 3       \
@@ -843,8 +941,7 @@ if ( $DO_VIEWER ) then
         -thr_olay $qc_fa_thr                \
         -pbar_posonly                       \
         -opacity 7                          \
-        -prefix $vpref1                     \
-        -outdir "$odir"                     \
+        -prefix "$odir/$vpref1"             \
         -montx 5 -monty 3                   \
         -set_xhairs OFF                     \
         -label_mode 1 -label_size 3         \
@@ -917,6 +1014,8 @@ cat << EOF
    {-qc_prefix    QCPREF}                         \
    {-qc_fa_thr    TTT}                            \
    {-qc_fa_max    MMM}                            \
+   {-qc_fa_unc_max UM}                            \
+   {-qc_v12_unc_max V}                            \
    {-no_qc_view}                                  \
    {-no_cmd_out}                                  \
    {-workdir WWW}                                 \
@@ -929,7 +1028,10 @@ cat << EOF
 
     -in_dwi  DWI     :4D volume of N DWIs. Required.
 
-    -in_col_matA | -in_col_matT | -in_col_vec | -in_row_vec  GRADMAT
+    -in_col_matA | 
+    -in_col_matT | 
+    -in_col_vec  | 
+    -in_row_vec  GRADMAT
                      :input text file of N gradient vectors or 
                       bmatrices. By default, it is assumed that
                       these still have physical units in them (or that
@@ -938,14 +1040,16 @@ cat << EOF
                       see turning this scaling off, if unnecessary, by 
                       using '-no_scale_out_1000', below.
 
-   -prefix   PPP     :set prefix for output DWI data; required.
+    -prefix   PPP    :set prefix for output DWI data; required.
 
-   -in_bvals    BVAL :optional, if bvalue information is
+    -in_bvals   BVAL :optional, if bvalue information is
                       in a separate file from the b-vectors
                       or matrices; should have same number N as
                       volumes and vectors/matrices.
-   -flip_x | -flip_y | -flip_z | -no_flip
-                     :can flip the DW grads, if needed; for example, 
+    -flip_x | 
+    -flip_y | 
+    -flip_z | 
+    -no_flip         :can flip the DW grads, if needed; for example, 
                       based on the recommendation of @GradFlipTest.
 
    -mask    MASK     :optional whole brain mask can be input;
@@ -953,14 +1057,14 @@ cat << EOF
                       region to be tensor and parameter fit.
    -mask_from_struc  :flag to make a mask using 3dSkullStrip+3dmask_tool
                       from the STRUC file.
-          ----> If no "-mask*" option is given, then 3dAutomask is run on 
+        NB ---> If no "-mask*" option is given, then 3dAutomask is run on 
                 the DWI set.  This often ain't great, so if TORTOISE isn't
                 producing a mask, 1) email Okan and ask him about that, and
                 2) try '-mask_from_struc'.
-                ALSO, if you want the whole volume to be estimated tensorially
-                for some reason, then make a volume fully filled with 1s and
-                pass that in as the MASK, et voila (but then calcs will likely
-                be slooow).
+                ALSO, if you want the whole volume to be estimated
+                tensorially for some reason, then make a volume fully
+                filled with 1s and pass that in as the MASK, et voila
+                (but then calcs will likely be slooow).
 
    -in_ref_orig REF  :use another data set to adjust the DWI (and
                       subsequent parameter) dsets' orientation and
@@ -1015,6 +1119,13 @@ cat << EOF
    -qc_fa_max MMM    :set cbar max for overlay FA volume in QC image
                       (default:  MMM=0.9, a very large value even for 
                       healthy adult human parenchyma).
+   -qc_fa_unc_max UM :set cbar max for overlay uncert (stdev) of FA 
+                      in QC image (default:  UM=0.05).
+   -qc_v12_unc_max V :set cbar max for overlay uncert (stdev) of V1 
+                      towards the V2 direction for DTs, in QC image
+                      (default:  UM=0.349 rads, which corresponds to  
+                      20 deg).
+
    -qc_prefix QCPREF :can set the prefix of the QC image files separately
                       (default is '$opref').
    -no_qc_view       :can turn off generating QC image files (why?)

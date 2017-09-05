@@ -18,9 +18,13 @@ set this_prog = "@djunct_4d_imager"
 #set rev_dat = "Feb 27, 2017";  set version = "1.3"
 #   + slice number there as IJK in corner
 #
-set set version = "1.4";  rev_dat = "May 20, 2017"
+#set set version = "1.4";  rev_dat = "May 20, 2017"
 #   + more unique naming of wdir, use rand id; safer for cluster 
 #     runs
+#
+set set version = "1.5";  rev_dat = "Sep 04, 2017"
+#   + use the new @chauffeur*, with -prefix only
+#   + and for this program, also use just -prefix
 #
 # ----------------- find AFNI and set viewer ---------------------
 
@@ -78,15 +82,13 @@ while ( $ac <= $#argv )
         set iset = "$argv[$ac]"
 
     # ----------------- outputs ---------------------
-    else if ( "$argv[$ac]" == "-outdir" ) then
-        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-        @ ac += 1
-        set odir = "$argv[$ac]"
-
+    # [PT: Sep 04, 2017] Update output to allow prefix to have
+    # dirname/path, as well; no need for separate '-outdir'
     else if ( "$argv[$ac]" == "-prefix" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
-        set opref = "$argv[$ac]"
+        set opref = `basename "$argv[$ac]"`
+        set odir  = `dirname  "$argv[$ac]"`
 
     else if ( "$argv[$ac]" == "-do_movie" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
@@ -141,6 +143,8 @@ endif
  
 # check output directory, use input one if nothing given
 
+# [PT: Sep 04, 2017] Probably never need this first condition, after
+# change from now
 if ( "$odir" == "" ) then
     # default output dir, if nothing input; it must exist already,
     # because a file is in it

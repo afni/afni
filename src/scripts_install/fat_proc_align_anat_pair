@@ -31,8 +31,11 @@
 #   + new opt: can have more than warp = shift+rot only; default is
 #   just that, still
 #
-set version   = "1.7";    set rev_dat   = "Aug 11, 2017"
+#set version   = "1.7";    set rev_dat   = "Aug 11, 2017"
 #   + switch a ">>" to ">" for general system compatability
+#
+set version   = "1.8";    set rev_dat   = "Sep 04, 2017"
+#   + update to work with newer @chauffeur*, -prefix only
 #
 # ---------------------------------------------------------------
 
@@ -492,8 +495,7 @@ if ( $DO_VIEWER == 1 ) then
         -pbar_posonly                     \
         -cbar "red_monochrome"            \
         -opacity 6                        \
-        -prefix $vpref0                   \
-        -outdir "$odir"                   \
+        -prefix "$odir/$vpref0"           \
         -montx 5 -monty 3                 \
         -set_xhairs OFF                   \
         -label_mode 1 -label_size 3       \
@@ -509,8 +511,7 @@ if ( $DO_VIEWER == 1 ) then
         -olay "$odir/$ot1w"               \
         -pbar_posonly                     \
         -opacity 4                        \
-        -prefix $vpref1                   \
-        -outdir "$odir"                   \
+        -prefix "$odir/$vpref1"           \
         -montx 5 -monty 3                 \
         -set_xhairs OFF                   \
         -label_mode 1 -label_size 3       \

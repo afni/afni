@@ -59,8 +59,11 @@
 #set version   = "3.41";  set rev_dat   = "May 18, 2017"
 #   + new option: cut away inf slices of inset
 #
-set version   = "3.5";  set rev_dat   = "May 25, 2017"
+#set version   = "3.5";  set rev_dat   = "May 25, 2017"
 #   + new option: input mask for early application
+#
+set version   = "3.6";  set rev_dat   = "Sep 04, 2017"
+#   + work with new @chauffeur, -prefix only
 #
 # ----------------------------------------------------------------
 
@@ -832,8 +835,7 @@ if ( $DO_VIEWER ) then
     #echo "++ Output QC #1: final olay on (essentially) original refset."
     echo "++ QC image 00 (final output ulay): $vpref1"
     $my_viewer      -ulay ../$fout                  \
-                    -prefix $vpref1                 \
-                    -outdir ".."                    \
+                    -prefix "../$vpref1"            \
                     -montx 3 -monty 3               \
                     -set_xhairs MULTI               \
                     -label_mode 1 -label_size 3     \
@@ -855,8 +857,7 @@ if ( $DO_VIEWER ) then
                     -pbar_posonly                   \
                     -cbar "red_monochrome"          \
                     -opacity 6                      \
-                    -prefix $vpref2                 \
-                    -outdir ".."                    \
+                    -prefix "../$vpref2"            \
                     -montx 3 -monty 3               \
                     -set_xhairs MULTI               \
                     -label_mode 1 -label_size 3     \
@@ -976,7 +977,7 @@ cat << EOF
   -mode_t1w        :similar to the preceding option, but specifying an 
                     image with (human, adult) t1w-like contrast
                     has been input.
-      ----> NB: some 'mode_*' setting MUST be picked.
+     NB ---> one of these 'mode_*' setting MUST be picked.
 
   -extra_al_wtmask WT:
                     Axialization is generally based on an overall 
