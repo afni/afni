@@ -49,9 +49,15 @@
 #set version   = "2.7";   set rev_dat   = "June 20, 2017"
 #     + new opts, for SET_SUBBRICKS
 # 
-set version   = "2.8";   set rev_dat   = "Aug 17, 2017"
+#set version   = "2.8";   set rev_dat   = "Aug 17, 2017"
 #     + new opt, allow SET_XYZ
 # 
+set version   = "2.9";   set rev_dat   = "Sep 04, 2017"
+#     + remove '-outdir ...' and have path set by '-prefix ...',
+#       like most other AFNI programs
+#     + set default zoom to NN, so no smoothing
+#       via -> AFNI_IMAGE_ZOOM_NN
+#
 # =====================================================================
 
 # For more info about opts/fields, see:
@@ -69,6 +75,7 @@ setenv AFNI_ENVIRON_WARNINGS  NO
 setenv AFNI_COMPRESSOR        NONE
 setenv AFNI_IMAGE_GLOBALRANGE VOLUME
 setenv AFNI_IMAGE_LABEL_IJK   NO         # thanks, Bob!
+setenv AFNI_IMAGE_ZOOM_NN     YES        # [PT: Sep 04, 2017] 
 # -------------------------------------------------------------------
 
 # ------------------- default/initialized variables -----------------
@@ -164,15 +171,19 @@ while ( $ac <= $#argv )
     else if ( "$argv[$ac]" == "-olay_off" ) then
         set see_olay = "-"
 
+    # [PT, Sep 04, 2017] Change behavior to get output dir from just
+    # the prefix.  Duh.
     else if ( "$argv[$ac]" == "-prefix" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
-        set impref = "$argv[$ac]"
-
-    else if ( "$argv[$ac]" == "-outdir" ) then
-        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-        @ ac += 1
-        set odir = "$argv[$ac]"
+        #set impref = "$argv[$ac]"
+        set impref = `basename "$argv[$ac]"`
+        set odir   = `dirname  "$argv[$ac]"`
+        
+#    else if ( "$argv[$ac]" == "-outdir" ) then
+#        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+#        @ ac += 1
+#        set odir = "$argv[$ac]"
 
     else if ( "$argv[$ac]" == "-cbar" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
@@ -327,6 +338,9 @@ while ( $ac <= $#argv )
     else if ( "$argv[$ac]" == "-alpha_edgize_no" ) then
         setenv AFNI_EDGIZE_OVERLAY NO
 
+    else if ( "$argv[$ac]" == "-image_zoom_nn_no" ) then
+        setenv AFNI_IMAGE_ZOOM_NN NO
+        
     else if ( "$argv[$ac]" == "-zerocolor" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1

@@ -42,8 +42,11 @@
 #   + dcm2niix -> dcm2niix_afni
 #   + new wdir convention
 #
-set version = "3.1"; set rev_dat = "Apr 26, 2017"
+#set version = "3.1"; set rev_dat = "Apr 26, 2017"
 #   + important: fixed matT -> matA error
+#
+set version = "3.2"; set rev_dat = "Sep 04, 2017"
+#   + work with new @chauffeur*, '-prefix ...' only
 #
 # ----------------------------------------------------------------
 
@@ -528,14 +531,12 @@ if ( "$DO_VIEWER" == "1" ) then
 
     $my_viewer_4d \
         -inset  ../$fin_vols              \
-        -outdir ".."                      \
-        -prefix "${opref}"
+        -prefix "../${opref}"
 
     if ( "$movie" != "" ) then
         $my_viewer_4d \
             -inset  ../$fin_vols          \
-            -outdir ".."                  \
-            -prefix "${opref}"            \
+            -prefix "../${opref}"         \
             $movie
     endif
 endif
@@ -643,11 +644,10 @@ cat << EOF
                      to weirdness later on down the road, depending on the
                      data and headers (ergo, not recommended.)
 
-    -flip_x    ..or..
-    -flip_y    ..or..
-    -flip_z    ..or..
-    -no_flip
-                    :use any one of these for the ability to flip grads 
+    -flip_x  |
+    -flip_y  |
+    -flip_z  |
+    -no_flip        :use any one of these for the ability to flip grads 
                      while processing with 1dDW_Grad_o_Mat++. (Default is 
                      to not flip; it is not necessary to provide that 
                      "-no_flip" option for no flipping to occur.)
@@ -662,7 +662,7 @@ cat << EOF
                      and the location where it was run (otherwise, it is
                      saved by default in the ODIR/).
 
-    -do_movie AGIF | MPEG:
+    -do_movie AGIF | MPEG
                     :one can use this option with either of the given
                      arguments to output a movie of the newly created
                      dset.  Only those arguments can be used at
