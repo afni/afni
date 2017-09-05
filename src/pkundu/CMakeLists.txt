@@ -1,0 +1,8 @@
+PROJECT(PKUNDU)
+
+# script being programs on their own
+SET(SCRIPTS meica.py)
+
+
+INSTALL(PROGRAMS ${SCRIPTS}
+  DESTINATION ${AFNI_INSTALL_SCRIPT_DIR} COMPONENT Runtime)
