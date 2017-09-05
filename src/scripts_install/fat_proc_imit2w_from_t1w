@@ -24,13 +24,16 @@
 #set version   = "1.7";  set rev_dat   = "Apr 26, 2017"
 #   + better naming wdir
 #
-set version   = "1.8";  set rev_dat   = "May 25, 2017"
+#set version   = "1.8";  set rev_dat   = "May 25, 2017"
 #   + changed output file names; earlier ones now annoyed me, 
 #     fickly enough
 #
-set version   = "1.81";  set rev_dat   = "July 27, 2017"
+#set version   = "1.81";  set rev_dat   = "July 27, 2017"
 #   + added help note about DR-BUDDI option that seems recommendable
 #     at present
+#
+set version   = "1.9";  set rev_dat   = "Sep 04, 2017"
+#   + work with new @chauffeur*, -prefix only
 #
 # ----------------------------------------------------------------
 
@@ -406,8 +409,7 @@ if ( $DO_VIEWER ) then
 
     echo "++ QC image #1 (intermed T1w skullstripped ulay): $vpref1"
     $my_viewer      -ulay ../$t1ss                  \
-                    -prefix $vpref1                 \
-                    -outdir ".."                    \
+                    -prefix ../$vpref1              \
                     -montx 5 -monty 3               \
                     -set_xhairs OFF                 \
                     -label_mode 1 -label_size 3     \
@@ -415,8 +417,7 @@ if ( $DO_VIEWER ) then
 
     echo "++ QC image #2 (final output ulay): $vpref2"
     $my_viewer      -ulay ../$t2out                 \
-                    -prefix $vpref2                 \
-                    -outdir ".."                    \
+                    -prefix ../$vpref2              \
                     -montx 5 -monty 3               \
                     -set_xhairs OFF                 \
                     -label_mode 1 -label_size 3     \

@@ -22,8 +22,11 @@
 #   + working dir better
 #   + output command
 #
-set version   = "3.0"; set rev_dat   = "Apr 26, 2017"
+#set version   = "3.0"; set rev_dat   = "Apr 26, 2017"
 #   + wdir naming
+#
+set version   = "3.1"; set rev_dat   = "Sep 04, 2017"
+#   + work with new @chauffeur*, -prefix only
 #
 # ----------------------------------------------------------------
 
@@ -385,8 +388,7 @@ if ( $DO_VIEWER ) then
 
     echo "++ QC image #0 (weighted+unthresholded dec): $vpref0"
     $my_viewer      -ulay ../$fout0                 \
-                    -prefix $vpref0                 \
-                    -outdir ".."                    \
+                    -prefix "../$vpref0"            \
                     -montx 5 -monty 3               \
                     -set_xhairs OFF                 \
                     -label_mode 1 -label_size 3     \
@@ -395,8 +397,7 @@ if ( $DO_VIEWER ) then
 
     echo "++ QC image #1 (ulay FA, olay unweighted+thresholded dec): $vpref1"
     $my_viewer      -ulay ../$fout1                 \
-                    -prefix $vpref1                 \
-                    -outdir ".."                    \
+                    -prefix "../$vpref1"            \
                     -montx 5 -monty 3               \
                     -set_xhairs OFF                 \
                     -label_mode 1 -label_size 3     \
@@ -407,8 +408,7 @@ if ( $DO_VIEWER ) then
         echo "++ QC image #2 (weighted+unthresholded+scaled dec): $vpref2"
         echo "     --> scaling value = $sca_fa"
         $my_viewer      -ulay ../$fout2                 \
-                        -prefix $vpref2                 \
-                        -outdir ".."                    \
+                        -prefix "../$vpref2"            \
                         -montx 5 -monty 3               \
                         -set_xhairs OFF                 \
                         -label_mode 1 -label_size 3     \
