@@ -452,6 +452,9 @@ void usage_1dplot(int detail)
      "                        [This option lets you make bar]\n"
      "                        [charts, *if* you care enough.]\n"
      "\n"
+     " -Rbox x1 y1 x2 y2 y3 color1 color2\n"
+     "                    = As above, with an extra horizontal line at y3.\n"
+     "\n"
      "Another fun fun example:\n"
      "\n"
      "  1dplot -censor_RGB #ffa -CENSORTR '0-99'           \\\n"
@@ -571,11 +574,11 @@ int main( int argc , char *argv[] )
 #endif
 
      if( strcmp(argv[iarg],"-rbox") == 0 ){
-       float x1,y1 , x2,y2 , r1,g1,b1 , r2,g2,b2 ; int qq ;
+       float x1,y1 , x2,y2,y3 , r1,g1,b1 , r2,g2,b2 ; int qq ;
        x1 = (float)strtod(argv[++iarg],NULL) ;
        y1 = (float)strtod(argv[++iarg],NULL) ;
        x2 = (float)strtod(argv[++iarg],NULL) ;
-       y2 = (float)strtod(argv[++iarg],NULL) ;
+       y2 = (float)strtod(argv[++iarg],NULL) ; y3 = 1.666e18f ;
        qq = find_color_name( argv[++iarg] , &r1,&g1,&b1 ) ;
        if( qq < 0 ){
          ERROR_message("bad color name '%s'",argv[iarg]) ; iarg++ ; continue ;
@@ -584,7 +587,26 @@ int main( int argc , char *argv[] )
        if( qq < 0 ){
          ERROR_message("bad color name '%s'",argv[iarg]) ; iarg++ ; continue ;
        }
-       plot_ts_add_rbox( 0 , x1,y1 , x2,y2 , r1,g1,b1 , r2,g2,b2 ) ;
+       plot_ts_add_rbox( 0 , x1,y1 , x2,y2,y3 , r1,g1,b1 , r2,g2,b2 ) ;
+       iarg++ ; continue ;
+     }
+
+     if( strcmp(argv[iarg],"-Rbox") == 0 ){
+       float x1,y1 , x2,y2,y3 , r1,g1,b1 , r2,g2,b2 ; int qq ;
+       x1 = (float)strtod(argv[++iarg],NULL) ;
+       y1 = (float)strtod(argv[++iarg],NULL) ;
+       x2 = (float)strtod(argv[++iarg],NULL) ;
+       y2 = (float)strtod(argv[++iarg],NULL) ;
+       y3 = (float)strtod(argv[++iarg],NULL) ;
+       qq = find_color_name( argv[++iarg] , &r1,&g1,&b1 ) ;
+       if( qq < 0 ){
+         ERROR_message("bad color name '%s'",argv[iarg]) ; iarg++ ; continue ;
+       }
+       qq = find_color_name( argv[++iarg] , &r2,&g2,&b2 ) ;
+       if( qq < 0 ){
+         ERROR_message("bad color name '%s'",argv[iarg]) ; iarg++ ; continue ;
+       }
+       plot_ts_add_rbox( 0 , x1,y1 , x2,y2,y3 , r1,g1,b1 , r2,g2,b2 ) ;
        iarg++ ; continue ;
      }
 
