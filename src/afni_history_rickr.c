@@ -51,6 +51,7 @@ afni_history_struct rickr_history[] = {
 
  { 6, Sep, 2017, RCR, "plug_realtime", MINOR, TYPE_MODIFY,
    "allow user control of registration and plots with multi-chan/echo data",
+   "This previously required channel merging or registering.\n"
    "For W Luh."
  } ,
 
