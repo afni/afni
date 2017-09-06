@@ -18,7 +18,10 @@ install:
     - F2C_PKG='libf2c2'
     - F2C_MOD='-dev'
     - F2C_VERSION='20130926-2_amd64'
-
+    # To see what is there in the trusty image coming from
+    - grep -r . /etc/apt
+    - apt-cache policy
+    - apt-cache policy cmake
     - wget "http://archive.ubuntu.com/ubuntu/pool/universe/libf/${F2C_PKG}/${F2C_PKG}_${F2C_VERSION}.deb"
            "http://archive.ubuntu.com/ubuntu/pool/universe/libf/${F2C_PKG}/${F2C_PKG}${F2C_MOD}_${F2C_VERSION}.deb"
     - sudo dpkg -i "${F2C_PKG}${F2C_MOD}_${F2C_VERSION}.deb"
