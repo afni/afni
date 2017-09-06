@@ -1535,7 +1535,7 @@ static int make_sorted_fim_list(param_t  * p)
    n2sort = p->nfim - p->fim_start;
 
    if( n2sort <= 0 ) {
-      if( gD.level > 2 ) fprintf(stderr,"-- fim_o: no sorting to do");
+      if( gD.level > 2 ) fprintf(stderr,"-- fim_o: no sorting to do\n");
       return 0;
    }
 
