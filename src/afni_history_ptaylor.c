@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 06, Sep , 2017 , PT , "fat_proc_dwi_to_dt" , MICRO , TYPE_MODIFY,
+   "Quick change: keep FOV same for b0 ulay comparison with anat-edge.",
+   "Minor adjustment for keeping FOV consistent.\n"
+},
+
 { 06, Sep , 2017 , PT , "fat_proc_dwi_to_dt" , MINOR , TYPE_MODIFY,
    "Output a couple more types of QC images by default.",
    "Output b0 ulay with anat-edge olay;  also, some uncert images.\n"

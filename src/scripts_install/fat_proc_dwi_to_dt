@@ -56,9 +56,9 @@
 #   + output QC images for uncert (V12 and FA), and also for showing
 #     anat lines on the dwi vol
 #
-set version   = "2.5";    set rev_dat   = "Sep 06, 2017"
+set version   = "2.5b";    set rev_dat   = "Sep 06, 2017"
 #   + for showing anat lines on DWI, allow anat lines to be clearer
-#
+#     --> quickchange in how this is done: don't use -master.
 # ----------------------------------------------------------------
 
 set this_prog = "fat_proc_dwi_to_dt"
@@ -796,11 +796,15 @@ if ( $DO_VIEWER ) then
         # olay anat edges to be clear; so make this resampled version
         # that looks the same (b/c of NN interp) but has higher res
         # (so we see the olay nicerly).
+
+        set newres  = `3dinfo -ad3 $iref`
+            
         set b0resam = "$wdir/b0resam.nii"   
         3dresample                      \
+            -echo_edu                   \
             -prefix $b0resam            \
             -rmode NN                   \
-            -master $iref               \
+            -dxyz $newres               \
             -input $odir/$odwi'[0]'
 
             
