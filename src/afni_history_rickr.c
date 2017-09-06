@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 6, Sep, 2017, RCR, "plug_realtime", MINOR, TYPE_MODIFY,
+   "allow user control of registration and plots with multi-chan/echo data",
+   "For W Luh."
+ } ,
+
  { 30, Aug, 2017, RCR, "model_conv_PRF", MICRO, TYPE_BUG_FIX,
    "determine NT restriction based on reorg",
    "Was limited to NT.  Applies to PRF, PRF_6, PRF_DOG\n"
