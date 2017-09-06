@@ -3887,21 +3887,26 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
    }
 
    /** 01 Aug 2002: turn some things off in multi-channel mode **/
+   /** 06 Sep 2017: let user control registration (could be one channel) **/
 
    if( rtin->num_chan > 1 && RT_chmrg_reg_mode == RT_CM_RMODE_NONE ){
 
-     if( rtin->reg_mode > 0 && verbose )
-       fprintf(stderr,"RT: %d channel acquisition => no registration!\n",
-               rtin->num_chan) ;
+     /* leave user in charge of registration, particularly if this is */
+     /* multi-echo data                            6 Sep 2017 [rickr] */
+
+     // if( rtin->reg_mode > 0 && verbose )
+     //   fprintf(stderr,"RT: %d channel acquisition => no registration!\n",
+     //           rtin->num_chan) ;
 
      if( rtin->func_code > 0 && verbose )
        fprintf(stderr,"RT: %d channel acquisition => no function!\n"    ,
                rtin->num_chan) ;
 
-     rtin->reg_mode  = REGMODE_NONE ;  /* no registration */
      rtin->func_code = FUNC_NONE ;     /* no function */
      rtin->func_func = NULL ;
-     rtin->reg_graph = 0 ;
+     /* leave user in charge of registration     6 Sep 2017 [rickr] */
+     // rtin->reg_mode  = REGMODE_NONE ;  * no registration */
+     // rtin->reg_graph = 0 ;
    }
 
    if( rtin->nzz == 1 ){                   /* 24 Jun 2002: 1 slice only? */
@@ -4305,7 +4310,8 @@ void RT_start_dataset( RT_input * rtin )
    /*---- 02 Jun 2009: make a dataset for merger, if need be ----*/
 
    /* if not appropriate for merging, disable */
-   if( rtin->num_chan == 1 || !MRI_IS_FLOAT_TYPE(rtin->datum) ) {
+   if( RT_chmrg_mode && 
+        (rtin->num_chan == 1 || !MRI_IS_FLOAT_TYPE(rtin->datum) ) ) {
      /* fail only if not in OPT_COMB mode */
      if( ! (RT_chmrg_mode==RT_CHMER_OPT_COMB && rtin->datum == MRI_short) ) {
         if( verbose > 0 )
@@ -4744,7 +4750,6 @@ void RT_read_image( RT_input * rtin , char * im )
             mri_swap4( rtin->imsize / 4, (int *)im );
       }
    }
-
 
    return ;
 }
