@@ -66,6 +66,16 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 06, Sep , 2017 , PT , "fat_proc_dwi_to_dt" , MINOR , TYPE_MODIFY,
+   "Output a couple more types of QC images by default.",
+   "Output b0 ulay with anat-edge olay;  also, some uncert images.\n"
+},
+
+{ 06, Sep , 2017 , PT , "@chauffeur_afni" , MINOR , TYPE_MODIFY,
+   "Now gets output path as part of '-prefix' as opposed to sep '-outdir'.",
+   "Now in line with most of AFNI funcs.\n"
+},
+
 { 24, Aug , 2017 , PT , "@GradFlipTest" , MINOR , TYPE_MODIFY,
    "The file storing the flip recommendation will *overwrite* a previous one.",
    "Previous version of this would *append to*, which seems pointless.\n"
