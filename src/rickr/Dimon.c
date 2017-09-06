@@ -148,10 +148,12 @@ static char * g_history[] =
     " 4.19 May  9, 2017 [rickr]:\n",
     "      - if NIFTI prefix, whine about and clear any write_as_nifti\n"
     " 4.20 Jun 19, 2017 [rickr]: add -assume_dicom_mosaic\n"
+    " 4.21 Sep  6, 2017 [rickr]:\n"
+    "      - apply xim in realtime.c, so not sending short end of run\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 4.20 (June 19, 2017)"
+#define DIMON_VERSION "version 4.21 (Sepember 6, 2017)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files

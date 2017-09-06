@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 6, Sep, 2017, RCR, "Dimon", MINOR, TYPE_BUG_FIX,
+   "re-apply cleaner xim use, so end of run signal has full image size",
+   "Short end of run was hanging afni, but was not noticed since the\n"
+   "communication was immediately terminated.  Fixes multi-run use."
+ } ,
+
  { 6, Sep, 2017, RCR, "plug_realtime", MINOR, TYPE_MODIFY,
    "allow user control of registration and plots with multi-chan/echo data",
    "This previously required channel merging or registering.\n"
