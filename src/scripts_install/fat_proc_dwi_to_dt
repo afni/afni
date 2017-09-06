@@ -49,13 +49,16 @@
 #   + now '-reweight' on by default
 #   + now '-cumulative_wts' on by default
 #
-set version   = "2.4";    set rev_dat   = "Sep 04, 2017"
+#set version   = "2.4";    set rev_dat   = "Sep 04, 2017"
 #   + work with new @chauffeur, -prefix only
 #   + updated format of help file, so that user can be prompted for
 #     more opts
 #   + output QC images for uncert (V12 and FA), and also for showing
 #     anat lines on the dwi vol
 #
+set version   = "2.5b";    set rev_dat   = "Sep 06, 2017"
+#   + for showing anat lines on DWI, allow anat lines to be clearer
+#     --> quickchange in how this is done: don't use -master.
 # ----------------------------------------------------------------
 
 set this_prog = "fat_proc_dwi_to_dt"
@@ -789,6 +792,22 @@ if ( $DO_VIEWER ) then
             -prefix $refedge            \
             -input  $iref
 
+        # we want to view real b0 at its resolution, but also want the
+        # olay anat edges to be clear; so make this resampled version
+        # that looks the same (b/c of NN interp) but has higher res
+        # (so we see the olay nicerly).
+
+        set newres  = `3dinfo -ad3 $iref`
+            
+        set b0resam = "$wdir/b0resam.nii"   
+        3dresample                      \
+            -echo_edu                   \
+            -prefix $b0resam            \
+            -rmode NN                   \
+            -dxyz $newres               \
+            -input $odir/$odwi'[0]'
+
+            
         if( $qc_prefix == "" ) then
             set vpref0b = ${opref}${postfix}_qc01b_b0_eref
         else
@@ -800,14 +819,14 @@ if ( $DO_VIEWER ) then
         echo "\n\n"
         # need to put '[0]' on $iref?
         $my_viewer                            \
-            -ulay $odir/$odwi'[0]'            \
+            -ulay $b0resam                    \
             -ulay_range "2%" "98%"            \
             -olay "$refedge"                  \
             -func_range_perc 50               \
             -pbar_posonly                     \
             -cbar "red_monochrome"            \
             -opacity 6                        \
-            -prefix "$odir/$vpref0b"           \
+            -prefix "$odir/$vpref0b"          \
             -montx 5 -monty 3                 \
             -set_xhairs OFF                   \
             -label_mode 1 -label_size 3       \
@@ -847,52 +866,54 @@ if ( $DO_UNCERT ) then
         -iters         $Niters             \
         $extra_unc_cmds
 
-    if( $qc_prefix == "" ) then
-        set vpref4 = ${opref}${postfix}_qc04_b0_uncV12
-        set vpref5 = ${opref}${postfix}_qc05_b0_uncFA
-    else
-        set vpref4 = ${qc_prefix}${postfix}_qc04_b0_uncV12
-        set vpref5 = ${qc_prefix}${postfix}_qc05_b0_uncFA
+    if ( $DO_VIEWER ) then
+
+        if( $qc_prefix == "" ) then
+            set vpref4 = ${opref}${postfix}_qc04_b0_uncV12
+            set vpref5 = ${opref}${postfix}_qc05_b0_uncFA
+        else
+            set vpref4 = ${qc_prefix}${postfix}_qc04_b0_uncV12
+            set vpref5 = ${qc_prefix}${postfix}_qc05_b0_uncFA
+        endif
+
+        echo "\n\n"
+        echo "++ QC image 04 (final output uncert-stdev of V1 on b0): $vpref4"
+        echo "   (olay colorbar is 'Viridis', with max value ${qc_v12unc_max})"
+        echo "\n\n"
+
+        $my_viewer                              \
+            -ulay "$odir/$odwi""[0]"            \
+            -ulay_range "2%" "98%"              \
+            -olay "$odir/${dtipref}_UNC.nii.gz""[1]"  \
+            -func_range $qc_v12unc_max          \
+            -pbar_posonly                       \
+            -cbar "Viridis"                     \
+            -opacity 6                          \
+            -prefix "$odir/$vpref4"             \
+            -montx 5 -monty 3                   \
+            -set_xhairs OFF                     \
+            -label_mode 1 -label_size 3         \
+            -do_clean    
+
+        echo "\n\n"
+        echo "++ QC image 05 (final output uncert-stdev of FA on b0): $vpref5"
+        echo "   (olay colorbar is 'Viridis', with max value ${qc_faunc_max})"
+        echo "\n\n"
+
+        $my_viewer                              \
+            -ulay "$odir/$odwi""[0]"            \
+            -ulay_range "2%" "98%"              \
+            -olay "$odir/${dtipref}_UNC.nii.gz""[5]"  \
+            -func_range $qc_faunc_max           \
+            -pbar_posonly                       \
+            -cbar "Viridis"                     \
+            -opacity 6                          \
+            -prefix "$odir/$vpref5"             \
+            -montx 5 -monty 3                   \
+            -set_xhairs OFF                     \
+            -label_mode 1 -label_size 3         \
+            -do_clean    
     endif
-    
-    echo "\n\n"
-    echo "++ QC image 04 (final output uncert-stdev of V1 on b0): $vpref4"
-    echo "   (olay colorbar is 'Viridis', with max value ${qc_v12unc_max})"
-    echo "\n\n"
-
-    $my_viewer                              \
-        -ulay "$odir/$odwi""[0]"            \
-        -ulay_range "2%" "98%"              \
-        -olay "$odir/${dtipref}_UNC.nii.gz""[1]"  \
-        -func_range $qc_v12unc_max          \
-        -pbar_posonly                       \
-        -cbar "Viridis"                     \
-        -opacity 6                          \
-        -prefix "$odir/$vpref4"             \
-        -montx 5 -monty 3                   \
-        -set_xhairs OFF                     \
-        -label_mode 1 -label_size 3         \
-        -do_clean    
-
-    echo "\n\n"
-    echo "++ QC image 05 (final output uncert-stdev of FA on b0): $vpref5"
-    echo "   (olay colorbar is 'Viridis', with max value ${qc_faunc_max})"
-    echo "\n\n"
-
-    $my_viewer                              \
-        -ulay "$odir/$odwi""[0]"            \
-        -ulay_range "2%" "98%"              \
-        -olay "$odir/${dtipref}_UNC.nii.gz""[5]"  \
-        -func_range $qc_faunc_max           \
-        -pbar_posonly                       \
-        -cbar "Viridis"                     \
-        -opacity 6                          \
-        -prefix "$odir/$vpref5"             \
-        -montx 5 -monty 3                   \
-        -set_xhairs OFF                     \
-        -label_mode 1 -label_size 3         \
-        -do_clean    
-
 endif
 
 # ---------------------------- VIEWER ---------------------------------
