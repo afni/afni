@@ -2368,7 +2368,7 @@ void AFNI_sigfunc_alrm(int sig)
      "\n  We shall not cease from exploration\n"
      "  And the end of all our exploring\n"
      "  Will be to arrive where we started\n"
-     "  And know the place for the first time."
+     "  And know the place for the first time."                                               ,
 
      "Remember:\n"
      "  To argue with those who have renounced the use and authority\n"
@@ -2436,6 +2436,7 @@ void AFNI_sigfunc_alrm(int sig)
      "     I don't know\n"
      "     I know but I'm not telling you\n"
      "     I need to talk to my lawyer\n"
+     "     I need to talk to my dentist\n"
      "     Please repeat the question\n"
      "     Could you clarify what you mean, exactly?\n"
      "     Quantum indeterminacy makes any answer uncertain\n"
