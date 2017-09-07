@@ -3770,8 +3770,10 @@ class AfniData(object):
 
       # if durs, but constant, set dur_len instead
       if self.mtype & MTYPE_DUR:
-         if self.durs_are_constant():
+         isconst, dlen = self.check_constant_duration()
+         if isconst:
             self.write_dm = 0
+            self.dur_len = dlen
          else:
             self.dur_len = -1
 
