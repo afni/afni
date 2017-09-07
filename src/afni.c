@@ -1926,6 +1926,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Remember -- A monad is the same as an endofunctor"             ,
      "Remember -- Things aren't always what they seem"               ,
      "Remember -- eggs cannot be unscrambled"                        ,
+     "Remember -- a closed mouth gathers no feet"                    ,
      "Fools give you reasons, wise men never try"                    ,
      "People willingly trust the statistics they wish to believe"    ,
      "Heaven's last best gift, my ever new delight"                  ,
@@ -2068,6 +2069,11 @@ void AFNI_sigfunc_alrm(int sig)
      "I am not a hexadecimal number, I am a free software!"          ,
      "Correlation isn't causation, but what else do we have?"        ,
      "Are you indeed there, my skylark?"                             ,
+     "Life is an experiment; please reject the dull hypothesis"      ,
+     "Hard work pays off in the future, but laziness pays off now"   ,
+     "We learn from our mistakes -- I've learned a lot today"        ,
+     "If a turtle loses its shell, is it naked or homeless?"         ,
+     "There is no mistake so great as being right"                   ,
 
      /* bastardizations of Shakespeare */
 
@@ -2084,6 +2090,7 @@ void AFNI_sigfunc_alrm(int sig)
      "I'm completely innocent. It was someone else who looked like me" ,
      "I'm completely innocent. Or at least, you can't prove anything"  ,
      "I'm completely innocent. Of what, I'm not saying"                ,
+     "I'm completely innocent. What are we talking about?"             ,
 
      /* paraprosdokians */
 
@@ -2356,6 +2363,9 @@ void AFNI_sigfunc_alrm(int sig)
      "It is the pardonable vanity of lonely people everywhere to assume that they have no counterparts" ,
 
      /* Multi-line quotes */
+     "\n  A journey of a thousand miles begins with a single stride,\n"
+     "  and then continues on and on and on and on and on,\n"
+     "  with a million more plodding steps to trudge through endlessly"  ,
 
      "\n  Ever returning spring, trinity sure to me you bring\n"
      "  Lilac blooming perennial, drooping star in the West,\n"
@@ -2368,7 +2378,7 @@ void AFNI_sigfunc_alrm(int sig)
      "\n  We shall not cease from exploration\n"
      "  And the end of all our exploring\n"
      "  Will be to arrive where we started\n"
-     "  And know the place for the first time."
+     "  And know the place for the first time."                                               ,
 
      "Remember:\n"
      "  To argue with those who have renounced the use and authority\n"
@@ -2436,6 +2446,7 @@ void AFNI_sigfunc_alrm(int sig)
      "     I don't know\n"
      "     I know but I'm not telling you\n"
      "     I need to talk to my lawyer\n"
+     "     I need to talk to my dentist\n"
      "     Please repeat the question\n"
      "     Could you clarify what you mean, exactly?\n"
      "     Quantum indeterminacy makes any answer uncertain\n"
