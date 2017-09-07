@@ -30,12 +30,6 @@ class AfniTiming(LD.AfniData):
       super(AfniTiming, self).__init__(filename, mdata=mdata, 
                                        fsl_flist=fsl_flist, verb=verb)
 
-      # additional variables (on top of those in AfniData)
-      self.dur_len = -1           # if MTYPE_DUR, length of equal intervals
-                                  # (rcr: if constant)
-
-      # if from_at and not filename: self.init_from_at(at)
-
       # initialize duration data
       if self.ready: self.init_durations(dur)
 
