@@ -67,6 +67,7 @@ voxels per original voxel
 #include "mrilib.h"
 
 static int do_NN = 0 ;  /* 12 Jul 2017 */
+static int NNvox = 0 ;  /* 08 Sep 2017 */
 
 static EDIT_options CL_edopt ;
 static int CL_ivfim=-1 , CL_ivthr=-1 ;
@@ -158,7 +159,7 @@ int main( int argc , char * argv[] )
   "----------------------------------------------------------------------- \n"
   "Usage:\n"
   "                                                                        \n"
-  "   3dclust [editing options] [other options] rmm vmul dset ...      \n"
+  "   3dclust [editing options] [other options] rmm vmul dset ...          \n"
   "                                                                        \n"
   " *OR*\n"
   "                                                                        \n"
@@ -167,10 +168,12 @@ int main( int argc , char * argv[] )
   "      -NN1 == 1st nearest-neighbor (faces touching) clustering\n"
   "      -NN2 == 2nd nearest-neighbor (edges touching) clustering\n"
   "      -NN2 == 3rd nearest-neighbor (corners touching) clustering\n"
-  "-----                                                                   \n"
-  "                                                                        \n"
+  "     Optionally, you can put an integer after the '-NNx' option, to\n"
+  "     indicate the minimum number of voxels to allow in a cluster;\n"
+  "     for example: -NN2 60\n"
+  "----------------------------------------------------------------------- \n"
   "Examples:                                                               \n"
-  "--------                                                                \n"
+  "---------                                                               \n"
   "                                                                        \n"
   "    3dclust         -1clip   0.3  5 2000 func+orig'[1]'                 \n"
   "    3dclust -1noneg -1thresh 0.3  5 2000 func+orig'[1]'                 \n"
@@ -215,6 +218,8 @@ int main( int argc , char * argv[] )
   "  If you use one of these '-NNx' options, you do NOT give the rmm\n"
   "  and vmul values.  Instead, after all the options that start with '-',\n"
   "  you just give the input dataset name(s).\n"
+  "  If you want to set a minimum cluster size using '-NNx', put the minimum\n"
+  "  voxel count immediately after, as in '-NN3 100'.\n"
   "\n"
   "FOLLOWED BY ONE (or more) DATASETS\n"
   "                                                                        \n"
@@ -438,7 +443,8 @@ int main( int argc , char * argv[] )
        case 2: rmm = 1.44f ; break ;
        case 3: rmm = 1.77f ; break ;
      }
-     vmul = 2.0f ;
+     if( NNvox > 0 ) vmul = (float)NNvox ;
+     else            vmul = 2.0f ;
    } else {        /* the OLDE way (with rmm and vmul) */
      if( nopt+3 > argc )
         ERROR_exit("No rmm or vmul arguments?") ;
@@ -997,13 +1003,28 @@ void CL_read_opts( int argc , char * argv[] )
 #endif
 
       if( strcmp(argv[nopt],"-NN1") == 0 ){   /* 12 Jul 2017 */
-        do_NN = 1 ; nopt++ ; continue ;
+        do_NN = 1 ; nopt++ ;
+        if( nopt < argc && isdigit(argv[nopt][0]) )
+          NNvox = (int)strtod(argv[nopt++],NULL) ;
+        else
+          NNvox = 0 ;
+        continue ;
       }
       if( strcmp(argv[nopt],"-NN2") == 0 ){
-        do_NN = 2 ; nopt++ ; continue ;
+        do_NN = 2 ; nopt++ ;
+        if( nopt < argc && isdigit(argv[nopt][0]) )
+          NNvox = (int)strtod(argv[nopt++],NULL) ;
+        else
+          NNvox = 0 ;
+        continue ;
       }
       if( strcmp(argv[nopt],"-NN3") == 0 ){
-        do_NN = 3 ; nopt++ ; continue ;
+        do_NN = 3 ; nopt++ ;
+        if( nopt < argc && isdigit(argv[nopt][0]) )
+          NNvox = (int)strtod(argv[nopt++],NULL) ;
+        else
+          NNvox = 0 ;
+        continue ;
       }
       if( strcmp(argv[nopt],"-NN") == 0 ){
         nopt++ ;
@@ -1011,7 +1032,12 @@ void CL_read_opts( int argc , char * argv[] )
         do_NN = (int)strtod(argv[nopt],NULL) ;
         if( do_NN < 1 || do_NN > 3 )
           ERROR_exit("Illegal value '%s' after '-NN'",argv[nopt]) ;
-        nopt++ ; continue ;
+        nopt++ ;
+        if( nopt < argc && isdigit(argv[nopt][0]) )
+          NNvox = (int)strtod(argv[nopt++],NULL) ;
+        else
+          NNvox = 0 ;
+        continue ;
       }
 
       if( strcmp(argv[nopt],"-no_inmask") == 0 ){  /* 02 Aug 2011 */
