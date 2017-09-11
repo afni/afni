@@ -581,11 +581,11 @@ int main( int argc , char *argv[] )
        y2 = (float)strtod(argv[++iarg],NULL) ; y3 = 1.666e18f ;
        qq = find_color_name( argv[++iarg] , &r1,&g1,&b1 ) ;
        if( qq < 0 ){
-         ERROR_message("bad color name '%s'",argv[iarg]) ; iarg++ ; continue ;
+         ERROR_message("-rbox: bad 1st color name '%s'",argv[iarg]) ; iarg++ ; continue ;
        }
        qq = find_color_name( argv[++iarg] , &r2,&g2,&b2 ) ;
        if( qq < 0 ){
-         ERROR_message("bad color name '%s'",argv[iarg]) ; iarg++ ; continue ;
+         ERROR_message("-rbox: bad 2nd color name '%s'",argv[iarg]) ; iarg++ ; continue ;
        }
        plot_ts_add_rbox( 0 , x1,y1 , x2,y2,y3 , r1,g1,b1 , r2,g2,b2 ) ;
        iarg++ ; continue ;
@@ -600,11 +600,11 @@ int main( int argc , char *argv[] )
        y3 = (float)strtod(argv[++iarg],NULL) ;
        qq = find_color_name( argv[++iarg] , &r1,&g1,&b1 ) ;
        if( qq < 0 ){
-         ERROR_message("bad color name '%s'",argv[iarg]) ; iarg++ ; continue ;
+         ERROR_message("-Rbox: bad 1st color name '%s'",argv[iarg]) ; iarg++ ; continue ;
        }
        qq = find_color_name( argv[++iarg] , &r2,&g2,&b2 ) ;
        if( qq < 0 ){
-         ERROR_message("bad color name '%s'",argv[iarg]) ; iarg++ ; continue ;
+         ERROR_message("-Rbox: bad 2nd color name '%s'",argv[iarg]) ; iarg++ ; continue ;
        }
        plot_ts_add_rbox( 0 , x1,y1 , x2,y2,y3 , r1,g1,b1 , r2,g2,b2 ) ;
        iarg++ ; continue ;
