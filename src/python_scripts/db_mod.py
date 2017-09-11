@@ -6690,6 +6690,12 @@ def db_cmd_gen_review(proc):
           % (block_header('auto block: generate review scripts'),
              proc.epi_review, dstr)
 
+    # if no regress block, skip gen_ss_review_scripts.py
+    if not proc.find_block('regress'):
+       if proc.verb:
+          print '-- no regress block, skipping gen_ss_review_scripts.py'
+       return cmd
+
     lopts = ' '
     if proc.mot_cen_lim > 0.0: lopts += '-mot_limit %s ' % proc.mot_cen_lim
     if proc.out_cen_lim > 0.0: lopts += '-out_limit %s ' % proc.out_cen_lim
