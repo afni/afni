@@ -485,7 +485,7 @@ int main( int argc , char * argv[] )
          continue ;
       }
 
-      THD_force_malloc_type( dset->dblk , DATABLOCK_MEM_MALLOC ) ;    /* mmap */
+      THD_force_malloc_type( dset->dblk , DATABLOCK_MEM_MALLOC ) ;  /* no mmap */
       if( CL_verbose )
          INFO_message("Loading dataset %s",argv[iarg]) ;
       DSET_load(dset); CHECK_LOAD_ERROR(dset);                     /* read in */
