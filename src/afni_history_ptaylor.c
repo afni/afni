@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 11, Sep , 2017 , PT , "plugout_drive" , MICRO , TYPE_GENERAL,
+   "Change level: actually nano.  Fixed Example 1 (missing apostrophe).",
+   "It's the little things in life, though, sometimes.\n"
+},
+
 { 06, Sep , 2017 , PT , "fat_proc_dwi_to_dt" , MICRO , TYPE_MODIFY,
    "Quick change: keep FOV same for b0 ulay comparison with anat-edge.",
    "Minor adjustment for keeping FOV consistent.\n"
