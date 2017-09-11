@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11, Sep, 2017, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "if no regress block, omit gen_ss_review_scripts.py",
+   NULL
+ } ,
+
  { 6, Sep, 2017, RCR, "Dimon", MINOR, TYPE_BUG_FIX,
    "re-apply cleaner xim use, so end of run signal has full image size",
    "Short end of run was hanging afni, but was not noticed since the\n"
