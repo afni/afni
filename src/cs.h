@@ -21,6 +21,11 @@
 extern "C" {
 #endif
 
+#ifdef QS_STACK
+#undef QS_STACK
+#endif
+#define QS_STACK 66666
+
 /***** Quicksort routines in various flavonoids *****/
 
 extern void qsort_floatint  ( int , float *  , int * ) ;
