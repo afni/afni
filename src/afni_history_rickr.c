@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12, Sep, 2017, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "modify main examples to use the lpc+ZZ cost function",
+   NULL
+ } ,
+
  { 11, Sep, 2017, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
    "if no regress block, omit gen_ss_review_scripts.py",
    NULL

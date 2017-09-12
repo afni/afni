@@ -571,9 +571,10 @@ g_history = """
     5.15 Apr 25, 2017: fix follower warps for gzipped WARP datasets
     5.16 Sep  7, 2017: fix help typos for -regress_ROI_PC_per_run
     5.17 Sep 11, 2017: if no regress block, skip gen_ss_review_scripts.py
+    5.18 Sep 12, 2017: use lpc+ZZ cost function in examples
 """
 
-g_version = "version 5.17, September 11, 2017"
+g_version = "version 5.18, September 12, 2017"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
