@@ -36,8 +36,10 @@ void isort_sh( int n , short * ar )
 /********************************************************************************/
 /* qsrec : recursive part of quicksort (stack implementation) */
 
-#define QS_STACK  1024  /* stack size */
 #define QS_SWAP(x,y) (temp=(x),(x)=(y),(y)=temp)
+#ifndef QS_STACK
+# define QS_STACK 9999
+#endif
 
 void qsrec_sh( int n , short * ar , int cutoff )
 {

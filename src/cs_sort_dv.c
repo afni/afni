@@ -40,10 +40,12 @@ static void isort_doublestuff( int n , double *ar , void **iar )
 /********************************************************************************/
 /* qsrec : recursive part of quicksort (stack implementation)                   */
 
-#define QS_STACK  1024  /* stack size */
 #define QS_SWAPF(x,y) ( temp=(x),(x)=(y),(y)= temp)
 #define QS_SWAPI(i,j) (itemp=(i),(i)=(j),(j)=itemp)
 #define QS_SWAPV(i,j) (vtemp=(i),(i)=(j),(j)=vtemp)
+#ifndef QS_STACK
+# define QS_STACK 9999
+#endif
 
 static void qsrec_doublestuff( int n , double *ar , void **iar , int cutoff )
 {
