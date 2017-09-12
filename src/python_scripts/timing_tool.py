@@ -325,6 +325,25 @@ examples:
          timing_tool.py -fsl_timing_files fsl_r1.txt fsl_r2.txt fsl_r3.txt \\
                         -write_timing combined.txt -write_as_married
 
+   Example 19a. Convert TSV formatted timing files to AFNI timing format.
+
+      A tab separated value file contains events for all classes for a single
+      run.  Convert a single run to multiple AFNI timing files (or convert
+      multiple runs).
+
+         timing_tool.py -multi_timing_3col_tsv sing_weather.run*.tsv \
+                        -write_multi_timing AFNI_timing.weather
+
+      Consider -write_as_married, if useful.
+
+   Example 19b.  Extract ISI/duration/TR stats from TSV files.
+
+         timing_tool.py -multi_timing_3col_tsv sing_weather.run*.tsv \
+                        -multi_show_isi_stats -multi_show_duration_stats
+
+         timing_tool.py -multi_timing_3col_tsv sing_weather.run*.tsv \
+                        -tr 2 -show_tr_stats
+
 --------------------------------------------------------------------------
 Notes:
 
@@ -442,6 +461,24 @@ options with both single and multi versions (all single first):
             -run_len
             -write_all_rest_times
 
+   -multi_timing_3col_tsv FILE1 FILE2 ... : read TSV files into multi timing
+
+        e.g. -multi_timing_3col_tsv sing_weather_run*.tsv
+        e.g. -multi_timing_3col_tsv tones.tsv
+
+        Tab separated value (TSV) files, as one might find in OpenFMRI data,
+        are formatted with a possible header line and 3 tab-separated columns:
+
+            onset   duration    stim_class
+            ...
+
+        Timing for all event classes is contained in a single file, per run.
+
+   -multi_show_duration_stats   : display min/mean/max/stdev of event durations
+
+        Show the minimum, mean, maximum and standard deviation of the list of
+        all event durations, for each timing element.
+
    -multi_show_isi_stats        : display timing and ISI statistics
 
         With this option, the program will display timing statistics for the
@@ -471,6 +508,17 @@ options with both single and multi versions (all single first):
 
             Consider '-multi_show_isi_stats' and '-run_len'.
 
+   -write_multi_timing PREFIX   : write timing instances to new files
+
+        e.g. -write_multi_timing MT.
+
+        After modifying the timing data, the multiple timing instances
+        can be written out.
+
+            Consider '-write_as_married'.
+
+------------------------------------------
+action options (apply to multi timing elements, only):
 ------------------------------------------
 action options (apply to single timing element, only):
 
@@ -768,6 +816,8 @@ action options (apply to single timing element, only):
         After modifying the timing data, the user will probably want to write
         out the result.  Alternatively, the user could use -show_timing and
         cut-and-paste to write such a file.
+
+            Consider '-write_as_married'.
 
 ------------------------------------------
 action options (apply to multi timing elements, only):
@@ -1117,9 +1167,12 @@ g_history = """
    2.17 Jan  9, 2017 - timediff for event list should use prev duration
    2.18 Aug 22, 2017 - -apply_end_times_as_durations and -show_duration_stats
    2.19 Aug 30, 2017 - added -fsl_timing_files and -write_as_married
+   2.20 Sep 12, 2017
+        - added -multi_timing_3col_tsv, -write_multi_timing and
+          -multi_show_duration_stats for TSV files
 """
 
-g_version = "timing_tool.py version 2.19, August 30, 2017"
+g_version = "timing_tool.py version 2.20, September 12, 2017"
 
 
 
