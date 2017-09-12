@@ -1016,6 +1016,119 @@ def float_list_string(vals, nchar=7, ndec=3, nspaces=2):
 
    return str
 
+def read_multi_3col_tsv(flist, verb=1):
+   """Read a set of 3 column tsv (tab separated value) files
+         - one file per run
+         - each with a list of events for all classes
+      and convert it to list of AfniTiming instances.
+
+      A 3 column tsv file should have an optional header line,
+      followed by rows of VAL VAL LABEL, separated by tabs.
+
+      Use the labels to set name and possibly fname fields.
+   """
+
+   tlist = []   # all AfniTiming instances to return
+
+   h0 = []      # original header, once set
+   cdict = {}   # dictionary of events per class type
+                #   - array of event lists, per run
+   elist = []   # temporary variable, events for 1 run at a time
+   for rind, fname in enumerate(flist):
+      rv, header, elist = parse_3col_tsv(fname)
+      if rv: return rv, header, tlist
+
+      # store original header, else check for consistency
+      if not h0:
+         h0 = header
+      elif h0 != header:
+         print '** inconsistent column headers in 3 column tsv file %s' % fname
+         print '   orig:    %s' % ' '.join(h0)
+         print '   current: %s' % ' '.join(header)
+
+      # update list of class names, as they are found,
+      # and add to cdict (including empty runs)
+      for event in elist:
+         cname = event[2]
+         if cname not in cdict.keys():
+            cdict[cname] = [[]]*rind
+            if verb > 4:
+               print '++ RM3CT: init cdict[%s] with %s' % (cname, cdict[cname])
+
+      # partition elist per known class (should be complete, as all class
+      # names were added to dict)
+      for cname in cdict.iterkeys():
+         # okay if empty
+         cevents = [[e[0], [], e[1]] for e in elist if e[2] == cname]
+         cdict[cname].append(cevents)
+         if verb > 4:
+            print '++ RM3CT: append cdict[%s] with %s' % (cname, cevents)
+
+   # now convert to AfniTiming instances
+   for cname in cdict.iterkeys():
+      mdata = cdict[cname]
+      timing = AfniTiming(mdata=cdict[cname])
+      timing.name = cname
+      tlist.append(timing)
+      if verb > 3: timing.show(mesg=('have timing for %s'%cname))
+
+   return 0, tlist
+
+def parse_3col_tsv(fname, verb=1):
+   """Read one 3 column tsv (tab separated value) file, and return:
+        - status (0 if okay)
+        - header list (length 3?)
+        - list of onset, duration, label values
+
+      A 3 column tsv file should have an optional header line,
+      followed by rows of VAL VAL LABEL, separated by tabs.
+   """
+   lines = UTIL.read_text_file(fname, lines=1)
+   if len(lines) < 1:
+      print "** failed parse_3col_tsv for '%s'" % fname
+      return 1, [], []
+
+   # pare lines down to useful ones
+   newlines = []
+   for lind, line in enumerate(lines):
+      vv = line.split('\t')
+      if len(vv) == 3:
+         newlines.append(vv)
+      elif len(vv) > 0:
+         print '** skipping bad line %d of 3col tsv file %s' % (lind, fname)
+         if verb > 2: print '   vals[%d] = %s' % (len(vv),vv)
+      elif verb > 2:
+         print '** skipping empty line %d of 3col tsv file %s' % (lind, fname)
+   lines = newlines
+
+   if len(lines) < 1:
+      print "** parse_3col_tsv for '%s' is empty" % fname
+      return 1, [], []
+
+   # set header list, if a header exists
+   header = []
+   l0 = lines[0]
+   try:
+      onset = float(l0[0])
+      dur   = float(l0[1])
+      lab   = l0[2].replace(' ', '_')   # and convert spaces to underscores
+   except:
+      header = lines.pop(0)
+
+   # now lines should be all: onset, duration, label
+   slist = []
+   for line in lines:
+      try:
+         onset = float(line[0])
+         dur   = float(line[1])
+         lab   = line[2].replace(' ', '_')   # convert spaces to underscores
+      except:
+         print '** bad line 3col tsv file %s: %s' % (fname, ' '.join(line))
+         return 1, [], []
+      slist.append([onset, dur, lab])
+
+   return 0, header, slist
+
 def read_value_file(fname):
    """read value file, returning generic values in a matrix (no comments)"""
    try: fp = open(fname, 'r')

@@ -1265,6 +1265,26 @@ class ATInterface:
 
       return 0
 
+   def multi_timing_from_3col_tsv(self, flist):
+      """like multi_set_timing, fill self.mtiming and m_fnames
+         do so from a list of 3 column tsv files
+
+         init fnames from fprefix and name
+      """
+
+      if type(flist) != type([]):
+         print '** multi_timing_from_3col_tsv: list of files required'
+         return 1
+
+      if len(flist) < 1: return 0
+
+      rv, timing_list = LT.read_multi_3col_tsv(flist, self.verb)
+      if rv: return 1
+
+      self.m_timing = timing_list
+
+      return 0
+
    def set_stim_dur(self, dur):
       """apply the stim duration to the timing element"""
 
@@ -1325,6 +1345,23 @@ class ATInterface:
          return 1
       return self.timing.write_times(fname, nplaces=self.nplaces,
                                             force_married=self.write_married)
+
+   def write_multi_timing(self, prefix=''):
+      """write the multi timing files out using the given prefix,
+         with nplaces right of the decimal
+      """
+      if len(self.m_timing) < 1:
+         print '** no multi_timing to write'
+         return 1
+
+      if prefix: pp = prefix
+      else:      pp = 'mtiming.'
+      for tind, timing in enumerate(self.m_timing):
+         if   timing.fname: fname = prefix+timing.fname
+         elif timing.name:  fname = prefix+timing.name+'.txt'
+         else:              fname = '%sclass_%02d' % (pp, tind)
+         timing.write_times(fname, nplaces=self.nplaces,
+                                   force_married=self.write_married)
 
    def init_options(self):
       self.valid_opts = OL.OptionList('valid opts')
@@ -1420,6 +1457,8 @@ class ATInterface:
       # action options - multi
       self.valid_opts.add_opt('-multi_timing', -1, [], okdash=0,
                          helpstr='load the given list of timing files')
+      self.valid_opts.add_opt('-multi_timing_3col_tsv', -1, [], okdash=0,
+                         helpstr='load the 3 column TSV timing files')
       self.valid_opts.add_opt('-multi_show_isi_stats', 0, [], 
                          helpstr='show ISI stats for load_multi_timing objs')
       self.valid_opts.add_opt('-multi_show_timing_ele', 0, [], 
@@ -1432,6 +1471,8 @@ class ATInterface:
                          helpstr='convert stim_times event/isi files')
       self.valid_opts.add_opt('-multi_timing_to_event_list', 2, [], 
                          helpstr='convert to event list (style, filename)')
+      self.valid_opts.add_opt('-write_multi_timing', 1, [], 
+                         helpstr='write multi timing using the given prefix')
 
 
       # general options (including multi)
@@ -1589,6 +1630,15 @@ class ATInterface:
          val, err = uopts.get_string_list('-multi_timing')
          if type(val) == type([]) and not err:
             if self.multi_set_timing(val): return 1
+         else: return 1
+         uopts.olist.pop(oind)
+
+      # like multi_timing, but from 3 column tsv files
+      oind = uopts.find_opt_index('-multi_timing_3col_tsv')
+      if oind >= 0:
+         val, err = uopts.get_string_list('-multi_timing_3col_tsv')
+         if type(val) == type([]) and not err:
+            if self.multi_timing_from_3col_tsv(val): return 1
          else: return 1
          uopts.olist.pop(oind)
 
@@ -1853,6 +1903,14 @@ class ATInterface:
             val, err = uopts.get_string_opt('', opt=opt)
             if val != None and err: return 1
             self.write_timing(val)
+
+         elif opt.name == '-write_multi_timing':
+            if len(self.m_timing) <= 0:
+               print "** '%s' requires -multi_timing*" % opt.name
+               return 1
+            val, err = uopts.get_string_opt('', opt=opt)
+            if val != None and err: return 1
+            self.write_multi_timing(val)
 
          else:
             print '** unknown option: %s' % opt.name
