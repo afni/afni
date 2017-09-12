@@ -1459,6 +1459,8 @@ class ATInterface:
                          helpstr='load the given list of timing files')
       self.valid_opts.add_opt('-multi_timing_3col_tsv', -1, [], okdash=0,
                          helpstr='load the 3 column TSV timing files')
+      self.valid_opts.add_opt('-multi_show_duration_stats', 0, [], 
+                         helpstr='display min/mean/max/stdev of event durs')
       self.valid_opts.add_opt('-multi_show_isi_stats', 0, [], 
                          helpstr='show ISI stats for load_multi_timing objs')
       self.valid_opts.add_opt('-multi_show_timing_ele', 0, [], 
@@ -1781,9 +1783,16 @@ class ATInterface:
 
          elif opt.name == '-show_duration_stats':
             if not self.timing:
-               print "** '%s' requires -timing" % opt.name
+               print "** '%s' requires -timing or -multi_timing" % opt.name
                return 1
             if self.timing.show_duration_stats(): return 1
+
+         elif opt.name == '-multi_show_duration_stats':
+            if len(self.m_timing) <= 0:
+               print "** '%s' requires -timing or -multi_timing" % opt.name
+               return 1
+            for timing in self.m_timing:
+               if timing.show_duration_stats(): return 1
 
          elif opt.name == '-show_timing':
             if not self.timing:
