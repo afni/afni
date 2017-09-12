@@ -49,6 +49,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12, Sep, 2017, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
+   "add -multi_timing_3col_tsv and -write_multi_timing",
+   "Also, add -multi_show_duration_stats for married timing files.\n"
+   "This is to process 3 column TSV (tab separated value) formatted timing\n"
+   "files, as might be found in the OpenFMRI data."
+ } ,
+
  { 12, Sep, 2017, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
    "modify main examples to use the lpc+ZZ cost function",
    NULL
