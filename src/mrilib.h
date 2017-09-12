@@ -1134,6 +1134,7 @@ extern void qsort_float( int , float * ) ;
 extern void qsort_float_rev( int , float * ) ;
 extern void qsort_pair( int , float * , int * ) ;
 extern void qsort_int( int , int * ) ;
+extern void qsort_int_mostly( int , int * , int ) ; /* 12 Sep 2017 */
 
 extern void isort_short( int , short * ) ;
 extern void isort_float( int , float * ) ;

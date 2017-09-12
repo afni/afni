@@ -276,7 +276,7 @@ void qsrec_int( int n , int *ar , int cutoff )
 
 void qsort_int( int n , int *a )
 {
-   if( n <= 1 ) return ;
+   if( a == NULL || n <= 1 ) return ;
    switch(n){
      default:                    break ;  /* handled below */
      case  2:  qsort2_int(a) ; return ;
@@ -304,6 +304,17 @@ void qsort_int( int n , int *a )
    }
    qsrec_int( n , a , QS_CUTOFF ) ;
    isort_int( n , a ) ;
+   return ;
+}
+
+/*------------------------------------------------------------------------------*/
+
+void qsort_int_mostly( int n , int *a , int cut ) /* 12 Aug 2017 */
+{
+   if( cut < 3 || cut >= n || n < 28 ){
+     qsort_int(n,a) ; return ;
+   }
+   qsrec_int( n , a , cut ) ;
    return ;
 }
 
