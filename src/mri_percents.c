@@ -21,8 +21,10 @@ void qsrec_pair ( int , float * , int * , int ) ;
 
 #define QS_CUTOFF     40       /* cutoff to switch from qsort to isort */
 #define QS_SMALL      21
-#define QS_STACK      4096     /* qsort stack size */
 #define QS_SWAP(x,y)  (temp=(x), (x)=(y),(y)=temp)
+#ifndef QS_STACK
+# define QS_STACK 9999
+#endif
 
 /***************************************************************************
      Each qsort_TYPE routine (TYPE=short, int, float, or pair) has two

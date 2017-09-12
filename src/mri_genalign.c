@@ -1037,28 +1037,36 @@ STATUS("need_pts: use_all==2") ;
 STATUS("need_pts: subset") ;
 
        nvox = stup->bsim->nvox ;
+STATUS("  :: GA_find_relprime_fixed") ;
        dm   = GA_find_relprime_fixed(nvox) ;
        if( stup->im != NULL ){
+STATUS("  :: KILL_floatvec") ;
          KILL_floatvec(stup->im) ;
          KILL_floatvec(stup->jm) ;
          KILL_floatvec(stup->km) ;
        }
+STATUS("  :: MAKE_floatvec") ;
        MAKE_floatvec(stup->im,stup->npt_match) ;
        MAKE_floatvec(stup->jm,stup->npt_match) ;
        MAKE_floatvec(stup->km,stup->npt_match) ;
 
+STATUS("  :: calloc qm") ;
        qm = (int *)calloc(sizeof(int),stup->npt_match) ;
        if( qm == NULL ) ERREX("qm malloc fails") ;
+STATUS("  :: load qm") ;
        mm = (nx/2) + (ny/2)*nx + (nz/2)*nxy ;
        for( pp=0 ; pp < stup->npt_match ; mm=(mm+dm)%nvox )
          if( GOOD(mm) ) qm[pp++] = mm ;
+STATUS("  :: sort qm") ;
        qsort_int( stup->npt_match , qm ) ;
 
+STATUS("  :: load index arrays") ;
        for( pp=0 ; pp < stup->npt_match ; pp++ ){
          mm = qm[pp] ;
          ii = mm % nx; kk = mm / nxy; jj = (mm-kk*nxy) / nx;
          stup->im->ar[pp] = ii; stup->jm->ar[pp] = jj; stup->km->ar[pp] = kk;
        }
+STATUS("  :: free qm") ;
        free((void *)qm) ;
      }
 

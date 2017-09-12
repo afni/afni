@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 12 , SEP , 2017 , RWC , "sorting functions" , MICRO , TYPE_MODIFY ,
+   "Increase stack size in qsort funcs, for very large arrays" ,
+   NULL } ,
+
  { 23 , AUG , 2017 , RWC , "3dttest++" , MINOR , TYPE_ENHANCE ,
    "All 'fpr=ALL' in -ETAC_opt" ,
    "To let user get results for FPR goals from 2-9 percent." } ,
