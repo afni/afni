@@ -7083,9 +7083,10 @@ g_help_string = """
            Align the EPI to the anatomy.  Also, process in standard space.
 
            For alignment in either direction, add the 'align' block, which
-           aligns the anatomy to the EPI.  To then align the EPI to the anat,
-           apply -volreg_align_e2a, where that transform (inverse) is applied
-           along with the motion alignment.
+           aligns the anatomy to the EPI.  To then align the EPI to the anat
+           using the lpc+ZZ cost function (instead of just lpc), apply
+           -volreg_align_e2a, where that transform (inverse) is applied along
+           with the motion alignment.
 
            On top of that, complete the processing in standard space by running
            @auto_tlrc on the anat (via the 'tlrc' block) and applying the same
@@ -7104,6 +7105,7 @@ g_help_string = """
                         -do_block align tlrc                               \\
                         -copy_anat sb23/sb23_mpra+orig                     \\
                         -tcat_remove_first_trs 3                           \\
+                        -align_opts_aea -cost lpc+ZZ                       \\
                         -volreg_align_to last                              \\
                         -volreg_align_e2a                                  \\
                         -volreg_tlrc_warp                                  \\
@@ -7132,7 +7134,7 @@ g_help_string = """
         Example 7. Similar to 6, but get a little more esoteric.
 
            a. Register EPI volumes to the one which has the minimum outlier
-              fraction (so hopefully the least motion).
+              fraction (so hopefully the least motion), still with cost lpc+ZZ.
 
            b. Blur only within the brain, as far as an automask can tell.  So
               add -blur_in_automask to blur only within an automatic mask
@@ -7179,6 +7181,7 @@ g_help_string = """
                         -do_block align tlrc                               \\
                         -copy_anat sb23/sb23_mpra+orig                     \\
                         -tcat_remove_first_trs 3                           \\
+                        -align_opts_aea -cost lpc+ZZ                       \\
                         -volreg_align_to MIN_OUTLIER                       \\
                         -volreg_align_e2a                                  \\
                         -volreg_tlrc_warp                                  \\
@@ -7251,6 +7254,7 @@ g_help_string = """
                     -surf_anat FT/SUMA/FTmb_SurfVol+orig                 \\
                     -surf_spec FT/SUMA/FTmb_?h.spec                      \\
                     -tcat_remove_first_trs 2                             \\
+                    -align_opts_aea -cost lpc+ZZ                         \\
                     -volreg_align_to third                               \\
                     -volreg_align_e2a                                    \\
                     -blur_size 6                                         \\
@@ -7368,7 +7372,8 @@ g_help_string = """
            CSFe was previously used as an example of what one could do, but as
            it is not advised, it has been removed.
 
-           Also, align to minimum outlier volume.
+           Also, align to minimum outlier volume, and align to the anatomy
+           using cost function lpc+ZZ.
 
            Note: it might be reasonable to estimate the blur using epits rather
                  than errts in the case of bandpassing.  Both options are
@@ -7379,6 +7384,7 @@ g_help_string = """
                   -copy_anat anat+orig                                       \\
                   -blocks despike tshift align tlrc volreg blur mask regress \\
                   -tcat_remove_first_trs 3                                   \\
+                  -align_opts_aea -cost lpc+ZZ                               \\
                   -volreg_align_to MIN_OUTLIER                               \\
                   -volreg_align_e2a                                          \\
                   -volreg_tlrc_warp                                          \\
@@ -7423,6 +7429,8 @@ g_help_string = """
        Example 11. Resting state analysis (now even more modern :).
            
          o Yes, censor (outliers and motion) and despike.
+         o Align the anatomy and EPI using the lpc+ZZ cost function, rather
+           than the default lpc one.
          o Register EPI volumes to the one which has the minimum outlier
               fraction (so hopefully the least motion).
          o Use non-linear registration to MNI template.
@@ -7464,6 +7472,7 @@ g_help_string = """
                   -anat_follower_erode FSvent FSWe                           \\
                   -dsets FT_epi_r?+orig.HEAD                                 \\
                   -tcat_remove_first_trs 2                                   \\
+                  -align_opts_aea -cost lpc+ZZ                               \\
                   -tlrc_base MNI_caez_N27+tlrc                               \\
                   -tlrc_NL_warp                                              \\
                   -volreg_align_to MIN_OUTLIER                               \\
@@ -7509,6 +7518,7 @@ g_help_string = """
                   -copy_anat FT_anat+orig                                    \\
                   -dsets FT_epi_r?+orig.HEAD                                 \\
                   -tcat_remove_first_trs 2                                   \\
+                  -align_opts_aea -cost lpc+ZZ                               \\
                   -tlrc_base TT_N27+tlrc                                     \\
                   -tlrc_NL_warp                                              \\
                   -volreg_align_to MIN_OUTLIER                               \\
