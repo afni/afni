@@ -403,6 +403,8 @@ ENTRY("THD_mask_fillin_once") ;
 
 #ifdef DEBUG
    ININFO_message("THD_mask_fillin_once: nsx=%d nsy=%d nsz=%d\n",nsx,nsy,nsz);
+#else
+   STATUSi(" :: nsx",nsx); STATUSi(" :: nsy",nsy); STATUSi(" :: nsz",nsz);
 #endif
 
    nxy = nx*ny ; nxyz = nxy*nz ; nfill = 0 ;
@@ -442,6 +444,28 @@ ENTRY("THD_mask_fillin_once") ;
                  (mmm[iv-1]||mmm[iv-2]||mmm[iv-3])   ) FILLVOX;
            break ;
 
+/*** This stuff is for eventual expansion to hard-coding larger steps ***/
+#if 0
+#define XPLU4(q)  mmm[q+1]||mmm[q+2]||mmm[q+3]||mmm[q+4]
+#define XMIN4(q)  mmm[q-1]||mmm[q-2]||mmm[q-3]||mmm[q-4]
+
+#define XPLU5(q)  XPLU4(q) ||mmm[q+5]
+#define XPLU6(q)  XPLU5(q) ||mmm[q+6]
+#define XPLU7(q)  XPLU6(q) ||mmm[q+7]
+#define XPLU8(q)  XPLU7(q) ||mmm[q+8]
+#define XPLU9(q)  XPLU8(q) ||mmm[q+9]
+#define XPLU10(q) XPLU9(q) ||mmm[q+10]
+#define XPLU11(q) XPLU10(q)||mmm[q+11]
+
+#define XMIN5(q)  XMIN4(q) ||mmm[q-5]
+#define XMIN6(q)  XMIN5(q) ||mmm[q-6]
+#define XMIN7(q)  XMIN6(q) ||mmm[q-7]
+#define XMIN8(q)  XMIN7(q) ||mmm[q-8]
+#define XMIN9(q)  XMIN8(q) ||mmm[q-9]
+#define XMIN10(q) XMIN9(q) ||mmm[q-10]
+#define XMIN11(q) XMIN10(q)||mmm[q-11]
+#endif
+
            case 4:
              if( (mmm[iv+1]||mmm[iv+2]||mmm[iv+3]||mmm[iv+4]) &&
                  (mmm[iv-1]||mmm[iv-2]||mmm[iv-3]||mmm[iv-4])   ) FILLVOX;
@@ -479,9 +503,17 @@ ENTRY("THD_mask_fillin_once") ;
            break ;
 
            default:
-             for( ll=1 ; ll <= nsy ; ll++ ) if( mmm[iv+ll*nx] ) break ;
+             if( (mmm[iv+nx]||mmm[iv+nx2]||mmm[iv+nx3]||mmm[iv+nx4]) == 0 ){
+               for( ll=5 ; ll <= nsy ; ll++ ) if( mmm[iv+ll*nx] ) break ;
+             } else {
+               ll = 1 ;
+             }
              if( ll <= nsy ){
-               for( ll=1 ; ll <= nsy ; ll++ ) if( mmm[iv-ll*nx] ) break ;
+               if( (mmm[iv-nx]||mmm[iv-nx2]||mmm[iv-nx3]||mmm[iv-nx4]) == 0 ){
+                 for( ll=5 ; ll <= nsy ; ll++ ) if( mmm[iv-ll*nx] ) break ;
+               } else {
+                 ll = 1 ;
+               }
                if( ll <= nsy ) FILLVOX;
              }
            break ;
@@ -510,9 +542,17 @@ ENTRY("THD_mask_fillin_once") ;
            break ;
 
            default:
-             for( ll=1 ; ll <= nsz ; ll++ ) if( mmm[iv+ll*nxy] ) break ;
+             if( (mmm[iv+nxy]||mmm[iv+nxy2]||mmm[iv+nxy3]||mmm[iv+nxy4]) == 0 ){
+               for( ll=5 ; ll <= nsz ; ll++ ) if( mmm[iv+ll*nxy] ) break ;
+             } else {
+               ll = 1 ;
+             }
              if( ll <= nsz ){
-               for( ll=1 ; ll <= nsz ; ll++ ) if( mmm[iv-ll*nxy] ) break ;
+               if( (mmm[iv-nxy]||mmm[iv-nxy2]||mmm[iv-nxy3]||mmm[iv-nxy4]) == 0 ){
+                 for( ll=5 ; ll <= nsz ; ll++ ) if( mmm[iv-ll*nxy] ) break ;
+               } else {
+                 ll = 1 ;
+               }
                if( ll <= nsz ) FILLVOX;
              }
            break ;
@@ -529,6 +569,8 @@ ENTRY("THD_mask_fillin_once") ;
 
 #ifdef DEBUG
    ININFO_message("THD_mask_fillin_once: nfill=%d\n",nfill) ;
+#else
+   STATUSi(" >> nfill",nfill) ;
 #endif
 
    free(nnn) ; RETURN(nfill) ;

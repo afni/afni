@@ -23,8 +23,8 @@ end
 parts=cell(1,2*n-1);
 for k=1:n
     parts{k*2-1}=c{k};
-    if k>1
-        parts{k}=sep;
+    if k<n
+        parts{k*2}=sep;
     end
 end
 
