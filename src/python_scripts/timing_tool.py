@@ -331,17 +331,17 @@ examples:
       run.  Convert a single run to multiple AFNI timing files (or convert
       multiple runs).
 
-         timing_tool.py -multi_timing_3col_tsv sing_weather.run*.tsv \
+         timing_tool.py -multi_timing_3col_tsv sing_weather.run*.tsv \\
                         -write_multi_timing AFNI_timing.weather
 
       Consider -write_as_married, if useful.
 
    Example 19b.  Extract ISI/duration/TR stats from TSV files.
 
-         timing_tool.py -multi_timing_3col_tsv sing_weather.run*.tsv \
+         timing_tool.py -multi_timing_3col_tsv sing_weather.run*.tsv \\
                         -multi_show_isi_stats -multi_show_duration_stats
 
-         timing_tool.py -multi_timing_3col_tsv sing_weather.run*.tsv \
+         timing_tool.py -multi_timing_3col_tsv sing_weather.run*.tsv \\
                         -tr 2 -show_tr_stats
 
 --------------------------------------------------------------------------
