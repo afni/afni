@@ -268,7 +268,7 @@ static MRI_IMAGE * make_radial_weight( int   nx , int   ny , int   nz ,
    ijtop = itop*jtop ;
    fim = mri_new_vol( itop , jtop , ktop , MRI_float ) ;
    far = MRI_FLOAT_PTR(fim) ;
-   ININFO_message("Kernel image dimensions %d x %d x%d",itop,jtop,ktop) ;
+   ININFO_message("Kernel image dimensions %d x %d x %d",itop,jtop,ktop) ;
 
    for( kk=0 ; kk < ktop ; kk++ ){
     for( jj=0 ; jj < jtop ; jj++ ){
