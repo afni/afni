@@ -1068,7 +1068,9 @@ def read_multi_3col_tsv(flist, verb=1):
    for cname in cdict.iterkeys():
       mdata = cdict[cname]
       timing = AfniTiming(mdata=cdict[cname])
+      # init name and fname based on label, consider ability to change
       timing.name = cname
+      timing.fname = 'times.%s.txt' % cname
       tlist.append(timing)
       if verb > 3: timing.show(mesg=('have timing for %s'%cname))
 
