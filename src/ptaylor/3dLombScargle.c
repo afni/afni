@@ -1,5 +1,8 @@
 /* 
    Description
+
+   [Sept. 2014] Fixed up now. Will revisit tapers and windows laterz. 
+   
 */
 
 
@@ -36,8 +39,7 @@ void usage_LombScargle(int detail)
 "  several adjustments based on that. \n"
 "\n"
 "  The Lomb-Scargle adaption was done with fairly minimal changes here by\n"
-"  PA Taylor (v1.4, June, 2016). Fun things like Welch-windowing capability\n"
-"  and time series tapering have been added now.\n"
+"  PA Taylor (v1.4, June, 2016). \n"
 "\n"
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "  \n"
@@ -82,7 +84,7 @@ void usage_LombScargle(int detail)
 "  + A NOTE ABOUT Fourier+Parseval matters (please forgive the awkward\n"
 "   formatting):\n"
 "      In the formulation used here, for a time series x[n] of length N, \n"
-"      the periodogram value P[k] is related to the amplitude value |X[k]|:\n"
+"      the periodogram value S[k] is related to the amplitude value |X[k]|:\n"
 "       (1)     S[k] = (|X[k]|)**2,\n"
 "      for each k-th harmonic.\n"
 "\n"
@@ -104,9 +106,9 @@ void usage_LombScargle(int detail)
 "      can be thought of as signifying right- and left-traveling waves, which\n"
 "      both contribute to the total power of a specific frequency.\n"
 "      The upshot is that one could write the Parseval formula as:\n"
-"       (3)     sum_n{ x[n]**2 } = (2/N) * sum_k{ |X[k]|**2 }, \n"
-"                                = (2/N) * sum_k{ S[k] }, \n"
-"      where n=0,1,..,N-1 and k=0,1,..,N/2-1 (note the factor of 2 now\n"
+"       (3)     sum_n{ x[n]**2 } = (2/N) * sum_l{ |X[l]|**2 }, \n"
+"                                = (2/N) * sum_l{ S[l] }, \n"
+"      where n=0,1,..,N-1 and l=0,1,..,(N/2)-1 (note the factor of 2 now\n"
 "      appearing on the RHS relations). These symmetries/considerations\n"
 "      are the reason why ~N/2 frequency values are output here (we assume \n"
 "      that only real-valued time series are input), without any loss of\n"
@@ -116,17 +118,30 @@ void usage_LombScargle(int detail)
 "      or power of a given frequency, which many people might want to use to \n"
 "      estimate spectral 'functional connectivity' parameters such as ALFF,\n"
 "      fALFF, RSFA, etc. (using, for example, 3dAmptoRSFC), we therefore \n"
-"      note that the *total* amplitude or power of a given frequency would be:\n"
-"          -> A[k] = 2*|X[k]|                 \n"
-"          -> P[k] = 2*S[k] = 2*|X[k]|**2 = 0.5*A[k]**2    \n"
+"      note that the *total* amplitude or power of a given frequency would\n"
+"      be:\n"
+"            A[k] = 2*|X[k]|                 \n"
+"            P[k] = 2*S[k] = 2*|X[k]|**2 = 0.5*A[k]**2    \n"
 "      instead of just that of the left/right traveling part. These types of\n"
 "      quantities (A and P) are also referred to as 'two-sided' spectra. The\n"
 "      resulting Parseval relation could then be written:\n"
-"       (4)     sum_n{ x[n]**2 } = (1/(2N)) * sum_k{ A[k]**2 }, \n"
-"                                = (1/N) * sum_k{ P[k] }, \n"
-"      where n=0,1,..,N-1 and k=0,1,..,N/2-1.  Somehow, it just seems easier\n"
+"       (4)     sum_n{ x[n]**2 } = (1/(2N)) * sum_l{ A[l]**2 }, \n"
+"                                = (1/N) * sum_l{ P[l] }, \n"
+"      where n=0,1,..,N-1 and l=0,1,..,(N/2)-1. Somehow, it just seems easier\n"
 "      to output the one-sided values, X and S, so that the Parsevalian\n"
 "      summation rules look more similar.\n"
+"\n"
+"      With all of that in mind, the 3dLombScargle results are output as\n"
+"      follows. For amplitudes, the following approx. Parsevellian relation\n"
+"      should hold between the 'holey' time series x[m] of M points and\n"
+"      the frequency series Y[l] of L~M/2 points (where {|Y[l]|} approaches\n"
+"      the Fourier amplitudes {|X[l]|} as the number of censored points \n"
+"      decreases and M->N):\n"
+"       (5)     sum_m{ x[m]**2 } = (1/L) * sum_l{ Y[l]**2 }, \n"
+"      where m=0,1,..,M-1 and l=0,1,..,L-1. For the power spectrum T[l]\n"
+"      of L~M/2 values, then:\n"
+"       (6)     sum_m{ x[m]**2 } = (1/L) * sum_l{ T[l] } \n"
+"      for the same ranges of summations.\n"
 "\n"
 "      So, please consider that when using the outputs of here. 3dAmpToRSFC\n"
 "      is prepared for this when calculating spectral parameters (from \n"
@@ -134,9 +149,10 @@ void usage_LombScargle(int detail)
 "\n"
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "\n"
-"  + COMMAND:  3dLombScargle -prefix PREFIX -inset FILE {-in_censor1D CC}\\\n"
-"                  {-mask MASK} {-out_pow_spec} {-welch_win NW} \\\n"
-"                  {-nyq_mult N2}  {-nifti} {-taper_off } \n"
+"  + COMMAND:  3dLombScargle -prefix PREFIX -inset FILE \\\n"
+"                  {-censor_1D C1D} {-censor_str CSTR} \\\n"
+"                  {-mask MASK} {-out_pow_spec}  \\\n"
+"                  {-nyq_mult N2}  {-nifti}  \n"
 "\n"
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "\n"
@@ -145,32 +161,31 @@ void usage_LombScargle(int detail)
 "                    and frequency 1D file.\n"
 "  -inset FILE      :time series of volumes, a 4D volumetric data set.\n"
 "\n"
-"  -in_censor1D CC  :single row or column of 1s and 0s describing which\n"
-"                    volumes of FILE are kept in the sampling or are censored\n"
-"                    out, respectively. The list of numbers must be of the\n"
+"  -censor_1D C1D   :single row or column of 1s (keep) and 0s (censored)\n"
+"                    describing which volumes of FILE are kept in the\n"
+"                    sampling and which are censored out, respectively. The\n"
+"                    length of the list of numbers must be of the\n"
 "                    same length as the number of volumes in FILE.\n"
-"                    If not entered, all volumes are kept in sampling.\n"
+"                    If not entered, then the program will look for subbricks\n"
+"                    of all-zeros and assume those are censored out.\n"
+"  -censor_str CSTR :AFNI-style selector string of volumes to *keep* in\n"
+"                    the analysis.  Such as: \n"
+"                         '[0..4,7,10..$]'\n"
+"                    Why we refer to it as a 'censor string' when it is\n"
+"                    really the list of volumes to keep... well, it made\n"
+"                    sense at the time.  Future historians can duel with\n"
+"                    ink about it.\n"
+"\n"
 "  -mask MASK       :optional, mask of volume to analyze; additionally, any\n"
 "                    voxel with uniformly zero values across time will\n"
 "                    produce a zero-spectrum.\n"
-"  -welch_win NW    :use Welch windowing method to estimate the spectrum; the\n"
-"                    frequency output is essentially smoothed, but the peaks\n"
-"                    should be better estimates (smaller variance). The \n"
-"                    actual number of windows used is 2*NW - 1, as the \n"
-"                    windows will overlap by ~50%%. By default, NW=1; also \n"
-"                    by default, each window (even if NW=1) is tapered, \n"
-"                    currently using a (L2-normed) Hann function.\n" 
-"  -taper_off       :turn off tapering (for any number of windows, >=1). In \n"
-"                    general, the tapering should/does reduce aliasing and\n"
-"                    possibly spurious higher frequencies (or so they say!),\n"
-"                    so turn this off at your own imminent peril.\n"
 "\n"
 "  -out_pow_spec    :switch to output the amplitude spectrum of the freqs\n"
 "                    instead of the periodogram.  In the formulation used\n"
 "                    here, for a time series of length N, the power spectral\n"
 "                    value S is related to the amplitude value X as:\n"
 "                    S = (X)**2.\n"
-"       ---> You can both normalize and amplitude-ize the output values,\n"
+"      NB --> You can both normalize and amplitude-ize the output values,\n"
 "            if you wish. Or do neither. Or just do one of them. Your choice.\n"
 "\n"
 "  -nyq_mult N2     :L-S periodograms can include frequencies above what\n"
@@ -184,6 +199,8 @@ void usage_LombScargle(int detail)
 "                    there are slight differences in censoring, per subject.)\n"
 "                    Acceptable values are >0. (For those reading the \n"
 "                    algorithm papers, this sets the 'hifac' parameter.)\n"
+"                    If you don't have a good reason for changing this,\n"
+"                    dooon't change it!\n"
 "  -nifti           :switch to output *.nii.gz volume file\n"
 "                    (default format is BRIK/HEAD).\n"
 
@@ -192,7 +209,7 @@ void usage_LombScargle(int detail)
 "\n"
 "  + EXAMPLE:\n"
 "        3dLombScargle -prefix LSout -inset TimeSeries.nii.gz \\\n"
-"             -mask mask.nii.gz -in_censor1D censor_list.txt\n"
+"             -mask mask.nii.gz -censor_1D censor_list.txt\n"
 "\n"
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 " \n"
@@ -219,6 +236,22 @@ scaling...
 "                    is N1=1. (For those reading the algorithm papers, this\n"
 "                    sets the 'ofac' parameter.)\n"
 
+"  -welch_win NW    :use Welch windowing method to estimate the spectrum; the\n"
+"                    frequency output is essentially smoothed, but the peaks\n"
+"                    should be better estimates (smaller variance). The \n"
+"                    actual number of windows used is 2*NW - 1, as the \n"
+"                    windows will overlap by ~50%%. By default, NW=1; also \n"
+"                    by default, each window (even if NW=1) is tapered, \n"
+"                    currently using a (L2-normed) Hann function.\n" 
+
+Fun things like Welch-windowing capability\n"
+"  and time series tapering have been added now.
+
+"  -taper_off       :turn off tapering (for any number of windows, >=1). In \n"
+"                    general, the tapering should/does reduce aliasing and\n"
+"                    possibly spurious higher frequencies (or so they say!),\n"
+"                    so turn this off at your own imminent peril.\n"
+
 
 */
 
@@ -233,6 +266,8 @@ int main(int argc, char *argv[]) {
    //   char in_name[300];
    char in_mask[300];
    char *in_censor=NULL;
+   char *str_censor=NULL;
+   int  *int_cens=NULL;
    THD_3dim_dataset *outset_LS=NULL;
    char outset_name[300];
 
@@ -286,7 +321,7 @@ int main(int argc, char *argv[]) {
    int win_Npts_out, win_Npts_wrk;  // per win, are <= Npts_{out,work}
    int **WinInfo=NULL;
    float *WinDelT=NULL, *WinVec=NULL;
-   int DO_TAPER = 1;
+   int DO_TAPER = 0;          // off by default
    int NIFTI_OUT=0;
    int mk_info=1;
 
@@ -326,9 +361,9 @@ int main(int argc, char *argv[]) {
                      ERROR_exit("Need argument after '-inset'");
 
          //sprintf(in_name,"%s", argv[iarg]); 
-         insetTIME = THD_open_dataset(argv[iarg]); //in_name) ;
+         insetTIME = THD_open_dataset(argv[iarg]);
          if( (insetTIME == NULL ))
-            ERROR_exit("Can't open time series dataset '%s'.",argv[iarg]); //in_name);
+            ERROR_exit("Can't open time series dataset '%s'.", argv[iarg]); 
 
          Dim = (int *)calloc(4,sizeof(int));
          DSET_load(insetTIME); CHECK_LOAD_ERROR(insetTIME);
@@ -337,6 +372,11 @@ int main(int argc, char *argv[]) {
          Dim[2] = DSET_NZ(insetTIME); Dim[3]= DSET_NVALS(insetTIME); 
          sampleTR = DSET_TR(insetTIME);
       
+         if( Dim[3] < 2 ) 
+            ERROR_exit("Input 'inset' is too short, only has %d vols."
+                       "  -> hardly a time *series*. My have Nvol>2.", 
+                       Dim[3]);
+
          INFO_message("TR in MR volume appears to be: %f s", sampleTR);
 
          iarg++ ; continue ;
@@ -357,7 +397,7 @@ int main(int argc, char *argv[]) {
          iarg++ ; continue ;
       }
 
-
+      /*
       if( strcmp(argv[iarg],"-welch_win") == 0 ){
          if( ++iarg >= argc ) 
             ERROR_exit("Need argument after '-welch_win'\n") ;
@@ -371,15 +411,26 @@ int main(int argc, char *argv[]) {
 
          iarg++ ; continue ;
       }
+      */
 
-      if( strcmp(argv[iarg],"-in_censor1D") == 0 ){
+      if( strcmp(argv[iarg],"-censor_1D") == 0 ){
          if( ++iarg >= argc ) 
-            ERROR_exit("Need argument after '-in_censor_1D'\n") ;
+            ERROR_exit("Need argument after '-censor_1D'\n") ;
        
          in_censor = strdup(argv[iarg]) ;
 
          iarg++ ; continue ;
       }
+
+      if( strcmp(argv[iarg],"-censor_str") == 0 ){
+         if( ++iarg >= argc ) 
+            ERROR_exit("Need argument after '-censor_str'\n") ;
+       
+         str_censor = strdup(argv[iarg]) ;
+
+         iarg++ ; continue ;
+      }
+
 
       /*  unused-- shouldn't have, for consistency across groups
       if( strcmp(argv[iarg],"-upsamp_fac") == 0 ){
@@ -418,11 +469,13 @@ int main(int argc, char *argv[]) {
 			iarg++ ; continue ;
 		}
 
-      if( strcmp(argv[iarg],"-taper_off") == 0) {
+      /*
+      if( strcmp(argv[iarg],"-taper_on") == 0) {
          INFO_message("Un-releasing the tapers.");
-			DO_TAPER=0;
+			DO_TAPER=1;
 			iarg++ ; continue ;
 		}
+      */
 
       if( strcmp(argv[iarg],"-nifti") == 0) {
          NIFTI_OUT=1;
@@ -443,19 +496,17 @@ int main(int argc, char *argv[]) {
    }
   
    if( !insetTIME )
-      ERROR_exit("Hey! No input time series data set! Using '-inset ...'.");
+      ERROR_exit("Hey! No input time series data set! Use '-inset ...'.");
 
    if( MASK ) 
       if ( Dim[0] != DSET_NX(MASK) || Dim[1] != DSET_NY(MASK) ||
            Dim[2] != DSET_NZ(MASK) ) {
          ERROR_message("Mask and inset don't appear to have the same "
-                       "dimensions.\n");
+                       "spatial dimensions.\n");
          exit(1);
       }
   
-  
    INFO_message("Data read in.  Continuing");
-  
 	
    // ****************************************************************
    // ****************************************************************
@@ -469,7 +520,8 @@ int main(int argc, char *argv[]) {
    NWINp1 = NWIN+1;           // for counting/ratios   
 
    if( NSEG == 1 )
-      INFO_message("Not using Welch windows.");
+      INFO_message("Single window.");
+   //      INFO_message("Not using Welch windows.");
    else
       INFO_message("For Welch windowing, using:\n"
                    "\t%d segments of the time series,\n"
@@ -485,10 +537,12 @@ int main(int argc, char *argv[]) {
       exit(334);
    }
 
-
-
-
    // ---------------------------------------------------------------
+   if( in_censor && str_censor) {
+      ERROR_exit("Can use either '-censor_1D ...' or '-censor_str ...'"
+                 " but not *both!");
+   }
+
    // deal with censoring input
    if( in_censor ) {
 
@@ -507,33 +561,51 @@ int main(int argc, char *argv[]) {
       INFO_message("1D file has %d time points", i);
       if ( i != Dim[3] ) {
          mri_free (in_cen_im);
-         ERROR_exit("Error: censor file has %d points, "
+         ERROR_exit("Censor file has %d points, "
                     " but the volume has %d bricks", i, Dim[3]);
       }
       censor_sh = MRI_SHORT_PTR( in_cen_im );
 
    }
    else {
-      WARNING_message("no censor file input\n\t-> doing internal "
-                      "checks for 0-full volumes to censor.");
 
-      censor_sh = (short *)calloc(Dim[3],sizeof(short));
+      censor_sh = (short *)calloc( Dim[3], sizeof(short) );
       if( (censor_sh == NULL) ) {
          fprintf(stderr, "\n\n MemAlloc failure.\n\n");
          exit(233);
       }
 
-      for( l=0 ; l<Dim[3] ; l++ ) {
-         temp_sum = 0.;
-         idx = 0;
-         for( k=0 ; k<Dim[2] ; k++ ) 
-            for( j=0 ; j<Dim[1] ; j++ ) 
-               for( i=0 ; i<Dim[0] ; i++ ) {
-                  temp_sum+= abs(THD_get_voxel(insetTIME,idx,l));
-                  idx++;
-               }
-         if( temp_sum > EPS_V ) 
-            censor_sh[l] = 1;
+      if(str_censor) {
+         INFO_message("Translating censor string: %s", str_censor);
+         // int_cens[0] = Ncen = "how many indices there will be".
+         // len(int_cens) = Ncen+1
+         int_cens = MCW_get_intlist( Dim[3] , str_censor );
+         INFO_message("--> Keeping %d volumes", int_cens[0]);
+         
+         //fprintf(stderr, "\n");
+         for( i=1 ; i<int_cens[0]+1 ; i++ ) {
+          censor_sh[int_cens[i]] = 1;
+         // fprintf(stderr, "%5d,",  int_cens[i]);
+         }
+         //fprintf(stderr, "\n");
+         free(int_cens);
+      }
+      else {
+         WARNING_message("no censor file input\n\t-> doing internal "
+                         "checks for 0-full volumes to censor.");
+         
+         for( l=0 ; l<Dim[3] ; l++ ) {
+            temp_sum = 0.;
+            idx = 0;
+            for( k=0 ; k<Dim[2] ; k++ ) 
+               for( j=0 ; j<Dim[1] ; j++ ) 
+                  for( i=0 ; i<Dim[0] ; i++ ) {
+                     temp_sum+= abs(THD_get_voxel(insetTIME,idx,l));
+                     idx++;
+                  }
+            if( temp_sum > EPS_V ) 
+               censor_sh[l] = 1;
+         }
       }
    }
 
@@ -563,14 +635,14 @@ int main(int argc, char *argv[]) {
    // populate float array of sampled times
    sprintf(out_TS,"%s_time.1D",prefix); 
    if( (fout0 = fopen(out_TS, "w")) == NULL) {
-      fprintf(stderr, "\n\nError opening file %s.\n",out_TS);
+      fprintf(stderr, "\n\nError opening file %s.\n", out_TS);
       exit(1);
    }
    for( i=0; i<Npts_cen ; i++) 
       fprintf(fout0,"%.5f\n", censor_flt[i]);
    fprintf(fout0,"\n");
    fclose(fout0);
-   INFO_message("Done writing (floating) time points 1D file: %s",out_TS);
+   INFO_message("Done writing (float) time points 1D file: %s", out_TS);
   
    // ---------------------------------------------------------------
 
@@ -626,8 +698,11 @@ int main(int argc, char *argv[]) {
       INFO_message("Effective Nyquist multiplicative factor "
                    "for upper frequency is %.4f", my_hifac);
    }
-   delF = 1.0/((Dim[3]-1)*sampleTR*my_ofac);  // want this const across
-                                          // group and across windows
+   // Want this const across group and across windows.
+   // With Dim[3] points, since [0]th is itself 0, total duration is
+   // (Dim[3]-1)*TR.
+   delF = 1.0/((Dim[3]-1)*sampleTR*my_ofac); 
+
    INFO_message("Total Ntpts=%d,  TR=%.4f, my_ofac=%.4f", 
                 Dim[3], sampleTR, my_ofac);
    INFO_message("Frequency unit: Delta f = %e", delF);
@@ -664,6 +739,10 @@ int main(int argc, char *argv[]) {
       exit(234);
    }
 
+   //fprintf(stderr," !!!!! Npts_cen = %d ", Npts_cen);
+   //fprintf(stderr," !!!!! NSEG = %d ", NSEG);
+   //fprintf(stderr," !!!!! NWIN = %d ", NWIN);
+
    // window calcs
    WelchWindowInfo( censor_flt, Npts_cen, NSEG, 
                     WinInfo, WinDelT, NWIN );
@@ -680,30 +759,7 @@ int main(int argc, char *argv[]) {
    
    MakeWindowVec( WinVec, WinInfo[0][1] );
 
-   // ---------------------------------------------------------------
-   // populate TS with censored info
-   /*
-     idx = 0;
-     for( k=0 ; k<Dim[2] ; k++ ) 
-     for( j=0 ; j<Dim[1] ; j++ ) 
-     for( i=0 ; i<Dim[0] ; i++ ) {
-     if( mskd[i][j][k] ) {
-     m=0;
-     for( l=0 ; l<Dim[3] ; l++ )
-     if(censor_sh[l]) {
-     tpts[m] = THD_get_voxel(insetTIME,idx,l);
-     m++;
-     }
-     fasper( censor_flt-1, tpts-1, Npts_cen, 
-     my_ofac, my_hifac, 
-     wk1-1, all_ls[idx]-1, Npts_wrk,
-     &Npts_out, &jmax, &prob);
-     }
-     idx++;
-     }*/
-
-   // ---------------------------------------------------------------
-   //INFO_message("DBG: NPtswrk: %d",Npts_wrk);
+   // ---------------------- get time series ---------------------
 
    idx = 0;
    for( k=0 ; k<Dim[2] ; k++ ) 
@@ -718,7 +774,7 @@ int main(int argc, char *argv[]) {
                      //ts_mean+= tpts[m];
                      m++;
                   }
-               
+
                // ---------- per window now -----------------
                for( w=0 ; w<NWIN ; w++ ) {
 
@@ -734,22 +790,24 @@ int main(int argc, char *argv[]) {
                                       &win_Npts_wrk); // i.e., ndim =nwk
 
                   /*if(mk_info) {
-                     INFO_message("Window[%d] ofac: %.3f  \t-->  %d points.", 
-                                  w, win_ofac, Npts_out);
-                     INFO_message("windelt[%d]: %.3f  \t-->  winnumpts: %d .", 
-                                  w, WinDelT[w], WinInfo[w][1]);
-                     INFO_message("%d   %d", win_Npts_out, win_Npts_wrk);
-                     INFO_message("offset: %d", WinInfo[w][0]);
-
-                     if (w == (NWIN-1))
-                        mk_info=0;
-                        }*/
-
+                    INFO_message("Window[%d] ofac: %.3f  \t-->  %d points.", 
+                    w, win_ofac, Npts_out);
+                    INFO_message("windelt[%d]: %.3f  \t-->  winnumpts: %d .", 
+                    w, WinDelT[w], WinInfo[w][1]);
+                    INFO_message("%d   %d", win_Npts_out, win_Npts_wrk);
+                    INFO_message("offset: %d", WinInfo[w][0]);
+                    
+                    if (w == (NWIN-1))
+                    mk_info=0;
+                    }
+                  */
+                  
                   /*for( pp=0 ; pp<WinInfo[w][1] ; pp++ )
-                     tpts_win[pp] = tpts[pp+WinInfo[w][0]];
-                  if(NSEG>1)
-                     for( pp=0 ; pp<WinInfo[w][1] ; pp++ )
-                     tpts_win[pp]*= WinVec[pp];*/
+                    tpts_win[pp] = tpts[pp+WinInfo[w][0]];
+                    if(NSEG>1)
+                    for( pp=0 ; pp<WinInfo[w][1] ; pp++ )
+                    tpts_win[pp]*= WinVec[pp];
+                  */
                   
                   if(DO_TAPER)
                      PR89_fasper( censor_flt - 1 + WinInfo[w][0], 
@@ -770,7 +828,18 @@ int main(int argc, char *argv[]) {
                                   DO_NORMALIZE,
                                   DO_AMPLITUDEIZE);
 
-                  
+                  /*
+                  fprintf(stderr,"\n WK1 nout:%d ",win_Npts_out);
+                  for( pp=0 ; pp<win_Npts_out ; pp++ )
+                     fprintf(stderr," %f ", wk1[pp]);
+                  fprintf(stderr,"\n ");
+                  fprintf(stderr,"\n WK2*N ");
+                  for( pp=0 ; pp<win_Npts_out ; pp++ )
+                     fprintf(stderr," %f ", wk2[pp]/Npts_out);
+                  fprintf(stderr,"\n ");
+                  */
+
+
                   for( l=0 ; l<Npts_out ; l++ ) {
                      all_ls[l][idx]+= (float) wk2[l]; 
                   }
@@ -778,9 +847,9 @@ int main(int argc, char *argv[]) {
                }
                for( l=0 ; l<Npts_out ; l++ ) { 
                   // normalizing and accounting for wins
-                  all_ls[l][idx]*= ((float) Dim[3]) / NWIN; 
+                  all_ls[l][idx]*= ((float) Npts_cen) / NWIN; 
                   if( DO_NORMALIZE)
-                     all_ls[l][idx]/= Dim[3];
+                     all_ls[l][idx]/= Npts_cen; //Dim[3];
                   if( DO_AMPLITUDEIZE )
                      all_ls[l][idx] = sqrt(all_ls[l][idx]);
                }
@@ -904,6 +973,8 @@ int main(int argc, char *argv[]) {
       free(prefix);
    if(in_censor)
       free(in_censor);
+   if(str_censor)
+      free(str_censor);
    if(censor_sh)
       free(censor_sh); 
    if(censor_flt)

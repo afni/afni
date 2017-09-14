@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 14, Sep , 2017 , PT , "3dLombScargle" , MAJOR , TYPE_BUG_FIX,
+   "Finally revisiting this-- fixed up lots of things.",
+   "Good to go for basic functionality now.\n"
+},
+
 { 11, Sep , 2017 , PT , "plugout_drive" , MICRO , TYPE_GENERAL,
    "Change level: actually nano.  Fixed Example 1 (missing apostrophe).",
    "It's the little things in life, though, sometimes.\n"
