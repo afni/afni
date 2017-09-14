@@ -195,6 +195,9 @@ static char * MRI_TYPE_name[9] =
 
 #define MRI_type_name MRI_TYPE_name  /* because I forget */
 
+#define MRI_type_string(iq) \
+  ( ((iq) < 0 || (iq) > LAST_MRI_TYPE ) ? "unknown" : MRI_TYPE_name[iq] )
+
 #define MRI_TYPE_NAME(iimm) MRI_TYPE_name[(iimm)->kind]  /* 26 Apr 2005 */
 
 /*! Max value of a byte. */
