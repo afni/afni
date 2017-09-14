@@ -22,9 +22,12 @@ set this_prog = "@djunct_4d_imager"
 #   + more unique naming of wdir, use rand id; safer for cluster 
 #     runs
 #
-set set version = "1.5";  rev_dat = "Sep 04, 2017"
+#set set version = "1.5";  rev_dat = "Sep 04, 2017"
 #   + use the new @chauffeur*, with -prefix only
 #   + and for this program, also use just -prefix
+#
+set set version = "1.6";  rev_dat = "Sep 14, 2017"
+#   + run with subbrick selection now (didn't before...)
 #
 # ----------------- find AFNI and set viewer ---------------------
 
@@ -177,7 +180,7 @@ echo "\n-----> STARTING imager ---->"
 
 3dresample                  \
     -overwrite              \
-    -inset $iset            \
+    -inset "$iset"          \
     -orient RPI             \
     -prefix $odir/$wdir/$mfile0
 
