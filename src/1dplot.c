@@ -252,6 +252,10 @@ void usage_1dplot(int detail)
      "                   For example:\n"
      "                     -xaxis 0:100:5:20\n"
      "                   Setting 'n' to 0 means no tic marks or labels.\n"
+     "                 * You can set 'b' to be greater than 't', to\n"
+     "                   have the x-coordinate decrease from left-to-right.\n"
+     "                 * This is the only way to have this effect in 1dplot.\n"
+     "                 * In particular, '-dx' with a negative value will not work!\n"
      "\n"
      " -yaxis b:t:n:m  = Similar to above, for the y-axis.  These\n"
      "                   options override the normal autoscaling\n"
@@ -658,8 +662,13 @@ int main( int argc , char *argv[] )
      if( strcmp(argv[iarg],"-xaxis") == 0 ){   /* 22 Jul 2003 */
        if( iarg == argc-1 ) ERROR_exit("need argument after option %s",argv[iarg]) ;
        sscanf(argv[++iarg],"%f:%f:%d:%d",&xbot,&xtop,&nnax,&mmax) ;
+#if 0
        if( xbot >= xtop || nnax < 0 || mmax < 1 )
          ERROR_exit("String after -xaxis is illegal!\n") ;
+#else
+       if( xbot == xtop || nnax < 0 || mmax < 1 )
+         ERROR_exit("String after -xaxis is illegal!\n") ;
+#endif
 
        plot_ts_xfix( nnax,mmax , xbot,xtop ) ;
        iarg++ ; continue ;
