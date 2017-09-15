@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 15 , SEP , 2017 , RWC , "1dplot" , MINOR , TYPE_ENHANCE ,
+   "Allow -xaxis to have bot > top, so x decreases from left to right" ,
+   NULL } ,
+
  { 12 , SEP , 2017 , RWC , "sorting functions" , MICRO , TYPE_MODIFY ,
    "Increase stack size in qsort funcs, for very large arrays" ,
    NULL } ,

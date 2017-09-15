@@ -479,6 +479,7 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
    int ii , jj , np , nnax,nnay , mmax,mmay ;
    float *xx=NULL , *yy=NULL ;
    float xbot,xtop , ybot,ytop , pbot,ptop , xobot,xotop,yobot,yotop ;
+   float xabot,xatop ; int xflip=0 ;
    char str[32] ;
    int yall , ysep , ixtop ;
    float *ylo , *yhi , yll,yhh ;
@@ -516,29 +517,33 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
 
    pbot = p10(xbot) ; ptop = p10(xtop) ; if( ptop < pbot ) ptop = pbot ;
    if( nnaxx >= 0 ){
-     nnax = nnaxx ;
-     mmax = mmaxx ;
-     xbot = xxbot ;
-     xtop = xxtop ;
-   } else if( ptop != 0.0 && xpush > 0 ){
+     nnax  = nnaxx ;
+     mmax  = mmaxx ;
+     xabot = xxbot ;
+     xatop = xxtop ;
+     xbot  = MIN(xabot,xatop) ;
+     xtop  = MAX(xabot,xatop) ;
+   } else if( ptop != 0.0f && xpush > 0 ){
       np = (xtop-xbot) / ptop ;
       switch( np ){
-         case 1:  ptop *= 0.1  ; break ;
-         case 2:  ptop *= 0.2  ; break ;
-         case 3:  ptop *= 0.25 ; break ;
+         case 1:  ptop *= 0.1f  ; break ;
+         case 2:  ptop *= 0.2f  ; break ;
+         case 3:  ptop *= 0.25f ; break ;
          case 4:
-         case 5:  ptop *= 0.5  ; break ;
+         case 5:  ptop *= 0.5f  ; break ;
       }
-      xbot = floor( xbot/ptop ) * ptop ;
-      xtop =  ceil( xtop/ptop ) * ptop ;
-      nnax = floor( (xtop-xbot) / ptop + 0.5 ) ;
+      xbot = floor( xbot/ptop ) * ptop ; xabot = xbot ;
+      xtop =  ceil( xtop/ptop ) * ptop ; xatop = xtop ;
+      nnax = floor( (xtop-xbot) / ptop + 0.5f ) ;
       mmax = (nnax < 3) ? 10
                         : (nnax < 6) ? 5 : 2 ;
    } else {
       nnax = 1 ; mmax = 10 ;
       ii = (int)rint(xtop-xbot) ;
       if( fabs(xtop-xbot-ii) < 0.01 && ii <= 200 ) mmax = ii ;
+      xabot = xbot ; xatop = xtop ;
    }
+   xflip = (xabot > xatop) ;
 
    /*-- find range of y --*/
 
@@ -639,23 +644,35 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
 
    /*-- plot labels, if any --*/
 
-   xobot = 0.15 ; xotop = 1.27 ;  /* set objective size of plot */
-   yobot = 0.1  ; yotop = 0.95 ;
+
+   if( xflip ){ xobot = 0.03; xotop = 1.15; } /* set objective size of plot */
+   else       { xobot = 0.15; xotop = 1.27; }
+   yobot = 0.1 ; yotop = 0.95 ;
 
    if( STGOOD(lab_top) ){ yotop -= 0.02 ; yobot -= 0.01 ; }
-   if( nam_yyy != NULL ){ xotop -= 0.16 ; xobot -= 0.02 ; }
+   if( nam_yyy != NULL ){
+     if( xflip ){
+       xobot += 0.16 ; xotop += 0.02 ;
+     } else {
+       xotop -= 0.16 ; xobot -= 0.02 ;
+     }
+   }
 
    /* x-axis label? */
 
    set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
    if( STGOOD(lab_xxx) )
-     plotpak_pwritf( 0.5*(xobot+xotop) , yobot-0.06 , lab_xxx , 16 , 0 , 0 ) ;
+     plotpak_pwritf( 0.5*(xobot+xotop), yobot-0.06, lab_xxx, 16, 0, 0 ) ;
 
    /* y-axis label? */
 
    set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
-   if( STGOOD(lab_yyy) )
-     plotpak_pwritf( xobot-0.10 , 0.5*(yobot+yotop) , lab_yyy , 16 , 90 , 0 ) ;
+   if( STGOOD(lab_yyy) ){
+     if( xflip )
+       plotpak_pwritf( xotop+0.10, 0.5*(yobot+yotop), lab_yyy, 16, -90, 0 ) ;
+     else
+       plotpak_pwritf( xobot-0.10, 0.5*(yobot+yotop), lab_yyy, 16,  90, 0 ) ;
+   }
 
    /* label at top? */
 
@@ -691,15 +708,25 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
              set_color_memplot( ccc[jj%NCLR][0] , ccc[jj%NCLR][1] , ccc[jj%NCLR][2] ) ;
              set_thick_memplot( 1.234f*THIK ) ;
              if( use_ddd ) plotpak_setlin(ddd[jj%NCLR]) ;
-             plotpak_line( xotop+0.008 , yv , xotop+0.041 , yv ) ;
+             if( xflip )
+               plotpak_line( xobot-0.008 , yv , xobot-0.041 , yv ) ;
+             else
+               plotpak_line( xotop+0.008 , yv , xotop+0.041 , yv ) ;
              if( use_ddd ) plotpak_setlin(1) ;
              if( tsbox > 0.0f ){
-               set_thick_memplot(thik); plot_onebox(xotop+0.008,yv,jj ); plot_onebox(xotop+0.041,yv,jj );
+               set_thick_memplot(thik);
+               if( xflip )
+                { plot_onebox(xobot-0.008,yv,jj ); plot_onebox(xobot-0.041,yv,jj ); }
+               else
+                { plot_onebox(xotop+0.008,yv,jj ); plot_onebox(xotop+0.041,yv,jj ); }
              }
              set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
              sz = (strlen(nam_yyy[jj]) <= 10) ? 12 : 9 ;
              set_thick_memplot( thik*sz/13.9f ) ;
-             plotpak_pwritf( xotop+0.049 , yv , nam_yyy[jj] , sz , 0 , -1 ) ;
+             if( xflip )
+               plotpak_pwritf( xobot-0.049 , yv , nam_yyy[jj] , sz , 0 ,  1 ) ;
+             else
+               plotpak_pwritf( xotop+0.049 , yv , nam_yyy[jj] , sz , 0 , -1 ) ;
              yv -= 0.05 ;
            }
          }
@@ -708,7 +735,7 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
       /* plot axes */
 
       floatfix(ybot) ; floatfix(ytop) ;
-      plotpak_set( xobot,xotop , yobot,yotop , xbot,xtop , ybot,ytop , 1 ) ;
+      plotpak_set( xobot,xotop , yobot,yotop , xabot,xatop , ybot,ytop , 1 ) ;
 
       /* 24 Apr 2012: add vbox stuff now, before other plotting */
 
@@ -845,15 +872,25 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
                set_thick_memplot( 1.234f*THIK ) ;
                yv = 0.7*yhh + 0.3*yll ;
                if( use_ddd ) plotpak_setlin(ddd[jj%NCLR]) ;
-               plotpak_line( xotop+0.008 , yv , xotop+0.041 , yv ) ;
+               if( xflip )
+                 plotpak_line( xobot-0.008 , yv , xobot-0.041 , yv ) ;
+               else
+                 plotpak_line( xotop+0.008 , yv , xotop+0.041 , yv ) ;
                if( use_ddd ) plotpak_setlin(1) ;
                if( tsbox > 0.0f ){
-                 set_thick_memplot(thik); plot_onebox(xotop+0.008,yv,jj ); plot_onebox(xotop+0.041,yv,jj );
+                 set_thick_memplot(thik);
+                 if( xflip )
+                   { plot_onebox(xobot-0.008,yv,jj ); plot_onebox(xobot-0.041,yv,jj ); }
+                 else
+                   { plot_onebox(xotop+0.008,yv,jj ); plot_onebox(xotop+0.041,yv,jj ); }
                }
                set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
                sz = (strlen(nam_yyy[jj]) <= 10) ? 12 : 9 ;
                set_thick_memplot( thik*sz/13.9f ) ;
-               plotpak_pwritf( xotop+0.049 , yv , nam_yyy[jj] , sz , 0 , -1 ) ;
+               if( xflip )
+                 plotpak_pwritf( xobot-0.049 , yv , nam_yyy[jj] , sz , 0 ,  1 ) ;
+               else
+                 plotpak_pwritf( xotop+0.049 , yv , nam_yyy[jj] , sz , 0 , -1 ) ;
             }
          }
       }
@@ -866,7 +903,7 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
       for( jj=ny-1 ; jj >= 0 ; jj-- ){
          yll = yobot + jj*(1.0+SY)*dyo ; yhh = yll + dyo ;
          floatfix(ylo[jj]) ; floatfix(yhi[jj]) ;
-         plotpak_set( xobot,xotop , yll,yhh , xbot,xtop , ylo[jj],yhi[jj] , 1 ) ;
+         plotpak_set( xobot,xotop , yll,yhh , xabot,xatop , ylo[jj],yhi[jj] , 1 ) ;
 
          /* 24 Apr 2012: add vbox stuff now, before other plotting */
 
