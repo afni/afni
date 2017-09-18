@@ -3545,6 +3545,18 @@ def db_mod_scale(block, proc, user_opts):     # no options at this time
     block.valid = 1
 
 def db_cmd_scale(proc, block):
+    """scale based on method:
+          voxelwise     : scale every voxel to a mean of 100
+          global_mean   : scale every volume to a mean of 10000
+          grand_mean    : entire data set to mean of 10000
+    """
+
+    # note what scaling type is bing used
+    stype = 'voxelwise' # rcr - reset to voxelwise
+    val, rv = block.opts.get_string_opt('-scale_type')
+    if val and not rv:
+       stype = val
+
     cmd = ''
     # check for max scale value 
     opt = block.opts.find_opt('-scale_max_val')
@@ -3554,6 +3566,12 @@ def db_cmd_scale(proc, block):
 
     # options for surface analysis
     if proc.surf_anat:
+        # do not allow scale type (yet?)
+        if stype != 'voxelwise':
+           print '** only voxelwise is allowed for -scale_type of surface data'
+           # note: easy to add
+           return
+
         # string for foreach hemi loop
         feh_str = 'foreach %s ( %s )\n' \
                   % (proc.surf_spec_var_iter, ' '.join(proc.surf_hemilist))
@@ -3592,26 +3610,42 @@ def db_cmd_scale(proc, block):
 
     prev = proc.prev_prefix_form_run(block, view=1)
     prefix = proc.prefix_form_run(block)
-    cmd += "# %s\n"                                                     \
-           "# scale each voxel time series to have a mean of 100\n"     \
+    cmd += "# %s\n" % block_header('scale')
+
+    cmd += "# scale each voxel time series to have a mean of 100\n"     \
            "# (be sure no negatives creep in)\n"                        \
-           "%s"                                                         \
-           % (block_header('scale'), maxstr)
+           "%s" % maxstr
+
+    # if stype is grand_mean, compute the mean now, across runs
+    if stype == 'grand_mean':
+       if not proc.mask:
+          print '** no EPI mask for -scale_type %s' % stype
+          return
+       cstr  = '# get %s: the mean across the mask and time\n' % stype
+       cstr += '%s3dmaskave -q -mask %s "%s" \\\n' \
+               "%s    | 3dTstat -mean -prefix scale_%s.1D 1D:stdin\\'\n" \
+               % (istr, proc.mask.shortinput(), proc.prev_dset_form_wild(block),
+                  istr, stype)
+       cstr += '%sset gmean = `1dcat scale_%s.1D`\n\n' % (istr, stype)
+       cmd += cstr
 
     cmd += feh_str      # if surf, foreach hemi
 
-    cmd += "%sforeach run ( $runs )\n"                                  \
-           "%s    3dTstat -prefix %s_r$run%s %s\n"                      \
+    cmd += "%sforeach run ( $runs )\n" % istr
+
+    # per run loop
+    cmd += "%s    3dTstat -prefix %s_r$run%s %s\n"                      \
            "%s    3dcalc -a %s %s-b %s_r$run%s \\\n"                    \
            "%s"                                                         \
-           % (istr, istr, mean_pre, suff, prev,
+           % (istr, mean_pre, suff, prev,
               istr, prev, bstr, mean_pre, vsuff, mask_str)
 
     cmd += "%s           -expr '%s' \\\n"                               \
            "%s           -prefix %s\n"                                  \
-           "%send\n"                                                    \
-           % (istr, expr, istr, prefix, istr)
+           % (istr, expr, istr, prefix)
 
+    # end per run loop, and possibly per hemisphere one
+    cmd += "%send\n" % istr
     cmd += feh_end + '\n'
 
     proc.have_rm = 1            # rm.* files exist
