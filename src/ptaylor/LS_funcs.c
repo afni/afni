@@ -252,7 +252,7 @@ void PR89_fasper( float *x,
    //INFO_message("mm=%d, FAC=%f, FNDIM=%f",mm,FAC, FNDIM);
    //INFO_message("Ck=%f  Ckk=%f", Ck, Ckk);
 
-   fprintf(stderr, "\n\n\n TERM COMP ---- \n");
+   //fprintf(stderr, "\n\n\n TERM COMP ---- \n");
 
    for( j=1 ; j<=Nout ; j++ ) {
       // for imag parts-- different criterion than in PR89, because
@@ -285,7 +285,7 @@ void PR89_fasper( float *x,
 
       wk1[j] = j*DF;
       wk2[j] = (cterm + sterm)/(2.);
-      fprintf(stderr, " %f, ", (float) wk2[j]);
+      //fprintf(stderr, " %f, ", (float) wk2[j]);
 
       if( DO_NORM )
          wk2[j]/= VAR;
