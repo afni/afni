@@ -217,7 +217,7 @@ void usage_1dplot(int detail)
      "                 compressed without loss.\n"
      "               * PNG output requires that the netpbm program\n"
      "                 pnmtopng be installed somewhere in your PATH.\n"
-     "               * PNM output files are not compress, and are manipulable\n"
+     "               * PNM output files are not compressed, and are manipulable\n"
      "                 by the netpbm package: http://netpbm.sourceforge.net/\n"
      "\n"
      " -pngs SIZE fname } = a convenience function equivalent to\n"
@@ -459,6 +459,9 @@ void usage_1dplot(int detail)
      " -Rbox x1 y1 x2 y2 y3 color1 color2\n"
      "                    = As above, with an extra horizontal line at y3.\n"
      "\n"
+     " -line x1 y1 x2 y2 color dashcode\n"
+     "                    = Draw one line segment.\n"
+     "\n"
      "Another fun fun example:\n"
      "\n"
      "  1dplot -censor_RGB #ffa -CENSORTR '0-99'           \\\n"
@@ -611,6 +614,21 @@ int main( int argc , char *argv[] )
          ERROR_message("-Rbox: bad 2nd color name '%s'",argv[iarg]) ; iarg++ ; continue ;
        }
        plot_ts_add_rbox( 0 , x1,y1 , x2,y2,y3 , r1,g1,b1 , r2,g2,b2 ) ;
+       iarg++ ; continue ;
+     }
+
+     if( strcmp(argv[iarg],"-line") == 0 ){
+       float x1,y1 , x2,y2 , r1,g1,b1 ; int qq ;
+       x1 = (float)strtod(argv[++iarg],NULL) ;
+       y1 = (float)strtod(argv[++iarg],NULL) ;
+       x2 = (float)strtod(argv[++iarg],NULL) ;
+       y2 = (float)strtod(argv[++iarg],NULL) ;
+       qq = find_color_name( argv[++iarg] , &r1,&g1,&b1 ) ;
+       if( qq < 0 ){
+         ERROR_message("-line: bad color name '%s'",argv[iarg]) ; iarg++ ; continue ;
+       }
+       qq = (int)strtod(argv[++iarg],NULL) ;
+       plot_ts_add_tlin( 0 , x1,y1 , x2,y2 , r1,g1,b1 , qq ) ;
        iarg++ ; continue ;
      }
 

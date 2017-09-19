@@ -340,8 +340,12 @@ void plot_ts_setthik_12( int n1, int n2, float thk )
 
 #undef  VBOX
 #define VBOX  1
+
 #undef  RBOX
 #define RBOX  2   /* 29 Jan 2017 */
+
+#undef  TLIN
+#define TLIN  3   /* 19 Sep 2017 */
 
 typedef struct {
   int code ;
@@ -350,6 +354,7 @@ typedef struct {
   float rr , gg , bb ;
   float rb_y1 , rb_y2 , rb_y3 ,  /* RBOX stuff [29 Jan 2017] */
         rb_rr,rb_gg,rb_bb ;
+  int   dcode ;                  /* for TLIN: dashcode */
 } TS_vbox ;
 
 static int     nvbox = 0 ;
@@ -389,6 +394,25 @@ void plot_ts_add_rbox( int ygr ,
    vbox[nvbox].rb_rr = r2 ;  /* and outline around it (color here) */
    vbox[nvbox].rb_gg = g2 ;
    vbox[nvbox].rb_bb = b2 ;
+   nvbox++ ;
+}
+
+void plot_ts_add_tlin( int ygr ,
+                       float x1,float y1 , float x2,float y2 ,
+                       float rr,float gg,float bb,int dcode ) /* 19 Sep 2017 */
+{
+   vbox = (TS_vbox *)realloc( (void *)vbox , sizeof(TS_vbox)*(nvbox+1) ) ;
+   vbox[nvbox].code = TLIN ;
+   vbox[nvbox].ygr  = ygr ;
+   vbox[nvbox].x1   = x1 ;
+   vbox[nvbox].x2   = x2 ;
+   vbox[nvbox].rr   = rr ;
+   vbox[nvbox].gg   = gg ;
+   vbox[nvbox].bb   = bb ;
+
+   vbox[nvbox].rb_y1 = y1 ;  /* spec for line (TLIN) */
+   vbox[nvbox].rb_y2 = y2 ;  /* with filled color (above) */
+   vbox[nvbox].dcode = dcode ; /* dash code */
    nvbox++ ;
 }
 
@@ -761,15 +785,26 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
 
           set_color_memplot( vbox[iv].rb_rr ,
                              vbox[iv].rb_gg , vbox[iv].rb_bb ) ;
-          set_thick_memplot( 0.004f ) ;
+          set_thick_memplot( 0.0f ) ;
           plotpak_line( xb1,yb1 , xb1,yb2 ) ;
           plotpak_line( xb1,yb2 , xb2,yb2 ) ;
           plotpak_line( xb2,yb2 , xb2,yb1 ) ;
           plotpak_line( xb2,yb1 , xb1,yb1 ) ;
           if( (yb3-yb1)*(yb3-yb2) < 0.0f ){      /* 05 Sep 2017 */
-            set_thick_memplot( 0.002f ) ;
+            set_thick_memplot( 0.004f ) ;
             plotpak_line( xb1,yb3 , xb2,yb3 ) ;
           }
+        } else if( vbox[iv].code == TLIN ){  /* 19 Sep 2017 */
+          int dc ;
+          xb1 = vbox[iv].x1    ; xb2 = vbox[iv].x2    ;
+          yb1 = vbox[iv].rb_y1 ; yb2 = vbox[iv].rb_y2 ;
+
+          set_color_memplot( vbox[iv].rr , vbox[iv].gg , vbox[iv].bb ) ;
+          set_thick_memplot( 0.004f ) ;
+          dc = vbox[iv].dcode ; if( dc <= 0 ) dc = 1 ; else if( dc > 5 ) dc = 5 ;
+          plotpak_setlin(dc) ;
+          plotpak_line( xb1,yb1 , xb2,yb2 ) ;
+          if( dc != 1 ) plotpak_setlin(1) ; /* solid */
         }
       }
 
