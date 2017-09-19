@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 19 , SEP , 2017 , RWC , "1dplot" , MICRO , TYPE_NEW_OPT ,
+   "add -line option for drawing arbitrary line segments" ,
+   NULL } ,
+
  { 15 , SEP , 2017 , RWC , "1dplot" , MINOR , TYPE_ENHANCE ,
    "Allow -xaxis to have bot > top, so x decreases from left to right" ,
    NULL } ,
