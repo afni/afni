@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 19, Sep , 2017 , PT , "3dLombScargle" , MINOR , TYPE_BUG_FIX,
+   "delF calculated correctly now.",
+   "Had been at N-1 instead of N.  Better Parsevalling now.\n"
+},
+
 { 14, Sep , 2017 , PT , "3dLombScargle" , MAJOR , TYPE_BUG_FIX,
    "Finally revisiting this-- fixed up lots of things.",
    "Good to go for basic functionality now.\n"

@@ -1,8 +1,10 @@
 /* 
    Description
 
-   [Sept. 2014] Fixed up now. Will revisit tapers and windows laterz. 
-   
+   [PT: Sept, 2014] Fixed up now. Will revisit tapers and windows laterz. 
+
+   [PT: Sept 19, 2014] Fixed N of points for delF calc.  
+
 */
 
 
@@ -699,9 +701,7 @@ int main(int argc, char *argv[]) {
                    "for upper frequency is %.4f", my_hifac);
    }
    // Want this const across group and across windows.
-   // With Dim[3] points, since [0]th is itself 0, total duration is
-   // (Dim[3]-1)*TR.
-   delF = 1.0/((Dim[3]-1)*sampleTR*my_ofac); 
+   delF = 1.0/(Dim[3]*sampleTR*my_ofac); 
 
    INFO_message("Total Ntpts=%d,  TR=%.4f, my_ofac=%.4f", 
                 Dim[3], sampleTR, my_ofac);
