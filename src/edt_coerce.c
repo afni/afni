@@ -27,6 +27,7 @@ void EDIT_coerce_type( int nxyz , int itype,void *ivol , int otype,void *ovol )
    float   *fin=NULL , *fout ;
    byte    *bin=NULL , *bout ;
    double  *din=NULL , *dout ;  /* 10 Jan 1999 */
+   float   *frgb=NULL ;         /* 15 Sep 2017 */
 
 ENTRY("EDIT_coerce_type") ;
 #ifdef AFNI_DEBUG
@@ -47,6 +48,13 @@ ENTRY("EDIT_coerce_type") ;
       case MRI_float  :  fin = (float   *) ivol ; break ;
       case MRI_byte   :  bin = (byte    *) ivol ; break ;
       case MRI_double :  din = (double  *) ivol ; break ;
+      case MRI_rgb    :{                                 /* 15 Sep 2017 */
+        bin  = (byte  *)ivol ;
+        frgb = (float *)malloc(sizeof(float)*nxyz) ;
+        for( ii=0 ; ii < nxyz ; ii++ )
+          frgb[ii] = 255.0f*(0.299f*bin[3*ii]+0.587f*bin[3*ii+1]+0.144f*bin[3*ii+2]) ;
+      }
+      break ;
    }
    switch( otype ){
       default:
@@ -77,8 +85,12 @@ ENTRY("EDIT_coerce_type") ;
             case MRI_byte:    /* inputs are bytes */
                for( ii=0 ; ii < nxyz ; ii++ ) sout[ii] = bin[ii] ;
                EXRETURN ;
-            case MRI_complex:    /* inputs are complex */
+            case MRI_complex: /* inputs are complex */
                for( ii=0 ; ii < nxyz ; ii++ ) sout[ii] = ROUND(CABS(cin[ii])) ;
+               EXRETURN ;
+            case MRI_rgb:
+               for( ii=0 ; ii < nxyz ; ii++ ) sout[ii] = ROUND(frgb[ii]) ;
+               free(frgb) ;
                EXRETURN ;
          }
          EXRETURN ;
@@ -102,6 +114,10 @@ ENTRY("EDIT_coerce_type") ;
             case MRI_complex:    /* inputs are complex */
                for( ii=0 ; ii < nxyz ; ii++ ) fout[ii] = CABS(cin[ii]) ;
                EXRETURN ;
+            case MRI_rgb:
+               for( ii=0 ; ii < nxyz ; ii++ ) fout[ii] = frgb[ii] ;
+               free(frgb) ;
+               EXRETURN ;
          }
          EXRETURN ;
 
@@ -123,6 +139,10 @@ ENTRY("EDIT_coerce_type") ;
                EXRETURN ;
             case MRI_complex:    /* inputs are complex */
                for( ii=0 ; ii < nxyz ; ii++ ) dout[ii] = CABS(cin[ii]) ;
+               EXRETURN ;
+            case MRI_rgb:
+               for( ii=0 ; ii < nxyz ; ii++ ) dout[ii] = frgb[ii] ;
+               free(frgb) ;
                EXRETURN ;
          }
          EXRETURN ;
@@ -149,6 +169,10 @@ ENTRY("EDIT_coerce_type") ;
                                                bout[ii] = FLOAT_TO_BYTE(val) ; }
             }
             EXRETURN ;
+            case MRI_rgb:
+               for( ii=0 ; ii < nxyz ; ii++ ) bout[ii] = FLOAT_TO_BYTE(frgb[ii]) ;
+               free(frgb) ;
+               EXRETURN ;
          }
          EXRETURN ;
 
@@ -158,22 +182,27 @@ ENTRY("EDIT_coerce_type") ;
          switch( itype ){
             case MRI_short:   /* inputs are shorts */
                for( ii=0 ; ii < nxyz ; ii++ )
-                  cout[ii].r = sin[ii] , cout[ii].i = 0.0 ;
+                  cout[ii].r = sin[ii] , cout[ii].i = 0.0f ;
                EXRETURN ;
             case MRI_float:   /* inputs are floats */
                for( ii=0 ; ii < nxyz ; ii++ )
-                  cout[ii].r = fin[ii] , cout[ii].i = 0.0 ;
+                  cout[ii].r = fin[ii] , cout[ii].i = 0.0f ;
                EXRETURN ;
             case MRI_double:   /* inputs are doubles */
                for( ii=0 ; ii < nxyz ; ii++ )
-                  cout[ii].r = din[ii] , cout[ii].i = 0.0 ;
+                  cout[ii].r = din[ii] , cout[ii].i = 0.0f ;
                EXRETURN ;
             case MRI_byte:    /* inputs are bytes */
                for( ii=0 ; ii < nxyz ; ii++ )
-                  cout[ii].r = bin[ii] , cout[ii].i = 0.0 ;
+                  cout[ii].r = bin[ii] , cout[ii].i = 0.0f ;
                EXRETURN ;
             case MRI_complex:    /* inputs are complex */
                memcpy( cout , cin , sizeof(complex)*nxyz ) ;
+               EXRETURN ;
+            case MRI_rgb:
+               for( ii=0 ; ii < nxyz ; ii++ )
+                 cout[ii].r = frgb[ii] , cout[ii].i = 0.0f ;
+               free(frgb) ;
                EXRETURN ;
          }
          EXRETURN ;
