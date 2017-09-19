@@ -254,8 +254,8 @@ int find_color_name( char *cnam, float *rr, float *gg, float *bb )
 {
    int ii ;
 
-   if( cnam == NULL ) return -1 ;
-   if( rr == NULL && gg == NULL && bb == NULL ) return -1 ;
+   if( cnam == NULL || *cnam == '\0' )          return -1 ;
+   if( rr == NULL || gg == NULL || bb == NULL ) return -1 ;
 
    if( strncasecmp(cnam,"RGB:",4) == 0 ){
      float ir=-1.0f,ig=-1.0f,ib=-1.0f ; char s1,s2 ;
@@ -271,11 +271,26 @@ int find_color_name( char *cnam, float *rr, float *gg, float *bb )
      }
    }
 
+   ii = strlen(cnam) ;
+   if( cnam[0] == '#' && ii > 3 ){  /* Hex codes [19 Sep 2017] */
+     char hh[3] ;
+     if( ii < 7 ){  /* 3 Hex digits */
+       hh[0]=cnam[1]; hh[1]='\0'; *rr=(float)strtol(hh,NULL,16)/15.0f ;
+       hh[0]=cnam[2]; hh[1]='\0'; *gg=(float)strtol(hh,NULL,16)/15.0f ;
+       hh[0]=cnam[3]; hh[1]='\0'; *bb=(float)strtol(hh,NULL,16)/15.0f ;
+     } else {       /* 6 hex digits */
+       hh[0]=cnam[1]; hh[1]=cnam[2]; hh[2]='\0'; *rr=(float)strtol(hh,NULL,16)/255.0f ;
+       hh[0]=cnam[3]; hh[1]=cnam[4]; hh[2]='\0'; *gg=(float)strtol(hh,NULL,16)/255.0f ;
+       hh[0]=cnam[5]; hh[1]=cnam[6]; hh[2]='\0'; *bb=(float)strtol(hh,NULL,16)/255.0f ;
+     }
+     return 0 ;
+   }
+
    for( ii=0 ; ii < RGB_TXT_NUM ; ii++ ){
      if( strcasecmp(cnam,rgb_txt_name[ii]) == 0 ){
-       if( rr != NULL ) *rr = (float)rgb_txt_byte[3*ii  ]/255.0f ;
-       if( gg != NULL ) *gg = (float)rgb_txt_byte[3*ii+1]/255.0f ;
-       if( bb != NULL ) *bb = (float)rgb_txt_byte[3*ii+2]/255.0f ;
+       *rr = (float)rgb_txt_byte[3*ii  ]/255.0f ;
+       *gg = (float)rgb_txt_byte[3*ii+1]/255.0f ;
+       *bb = (float)rgb_txt_byte[3*ii+2]/255.0f ;
        return ii ;
      }
    }
