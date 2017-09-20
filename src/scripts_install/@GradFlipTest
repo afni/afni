@@ -40,6 +40,10 @@ set version   = "2.9";    set rev_dat   = "Aug 24, 2017"
 #   + output text file with single grad will overwrite previous, not
 #     append to
 #
+set version   = "2.91";    set rev_dat   = "Sep 20, 2017"
+#   + 'more' -> 'cat', to not wait for pause in terminal!
+#     ---> Thanks, Tiffany Nash for finding this.
+#
 ########################################################################
 
 set this_prog = "@GradFlipTest"
@@ -456,7 +460,7 @@ printf "DONE.\n\n" >> $out_echo
 
 echo "\n"
 echo "# --------------------- RESULTS ---------------------------\n"
-more $out_echo
+cat $out_echo
 echo "\n"
 echo "# ---------------------------------------------------------"
 
