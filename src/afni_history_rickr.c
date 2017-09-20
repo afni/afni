@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 20, Sep, 2017, RCR, "3dAutoTcorrelate", MICRO, TYPE_ENHANCE,
+   "add help example",
+   NULL
+ } ,
+
  { 12, Sep, 2017, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
    "add -multi_timing_3col_tsv and -write_multi_timing",
    "Also, add -multi_show_duration_stats for married timing files.\n"
