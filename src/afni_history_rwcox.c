@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 21 , SEP , 2017 , RWC , "3dXClustSim" , MICRO , TYPE_NEW_OPT ,
+   "Allow user to set -minclust (instead of fixed at 5)" ,
+   NULL } ,
+
  { 19 , SEP , 2017 , RWC , "1dplot" , MICRO , TYPE_NEW_OPT ,
    "add -line option for drawing arbitrary line segments" ,
    NULL } ,
