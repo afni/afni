@@ -1184,9 +1184,9 @@ int main( int argc , char *argv[] )
    /*=========================================================================*/
    /*--- STEP 1c: find the global distributions and min thresholds -----------*/
 
-#define GTHRESH_FAC 0.123456f
+#define GTHRESH_FAC 0.066666f
 #define GTHRESH_THA 0.055555f
-#define GTHRESH_THB 0.234567f
+#define GTHRESH_THB 0.166666f
 
    { int nfom,jj,nfff; Xcluster **xcc;
      float a0,a1,f0,f1,fta,ftb , fmax ;
@@ -1226,7 +1226,7 @@ int main( int argc , char *argv[] )
          if( nfff > nfom ) nfff = nfom ; /* very very unlikely */
 
          fmax = AFNI_numenv("AFNI_XCLUSTSIM_FMAX") ;
-         if( fmax <= 0.01f || fmax > 1.0f ) fmax = 0.888f ;
+         if( fmax <= 0.01f || fmax > 1.0f ) fmax = 0.999f ;
 
          /* global threshold computed from tail of FOM distribution */
 
