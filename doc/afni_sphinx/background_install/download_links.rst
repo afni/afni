@@ -85,34 +85,33 @@ should be ready-to-run.
 
 - **Recommended binaries for (most) Linux/Unix:**
 
-  .. table:: 
-     :widths: 1 2
-     :column-alignment: left  center
-     :column-wrapping:  false true
-     :column-dividers:  double single double 
+  .. list-table::
+     :header-rows: 0
+     :widths: 40 60
+     :align: left
+     :stub-columns: 0
+        
+     * - `Ubuntu 16, 64 bit <https://afni.nimh.nih.gov/pub/dist/tgz/linux_ubuntu_16_64.tgz>`_ 
+       - Ubuntu 16+
+     * - `OpenMP, 64 bit <https://afni.nimh.nih.gov/pub/dist/tgz/linux_openmp_64.tgz>`_ 
+       - Ubuntu (<16), Fedora (< 21), Red Hat, etc. 
+     * - `Fedora21, 64 bit <https://afni.nimh.nih.gov/pub/dist/tgz/linux_fedora_21_64.tgz>`_ 
+       - Fedora 21+                            
 
-     =================================================================================== ====================================   
-     `OpenMP, 64 bit <https://afni.nimh.nih.gov/pub/dist/tgz/linux_openmp_64.tgz>`_      Ubuntu, Fedora (< 21), Red Hat, etc. 
-                                                                                        
-                                                                                        
-     `Fedora21, 64 bit <https://afni.nimh.nih.gov/pub/dist/tgz/linux_fedora_21_64.tgz>`_ Fedora 21+                            
-     =================================================================================== ====================================   
 |
 
   .. _afni_bin_mac:
 
 - **Recommended binaries for (most) Mac OS: 10.7+.**
 
-  .. table:: 
-     :widths: 1 2
-     :column-alignment: left  center
-     :column-wrapping:  false true
-     :column-dividers:  double single double 
-
-     ================================================================================================== ====================================   
-     `Mac OS X (10.7 Intel), 64 bit <https://afni.nimh.nih.gov/pub/dist/tgz/macosx_10.7_Intel_64.tgz>`_                                                Mac 10.7 (Lion) and higher
-   
-     ================================================================================================== ====================================   
+  .. list-table::
+     :header-rows: 0
+     :widths: 40 60
+     :align: left
+     :stub-columns: 0
+        
+     * - `Mac OS X (10.7 Intel), 64 bit <https://afni.nimh.nih.gov/pub/dist/tgz/macosx_10.7_Intel_64.tgz>`_
+       - Mac 10.7 (Lion) and higher
 
   For Mac OS 10.11 (El Capitan) users, some additional modifications
   to your computer settings are required for smooth sailing.  These
@@ -156,16 +155,15 @@ C. Downloading the newest AFNI source code
 Another way to get AFNI working on your computer (requiring a bit more
 work) is to compile from the source itself:
 
-  .. table:: 
-     :widths: 1 2
-     :column-alignment: left  center
-     :column-wrapping:  false true
-     :column-dividers:  double single double 
+  .. list-table::
+     :header-rows: 0
+     :widths: 40 60
+     :align: left
+     :stub-columns: 0
+        
+     * - `AFNI Source Code <https://afni.nimh.nih.gov/pub/dist/tgz/afni_src.tgz>`_
+       - Compilable source (can be built on most Linux/Unix/Mac)
 
-     ================================================================================================== ====================================
-     `AFNI Source Code <https://afni.nimh.nih.gov/pub/dist/tgz/afni_src.tgz>`_                          Compilable source (can be built on most Linux/Unix/Mac)
-   
-     ================================================================================================== ====================================
 
 There are several usable, example ``Makefile``\s included in the main
 ``afni_src/`` directory, as well as a couple (mainly for Linux
