@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+   { 22, Sep , 2017 , PT , "fat_proc_map_to_dti" , MINOR , TYPE_BUG_FIX,
+   "On Macs, when not all types of 'follower' sets were used, this gave err.",
+   "Have changed internal behavior to avoid this 'Mac'errorizing.\n"
+},
+
 { 20, Sep , 2017 , PT , "1dDW_Grad_o_Mat++" , MINOR , TYPE_NEW_OPT,
    "New opt to push through tiny, negative diagonal elements in bmatrices.",
    "Useful-- but use this option cautiously, and look at your data...\n"
