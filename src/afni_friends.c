@@ -630,7 +630,7 @@ static mday holiday[] = {
    {SEP,21,"Chile Independence Day"                                  } ,
    {SEP,21,"Belize Independence Day"                                 } ,
    {SEP,21,"Malta Independence Day"                                  } ,
-   {SEP,22,"Bilbo & Frodo Baggin's birthday"                         } ,
+   {SEP,22,"Bilbo & Frodo Baggins' birthday"                         } ,
    {SEP,22,"Mali Republic Day"                                       } ,
    {SEP,23,"Saudi Arabia National Day"                               } ,
    {SEP,23,"Emperor Augustus Caesar's birthday"                      } ,
@@ -1420,6 +1420,66 @@ int AFNI_is_Easter( int yy , int mm , int dd )
 }
 
 /*------------------------------------------------------------------------------*/
+/* Stuff for Rosh Hashanah calculation [22 Sep 2017] */
+
+/* Simple day of week calculator:
+   m = 1..12 ; d = 1..31 ; y=1900..2100 ; return 0..6 (Sun..Sat) */
+
+static int dow(int m,int d,int y){
+  y -= (m<3) ;
+  return(y+y/4-y/100+y/400+"-bed=pen+mad."[m]+d)%7;
+}
+
+/* Compute date of Rosh Hashanah in Sep, given the year number:
+   https://quasar.as.utexas.edu/BillInfo/ReligiousCalendars.html */
+
+static int rosh(int y)
+{
+   int gold , nn , dd ;
+   double nplus , ff ;
+
+   gold = y%19 + 1 ; /* G */
+
+   /* N + fraction =
+       {[Y/100] - [Y/400] - 2} + 765433/492480*Remainder(12G|19)
+                               + Remainder(Y|4)/4 - (313Y+89081)/98496 */
+
+   nplus = ((y/100)-(y/400)-2) + 765433.0/492480.0*((12*gold)%19)
+                               + 0.25*(y%4) - (313.0*y+89081.0)/98496.0 ;
+
+   nn = (int)nplus ;
+   ff = nplus - (double)nn ;
+
+   dd = dow(9,nn,y) ; /* day of week: 0..6 (Sun..Sat) */
+
+   /* If the day calculated above is a Sunday, Wednesday, or Friday,
+      Rosh Hashanah falls on the next day (Monday, Thursday or Saturday).
+
+      If the calculated day is a Monday, and if the fraction is greater than
+      or equal to 23269/25920, and if Remainder(12G|19) is greater than 11,
+      Rosh Hashanah falls on the next day, a Tuesday.
+
+      If it is a Tuesday, and if the fraction is greater than or equal to
+      1367/2160, and if Remainder(12G|19) is greater than 6, Rosh Hashanah
+      falls two days later, on Thursday (NOT WEDNESDAY!!).                 */
+
+   if( dd==0 || dd==3 || dd==5 ){                    /* Sun, Wed, or Fri are taboo */
+     nn++ ;
+   } else if( dd==1 && ff >= 23269.0/25920.0 && (12*gold)%19 > 11 ){ /* Mon -> Tue */
+     nn++ ;
+   } else if( dd==2 && ff >= 1367.0/2160.0   && (12*gold)%19 >  6 ){ /* Tue -> Thu */
+     nn += 2 ;
+   }
+
+   return nn ;
+}
+
+int AFNI_is_Rosh_Hashanah( int yy , int mm , int dd )
+{
+   return ( (mm==9) && (rosh(yy)==dd) ) ;
+}
+
+/*------------------------------------------------------------------------------*/
 
 static yymmdd DiwaliDate[] = {
  {2011,10,26} , {2012,11,13} , {2013,11,3}  , {2014,10,23} , {2015,11,11} ,
@@ -1551,6 +1611,11 @@ char * AFNI_get_date_trivia(void)
    if( ntar < NTMAX && AFNI_is_Easter(lt->tm_year+1900,lt->tm_mon+1,lt->tm_mday) )
       tar[ntar++] = "Easter (Western rite)" ;
 
+   /* Rosh Hashanah [22 Sep 2017] */
+
+   if( ntar < NTMAX && AFNI_is_Rosh_Hashanah(lt->tm_year+1900,lt->tm_mon+1,lt->tm_mday) )
+      tar[ntar++] = "Rosh Hashanah" ;
+
    /* Diwali? */
 
    if( ntar < NTMAX && AFNI_is_Diwali(lt->tm_year+1900,lt->tm_mon+1,lt->tm_mday) )
@@ -1592,4 +1657,5 @@ char * AFNI_get_date_trivia(void)
 #else
    return "[Elen sila lumenn' omentielvo]" ;
 #endif
+
 }
