@@ -27,15 +27,22 @@
 #set version   = "1.5";  set rev_dat   = "Apr 26, 2017"
 #   + better naming wdir
 #
-set version   = "1.6";  set rev_dat   = "Aug 8, 2017"
+#set version   = "1.6";  set rev_dat   = "Aug 8, 2017"
 #   + allow surface files to be input+move
 #   + take *.niml.dsets and *spec files with them
 #
 #set version   = "1.7";  set rev_dat   = "Aug 11, 2017"
 #   + set cbar range to 256
 #
-set version   = "1.8";  set rev_dat   = "Sep 04, 2017"
+#set version   = "1.8";  set rev_dat   = "Sep 04, 2017"
 #   + work with new @chauffeur*, -prefix only
+#
+set version   = "1.9";  set rev_dat   = "Sep 22, 2017"
+#   + for Mac compatability, apparently I need to wrap around 
+#     some for loops if a particular type of dset weren't input
+#     --> Thanks, Jiajia, for finding+noting.
+#   + also, movie $imtrx loop above, don't need to Unifize
+#     if the matrix is input directly: save time.
 #
 # ---------------------------------------------------------------
 
@@ -434,29 +441,31 @@ set T1TOMAP    = $t1res                 # we will apply map to this!
     -orient $orient_t2w             \
     -inset "$isrc"
 
-# prep this side for aligning with a bit of unifizing and brightness
-# thresholding
-echo "++ Unifize T1w proc vol."
-set t1uni = $wdir/f01_t1uni.nii
-3dUnifize                            \
-    -GM                              \
-    -prefix  $t1uni                  \
-    -input   "$t1res"                \
-    -overwrite 
-
-echo "++ Threshold T1w proc vol."
-set t1thr = $wdir/f02_t1thr.nii
-set v1 = `3dBrickStat -non-zero -automask   \
-            -percentile 95 1 95 ${t1uni}`
-echo ${v1[2]}
-3dcalc -a  ${t1uni}                         \
-       -expr "maxbelow(${v1[2]},a)"         \
-       -prefix $t1thr                       \
-       -overwrite
-
-set t1align   = $wdir/f05_t1align.nii
-
+# [PT: Sep 20, 2017] Move this here, no need to unifize if matrix has
+# been input already-- save you time & money!
 if ( "$imtrx" == "" ) then
+
+    # prep this side for aligning with a bit of unifizing and brightness
+    # thresholding
+    echo "++ Unifize T1w proc vol."
+    set t1uni = $wdir/f01_t1uni.nii
+    3dUnifize                            \
+        -GM                              \
+        -prefix  $t1uni                  \
+        -input   "$t1res"                \
+        -overwrite 
+
+    echo "++ Threshold T1w proc vol."
+    set t1thr = $wdir/f02_t1thr.nii
+    set v1 = `3dBrickStat -non-zero -automask   \
+                -percentile 95 1 95 ${t1uni}`
+    echo ${v1[2]}
+    3dcalc -a  ${t1uni}                         \
+           -expr "maxbelow(${v1[2]},a)"         \
+           -prefix $t1thr                       \
+           -overwrite
+
+    set t1align   = $wdir/f05_t1align.nii
 
     echo "++ Calculating alignment matrix."
 
@@ -495,117 +504,132 @@ endif
 
 # map all NN followers
 set list_ofNN = ()
-foreach i ( `seq 1 1 $#fNN` ) 
+if ( $#fNN > 0 ) then
+    echo "++ Map $#fNN 'NN' followers."
+    foreach i ( `seq 1 1 $#fNN` ) 
 
-    set ffi = "$fNN[$i]"
-    set ppi = `3dinfo -prefix_noext $ffi`
-    set ffr = "$wdir/fff_${ppi}.nii"
-    set off = "$odir/${opref}_${ppi}.nii.gz"
+        set ffi = "$fNN[$i]"
+        set ppi = `3dinfo -prefix_noext $ffi`
+        set ffr = "$wdir/fff_${ppi}.nii"
+        set off = "$odir/${opref}_${ppi}.nii.gz"
 
-    3dresample                          \
-        -overwrite                      \
-        -prefix $ffr                    \
-        -orient $orient_t2w             \
-        -inset $ffi
+        3dresample                          \
+            -overwrite                      \
+            -prefix $ffr                    \
+            -orient $orient_t2w             \
+            -inset $ffi
 
-    3dAllineate   -echo_edu               \
-        -overwrite                        \
-        -1Dmatrix_apply   $imtrx          \
-        -source           $ffr            \
-        -master           "$ibase"        \
-        -prefix           $off            \
-        -final NN
+        3dAllineate   -echo_edu               \
+            -overwrite                        \
+            -1Dmatrix_apply   $imtrx          \
+            -source           $ffr            \
+            -master           "$ibase"        \
+            -prefix           $off            \
+            -final NN
 
-    # AND propagate labeltables
-    set lt = `3dinfo -labeltable $ffi`
-    if ( "$lt" == "NO_LABEL_TABLE" ) then
-        echo "++ Dset $ffi has *no* labeltable to propagate."
-    else
-        echo "++ Dset $ffi has a labeltable to propagate.  So I will."
-        3drefit -copytables $ffi $off 
-    endif
+        # AND propagate labeltables
+        set lt = `3dinfo -labeltable $ffi`
+        if ( "$lt" == "NO_LABEL_TABLE" ) then
+            echo "++ Dset $ffi has *no* labeltable to propagate."
+        else
+            echo "++ Dset $ffi has a labeltable to propagate.  So I will."
+            3drefit -copytables $ffi $off 
+        endif
 
-    set list_ofNN = ( $list_ofNN $off )
-end
+        set list_ofNN = ( $list_ofNN $off )
+    end
+endif 
 
 # map all WS5 followers
 set list_ofWS5 = ()
-foreach i ( `seq 1 1 $#fWS5` ) 
+if ( $#fWS5 > 0 ) then
+    echo "++ Map $#fWS5 'wsinc5' followers."
+    foreach i ( `seq 1 1 $#fWS5` ) 
 
-    set ffi = "$fWS5[$i]"
-    set ppi = `3dinfo -prefix_noext $ffi`
-    set ffr = "$wdir/fff_${ppi}.nii"
-    set off = "$odir/${opref}_${ppi}.nii.gz"
+        set ffi = "$fWS5[$i]"
+        set ppi = `3dinfo -prefix_noext $ffi`
+        set ffr = "$wdir/fff_${ppi}.nii"
+        set off = "$odir/${opref}_${ppi}.nii.gz"
 
-    3dresample                          \
-        -overwrite                      \
-        -prefix $ffr                    \
-        -orient $orient_t2w             \
-        -inset $ffi
+        3dresample                          \
+            -overwrite                      \
+            -prefix $ffr                    \
+            -orient $orient_t2w             \
+            -inset $ffi
 
-    3dAllineate   -echo_edu               \
-        -overwrite                        \
-        -1Dmatrix_apply   $imtrx          \
-        -source           $ffr            \
-        -master           "$ibase"        \
-        -prefix           $off            \
-        -final wsinc5
+        3dAllineate   -echo_edu               \
+            -overwrite                        \
+            -1Dmatrix_apply   $imtrx          \
+            -source           $ffr            \
+            -master           "$ibase"        \
+            -prefix           $off            \
+            -final wsinc5
 
-    set list_ofWS5 = ( $list_ofWS5 $off )
-end
+        set list_ofWS5 = ( $list_ofWS5 $off )
+    end
+endif
 
 # [PT: Aug 8, 2017] map all surf followers
 set list_ofsurf = ()
-foreach i ( `seq 1 1 $#fss` ) 
+if ( $#fss > 0 ) then
+    echo "++ Map $#fss 'surf' followers."
+    foreach i ( `seq 1 1 $#fss` ) 
 
-    set ffi = "$fss[$i]"
-    set ffe = "$ffi:e"    # ext
-    set ppi = "$ffi:t:r"  # fname, no path, no ext
-    set off = "$odir/${opref}_${ppi}.$ffe"
+        set ffi = "$fss[$i]"
+        set ffe = "$ffi:e"    # ext
+        set ppi = "$ffi:t:r"  # fname, no path, no ext
+        set off = "$odir/${opref}_${ppi}.$ffe"
 
-    ConvertSurface                       \
-        -ixmat_1D $imtrx                 \
-        -i $ffi                          \
-        -o $off
+        ConvertSurface                       \
+            -ixmat_1D $imtrx                 \
+            -i $ffi                          \
+            -o $off
 
-    set list_ofsurf = ( $list_ofsurf $off )
-end
+        set list_ofsurf = ( $list_ofsurf $off )
+    end
+endif
 
 # [PT: Aug 8, 2017] map all niml followers
 set list_ofniml = ()
-foreach i ( `seq 1 1 $#fsniml` ) 
+if ( $#fsniml > 0 ) then
+    echo "++ Map $#fsniml 'surf' followers."
+    foreach i ( `seq 1 1 $#fsniml` ) 
 
-    set ffi = "$fsniml[$i]"
-    set ffe = "$ffi:e"    # ext
-    set ppi = "$ffi:t"    # fname, no path, KEEP ext
-    set off = "$odir/${opref}_${ppi}"
+        set ffi = "$fsniml[$i]"
+        set ffe = "$ffi:e"    # ext
+        set ppi = "$ffi:t"    # fname, no path, KEEP ext
+        set off = "$odir/${opref}_${ppi}"
 
-    # appears to be all we need? formats get recognized by extension,
-    # methinks...
-    ConvertDset                          \
-        -input     $ffi                  \
-        -prefix    $off
+        # appears to be all we need? formats get recognized by extension,
+        # methinks...
+        ConvertDset                          \
+            -input     $ffi                  \
+            -prefix    $off
 
-    set list_ofniml = ( $list_ofniml $off )
-end
+        set list_ofniml = ( $list_ofniml $off )
+    end
+endif
 
 # [PT: Aug 8, 2017] map all spec followers
 set list_ofspec = ()
-foreach i ( `seq 1 1 $#fsspec` ) 
+if ( $#fsspec > 0 ) then
+    echo "++ Map $#fsspec 'surf' followers."
+    foreach i ( `seq 1 1 $#fsspec` ) 
 
-    set ffi = "$fsspec[$i]"
-    set ffe = "$ffi:e"    # ext
-    set ppi = "$ffi:t"    # fname, no path, KEEP ext
-    #set off = "$odir/${opref}_${ppi}"
+        set ffi = "$fsspec[$i]"
+        set ffe = "$ffi:e"    # ext
+        set ppi = "$ffi:t"    # fname, no path, KEEP ext
+        #set off = "$odir/${opref}_${ppi}"
 
-    # experimental new function: rename LabelDsets and 
-    @suma_reprefixize_spec                  \
-        -input      $ffi                    \
-        -preprefix  ${opref}                \
-        -odir       $odir
+        # experimental new function: rename LabelDsets and 
+        @suma_reprefixize_spec                  \
+            -input      $ffi                    \
+            -preprefix  ${opref}                \
+            -odir       $odir
 
-    set list_ofspec = ( $list_ofspec $off )
-end
+        set list_ofspec = ( $list_ofspec $off )
+    end
+endif
 
 set T1TOCOPY = $t1mapped
 set fdims = `3dinfo -n4 ${T1TOCOPY}`
@@ -675,7 +699,7 @@ if ( $DO_VIEWER == 1 ) then
 
         # fun file name manipulation: get non-prefix and non-prefix
         # (ha!)  name
-        set pp = `3dinfo -prefix_noext $ff`
+        set pp = `3dinfo -prefix_noext "$ff"`
         # numbers of chars in $opref
         set Lopref = `echo $opref | awk '{print length($0)}'`
         # where to start reading from in $pp to cut out "${opref}_"
@@ -689,6 +713,7 @@ if ( $DO_VIEWER == 1 ) then
             set vprefnn = ${qc_prefix}${postfix}_qc_$ppp
         endif
 
+        echo "++ Make image for: $ff"
         # NB: with this colorbar, use full 256 for range
         $my_viewer                            \
             -ulay "$ibase"                    \
@@ -712,7 +737,7 @@ if ( $DO_VIEWER == 1 ) then
 
         # fun file name manipulation: get non-prefix and non-prefix
         # (ha!)  name
-        set pp = `3dinfo -prefix_noext $ff`
+        set pp = `3dinfo -prefix_noext "$ff"`
         # numbers of chars in $opref
         set Lopref = `echo $opref | awk '{print length($0)}'`
         # where to start reading from in $pp to cut out "${opref}_"
