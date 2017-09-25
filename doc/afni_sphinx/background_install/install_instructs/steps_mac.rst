@@ -105,14 +105,12 @@ When ``afni`` is started for the first time, you should be directed
          |
 
    #. ``XQuartz`` has altered the library format, so adjust
-      ``DYLD_LIBRARY_PATH`` by doing either:
+      ``DYLD_LIBRARY_PATH`` in **both** both ``tcsh`` and ``bash``:
 
-      * ``tcsh`` syntax::
+      * (``tcsh`` and ``bash``) syntax::
 
          touch ~/.cshrc
          echo 'setenv DYLD_LIBRARY_PATH /opt/X11/lib/flat_namespace' >> ~/.cshrc
-
-      * ``bash`` syntax::
 
          touch ~/.bashrc
          echo 'export DYLD_LIBRARY_PATH=/opt/X11/lib/flat_namespace' >> ~/.bashrc
