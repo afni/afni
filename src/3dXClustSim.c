@@ -373,8 +373,8 @@ ENTRY("get_options") ;
 
     if( strcmp(argv[nopt],"-pthr") == 0 || strcmp(argv[nopt],"-pval") == 0 ){
 
-      if( pthr != NULL )          ERROR_exit("you can't use -pthr twice!") ;
-      nopt++; if( nopt >= argc )  ERROR_exit("need argument after %s",argv[nopt-1]);
+      if( pthr != NULL )         ERROR_exit("you can't use -pthr twice!") ;
+      nopt++; if( nopt >= argc ) ERROR_exit("need argument after %s",argv[nopt-1]);
 
       /* scan to see how many numeric args follow */
 
@@ -409,7 +409,7 @@ ENTRY("get_options") ;
 
     if( strcmp(argv[nopt],"-hpow") == 0 ){
       int jj ;
-      nopt++; if( nopt >= argc )  ERROR_exit("need argument after %s",argv[nopt-1]);
+      nopt++; if( nopt >= argc ) ERROR_exit("need argument after %s",argv[nopt-1]);
 
       /* scan for integers 0 and/or 1 and/or 2 */
 
@@ -438,11 +438,26 @@ ENTRY("get_options") ;
       nopt++ ; continue ;
     }
 
+    /*-----  -minclust [21 Sep 2017]  -----*/
+
+    if( strcasecmp(argv[nopt],"-minclust") == 0 ){
+      int mc ;
+      nopt++; if( nopt >= argc ) ERROR_exit("need argument after %s",argv[nopt-1]);
+      mc = (int)strtod(argv[nopt],NULL) ;
+      if( mc < 2 )
+        WARNING_message("value %d after %s is illegal",mc,argv[nopt-1]) ;
+      else
+        set_Xmin_clust(mc) ;
+
+      nopt++ ; continue ;
+    }
+
+
     /*-----  -FPR xx [23 Aug 2017]  -----*/
 
     if( strcasecmp(argv[nopt],"-FPR") == 0 ){
       float fgoal ;
-      nopt++; if( nopt >= argc )  ERROR_exit("need argument after %s",argv[nopt-1]);
+      nopt++; if( nopt >= argc ) ERROR_exit("need argument after %s",argv[nopt-1]);
       do_multifarp = 0 ;
       fgoal = (float)rint(strtod(argv[nopt],NULL)) ;
       if( fgoal < 2.0f ){
@@ -478,6 +493,8 @@ ENTRY("get_options") ;
       sprintf( msg+strlen(msg) , " %.1f%%%%" , farplist[ii] ) ;
     INFO_message(msg) ;
   }
+
+  INFO_message("minimum cluster size = %d voxels",min_clust) ; /* 21 Sep 2017 */
 
   /*------- finalize some simple setup stuff --------*/
 
@@ -969,36 +986,38 @@ int main( int argc , char *argv[] )
        "OPTIONS:\n"
        "--------\n"
        "\n"
-       " -inset     mask sdata ... {MANDATORY} [from 3dtoXdataset or 3dttest++]\n"
-       " -insdat                   Data files are in the '.sdat' format.\n"
+       " -inset       mask sdata ... {MANDATORY} [from 3dtoXdataset or 3dttest++]\n"
+       " -insdat                     Data files are in the '.sdat' format.\n"
        "\n"
-       " -NN        1 or 2 or 3    [-NN1 or -NN2 or -NN3 will work; default = 2]\n"
-       " -sid       1 or 2         [-1sid or -2sid will work; default = 2]\n"
-       " -hpow      0 1 2          [or some subset of these; default = 2]\n"
+       " -NN          1 or 2 or 3    [-NN1 or -NN2 or -NN3 will work; default = 2]\n"
+       " -sid         1 or 2         [-1sid or -2sid will work; default = 2]\n"
+       " -hpow        0 1 2          [or some subset of these; default = 2]\n"
        "\n"
-       " -ncase     N lab1 .. labN [multiple processing cases; e.g., blurs]\n"
-       "                           [default = 1 A]\n"
-       "                           [example = 4 b04 b06 b08 b10]\n"
+       " -ncase       N lab1 .. labN [multiple processing cases; e.g., blurs]\n"
+       "                             [default = 1 A]\n"
+       "                             [example = 4 b04 b06 b08 b10]\n"
        "\n"
-       " -pthr      list of values [default = 0.0100 0.0056 0.0031 0.0018 0.0010]\n"
-       "                           [equiv z1= 2.326  2.536  2.731  2.911  3.090 ]\n"
-       "                           [equiv z2= 2.576  2.770  2.958  3.121  3.291 ]\n"
+       " -pthr        list of values [default = 0.0100 0.0056 0.0031 0.0018 0.0010]\n"
+       "                             [equiv z1= 2.326  2.536  2.731  2.911  3.090 ]\n"
+       "                             [equiv z2= 2.576  2.770  2.958  3.121  3.291 ]\n"
        "\n"
-       " -FPR ff    set global FPR goal to ff%%, where ff is an integer\n"
-       "            from 2 to 9 (inclusive). Default value is 5.\n"
+       " -FPR ff      set global FPR goal to ff%%, where ff is an integer\n"
+       "              from 2 to 9 (inclusive). Default value is 5.\n"
        "\n"
-       " -multiFPR  compute results for multiple FPR goals (2%%, 3%%, ... 9%%)\n"
+       " -multiFPR    compute results for multiple FPR goals (2%%, 3%%, ... 9%%)\n"
        "\n"
-       " -prefix    something\n"
-       " -verb      be more verbose\n"
-       " -quiet     silentium est aureum\n"
+       " -minclust M  don't allow clusters smaller than M voxels [default M=5]\n"
+       "\n"
+       " -prefix      something\n"
+       " -verb        be more verbose\n"
+       " -quiet       silentium est aureum\n"
 #if 0
-       " -unmap     unmap data after clustering, remap before final steps;\n"
-       "            can save some memory space, at the cost of some I/O time\n"
+       " -unmap       unmap data after clustering, remap before final steps;\n"
+       "              can save some memory space, at the cost of some I/O time\n"
 #endif
 #if 0
-       " -FOMcount  turn on FOMcount output\n"
-       " -FARvox    turn on FARvox output\n"
+       " -FOMcount    turn on FOMcount output\n"
+       " -FARvox      turn on FARvox output\n"
 #endif
        "\n"
        "**-----------------------------------------------------------\n"
@@ -1184,9 +1203,9 @@ int main( int argc , char *argv[] )
    /*=========================================================================*/
    /*--- STEP 1c: find the global distributions and min thresholds -----------*/
 
-#define GTHRESH_FAC 0.123456f
+#define GTHRESH_FAC 0.066666f
 #define GTHRESH_THA 0.055555f
-#define GTHRESH_THB 0.234567f
+#define GTHRESH_THB 0.166666f
 
    { int nfom,jj,nfff; Xcluster **xcc;
      float a0,a1,f0,f1,fta,ftb , fmax ;
@@ -1226,7 +1245,7 @@ int main( int argc , char *argv[] )
          if( nfff > nfom ) nfff = nfom ; /* very very unlikely */
 
          fmax = AFNI_numenv("AFNI_XCLUSTSIM_FMAX") ;
-         if( fmax <= 0.01f || fmax > 1.0f ) fmax = 0.666f ;
+         if( fmax <= 0.01f || fmax > 1.0f ) fmax = 0.999f ;
 
          /* global threshold computed from tail of FOM distribution */
 
@@ -1916,15 +1935,18 @@ FARP_BREAKOUT: ; /*nada*/
 
        /* attach an attribute describing the multi-threshold setup */
 
-       { float *afl=malloc(sizeof(float)*(npthr+4)) ;
+       { float *afl=malloc(sizeof(float)*(npthr+5)) ;
          afl[0] = (float)nnlev ;
          afl[1] = (float)nnsid ;
          afl[2] = (float)qpthr ;
          afl[3] = (float)(do_hpow0 + 2*do_hpow1 + 4*do_hpow2) ;
          for( qpthr=0 ; qpthr < npthr ; qpthr++ )
            afl[qpthr+4] = zthr_used[qpthr] ;
+
+         afl[npthr+4] = (float)min_clust ; /* 21 Sep 2017 */
+
          THD_set_float_atr( qset->dblk ,
-                            "MULTI_THRESHOLDS" , npthr+4 , afl ) ;
+                            "MULTI_THRESHOLDS" , npthr+5 , afl ) ;
          free(afl) ;
        }
 
