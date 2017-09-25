@@ -8,38 +8,37 @@
 Here we describe a complete AFNI installation and system setup for Mac
 versions that are reasonably modern, such as **Mac OS 10.7+**.  The
 full set of steps applies to a "clean" (i.e., empty) 10.7+ system.
-There is a special step at the end for 10.11+ (El Capitan, Sierra,
-etc.) users, because life is hard sometimes.
+Some steps are dependent on which version of Mac is present.
 
-Note that 10.8 does not come with ``X11`` (or ``XQuartz``) installed.
+Note that 10.8 does not come with X11 (or XQuartz) installed.
 When ``afni`` is started for the first time, you should be directed
-(by the operating system) to a link to install ``XQuartz``.
+(by the operating system) to a link to install XQuartz.
 
-.. note:: We assume that a user account exists, and that you have
-          Administrator privileges, which are needed for package
-          management.  That is, if you enter::
+.. note:: In each step below, users can copy+paste the contents of the
+          green fields into the terminal directly, i.e.,::
           
-            sudo ls
-
-          into a terminal and can successfully enter the password for
-          the file list to display, then you are set to proceed.
+            echo " You can copy and paste me!"
 
 0. **Initial terminal setup**
 
-   a. *What's my shell?* Some steps below depend on what login shell
-      you are running.  From a terminal window, enter::
+   a. *Do I have Admin privileges?*  To find out, type::
+          
+        sudo ls
 
-        echo $0
+      If you can provide the correct password for the file list to
+      display, you should be OK to proceed.
 
-      and the output should either be ``tcsh`` or ``bash``.
+   #. *What's my shell?*  To find out, type::
 
-   #. *(optional)* Set the shell to ``tcsh``.  
+          echo $0
 
-      Some AFNIers prefer the syntax of ``tcsh``.
+      and the output should either be ``tcsh`` or ``bash`` (possibly
+      with a ``-`` in front).  That's your current shell.
 
-      Under System Preferences : System : Accounts menu, right-click
-      on the user to get the Advanced Options menu and change the
-      Login shell to ``/bin/tcsh``.
+   #. *(optional)* Some AFNIers prefer the syntax of ``tcsh``.  To set
+      this as default, go to System Preferences : System : Accounts
+      menu, right-click on the user to get the Advanced Options menu
+      and change the Login shell to ``/bin/tcsh``.
 
       You can verify that you have done this correctly by opening a
       new terminal and entering::
@@ -49,41 +48,35 @@ When ``afni`` is started for the first time, you should be directed
    #. Set the policy where "focus follows mouse", so that it is not
       necessary to first click on a new window (to select it) before
       subsequent clicks are applied to that window.  There are 3
-      applications that this might apply to, so we make sure...
-
-      From a terminal window, enter::
+      applications that this might apply to, so enter the following in
+      a terminal::
 
         defaults write org.macosforge.xquartz.X11 wm_ffm -bool true
         defaults write org.x.X11 wm_ffm -bool true
         defaults write com.apple.Terminal FocusFollowsMouse -string YES
       |
 
-#. ``Xcode`` **and** ``XQuartz`` **installation**
+#. **Xcode and XQuartz installation**
 
-   a. ``Xcode`` is needed for the gcc compiler and related tools.
-      ``XQuartz`` is the desktop manager needed to run ``X11``
+   a. Xcode is needed for the gcc compiler and related tools.
+      XQuartz is the desktop manager needed to run X11
       programs (such as ``afni``).
 
-      *  *For OS X >= 10.11*:
-
-         a. Install ``Xcode`` using the command::
+      *  *For OS X >= 10.11,* install Xcode using the command::
 
               xcode-select --install
               
-         #. Install ``XQuartz`` using the "Quick Download" DMG from
-            http://www.xquartz.org
+         **and** install XQuartz using the "Quick Download" DMG from
+         http://www.xquartz.org
 
-      *  *For OS X 10.9 and 10.10*:
-
-         a. Run the two commands::
+      *  *For OS X 10.9 and 10.10,* run the two commands::
 
               xcode-select --install
               /Applications/Utilities/X11.app
 
-      *  *For OS X <=10.8*:
+      *  *For OS X <=10.8,*
 
-         a. It is best to start with the most recent version from the
-            Apple website:
+         i. Start with the most recent version from the Apple website:
          
             - Go to https://developer.apple.com
 
@@ -99,35 +92,34 @@ When ``afni`` is started for the first time, you should be directed
 
             - installation defaults are good, to complete installation
 
-         #. Install ``XQuartz`` using the "Quick Download" DMG from
+         #. Install XQuartz using the "Quick Download" DMG from
             http://www.xquartz.org
 
          |
 
-   #. ``XQuartz`` has altered the library format, so adjust
-      ``DYLD_LIBRARY_PATH`` in **both** both ``tcsh`` and ``bash``:
+   #. Run the following::
 
-      * (``tcsh`` and ``bash``) syntax::
+        touch ~/.cshrc
+        echo 'setenv DYLD_LIBRARY_PATH /opt/X11/lib/flat_namespace' >> ~/.cshrc
 
-         touch ~/.cshrc
-         echo 'setenv DYLD_LIBRARY_PATH /opt/X11/lib/flat_namespace' >> ~/.cshrc
+        touch ~/.bashrc
+        echo 'export DYLD_LIBRARY_PATH=/opt/X11/lib/flat_namespace' >> ~/.bashrc
 
-         touch ~/.bashrc
-         echo 'export DYLD_LIBRARY_PATH=/opt/X11/lib/flat_namespace' >> ~/.bashrc
-
-   |
+      This adjusts the library format variable for XQuartz in both
+      ``tcsh`` and ``bash``.  Sigh.
 
 #. **AFNI installation**
 
-   a. Download and unpack the current binaries into your ``$HOME``
-      directory, setting the directory name to ``$HOME/abin/``::
+   a. Run the following::
 
         cd
         curl -O https://afni.nimh.nih.gov/pub/dist/bin/macosx_10.7_local/@update.afni.binaries
         tcsh @update.afni.binaries -defaults
 
-      .. note:: The ``$PATH`` in ``~/.cshrc`` and ``~/.bashrc`` will
-                have been set by ``@update.afni.binaries``
+      These commands: download and unpack the current binaries into
+      your ``$HOME`` directory; set the AFNI binary directory name to
+      ``$HOME/abin/``; and add that location to the ``$PATH`` in
+      both ``~/.cshrc`` and ``~/.bashrc``.
 
       .. note:: If the AFNI binary package has already been
                 downloaded, one can use ``-local_package``, followed
@@ -139,64 +131,57 @@ When ``afni`` is started for the first time, you should be directed
 
 #. **R installation**
 
-    a. To download and install from the main R website:
+   a. | Go to the main R page for Mac OS X: `HERE <https://cran.r-project.org/bin/macosx>`_,
+      | and click on the latest package (probably R-3.4.0.pkg) to
+        download+install it.
 
-       * Go to `the R page for Mac OS X
-         <https://cran.r-project.org/bin/macosx>`_
+   #. Then, install extra R packages specifically needed by AFNI::
 
-       * Click on the latest package (probably R-3.4.0.pkg), and
-         download/install it.
-
-         |
-
-    #. To install extra R packages needed by AFNI, run the following
-       AFNI command::
-
-           sudo rPkgsInstall -pkgs ALL
+        sudo rPkgsInstall -pkgs ALL
 
 
-#. **PyQt4 installation** (optional: via getting fink and using JDK)
+#. **(optional) PyQt4 installation, via JDK and fink** 
 
-    a. To download and install the Java SE (standard edition) JDK, go
-       to http://www.oracle.com/technetwork/java/javase/downloads and
-       click on the ``Java`` icon.
+   *NB: no longer necessary for the Bootcamp!*
 
-    #. To install the package manager ``fink``, execute the following,
-       which gets an install script and executes it.  This takes
-       perhaps 30 minutes and the user gets asked many questions
-       (sorry, no way around it).  One can simply keep hitting the
-       ``ENTER`` key to accept the useful defaults (**note:** you can
-       respond with 'n' for the ``Xcode`` installation prompt if
-       prompted otherwise, as you should have it from an earlier
-       step).
+   a. To download and install the Java SE (standard edition) JDK, go
+      to http://www.oracle.com/technetwork/java/javase/downloads and
+      click on the ``Java`` icon.
 
-       Run the commands::
+   #. To install the package manager ``fink``, execute the following,
+      which gets an install script and executes it.  This takes
+      perhaps 30 minutes and the user gets asked many questions
+      (sorry, no way around it).  One can simply keep hitting the
+      ``ENTER`` key to accept the useful defaults (**note:** you can
+      respond with 'n' for the Xcode installation prompt if
+      prompted otherwise, as you should have it from an earlier
+      step).
 
-           curl -O https://afni.nimh.nih.gov/pub/dist/bin/misc/save/install.fink.bash
-           bash install.fink.bash
+      Run the commands::
 
+          curl -O https://afni.nimh.nih.gov/pub/dist/bin/misc/save/install.fink.bash
+          bash install.fink.bash
 
+   #. Install PyQt4.
 
-    #. Install PyQt4 (this is not necessary for the AFNI bootcamp).
+      First, open a new terminal window (or ``source ~/.cshrc`` or
+      ``source ~/.bashrc``) to make sure that ``fink`` has been added
+      to the ``$PATH``.
 
-       First, open a new terminal window (or ``source ~/.cshrc`` or
-       ``source ~/.bashrc``) to make sure that ``fink`` has been added
-       to the ``$PATH``.
+      * In a new window, verify that fink is ready::
 
-       * In a new window, verify that fink is ready::
+          fink --version
 
-           fink --version
+      * Run the following to install PyQt4::
 
-       * Run the following to install PyQt4::
+          sudo fink install pyqt4-mac-py27
+          sudo ln -s /sw/bin/python2.7 /sw/bin/python
+          echo 'setenv PYTHONPATH /sw/lib/qt4-mac/lib/python2.7/site-packages' >> ~/.cshrc
 
-           sudo fink install pyqt4-mac-py27
-           sudo ln -s /sw/bin/python2.7 /sw/bin/python
-           echo 'setenv PYTHONPATH /sw/lib/qt4-mac/lib/python2.7/site-packages' >> ~/.cshrc
+        (You likely won't get a 'success' message here, but you can
+        use the **Evaluate** step below to verify the installation.)
 
-         (You likely won't get a 'success' message here, but you can
-         use the **Evaluate** step below to verify the installation.)
-
-       |
+      |
 
    .. ---------- HERE/BELOW: copy for all installs --------------
 
@@ -205,7 +190,7 @@ When ``afni`` is started for the first time, you should be directed
    .. include:: substep_profiles.rst
 
 
-#. **(optional) Prepare for an AFNI Bootcamp.**
+#. **(semi-optional) Prepare for an AFNI Bootcamp.**
 
    .. include:: substep_bootcamp.rst
 
@@ -216,12 +201,13 @@ When ``afni`` is started for the first time, you should be directed
    .. include:: substep_evaluate.rst
 
 
-#. **(optional) Niceifying interfaces: it's a magical terminal.**
+#. **(optional, but recommended) Niceifying interfaces: it's a magical
+   terminal.**
 
    .. include:: substep_rcfiles_mac.rst
 
 
-#. **Keeping up-to-date (remember).**
+#. **Keeping up-to-date (remember!).**
 
    .. include:: substep_update.rst
 
