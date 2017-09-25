@@ -214,13 +214,15 @@ ENTRY("mri_sharpen_rgb") ;
 
 /*-----------------------------------------------------------------------------*/
 
+static float mfac = 0.4f ;
+
 MRI_IMAGE * mri_flatten_rgb( MRI_IMAGE *im )
 {
    MRI_IMAGE *flim , *shim , *newim ;
    byte  *iar , *nar ;
    float *sar , *far ;
    int ii , nvox , rr,gg,bb ;
-   float fac ;
+   float fac , ifac,ffac ;
 
 ENTRY("mri_flatten_rgb") ;
 
@@ -236,11 +238,14 @@ ENTRY("mri_flatten_rgb") ;
    far = MRI_FLOAT_PTR(flim) ; sar = MRI_FLOAT_PTR(shim) ;
    nvox = newim->nvox ;
 
+   ifac = mfac ;
+   ffac = (1.0f-ifac) ;
+
    for( ii=0 ; ii < nvox ; ii++ ){
-     if( far[ii] <= 0.0 || sar[ii] <= 0.0 ){
+     if( far[ii] < 0.0f || sar[ii] < 0.0f ){
        nar[3*ii] = nar[3*ii+1] = nar[3*ii+2] = 0 ;
      } else {
-       fac = 255.9 * sar[ii] / far[ii] ; /* will be positive */
+       fac = ffac*(255.9f*sar[ii]/far[ii])+ifac ; /* will be positive */
        rr  = fac * iar[3*ii]   ;
        gg  = fac * iar[3*ii+1] ;
        bb  = fac * iar[3*ii+2] ;
