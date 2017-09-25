@@ -155,7 +155,7 @@ When ``afni`` is started for the first time, you should be directed
            sudo rPkgsInstall -pkgs ALL
 
 
-#. **PyQt4 installation** (via getting fink and using JDK)
+#. **PyQt4 installation** (optional: via getting fink and using JDK)
 
     a. To download and install the Java SE (standard edition) JDK, go
        to http://www.oracle.com/technetwork/java/javase/downloads and
@@ -177,7 +177,7 @@ When ``afni`` is started for the first time, you should be directed
 
 
 
-    #. Install PyQt4.
+    #. Install PyQt4 (this is not necessary for the AFNI bootcamp).
 
        First, open a new terminal window (or ``source ~/.cshrc`` or
        ``source ~/.bashrc``) to make sure that ``fink`` has been added

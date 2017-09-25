@@ -2349,6 +2349,7 @@ void AFNI_sigfunc_alrm(int sig)
      "If the genome is the source code, it should have come with comments"            ,
      "So the days float through my eyes, but still the days seem the same"            ,
 
+     "When all you have is a computer, every problem looks like it needs linear algebra"      ,
      "You know you're in trouble when it takes a 64 bit integer to count your unread emails"  ,
      "Once you've done what you have to do, no one will let you do what you want to do"       ,
      "My name is AFNImandias, Brain of Brains; Look on my Statistics, ye Clever, and Despair" ,
@@ -2357,7 +2358,7 @@ void AFNI_sigfunc_alrm(int sig)
      "You must accept finite disappointments, but never lose your infinite hopes"             ,
      "We may all have come on different ships, but we're all in the same boat now"            ,
      "You can always find me out on the Long Line -- I hang out by the Church-Kleene ordinal" ,
-     "Outside of a dog, a book is Man's best friend. Inside of a dog, it's too dark to read"  ,
+     "Outside of a dog, a book is Man's best friend; inside of a dog, it's too dark to read"  ,
 
      "Someday I'll tell you of the Giant Rat of Sumatra, a tale for which the world is not prepared"    ,
      "People have to learn to live with newly-discovered facts; if they don't, they die of them"        ,
@@ -2459,7 +2460,15 @@ void AFNI_sigfunc_alrm(int sig)
 
      "\n There comes a time when you look into the mirror and you realize\n"
      " what you see is all that you will ever be. And then you accept it.\n"
-     " Or you stop looking in mirrors"
+     " Or you stop looking in mirrors" ,
+
+     /* from John Tukey */
+
+     "\n  Better an approximate answer to the right question,\n"
+     "  than an exact answer to the wrong question"                                    ,
+
+     "\n  The combination of some data and an aching desire for an answer does not\n"
+     "  ensure that a reasonable answer can be extracted from a given body of data"
 
    } ;
 #undef NTOP
