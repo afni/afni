@@ -6,6 +6,7 @@
 **Fedora and Red Hat Linux**: *The essential system setup*
 ==============================================================
 
+.. contents:: :local:
 
 Here we describe installation and system setup for reasonably modern
 Linux versions of Fedora (21+) and Red Hat (RHEL) 7, along with the
@@ -15,129 +16,139 @@ Several of the following steps are system dependent, for example due
 to having different package managers, so we list parallel instructions
 for each.
 
-#. **Install prerequisite packages.**
+**Install prerequisite packages**
+------------------
 
-   .. note:: This is the only step that requires sudo ability.
+Install necessary packages and libraries (this is the only step that
+requires sudo ability):
 
-   There are several packages and libraries that are needed to run the
-   afni and shell programs, often even including ``tcsh``:
+* *for Fedora 21 (and higher)*::
+   
+    sudo yum install -y tcsh libXp openmotif gsl xorg-x11-fonts-misc       \
+                        PyQt4 R-devel netpbm-progs gnome-tweak-tool ed     \
+                        xorg-x11-server-Xvfb
+    sudo yum update -y
+   
+* *for CentOS 7*::
 
-   * *for Fedora 21 (and higher)*::
+    sudo yum install -y epel-release
+    sudo yum install -y tcsh libXp openmotif gsl xorg-x11-fonts-misc       \
+                        PyQt4 R-devel netpbm-progs gnome-tweak-tool ed     \
+                        libpng12 xorg-x11-server-Xvfb
+    sudo yum update -y
+
+* *for RHEL 7*::
+
+    sudo yum install -y tcsh libXp openmotif gsl xorg-x11-fonts-misc       \
+                        PyQt4 R-devel netpbm-progs gnome-tweak-tool ed     \
+                        libpng12 xorg-x11-server-Xvfb
+    sudo yum update -y
+         
+.. _setup_FRH_tcsh:
+**Set "tcsh" as default shell (optional, but recommended)**
+------------------
+
+::
       
-       sudo yum install -y tcsh libXp openmotif gsl xorg-x11-fonts-misc       \
-                           PyQt4 R-devel netpbm-progs gnome-tweak-tool ed     \
-                           xorg-x11-server-Xvfb
-       sudo yum update -y
+   chsh -s /usr/bin/tcsh
+
+**Install AFNI binaries**
+------------------
+
+.. think this can be simplified!!  odd to have a split here, but just talk about RHEL, no Centos-specific??
+
+The following will create a directory called ``$HOME/abin`` and
+install the AFNI binaries there.
+
+First, get the install script (*this* command actually works for both
+Fedora and RHEL systems)::
       
-   * *for RHEL/CentOS 7*:
+   curl -O https://afni.nimh.nih.gov/pub/dist/bin/linux_ubuntu_16_64/@update.afni.binaries
+   
+Then install the appropriate AFNI package.  Note that most other
+Linux systems will probably work with linux_openmp_64:
 
-     .. note:: R-devel requires epel-release (Extra Packages for Enterprize Linux)
+* *for RHEL 7*::
 
-     on CentOS 7 one can enable epel-release easily::
+    tcsh @update.afni.binaries -package linux_openmp_64 -do_extras
 
-        sudo yum install -y epel-release
+.. note:: if the binary package has already been downloaded, one can
+          use ``-local_package``, followed by the location+name of the
+          binary file, e.g.::
 
-     install libraries (once epel-release is enabled)::
+            tcsh @update.afni.binaries -local_package linux_openmp_64.tgz -do_extras
 
-        sudo yum install -y tcsh libXp openmotif gsl xorg-x11-fonts-misc       \
-                            PyQt4 R-devel netpbm-progs gnome-tweak-tool ed     \
-                            libpng12 xorg-x11-server-Xvfb
-        sudo yum update -y
-            
-   .. _setup_FRH_tcsh:
-#. **(optional, but recommended) Set "tcsh" to be the default shell.**
+**Reboot**
+----------
 
-   ::
+Consider a 'reboot' at this point.  That would deal with
+system updates, the change in login shell, and an updated path::
 
-      chsh -s /usr/bin/tcsh
+   reboot
 
-#. **Install AFNI.**
+**Get R setup**
+---------------
 
-   The following will create a directory called ``$HOME/abin`` and
-   install the AFNI binaries there.
+Install current R libraries for the group analysis programs.  This
+relies on the environment variable ``$R_LIBS``, which refers to a
+directory that will contain the R packages.  That variable should
+always be set, both to specify where to install the packages and
+where to read them from later (when running R programs).
+Therefore:
+   
+* *for setting this variable in* ``tcsh`` 
+  *(i.e., if you did* :ref:`tcsh setup, above <setup_FRH_tcsh>`\ *)*::
 
-   First, get the install script (*this* command actually works for both
-   Fedora and RHEL systems)::
-      
-      curl -O https://afni.nimh.nih.gov/pub/dist/bin/linux_ubuntu_16_64/@update.afni.binaries
-      
-   Then install the appropriate AFNI package.  Note that most other
-   Linux systems will probably work with linux_openmp_64:
+   setenv R_LIBS $HOME/R
+   mkdir $R_LIBS
+   echo 'setenv R_LIBS ~/R' >> ~/.cshrc
+   rPkgsInstall -pkgs ALL
+   
+* *for setting this variable in* ``bash``::
+   
+    export R_LIBS=$HOME/R
+    mkdir $R_LIBS
+    echo 'export R_LIBS=$HOME/R' >> ~/.bashrc
+    rPkgsInstall -pkgs ALL
 
-   * *for RHEL 7*::
-
-       tcsh @update.afni.binaries -package linux_openmp_64 -do_extras
-
-   .. note:: if the binary package has already been downloaded, one can use ``-local_package``, followed by the location+name of the binary file, e.g.:
-
-      tcsh @update.afni.binaries -local_package linux_openmp_64.tgz -do_extras
-
-#. **Reboot.**
-
-   Consider a 'reboot' at this point.  That would deal with
-   system updates, the change in login shell, and an updated path::
-
-      reboot
-
-#. **Get R setup.**
-
-   Install current R libraries for the group analysis programs.  This
-   relies on the environment variable ``$R_LIBS``, which refers to a
-   directory that will contain the R packages.  That variable should
-   always be set, both to specify where to install the packages and
-   where to read them from later (when running R programs).
-   Therefore:
-      
-   * *for setting this variable in* ``tcsh`` 
-     *(i.e., if you did* :ref:`tcsh setup, above <setup_FRH_tcsh>`\ *)*::
-
-      setenv R_LIBS $HOME/R
-      mkdir $R_LIBS
-      echo 'setenv R_LIBS ~/R' >> ~/.cshrc
-      rPkgsInstall -pkgs ALL
-      
-   * *for setting this variable in* ``bash``::
-      
-       export R_LIBS=$HOME/R
-       mkdir $R_LIBS
-       echo 'export R_LIBS=$HOME/R' >> ~/.bashrc
-       rPkgsInstall -pkgs ALL
-
-   ..
-     In order, this has: set (i.e., defined) an environment variable
-     called ``$R_LIBS`` to be a subdirectory called "R/" in the user's
-     home directory; then made this directory; then written this
-     information into the user's ``tcsh`` profile; and finally run an
-     AFNI command to (hopefully) get all the necessary R libraries for
-     the modern package.
+..
+  In order, this has: set (i.e., defined) an environment variable
+  called ``$R_LIBS`` to be a subdirectory called "R/" in the user's
+  home directory; then made this directory; then written this
+  information into the user's ``tcsh`` profile; and finally run an
+  AFNI command to (hopefully) get all the necessary R libraries for
+  the modern package.
 
 
-   .. ---------- HERE/BELOW: copy for all installs --------------
+.. ---------- HERE/BELOW: copy for all installs --------------
 
-#. **Automatically set up AFNI/SUMA profiles.**
+**Make AFNI/SUMA profiles**
+---------------------------
 
-   .. include:: substep_profiles.rst
+.. include:: substep_profiles.rst
 
-#. **(optional) Prepare for an AFNI Bootcamp.**
+**Prepare for Bootcamp (semi-optional)**
+----------------------------------------
 
-   .. include:: substep_bootcamp.rst
-
-
-#. **EVALUATE THE SETUP: an important and useful step in this
-   process!**
-
-   .. include:: substep_evaluate.rst
+.. include:: substep_bootcamp.rst
 
 
-#. **(optional) Niceifying interfaces: it's a magical terminal.**
+**Evaluate setup/system (important!!)**
+---------------------------------------
 
-   .. include:: substep_rcfiles.rst
+.. include:: substep_evaluate.rst
 
 
-#. **Keeping up-to-date (remember).**
+**Niceify terminal (optional, but goood)**
+------------------------------------------
 
-   .. include:: substep_update.rst
+.. include:: substep_rcfiles.rst
 
+
+**Keep up-to-date (remember!)**
+-------------------------------
+
+.. include:: substep_update.rst
 
 
 

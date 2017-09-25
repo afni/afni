@@ -1,6 +1,7 @@
 
 a. Check your whole setup!  Display diagnostics in the terminal
-   (read the end of the output for suggestions)::
+   (**read the "Please Fix" section at the end of the output for
+   copy/pasteable suggestions**)::
     
        afni_system_check.py -check_all
 
@@ -8,11 +9,6 @@ a. Check your whole setup!  Display diagnostics in the terminal
    Guru for advice::
     
        afni_system_check.py -check_all > out.afni_system_check.txt
-
-   .. note:: Please read the "**Please Fix**" section at the bottom of
-             the ``afni_system_check.py`` output.  It will suggest
-             commands to copy+paste, and/or to ask your nearest AFNI
-             Guru about.
 
 #. Open up the AFNI and SUMA GUIs, juuuust to make sure all is well::
    

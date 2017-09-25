@@ -10,9 +10,9 @@ experience (and greatly so, in the opinion of some).
       echo 'set autolist' >> ~/.cshrc
       echo 'set nobeep' >> ~/.cshrc
 
-    The following are useful aliases for having the terminal
-    differentiate different types of files ("normal" files, zipped
-    files, executables, et al.) and directories using colors::
+    The following aliases have the terminal differentiate different
+    types of files ("normal" files, zipped files, executables, et al.)
+    and directories using colors/boldness::
 
       echo 'alias ls ls -G' >> ~/.cshrc
       echo 'alias ll ls -lG' >> ~/.cshrc
@@ -21,9 +21,9 @@ experience (and greatly so, in the opinion of some).
 
     (Autocompletion features should be nice already.)
 
-    The following are useful aliases for having the terminal
-    differentiate different types of files ("normal" files, zipped
-    files, executables, et al.) and directories using colors::
+    The following aliases have the terminal differentiate different
+    types of files ("normal" files, zipped files, executables, et al.)
+    and directories using colors/boldness::
 
       echo 'alias ls="ls -G"' >> ~/.bashrc
       echo 'alias ll="ls -lG"' >> ~/.bashrc
