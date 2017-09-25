@@ -58,6 +58,9 @@ typedef struct {
 
 #define MIN_CLUST 5  /* smallest cluster size allowed (voxels) */
 
+static int min_clust = MIN_CLUST ; /* 21 Sep 2017 */
+void set_Xmin_clust( int mc ){ min_clust = MAX(mc,2); return; }
+
 /*----- struct to hold a bunch of clusters -----*/
 
 typedef struct {
@@ -344,7 +347,7 @@ Xcluster_array * find_Xcluster_array( MRI_IMAGE *fim, int nnlev,
      } /* since xcc->npt increases when CPUT_point adds a point,
           the loop continues until finally no new neighbors get added */
 
-     if( xcc->npt < MIN_CLUST ){  /* too small ==> recycle */
+     if( xcc->npt < min_clust ){  /* too small ==> recycle */
        xcc->npt = xcc->norig = 0; continue ;
      }
 
@@ -533,7 +536,7 @@ void mri_multi_threshold_unsetup(void)
    sid   = sideness of threshold (1 or 2)
    nnlev = NN cluster type (1 or 2 or 3)
    cimar = array of cluster fom threshold images
-           (if NULL, all clusters >= MIN_CLUST voxels are kept)
+           (if NULL, all clusters >= min_clust voxels are kept)
    flags = bitwise OR (|) of some or all of the following
              XTHRESH_OUTPUT_MASK
 

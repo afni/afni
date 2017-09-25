@@ -11,6 +11,11 @@
   May 2017:
   + fixed up helpfile
 
+  Sep 20 2017:
+  + allow user to put in a bypass for the "checks" with minimal negative
+    values: push on through those tiny negs; they get replaced with 0s.
+    new opt name: -check_abs_min VVV
+
 */
 
 
@@ -164,6 +169,17 @@ void usage_1dDW_Grad_o_Mat(int detail)
 "                           not flip any signs (this is mainly used for\n"
 "                           some scripting convenience\n"
 "\n"
+"    -check_abs_min VVV    :By default, this program checks input matrix formats\n"
+"                           for consistency (having positive semidefinite diagonal\n"
+"                           matrix elements).  It will fail if those don't occur.\n"
+"                           However, sometimes there is just a tiny values <0,\n"
+"                           like a rounding error; you can specify to push through\n"
+"                           for negative diagonal elements with magnitude <VVV,\n"
+"                           with those values getting replaced by zero.  Be\n"
+"                           judicious with this power! (E.g., maybe VVV ~ 0.0001\n"
+"                           might be OK... but if you get looots of negatives, then\n"
+"                           you really, really need to check your data for badness.\n"
+"\n"
 "       (and the follow options are probably mainly extraneous, nowadays)\n"
 "    -bref_mean_top        :when averaging the reference X 'b0' values (the\n"
 "                           default behavior), have the mean of the X \n"
@@ -238,7 +254,9 @@ void usage_1dDW_Grad_o_Mat(int detail)
 
 int main(int argc, char *argv[]) 
 {  
-   int CHECK = 0;
+   int CHECK = 0, CHECK_OK = 0;
+   float check_min = 0.;   // Sep 20, 2017: now all for non-neg stuff
+   int CHECK_REP = 1;      // Sep 20, 2017: by def, replace tiny negs with 0
 	int iarg;
    char *Fname_input = NULL;
    char *Fname_output = NULL;
@@ -260,10 +278,10 @@ int main(int argc, char *argv[])
    float **INP_VEC=NULL;    
    float **INP_MAT=NULL;
    int *FLAG=NULL;
-
+   
    float magn = 1.;
    int INV[3] = {1,1,1}; // if needing to switch
-
+   
    int USE_BWT = 1;       // DO mult by magn: on by default!
    float MAX_BVAL = 0.;   // calc max. bval for possible use scaling
    int EXTRA_ZEROS=0;
@@ -398,7 +416,7 @@ int main(int argc, char *argv[])
          count_out++;
          iarg++ ; continue ;
 		}
-
+      
       if( strcmp(argv[iarg],"-out_col_vec") == 0 ){
 			if( ++iarg >= argc ) 
 				ERROR_exit("Need argument after '-out_col_vec'\n") ;
@@ -454,6 +472,21 @@ int main(int argc, char *argv[])
          iarg++ ; continue ;
 		}
       
+      // [PT: Sep 20, 2017] Allow tiny negatives in diags
+      if( strcmp(argv[iarg],"-check_abs_min") == 0) {
+         if( ++iarg >= argc ) 
+				ERROR_exit("Need argument after '-check_abs_min'\n") ;
+         check_min = atof(argv[iarg]);
+         iarg++ ; continue ;
+		}
+
+      // FOR NOW: leave out, because this causes problems with grad calcs!
+      // [PT: Sep 20, 2017] Def: replace tiny negs; can propagate, too
+      //if( strcmp(argv[iarg],"-check_leave_neg") == 0) { 
+      //		CHECK_REP = 0;
+		//	iarg++ ; continue ;
+		//}
+
       // -------------------------------------------------------------
 
       if( strcmp(argv[iarg],"-put_zeros_top") == 0) {
@@ -470,9 +503,9 @@ int main(int argc, char *argv[])
 		suggest_best_prog_option(argv[0], argv[iarg]);
 		exit(1);
    }
-
+   
    //  * * * * * * * * * * * * * * * * * * * * * * * * * * * 
-
+   
    if( (Fname_input == NULL) ) 
       ERROR_exit("Bad command lining!  Option '-in_*' requires argument.");
    
@@ -559,7 +592,7 @@ int main(int argc, char *argv[])
    for(i=0 ; i<Nvm ; i++) 
       INP_MAT[i] = calloc(7, sizeof(float)); 
    FLAG = (int *)calloc(Nvm, sizeof(int)); 
-
+                                                
    if( (INP_MAT == NULL) || (INP_VEC == NULL) || (FLAG == NULL)) {
       fprintf(stderr, "\n\n MemAlloc failure.\n\n");
       exit(14);
@@ -599,14 +632,38 @@ int main(int argc, char *argv[])
             INP_MAT[i][3+j+1] = *(READIN+6*i+j+3);
          }
          for( j=1; j<4 ; j++ ) 
-            if(INP_MAT[i][j] < 0 )
+            if( INP_MAT[i][j] < 0. ) {
                CHECK++;
+               // [PT: Sep 20, 2017] New patchability
+               if( fabs(INP_MAT[i][j]) < check_min ) {
+                  CHECK_OK++;
+                  if( CHECK_REP )
+                     INP_MAT[i][j] = 0.;
+               }
+            }
       }
-      if(CHECK > 0)
-         WARNING_message("Warning: you *said* you input with 'matA'-style,\n"
-                         "but the matr diagonals don't appear to be uniformly\n"
-                         "positive. If input cols 0, 3 and 5 are positive,\n"
-                         "then you might have meant 'matT'?");
+      if(CHECK > 0) {
+         WARNING_message("You *said* you input with 'matA'-style,\n"
+                         "\t but the matr diagonals don't appear to be "
+                         "uniformly\n"
+                         "\t positive. If input cols 0, 3 and 5 are positive,\n"
+                         "\t then you might have meant 'matT'?");
+         WARNING_message("You have %d diagonal matrix elements "
+                         "with <0 values,\n"
+                         "\t and of these %d had magnitude less "
+                         "than your min %f",
+                         CHECK, CHECK_OK, check_min);
+         if( CHECK_REP && CHECK_OK)
+            INFO_message("NB: %d of those 'tiny' negatives were "
+                         "replaced with 0.",
+                         CHECK_OK);
+         if( CHECK_OK != CHECK)
+            ERROR_exit("There were %d diagonal elements with too large of "
+                       "negative value.\n"
+                       "\t If you want to push through this, "
+                       "see '-check_abs_min'.\n"
+                       "\t Bye!", CHECK-CHECK_OK);
+      }
    }
    else if ( IN_FORM == 3) { // matT cols
       for( i=0; i<Nvm ; i++ ) {
@@ -616,23 +673,47 @@ int main(int argc, char *argv[])
          INP_MAT[i][4] = *(READIN +6*i+1)/2.;
          INP_MAT[i][5] = *(READIN +6*i+2)/2.;
          INP_MAT[i][6] = *(READIN +6*i+4)/2.;
-
+         
          for( j=1; j<4 ; j++ ) 
-            if(INP_MAT[i][j] < 0 )
+            if( INP_MAT[i][j] < 0. ) {
                CHECK++;
+               // [PT: Sep 20, 2017] New patchability
+               if( fabs(INP_MAT[i][j]) < check_min ) {
+                  CHECK_OK++;
+                  if( CHECK_REP )
+                     INP_MAT[i][j] = 0.;
+               }
+            }
       }
-      if(CHECK > 0)
-         WARNING_message("Warning: you *said* you input a 'matT',\n"
-                         " but the matr diagonals don't appear to be uniformly\n"
-                         " positive. If input cols 0, 1 and 2 are positive,\n"
-                         " then you might have meant 'matA'?");
+      if(CHECK > 0) {
+         WARNING_message("You *said* you input a 'matT',\n"
+                         "\t but the matr diagonals don't appear to be "
+                         "uniformly\n"
+                         "\t positive. If input cols 0, 1 and 2 are positive,\n"
+                         "\t then you might have meant 'matA'?");
+         WARNING_message("You have %d diagonal matrix elements "
+                         "with <0 values,\n"
+                         "\t and of these %d had magnitude less than "
+                         "your min %f",
+                         CHECK, CHECK_OK, check_min);
+         if( CHECK_REP && CHECK_OK)
+            INFO_message("NB: %d of those 'tiny' negatives were replaced "
+                         "with 0.",
+                         CHECK_OK);
+         if( CHECK_OK != CHECK)
+            ERROR_exit("There were %d diagonal elements with too large of "
+                       "negative value.\n"
+                       "\t If you want to push through this, "
+                       "see '-check_abs_min'.\n"
+                       "\t Bye!", CHECK-CHECK_OK);
+      }
    }
    else
       ERROR_exit("Coding error with format number (%d), not allowed.",
                  IN_FORM);
-
+   
    INFO_message("Have read in data.");
-
+   
    // ---------- getting magnitudes, where appropriate ---------------------
    
    // at this point, we only have two cases: vecs or matAs.  Now, we

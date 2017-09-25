@@ -137,7 +137,9 @@ int main( int argc , char *argv[] )
 
        atr = THD_find_float_atr( mset->dblk , "MULTI_THRESHOLDS" ) ;
        if( atr == NULL )
-         ERROR_exit("-mthresh dataset does not have MULTI_THRESHOLDS attribute :(") ;
+         ERROR_exit("-mthresh dataset does not have any MULTI_THRESHOLDS attribute :(") ;
+       if( atr->nfl < 5 )
+         ERROR_exit("-mthresh dataset MULTI_THRESHOLDS attribute is too short [%d] :(",atr->nfl) ;
        afl = atr->fl ;
 
        nnlev = (int)afl[0] ;
@@ -146,6 +148,11 @@ int main( int argc , char *argv[] )
        hpow  = (int)afl[3] ;
        zthr  = (float *)malloc(sizeof(float)*nzthr) ;
        for( ii=0 ; ii < nzthr ; ii++ ) zthr[ii] = afl[4+ii] ;
+
+       if( atr->nfl > 4+nzthr ){       /* 21 Sep 2017 */
+         int mc = (int)afl[4+nzthr] ;
+         if( mc > 1 ) set_Xmin_clust(mc) ;
+       }
 
        do_hpow0 = (hpow & 1) != 0 ;
        do_hpow1 = (hpow & 2) != 0 ;
