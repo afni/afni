@@ -6,7 +6,6 @@
 ========================================
 
 .. contents:: :local:
-   :numbered
 
 Here we describe a complete AFNI installation and system setup for Mac
 versions that are reasonably modern, such as **Mac OS 10.7+**.  The
