@@ -29,16 +29,9 @@ requires sudo ability):
                         xorg-x11-server-Xvfb
     sudo yum update -y
    
-* *for CentOS 7*::
+* *for CentOS/RHEL 7*::
 
     sudo yum install -y epel-release
-    sudo yum install -y tcsh libXp openmotif gsl xorg-x11-fonts-misc       \
-                        PyQt4 R-devel netpbm-progs gnome-tweak-tool ed     \
-                        libpng12 xorg-x11-server-Xvfb
-    sudo yum update -y
-
-* *for RHEL 7*::
-
     sudo yum install -y tcsh libXp openmotif gsl xorg-x11-fonts-misc       \
                         PyQt4 R-devel netpbm-progs gnome-tweak-tool ed     \
                         libpng12 xorg-x11-server-Xvfb
@@ -55,22 +48,17 @@ requires sudo ability):
 **Install AFNI binaries**
 ------------------
 
-.. think this can be simplified!!  odd to have a split here, but just talk about RHEL, no Centos-specific??
-
-The following will create a directory called ``$HOME/abin`` and
-install the AFNI binaries there.
-
-First, get the install script (*this* command actually works for both
-Fedora and RHEL systems)::
-      
-   curl -O https://afni.nimh.nih.gov/pub/dist/bin/linux_ubuntu_16_64/@update.afni.binaries
+::
    
-Then install the appropriate AFNI package.  Note that most other
-Linux systems will probably work with linux_openmp_64:
+  cd
+  curl -O https://afni.nimh.nih.gov/pub/dist/bin/linux_ubuntu_16_64/@update.afni.binaries
+  tcsh @update.afni.binaries -package linux_openmp_64 -do_extras
 
-* *for RHEL 7*::
-
-    tcsh @update.afni.binaries -package linux_openmp_64 -do_extras
+These commands: download and unpack the current binaries into your
+``$HOME`` directory (and yes, that ``@update*`` file works even, even
+though it is in the "ubuntu" directory); set the AFNI binary directory
+name to ``$HOME/abin/``; and add that location to the ``$PATH`` in
+both ``~/.cshrc`` and ``~/.bashrc``.
 
 .. note:: if the binary package has already been downloaded, one can
           use ``-local_package``, followed by the location+name of the

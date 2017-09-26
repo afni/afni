@@ -6,7 +6,7 @@ Installation and Background
 
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 2
 
    install_instructs/index.rst
    download_links.rst
