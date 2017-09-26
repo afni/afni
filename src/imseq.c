@@ -14071,5 +14071,6 @@ static MRI_IMAGE * mri_vgize( MRI_IMAGE *iim )
 
    mri_free(bxim) ; mri_free(byim) ; mri_free(im) ;
 
-   return blim ;
+   im = mri_sharpen_rgb(0.666f,blim) ; mri_free(blim) ; /* 26 Sep 2017 */
+   return im ;
 }

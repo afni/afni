@@ -1068,7 +1068,9 @@ void display_help_menu(void)
       "              ++ The residuals are the difference between the data values\n"
       "                 and their prediction from the set mean (and set covariates).\n"
       "              ++ For use in further analysis of the results (e.g., 3dFWHMx).\n"
-      "              ++ Cannot be used with '-brickwise' or '-zskip' (sorry).\n"
+      "              ++ Cannot be used with '-brickwise' (sorry).\n"
+      "              ++ If used with '-zskip', values which were skipped in the\n"
+      "                 analysis will get residuals set to zero.\n"
       "\n"
       " -ACF      = If residuals are saved, also compute the ACF parameters from\n"
       "             them using program 3dFHWMx -- for further use in 3dClustSim\n"
@@ -3315,8 +3317,10 @@ int main( int argc , char *argv[] )
      do_ACF = 0 ;
    }
 
+#if 0  /* now allowed [26 Sep 2017] */
    if( do_zskip && do_resid )  /* 31 Dec 2015 */
      ERROR_exit("You can't use -resid and -zskip together /:(") ;
+#endif
 
    /* check lower limits on dataset counts if doing randomization stuff */
 
@@ -4100,6 +4104,8 @@ LABELS_ARE_DONE:  /* target for goto above */
 
        if( mcov == 0 ){  /*--- no covariates ==> standard t-tests ---*/
          float *zAAA=datAAA, *zBBB=datBBB ; int nAAA=nval_AAA, nBBB=nval_BBB, nz,qq ;
+         float *rAAA=Aresid, *rBBB=Bresid ; /* 26 Sep 2017 */
+         int   *iAAA=NULL  , *iBBB=NULL , fix_resid=0 ;
 
          if( do_zskip ){  /* 06 Oct 2010: skip zero values? */
            if( !singletonA ){
@@ -4107,9 +4113,11 @@ LABELS_ARE_DONE:  /* target for goto above */
              if( nz > 0 ){            /* copy nonzero vals to a new array */
                nAAA = nval_AAA - nz ;
                if( nAAA < zskip_AAA ){ kout++ ; nzskip++ ; continue ; }
-               zAAA = (float *)malloc(sizeof(float)*nAAA) ;
+               zAAA = (float *)calloc(sizeof(float),nAAA) ;
+               iAAA = (int   *)calloc(sizeof(int)  ,nAAA) ;
+               if( do_resid ){ rAAA = (float *)calloc(sizeof(float),nAAA); fix_resid++; }
                for( ii=qq=0 ; ii < nval_AAA ; ii++ )
-                 if( datAAA[ii] != 0.0f ) zAAA[qq++] = datAAA[ii] ;
+                 if( datAAA[ii] != 0.0f ){ iAAA[qq] = ii; zAAA[qq++] = datAAA[ii]; }
              }
            }
            if( twosam ){
@@ -4120,13 +4128,15 @@ LABELS_ARE_DONE:  /* target for goto above */
                  if( zAAA != datAAA && zAAA != NULL ) free(zAAA) ;
                  kout++ ; nzskip++ ; continue ;
                }
-               zBBB = (float *)malloc(sizeof(float)*nBBB) ;
+               zBBB = (float *)calloc(sizeof(float),nBBB) ;
+               iBBB = (int   *)calloc(sizeof(int)  ,nBBB) ;
+               if( do_resid ){ rBBB = (float *)calloc(sizeof(float),nBBB); fix_resid++; }
                for( ii=qq=0 ; ii < nval_BBB ; ii++ )
-                 if( datBBB[ii] != 0.0f ) zBBB[qq++] = datBBB[ii] ;
+                 if( datBBB[ii] != 0.0f ){ iBBB[qq] = ii; zBBB[qq++] = datBBB[ii]; }
              }
            }
            if( (zAAA != datAAA && zAAA != NULL) || (zBBB != datBBB && zBBB != NULL) )
-             nzred++ ;
+             nzred++ ; /* count of reduced cases */
          }
 
          if( twosam ){
@@ -4140,20 +4150,32 @@ LABELS_ARE_DONE:  /* target for goto above */
            if( do_ranks ) rank_order_2floats( nAAA,zAAA , nBBB,zBBB ) ;
 #endif
            if( singletonA ){
-             tpair = ttest_toz_singletonA( zAAA[0] , nBBB,zBBB , Aresid,Bresid ) ;
+             tpair = ttest_toz_singletonA( zAAA[0] , nBBB,zBBB , rAAA,rBBB ) ;
            } else {
-             tpair = ttest_toz( nAAA,zAAA , nBBB,zBBB , ttest_opcode , Aresid,Bresid) ; /* 2 sample A-B */
+             tpair = ttest_toz( nAAA,zAAA , nBBB,zBBB , ttest_opcode , rAAA,rBBB) ; /* 2 sample A-B */
            }
            resar[0] = tpair.a ; resar[1] = tpair.b ;
            if( debug > 1 ) fprintf(stderr,"   resar[0]=%g  [1]=%g\n",resar[0],resar[1]) ;
          } else {
-           tpair = ttest_toz( nAAA,zAAA , 0 ,NULL   , ttest_opcode , Aresid,NULL ) ; /* 1 sample setA */
+           tpair = ttest_toz( nAAA,zAAA , 0 ,NULL   , ttest_opcode , rAAA,NULL ) ; /* 1 sample setA */
            resar[0] = tpair.a ; resar[1] = tpair.b ;
            if( debug > 1 ) fprintf(stderr,"   resar[0]=%g  [1]=%g\n",resar[0],resar[1]) ;
          }
+         if( fix_resid ){ /* 26 Sep 2017 */
+           if( nAAA < nval_AAA && rAAA != NULL && rAAA != Aresid ){
+             for( qq=0 ; qq < nAAA ; qq++ ) Aresid[iAAA[qq]] = rAAA[qq] ;
+           }
+           if( nBBB < nval_BBB && rBBB != NULL && rBBB != Bresid ){
+             for( qq=0 ; qq < nBBB ; qq++ ) Bresid[iBBB[qq]] = rBBB[qq] ;
+           }
+         }
 
-         if( zBBB != datBBB && zBBB != NULL ) free(zBBB) ;
          if( zAAA != datAAA && zAAA != NULL ) free(zAAA) ;
+         if( zBBB != datBBB && zBBB != NULL ) free(zBBB) ;
+         if( rAAA != Aresid && rAAA != NULL ) free(rAAA) ;
+         if( rBBB != Bresid && rBBB != NULL ) free(rBBB) ;
+         if( iAAA != NULL )                   free(iAAA) ;
+         if( iBBB != NULL )                   free(iBBB) ;
 
        } else {          /*--- covariates ==> regression analysis ---*/
 
@@ -4526,6 +4548,13 @@ INFO_message("cprefix[0] = %s",cprefix[0]) ;
          sprintf( cmd+strlen(cmd) , " \\\n   ") ;
 
          if( mcov == 0 ){   /* no covariates == easy peasy (just the sets) */
+
+           if( do_zskip ){ /* 26 Sep 2016 */
+             if( zskip_AAA == zskip_BBB && zskip_AAA > 0 )
+               TT_cprint( cmd , qmd , " -zskip %d" , zskip_AAA ) ;
+             else if( zskip_fff > 0.0f && zskip_fff < 1.0f )
+               TT_cprint( cmd , qmd , " -zskip %.3f" , zskip_fff ) ;
+           }
 
            if( nval_BBB == 0 ){  /* only -setA */
              TT_cprint( cmd , NULL , " -setA %s" , prefix_resid ) ;
