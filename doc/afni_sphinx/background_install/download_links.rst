@@ -1,19 +1,18 @@
 
 .. _Download_AFNI:
 
-*************************************************
-**Downloading other/specific AFNI/SUMA software**
-*************************************************
 
+**Downloading other/specific AFNI/SUMA software**
+=================================================
+
+.. contents:: :local:
 
 Overview
-========
+--------
 
-.. content:: :local:
-
-If you are setting up your system for running AFNI, the main set of
-installation instructions for most operating systems is provided here:
-:ref:`install_page`.
+.. note:: If you are setting up your system for running AFNI, the main
+          set of installation instructions for most operating systems
+          is provided :ref:`on THIS page <install_page>`.
 
 Here, we provide direct links for downloading precompiled AFNI
 binaries, as well as the compilable source code. 
@@ -28,8 +27,8 @@ number on your own system by simply typing::
 
   afni -ver
 
-This version number should *always* be provided when posting questions on the 
-`Message Board
+This version number should *always* be provided when posting questions
+on the `Message Board
 <https://afni.nimh.nih.gov/afni/community/board/>`_.
 
 .. note:: The record of changes (new options, new programs, bug fixes,
@@ -40,18 +39,12 @@ This version number should *always* be provided when posting questions on the
 Some additional introductory reading is available `here
 <https://afni.nimh.nih.gov/afni/doc/first>`_.  
 
-.. ***Question: keep this above link?***
 
+To: update existing AFNI binaries
+---------------------------------
 
-Choosing an AFNI that's right for *you*
-=======================================
-
-A. Updating existing AFNI binaries to the newest version (Linux/Unix or Mac)
-----------------------------------------------------------------------------
-
-If you have already have a working set of AFNI binaries on your
-computer that you are wishing to update, this can be done most simply
-by using the following script from the terminal command line::
+If you already have AFNI binaries working on your computer, all you
+need to do is run::
 
   @update.afni.binaries -d
 
@@ -64,23 +57,19 @@ just in case you want it.)
 
 |
 
-B. Downloading a set of the newest precompiled AFNI binaries
-------------------------------------------------------------
+To: download current precompiled AFNI binaries
+----------------------------------------------
 
-If you don't have AFNI on your computer already, or if you just want
+If you *don't* have AFNI on your computer already, or if you just want
 to download particular a set of binaries, then you can click on a link
-below to get the code for your desired system. For help installing the
-various prerequisite tools on which AFNI depends (and for seeing handy
-command line tools to check if things are OK), please see the
-:ref:`install_page`.  After that set-up, then these precompiled codes
-should be ready-to-run.
+below to get the code for your desired system.  Note that most Mac,
+Linux and even now *Windows 10* users should look at
+:ref:`install_page` instructions for simplest setups.
 
-.. note:: Those with only Windows systems have entered a world of
-          pain, with respect to using AFNI. The best options are
-          likely to procure a computer with a Unix/Linux/Mac operating
-          system or to make a dual boot computer (for example, with
-          Linux) rather than to install a virtual machine.  It's worth
-          it, for a league game.
+If you *do* decide to download binaries from links directly, you will
+likely still need to install supplmentary packages to run AFNI
+successfully. For help with that (and for seeing handy command line
+tools to check if things are OK), please see :ref:`install_page`.
 
 .. _afni_bin_unix:
 
@@ -150,8 +139,8 @@ should be ready-to-run.
 
 .. _download_SRC:
 
-C. Downloading the newest AFNI source code
-------------------------------------------
+To: download the AFNI source code
+---------------------------------
 
 Another way to get AFNI working on your computer (requiring a bit more
 work) is to compile from the source itself:
@@ -174,13 +163,10 @@ In all likelihood this option is pretty much only useful if you are
 writing or contributing code yourself, or if your system is
 particularly finicky.  Otherwise, it is likely far easier to grab a
 set of recommended precompiled binaries of the :ref:`Linux/Unix
-<afni_bin_unix>` or :ref:`Mac <afni_bin_mac>` variety (again, sorrry,
-Windowers...).
+<afni_bin_unix>` or :ref:`Mac <afni_bin_mac>` variety.
 
-|
-
-D. Browsing all AFNI packages (and atlases)
--------------------------------------------
+To: browse all AFNI packages (and atlases)
+------------------------------------------
 
 The following is a browsable page that contains a tarball for each of
 the precompiled platform versions:

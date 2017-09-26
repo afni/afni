@@ -77,36 +77,29 @@ system updates, the change in login shell, and an updated path::
 Install R
 ---------
 
-Install current R libraries for the group analysis programs.  This
-relies on the environment variable ``$R_LIBS``, which refers to a
-directory that will contain the R packages.  That variable should
-always be set, both to specify where to install the packages and
-where to read them from later (when running R programs).
-Therefore:
-   
-* *for setting this variable in* ``tcsh`` 
-  *(i.e., if you did* :ref:`tcsh setup, above <setup_FRH_tcsh>`\ *)*::
+To setup R from scratch, follow the instructions for your shell:
+
+* *for* ``tcsh``::
 
    setenv R_LIBS $HOME/R
    mkdir $R_LIBS
    echo 'setenv R_LIBS ~/R' >> ~/.cshrc
    rPkgsInstall -pkgs ALL
    
-* *for setting this variable in* ``bash``::
+* *for* ``bash``::
    
     export R_LIBS=$HOME/R
     mkdir $R_LIBS
     echo 'export R_LIBS=$HOME/R' >> ~/.bashrc
     rPkgsInstall -pkgs ALL
 
-..
-  In order, this has: set (i.e., defined) an environment variable
-  called ``$R_LIBS`` to be a subdirectory called "R/" in the user's
-  home directory; then made this directory; then written this
-  information into the user's ``tcsh`` profile; and finally run an
-  AFNI command to (hopefully) get all the necessary R libraries for
-  the modern package.
-
+This installs current R libraries for the group analysis programs.
+This relies on the environment variable ``$R_LIBS``, which refers to a
+directory that will contain the R packages.  That variable should
+always be set, both to specify where to install the packages and where
+to read them from later (when running R programs).  The file obtained
+using ``curl`` contains instructions to add a more uptodate set of R
+libraries to the source list.
 
 .. ---------- HERE/BELOW: copy for all installs --------------
 

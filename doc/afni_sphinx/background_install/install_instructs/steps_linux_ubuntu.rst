@@ -73,8 +73,8 @@ system updates, the change in login shell, and an updated path::
 
    reboot
 
-Get R setup
------------
+Install R
+---------
 
 To setup R from scratch, follow the instructions for your shell:
 
