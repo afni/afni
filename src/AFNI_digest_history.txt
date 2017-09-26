@@ -1,4 +1,57 @@
 ========================================================================
+AFNI Digest, week of 2017/09/26.
+
+00) More FMRI cluster exploration.
+A recent (brief) study by Mueller et al. found that SPM12 exhibits a
+large, uniform dependence of FMRI clustering results on resampling
+(i.e., voxel size, spatial resolution).  So, Bob checked what happens
+in AFNI when resampling, to see if any such badness occurs.  In short
+the effect is small (about 4x smaller), and not as uniform-- phew.
+The MB post here:
+https://afni.nimh.nih.gov/afni/community/board/read.php?1,156093,156093#msg-156093
+contains a link to the AFNI work now available arXiv, as well as to
+the Mueller et al. article.
+
+01) New program: 3dBrainSync
+This program “synchronizes” one dataset’s time series with another
+dataset, in the sense of maximizing the average time series
+correlation of the transformed dataset with the reference dataset. Two
+different methods for the transformation are provided: orthogonal
+matrix, and time index permutation. One goal is to allow direct
+inter-run correlation between rs-FMRI datasets.  This program was
+inspired by the nice poster on the BrainSync approach by Joshi et
+al. at this past year's OHBM (also see here
+http://neuroimage.usc.edu/neuro/Resources/BrainSync).
+
+
+02) Bug Fix: 3dttest++ -ETAC
+A bug was introduced when the multiple blur cases option "-ETAC_blur"
+was added: runs without multiple blur cases would fail because the
+intermediate filenames (used to communicate between 3dttest++ and
+3dXClustSim) were formatted incorrectly. This bug has (fondly do we
+hope) been patched.
+
+
+03) Re. AFNI Bootcamp at NIH (October 2-6, 2017).
+For those attending the AFNI bootcamp starting October 2nd, please get
+your laptops ready.  Installation instructions are available at
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/background_install/install_instructs/index.html.  
+Once ready, please sent the output from: 
+afni_system_check.py -check_all 
+to afni.bootcamp@gmail.com with your first name in the
+subject.  We will verify the output and help resolve any issues.  
+(And please note that all spots for this Bootcamp have already been
+filled.)
+
+
+
+
+
+
+
+
+
+========================================================================
 AFNI Digest, week of 2017/07/28.
 
 00) ETAC notes.
