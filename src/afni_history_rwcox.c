@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 26 , SEP , 2017 , RWC , "3dttest++" , MINOR , TYPE_ENHANCE ,
+   "Make -zskip work nicely with -resid" ,
+   NULL } ,
+
  { 21 , SEP , 2017 , RWC , "3dXClustSim" , MICRO , TYPE_NEW_OPT ,
    "Allow user to set -minclust (instead of fixed at 5)" ,
    NULL } ,
