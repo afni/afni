@@ -6,16 +6,17 @@
 *************************************************
 
 
-.. note:: **The current latest and greatest version of AFNI is:**
-          |version|
-
-
 Overview
 ========
 
-The direct links for downloading precompiled AFNI binaries, as well as
-the compilable source code, are provided here.  Each download includes
-all SUMA and FATCAT tools, as well.
+.. content:: :local:
+
+If you are setting up your system for running AFNI, the main set of
+installation instructions for most operating systems is provided here:
+:ref:`install_page`.
+
+Here, we provide direct links for downloading precompiled AFNI
+binaries, as well as the compilable source code. 
 
 As of Jan. 1, 2016, AFNI utilizes a version numbering system, which is
 useful for tracking changes, getting help on the `Message Board

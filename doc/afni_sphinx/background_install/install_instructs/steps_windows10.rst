@@ -35,8 +35,8 @@ system setup only for staying with ``bash``.
 Importantly, as with other installation instructions, you are required
 to have administrator privileges on your operating system. 
 
-**Install prerequisite: "Bash on Windows"**
----------------------------------
+Install prerequisite: "Bash on Windows"
+---------------------------------------
 
 * Follow the instructions in the first paragraph `HERE
   <https://technet.microsoft.com/en-us/library/ff629472.aspx>`_ to get
@@ -67,8 +67,8 @@ To open up a terminal, you can go to the Search bar in the lower left
 Ubuntu"-- it will likely autocomplete while typing.  Additionally, you
 can make a shortcut on your Windows desktop.
 
-**Install prerequisite: Xming X Server for Windows**
----------------------------------
+Install prerequisite: Xming X Server for Windows
+------------------------------------------------
 
 | Click on the following link to start automatic download:
 | `https://sourceforge.net/projects/xming/files/latest/download
@@ -84,8 +84,8 @@ To set the DISPLAY properly, run::
           on the Xming icon in order to start the X Server.  (Sorry,
           not our fault...)
 
-**Install prerequisite: AFNI and basic Linux package dependencies.**
-------------------------------------------------------------------
+Install prerequisite: AFNI and  package dependencies
+----------------------------------------------------
 
 We assume your version of Ubuntu is 16.04, and so you should, you
 should now follow the following setup instructions through "Make
@@ -112,8 +112,8 @@ AFNI/SUMA profiles":
     sudo sed -i 's/<listen>.*<\/listen>/<listen>tcp:host=localhost,port=0<\/listen>/' /etc/dbus-1/session.conf
 
 
-**Other setup tips (optional, but recommended)**
-------------------------------------------------
+Useful setup tips (optional, but recommended)
+---------------------------------------------
 
 a. Install Ubuntu terminal fonts as described `HERE
    <https://www.howtogeek.com/249966/how-to-install-and-use-the-linux-bash-shell-on-windows-10/>`_.
@@ -153,34 +153,31 @@ a. Install Ubuntu terminal fonts as described `HERE
 
 .. ---------- HERE/BELOW: copy for all installs --------------
 
-**Make AFNI/SUMA profiles**
----------------------------
+
+Make AFNI/SUMA profiles
+-----------------------
 
 .. include:: substep_profiles.rst
 
-**Prepare for Bootcamp (semi-optional)**
-----------------------------------------
+Prepare for Bootcamp (semi-optional)
+------------------------------------
 
 .. include:: substep_bootcamp.rst
 
-
-**Evaluate setup/system (important!!)**
----------------------------------------
+Evaluate setup/system (important!)
+----------------------------------
 
 .. include:: substep_evaluate.rst
 
-
-**Niceify terminal (optional, but goood)**
-------------------------------------------
+Niceify terminal (optional, but goood)
+--------------------------------------
 
 .. include:: substep_rcfiles.rst
 
-
-**Keep up-to-date (remember!)**
--------------------------------
+Keep up-to-date (remember!)
+---------------------------
 
 .. include:: substep_update.rst
-
 
 
 

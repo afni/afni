@@ -13,8 +13,8 @@ versions, specifically 16.04 (Xenial Xerus).  It *may* work for later
 systems, as well.  For earlier versions of Ubuntu, please see the
 relevant :ref:`instructions here <install_steps_linux_ubuntu>`.
 
-**Install prerequisite packages**
----------------------------------
+Install prerequisite packages
+-----------------------------
 
 ::
 
@@ -42,15 +42,15 @@ behavior*::
    useful
 
 .. _setup_Ubu16_tcsh:
-**Set "tcsh" as default shell (optional, but recommended)**
------------------------------------------------------------
+Make "tcsh" default shell (optional/recommended)
+------------------------------------------------
 
 ::
 
    chsh -s /usr/bin/tcsh
 
-**Install AFNI binaries**
--------------------------
+Install AFNI binaries
+---------------------
 
 ::
 
@@ -69,16 +69,16 @@ These commands: download and unpack the current binaries into your
 
             tcsh @update.afni.binaries -local_package linux_ubuntu_16_64.tgz -do_extras
 
-**Reboot**
-----------
+Reboot
+------
 
 Consider a 'reboot' at this point.  That would deal with
 system updates, the change in login shell, and an updated path::
 
    reboot
 
-**Get R setup**
-----------------
+Install R
+---------
 
 To setup R from scratch, follow the instructions for your shell:
 
@@ -108,29 +108,27 @@ to read them from later (when running R programs).  The file obtained
 using ``curl`` contains instructions to add a more uptodate set of R
 libraries to the source list.
 
-
-
 .. ---------- HERE/BELOW: copy for all installs --------------
 
-**Make AFNI/SUMA profiles**
----------------------------
+Make AFNI/SUMA profiles
+-----------------------
 
 .. include:: substep_profiles.rst
 
-**Prepare for Bootcamp (semi-optional)**
-----------------------------------------
+Prepare for Bootcamp (semi-optional)
+------------------------------------
 
 .. include:: substep_bootcamp.rst
 
 
-**Evaluate setup/system (important!!)**
----------------------------------------
+Evaluate setup/system (important!)
+-----------------------------------
 
 .. include:: substep_evaluate.rst
 
 
-**Niceify terminal (optional, but goood)**
-------------------------------------------
+Niceify terminal (optional, but goood)
+--------------------------------------
 
 .. include:: substep_rcfiles.rst
 
@@ -140,8 +138,8 @@ Also, consider running ``gnome-tweak-tool`` and changing ``Windows``
 Also, consider extending time for screen saver: ``System Settings`` ->
 ``Brightness & Lock``, and set inactivity duration.
 
-**Keep up-to-date (remember!)**
--------------------------------
+Keep up-to-date (remember!)
+---------------------------
 
 .. include:: substep_update.rst
 

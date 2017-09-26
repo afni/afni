@@ -1,10 +1,12 @@
 
 .. _install_steps_mac:
 
+
 **Mac OS**: *The essential system setup*
 ========================================
 
 .. contents:: :local:
+   :numbered
 
 Here we describe a complete AFNI installation and system setup for Mac
 versions that are reasonably modern, such as **Mac OS 10.7+**.  The
@@ -20,8 +22,8 @@ When ``afni`` is started for the first time, you should be directed
           
             echo " You can copy and paste me!"
 
-**Setup terminal**
-------------------
+Setup terminal
+--------------
 
 a. *Do I have Admin privileges?*  To find out, type::
           
@@ -58,8 +60,8 @@ a. *Do I have Admin privileges?*  To find out, type::
      defaults write com.apple.Terminal FocusFollowsMouse -string YES
 
 
-**Install Xcode and XQuartz**
-----------------------------------
+Install Xcode and XQuartz
+-------------------------
 
 a. Xcode is needed for the gcc compiler and related tools.
    XQuartz is the desktop manager needed to run X11
@@ -98,6 +100,8 @@ a. Xcode is needed for the gcc compiler and related tools.
       #. Install XQuartz using the "Quick Download" DMG from
          http://www.xquartz.org
 
+   |
+
 #. Run the following::
 
      touch ~/.cshrc
@@ -110,30 +114,30 @@ a. Xcode is needed for the gcc compiler and related tools.
    ``tcsh`` and ``bash``.  Sigh.
 
 
-**Install AFNI binaries**
+Install AFNI binaries
 ---------------------
 
-a. Run the following::
+Run the following::
 
-     cd
-     curl -O https://afni.nimh.nih.gov/pub/dist/bin/macosx_10.7_local/@update.afni.binaries
-     tcsh @update.afni.binaries -defaults
+  cd
+  curl -O https://afni.nimh.nih.gov/pub/dist/bin/macosx_10.7_local/@update.afni.binaries
+  tcsh @update.afni.binaries -defaults
 
-   These commands: download and unpack the current binaries into
-   your ``$HOME`` directory; set the AFNI binary directory name to
-   ``$HOME/abin/``; and add that location to the ``$PATH`` in
-   both ``~/.cshrc`` and ``~/.bashrc``.
+These commands: download and unpack the current binaries into your
+``$HOME`` directory; set the AFNI binary directory name to
+``$HOME/abin/``; and add that location to the ``$PATH`` in both
+``~/.cshrc`` and ``~/.bashrc``.
 
-   .. note:: If the AFNI binary package has already been
-             downloaded, one can use ``-local_package``, followed
-             by the location+name of the binary file, e.g. the
-             third line in the above command could be::
+.. note:: If the AFNI binary package has already been downloaded, one
+          can use ``-local_package``, followed by the location+name of
+          the binary file, e.g. the third line in the above command
+          could be::
 
-               tcsh @update.afni.binaries -local_package macosx_10.7_local.tgz -do_extras
+            tcsh @update.afni.binaries -local_package macosx_10.7_local.tgz -do_extras
 
 
-**Install R**
-------------------
+Install R
+---------
 
 a. | Go to the main R page for Mac OS X: `HERE <https://cran.r-project.org/bin/macosx>`_,
    | and click on the latest package (probably R-3.4.0.pkg) to
@@ -144,8 +148,8 @@ a. | Go to the main R page for Mac OS X: `HERE <https://cran.r-project.org/bin/m
      sudo rPkgsInstall -pkgs ALL
 
 
-**Install PyQt4, via JDK and fink (optional)** 
-----------------------------------------------------
+Install PyQt4, via JDK and fink (optional)
+------------------------------------------
 
 *NB: no longer necessary for the Bootcamp!*
 
@@ -188,48 +192,31 @@ a. To download and install the Java SE (standard edition) JDK, go
 
    |
 
-   .. ---------- HERE/BELOW: copy for all installs --------------
+.. ---------- HERE/BELOW: copy for all installs --------------
 
-**Make AFNI/SUMA profiles**
----------------------------------------------
+Make AFNI/SUMA profiles
+-----------------------
 
 .. include:: substep_profiles.rst
 
-
-**Prepare for Bootcamp (semi-optional)**
----------------------------------------------
+Prepare for Bootcamp (semi-optional)
+------------------------------------
 
 .. include:: substep_bootcamp.rst
 
-
-**Evaluate setup/system (important!!)**
---------------------------------
+Evaluate setup/system (important!)
+----------------------------------
 
 .. include:: substep_evaluate.rst
 
-
-**Niceify terminal (optional, but goood)**
----------------------------------------------
+Niceify terminal (optional, but goood)
+--------------------------------------
 
 .. include:: substep_rcfiles_mac.rst
 
-
-**Keep up-to-date (remember!)**
----------------------------------------------
+Keep up-to-date (remember!)
+---------------------------
 
 .. include:: substep_update.rst
 
 
-
-
-.. comment
-
-   #. **Setting up autoprompts for command line options.**
-
-   The following is quite useful to be set up help files for
-   tab-autocompletion of options as you type AFNI commands.  Run this
-   command::
-
-     apsearch -update_all_afni_help
-      
-   and then follow the brief instructions.

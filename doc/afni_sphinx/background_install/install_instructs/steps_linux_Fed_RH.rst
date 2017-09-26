@@ -4,7 +4,7 @@
 
 
 **Fedora and Red Hat Linux**: *The essential system setup*
-==============================================================
+==========================================================
 
 .. contents:: :local:
 
@@ -16,8 +16,8 @@ Several of the following steps are system dependent, for example due
 to having different package managers, so we list parallel instructions
 for each.
 
-**Install prerequisite packages**
-------------------
+Install prerequisite packages
+-----------------------------
 
 Install necessary packages and libraries (this is the only step that
 requires sudo ability):
@@ -38,15 +38,15 @@ requires sudo ability):
     sudo yum update -y
          
 .. _setup_FRH_tcsh:
-**Set "tcsh" as default shell (optional, but recommended)**
-------------------
+Make "tcsh" default shell (optional/recommended)
+------------------------------------------------
 
 ::
       
    chsh -s /usr/bin/tcsh
 
-**Install AFNI binaries**
-------------------
+Install AFNI binaries
+---------------------
 
 ::
    
@@ -66,16 +66,16 @@ both ``~/.cshrc`` and ``~/.bashrc``.
 
             tcsh @update.afni.binaries -local_package linux_openmp_64.tgz -do_extras
 
-**Reboot**
-----------
+Reboot
+------
 
 Consider a 'reboot' at this point.  That would deal with
 system updates, the change in login shell, and an updated path::
 
    reboot
 
-**Get R setup**
----------------
+Install R
+---------
 
 Install current R libraries for the group analysis programs.  This
 relies on the environment variable ``$R_LIBS``, which refers to a
@@ -110,79 +110,30 @@ Therefore:
 
 .. ---------- HERE/BELOW: copy for all installs --------------
 
-**Make AFNI/SUMA profiles**
----------------------------
+Make AFNI/SUMA profiles
+-----------------------
 
 .. include:: substep_profiles.rst
 
-**Prepare for Bootcamp (semi-optional)**
-----------------------------------------
+Prepare for Bootcamp (semi-optional)
+------------------------------------
 
 .. include:: substep_bootcamp.rst
 
 
-**Evaluate setup/system (important!!)**
----------------------------------------
+Evaluate setup/system (important!)
+-----------------------------------
 
 .. include:: substep_evaluate.rst
 
 
-**Niceify terminal (optional, but goood)**
-------------------------------------------
+Niceify terminal (optional, but goood)
+--------------------------------------
 
 .. include:: substep_rcfiles.rst
 
-
-**Keep up-to-date (remember!)**
--------------------------------
+Keep up-to-date (remember!)
+---------------------------
 
 .. include:: substep_update.rst
-
-
-
-.. commented out-- older steps, unnecessary here.
-
-   #. **Setting up autoprompts for command line options.**
-
-   The following is quite useful to be set up help files for
-   tab-autocompletion of options as you type AFNI commands.  Run this
-   command::
-
-     apsearch -update_all_afni_help
-      
-   and then follow the brief instructions.
-
-
-
-    #. **Quick test.**
-
-       Do a quick test to see that afni works::
-
-          afni -ver
-
-       If this doesn't produce anything constructive immediately, or if
-       ``reboot`` was skipped, try starting a new ``tcsh`` shell (e.g., by
-       opening a new terminal) and updating the path (again, specifically
-       for ``tcsh``)::
-
-          tcsh
-          set path = ( $path ~/abin )
-          rehash
-          afni -ver
-
-       | The final command should show something useful, like:
-       | ``Precompiled binary linux_ubuntu_12_64: 
-         Feb 29 2016 (Version AFNI_16.0.10)``
-
-
-       NB: ``@update.afni.binaries`` should have set the path in
-       ``$HOME/.cshrc`` (when using ``-do_extras``).  Verify this by
-       visually checking that the same 'set path' line, above, in the
-       (``tcsh``) profile::
-
-         cat ~/.cshrc
-
-       .. am inverting steps 5 and 6 from the original documentation,
-          under the idea that hte Bootcamp material is secondary to a
-          general install, which I feel should include R.
 
