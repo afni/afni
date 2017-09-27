@@ -195,9 +195,10 @@ g_history = """
    0.29 Aug 15, 2017 
         - check 3dClustSim, for OpenMP library
         - for mac, force cheating variable check via interactive shell
+   0.30 Sep 27, 2017 - PyQt4 is no longer needed for an AFNI bootcamp
 """
 
-g_version = "afni_system_check.py version 0.29, August 15, 2017"
+g_version = "afni_system_check.py version 0.30, September 30, 2017"
 
 
 class CmdInterface:
