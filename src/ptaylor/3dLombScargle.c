@@ -3,7 +3,10 @@
 
    [PT: Sept, 2014] Fixed up now. Will revisit tapers and windows laterz. 
 
-   [PT: Sept 19, 2014] Fixed N of points for delF calc.  
+   [PT: Sept 19, 2014] Fixed N of points for delF calc. 
+ 
+   [PT: Sept 26, 2014] Add in attribute output for Ntpts pre- and
+   post-censoring.
 
 */
 
@@ -922,6 +925,16 @@ int main(int argc, char *argv[]) {
       all_ls[i]=NULL;
    }
 
+   // ! Makin' an attribute, int array of len=2: Num of tpts without
+   // ! censoring, and Num of tpts left after censoring
+   { int *attin=malloc(sizeof(int)*(2)) ;
+      attin[0] = (int) Dim[3] ; 
+      attin[1] = (int) Npts_cen;
+      THD_set_int_atr( outset_LS->dblk ,
+                       "N_TS_ORIG" , 2 , attin ) ;
+      free(attin) ;
+   }
+   
    THD_load_statistics(outset_LS);
    tross_Make_History("3dLombScargle", argc, argv, outset_LS);
    THD_write_3dim_dataset(NULL, NULL, outset_LS, True);
