@@ -4,12 +4,19 @@
 ## launch shiny plot of FATCAT outputs
 
 if ($#argv == 0) then
-   echo Need a path to .netcc files
+   echo "ERROR: Need a path to .netcc or .grid files!"
    exit 0
 else
    set arglist = ($*)
 endif
 
+## get full path for the input table
+
+cd $arglist
+set corr_dir = `pwd`
+cd -
+
 R --slave --no-restore \
 -e 'shiny::runApp("./FATCAT_heatmap_shiny", launch.browser=TRUE)' \
---args $arglist &
+--args $corr_dir &
+

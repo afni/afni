@@ -101,10 +101,9 @@ sidebar <- dashboardSidebar(width=300,sidebarMenu(
 #########################################################################
 body <-  dashboardBody(
   fluidRow(
-    plotlyOutput('cor_heatmap_plot',height=680,width=680),
-
+    plotlyOutput('cor_heatmap_plot',height=700,width=700),
     conditionalPanel('input.hist_yn',br(),br(),
-                     plotlyOutput('cor_hist_plot',height=680,width=680)
+                     plotlyOutput('cor_hist_plot',height=700,width=700)
     )
   )
 )   ## end dashboard body
