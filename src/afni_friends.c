@@ -639,7 +639,7 @@ static mday holiday[] = {
    {SEP,28,"Anniversary of discovery of penicillin"                  } ,
    {SEP,28,"Seymour Cray's birthday"                                 } ,
    {SEP,29,"Lech Walesa's birthday"                                  } ,
-   {SEP,30,"Botswana Independence Day"                               } ,
+   {SEP,30,"Botswana Independence Day!"                              } ,
 
    {OCT, 1,"Nigeria Independence Day"                                } ,
    {OCT, 2,"Guinea Independence Day"                                 } ,
@@ -1419,19 +1419,19 @@ int AFNI_is_Easter( int yy , int mm , int dd )
    return ( mm == EasterDate[yy].mm && dd == EasterDate[yy].dd ) ;
 }
 
-/*------------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
 /* Stuff for Rosh Hashanah calculation [22 Sep 2017] */
 
-/* Simple day of week calculator:
-   m = 1..12 ; d = 1..31 ; y=1900..2100 ; return 0..6 (Sun..Sat) */
+/* Simple day of week calculator (Gregorian):
+   m=1..12 ; d=1..31 ; y=1800... ; return=0..6 (Sun..Sat) */
 
 static int dow(int m,int d,int y){
   y -= (m<3) ;
   return(y+y/4-y/100+y/400+"-bed=pen+mad."[m]+d)%7;
 }
 
-/* Compute date of Rosh Hashanah in Sep, given the year number:
-   https://quasar.as.utexas.edu/BillInfo/ReligiousCalendars.html */
+/* Compute date of Rosh Hashanah in Sep, given year number (>= 1800):
+   see https://quasar.as.utexas.edu/BillInfo/ReligiousCalendars.html */
 
 static int rosh(int y)
 {
