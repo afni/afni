@@ -14,7 +14,6 @@
 shinyServer(function(input,output,session) {
   options(warn =-1)
   session$onSessionEnded(stopApp)
-
   ############################################
   ## get the rois and info
 
@@ -51,7 +50,6 @@ shinyServer(function(input,output,session) {
         incProgress(1/num.mat,detail=stat.type[[1]])
       }
       names(stat.list) <- stat.names
-      print(stat.list)
       updateSelectInput(session,'stat_sel',choices=stat.list)
     })
     ## if there are too many regions...
