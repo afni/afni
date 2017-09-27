@@ -378,11 +378,12 @@ class SysInfo:
                
          elif self.repo_prog == 'fink':
             fcmd = 'sudo fink install pyqt4-mac-py27'
-            self.comments.append('consider running: %s'%fcmd)
+            print '-- for PyQt4 under %s, consider running:\n   %s' \
+                  % (self.repo_prog, fcmd)
          elif self.repo_prog == 'brew':
-            self.comments.append('note: pyqt4 is no longer available via brew')
-         else:
-            self.comments.append('consider installing PyQt4')
+            fcmd = 'brew install cartr/qt4/pyqt'
+            print '-- for PyQt4 under %s, consider running:\n   %s' \
+                  % (self.repo_prog, fcmd)
 
       self.check_for_pre_11_dylib()
 
@@ -729,6 +730,10 @@ class SysInfo:
             print '   **************************************************\n'
             self.comments.append('check for partial install of PyQt4')
             self.have_pyqt4 = 0
+
+      else:
+         print '-- PyQt4 is no longer needed for an AFNI bootcamp'
+
       print
 
       pdirs = glob.glob('/sw/bin/python*')
