@@ -1,5 +1,10 @@
 /* 
    Description
+
+   [PT: Sept 26, 2014] Add in attribute output for Ntpts pre- and
+   post-censoring.
+
+
 */
 
 
@@ -135,6 +140,9 @@ int main(int argc, char *argv[]) {
    int NIFTI_OUT=0;
    int DTYPE=0;
 
+   int nt_orig = -1;  // attribute info on Npts before censoring
+   int nt_cen  = -1;  // attribute info on Npts after censoring
+   
    int HAVE_MASK = 0;
    int ***mskd; // define mask of where time series are nonzero
    double temp_sum;
@@ -276,6 +284,21 @@ int main(int argc, char *argv[]) {
          Dim[0] = DSET_NX(insetTIME); Dim[1] = DSET_NY(insetTIME); 
          Dim[2] = DSET_NZ(insetTIME); Dim[3]= DSET_NVALS(insetTIME); 
          delF = DSET_TR(insetTIME);
+
+         // [PT: Sep 20, 2017] Get attribute info: follow Bob's lead!
+         ATR_int *atr;
+         int *attin;
+         atr = THD_find_int_atr( insetTIME->dblk , "N_TS_ORIG" ) ;
+         if( atr == NULL )
+            ERROR_exit("Input pow/amp set has no N_TS_ORIG attribute-- booo.");
+         if( atr->nin != 2 )
+            ERROR_exit("Input pow/amp attribute N_TS_ORIG is too short [%d]!",
+                       atr->nin);
+         attin = atr->in ;
+         nt_orig = attin[0];
+         nt_cen  = attin[1];
+         INFO_message("Original time series:  %d points before censoring, "
+                      "and %d after", nt_orig, nt_cen);
    }
 
    if( (fbot<0) || (ftop<0) ) {
