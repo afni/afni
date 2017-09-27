@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 27 , SEP , 2017 , RWC , "3dXClustSim" , MICRO , TYPE_BUG_FIX ,
+   "Ooops: modify to have different min thresholds for each FPR goal" ,
+   NULL } ,
+
  { 26 , SEP , 2017 , RWC , "3dttest++" , MINOR , TYPE_ENHANCE ,
    "Make -zskip work nicely with -resid" ,
    NULL } ,
