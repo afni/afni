@@ -742,7 +742,7 @@ def db_cmd_blip(proc, block):
    blip_interp = '-quintic'
 
    cmd =  "# %s\n" % block_header('blip')
-   cmd += '# apply blip up/down non-linear alignment to EPI\n\n'
+   cmd += '# compute blip up/down non-linear distortion correction for EPI\n\n'
 
    if proc.blip_dset_med != None and proc.blip_dset_warp != None:
       cmd += '\n'                                               \
