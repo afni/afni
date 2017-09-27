@@ -483,7 +483,10 @@ class SysInfo:
       clibs.sort(reverse=True)
       # first check for any homebrew gomp libraries, at all
       if len(clibs) == 0:
-         self.comments.append('consider installing %s under homebrew'%sname)
+         if self.afni_fails > 0:
+             self.comments.append('consider installing %s under homebrew'%sname)
+         else:
+             print '-- consider installing %s under homebrew' % sname
          return 1
 
       # if the library exists (as link or file), we are good to go
