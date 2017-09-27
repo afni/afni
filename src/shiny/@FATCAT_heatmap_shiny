@@ -1,22 +1,67 @@
 #!/bin/tcsh -f
 #################################################
-## 05/16/2017 Justin Rajendra
+## 09/2017 Justin Rajendra
 ## launch shiny plot of FATCAT outputs
 
-if ($#argv == 0) then
-   echo "ERROR: Need a path to .netcc or .grid files!"
-   exit 0
-else
-   set arglist = ($*)
+set ShinyFolder = "/Users/discoraj/Documents/nih/shiny/FATCAT_heatmap/FATCAT_heatmap_shiny"
+
+## get the current program name
+set prog = `basename $0`
+
+## show help
+if ( $#argv < 1 ) then
+    goto SHOW_HELP
 endif
 
-## get full path for the input table
+## parse args
+set narg = 1
+@  amax = $#argv - 0
+while ( $narg <= $amax )
+    if ( "$argv[$narg]" == "-help" || "$argv[$narg]" == "-h" ) then
+        goto SHOW_HELP
+    else
+        set InFolder = ($*)
+    endif
+    @ narg ++
+end
 
-cd $arglist
+## check the inputs
+if ( ! -d $InFolder ) then
+    echo ; echo "Error: ${InFolder} does not exist." ; echo
+    exit 1
+endif
+
+## get full path for the input folder
+cd $InFolder
 set corr_dir = `pwd`
 cd -
 
+## launch shiny
 R --slave --no-restore \
--e 'shiny::runApp("./FATCAT_heatmap_shiny", launch.browser=TRUE)' \
---args $corr_dir &
+-e "shiny::runApp('${ShinyFolder}', launch.browser=TRUE)" --args $corr_dir &
+exit 0
+
+##########################################################################
+SHOW_HELP:
+cat << EOF
+
+   ----------------------------------------------------------------------------
+   $prog
+      Launch a shiny app to visualize heatmaps of .netcc and/or .grid files.
+      Takes one argument, a path to a folder with .netcc and/or .grid files.
+
+   -----------------------------------------------------------------------------
+   options:
+      -help : show this help
+
+   -----------------------------------------------------------------------------
+   examples:
+      $prog ~/disco_netcc_folder
+
+   -----------------------------------------------------------------------------
+   Justin Rajendra 09/2017
+
+EOF
+
+exit 0
 
