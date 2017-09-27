@@ -281,6 +281,7 @@ examples:
     other examples:
 
        $prog -defaults
+       $prog -defaults -package macosx_10.7_local
        $prog -package linux_openmp_64
        $prog -package linux_openmp_64 -bindir ~/abin
        $prog -package linux_openmp_64 -programs suma 3dRSFC
