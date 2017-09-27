@@ -819,8 +819,11 @@ make_random_timing.py - Advanced usage
    When specifying a timing class, one can provide:
 
         min     : min, mean and maximum for possible durations
-        mean      (note that for a uniform distribution, the mean or max
-        max       implies the other, while that is not true for decay)
+        mean    : -1 means unspecified, to be computed by the program
+                : mean determines total time for class, if specified
+                * for a uniform distribution, the mean or max implies
+                  the other, while that is not true for decay
+        max     : -1 means unspecified, likely meaning no limit for decay class
         dtype   : distribution type (default=decay)
                   decay:        shorter events are more likely
                                 see "NOTE: distribution of ISI"
@@ -836,9 +839,9 @@ make_random_timing.py - Advanced usage
    One can provide subsets:
 
         min                             : implies fixed
-        min, mean max                   : implies decay on default t_grid
-        min, mean max, dtype            : implies default t_trid
-        min, mean max, dtype, t_grid
+        min, mean, max                  : implies decay on default t_grid
+        min, mean, max, dtype           : implies default t_grid
+        min, mean, max, dtype, t_grid
 
 
    Every stimulus class type is followed by a fixed rest class type.  So rest
@@ -1055,9 +1058,10 @@ g_history = """
          - added decay_old class for old decay method
     2.3  May  9, 2017: applied -offset for advanced case
     2.4  May 24, 2017: advanced -save_3dd_cmd and -make_3dd_contrasts
+    2.5  Sep 26, 2017: adv: clarify use of -1 for mean, max in help
 """
 
-g_version = "version 2.4, May 24, 2017"
+g_version = "version 2.5, September 26, 2017"
 
 g_todo = """
    - add -show_consec_stats option?
