@@ -939,7 +939,7 @@ int main( int argc , char *argv[] )
    int ndilstep , ndilated[4] , ndilsum , ndiltot ;
    int count_targ100 , count_targ80, count_targ60 ;
    THD_3dim_dataset *qset=NULL ;
-   float *qar=NULL , **gthresh0=NULL , **gthresh1=NULL, **gthresh2=NULL ;
+   float *qar=NULL , ***gthresh0=NULL , ***gthresh1=NULL, ***gthresh2=NULL ;
    char qpr[128] ;
    MRI_IMAGE *cim0  =NULL , *cim1  =NULL , *cim2  =NULL ;
    MRI_IMARR **cimar0=NULL , **cimar1=NULL , **cimar2=NULL ;
@@ -1204,11 +1204,11 @@ int main( int argc , char *argv[] )
    /*--- STEP 1c: find the global distributions and min thresholds -----------*/
 
 #define GTHRESH_FAC 0.066666f
-#define GTHRESH_THA 0.055555f
-#define GTHRESH_THB 0.166666f
+#define GTHRESH_THA 0.011111f
+#define GTHRESH_THB 0.033333f
 
    { int nfom,jj,nfff; Xcluster **xcc;
-     float a0,a1,f0,f1,fta,ftb , fmax ;
+     float a0,a1,f0,f1,fta,ftb , fmax , fg ;
      float *fomg0, *fomg1, *fomg2 ;
 
      fomg0 = calloc(sizeof(float),nclust_max) ; /* workspaces */
@@ -1219,14 +1219,18 @@ int main( int argc , char *argv[] )
        ININFO_message("STEP 1c: compute minimum thresholds") ;
      if( verb > 1 ) ININFO_message("  Elapsed time = %.1f s",COX_clock_time()) ;
 
-     gthresh0 = (float **)malloc(sizeof(float *)*ncase) ;
-     gthresh1 = (float **)malloc(sizeof(float *)*ncase) ;
-     gthresh2 = (float **)malloc(sizeof(float *)*ncase) ;
-
-     for( qcase=0 ; qcase < ncase ; qcase++ ){
-       gthresh0[qcase] = (float *)calloc(sizeof(float),npthr) ; /* saved */
-       gthresh1[qcase] = (float *)calloc(sizeof(float),npthr) ; /* global */
-       gthresh2[qcase] = (float *)calloc(sizeof(float),npthr) ; /* thresholds */
+     gthresh0 = (float ***)malloc(sizeof(float **)*numfarp) ;
+     gthresh1 = (float ***)malloc(sizeof(float **)*numfarp) ;
+     gthresh2 = (float ***)malloc(sizeof(float **)*numfarp) ;
+     for( ifarp=0 ; ifarp < numfarp ; ifarp++ ){
+       gthresh0[ifarp] = (float **)malloc(sizeof(float *)*ncase) ;
+       gthresh1[ifarp] = (float **)malloc(sizeof(float *)*ncase) ;
+       gthresh2[ifarp] = (float **)malloc(sizeof(float *)*ncase) ;
+       for( qcase=0 ; qcase < ncase ; qcase++ ){
+         gthresh0[ifarp][qcase] = (float *)calloc(sizeof(float),npthr) ; /* saved */
+         gthresh1[ifarp][qcase] = (float *)calloc(sizeof(float),npthr) ; /* global */
+         gthresh2[ifarp][qcase] = (float *)calloc(sizeof(float),npthr) ; /* thresholds */
+       }
      }
 
      for( qcase=0 ; qcase < ncase ; qcase++ ){
@@ -1245,43 +1249,44 @@ int main( int argc , char *argv[] )
          if( nfff > nfom ) nfff = nfom ; /* very very unlikely */
 
          fmax = AFNI_numenv("AFNI_XCLUSTSIM_FMAX") ;
-         if( fmax <= 0.01f || fmax > 1.0f ) fmax = 0.999f ;
+         if( fmax <= 0.01f || fmax > 1.0f ) fmax = 0.888f ;
 
          /* global threshold computed from tail of FOM distribution */
 
          qsort_float_rev( nfom, fomg0 ) ;      /* hpow=0 */
-         jj  = (int)rintf(GTHRESH_THA*nfff) ;
-         fta = GTHRESH_FAC*fomg0[jj] ;
-         jj  = (int)rintf(GTHRESH_THB*nfff) ;
-         ftb = fomg0[jj] ;
-         gthresh0[qcase][qpthr] = (int)(fmax*MAX(fta,ftb)+(1.0f-fmax)*MIN(fta,ftb)) ;
-         if( verb > 1 && do_hpow0 ){
-           ININFO_message("     min threshold %.1f :: Case %s pthr=%.5f h=0",
-                          gthresh0[qcase][qpthr],lcase[qcase],pthr[qpthr]) ;
-         }
-
          qsort_float_rev( nfom, fomg1 ) ;      /* hpow=1 */
-         jj  = (int)rintf(GTHRESH_THA*nfff) ;
-         fta = GTHRESH_FAC*fomg1[jj] ;
-         jj  = (int)rintf(GTHRESH_THB*nfff) ;
-         ftb = fomg1[jj] ;
-         gthresh1[qcase][qpthr] = (fmax*MAX(fta,ftb)+(1.0f-fmax)*MIN(fta,ftb)) ;
-         if( verb > 1 && do_hpow1 ){
-           ININFO_message("     min threshold %.1f :: Case %s pthr=%.5f h=1",
-                          gthresh1[qcase][qpthr],lcase[qcase],pthr[qpthr]) ;
-         }
-
          qsort_float_rev( nfom, fomg2 ) ;      /* hpow=2 */
-         jj  = (int)rintf(GTHRESH_THA*nfff) ;
-         fta = GTHRESH_FAC*fomg2[jj] ;
-         jj  = (int)rintf(GTHRESH_THB*nfff) ;
-         ftb = fomg2[jj] ;
-         gthresh2[qcase][qpthr] = (fmax*MAX(fta,ftb)+(1.0f-fmax)*MIN(fta,ftb)) ;
-         if( verb > 1 && do_hpow2 ){
-           ININFO_message("     min threshold %.1f :: Case %s pthr=%.5f h=2",
-                          gthresh2[qcase][qpthr],lcase[qcase],pthr[qpthr]) ;
-         }
 
+         for( ifarp=0 ; ifarp < numfarp ; ifarp++ ){
+           fg  = farplist[ifarp] ;
+           jj  = (int)rintf(GTHRESH_THA*nfff*fg) ;
+           fta = GTHRESH_FAC*fomg0[jj] ;
+           jj  = (int)rintf(GTHRESH_THB*nfff*fg) ;
+           ftb = fomg0[jj] ;
+           gthresh0[ifarp][qcase][qpthr] = (int)(fmax*MAX(fta,ftb)+(1.0f-fmax)*MIN(fta,ftb)) ;
+           if( verb > 1 && do_hpow0 ){
+             ININFO_message("     min threshold %.1f :: Case %s pthr=%.5f h=0 fgoal=%.1f%%",
+                            gthresh0[ifarp][qcase][qpthr],lcase[qcase],pthr[qpthr],fg) ;
+           }
+           jj  = (int)rintf(GTHRESH_THA*nfff) ;
+           fta = GTHRESH_FAC*fomg1[jj] ;
+           jj  = (int)rintf(GTHRESH_THB*nfff) ;
+           ftb = fomg1[jj] ;
+           gthresh1[ifarp][qcase][qpthr] = (fmax*MAX(fta,ftb)+(1.0f-fmax)*MIN(fta,ftb)) ;
+           if( verb > 1 && do_hpow1 ){
+             ININFO_message("     min threshold %.1f :: Case %s pthr=%.5f h=1 fgoal=%.1f%%",
+                            gthresh1[ifarp][qcase][qpthr],lcase[qcase],pthr[qpthr],fg) ;
+           }
+           jj  = (int)rintf(GTHRESH_THA*nfff) ;
+           fta = GTHRESH_FAC*fomg2[jj] ;
+           jj  = (int)rintf(GTHRESH_THB*nfff) ;
+           ftb = fomg2[jj] ;
+           gthresh2[ifarp][qcase][qpthr] = (fmax*MAX(fta,ftb)+(1.0f-fmax)*MIN(fta,ftb)) ;
+           if( verb > 1 && do_hpow2 ){
+             ININFO_message("     min threshold %.1f :: Case %s pthr=%.5f h=2 fgoal=%.1f%%",
+                            gthresh2[ifarp][qcase][qpthr],lcase[qcase],pthr[qpthr],fg) ;
+           }
+         } /* end of loop over FPR goals (farp) */
        } /* end loop over thresholds */
      } /* end of loop over cases */
 
@@ -1717,7 +1722,7 @@ int main( int argc , char *argv[] )
                 will be adjusted to find the 5% FPR goal */
 
      if( ifarp == 0 )                               /* first time thru */
-       tfrac = (7.0f+farp_goal)*0.00005f ;
+       tfrac = (5.0f+farp_goal)*0.00005f ;
      else
        tfrac *= ( farp_goal / farplist[ifarp-1] ) ; /* adjust previous result */
 
@@ -1791,15 +1796,15 @@ FARP_LOOPBACK:
          for( hh=0 ; hh < 3 ; hh++ ){               /* over hpow values */
            if( hh==0 ){
              if( !do_hpow0 ) continue ;
-             fomsortH = fomsort0[icase]; carH = car0[icase]; gthreshH = gthresh0[icase];
+             fomsortH = fomsort0[icase]; carH = car0[icase]; gthreshH = gthresh0[ifarp][icase];
            }
            if( hh==1 ){
              if( !do_hpow1 ) continue ;
-             fomsortH = fomsort1[icase]; carH = car1[icase]; gthreshH = gthresh1[icase];
+             fomsortH = fomsort1[icase]; carH = car1[icase]; gthreshH = gthresh1[ifarp][icase];
            }
            if( hh==2 ){
              if( !do_hpow2 ) continue ;
-             fomsortH = fomsort2[icase]; carH = car2[icase]; gthreshH = gthresh2[icase];
+             fomsortH = fomsort2[icase]; carH = car2[icase]; gthreshH = gthresh2[ifarp][icase];
            }
            npt = fomsortH[ipthr][iv]->npt ;  /* how many FOM values here */
            jthresh = ithresh ;            /* default index of FOM thresh */
