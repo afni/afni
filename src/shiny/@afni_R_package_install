@@ -1,0 +1,124 @@
+#!/bin/tcsh -f
+
+#################################################
+## 09/2017 Justin Rajendra
+## install R packages for afni/shiny/whatever
+
+## check for R
+set R_bin = "`where R`"
+if ( "$R_bin" == "" ) then
+    echo ; echo "ERROR: R not found!" ; echo
+    echo "Is R installed?"
+    echo "If not, download and install R from:"
+    echo "https://cran.r-project.org"
+    echo "If R is installed, does it run on your tcsh command line?"
+    echo "If not, check your paths." ; echo
+    exit 1
+endif
+
+## get the current program name
+set prog = `basename $0`
+
+## set the defaults
+set afni    = "boo"
+set shiny   = "boo"
+set custom  = "boo"
+
+## list of packages
+set afniPkgs  = "c('afex','phia','snow','nlme','lme4','paran','psych')"
+set discoPkgs = "c('shiny','shinydashboard','plotly','colourpicker','data.table','gplots','RColorBrewer')"
+set custList  = ""
+
+## show help
+if ( $#argv < 1 ) then
+    goto SHOW_HELP
+endif
+
+set narg = 1
+@  amax = $#argv - 0
+
+while ( $narg <= $amax )
+    if ( "$argv[$narg]" == "-afni" ) then
+        set afni = "yay"
+    else if ( "$argv[$narg]" == "-shiny" ) then
+        set shiny = "yay"
+    else if ( "$argv[$narg]" == "-custom" ) then
+        @ narg ++
+        set custom = "yay"
+        set custList = "$argv[$narg]"
+    else if ( "$argv[$narg]" == "-help" || "$argv[$narg]" == "-h" ) then
+        goto SHOW_HELP
+    else
+        goto SHOW_HELP
+    endif
+    @ narg ++
+end
+
+###########################################################################
+## make the list of packages to install and install them
+
+## install afni basics
+if ( $afni == "yay") then
+    echo "Trying to install: ${afniPkgs}" ; echo
+    Rscript -e "install.packages(${afniPkgs},repos='https://cran.rstudio.com')"
+endif
+
+## install disco shiny stuff
+if ( $shiny == "yay" ) then
+    echo "Trying to install: ${discoPkgs}" ; echo
+    Rscript -e "install.packages(${discoPkgs},repos='https://cran.rstudio.com')"
+endif
+
+## install custom list
+if ( $custom == "yay" ) then
+    set custList = `echo $custList | tr ' ' ,`
+    set custList = `echo \'{$custList}\' | tr ' ' ,`
+    set custPkgs = "c(${custList})"
+    echo "Trying to install: ${custPkgs}" ; echo
+    Rscript -e "install.packages(${custPkgs},repos='https://cran.rstudio.com')"
+endif  ## end custom list
+
+exit 0
+
+###########################################################################
+SHOW_HELP:
+cat << EOF
+
+   ----------------------------------------------------------------------------
+   $prog
+           Helper script to install R packages for various afni-ish purposes.
+           You must have R installed, and permissions for its package library.
+
+   -----------------------------------------------------------------------------
+   options:
+
+      -afni   : Install current list of packages for afni.
+                Similar to rPkgsInstall.
+                Installs:
+                afex phia snow nlme lme4 paran psych
+
+      -shiny  : Install current list of packages for afni based shiny apps.
+                Installs:
+                shiny shinydashboard plotly colourpicker data.table
+                gplots RColorBrewer
+
+      -custom : Install whatever R packages you desire.
+                Requires a space separated list of packages.
+                Must start and end with double quotes.
+                e.g. "earth wind fire"
+
+      -help   : Show this help.
+
+   -----------------------------------------------------------------------------
+   examples:
+
+      $prog -afni
+
+      $prog -afni -shiny -custom "earth wind fire"
+
+   -----------------------------------------------------------------------------
+   Justin Rajendra 09/2017
+
+EOF
+
+exit 0
