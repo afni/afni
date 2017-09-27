@@ -32,7 +32,7 @@
      + *if you have installed pre-compiled binaries on your computer (the
        most common approach)*::
 
-         @update.binaries.afni -d
+         @update.afni.binaries -d
 
      + *if you compile AFNI from source*, then go :ref:`here
        <download_SRC>` and download the latest source.
