@@ -30,7 +30,8 @@ void Spect_to_RSFC( THD_3dim_dataset *A,
                     int MIN_bp, int MAX_bp, 
                     int MIN_full, int MAX_full,
                     float **ap,
-                    int Npar );
+                    int Npar,
+                    int nt_cen, int nt_orig);
 
 
 void usage_AmpToRSFC(int detail) 
@@ -299,6 +300,10 @@ int main(int argc, char *argv[]) {
          nt_cen  = attin[1];
          INFO_message("Original time series:  %d points before censoring, "
                       "and %d after", nt_orig, nt_cen);
+
+         if( (nt_orig <= 0) || (nt_cen <= 0) )
+            ERROR_exit("Can't have non-positive numbers of original time "
+                       "series points, even *after* censoring!");
    }
 
    if( (fbot<0) || (ftop<0) ) {
@@ -316,8 +321,6 @@ int main(int argc, char *argv[]) {
                        "dimensions.\n");
          exit(1);
       }
-  
-
 	
    // ****************************************************************
    // ****************************************************************
@@ -411,7 +414,8 @@ int main(int argc, char *argv[]) {
                   MIN_bp, MAX_bp, 
                   MIN_full, MAX_full,
                   allPar,
-                  Npar
+                  Npar,
+                  nt_cen, nt_orig
                   );
 
    INFO_message("Done calculating parameters.");
@@ -502,22 +506,25 @@ void Spect_to_RSFC( THD_3dim_dataset *A,
                     int MIN_bp, int MAX_bp, 
                     int MIN_full, int MAX_full,
                     float **ap,
-                    int Npar
+                    int Npar,
+                    int nt_cen, int nt_orig
                     )
 {
    int i,j,k,l;
    int idx=0, ctr=0;
    float L1num=0., L2num=0., L1den=0., L2den=0.;
    float tmp1, mean_alff=0., mean_rsfa=0.;
-   float facN, facNNmin1;
+   //float facN, facNNmin1;
+   float facL, facLMmin1, fac2oL;
 
    INFO_message("Start calculating spectral parameters");
 
    // scaling factors based on 'N'; think this is correct and even
    // accounts for the possible use of ofac!=1 in the lombscargle
    // program -> !! check !!
-   facN = sqrt(Dim[3]);
-   facNNmin1 = facN * sqrt(Dim[3]-1);
+   facL = sqrt(Dim[3]); // essentially sqrt(L)
+   fac2oL = sqrt(2./Dim[3]); // essentially sqrt(L)
+   facLMmin1 = facL * sqrt(nt_cen-1); // L*(M-1)
 
    for( k=0 ; k<Dim[2] ; k++ ) 
       for( j=0 ; j<Dim[1] ; j++ ) 
@@ -539,12 +546,13 @@ void Spect_to_RSFC( THD_3dim_dataset *A,
                   }
                }
 
+               // !! Don't need these, because have L=N/2
                // one-sidedness -> full values; each sum is only over
                // half the freqs
-               ap[0][idx]*= 2.;
-               L1den*= 2.;
-               ap[3][idx]*= 2.;
-               L2den*= 2.;
+               //ap[0][idx]*= 2.;
+               //L1den*= 2.;
+               //ap[3][idx]*= 2.;
+               //L2den*= 2.;
 
                // now the rest of the pars
                ap[1][idx] = ap[0][idx];         // -> malff
@@ -569,10 +577,11 @@ void Spect_to_RSFC( THD_3dim_dataset *A,
       for( j=0 ; j<Dim[1] ; j++ ) 
          for( i=0 ; i<Dim[0] ; i++ ) {
             if( mskd[i][j][k] ) {
-               ap[0][idx]/= facN;
-               ap[1][idx]/= mean_alff;
-               ap[3][idx]/= facNNmin1;
-               ap[4][idx]/= mean_rsfa;
+               // fALFF and fRSFA need no further scaling.
+               ap[0][idx]*= sqrt(2.0)/facLMmin1;      //  ALFF
+               ap[1][idx]/= mean_alff;   // mALFF
+               ap[3][idx]/= facLMmin1;   //  RSFA
+               ap[4][idx]/= mean_rsfa;   // mRSFA
             }
             idx++;
          }
