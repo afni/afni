@@ -1,0 +1,11 @@
+Voxels,x_cm,y_cm,z_cm,x_y_z_cm,label_cm,x_peak,y_peak,z_peak,x_y_z_peak,label_peak
+1000,14.4,-44.6,35.1,14.4_-44.6_35.1,Right Middle Cingulate Cortex,13.0,-41.0,39.0,13.0_-41.0_39.0,Right Precuneus
+901,-33.0,10.6,-16.3,-33.0_10.6_-16.3,Left Insula Lobe,-30.0,5.0,-13.0,-30.0_5.0_-13.0,Left Insula Lobe
+689,1.5,-55.8,-1.6,1.5_-55.8_-1.6,Cerebellar Vermis (4/5),0.0,-56.0,-1.0,0.0_-56.0_-1.0,Cerebellar Vermis (4/5)
+555,-2.7,-33.3,-13.8,-2.7_-33.3_-13.8,Cerebellar Vermis (3),-5.0,-32.0,-16.0,-5.0_-32.0_-16.0,Left Cerebellum (III)
+343,-35.6,-2.5,43.1,-35.6_-2.5_43.1,Left Precentral Gyrus,-35.0,-2.0,44.0,-35.0_-2.0_44.0,Left Precentral Gyrus
+342,31.1,-24.4,11.9,31.1_-24.4_11.9,Right Insula Lobe,31.0,-27.0,12.0,31.0_-27.0_12.0,Right Heschls Gyrus
+194,32.5,6.4,-18.7,32.5_6.4_-18.7,Right Temporal Pole,32.0,6.0,-20.0,32.0_6.0_-20.0,Right Temporal Pole
+186,-0.8,-6.2,-0.9,-0.8_-6.2_-0.9,Left Thalamus,-3.0,-6.0,1.0,-3.0_-6.0_1.0,Left Thalamus
+185,-7.5,-5.7,38.8,-7.5_-5.7_38.8,Left Middle Cingulate Cortex,-8.0,-6.0,39.0,-8.0_-6.0_39.0,Left Middle Cingulate Cortex
+155,-38.4,21.1,24.7,-38.4_21.1_24.7,Left Inferior Frontal Gyrus (p. Triangularis),-39.0,21.0,25.0,-39.0_21.0_25.0,Left Inferior Frontal Gyrus (p. Triangularis)
