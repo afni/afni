@@ -1,9 +1,0 @@
-{
-    "path" : "~/research/ClusterExplorer/ClustExp_ShinyTemplate",
-    "sortOrder" : [
-        {
-            "ascending" : true,
-            "columnIndex" : 2
-        }
-    ]
-}
