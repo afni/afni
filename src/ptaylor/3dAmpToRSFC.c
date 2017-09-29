@@ -523,8 +523,8 @@ void Spect_to_RSFC( THD_3dim_dataset *A,
    // accounts for the possible use of ofac!=1 in the lombscargle
    // program -> !! check !!
    facL = sqrt(Dim[3]); // essentially sqrt(L)
-   fac2oL = sqrt(2./Dim[3]); // essentially sqrt(L)
-   facLMmin1 = facL * sqrt(nt_cen-1); // L*(M-1)
+   //fac2oL = sqrt(2./Dim[3]); // essentially sqrt(L)
+   facLMmin1 = facL * sqrt(nt_cen-1.); // L*(M-1)
 
    for( k=0 ; k<Dim[2] ; k++ ) 
       for( j=0 ; j<Dim[1] ; j++ ) 
@@ -572,7 +572,7 @@ void Spect_to_RSFC( THD_3dim_dataset *A,
    mean_rsfa/= ctr;
 
    // loop back again for scaling mALFF and mRSFA
-   idx = 0;
+   idx = 0; 
    for( k=0 ; k<Dim[2] ; k++ ) 
       for( j=0 ; j<Dim[1] ; j++ ) 
          for( i=0 ; i<Dim[0] ; i++ ) {
