@@ -1203,9 +1203,9 @@ int main( int argc , char *argv[] )
    /*=========================================================================*/
    /*--- STEP 1c: find the global distributions and min thresholds -----------*/
 
-#define GTHRESH_FAC 0.066666f
-#define GTHRESH_THA 0.011111f
-#define GTHRESH_THB 0.033333f
+#define GTHRESH_FAC 0.066666f /* factor for method 1 */
+#define GTHRESH_THA 0.011111f /* how far into clust table: method 1 (per %) */
+#define GTHRESH_THB 0.033333f /* how far into clust table: method 2 (per %) */
 
    { int nfom,jj,nfff; Xcluster **xcc;
      float a0,a1,f0,f1,fta,ftb , fmax , fg ;
@@ -1218,6 +1218,9 @@ int main( int argc , char *argv[] )
      if( verb )
        ININFO_message("STEP 1c: compute minimum thresholds") ;
      if( verb > 1 ) ININFO_message("  Elapsed time = %.1f s",COX_clock_time()) ;
+
+     /* arrays for global threshold:
+          [ifarp=FPR goal][qcase=blurring][ipthr=p-value] */
 
      gthresh0 = (float ***)malloc(sizeof(float **)*numfarp) ;
      gthresh1 = (float ***)malloc(sizeof(float **)*numfarp) ;
@@ -1258,16 +1261,18 @@ int main( int argc , char *argv[] )
          qsort_float_rev( nfom, fomg2 ) ;      /* hpow=2 */
 
          for( ifarp=0 ; ifarp < numfarp ; ifarp++ ){
-           fg  = farplist[ifarp] ;
-           jj  = (int)rintf(GTHRESH_THA*nfff*fg) ;
+           fg  = farplist[ifarp] ;                  /* FPR goal in % */
+
+           jj  = (int)rintf(GTHRESH_THA*nfff*fg) ;  /* method 1 */
            fta = GTHRESH_FAC*fomg0[jj] ;
-           jj  = (int)rintf(GTHRESH_THB*nfff*fg) ;
+           jj  = (int)rintf(GTHRESH_THB*nfff*fg) ;  /* method 2 */
            ftb = fomg0[jj] ;
            gthresh0[ifarp][qcase][qpthr] = (int)(fmax*MAX(fta,ftb)+(1.0f-fmax)*MIN(fta,ftb)) ;
            if( verb > 1 && do_hpow0 ){
              ININFO_message("     min threshold %.1f :: Case %s pthr=%.5f h=0 fgoal=%.1f%%",
                             gthresh0[ifarp][qcase][qpthr],lcase[qcase],pthr[qpthr],fg) ;
            }
+
            jj  = (int)rintf(GTHRESH_THA*nfff) ;
            fta = GTHRESH_FAC*fomg1[jj] ;
            jj  = (int)rintf(GTHRESH_THB*nfff) ;
@@ -1277,6 +1282,7 @@ int main( int argc , char *argv[] )
              ININFO_message("     min threshold %.1f :: Case %s pthr=%.5f h=1 fgoal=%.1f%%",
                             gthresh1[ifarp][qcase][qpthr],lcase[qcase],pthr[qpthr],fg) ;
            }
+
            jj  = (int)rintf(GTHRESH_THA*nfff) ;
            fta = GTHRESH_FAC*fomg2[jj] ;
            jj  = (int)rintf(GTHRESH_THB*nfff) ;
@@ -1623,7 +1629,7 @@ int main( int argc , char *argv[] )
        }
        EDIT_BRICK_LABEL(qset,0,"FOMcount") ;
        tross_Make_History( "3dXClustSim" , argc,argv , qset ) ;
-       DSET_write(qset); WROTE_DSET(qset);
+       DSET_write(qset); WROTE_DSETI(qset);
        DSET_delete(qset); qset = NULL; qar = NULL;
      }
 #endif
@@ -1705,7 +1711,7 @@ int main( int argc , char *argv[] )
      farar = (float *)malloc(sizeof(float)*nxyz) ;
 #endif
 
-   /*--- loop over different FRP (farp) goals ---*/
+   /*--- loop over different FPR (farp) goals ---*/
 
    nit33 = 1.0f/(niter+0.333f) ;
 
@@ -1958,7 +1964,7 @@ FARP_BREAKOUT: ; /*nada*/
        /* output dataset */
 
        tross_Make_History( "3dXClustSim" , argc,argv , qset ) ;
-       DSET_write(qset); WROTE_DSET(qset);
+       DSET_write(qset); WROTE_DSETI(qset);
        DSET_delete(qset); qset = NULL; qar = NULL;
 
      } /* end of loop over cases (blurs) */
@@ -1976,7 +1982,7 @@ FARP_BREAKOUT: ; /*nada*/
        qar = DSET_ARRAY(qset,0) ;
        AAmemcpy( qar , farar , sizeof(float)*nxyz ) ;
        tross_Make_History( "3dXClustSim" , argc,argv , qset ) ;
-       DSET_write(qset); WROTE_DSET(qset);
+       DSET_write(qset); WROTE_DSETI(qset);
        DSET_delete(qset); qset = NULL; qar = NULL;
      }
   #endif
