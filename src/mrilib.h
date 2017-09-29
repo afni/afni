@@ -1760,6 +1760,11 @@ extern float mri_scaled_diff( MRI_IMAGE *bim, MRI_IMAGE *nim, MRI_IMAGE *msk ) ;
   do{ if( !machdep_be_quiet() && THD_is_file(DSET_BRIKNAME(dd)) )       \
         INFO_message("Output dataset %s",DSET_BRIKNAME(dd)); } while(0)
 
+#undef  WROTE_DSETI
+#define WROTE_DSETI(dd)                                                  \
+  do{ if( !machdep_be_quiet() && THD_is_file(DSET_BRIKNAME(dd)) )        \
+        ININFO_message("Output dataset %s",DSET_BRIKNAME(dd)); } while(0)
+
 #undef  CHECK_OPEN_ERROR
 #define CHECK_OPEN_ERROR(dd,nn) \
  do{ if( !ISVALID_DSET(dd) ) ERROR_exit("Can't open dataset '%s'",nn); }while(0)
