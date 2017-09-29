@@ -2,7 +2,7 @@
 #################################################
 ## 08/02/2017 Justin Rajendra
 ## launch shiny app of Cluster Explorer output
-
+ 
 ## get the current program name
 set prog = `basename $0`
 
