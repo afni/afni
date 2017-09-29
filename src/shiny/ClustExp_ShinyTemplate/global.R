@@ -15,8 +15,7 @@ library(afex)
 
 #################
 ## change this stuff from the template
-prefix <- "disco_ttest"
-# prefix <- 'prefix_replace'
+prefix <- 'prefix_replace'
 
 
 #################
