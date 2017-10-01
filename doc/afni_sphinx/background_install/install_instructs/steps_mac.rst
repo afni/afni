@@ -28,8 +28,8 @@ a. *Do I have Admin privileges?*  To find out, type::
           
      sudo ls
 
-     If you can provide the correct password for the file list to
-     display, you should be OK to proceed.
+   If you can provide the correct password for the file list to
+   display, you should be OK to proceed.
 
 #. *What's my shell?*  To find out, type::
 
@@ -66,12 +66,14 @@ a. Xcode is needed for the gcc compiler and related tools.
    XQuartz is the desktop manager needed to run X11
    programs (such as ``afni``).
 
-   *  *For OS X >= 10.11,* install Xcode using the command::
+   *  *For OS X >= 10.11,* 
+
+      i. Install Xcode using the command::
 
            xcode-select --install
            
-      **and** install XQuartz using the "Quick Download" DMG from
-      http://www.xquartz.org
+      #. Install XQuartz using the "Quick Download" DMG from
+         http://www.xquartz.org
 
    *  *For OS X 10.9 and 10.10,* run the two commands::
 
