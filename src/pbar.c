@@ -309,8 +309,18 @@ STATUS("init pval_save") ;
                                NULL ) ;
       XtAddCallback( pbar->big_scaledn_pb, XmNactivateCallback, PBAR_big_menu_CB , pbar ) ;
       MCW_register_hint( pbar->big_scaledn_pb , "Halve the maximum possible value" ) ;
+
+      pbar->big_picktopbot_pb = XtVaCreateManagedWidget(
+                                "menu" , xmPushButtonWidgetClass , pbar->big_menu ,
+                                  LABEL_ARG("Pick Bot/Top") ,
+                                  XmNtraversalOn , True  ,
+                                  XmNinitialResourcesPersistent , False ,
+                               NULL ) ;
+      XtAddCallback( pbar->big_picktopbot_pb, XmNactivateCallback, PBAR_big_menu_CB , pbar ) ;
+      MCW_register_hint( pbar->big_picktopbot_pb , "Choose the display range" ) ;
    } else {
      pbar->big_scaleup_pb = pbar->big_scaledn_pb = NULL ;
+     pbar->big_picktopbot_pb = NULL ;
    }
 
    /*-- go home --*/
@@ -721,6 +731,47 @@ ENTRY("PBAR_button_EV") ;
 
 /*--------------------------------------------------------------------*/
 
+void PBAR_topbot_finalize( Widget w , XtPointer cd , int nval , void **val )
+{
+   MCW_pbar *pbar = (MCW_pbar *)cd ;
+   float bot , top ;
+   char *spt ;
+   Three_D_View *im3d ;
+
+ENTRY("PBAR_topbot_finalize") ;
+
+   if( pbar==NULL ) EXRETURN ;
+
+   im3d = (Three_D_View *)pbar->parent ;
+   if( !ISVALID_IM3D(im3d) || !pbar->bigmode || w==NULL || nval!=2 || val==NULL ){
+     XBell(pbar->dc->display,100) ; EXRETURN ;
+   }
+
+   spt = (char *)val[0] ;
+   if( spt != NULL && *spt != '\0' ){
+     bot = (float)strtod(spt,NULL) ;
+   } else {
+     XBell(pbar->dc->display,100) ; EXRETURN ;
+   }
+
+   spt = (char *)val[1] ;
+   if( spt != NULL && *spt != '\0' ){
+     top = (float)strtod(spt,NULL) ;
+   } else {
+     XBell(pbar->dc->display,100) ; EXRETURN ;
+   }
+   if( top <= bot ){
+     XBell(pbar->dc->display,100) ; EXRETURN ;
+   }
+
+   /* INFO_message("bot=%g top=%g",bot,top) ; */
+   PBAR_set_bigmode( pbar , 1 , bot,top ) ;
+   AFNI_inten_pbar_CB( pbar , im3d , 0 ) ;
+   EXRETURN ;
+}
+
+/*--------------------------------------------------------------------*/
+
 static void PBAR_big_menu_CB( Widget w , XtPointer cd , XtPointer qd )
 {
    MCW_pbar *pbar = (MCW_pbar *)cd ;
@@ -761,6 +812,19 @@ ENTRY("PBAR_big_menu_CB") ;
        XBell(pbar->dc->display,100) ;
      }
 
+   } else if( w == pbar->big_picktopbot_pb ){
+     Three_D_View *im3d=(Three_D_View *)pbar->parent ;
+     Widget wtop ;
+     if( ISVALID_IM3D(im3d) ){
+       wtop = im3d->vwid->func->inten_label ;
+     } else {
+       XBell(pbar->dc->display,100) ;
+     }
+     MCW_choose_stuff( wtop , "Color pbar range" ,
+                       PBAR_topbot_finalize, (XtPointer)pbar ,
+                         MSTUF_STRING , "Bot" ,
+                         MSTUF_STRING , "Top" ,
+                       MSTUF_END ) ;
    }
 
    EXRETURN ;
