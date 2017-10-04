@@ -78,7 +78,7 @@ set in_BVAL = ""               # inputting bval, a la 1dDW*++
 set in_MASK = ""               # inputting bval, a la 1dDW*++
 set odir    = "."
 
-set out_ff  = "GradFlipTest_rec.txt"
+set out_ff  = ""
 
 set min_tr_len = 30            # default min tract length
 set min_fa     = 0.2           # default min FA
@@ -239,16 +239,20 @@ endif
 # in case user wants to change this loc
 set tmpdir = "$odir/$tmpdir"
 
+if ( "$out_ff" == "" ) then
+    set out_ff = "$odir/GradFlipTest_rec.txt"
+endif
+
 # make a temporary output directory
 if( -d "$tmpdir" ) then
-    echo "Directory '$tmpdir' exists already."
+    echo "++ Directory '$tmpdir' exists already."
 else
-    printf "\n\nMaking the temporary directory '$tmpdir' for the files."
+    echo "++ Making the temporary directory '$tmpdir' for the files."
     mkdir $tmpdir
 endif
 
 if ( ! -e "$tmpdir" ) then
-    echo "+* ERROR: Couldn't make working dir '$tmpdir' for some reason."
+    echo "** ERROR: Couldn't make working dir '$tmpdir' for some reason."
     goto BAD_EXIT
 endif
 
@@ -261,6 +265,10 @@ set out_echo = `basename $out_echo .log`
 set out_echo = `basename $out_echo .flip`
 set out_echo = `basename $out_echo .tex`
 set out_echo = "$odir/${out_echo}_echo.txt"
+ 
+echo "OUTECHO: $out_echo"
+
+
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 #                 Start the looping
@@ -419,7 +427,7 @@ foreach i ( `seq 1 1 4` )
 
     # grep for the numbers of tracts in each case
     set HasNT = `grep -A 1 "\# NT" $out_GRID`
-    printf "Checking GRID file: $out_GRID\n"
+    printf "++ Checking GRID file: $out_GRID\n"
 
     set ALL_ARR = ( $ALL_ARR "$HasNT[3]" )
 
@@ -433,6 +441,8 @@ end
 #                      Find the max of the tracts
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
+printf "++ Calculate max of tracts.\n"
+    
 set L = `printf $#ALL_ARR`
 set MaxI = "1"
 set MaxV = "$ALL_ARR[$MaxI]"
@@ -453,8 +463,8 @@ foreach i ( `seq 1 1 $L` )
 end
 
 # [PT: Aug 24, 2017] overwrite any previous run, if it exists
-printf "" > $odir/$out_ff
-echo "$FLIPS[$MaxI]" >> $odir/$out_ff
+printf "" > $out_ff
+echo "$FLIPS[$MaxI]" >> $out_ff
 
 printf "\n\n -->" >> $out_echo
 printf "Therefore, I *guess* that the best flip is:   " >> $out_echo
@@ -463,7 +473,7 @@ printf "\n" >> $out_echo
 printf "  NB: If that isn't a *very* clear winner, then check \n" >> $out_echo
 printf "      for any problems, such as DICOM conversion, etc.\n" >> $out_echo
 printf "\n" >> $out_echo
-printf "That recommendation is stored in '$odir/$out_ff'\n\n" >> $out_echo
+printf "That recommendation is stored in '$out_ff'\n\n" >> $out_echo
 printf "Volume + tracking results are in directory '$tmpdir'\n" >> $out_echo
 echo   "" >> $out_echo
 printf "You may (should!) check the tracking results to verify:\n" >> $out_echo
@@ -579,7 +589,11 @@ cat << EOF
                      are just checking out trackability
 
     -wdir WWW       :rename working directory output; useful if running 
-                     multiple iterations.  Default: ${tmpdir}.
+                     multiple iterations.  Default: ${tmpdir}. 
+                     NB: WWW should *only* be the name of the directory,
+                     not contain path info-- the location of WWW is just
+                     determined by the path for output, which comes from
+                     the path part of PPP/
 
     -do_clean       :remove temporary directory
 
