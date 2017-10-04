@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 4 , OCT , 2017 , RWC , "3dTsort" , MICRO , TYPE_NEW_OPT ,
+   "add -random option = shuffle each time series independently" ,
+   NULL } ,
+
  { 3 , OCT , 2017 , RWC , "afni GUI" , MICRO , TYPE_ENHANCE ,
    "Add bot/top selection to pbar in THREE mode" ,
    NULL } ,
