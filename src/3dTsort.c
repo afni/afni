@@ -15,12 +15,19 @@ static void SORTS_itsfunc( double tzero , double tdelta ,
 static void SORTS_rtsfunc( double tzero , double tdelta ,
                          int npts , float ts[] , double ts_mean ,
                          double ts_slope , void *ud , int nbriks, float *val ) ;
+static void SORTS_ranfunc( double tzero , double tdelta ,
+                         int npts , float ts[] , double ts_mean ,
+                         double ts_slope , void *ud , int nbriks, float *val ) ;
 extern int *z_iqsort (float *x , int nx );
+
+static unsigned short xran_pm[3] = { 23456 , 34567 , 54321 } ;
+#define SET_XRAN(xr,rss) \
+ ( (xr)[0]=((rss)>>16), (xr)[1]=((rss)&65535), (xr)[2]=(xr)[0]+(xr)[1]+17 )
 
 int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *old_dset , *new_dset ;  /* input and output datasets */
-   int nopt, ii , nvals , rank;
+   int nopt, ii , nvals , rank=0, do_random=0 ;
 
    /*----- Help the pitiful user? -----*/
 
@@ -38,6 +45,9 @@ int main( int argc , char *argv[] )
              " -ind      = output sorting index. (0 to Nvals -1)\n"
              "             See example below.\n"
              " -val      = output sorted values (default)\n"
+             " -random   = randomly shuffle the time points in each voxel\n"
+             "             * Each voxel is permuted independently!\n"
+             "             * Why is this here? Someone asked for it :)\n"
              " -datum D  = Coerce the output data to be stored as \n"
              "             the given type D, which may be  \n"
              "             byte, short, or float (default).         \n"
@@ -108,6 +118,14 @@ int main( int argc , char *argv[] )
       if( strncmp(argv[nopt],"-ind",5) == 0){
          rank = -1; nopt++; continue;
       }
+      if( strncmp(argv[nopt],"-random",6) == 0){
+         unsigned int spm ;
+         rank = 0; do_random = 1;
+         init_rand_seed(0) ;
+         spm = lrand48() ;
+         SET_XRAN(xran_pm,spm) ;
+         nopt++; continue;
+      }
       if( strncasecmp(argv[nopt],"-datum",6) == 0 ){
          if( ++nopt >= argc )
            ERROR_exit("need an argument after -datum!\n") ;
@@ -153,9 +171,22 @@ int main( int argc , char *argv[] )
    if( nvals < 2 )
      ERROR_exit("Can't use dataset with < 2 values per voxel!\n") ;
 
-   /*------------- ready to compute new dataset -----------*/ 
+   /*------------- ready to compute new dataset -----------*/
 
-   if (!rank) {
+   if( do_random ){
+      new_dset = MAKER_4D_to_typed_fbuc(
+                    old_dset ,             /* input dataset */
+                    prefix ,               /* output prefix */
+                    datum ,                /* output datum  */
+                    0 ,                    /* ignore count  */
+                    0 ,                    /* don't detrend */
+                    nvals ,                /* number of briks */
+                    SORTS_ranfunc ,        /* timeseries processor */
+                    NULL,                  /* data for tsfunc */
+                    NULL,                  /* mask */
+                    0                      /* Allow auto scaling of output */
+                 ) ;
+   } else if (!rank) {
       new_dset = MAKER_4D_to_typed_fbuc(
                     old_dset ,             /* input dataset */
                     prefix ,               /* output prefix */
@@ -178,7 +209,7 @@ int main( int argc , char *argv[] )
                     nvals ,                /* number of briks */
                     SORTS_itsfunc ,        /* timeseries processor */
                     NULL,                  /* data for tsfunc */
-                    NULL,                  /* mask */  
+                    NULL,                  /* mask */
                     0                      /* Allow auto scaling of output */
                  ) ;
    } else {
@@ -191,10 +222,10 @@ int main( int argc , char *argv[] )
                     nvals ,                /* number of briks */
                     SORTS_rtsfunc ,        /* timeseries processor */
                     NULL,                  /* data for tsfunc */
-                    NULL,                  /* mask */ 
+                    NULL,                  /* mask */
                     0                      /* Allow auto scaling of output */
                  ) ;
-   } 
+   }
    if( new_dset != NULL ){
      tross_Copy_History( old_dset , new_dset ) ;
      tross_Make_History( "3dTsort" , argc,argv , new_dset ) ;
@@ -248,6 +279,9 @@ static void SORTS_tsfunc( double tzero, double tdelta ,
    }
    return ;
 }
+
+/*--------------------------------------------------------------------*/
+
 static void SORTS_itsfunc( double tzero, double tdelta ,
                           int npts, float ts[],
                           double ts_mean, double ts_slope,
@@ -270,7 +304,7 @@ static void SORTS_itsfunc( double tzero, double tdelta ,
 
    nval = MIN(nbriks,npts) ;
    memcpy( val , ts , sizeof(float)*nval ) ;
-   
+
    /* Using an inverse sorting function, for excitement */
 #if 0 /* the dumber way */
    for( ii=0 ; ii < nval ; ii++ ) val[ii] = -val[ii] ;
@@ -291,6 +325,9 @@ static void SORTS_itsfunc( double tzero, double tdelta ,
    free(rnk); rnk=NULL;
    return ;
 }
+
+/*--------------------------------------------------------------------*/
+
 static void SORTS_rtsfunc( double tzero, double tdelta ,
                           int npts, float ts[],
                           double ts_mean, double ts_slope,
@@ -308,7 +345,7 @@ static void SORTS_rtsfunc( double tzero, double tdelta ,
 
    nval = MIN(nbriks,npts) ;
    memcpy( val , ts , sizeof(float)*nval ) ;
-   
+
    /* Using an inverse sorting function, for excitement */
    rnk = z_iqsort( val, nval ) ;
    if( inc == 1 ){
@@ -317,5 +354,71 @@ static void SORTS_rtsfunc( double tzero, double tdelta ,
       for( ii=0 ; ii < nval ; ii++ ) val[ii] = rnk[ii] ;
    }
    free(rnk); rnk=NULL;
+   return ;
+}
+
+/*--------------------------------------------------------------------*/
+
+static int    p_nxy  = 0 ;     /* total length of data */
+static float *p_xyar = NULL ;  /* array to hold both samples */
+static int   *p_ijar = NULL ;  /* permutation array */
+
+static void float_permute( int nxy , float *ar )
+{
+   int ii,jj,tt ;
+
+   if( nxy < 2 ) return ;  /* how did this happen? */
+
+   if( nxy > p_nxy ){  /* make workspaces */
+     p_nxy  = nxy ;
+     p_xyar = (float *)realloc(p_xyar,sizeof(float)*p_nxy) ;
+     p_ijar = (int   *)realloc(p_ijar,sizeof(int  )*p_nxy) ;
+   }
+
+   /* initialize the permutation a little randomly */
+
+   tt = nrand48(xran_pm) % p_nxy ;
+   for( ii=0 ; ii < p_nxy ; ii++ ) p_ijar[ii] = (ii+tt)%p_nxy ;
+
+   /* create a random-ish permutation */
+   /* https://en.wikipedia.org/wiki/Random_permutation */
+
+   for( ii=0 ; ii < p_nxy-1 ; ii++ ){
+     jj = (nrand48(xran_pm)>>3) % (p_nxy-ii) ; /* jj in 0..p_nxy-ii-1 inclusive */
+                                           /* so ii+jj in ii..p_nxy-1 inclusive */
+     if( jj > 0 ){  /* swap */
+       tt = p_ijar[ii] ; p_ijar[ii] = p_ijar[ii+jj] ; p_ijar[ii+jj] = tt ;
+     }
+   }
+
+   for( ii=0 ; ii < p_nxy ; ii++ ) p_xyar[ii] = ar[ii] ;
+   for( ii=0 ; ii < p_nxy ; ii++ ) ar[ii] = p_xyar[p_ijar[ii]] ;
+
+   return ;
+}
+
+static void SORTS_ranfunc( double tzero, double tdelta ,
+                           int npts, float ts[],
+                           double ts_mean, double ts_slope,
+                           void *ud, int nbriks, float *val )
+{
+   int ii , nval ;
+
+   /** is this a "notification"? **/
+
+   if( val == NULL ){
+#if 0
+      if( npts > 0 ){  /* the "start notification" */
+      } else {  /* the "end notification" */
+      }
+#endif
+      return ;
+   }
+
+   /** do the work **/
+
+   nval = MIN(nbriks,npts) ;
+   memcpy( val , ts , sizeof(float)*nval ) ;
+   float_permute( nval , val ) ;
    return ;
 }
