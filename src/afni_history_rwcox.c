@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 5 , OCT , 2017 , RWC , "3dTsort" , MICRO , TYPE_NEW_OPT ,
+   "add -ranFFT option, for Cesar" ,
+   NULL } ,
+
  { 4 , OCT , 2017 , RWC , "3dTsort" , MICRO , TYPE_NEW_OPT ,
    "add -random option = shuffle each time series independently" ,
    NULL } ,
