@@ -36,13 +36,17 @@
 #   + add opt for "-wdir *" name
 #   + also echo "@GradFlipTest ..." command used
 #
-set version   = "2.9";    set rev_dat   = "Aug 24, 2017"
+#set version   = "2.9";    set rev_dat   = "Aug 24, 2017"
 #   + output text file with single grad will overwrite previous, not
 #     append to
 #
-set version   = "2.91";    set rev_dat   = "Sep 20, 2017"
+#set version   = "2.91";    set rev_dat   = "Sep 20, 2017"
 #   + 'more' -> 'cat', to not wait for pause in terminal!
 #     ---> Thanks, Tiffany Nash for finding this.
+#
+set version   = "2.92";    set rev_dat   = "Oct 04, 2017"
+#   + one case of needing to:  $out_ff -> $odir/$out_ff
+#   + update using '-prefix ...' better, no more separate 'outdir'
 #
 ########################################################################
 
@@ -74,7 +78,7 @@ set in_BVAL = ""               # inputting bval, a la 1dDW*++
 set in_MASK = ""               # inputting bval, a la 1dDW*++
 set odir    = "."
 
-set out_ff  = "GradFlipTest_rec.txt"
+set out_ff  = ""
 
 set min_tr_len = 30            # default min tract length
 set min_fa     = 0.2           # default min FA
@@ -152,10 +156,16 @@ while ( $ac <= $#argv )
 
     # ---------- other opts -----------------
 
+# [PT: Oct 04, 2017] Don't need separate, just get from '-prefix ...' part
+#    else if ( "$argv[$ac]" == "-outdir" ) then
+#        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+#        @ ac += 1
+#        set odir = "$argv[$ac]"
     else if ( "$argv[$ac]" == "-outdir" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-        @ ac += 1
-        set odir = "$argv[$ac]"
+        echo "** ERROR: this option no longer exists-- just specify output"
+        echo "          directory from path part of '-prefix ...'"
+        goto BAD_EXIT
 
     # [PT: July 31, 2017] useful if running a lot
     else if ( "$argv[$ac]" == "-wdir" ) then
@@ -163,10 +173,12 @@ while ( $ac <= $#argv )
         @ ac += 1
         set tmpdir = "$argv[$ac]"
 
+    # [PT: Oct 04, 2017] Get $odir solely from this
     else if ( "$argv[$ac]" == "-prefix" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set out_ff = "$argv[$ac]"
+        set odir = "$out_ff:h"
 
     else if ( "$argv[$ac]" == "-scale_out_1000" ) then
         set SOT = "-scale_out_1000"
@@ -227,16 +239,20 @@ endif
 # in case user wants to change this loc
 set tmpdir = "$odir/$tmpdir"
 
+if ( "$out_ff" == "" ) then
+    set out_ff = "$odir/GradFlipTest_rec.txt"
+endif
+
 # make a temporary output directory
 if( -d "$tmpdir" ) then
-    echo "Directory '$tmpdir' exists already."
+    echo "++ Directory '$tmpdir' exists already."
 else
-    printf "\n\nMaking the temporary directory '$tmpdir' for the files."
+    echo "++ Making the temporary directory '$tmpdir' for the files."
     mkdir $tmpdir
 endif
 
 if ( ! -e "$tmpdir" ) then
-    echo "+* ERROR: Couldn't make working dir '$tmpdir' for some reason."
+    echo "** ERROR: Couldn't make working dir '$tmpdir' for some reason."
     goto BAD_EXIT
 endif
 
@@ -249,6 +265,10 @@ set out_echo = `basename $out_echo .log`
 set out_echo = `basename $out_echo .flip`
 set out_echo = `basename $out_echo .tex`
 set out_echo = "$odir/${out_echo}_echo.txt"
+ 
+echo "OUTECHO: $out_echo"
+
+
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 #                 Start the looping
@@ -407,7 +427,7 @@ foreach i ( `seq 1 1 4` )
 
     # grep for the numbers of tracts in each case
     set HasNT = `grep -A 1 "\# NT" $out_GRID`
-    printf "Checking GRID file: $out_GRID\n"
+    printf "++ Checking GRID file: $out_GRID\n"
 
     set ALL_ARR = ( $ALL_ARR "$HasNT[3]" )
 
@@ -421,6 +441,8 @@ end
 #                      Find the max of the tracts
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
+printf "++ Calculate max of tracts.\n"
+    
 set L = `printf $#ALL_ARR`
 set MaxI = "1"
 set MaxV = "$ALL_ARR[$MaxI]"
@@ -442,7 +464,7 @@ end
 
 # [PT: Aug 24, 2017] overwrite any previous run, if it exists
 printf "" > $out_ff
-echo "$FLIPS[$MaxI]" >> $odir/$out_ff
+echo "$FLIPS[$MaxI]" >> $out_ff
 
 printf "\n\n -->" >> $out_echo
 printf "Therefore, I *guess* that the best flip is:   " >> $out_echo
@@ -451,7 +473,7 @@ printf "\n" >> $out_echo
 printf "  NB: If that isn't a *very* clear winner, then check \n" >> $out_echo
 printf "      for any problems, such as DICOM conversion, etc.\n" >> $out_echo
 printf "\n" >> $out_echo
-printf "That recommendation is stored in '$odir/$out_ff'\n\n" >> $out_echo
+printf "That recommendation is stored in '$out_ff'\n\n" >> $out_echo
 printf "Volume + tracking results are in directory '$tmpdir'\n" >> $out_echo
 echo   "" >> $out_echo
 printf "You may (should!) check the tracking results to verify:\n" >> $out_echo
@@ -526,7 +548,6 @@ cat << EOF
     { -in_bvals BB }                                                \
     { -alg_Thresh_FA X }                                            \
     { -alg_Thresh_Len L }                                           \
-    { -outdir     OUT }                                             \
     { -prefix     PPP }                                             \
     { -scale_out_1000 }                                             \
     { -wdir WWW }                                                   \
@@ -555,16 +576,24 @@ cat << EOF
                      to be a bit on the longside for clear counting and
                      comparison)
 
-    -outdir     OUT :can change location of temp dir and also of output 
-                     text file with recommended flip opt (default is '.')
     -prefix     PPP :output name of text file that stores recommended
-                     flip opt (default is $out_ff)
+                     flip opt (default is $out_ff).  This option is now
+                     also used to determine the directory for all outputs
+                     of this program, via the path of PPP.
+        NB: The previous, separate option for specifying output directory 
+            was '-outdir OUT', but this no longer is used;  the path of an
+            output directory is specified by taking the path-part of the 
+            '-prefix PPP' input.
 
     -scale_out_1000 :as in 3dDWItoDT.  Probably not necessary, since we 
                      are just checking out trackability
 
     -wdir WWW       :rename working directory output; useful if running 
-                     multiple iterations.  Default: ${tmpdir}.
+                     multiple iterations.  Default: ${tmpdir}. 
+                     NB: WWW should *only* be the name of the directory,
+                     not contain path info-- the location of WWW is just
+                     determined by the path for output, which comes from
+                     the path part of PPP/
 
     -do_clean       :remove temporary directory
 
