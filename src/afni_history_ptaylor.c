@@ -66,7 +66,12 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
-   { 22, Sep , 2017 , PT , "fat_proc_map_to_dti" , MINOR , TYPE_BUG_FIX,
+{ 04, Oct , 2017 , PT , "@GradFlipTest" , MINOR , TYPE_MODIFY,
+   "Change the output directory naming/choosing options.",
+   "Do more with just '-prefix ...', in standard AFNI fashion.\n"
+},
+
+{ 22, Sep , 2017 , PT , "fat_proc_map_to_dti" , MINOR , TYPE_BUG_FIX,
    "On Macs, when not all types of 'follower' sets were used, this gave err.",
    "Have changed internal behavior to avoid this 'Mac'errorizing.\n"
 },

@@ -97,6 +97,7 @@ typedef struct {
   int    dont_alter_bigmax ;    /* Feb 2012 */
 
   Widget big_menu, big_label, big_choose_pb, big_scaleup_pb, big_scaledn_pb ;
+  Widget big_picktopbot_pb ;
 } MCW_pbar ;
 
 MCW_pbar * new_MCW_pbar( Widget , MCW_DC * ,
