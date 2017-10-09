@@ -5,6 +5,7 @@
 static char prefix[THD_MAX_PREFIX] = "tsort" ;
 static int datum                   = MRI_float ;
 static int inc                     = 1 ;
+static int do_random               = 0 ;
 
 static void SORTS_tsfunc( double tzero , double tdelta ,
                          int npts , float ts[] , double ts_mean ,
@@ -30,7 +31,7 @@ static unsigned short xran_pm[3] = { 23456 , 34567 , 54321 } ;
 int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *old_dset , *new_dset ;  /* input and output datasets */
-   int nopt, ii , nvals , rank=0, do_random=0 ;
+   int nopt, ii , nvals , rank=0 ;
 
    /*----- Help the pitiful user? -----*/
 
@@ -54,6 +55,22 @@ int main( int argc , char *argv[] )
              " -ranFFT   = randomize each time series by scrambling the FFT phase\n"
              "             * Each voxel is treated separately!\n"
              "             * Why is this here? cf. Matthew 7:7-8 :)\n"
+             " -ranDFT   = Almost the same as above, but:\n"
+             "             * In '-ranFFT', the FFT length is taken\n"
+             "               to be the next integer >= data length\n"
+             "               for which the FFT algorithm is efficient.\n"
+             "               This will result in data padding unless\n"
+             "               the data length is exactly 'nice' for FFT.\n"
+             "             * In '-ranDFT', the DFT length is exactly\n"
+             "               the data length. If the data length is\n"
+             "               a large-ish prime number (say 997), this\n"
+             "               operation can be slow.\n"
+             "             * The DFT/FFT algorithm is reasonably fast\n"
+             "               when the data length prime factors contain\n"
+             "               only 2s, 3s, and/or 5s.\n"
+             "             * Using '-ranDFT' can preserve the spectral\n"
+             "               (temporal correlation) structure of the\n"
+             "               original data a little better than '-ranFFT'.\n"
              " -datum D  = Coerce the output data to be stored as \n"
              "             the given type D, which may be  \n"
              "             byte, short, or float (default).         \n"
@@ -132,7 +149,6 @@ int main( int argc , char *argv[] )
          SET_XRAN(xran_pm,spm) ;
          nopt++; continue;
       }
-#if 1
       if( strncmp(argv[nopt],"-ranFFT",6) == 0){
          unsigned int spm ;
          rank = 0; do_random = -1;
@@ -141,7 +157,14 @@ int main( int argc , char *argv[] )
          SET_XRAN(xran_pm,spm) ;
          nopt++; continue;
       }
-#endif
+      if( strncmp(argv[nopt],"-ranDFT",6) == 0){
+         unsigned int spm ;
+         rank = 0; do_random = -2;
+         init_rand_seed(0) ;
+         spm = lrand48() ;
+         SET_XRAN(xran_pm,spm) ;
+         nopt++; continue;
+      }
       if( strncasecmp(argv[nopt],"-datum",6) == 0 ){
          if( ++nopt >= argc )
            ERROR_exit("need an argument after -datum!\n") ;
@@ -189,7 +212,7 @@ int main( int argc , char *argv[] )
 
    /*------------- ready to compute new dataset -----------*/
 
-   if( do_random == 1 ){
+   if( do_random == 1 ){   /* shuffling */
       new_dset = MAKER_4D_to_typed_fbuc(
                     old_dset ,             /* input dataset */
                     prefix ,               /* output prefix */
@@ -202,7 +225,7 @@ int main( int argc , char *argv[] )
                     NULL,                  /* mask */
                     0                      /* Allow auto scaling of output */
                  ) ;
-   } else if ( do_random == -1 ){
+   } else if ( do_random < 0 ){  /* scrambling */
       new_dset = MAKER_4D_to_typed_fbuc(
                     old_dset ,             /* input dataset */
                     prefix ,               /* output prefix */
@@ -454,7 +477,7 @@ static void SORTS_ranfunc( double tzero, double tdelta ,
 
 /*--------------------------------------------------------------------*/
 
-static int s_nx=0 , s_nfft=0 , s_nfft2=0 ;
+static int s_nx=0 , s_nfft=0 , s_nfft2=0 , s_nftop=0 ;
 static complex *s_cxar=NULL ;
 static float  **s_pref=NULL ;
 static float   *s_ffar=NULL ;
@@ -475,7 +498,13 @@ static void float_scramble( int nx , float *ar )
 
    if( nx != s_nx ){
      s_nx   = nx ;
-     s_nfft = csfft_nextup_even(s_nx) ; s_nfft2 = s_nfft/2 ;
+     if( do_random == -1 ){
+       s_nfft = csfft_nextup_even(s_nx) ; s_nfft2 = s_nfft/2 ;
+     } else {
+       s_nfft  = s_nx ;
+       s_nfft2 = (s_nfft %2 == 0 ) ? s_nfft/2 : 0;
+     }
+     s_nftop = s_nfft / 2 ;
      s_cxar = (complex *)realloc(s_cxar,sizeof(complex)*s_nfft) ;
      s_ffar = (float *  )realloc(s_ffar,sizeof(float)  *s_nfft) ;
      if( s_pref != NULL ){
@@ -484,7 +513,8 @@ static void float_scramble( int nx , float *ar )
      s_pref = THD_build_polyref( 3 , s_nx ) ;
      if( s_ffit == NULL ) s_ffit = (float *)malloc(sizeof(float)*3) ;
      csfft_scale_inverse(1) ;
-     INFO_message("time series length = %d ==> FFT length = %d",s_nx,s_nfft) ;
+     INFO_message("time series length = %d ==> FFT length = %d",
+                  s_nx,s_nfft) ;
    }
 
    memcpy( s_ffar , ar , sizeof(float)*s_nx ) ;
@@ -498,14 +528,18 @@ static void float_scramble( int nx , float *ar )
 
    csfft_cox( -1 , s_nfft , s_cxar ) ;
 
-   for( ii=1 ; ii < s_nfft2 ; ii++ ){
+   for( ii=1 ; ii < s_nftop ; ii++ ){
      theta = TPI * (float)erand48(xran_pm) ;
      CXROT(s_cxar[ii],theta) ;
      s_cxar[s_nfft-ii].r =  s_cxar[ii].r ;
      s_cxar[s_nfft-ii].i = -s_cxar[ii].i ;
    }
-   s_cxar[0].r = s_cxar[0].i = s_cxar[s_nfft2].i = 0.0f ;
-   if( nrand48(xran_pm)%2 == 1 ) s_cxar[s_nfft2].r = -s_cxar[s_nfft2].r ;
+   s_cxar[0].r = s_cxar[0].i ;
+   if( s_nfft2 > 0 ){
+     s_cxar[s_nfft2].i = 0.0f ;
+     if( nrand48(xran_pm)%2 == 1 )
+       s_cxar[s_nfft2].r = -s_cxar[s_nfft2].r ;
+   }
 
    csfft_cox( 1 , s_nfft , s_cxar ) ;
 
@@ -513,7 +547,6 @@ static void float_scramble( int nx , float *ar )
    THD_generic_retrend( s_nx , ar , -1 , 3 , s_pref , s_ffit ) ;
    return ;
 }
-
 
 static void SORTS_FFTfunc( double tzero, double tdelta ,
                            int npts, float ts[],
