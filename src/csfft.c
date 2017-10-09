@@ -4,6 +4,12 @@
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
+/**** Complex in-place FFT functions.
+      Prototypes below, after some inclusions.
+      If USE_FFTN is enabled, any length is allowed;
+      otherwise, limited to powers of 2 combined with
+      powers of 3 and 5 (no more than 3^3 and 5^5, though). ****/
+
 #undef STANDALONE  /* Define this if you want to use this code */
                    /* outside of the AFNI package (libmri.a).  */
 
@@ -18,14 +24,19 @@
 #  include "mrilib.h"   /* AFNI package library header */
 #endif  /* STANDALONE */
 
+/* whether to use the fftn package, which allows for arbitrary lengths */
+
 #define USE_FFTN
 #ifdef USE_FFTN
-#  define FFT_NODOUBLE
+#  define FFT_NODOUBLE    /* use the float version */
 #  include "fftn.c"
 static int force_fftn=0 ;
 #else
 # define force_fftn 0
 #endif
+
+/* force the use of fftn even if csfft_cox is better;
+   this ability is really here just for speed testing */
 
 void csfft_force_fftn( int fff )
 {
@@ -62,6 +73,11 @@ void csfft_scale_inverse( int scl ) ; /* scl=1 ==> force 1/N for mode=+1 **/
  ***    >= n that contains at most one power of 3, at most one power     **
  ***   of 5, and least one power of 2.  In trials, these are the most    **
  ***   time efficient.                                                   **/
+
+/*** Oct 2017:
+ ***   If fftn is enabled, idim can be arbitrary.       **
+ ***   However, csfft_cox functions are used for their  **
+  ***  special cases, since they are somewhat faster :) **/
 
 /*-- Aug 1999: routines to do FFTs by decimation by 3 or 5 --*/
 
@@ -227,8 +243,12 @@ void csfft_cox( int mode , int idim , complex *xc )
    if( idim <= 1 ) return ;  /* stoopid inpoot */
 
 #ifdef USE_FFTN
-   { m = csfft_nextup_even(idim) ;
-     if( force_fftn || idim != m || idim > 32768 ){
+   { static int last_idim=-1 , last_fftn=0 ;
+     if( idim != last_idim ){
+       m = csfft_nextup(idim) ; last_idim = idim ;
+       last_fftn = (force_fftn || idim != m || idim > 32768 ) ;
+     }
+     if( last_fftn ){
 /* INFO_message("csfft_cox(%d) replace by fftn",idim) ; */
        fftnf( idim, NULL, &(xc[0].r), &(xc[0].i), 2*mode, 0.0 ) ;
        SCLINV ; return ;
@@ -1312,6 +1332,7 @@ static void fft32( int mode , complex *xc )
 
 /*----------------------------------------------------------------
    Do a 64 FFT using fft32 and decimation-by-2
+   (unrolling wasn't as efficient)
 ------------------------------------------------------------------*/
 
 static void fft64( int mode , complex *xc )
