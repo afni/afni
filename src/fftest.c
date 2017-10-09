@@ -26,6 +26,7 @@ int main( int argc , char * argv[] )
    if( strcmp(argv[narg],"-q") == 0 ){ quiet++ ; narg++ ; }
 
    (void) my_getenv("TMPDIR") ;
+   if( AFNI_yesenv("AFNI_USE_FFTN") ) csfft_force_fftn(1) ;
 
    len = strtol( argv[narg++] , NULL , 10 ) ;
    num = strtol( argv[narg++] , NULL , 10 ) ;
@@ -38,14 +39,7 @@ int main( int argc , char * argv[] )
       len = -len ;
    }
 
-#ifdef USE_FFTW
-   { int use_fftw = (nvec_in < 1) ;
-     if( use_fftw ) nvec_in = 1 ;
-     else           csfft_use_fftw(0) ;
-   }
-#else
    if( nvec_in < 1 ){fprintf(stderr,"Illegal nvec value!\n"); exit(1) ;}
-#endif
 
    cx = (complex *) malloc( sizeof(complex) * len * nvec_in) ;
 
