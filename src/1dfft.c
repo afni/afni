@@ -61,6 +61,8 @@ int main( int argc , char * argv[] )
 
    machdep() ;
 
+   if( AFNI_yesenv("AFNI_USE_FFTN") ) csfft_force_fftn(1) ;
+
    nopt = 1 ;
    while( nopt < argc && argv[nopt][0] == '-' ){
 

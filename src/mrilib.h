@@ -823,7 +823,7 @@ extern int  csfft_nextup(int) ;
 extern int csfft_nextup_one35(int) ;
 extern int csfft_nextup_even(int) ;
 extern void csfft_scale_inverse(int) ;
-extern void csfft_use_fftw( int ) ;     /* 20 Oct 2000 */
+extern void csfft_force_fftn(int) ; /* 08 Oct 2017 */
 
 extern void mri_fftshift( MRI_IMAGE *, float,float,float, int ) ; /* 13 May 2003 */
 
