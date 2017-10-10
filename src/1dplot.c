@@ -1289,7 +1289,7 @@ int main( int argc , char *argv[] )
 
        inim = mri_read_1D( argv[iarg] ) ;
        if( inim == NULL )
-         ERROR_exit("Can't read input file '%s'\n",argv[iarg]) ;
+         ERROR_exit("Can't read input file '%s' iarg=%d\n",argv[iarg],iarg) ;
 
      } else {                              /* multiple inputs [05 Mar 2003] */
        MRI_IMARR *imar ;                   /* read them & glue into 1 image */
@@ -1306,7 +1306,7 @@ int main( int argc , char *argv[] )
        for( ; iarg < argc ; iarg++ ){
          inim = mri_read_1D( argv[iarg] ) ;
          if( inim == NULL )
-           ERROR_exit("Can't read input file '%s'\n",argv[iarg]) ;
+           ERROR_exit("Can't read input file '%s' iarg=%d\n",argv[iarg],iarg) ;
 
            if( inim->nx == 1 && inim->ny > 1 ){
              flim = mri_transpose(inim); mri_free(inim); inim = flim;
