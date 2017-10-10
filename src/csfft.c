@@ -245,7 +245,7 @@ void csfft_cox( int mode , int idim , complex *xc )
 #ifdef USE_FFTN
    { static int last_idim=-1 , last_fftn=0 ;
      if( idim != last_idim ){
-       m = csfft_nextup(idim) ; last_idim = idim ;
+       m = csfft_nextup_even(idim) ; last_idim = idim ;
        last_fftn = (force_fftn || idim != m || idim > 32768 ) ;
      }
      if( last_fftn ){
