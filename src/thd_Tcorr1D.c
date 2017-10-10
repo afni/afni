@@ -16,11 +16,12 @@ THD_3dim_dataset *THD_Tcorr1D(THD_3dim_dataset *xset, byte *mask, int nmask,
 {
    THD_3dim_dataset *cset = NULL;
    int method=PEARSON ;
-   int ny, kk, datum=MRI_float ; char str[32], fmt[32] ; float cfac=0.0f ;   
+   int ny, kk, datum=MRI_float ; char str[32], fmt[32] ; float cfac=0.0f ;
    float (*corfun)(int,float *,float *) = NULL ;  /* ptr to corr function */
    int nvox , nvals , ii;
+   int nconst=0 ;
 
-   ENTRY("THD_Tcorr1D");
+ENTRY("THD_Tcorr1D");
 
    if( do_short ) datum = MRI_short ;  /* 30 Jan 2017 */
 
@@ -148,8 +149,12 @@ THD_3dim_dataset *THD_Tcorr1D(THD_3dim_dataset *xset, byte *mask, int nmask,
        /* get time series to correlate */
 
        (void)THD_extract_array(ii,xset,0,xsar) ;             /* 3D data */
-       for( jj=0 ; jj < nvals && xsar[jj]==0.0f ; jj++ ) ;      /* nada */
-       if( jj == nvals ) continue ;                /* data was all zero */
+       for( jj=1 ; jj < nvals && xsar[jj]==xsar[0] ; jj++ ) ;   /* nada */
+       if( jj == nvals ){                           /* data was constant */
+#pragma omp atomic
+         nconst++ ;
+         continue ;
+       }
        for( jj=0 ; jj < nvals ; jj++ ) ydar[jj] = ysar[jj] ; /* 1D data */
 
        val = corfun( nvals , xsar , ydar ) ;         /* !! correlate !! */
@@ -167,7 +172,10 @@ THD_3dim_dataset *THD_Tcorr1D(THD_3dim_dataset *xset, byte *mask, int nmask,
  } /* end OpenMP */
  AFNI_OMP_END ;
 
-   if( ny > 1 ) fprintf(stderr,"\n") ;
+   if( ny > 1 ){ fprintf(stderr,"\n") ; nconst /= ny ; }
+   if( nconst > 0 )
+     WARNING_message("THD_Tcorr1D: %d voxel%s skipped because were constant in time",
+                     nconst , (nconst==1) ? "\0" : "s" ) ;
 
    RETURN(cset);
 }
