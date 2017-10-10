@@ -15,7 +15,7 @@
 static float p10( float x ) ;  /* prototype */
 
 #undef  NCLR_MAX
-#define NCLR_MAX 29
+#define NCLR_MAX 99
 static float ccc[NCLR_MAX][3] = {
   { 0.0 , 0.0 , 0.0 } ,
   { 0.9 , 0.0 , 0.0 } ,
@@ -27,7 +27,10 @@ static float ccc[NCLR_MAX][3] = {
 } ;
 
 static int use_ddd = 0 ;
-static int ddd[NCLR_MAX] = { 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1 } ;
+static int ddd[NCLR_MAX] = { 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+                             1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+                             1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+                             1,1,1,1,1,1,1,1,1 } ;
 
 static int NCLR = 7 ;
 static int dont_init_colors=0 ;
