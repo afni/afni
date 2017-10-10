@@ -151,10 +151,11 @@ g_history = """
     0.40 Mar 30, 2017:
          - allow subj_dir to affect GUI
          - apply uvar align_opts_aea and tlrc_opts_at
-    0.41 Oct  6, 2017: try to apply ${subj} and ${gname} in data inputs
+    0.41 Oct 10, 2017: try to apply ${subj} and ${gname} in data inputs
+         - also, put epi -dsets before tcat opts
 """
 
-g_version = '0.41 (October 6, 2017)'
+g_version = '0.41 (October 10, 2017)'
 
 # ----------------------------------------------------------------------
 # global definition of default processing blocks
@@ -408,8 +409,8 @@ class AP_Subject(object):
       self.ap_command += self.script_ap_init()
       self.ap_command += self.script_ap_blocks()
       self.ap_command += self.script_ap_anat()
-      self.ap_command += self.script_ap_tcat()
       self.ap_command += self.script_ap_epi()
+      self.ap_command += self.script_ap_tcat()
       self.ap_command += self.script_ap_align()
       self.ap_command += self.script_ap_tlrc()
       self.ap_command += self.script_ap_volreg()
