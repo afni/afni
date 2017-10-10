@@ -44,6 +44,12 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 10 , OCT , 2017 , RWC , "csfft.c" , MICRO , TYPE_ENHANCE ,
+   "Add use of fftn.c for general length DFTs" ,
+   "csfft_cox() still uses my own method for 'reasonable' values, as it\n"
+   "seems to be faster than the general fftn function. Here, reasonable is\n"
+   "defined as having only factors of 3 and 5 up to at most 3^3 * 5^3." } ,
+
  { 5 , OCT , 2017 , RWC , "3dTsort" , MICRO , TYPE_NEW_OPT ,
    "add -ranFFT option, for Cesar" ,
    NULL } ,
