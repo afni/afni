@@ -1,0 +1,70 @@
+#!/bin/tcsh -f
+#################################################
+## 09/2017 Justin Rajendra
+## launch shiny plot of FATCAT outputs
+
+## find the shiny folder
+set afni_bin = `which afni`
+set afni_dir = `dirname ${afni_bin}`
+set ShinyFolder = "${afni_dir}/shiny/FATCAT_heatmap_shiny"
+
+## get the current program name
+set prog = `basename $0`
+
+## show help
+if ( $#argv < 1 ) then
+    goto SHOW_HELP
+endif
+
+## parse args
+set narg = 1
+@  amax = $#argv - 0
+while ( $narg <= $amax )
+    if ( "$argv[$narg]" == "-help" || "$argv[$narg]" == "-h" ) then
+        goto SHOW_HELP
+    else
+        set InFolder = ($*)
+    endif
+    @ narg ++
+end
+
+## check the inputs
+if ( ! -d $InFolder ) then
+    echo ; echo "Error: ${InFolder} does not exist." ; echo
+    exit 1
+endif
+
+## get full path for the input folder
+cd $InFolder
+set corr_dir = `pwd`
+cd -
+
+## launch shiny
+R --slave --no-restore \
+-e "shiny::runApp('${ShinyFolder}', launch.browser=TRUE)" --args $corr_dir &
+exit 0
+
+##########################################################################
+SHOW_HELP:
+cat << EOF
+
+   ----------------------------------------------------------------------------
+   $prog
+      Launch a shiny app to visualize heatmaps of .netcc and/or .grid files.
+      Takes one argument, a path to a folder with said files.
+
+   -----------------------------------------------------------------------------
+   options:
+      -help : show this help
+
+   -----------------------------------------------------------------------------
+   examples:
+      $prog ~/disco_netcc_folder
+
+   -----------------------------------------------------------------------------
+   Justin Rajendra 09/2017
+
+EOF
+
+exit 0
+
