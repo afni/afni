@@ -51,6 +51,10 @@
 afni_history_struct discoraj_history[] = {
 
  /* can copy to and change one of the examples here */
+ { 11 , OCT , 2017 , JKR , "@FATCAT_heatmap_shiny" , SUPER , TYPE_NEW_PROGRAM ,
+   "add new program @FATCAT_heatmap_shiny" ,
+   "Run a shiny app to view .netcc or .grid files"
+ } ,
  { 11 , OCT , 2017 , JKR , "@ClustExp_CatLab" , SUPER , TYPE_NEW_PROGRAM ,
    "add new program @ClustExp_CatLab" ,
    "Part of cluster explorer. Concatenates and labels input datasets"
