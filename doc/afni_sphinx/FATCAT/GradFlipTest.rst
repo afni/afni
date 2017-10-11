@@ -235,12 +235,11 @@ seem useless but actually makes scripting easier).
     @GradFlipTest                           \
         -in_dwi       buddi.nii               \
         -in_col_matT  buddi.bmtxt             \
-        -outdir       .                       \
         -prefix       GradFlipTest_rec.txt
 
 -> This puts results into the same directory with the "buddi.*" files
-(because the option in ``-outdir .`` points to "here"), and the
-outputs are:
+(because that there is no separate path as part of the ``-prefix *``),
+and the outputs are:
 
 .. list-table:: 
    :header-rows: 1
@@ -308,7 +307,6 @@ For example, one could combine the above command with
     @GradFlipTest                           \
         -in_dwi       buddi.nii               \
         -in_col_matT  buddi.bmtxt             \
-        -outdir       .                       \
         -prefix       GradFlipTest_rec.txt
 
     # echo the flip value into a file
