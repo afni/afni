@@ -16,6 +16,10 @@ void regress_toz( int numA , float *zA ,
 float_pair ttest_toz( int numx, float *xar, int numy, float *yar, int opcode,
                       float *xres, float *yres ) ;
 
+float_pair ttest_boot_1sam( int nx , float *xx ) ; /* 11 Oct 2017 */
+
+static int do_boot = 0 ;
+
 /*----- similar funcs for the case of -singletonA -----*/
 
 void regress_toz_singletonA( float zA ,
@@ -2675,6 +2679,10 @@ int main( int argc , char *argv[] )
        toz = 1 ; nopt++ ; continue ;
      }
 
+     if( strcasecmp(argv[nopt],"-bootstrap") == 0 ){ /* HIDDEN */
+       do_boot = 1 ; nopt++ ; continue ;
+     }
+
      if( strcasecmp(argv[nopt],"-labelA") == 0 ){
        if( ++nopt >= argc )
          ERROR_exit("Need argument after '%s'",argv[nopt-1]) ;
@@ -3212,6 +3220,13 @@ int main( int argc , char *argv[] )
      ERROR_exit("You didn't use one of -setA or -singletonA /:(") ;
 
    twosam = (nval_BBB > 1) ; /* 2 sample test? */
+
+   if( twosam && do_boot )
+     ERROR_exit("-bootstrap and 2-sample tests NOT IMPLEMENTED YET :(") ;
+   if( do_boot && ttest_opcode != 0 )
+     ERROR_exit("-bootstrap and weird opcodes NOT IMPLEMENTED YET :(") ;
+   if( do_boot && nval_AAA < 11 )
+     ERROR_exit("-bootstrap needs at least 11 samples :(") ;
 
    if( singletonA && !twosam )
      ERROR_exit("-singletonA was used, but -setB was not: this makes no sense!") ;
@@ -4157,7 +4172,10 @@ LABELS_ARE_DONE:  /* target for goto above */
            resar[0] = tpair.a ; resar[1] = tpair.b ;
            if( debug > 1 ) fprintf(stderr,"   resar[0]=%g  [1]=%g\n",resar[0],resar[1]) ;
          } else {
-           tpair = ttest_toz( nAAA,zAAA , 0 ,NULL   , ttest_opcode , rAAA,NULL ) ; /* 1 sample setA */
+           if( do_boot )
+             tpair = ttest_boot_1sam( nAAA,zAAA ) ; /* 11 Oct 2017 */
+           else
+             tpair = ttest_toz( nAAA,zAAA, 0,NULL, ttest_opcode, rAAA,NULL ) ; /* 1 sample setA */
            resar[0] = tpair.a ; resar[1] = tpair.b ;
            if( debug > 1 ) fprintf(stderr,"   resar[0]=%g  [1]=%g\n",resar[0],resar[1]) ;
          }
@@ -5752,4 +5770,40 @@ ENTRY("TT_matrix_setup") ;
    }
 
    EXRETURN ;
+}
+
+/*===========================================================================*/
+/*===== Experimental bootstrap stuff [Oct 2017] =====*/
+
+#define NBOOT 1000
+
+float_pair ttest_boot_1sam( int nx , float *xx )
+{
+   float_pair mz = {0.0f,0.0f} ;
+   int bb , ii ;
+   float xbar,xsum , bot,top ;
+   static float *xboot=NULL ;
+
+   if( nx < 11 || xx == NULL ) return mz ;
+
+   for( xbar=0.0f,ii=0 ; ii < nx ; ii++ ) xbar += xx[ii] ;
+   xbar /= (float)nx ;
+
+   if( xboot == NULL ) xboot = (float *)malloc(sizeof(float)*NBOOT) ;
+   for( bb=0 ; bb < NBOOT ; bb++ ){
+     for( xsum=0.0f,ii=0 ; ii < nx ; ii++ ) xsum += xx[lrand48()%nx] ;
+     xboot[bb] = xsum ;
+   }
+
+   bot = qfrac_float( NBOOT , 0.05f , xboot ) ;
+   top = qfrac_float( NBOOT , 0.95f , xboot ) ;
+
+   xsum = (top-bot)/(3.28791f*nx) ; /* 3.28791=Gaussian full width @ 5-95% CDF */
+   xsum = xbar / xsum ;
+
+   mz.a = xbar ;
+   mz.b = (toz) ? (float)GIC_student_t2z( (double)xsum , (double)(nx-1) )
+                : TCLIP(xsum) ;
+
+   return mz ;
 }

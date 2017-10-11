@@ -8,8 +8,12 @@
       Prototypes below, after some inclusions.
       If USE_FFTN is enabled, any length is allowed;
       otherwise, limited to powers of 2 combined with
-      powers of 3 and 5 (no more than 3^3 and 5^5, though). ****/
+      powers of 3 and 5 (no more than 3^3 and 5^5, though).
+      The original csfft_cox() functions are somehwat faster when
+      applicable, and so are used in preference to the FFTN functions.
+      However, the interface is still via csfft_cox(), described below. ****/
 
+/*-------------------------------------------------------------*/
 #undef STANDALONE  /* Define this if you want to use this code */
                    /* outside of the AFNI package (libmri.a).  */
 
@@ -23,20 +27,21 @@
 #else
 #  include "mrilib.h"   /* AFNI package library header */
 #endif  /* STANDALONE */
+/*-------------------------------------------------------------*/
 
 /* whether to use the fftn package, which allows for arbitrary lengths */
 
 #define USE_FFTN
 #ifdef USE_FFTN
-#  define FFT_NODOUBLE    /* use the float version */
+#  define FFT_NODOUBLE    /* use only the float version */
 #  include "fftn.c"
 static int force_fftn=0 ;
 #else
 # define force_fftn 0
 #endif
 
-/* force the use of fftn even if csfft_cox is better;
-   this ability is really here just for speed testing */
+/*---- force the use of fftn even if csfft_cox is better;
+       this ability is really here just for speed testing -----*/
 
 void csfft_force_fftn( int fff )
 {
@@ -58,7 +63,7 @@ void csfft_cox( int mode , int idim , complex *xc ) ;
 int  csfft_nextup( int idim ) ;
 int  csfft_nextup_one35( int idim ) ;
 void csfft_scale_inverse( int scl ) ; /* scl=1 ==> force 1/N for mode=+1 **/
-                                      /* scl=0 ==> no 1/N scaling        **/
+                                      /* scl=0 ==> no 1/N scaling here   **/
 
 /*** Aug 1999:                                                           **
  ***   idim can now contain factors of 3 and/or 5, up to and including   **
@@ -77,7 +82,7 @@ void csfft_scale_inverse( int scl ) ; /* scl=1 ==> force 1/N for mode=+1 **/
 /*** Oct 2017:
  ***   If fftn is enabled, idim can be arbitrary.       **
  ***   However, csfft_cox functions are used for their  **
-  ***  special cases, since they are somewhat faster :) **/
+ ***   special cases, since they are somewhat faster :) **/
 
 /*-- Aug 1999: routines to do FFTs by decimation by 3 or 5 --*/
 
@@ -91,12 +96,13 @@ static void fft_5dec( int , int , complex * ) ;
 #define PI (3.141592653589793238462643)
 
 /*-------------- To order the 1/N scaling on inversion: Aug 1999 ------------*/
+/*-------------- Inversion is when mode == 1                     ------------*/
 
 static int sclinv = 0 ;  /* set by csfft_scale_inverse */
 
 void csfft_scale_inverse( int scl ){ sclinv = scl; return; }
 
-/*-------------- For the unrolled FFT routines: November 1998 --------------*/
+/*-------------- For the unrolled FFT routines: November 1998 ---------------*/
 
 #undef  DONT_UNROLL_FFTS
 #ifndef DONT_UNROLL_FFTS
@@ -223,9 +229,9 @@ static void csfft_trigconsts( int idim )  /* internal function */
 ----------------------------------------------------------------------*/
 
 /*- Macro to do 1/N scaling on inverse:
-      if it is ordered by the user, and
-      if mode is positive, and
-      if this is not a recursive call.  -*/
+      IF it is ordered by the user, and
+      IF mode is positive, and
+      IF this is not a recursive call.  -*/
 
 #define SCLINV                                                 \
  if( sclinv && mode > 0 && rec == 0 ){                         \
@@ -242,14 +248,19 @@ void csfft_cox( int mode , int idim , complex *xc )
 
    if( idim <= 1 ) return ;  /* stoopid inpoot */
 
+   /*-- possibly use fftn instead of Cox/AJ funcs [Oct 2017] --*/
+
 #ifdef USE_FFTN
    { static int last_idim=-1 , last_fftn=0 ;
      if( idim != last_idim ){
        m = csfft_nextup_even(idim) ; last_idim = idim ;
        last_fftn = (force_fftn || idim != m || idim > 32768 ) ;
+#if 0
+       INFO_message("csfft_cox(%d) %s replaced by fftn",
+                    idim , (last_fftn) ? "IS" : "IS NOT" ) ;
+#endif
      }
      if( last_fftn ){
-/* INFO_message("csfft_cox(%d) replace by fftn",idim) ; */
        fftnf( idim, NULL, &(xc[0].r), &(xc[0].i), 2*mode, 0.0 ) ;
        SCLINV ; return ;
      }
@@ -1332,7 +1343,7 @@ static void fft32( int mode , complex *xc )
 
 /*----------------------------------------------------------------
    Do a 64 FFT using fft32 and decimation-by-2
-   (unrolling wasn't as efficient)
+   (complete unrolling wasn't as efficient)
 ------------------------------------------------------------------*/
 
 static void fft64( int mode , complex *xc )
@@ -1446,17 +1457,17 @@ static void fft128( int mode , complex *xc )
       for( k=0 ; k < M ; k++ ){
          t1  = bb[k].r; t2  = bb[k].i;
          tr  = cs[k].r; ti  = cs[k].i;
-         bbr = tr*t1 - ti*t2  ; bbi = tr*t2 + ti*t1  ;  /* b[k]*exp(+2*Pi*k/N) */
+         bbr = tr*t1 - ti*t2  ; bbi = tr*t2 + ti*t1 ; /* b[k]*exp(i*2*Pi*k/N) */
 
          t1  = cc[  k].r; t2  = cc[  k].i;
          tr  = cs[2*k].r; ti  = cs[2*k].i;
-         ccr = tr*t1 - ti*t2  ; cci = tr*t2 + ti*t1  ;  /* c[k]*exp(+4*Pi*k/N) */
+         ccr = tr*t1 - ti*t2  ; cci = tr*t2 + ti*t1 ; /* c[k]*exp(i*4*Pi*k/N) */
 
          t1  = dd[  k].r; t2  = dd[  k].i;
          tr  = cs[3*k].r; ti  = cs[3*k].i;
-         ddr = tr*t1 - ti*t2  ; ddi = tr*t2 + ti*t1  ;  /* d[k]*exp(+6*Pi*k/N) */
+         ddr = tr*t1 - ti*t2  ; ddi = tr*t2 + ti*t1 ; /* d[k]*exp(i*6*Pi*k/N) */
 
-         aar = aa[k].r; aai = aa[k].i;                  /* a[k] */
+         aar = aa[k].r; aai = aa[k].i;                /* a[k] */
 
          acpr = aar + ccr ; acmr = aar - ccr ;
          bdpr = bbr + ddr ; bdmr = bbr - ddr ;
@@ -1472,17 +1483,17 @@ static void fft128( int mode , complex *xc )
       for( k=0 ; k < M ; k++ ){
          t1  = bb[k].r; t2  = bb[k].i;
          tr  = cs[k].r; ti  = cs[k].i;
-         bbr = tr*t1 + ti*t2  ; bbi = tr*t2 - ti*t1  ;  /* b[k]*exp(-2*Pi*k/N) */
+         bbr = tr*t1 + ti*t2  ; bbi = tr*t2 - ti*t1 ; /* b[k]*exp(-i*2*Pi*k/N) */
 
          t1  = cc[  k].r; t2  = cc[  k].i;
          tr  = cs[2*k].r; ti  = cs[2*k].i;
-         ccr = tr*t1 + ti*t2  ; cci = tr*t2 - ti*t1  ;  /* c[k]*exp(-4*Pi*k/N) */
+         ccr = tr*t1 + ti*t2  ; cci = tr*t2 - ti*t1 ; /* c[k]*exp(-i*4*Pi*k/N) */
 
          t1  = dd[  k].r; t2  = dd[  k].i;
          tr  = cs[3*k].r; ti  = cs[3*k].i;
-         ddr = tr*t1 + ti*t2  ; ddi = tr*t2 - ti*t1  ;  /* d[k]*exp(-6*Pi*k/N) */
+         ddr = tr*t1 + ti*t2  ; ddi = tr*t2 - ti*t1 ; /* d[k]*exp(-i*6*Pi*k/N) */
 
-         aar = aa[k].r; aai = aa[k].i;                  /* a[k] */
+         aar = aa[k].r; aai = aa[k].i;                 /* a[k] */
 
          acpr = aar + ccr ; acmr = aar - ccr ;
          bdpr = bbr + ddr ; bdmr = bbr - ddr ;
@@ -1546,17 +1557,17 @@ static void fft256( int mode , complex *xc )
       for( k=0 ; k < M ; k++ ){
          t1  = bb[k].r; t2  = bb[k].i;
          tr  = cs[k].r; ti  = cs[k].i;
-         bbr = tr*t1 - ti*t2  ; bbi = tr*t2 + ti*t1  ;  /* b[k]*exp(+2*Pi*k/N) */
+         bbr = tr*t1 - ti*t2  ; bbi = tr*t2 + ti*t1 ; /* b[k]*exp(i*2*Pi*k/N) */
 
          t1  = cc[  k].r; t2  = cc[  k].i;
          tr  = cs[2*k].r; ti  = cs[2*k].i;
-         ccr = tr*t1 - ti*t2  ; cci = tr*t2 + ti*t1  ;  /* c[k]*exp(+4*Pi*k/N) */
+         ccr = tr*t1 - ti*t2  ; cci = tr*t2 + ti*t1 ; /* c[k]*exp(i*4*Pi*k/N) */
 
          t1  = dd[  k].r; t2  = dd[  k].i;
          tr  = cs[3*k].r; ti  = cs[3*k].i;
-         ddr = tr*t1 - ti*t2  ; ddi = tr*t2 + ti*t1  ;  /* d[k]*exp(+6*Pi*k/N) */
+         ddr = tr*t1 - ti*t2  ; ddi = tr*t2 + ti*t1 ; /* d[k]*exp(i*6*Pi*k/N) */
 
-         aar = aa[k].r; aai = aa[k].i;                  /* a[k] */
+         aar = aa[k].r; aai = aa[k].i;                /* a[k] */
 
          acpr = aar + ccr ; acmr = aar - ccr ;
          bdpr = bbr + ddr ; bdmr = bbr - ddr ;
@@ -1572,17 +1583,17 @@ static void fft256( int mode , complex *xc )
       for( k=0 ; k < M ; k++ ){
          t1  = bb[k].r; t2  = bb[k].i;
          tr  = cs[k].r; ti  = cs[k].i;
-         bbr = tr*t1 + ti*t2  ; bbi = tr*t2 - ti*t1  ;  /* b[k]*exp(-2*Pi*k/N) */
+         bbr = tr*t1 + ti*t2  ; bbi = tr*t2 - ti*t1 ; /* b[k]*exp(-i*2*Pi*k/N) */
 
          t1  = cc[  k].r; t2  = cc[  k].i;
          tr  = cs[2*k].r; ti  = cs[2*k].i;
-         ccr = tr*t1 + ti*t2  ; cci = tr*t2 - ti*t1  ;  /* c[k]*exp(-4*Pi*k/N) */
+         ccr = tr*t1 + ti*t2  ; cci = tr*t2 - ti*t1 ; /* c[k]*exp(-i*4*Pi*k/N) */
 
          t1  = dd[  k].r; t2  = dd[  k].i;
          tr  = cs[3*k].r; ti  = cs[3*k].i;
-         ddr = tr*t1 + ti*t2  ; ddi = tr*t2 - ti*t1  ;  /* d[k]*exp(-6*Pi*k/N) */
+         ddr = tr*t1 + ti*t2  ; ddi = tr*t2 - ti*t1 ; /* d[k]*exp(-i*6*Pi*k/N) */
 
-         aar = aa[k].r; aai = aa[k].i;                  /* a[k] */
+         aar = aa[k].r; aai = aa[k].i;                /* a[k] */
 
          acpr = aar + ccr ; acmr = aar - ccr ;
          bdpr = bbr + ddr ; bdmr = bbr - ddr ;
