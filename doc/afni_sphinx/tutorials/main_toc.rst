@@ -15,3 +15,4 @@ Tutorials, Examples
    DrawingSurfaceROIs/DrawingROIs
    StandardMeshes/StandardMeshes
    Coding/Writing_Help
+   ClusterExplorer/main_toc
