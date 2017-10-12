@@ -2144,6 +2144,7 @@ int main
 
    PRINT_VERSION("3dWavelets") ; AUTHOR(PROGRAM_AUTHOR);
    mainENTRY("3dWavelets main") ; machdep() ;
+WARNING_message("This program (3dWavelets) is old, obsolete, and not maintained!") ;
 
   
   /*----- Program initialization -----*/

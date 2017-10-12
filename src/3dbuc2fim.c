@@ -345,6 +345,7 @@ int main( int argc , char * argv[] )
   printf ("\n");
 #endif
 
+WARNING_message("This program (3dbuc2fim) is old, not maintained, and probably useless!") ;
 
    /*** read input options ***/
 
