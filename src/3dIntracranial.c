@@ -715,7 +715,9 @@ int main
 
   mainENTRY("3dIntracranial:main") ; machdep() ; PRINT_VERSION("3dIntracranial") ;
   AUTHOR(PROGRAM_AUTHOR) ;
-  INFO_message("3dSkullStrip is usually superior to 3dIntracranial") ;
+  WARNING_message("This program (3dIntracranial) is old, obsolete, and not maintained!") ;
+  INFO_message("3dSkullStrip is almost always superior to 3dIntracranial :)") ;
+
 
   /*----- Program initialization -----*/
   initialize_program (argc, argv);
