@@ -24,11 +24,11 @@ static int old_xx=-666,old_yy=-666;
 /* macro to relocate popup w.r.t. parent [12 Oct 2017] */
 
 #undef  RELOCATE
-#define RELOCATE(wwpar,wwpop)                                    \
+#define RELOCATE(wwpar,wwpop,dd)                                 \
  do{ int www=0 , hhh=0 ; Position qx=0,qy=0 ;                    \
      MCW_widget_geom( wwpar , &www , &hhh , NULL,NULL ) ;        \
-     www = (www < 40) ? 20 : www/2 ;                             \
-     hhh = (hhh < 20) ? 10 : hhh/2 ;                             \
+     www /= dd ; if( www < 19 ) www = 19 ;                       \
+     hhh /= dd ; if( hhh < 10 ) hhh = 10 ;                       \
      XtTranslateCoords( wwpar , www,hhh , &qx , &qy ) ;          \
      XtVaSetValues( wwpop, XmNx,(int)qx, XmNy,(int)qy, NULL ) ;  \
  } while(0) ;
@@ -2412,7 +2412,7 @@ ENTRY("MCW_choose_ovcolor") ;
 
    (void) MCW_action_area( wrc , OVC_act , NUM_OVC_ACT ) ;
 
-   RELOCATE(wpar,wpop) ; /* 12 Oct 2017 */
+   RELOCATE(wpar,wpop,5) ; /* 12 Oct 2017 */
 
    XtManageChild( wrc ) ;
    XtPopup( wpop , XtGrabNone ) ; RWC_sleep(1);
@@ -2552,7 +2552,7 @@ ENTRY("MCW_choose_vector") ;
 
    (void) MCW_action_area( wrc , OVC_act , NUM_OVC_ACT ) ;
 
-   RELOCATE(wpar,wpop) ; /* 12 Oct 2017 */
+   RELOCATE(wpar,wpop,5) ; /* 12 Oct 2017 */
 
    XtManageChild( wrc ) ;
    XtPopup( wpop , XtGrabNone ) ; RWC_sleep(1);
@@ -2677,7 +2677,7 @@ ENTRY("MCW_choose_integer") ;
 
    (void) MCW_action_area( wrc , OVC_act , NUM_OVC_ACT ) ;
 
-   RELOCATE(wpar,wpop) ; /* 12 Oct 2017 */
+   RELOCATE(wpar,wpop,5) ; /* 12 Oct 2017 */
 
    XtManageChild( wrc ) ;
    XtPopup( wpop , XtGrabNone ) ; RWC_sleep(1);
@@ -3021,7 +3021,7 @@ ENTRY("MCW_choose_string") ;
 
    (void) MCW_action_area( wrc , OVC_act , NUM_CLR_ACT ) ;
 
-   RELOCATE(wpar,wpop) ; /* 12 Oct 2017 */
+   RELOCATE(wpar,wpop,5) ; /* 12 Oct 2017 */
 
    XtManageChild( wrc ) ;
    XtPopup( wpop , XtGrabNone ) ; RWC_sleep(1);
@@ -3355,7 +3355,7 @@ ENTRY("MCW_choose_multi_strlist") ;
    }
 
    if( old_xx < 0 || old_yy < 0 || old_wpar != wpar ){
-     RELOCATE(wpar,wpop) ; /* 12 Oct 2017 */
+     RELOCATE(wpar,wpop,2) ; /* 12 Oct 2017 */
    } else {
 #ifdef DARWIN
 # define YDEL 20
@@ -3633,7 +3633,7 @@ if(PRINT_TRACING){
 
    (void) MCW_action_area( wrc , TSC_act , NUM_TSC_ACT ) ;
 
-   RELOCATE(wpar,wpop) ; /* 12 Oct 2017 */
+   RELOCATE(wpar,wpop,5) ; /* 12 Oct 2017 */
 
    XtManageChild( wrc ) ;
    XtPopup( wpop , XtGrabNone ) ; RWC_sleep(1);
@@ -3932,7 +3932,7 @@ ENTRY("MCW_choose_multi_editable_strlist") ;
 
    /* make it appear, like magic! */
 
-   RELOCATE(wpar,wpop) ; /* 12 Oct 2017 */
+   RELOCATE(wpar,wpop,5) ; /* 12 Oct 2017 */
 
    XtManageChild( wrc ) ;
    XtPopup( wpop , XtGrabNone ) ; RWC_sleep(1);
@@ -4632,7 +4632,7 @@ ENTRY("MCW_choose_stuff") ;
    for( iss=0 ; iss < NUM_CSO_ACT ; iss++ ) CSO_act[iss].data = NULL ;
    (void) MCW_action_area( wrc , CSO_act , NUM_CSO_ACT ) ;
 
-   RELOCATE(CS_wpar,CS_wpop) ; /* 12 Oct 2017 */
+   RELOCATE(CS_wpar,CS_wpop,2) ; /* 12 Oct 2017 */
    XtManageChild( wrc ) ;
    XtPopup( CS_wpop , XtGrabNone ) ; RWC_sleep(1);
    RWC_visibilize_widget( CS_wpop ) ;
