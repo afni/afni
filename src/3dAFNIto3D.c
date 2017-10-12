@@ -6,6 +6,8 @@ int main( int argc , char *argv[] )
    char *prefix=NULL ;
    int narg=1 , ii ;
 
+WARNING_message("This program (3dAFNIto3D) is old, not maintained, and probably useless!") ;
+
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dAFNIto3D [options] dataset\n"
              "Reads in an AFNI dataset, and writes it out as a 3D file.\n"

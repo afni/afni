@@ -6,6 +6,8 @@ int main( int argc , char *argv[] )
    char *prefix ;
    int narg=1 ;
 
+WARNING_message("This program (3dMINCtoAFNI) is old, obsolete, and not maintained!") ;
+
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dMINCtoAFNI [-prefix ppp] dataset.mnc\n"
              "Reads in a MINC formatted file and writes it out as an\n"

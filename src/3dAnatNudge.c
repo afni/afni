@@ -10,6 +10,8 @@ int main( int argc , char *argv[] )
    int verb=0 ;
    THD_fvec3 fv ;
 
+WARNING_message("This program (3dAnatNudge) is old, obsolete, and not maintained!") ;
+
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dAnatNudge [options]\n"
              "Moves the anat dataset around to best overlap the epi dataset.\n"

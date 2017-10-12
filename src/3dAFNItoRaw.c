@@ -23,6 +23,9 @@ int main( int argc , char * argv[] )
    int statcode;
 
    /*----- Read command line -----*/
+
+WARNING_message("This program (3dAFNItoRaw) is old, not maintained, and probably useless!") ;
+
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dAFNItoRaw [options] dataset\n"
              "Convert an AFNI brik file with multiple sub-briks to a raw file with\n"
