@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 12 , OCT , 2017 , RWC , "afni" , MICRO , TYPE_BUG_FIX ,
+   "Fixed color def problem in pbars (etc) with new find_color_name func" ,
+   NULL } ,
+
  { 10 , OCT , 2017 , RWC , "csfft.c" , MICRO , TYPE_ENHANCE ,
    "Add use of fftn.c for general length DFTs" ,
    "csfft_cox() still uses my own method for 'reasonable' values, as it\n"

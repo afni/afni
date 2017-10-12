@@ -282,6 +282,9 @@ int find_color_name( char *cnam, float *rr, float *gg, float *bb )
        hh[0]=cnam[1]; hh[1]=cnam[2]; hh[2]='\0'; *rr=(float)strtol(hh,NULL,16)/255.0f ;
        hh[0]=cnam[3]; hh[1]=cnam[4]; hh[2]='\0'; *gg=(float)strtol(hh,NULL,16)/255.0f ;
        hh[0]=cnam[5]; hh[1]=cnam[6]; hh[2]='\0'; *bb=(float)strtol(hh,NULL,16)/255.0f ;
+#if 0
+       fprintf(stderr," find_color_name: cnam=%s rr=%g gg=%g bb=%g\n",cnam,*rr,*gg,*bb) ;
+#endif
      }
      return 0 ;
    }
