@@ -141,6 +141,8 @@ int main( int argc , char * argv[] )
 
    /*--- read command line arguments ---*/
 
+WARNING_message("This program (3dproject) is old, not maintained, and probably useless!") ;
+
    if( argc < 2 || strncmp(argv[1],"-help",6) == 0 ) Syntax() ;
 
    INIT_EDOPT( &PRED_edopt ) ;

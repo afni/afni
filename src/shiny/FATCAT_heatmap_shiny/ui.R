@@ -83,8 +83,8 @@ sidebar <- dashboardSidebar(width=300,sidebarMenu(
            numericInput('static_dpi','DPI (min 72):',value=200,min=72),
            downloadButton('downloadPlot', 'Download Plot',
                           class='d_button'),
-           tags$head(tags$style(".d_button#downloadPlot{
-                                margin-left: 12px;}")),br(),
+           tags$head(tags$style(".d_button#downloadPlot{margin-left: 12px;} 
+                                .d_button#downloadPlot{color:black;}")),br(),
            conditionalPanel('input.h_clust != "none"',
                             checkboxInput('dendro','Show dendrogram on png?',
                                           value=TRUE)

@@ -33,6 +33,8 @@ int main( int argc , char * argv[] )
 
    /** check for help **/
 
+WARNING_message("This program (3ddup) is old, not maintained, and probably useless!") ;
+
    if( argc < 2 || strncmp(argv[1],"-help",3) == 0 ){
       printf(
        "Usage: 3ddup [options] dataset\n"
