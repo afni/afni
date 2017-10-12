@@ -36,6 +36,8 @@ int main( int argc , char * argv[] )
 
    /* help? */
 
+WARNING_message("Do not use this program (3dstrip)! It is old and unmaintained.") ;
+
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf(
              "Usage: 3dstrip [options] dataset\n"
