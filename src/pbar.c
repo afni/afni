@@ -446,7 +446,7 @@ ENTRY("PBAR_add_bigmap") ;
 
    for( ii=0 ; ii < NPANE_BIG ; ii++ ) bigmap[nn][ii] = cmap[ii] ;
    if(debugprint)
-      printf("%s: %d\n", name, nn);
+      fprintf(stderr,"%s: %d\n", name, nn);
    POPDOWN_strlist_chooser ; EXRETURN ;
 }
 
@@ -517,7 +517,7 @@ ENTRY("PBAR_define_bigmap") ;
   name[0] = '\0' ; ii = 0 ;
   sscanf(cmd,"%127s%n",name,&ii) ;
   if(debugprint)
-       printf("%s %d\n",name,ii);
+       fprintf(stderr,"%s %d\n",name,ii);
   if( *name == '\0' || ii == 0 ) RETURN(-1);
   cmd += ii ;
   /* get lines of form "value=colordef" */
@@ -526,7 +526,7 @@ ENTRY("PBAR_define_bigmap") ;
     eqn[0] = '\0' ; ii = 0 ;
     sscanf(cmd,"%127s%n",eqn,&ii) ;
     if(debugprint)
-       printf("%s %d\n",eqn,ii);
+       fprintf(stderr,"%s %d\n",eqn,ii);
     if( *eqn == '\0' || ii == 0 ) break ;   /* exit loop */
     cmd += ii ;
     if( neq == 0 && (isalpha(eqn[0]) || eqn[0]=='#') ) nonum = 1 ;
@@ -536,7 +536,7 @@ ENTRY("PBAR_define_bigmap") ;
     if( *rhs == '\0' || ii == 0 ) RETURN(-1);
       ii = DC_parse_color( myfirst_dc , rhs, &fr,&fg,&fb ) ;
       if(debugprint)
-         printf("%s %f %f %f\n",rhs,fr,fg,fb);
+         fprintf(stderr,"%s %f %f %f\n",rhs,fr,fg,fb);
       if( ii ) RETURN(-1); /* bad */
       col[neq].r = (byte)(255.0f*fr+0.5f) ;
       col[neq].g = (byte)(255.0f*fg+0.5f) ;
@@ -544,13 +544,13 @@ ENTRY("PBAR_define_bigmap") ;
   }
 
   if( nonum ) {                   /* supply numbers, if missing */
-    if(debugprint) printf("Supplying indices to colorscale\n");
+    if(debugprint) fprintf(stderr,"Supplying indices to colorscale\n");
     for( ii=0 ; ii < neq ; ii++ ) val[ii] = neq-ii ;
   }
 
   if(debugprint) {
      for(ii=0;ii<neq;ii++)
-       printf("%f %x %x %x\n", val[ii], col[ii].r, col[ii].g, col[ii].b);
+       fprintf(stderr,"%f %x %x %x\n", val[ii], col[ii].r, col[ii].g, col[ii].b);
   }
   PBAR_make_bigmap( name , neq, val, col, myfirst_dc );
   RETURN(0) ;
