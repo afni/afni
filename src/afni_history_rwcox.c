@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 12 , OCT , 2017 , RWC , "afni GUI" , MICRO , TYPE_GENERAL ,
+   "Slight relocation of UnderLay/OverLay popups -- for the PirATe" ,
+   NULL } ,
+
  { 12 , OCT , 2017 , RWC , "afni" , MICRO , TYPE_BUG_FIX ,
    "Fixed color def problem in pbars (etc) with new find_color_name func" ,
    NULL } ,
