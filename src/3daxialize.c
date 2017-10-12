@@ -43,6 +43,8 @@ int main( int argc , char * argv[] )
 
    /*- sanity check -*/
    memset(&iv_xyzorient, 0, sizeof(THD_ivec3));
+
+WARNING_message("This program (3daxialize) is old, not maintained, and probably useless!") ;
    
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3daxialize [options] dataset\n"
