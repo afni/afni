@@ -1705,6 +1705,8 @@ int main
    PRINT_VERSION("3dfim+") ; AUTHOR(PROGRAM_AUTHOR) ;
    mainENTRY("3dfim+ main") ; machdep() ;
 
+WARNING_message("This program (3dfim+) is very old, may not be useful, and will not be maintained.") ;
+
    /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/
 
    { int new_argc ; char ** new_argv ;
