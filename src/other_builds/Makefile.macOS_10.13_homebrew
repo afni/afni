@@ -1,0 +1,136 @@
+#####################################
+## ~10/2017 Justin Rajendra
+## This Makefile is for macOS 10.13 for 64 bit AFNI with openMP
+## homebrew only:
+## brew install python --framework
+## brew install gcc glib gsl libiconv openmotif freetype libjpeg pkg-config
+## The required libraries for use should come with Xcode and XQuartz.
+## May need modification for different versions of gcc-7 and hard coded links
+## gcc-7 is currently 7.2.0
+## anything you see with "Cellar" may be different depending on your versions
+#####################################
+
+## ----------------------------------------------------------------------
+## hopefully most things are here
+BREW_ROOT   = /usr/local
+
+## stuff
+USE_ZLIB  = -DHAVE_ZLIB
+LZLIB     = -lz
+USE_GIFTI = -DHAVE_GIFTI
+LGIFTI    = -lexpat
+
+## ----------------------------------------------------------------------
+## X configuration
+XROOT   = /opt/X11
+XROOT_I = -I$(XROOT)/include
+XROOT_L = -L$(XROOT)/lib
+XLIBS = -lXm -ljpeg.9 -lXt
+
+## ----------------------------------------------------------------------
+## compiler stuff
+CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
+CEXTRA = -m64 -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE \
+         -DDONT_USE_MCW_MALLOC $(LESSTIF_DEFS)
+CC     = $(BREW_ROOT)/bin/gcc-7 -O2  -DDARWIN $(CEXTRA)
+CCVOL  = $(CC)
+CCFAST = $(CC)
+CCMIN  = $(BREW_ROOT)/bin/gcc-7
+CCD    = $(CC) $(CCDEBS)
+CCOLD  = $(CC)
+
+## yes
+OMPFLAG = -fopenmp -DUSE_OMP
+
+## where
+SYSTEM_NAME = macos_10.13_local
+INSTALLDIR = $(SYSTEM_NAME)
+
+## ----------------------------------------------------------------------
+## some hard coded stuff here may need to change
+EXTRA_INSTALL_FILES = $(BREW_ROOT)/lib/libXm.4.dylib              \
+              $(BREW_ROOT)/lib/libjpeg.9.dylib              \
+              /usr/local/opt/libiconv/lib/libiconv.2.dylib              \
+              $(BREW_ROOT)/Cellar/gcc/7.2.0/lib/gcc/7/libgcc_s.1.dylib          \
+              $(BREW_ROOT)/lib/libglib-2.0.0.dylib          \
+              $(BREW_ROOT)/lib/libgsl.dylib              \
+              $(BREW_ROOT)/lib/libgslcblas.0.dylib          \
+              $(BREW_ROOT)/Cellar/gcc/7.2.0/lib/gcc/7/libgomp.1.dylib          \
+              $(BREW_ROOT)/lib/libfreetype.6.dylib \
+              $(BREW_ROOT)/lib/libpng16.16.dylib              \
+              /usr/lib/libbz2.1.0.dylib             \
+              $(BREW_ROOT)/Cellar/gettext/0.19.8.1/lib/libintl.8.dylib
+
+EXTRA_INSTALL_COMMANDS = ( cd $(INSTALLDIR) ;                                 \
+                           chmod u+w *.dylib ;                                \
+                           if [ -d $(HOME)/EXTRAPROGS ]; then $(CP) $(HOME)/EXTRAPROGS/* . ; fi ; )
+
+IFLAGS = -I. $(XROOT_I) -I$(BREW_ROOT)/include
+
+LFLAGS = -L. $(XROOT_L) -L$(BREW_ROOT)/lib -L/usr/lib -Wl,-x -Wl,-multiply_defined -Wl,warning -Wl,-bind_at_load
+
+CCSVD  = $(CCMIN) -m64 -O0
+
+PLUGIN_SUFFIX = so
+PLUGIN_LFLAGS = -m64 -bundle -flat_namespace -undefined suppress -Wl,-x
+PLUGIN_CC     = $(CC) -dynamic -fno-common
+PLFLAGS       = -m64 -dynamic $(LFLAGS)
+
+# include the line below if you want to include vector arith in 3dDeconvolve_f
+# SPECIAL = -framework Accelerate -DUSE_ACCELERATE
+
+AR     = /usr/bin/ar
+RANLIB = /usr/bin/ranlib
+TAR    = /usr/bin/tar
+MKDIR  = /bin/mkdir
+GZIP   = /usr/bin/gzip
+LD     = $(CCMIN)
+
+RM = /bin/rm -f
+MV = /bin/mv -f
+CP = /bin/cp -f
+
+LIBDIR = $(INSTALLDIR)
+SHOWOFF = -DSHOWOFF=$(SYSTEM_NAME)
+
+INSTALL_PREREQ = suma_gts
+# uncomment if the Gnu Scientific Library is installed (libgsl, libgslcblas)
+# GSLPROGS = balloon
+EXPROGS = $(GSLPROGS)
+
+# for dynamic linking
+
+LLIBS  = -lmri -lf2c $(XLIBS) -lXft -lfontconfig \
+         -lpng16 -liconv -lXmu -lXp -lXpm -lXext -lX11      \
+         $(LZLIB) $(LGIFTI) -lm -lc
+
+# vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+# For suma
+# ZSS Aug. 08. LibGLw.a now made locally and called libGLws.a
+
+SUMA_GL_DYLIB_CMD = -lGL
+
+GLw_IPATH  =
+GLw_LIB = -lGLw
+# uncomment next two lines if you want to use libGLws.a, SUMA's copy of GLw
+GLw_IPATH  = -IGLw_local
+GLw_LIB = libGLws.a
+
+
+SUMA_GLIB_VER = -2.0
+## some hard coded stuff here too
+SUMA_INCLUDE_PATH = $(GLw_IPATH) -I.. -I../niml $(IFLAGS) -Igts/src \
+					-I${BREW_ROOT}/Cellar/glib/2.54.0/include \
+					-I${BREW_ROOT}/include/glib-2.0 \
+					-I${BREW_ROOT}/Cellar/glib/2.54.0/lib/glib-2.0/include
+
+SUMA_LINK_PATH = $(XROOT_L) $(LFLAGS) -L..
+
+SUMA_LINK_LIB = $(XLIBS) $(GLw_LIB) $(LLIBS) -lGLU -lGL -lmri -lf2c -lmx -L${BREW_ROOT}/lib/ -lglib-2.0 $(SUMA_GL_DYLIB_CMD)
+SUMA_MAKEFILE_NAME = SUMA_Makefile
+SUMA_BIN_ARCHIVE = SUMA_MacOSX.tar
+SUMA_MDEFS =
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+MAKE = make
+include Makefile.INCLUDE
