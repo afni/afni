@@ -1153,3 +1153,181 @@ def read_value_file(fname):
 
    return data
 
+# ===========================================================================
+# temporary functions for defining decay curves
+# ===========================================================================
+
+
+# ======================================================================
+# applied functions and generators
+
+def decay_pdf(x):
+   """probability density function: decay type"""
+   return math.exp(-x)
+
+def decay_pdf_gen(A, B, step=0.1):
+   cur = A
+   while cur <= B:
+      yield decay_pdf(cur)
+      cur += step
+
+
+def decay_mean(L):
+   """mean x from PDF over [0,L]
+
+      integral of xe^-x on [0,L]     1 - Le^-L -e^-L            L
+      --------------------------  =  ---------------  =  1 - -------
+      integral of  e^-x on [0,L]     1         -e^-L         e^L - 1
+
+      This is 0 @ 0.0 and quicly approaches the upper limit of 1.0.
+   """
+   if L <= 0.0: return 0
+
+   return 1.0 - L /(math.exp(L) - 1.0)
+
+def decay_mean_gen(A, B, step=0.1):
+   cur = A
+   while cur <= B:
+      yield decay_mean(cur)
+      cur += step
+
+def decay_frac_mean(L):
+   """decay mean as a fraction of interval length
+
+                          1       1
+      decay_mean(L)/L =  --- - -------
+                          L    e^L - 1
+   """
+
+   if L < 0: return 0
+   if L == 0: return 0.5
+   return 1.0/L - 1.0/(math.exp(L) - 1.0)
+
+def decay_frac_mean_gen(A, B, step=0.1):
+   cur = A
+   while cur <= B:
+      yield decay_frac_mean(cur)
+      cur += step
+
+
+def decay_FM_approx(L):
+   """if L in [0,3],   return 0.5 - .07304*L
+      if L in (3,6),   return 1.0/(.8133*L + 1.1202)
+      if L in [6,inf), return 1/L
+   
+      check continuity and key points...
+      A(0)  = 0.5
+      A(3)  = 0.28088
+      A(3+) = 0.28089
+      A(6-) = 1/6
+      A(6+) = 1/6
+   """
+   if L <  0.0: return 0
+   if L <= 3:   return 0.5 - .07304*L
+   if L <  6:   return 1.0/(.8133*L + 1.1202)
+   if L >= 6:   return 1.0/L
+
+def decay_FM_approx_gen(A, B, step=0.1):
+   cur = A
+   while cur <= B:
+      yield decay_FM_approx(cur)
+      cur += step
+
+def decay_FM_approx_inv(m):
+   """stepwise inverse of decay_FM_approx
+
+      Given fractional mean m, return limit L, such that the mean x
+      with PDF e^-x on interval [0,L] is m/L.
+
+      The resulting [0,L] interval can then be scaled 
+
+          m <= 0      , ILLEGAL (use natural decay?)
+          m <= 1/6    , invert 1/L
+          m <  0.28088, invert 1.0/(.8133*L + 1.1202)
+                        I(m) = 1/(.8133*m) - 1.1202/.8133
+          m <  0.5    , invert 0.5 - .07304*L
+                        I(m) = (0.5 - m)/0.07304
+          m == 0.5    , ILLEGAL (use uniform)
+          m >  0.5    , ILLEGAL (use 1-m and flip)
+   """
+   if m <= 0.0 or m >= 0.5:
+      print '** decay_FM_apprix_inv: illegal fraction mean %s' % m
+      return 0
+   if m <= 1.0/6:   return 1.0/m
+   if m <  0.28088: return (1.0/m - 1.1202) / 0.8133
+   if m <  0.5:     return (0.5 - m)/0.07304
+
+def decay_FM_approx_inv_gen(A, B, step=0.1):
+   cur = A
+   while cur <= B:
+      yield decay_FM_approx_inv(cur)
+      cur += step
+
+def decay_ident_gen(A, B, step=0.1):
+   cur = A
+   while cur <= B:
+      yield cur
+      cur += step
+
+# ======================================================================
+# misc
+
+def plot_data(pair_list):
+   import numpy as N
+   import matplotlib.pyplot as plt
+
+   for pair in pair_list:
+      print "len = %d, %d, %d" % (len(pair), len(pair[0]), len(pair[1]))
+      plt.plot(pair[0], pair[1])
+   plt.show()
+
+   # consider:
+   #   plt.figure("my results")
+   #   plt.plot(xvals, yvals, label="eggs")
+
+def write_gdata(gen, fname, A=0, B=10, step=0.1):
+   data = [v for v in gen(A,B,step=step)]
+   add = LD.Afni1D(from_mat=1, matrix=[data])
+   add.write(fname, overwrite=1)
+
+def write_inverse_pair(A=0.1, B=0.49, step=0.001):
+   data = [v for v in decay_FM_approx_inv_gen(A,B,step=step)]
+   add = LD.Afni1D(from_mat=1, matrix=[data])
+   add.write('d.FM_inv.1D', overwrite=1)
+
+   data = [v for v in decay_ident_gen(A, B, step=step)]
+   add = LD.Afni1D(from_mat=1, matrix=[data])
+   add.write('d.FM.1D', overwrite=1)
+
+# ======================================================================
+def main():
+   L = 10
+   step = 0.1
+
+   if 1:
+       A = 0; B = 10; step = 0.1
+
+       gen = decay_frac_mean_gen
+       orig = [v for v in gen(A,B,step=step)]
+
+       gen = decay_FM_approx_gen
+       approx = [v for v in gen(A,B,step=step)]
+
+       gen = decay_FM_approx_inv_gen
+       inv = [v for v in gen(0.1,0.499,step=0.001)]
+
+       xo = [v for v in decay_ident_gen(A,B,step=step)]
+       xi = [v for v in decay_ident_gen(0.1,0.499,step=0.001)]
+
+       # plot_data([[xo,orig], [xo, approx], [inv, xi]])
+       plot_data([[xo,orig], [xo, approx]])
+
+   else:
+       write_gdata(decay_frac_mean_gen, 'd1.frac.mean.1D', 0, L, step=step)
+       write_gdata(decay_FM_approx_gen, 'd2.frac.approx.1D', 0, L, step=step)
+       write_inverse_pair()
+
+
+# main
+if __name__ == '__main__':
+   sys.exit(main())
