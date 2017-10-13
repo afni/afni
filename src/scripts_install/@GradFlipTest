@@ -44,9 +44,13 @@
 #   + 'more' -> 'cat', to not wait for pause in terminal!
 #     ---> Thanks, Tiffany Nash for finding this.
 #
-set version   = "2.92";    set rev_dat   = "Oct 04, 2017"
+#set version   = "2.92";    set rev_dat   = "Oct 04, 2017"
 #   + one case of needing to:  $out_ff -> $odir/$out_ff
 #   + update using '-prefix ...' better, no more separate 'outdir'
+#
+set version   = "2.93";    set rev_dat   = "Oct 12, 2017"
+#   + update rules of:  $out_ff -> $odir/$out_ff
+#   + better line alignment of text dumping
 #
 ########################################################################
 
@@ -86,6 +90,7 @@ set SOT        = ""            # unnec ability to scale DT by 1000
 set DO_CLEAN   = 0             # don't delete tmpdir, by def
 
 set FLIPS = ( "-no_flip" '-flip_x' "-flip_y" "-flip_z" )
+set FLIP_sp = ( "" " " " " " " )
 set FNOMS = ( "F0" "FX" "FY" "FZ" )
 
 set tmpdir = "_tmp_TESTFLIP"
@@ -178,7 +183,7 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set out_ff = "$argv[$ac]"
-        set odir = "$out_ff:h"
+        set odir = `dirname "$out_ff"`
 
     else if ( "$argv[$ac]" == "-scale_out_1000" ) then
         set SOT = "-scale_out_1000"
@@ -458,8 +463,8 @@ foreach i ( `seq 1 1 $L` )
         set MaxI = "$i"
         set MaxV = "$ALL_ARR[$MaxI]"
     endif
-    printf "\n The number of tracks for '$FLIPS[$i]' was:    $ALL_ARR[$i]" \
-        >> $out_echo
+    printf "\n The number of tracks for '$FLIPS[$i]' is: $FLIP_sp[$i]:q %12s" \
+        "$ALL_ARR[$i]"  >> $out_echo
 end
 
 # [PT: Aug 24, 2017] overwrite any previous run, if it exists
