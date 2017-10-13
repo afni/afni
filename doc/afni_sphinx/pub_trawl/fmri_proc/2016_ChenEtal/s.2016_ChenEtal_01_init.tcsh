@@ -10,6 +10,10 @@
 # Modeling. Neuroimage (in press).
 #
 # Originally run using: AFNI_16.1.16
+#
+# ** Note: this code is a "fixed" version, with the selection of WM
+# ** regions updated *not* to include voxels with value '16' in line 34.
+#
 # --------------------------------------------------------------------
 
 
@@ -22,9 +26,9 @@ recon-all -all -subject $subj -i $anat
 @SUMA_Make_Spec_FS -sid $subj -NIFTI
 
 # Select the ventricle maps from the FS output.
-3dcalc -a aparc+aseg.nii -datum byte -prefix FT_vent.nii \
+3dcalc -a aparc+aseg.nii -datum byte -prefix FSmask_vent.nii \
      -expr 'amongst(a,4,43)'
 
-# Select the WM maps from the FS output.
-3dcalc -a aparc+aseg.nii -datum byte -prefix FT_WM.nii \
-     -expr 'amongst(a,2,7,16,41,46,251,252,253,254,255)'
+# Select the WM maps from the FS output. 
+3dcalc -a aparc+aseg.nii -datum byte -prefix FSmask_WM.nii \
+     -expr 'amongst(a,2,7,41,46,251,252,253,254,255)'
