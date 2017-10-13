@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 12, Oct , 2017 , PT , "@GradFlipTest" , MINOR , TYPE_MODIFY,
+   "Change output formatting and getting basename of prefix name.",
+   "Easier output and reading in terminal/files.\n"
+},
+
 { 04, Oct , 2017 , PT , "@GradFlipTest" , MINOR , TYPE_MODIFY,
    "Change the output directory naming/choosing options.",
    "Do more with just '-prefix ...', in standard AFNI fashion.\n"
