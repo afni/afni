@@ -16,9 +16,11 @@ void regress_toz( int numA , float *zA ,
 float_pair ttest_toz( int numx, float *xar, int numy, float *yar, int opcode,
                       float *xres, float *yres ) ;
 
-float_pair ttest_boot_1sam( int nx , float *xx ) ; /* 11 Oct 2017 */
+float_pair ttest_boot_1sam( int nx , float *xx , float *xres ) ; /* 11 Oct 2017 */
 
 static int do_boot = 0 ;
+
+#define MIN_boot 11
 
 /*----- similar funcs for the case of -singletonA -----*/
 
@@ -3225,8 +3227,8 @@ int main( int argc , char *argv[] )
      ERROR_exit("-bootstrap and 2-sample tests NOT IMPLEMENTED YET :(") ;
    if( do_boot && ttest_opcode != 0 )
      ERROR_exit("-bootstrap and weird opcodes NOT IMPLEMENTED YET :(") ;
-   if( do_boot && nval_AAA < 11 )
-     ERROR_exit("-bootstrap needs at least 11 samples :(") ;
+   if( do_boot && nval_AAA < MIN_boot )
+     ERROR_exit("-bootstrap needs at least %d samples :(",MIN_boot) ;
 
    if( singletonA && !twosam )
      ERROR_exit("-singletonA was used, but -setB was not: this makes no sense!") ;
@@ -4173,7 +4175,7 @@ LABELS_ARE_DONE:  /* target for goto above */
            if( debug > 1 ) fprintf(stderr,"   resar[0]=%g  [1]=%g\n",resar[0],resar[1]) ;
          } else {
            if( do_boot )
-             tpair = ttest_boot_1sam( nAAA,zAAA ) ; /* 11 Oct 2017 */
+             tpair = ttest_boot_1sam( nAAA,zAAA,rAAA ) ; /* 11 Oct 2017 */
            else
              tpair = ttest_toz( nAAA,zAAA, 0,NULL, ttest_opcode, rAAA,NULL ) ; /* 1 sample setA */
            resar[0] = tpair.a ; resar[1] = tpair.b ;
@@ -4434,7 +4436,7 @@ LABELS_ARE_DONE:  /* target for goto above */
      clab    = (char **)malloc(sizeof(char *)*ncase) ;
      cprefix = (char **)malloc(sizeof(char *)*ncase) ;
 
-     /* cmd = command for randomize/permute 3dttest++ runs */
+     /* cmd = space for command to randomize/permute 3dttest++ runs */
 
      cmd  = (char *)malloc(sizeof(char)*(32768+mcov*256+(nval_AAA+nval_BBB)*512)) ;
 
@@ -4442,7 +4444,7 @@ LABELS_ARE_DONE:  /* target for goto above */
 
      tfname = (char **)malloc(sizeof(char *)*num_clustsim*ncase) ;
 
-     /* bmd = command for blurred 3dttest++ runs */
+     /* bmd = space for command to do blurred 3dttest++ runs */
 
      if( do_Xclustsim && Xclu_nblur > 0 ){
        bmd = (char *)malloc(sizeof(char)*(32768+mcov*256+(nval_AAA+nval_BBB)*512)) ;
@@ -4450,7 +4452,7 @@ LABELS_ARE_DONE:  /* target for goto above */
        if( !PREFIX_IS_NIFTI(prefix) ) strcat( bprefix , ".nii" ) ;
      } else {
        cprefix[0] = strdup(DSET_HEADNAME(outset)) ;  /* 04 Aug 2017 */
-INFO_message("cprefix[0] = %s",cprefix[0]) ;
+/* INFO_message("cprefix[0] = %s",cprefix[0]) ; */
      }
 
      /* loop to start randomize jobs */
@@ -4500,6 +4502,8 @@ INFO_message("cprefix[0] = %s",cprefix[0]) ;
          sprintf( bmd , "3dttest++ -DAFNI_AUTOMATIC_FDR=NO -DAFNI_DONT_LOGFILE=YES \\\n"
                         "    -toz -exblur %.2f" , cblur ) ;
 
+         if( do_boot )
+           sprintf( bmd+strlen(bmd) , " -bootstrap" ) ;
          if( name_mask != NULL )
            sprintf( bmd+strlen(bmd) , " -mask %s",name_mask) ;
          if( ttest_opcode == 1 )
@@ -5777,17 +5781,19 @@ ENTRY("TT_matrix_setup") ;
 
 #define NBOOT 1000
 
-float_pair ttest_boot_1sam( int nx , float *xx )
+float_pair ttest_boot_1sam( int nx , float *xx , float *xres )
 {
    float_pair mz = {0.0f,0.0f} ;
    int bb , ii ;
    float xbar,xsum , bot,top ;
    static float *xboot=NULL ;
 
-   if( nx < 11 || xx == NULL ) return mz ;
+   if( nx < MIN_boot || xx == NULL ) return mz ;
 
    for( xbar=0.0f,ii=0 ; ii < nx ; ii++ ) xbar += xx[ii] ;
    xbar /= (float)nx ;
+
+   if( xres != NULL ) for( ii=0 ; ii < nx ; ii++ ) xres[ii] = xx[ii]-xbar ;
 
    if( xboot == NULL ) xboot = (float *)malloc(sizeof(float)*NBOOT) ;
    for( bb=0 ; bb < NBOOT ; bb++ ){
