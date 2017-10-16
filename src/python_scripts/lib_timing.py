@@ -1161,17 +1161,6 @@ def read_value_file(fname):
 # ======================================================================
 # applied functions and generators
 
-def decay_pdf(x):
-   """probability density function: decay type"""
-   return math.exp(-x)
-
-def decay_pdf_gen(A, B, step=0.1):
-   cur = A
-   while cur <= B:
-      yield decay_pdf(cur)
-      cur += step
-
-
 def decay_mean(L):
    """mean x from PDF over [0,L]
 
@@ -1299,12 +1288,33 @@ def write_inverse_pair(A=0.1, B=0.49, step=0.001):
    add = LD.Afni1D(from_mat=1, matrix=[data])
    add.write('d.FM.1D', overwrite=1)
 
+def e_Lx(a,L,N):
+   off = (1.0-math.exp(-L))/N
+   diff = math.exp(-a) - off
+   return -math.log(diff)
+
+def show_all(L,N):
+   off = (1.0-math.exp(-L))/N
+   
+   a = 0
+   sa = 0
+   for ind in range(N):
+      b = e_Lx(a, L, N)
+      f = math.exp(-a) - math.exp(-b)  # should equal off
+      print '%3s %0.6f  off=%0.6f, f=%0.6f' % (ind, b, off, f)
+      sa += (a+b)/2
+      a = b
+   print 'length L=%s, theor mean = %s, sa/N = %s' % (L, decay_mean(L), sa/N)
+
 # ======================================================================
 def main():
    L = 10
    step = 0.1
 
    if 1:
+      show_all(4, 100)
+
+   elif 1:
        A = 0; B = 10; step = 0.1
 
        gen = decay_frac_mean_gen
