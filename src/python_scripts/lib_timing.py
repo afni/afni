@@ -1161,7 +1161,29 @@ def read_value_file(fname):
 # ======================================================================
 # applied functions and generators
 
-def decay_mean(L):
+def DEcay_mean(a,b):
+   """simple mean x from PDF f(x)=e^-x over [a,b]
+
+      integral of xe^-x on [a,b] = (a+1)e^-a - (b+1)e^-b
+      --------------------------------------------------
+      integral of e^-x           = e^-a - e^-b
+
+      if a=0, b=L, equals 1-(L+1)e^-L
+   """
+   if a < 0.0 or b < a: return 0
+   if a < 0.0: return 0
+
+   num = (a+1.0)*math.exp(-a) - (b+1.0)*math.exp(-b)
+   den = math.exp(-a) - math.exp(-b)
+   return num/den
+
+def DEcay_mean_gen(A, B, step=0.1):
+   cur = A
+   while cur <= B:
+      yield DEcay_mean_frac(cur)
+      cur += step
+
+def DEcay_mean_frac(L):
    """mean x from PDF over [0,L]
 
       integral of xe^-x on [0,L]     1 - Le^-L -e^-L            L
@@ -1174,18 +1196,18 @@ def decay_mean(L):
 
    return 1.0 - L /(math.exp(L) - 1.0)
 
-def decay_mean_gen(A, B, step=0.1):
+def DEcay_mean_frac_gen(A, B, step=0.1):
    cur = A
    while cur <= B:
-      yield decay_mean(cur)
+      yield DEcay_mean_frac(cur)
       cur += step
 
 def decay_frac_mean(L):
    """decay mean as a fraction of interval length
 
-                          1       1
-      decay_mean(L)/L =  --- - -------
-                          L    e^L - 1
+                               1       1
+      decay_mean_frac(L)/L =  --- - -------
+                               L    e^L - 1
    """
 
    if L < 0: return 0
@@ -1304,7 +1326,7 @@ def show_all(L,N):
       print '%3s %0.6f  off=%0.6f, f=%0.6f' % (ind, b, off, f)
       sa += (a+b)/2
       a = b
-   print 'length L=%s, theor mean = %s, sa/N = %s' % (L, decay_mean(L), sa/N)
+   print 'length L=%s, theor mean = %s, sa/N = %s' % (L, DEcay_mean_frac(L), sa/N)
 
 # ======================================================================
 def main():
@@ -1312,6 +1334,13 @@ def main():
    step = 0.1
 
    if 1:
+      A = 3
+      nd = 50
+      print DEcay_mean(A,A+1)
+      print DEcay_mean(A,A+2)
+      for ind in range(0,nd):
+         print DEcay_mean(A,A+(1.0*nd-ind)/nd)
+   elif 1:
       show_all(4, 100)
 
    elif 1:
