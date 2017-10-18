@@ -1,8 +1,8 @@
 
-.. _install_steps_mac:
+.. _install_steps_mac_app:
 
 
-**Mac OS**: *The essential system setup*
+**Mac OS**: *The App-based system setup*
 ========================================
 
 .. contents:: :local:
@@ -12,8 +12,8 @@ versions that are reasonably modern, such as **Mac OS 10.7+**.  The
 full set of steps applies to a "clean" (i.e., empty) 10.7+ system.
 Some steps are dependent on which version of Mac is present.
 
-*If you are seeking the new App version of install instructions,
- please see* :ref:`HERE <install_steps_mac_app>`.
+*If you are seeking the non-App version of install instructions,
+ please see* :ref:`HERE <install_steps_mac>`.
 
 Note that 10.8 does not come with X11 (or XQuartz) installed.
 When ``afni`` is started for the first time, you should be directed
