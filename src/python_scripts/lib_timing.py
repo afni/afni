@@ -1155,13 +1155,99 @@ def read_value_file(fname):
 
 # ===========================================================================
 # temporary functions for defining decay curves
+# 
+# Notes:
+# Given A,m,B,N = desired min,mean,max for list of N (pseudo-randomly ?)
+#    generated numbers that follow a decay type distribution (e^-x),
+#    generate such a list.
+#  
+# Basic equations:
+#  
+#    (1) integral [e^-x] on (a,b) = e^-a - e^-b
+#    (2) integral [xe^-x] on (a,b) = (a+1)e^-a - (b+1)e^-b
+#    (3) E[x] = int[xe^-x] / int[e^-x] on (a,b) = (a+1)e^-a - (b+1)e^-b
+#                                                 ---------------------
+#                                                     e^-a - e^-b
+#    (4) E[x] on [0,L] = (1-(L+1)e^-L)/(1-e^-L) = 1 - L/(e^L - 1), so
+#        F(L) == E[x]/L = 1/L - 1/(e^L - 1)
+#  
+# a) Given A,m,B, find L such that E[x]/L = (m-a)/(b-a).
+#    So if m is the fractional mean on [a,b], solve m = F(L) = E[x]/L for m.
+#  
+#    It seems that F(L) can be approximated by invertible functions on
+#    (0,3], (3,6) and [6,inf), being linear, scaled 1/L and 1/L.
+#  
+#          F(0) -> 0.5     (limit as L->0 of F(L))
+#          F(3) ~= 0.281
+#          F(6) ~= 0.164 ~= 1/6
+#  
+#       i) on (0,3], approximate F(L) with line:
+#  
+#          f1(L) = 0.5 - 0.73*L
+#  
+#       ii) on (3,6), map 3 -> 1/f1(3) = 3.5587,  map 6 -> 6
+#           can use f2_0(x) = 1.1174 + .8138*x
+#           So define f2(x) = 1/f2_0(x).
+#  
+#          f2(L) = 1 / (1.1174 + 0.8138 * L)
+#  
+#       iii) on [6,inf), approximate F(L) with 1/L
+#  
+#          f3(L) = 1/L
+#  
+#    FA(L) = approx(F(L))
+#  
+#                { 0.5 - 0.73*L                L in (0,3]
+#                {
+#       FA(L) =  { 1 / (1.1174 + 0.8138 * L)   L in (3,6)
+#                {
+#                { 1 / L                       L in [6,inf)
+#  
+#    Now invert FA(L) to solve m = FA(L) for L = FAI(m).
+#  
 # ===========================================================================
+
+def decay_e3_Ex(a,b):
+   """mean x from PDF over [a,b]
+
+      integral of xe^-x on [a,b]     (a+1)e^-a - (b+1)e^-b
+      --------------------------  =  ---------------------
+      integral of  e^-x on [a,b]          e^-a - e^-b
+
+      This is a @ a and quicly approaches the upper limit of a+1.0.
+      On (0,L], this is 0 @ 0.0 and quickly approaches 1.0.
+   """
+   if a <  0.0: return 0
+   if b <= a  : return a
+
+   ea = math.exp(-a)
+   eb = math.exp(-b)
+
+   return ((a+1.0) * ea - (b+1) * eb) / (ea - eb)
+
+def decay_e3_Ex_gen(A, B, step=0.1):
+   cur = A
+   while cur <= B:
+      yield decay_mean_frac(cur)
+      cur += step
+
+def decay_e4_frac_L(L):
+   """E(x)/L, for x in (0,L]
+      E(x) = (1-(L+1)e^-L) / (1-e^-L) = 1 - L/(e^L - 1).
+      So E4(x) = E(x)/L = 1/L - 1/(e^L - 1).
+
+      Note: as L->0, E4(L) -> 0.5.
+   """
+
+   if L < 0: return 0
+   if L == 0: return 0.5
+   return 1.0/L - 1.0/(math.exp(L) - 1.0)
 
 
 # ======================================================================
 # applied functions and generators
 
-def DEcay_mean(a,b):
+def decay_mean(a,b):
    """simple mean x from PDF f(x)=e^-x over [a,b]
 
       integral of xe^-x on [a,b] = (a+1)e^-a - (b+1)e^-b
@@ -1177,13 +1263,7 @@ def DEcay_mean(a,b):
    den = math.exp(-a) - math.exp(-b)
    return num/den
 
-def DEcay_mean_gen(A, B, step=0.1):
-   cur = A
-   while cur <= B:
-      yield DEcay_mean_frac(cur)
-      cur += step
-
-def DEcay_mean_frac(L):
+def decay_mean_frac(L):
    """mean x from PDF over [0,L]
 
       integral of xe^-x on [0,L]     1 - Le^-L -e^-L            L
@@ -1196,13 +1276,13 @@ def DEcay_mean_frac(L):
 
    return 1.0 - L /(math.exp(L) - 1.0)
 
-def DEcay_mean_frac_gen(A, B, step=0.1):
+def decay_mean_frac_gen(A, B, step=0.1):
    cur = A
    while cur <= B:
-      yield DEcay_mean_frac(cur)
+      yield decay_mean_frac(cur)
       cur += step
 
-def decay_frac_mean(L):
+def decay_frac_L2mf(L):
    """decay mean as a fraction of interval length
 
                                1       1
@@ -1214,10 +1294,10 @@ def decay_frac_mean(L):
    if L == 0: return 0.5
    return 1.0/L - 1.0/(math.exp(L) - 1.0)
 
-def decay_frac_mean_gen(A, B, step=0.1):
+def decay_frac_L2mf_gen(A, B, step=0.1):
    cur = A
    while cur <= B:
-      yield decay_frac_mean(cur)
+      yield decay_frac_L2mf(cur)
       cur += step
 
 
@@ -1323,30 +1403,33 @@ def show_all(L,N):
    for ind in range(N):
       b = e_Lx(a, L, N)
       f = math.exp(-a) - math.exp(-b)  # should equal off
-      print '%3s %0.6f  off=%0.6f, f=%0.6f' % (ind, b, off, f)
-      sa += (a+b)/2
+      ex = decay_mean(a,b)
+      print '%3s %0.6f  off=%0.6f, f=%0.6f, E(x)=%0.6f' % (ind, b, off, f, ex)
+      sa += ex
       a = b
-   print 'length L=%s, theor mean = %s, sa/N = %s' % (L, DEcay_mean_frac(L), sa/N)
+   print 'length L=%s, theor mean = %s, sa/N = %s' % (L, decay_mean_frac(L), sa/N)
 
 # ======================================================================
 def main():
    L = 10
    step = 0.1
 
-   if 1:
+   if 0:
       A = 3
       nd = 50
-      print DEcay_mean(A,A+1)
-      print DEcay_mean(A,A+2)
-      for ind in range(0,nd):
-         print DEcay_mean(A,A+(1.0*nd-ind)/nd)
+      print decay_mean(A,A+1)
+      print decay_mean(A,A+2)
+      for ind in range(nd):
+         print decay_mean(A,A+(1.0*nd-ind)/nd)
    elif 1:
-      show_all(4, 100)
+      show_all(4, 10)
+      show_all(4, 25)
+      show_all(4, 50)
 
    elif 1:
        A = 0; B = 10; step = 0.1
 
-       gen = decay_frac_mean_gen
+       gen = decay_frac_L2mf_gen
        orig = [v for v in gen(A,B,step=step)]
 
        gen = decay_FM_approx_gen
@@ -1362,7 +1445,7 @@ def main():
        plot_data([[xo,orig], [xo, approx]])
 
    else:
-       write_gdata(decay_frac_mean_gen, 'd1.frac.mean.1D', 0, L, step=step)
+       write_gdata(decay_frac_L2mf_gen, 'd1.frac.mean.1D', 0, L, step=step)
        write_gdata(decay_FM_approx_gen, 'd2.frac.approx.1D', 0, L, step=step)
        write_inverse_pair()
 
