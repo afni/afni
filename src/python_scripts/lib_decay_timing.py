@@ -59,10 +59,10 @@
 #
 #    Better approximation:
 #
-#       on [0,2]   0.5 - 0.1565*L/2.0
-#       on (2,3]   1.0 / (1.6154 + 0.6478*L)
-#       on [3,6)   1.0 / (1.1174 + 0.8138 * L)
-#       on [6,inf) 1.0 / L
+#       on [0,2]   f1(L) = 0.5 - 0.1565*L/2.0
+#       on (2,3]   f2(L) = 1.0 / (1.6154 + 0.6478*L)
+#       on [3,6)   f3(L) = 1.0 / (1.1174 + 0.8138 * L)
+#       on [6,inf) f4(L) = 1.0 / L
 #  
 # b) Forget approximations.
 #
@@ -74,12 +74,50 @@
 #    the next iteration of x1 uses the preivious one and the approximate
 #    slope at x0, slope ~= (f(x+h)-f(x))/h for small h.
 #
-# decay_step(fn, x_goal, x0, prec):
-#    f0 = fn(x0)
-#    m = prec / (fn(x0+prec) - f0)
-#    return x0 + (x_goal-f0) * m
+#    i) define basic approximation by pivot at L=4 as initial guess
 #
+#          1.0/m , if m <= 0.25
+#          8-16*m, if 0.25 < m < 0.5
 #
+#    ii) define a step to get the next iteration value
+#
+#       Use inverse slope (delta x / delta  y) to scale change in y to
+#       change in x.
+#
+#          decay_newton_step(fn, y_goal, x0, dx):
+#             y0 = fn(x0)
+#             dxdy = dx / (fn(x0+dx) - y0)
+#             return x0 + (y_goal-y0) * dxdy
+#
+#    iii) solve by taking initial guess and iterating until close
+#
+#       find x s.t. fn(x) ~= y_goal, where |fn(x) - y_goal| < prec
+#
+#          decay_solve(fn, y_goal, prec, maxind=100):
+#             x = decay_guess(y_goal)
+#             f = fn(x0)
+#             while abs(f - y_goal) > prec
+#                x = decay_newton_step(fn, y_goal, x, prec)
+#                f = fn(x)
+#
+# Do not forget to range check m.  If m <= 0 or m == 0.5, use uniform dist.
+# If m > 0.5, solve using 1-m and reflect the resulting values about the mean.
+#
+# c) Get a list of exact durations that follow the PDF and have mean m.
+#
+#    This can still apply to [0,inf) with fractional mean m in (0,0.5).
+#
+#       i)   break
+#
+# d) Scale, truncate and adjust the times.
+#
+#    Now that inversion is done, given A, M, B, N, apply it to find L
+#    from (M-A)/(B-A) and map 0->L to A->B to get mean M.  Use this to
+#    get N values following that PDF with a mean of M.
+#
+# e) Truncate and adjust the times.
+#
+
 
 
 import sys
@@ -146,13 +184,6 @@ def decay_f1(L):
       print('** decay_f1_lin(L) with L = %s outside [%s,%s]' % (L,b,t))
    return 0.5 - 0.1565*L/2.0
 
-def decay_f1i(m):
-   """Inverse of linear approximation to F(L), f1(L) = 0.5 - 0.73*L.
-
-      f1i(m) = (0.5 - m)/0.73
-   """
-   return (0.5 - m)/0.73
-
 def decay_f2(L):
    """scaled 1/L approximation to F(L) on (2,3)
 
@@ -163,14 +194,6 @@ def decay_f2(L):
    if L < b or L > t:
       print('** decay_f2(L) with L = %s outside [%s,%s]' % (L,b,t))
    return 1.0 / (1.6154 + 0.6478*L)
-
-def decay_f2i(m):
-   """Inverse of scaled 1/L approximation to F(L) on (3,6).
-
-      f2i(m) = (1.0/m - 1.1174) / 0.8138
-   """
-   if m <= 0: return 0
-   return (1.0/m - 1.1174) / 0.8138
 
 def decay_f3(L):
    """scaled 1/L approximation to F(L) on (3,6)
@@ -192,17 +215,6 @@ def decay_f4(L):
    if L < b:
       print('** decay_f3(L) with L = %s outside [%s,inf)' % (L,b))
    return 1.0 / L
-
-def decay_f4i(m):
-   """Inverse of 1/L approximation to F(L) on [6,inf).
-
-      f3i(m) = 1.0/L
-
-      written for completeness
-   """
-   if m <= 0: return 0
-   return 1.0/L
-
 
 def decay_e4_approx(L):
    """if L in [0,3],   return 0.5 - .073*L
@@ -228,65 +240,53 @@ def decay_e4_approx_gen(A, B, step=0.1):
       yield decay_e4_approx(cur)
       cur += step
 
-def decay_e4_approx_inv(m):
-   """stepwise inverse of decay_FM_approx
-
-      Given fractional mean m, return limit L, such that the mean x
-      with PDF e^-x on interval [0,L] is m/L.
-
-      The resulting [0,L] interval can then be scaled 
-
-          m <= 0      , ILLEGAL (use constant minimum?)
-          m <= 1/6    , invert 1/L
-          m <  0.281  , invert 1.0/(1.1174 + 0.8138*L)
-                        I(m) = (1.0/m - 1.1174) / 0.8138
-          m <  0.5    , invert 0.5 - .073*L
-                        I(m) = (0.5 - m)/0.073
-          m == 0.5    , ILLEGAL (use uniform)
-          m >  0.5    , ILLEGAL (use 1-m and flip)
-          m >= 1.0    , ILLEGAL (use constant maximum)
-   """
-   if m <= 0.0 or m >= 0.5:
-      print('** decay_e4_approx_inv: illegal fraction mean %s' % m)
-      return 0
-   if m <= 1.0/6: return 1.0/m
-   if m <  0.281: return (1.0/m - 1.1174) / 0.8138
-   if m <  0.5:   return (0.5 - m)/0.073
-
-def decay_e4_approx_inv_gen(A, B, step=0.1):
-   cur = A
-   while cur <= B:
-      yield decay_e4_approx_inv(cur)
-      cur += step
-
 def decay_ident_gen(A, B, step=0.1):
    cur = A
    while cur <= B:
       yield cur
       cur += step
 
+def decay_guess_inv(L):
+   """VERY simple approximation to e4(x) as a line and 1/L
+      that match at (0, 0.5), (4, 0.25).
+      Inverse is 0.5 - L/16, for L <= 4, and 1/L for L > 4.
+   """
+   if L <  0: return 0.5
+   if L <= 4: return 0.5 - L/16
+   else:      return 1.0/L
+
 def decay_guess(m):
-   """VERY simple approximation to e4(x), going after endpoints and 1/x"""
-   if m <= 0: return 0.5
-   if m < 4 : return 0.5 -0.0625 * m
-   return 1.0/m
+   """VERY simple approximation to e4_inverse(x) inverting a line and 1/L
+      that match at (0, 0.5), (4, 0.25).
+      Apply inverse of 0.5 - L/16, for L <= 4, and 1/L for L > 4.
 
-def decay_step(fn, val, x0, prec):
-   f0 = fn(x0)
-   m = prec / (fn(x0+prec) - f0)
-   return x0 + (val-f0) * m
+      For small m, use 1/m.  For m > 0.25, use linear approximation.
+   """
+   if m <= 0:    return 0.5
+   if m <  0.25: return 1.0/m
+   if m <  0.5:  return 8.0 - 16.0*m
 
-def decay_solve(fn, val, prec, maxind=100):
-   """find x s.t. fn(x) ~= val, where |fn(x) - val| < prec
+   return 0.0
+
+def decay_newton_step(fn, y_goal, x0, dx):
+   """Use inverse slope (delta x / delta  y) to scale change in y to
+      change in x, to solve with Newton's method.
+   """
+   y0 = fn(x0)
+   dxdy = dx / (fn(x0+dx) - y0)
+   return x0 + (y_goal-y0) * dxdy
+
+def decay_solve(fn, y_goal, prec, maxind=100):
+   """find x s.t. fn(x) ~= y_goal, where |fn(x) - y_goal| < prec
 
       use linear search: x' = x0 
    """
-   x0 = decay_guess(val)
+   x0 = decay_guess(y_goal)
    f0 = fn(x0)
 
    ind = 0
-   while abs(f0 - val) > prec and ind < maxind:
-      x = decay_step(fn, val, x0, prec)
+   while abs(f0 - y_goal) > prec and ind < maxind:
+      x = decay_newton_step(fn, y_goal, x0, prec)
       fx = fn(x)
       print('x0 = %s, x1 = %s, f0 = %s, f1 = %s' % (x0, x, f0, fx))
       x0 = x
@@ -361,7 +361,7 @@ def main():
 
        xo = [v for v in decay_ident_gen(A,B,step=step)]
        #xi = [v for v in decay_ident_gen(0.1,0.499,step=0.001)]
-       yo = [decay_guess(v) for v in xo]
+       yo = [decay_guess_inv(v) for v in xo]
 
        # plot_data([[xo,orig], [xo, approx], [inv, xi]])
        plot_data([[xo,orig], [xo, approx], [xo,yo]], labs=['e4', 'approx','N'])
