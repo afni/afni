@@ -130,6 +130,11 @@ import math
 # import afni_util as UTIL
 # import lib_afni1D as LD
 
+def decay_mean(a,b):
+   """integral of xe^-x on [a,b] = (a+1)e^-a - (b+1)e^-b
+   """
+   return (a+1.0)*math.exp(-a) - (b+1.0)*math.exp(-b)
+
 def decay_e3_Ex(a,b):
    """mean x (expected value of x) from PDF over [a,b]
 
@@ -312,11 +317,22 @@ def plot_data(pair_list, labs=[]):
    plt.show()
 
 def e_Lx(a,L,N):
-   off = (1.0-math.exp(-L))/N
-   diff = math.exp(-a) - off
-   return -math.log(diff)
+   """return b such that int_a_b[e^-x] = 1/N * int_0_L[e^-x]"""
 
-def show_int(L,N):
+   off = (1.0-math.exp(-L))/N   # full integral / N
+   enb = math.exp(-a) - off     # must be e^-b
+   return -math.log(enb)        # return b
+
+def decay_show_PDF_times(L,N):
+   """return a list of times distributed as e^-x on [0,L] such that
+      the mean of the values matches the continuous mean
+
+      To do so, partition [0,L] into N segments such that the integral over
+      each segment is 1/N of the entire one, i.e., each integral would be
+      p_int(L,N) = (1-e^-L)/N.
+      Then on each such segment [a,b), find E[x], which would mean that 
+      E[x] * (a-b) = p_int(L,N), and so their sum would equal E[x] on [0,L].
+   """
    off = (1.0-math.exp(-L))/N
    
    a = 0
@@ -324,11 +340,59 @@ def show_int(L,N):
    for ind in range(N):
       b = e_Lx(a, L, N)
       f = math.exp(-a) - math.exp(-b)  # should equal off
-      ex = decay_mean(a,b)
+      ex = decay_e3_Ex(a,b)
       print '%3s %0.6f  off=%0.6f, f=%0.6f, E(x)=%0.6f' % (ind, b, off, f, ex)
       sa += ex
       a = b
-   print 'length L=%s, theor mean = %s, sa/N = %s' % (L, decay_mean_frac(L), sa/N)
+   print 'length L=%s, theor mean = %s, sa/N = %s' % (L, decay_e3_Ex(0,L), sa/N)
+
+def decay_get_PDF_times(L,N):
+   """return a list of times distributed as e^-x on [0,L] such that
+      the mean of the values matches the continuous mean
+
+      To do so, partition [0,L] into N segments such that the integral over
+      each segment is 1/N of the entire one, i.e., each integral would be
+      p_int(L,N) = (1-e^-L)/N.
+      Then on each such segment [a,b), find E[x], which would mean that 
+      E[x] * (a-b) = p_int(L,N), and so their sum would equal E[x] on [0,L].
+   """
+   off = (1.0-math.exp(-L))/N
+
+   times = []
+   
+   a = 0
+   for ind in range(N):
+      b = e_Lx(a, L, N)
+      ex = decay_e3_Ex(a,b)
+      times.append(ex)
+      a = b
+   return times
+
+def decay_get_PDF_bins(L,N,nbin):
+   """to evaluate, get lots of PDF times and bin them to see if they
+      follow e^-x"""
+   times = decay_get_PDF_times(L,N)
+   bcounts = [0] * nbin
+   bsize = L*1.0/nbin
+   for tt in times:
+      bcounts[int(tt*1.0/bsize)] += 1
+   b0 = float(bcounts[0])
+   for bind in range(nbin):
+      bcounts[bind] /= b0
+   return bcounts
+
+def show_times_PDF(L,N,nbin):
+   """get_PDF_times, count the number in each bin of length L/nbin, and
+      get list of count/N
+   """
+   btimes = decay_get_PDF_bins(L,N,nbin)
+   bsize = L*1.0/nbin
+
+   xo = [i * bsize for i in range(nbin)]
+   yo = [math.exp(-(i*bsize)) for i in range(nbin)]
+   
+   plot_data([[xo,btimes], [xo,yo]], labs=['btimes', 'e^-x'])
+
 
 # ======================================================================
 def main():
@@ -343,9 +407,7 @@ def main():
       for ind in range(nd):
          print decay_mean(A,A+(1.0*nd-ind)/nd)
    elif 0:
-      show_int(4, 10)
-      show_int(4, 25)
-      show_int(4, 50)
+      show_times_PDF(5,10000,100)
 
    elif 1:
        A = 0; B = 10; step = 0.1
