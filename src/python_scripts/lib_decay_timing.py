@@ -356,6 +356,8 @@ def decay_get_PDF_times(L,N):
       Then on each such segment [a,b), find E[x], which would mean that 
       E[x] * (a-b) = p_int(L,N), and so their sum would equal E[x] on [0,L].
    """
+   if L <= 0 or N <= 0: return []
+
    off = (1.0-math.exp(-L))/N
 
    times = []
@@ -368,12 +370,19 @@ def decay_get_PDF_times(L,N):
       a = b
    return times
 
-def decay_get_PDF_bins(L,N,nbin):
+def decay_get_PDF_bins(L, N, nbin, verb=0):
    """to evaluate, get lots of PDF times and bin them to see if they
       follow e^-x"""
+   if nbin <= 0 or N <= 0 or L <= 0:
+      print('** get_PDF_bins: inputs must be positive')
+      return []
+
    times = decay_get_PDF_times(L,N)
    bcounts = [0] * nbin
    bsize = L*1.0/nbin
+
+   if verb: print('PDF_times: min = %s, max = %s' % (times[0],times[-1]))
+
    for tt in times:
       bcounts[int(tt*1.0/bsize)] += 1
    b0 = float(bcounts[0])
@@ -386,6 +395,8 @@ def show_times_PDF(L,N,nbin):
       get list of count/N
    """
    btimes = decay_get_PDF_bins(L,N,nbin)
+   if len(btimes) < 1: return
+
    bsize = L*1.0/nbin
 
    xo = [i * bsize for i in range(nbin)]
