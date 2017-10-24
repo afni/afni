@@ -274,28 +274,33 @@ def decay_guess(m):
    return 0.0
 
 def decay_newton_step(fn, y_goal, x0, dx):
-   """Use inverse slope (delta x / delta  y) to scale change in y to
-      change in x, to solve with Newton's method.
+   """Solve with Newton's method.  Use inverse slope (delta x / delta  y)
+      to scale change in y to change in x.
    """
    y0 = fn(x0)
-   dxdy = dx / (fn(x0+dx) - y0)
-   return x0 + (y_goal-y0) * dxdy
+   dy = fn(x0+dx) - y0
+   if dy == 0.0:
+      print('** decay_newton_step: called with dy == 0.0')
+      return x0
+   return x0 + (y_goal-y0) * dx/dy
 
-def decay_solve(fn, y_goal, prec, maxind=100):
-   """find x s.t. fn(x) ~= y_goal, where |fn(x) - y_goal| < prec
+def decay_solve(fn, y_goal, prec, maxind=100, verb=0):
+   """find x s.t. |fn(x) - y_goal| < prec
 
-      use linear search: x' = x0 
+      use linear search: x' = x0 + delta_y * dx/dy
    """
    x0 = decay_guess(y_goal)
-   f0 = fn(x0)
+   fx = fn(x0)
 
    ind = 0
-   while abs(f0 - y_goal) > prec and ind < maxind:
+   while abs(fx - y_goal) > prec and ind < maxind:
       x = decay_newton_step(fn, y_goal, x0, prec)
+      if x < 0.0:
+         print('** apparent failure in decay_newton_step, x = %g' % x)
+         return x0
       fx = fn(x)
-      print('x0 = %s, x1 = %s, f0 = %s, f1 = %s' % (x0, x, f0, fx))
+      if verb: print('x0 = %s, x = %s, fx = %s' % (x0, x, fx))
       x0 = x
-      f0 = fx
 
    return x0
 
