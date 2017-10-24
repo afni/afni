@@ -10,21 +10,21 @@
 #  
 # Basic equations:
 #  
-#    (1) integral [e^-x] on (a,b) = e^-a - e^-b
-#    (2) integral [xe^-x] on (a,b) = (a+1)e^-a - (b+1)e^-b
-#    (3) E[x] = int[xe^-x] / int[e^-x] on (a,b) = (a+1)e^-a - (b+1)e^-b
-#                                                 ---------------------
-#                                                     e^-a - e^-b
+#       (1) integral [e^-x] on (a,b) = e^-a - e^-b
+#       (2) integral [xe^-x] on (a,b) = (a+1)e^-a - (b+1)e^-b
+#       (3) E[x] = int[xe^-x] / int[e^-x] on (a,b) = (a+1)e^-a - (b+1)e^-b
+#                                                    ---------------------
+#                                                        e^-a - e^-b
 
 #    Since E[x] on [0,L] = (1-(L+1)e^-L)/(1-e^-L) = 1 - L/(e^L - 1), define
 #
-#    (4) F(L) = E[x]/L = 1/L - 1/(e^L - 1)
+#       (4) F(L) = E[x]/L = 1/L - 1/(e^L - 1)
 #
-# * This is the principle equation we want to invert.  Given mean M, converted
-#   to a fractional offset mean m = (M-A)/(B-A), we can solve m = F(L) for L,
-#   defining a decay function with the given fractional mean.  So if e^-x on
-#   [0,L] has mean m, x in the function can be shifted and scaled to be on
-#   [A,B] with the given mean M.
+#  * This is the principle equation we want to invert.  Given mean M, converted
+#    to a fractional offset mean m = (M-A)/(B-A), we can solve m = F(L) for L,
+#    defining a decay function with the given fractional mean.  So if e^-x on
+#    [0,L] has mean m, x in the function can be shifted and scaled to be on
+#    [A,B] with the given mean M.
 #   
 #
 # a) Approximation games...
@@ -63,8 +63,14 @@
 #       on (2,3]   f2(L) = 1.0 / (1.6154 + 0.6478*L)
 #       on [3,6)   f3(L) = 1.0 / (1.1174 + 0.8138 * L)
 #       on [6,inf) f4(L) = 1.0 / L
+#
+#    This looks great, but is still a little unfulfilling (now I want beer).
+#
+#    Hmmmm, in the immortal words of the famous philosopher Descartes,
+#    "this is kinda stupid".  Move on...
 #  
-# b) Forget approximations.
+#
+# b) Forget approximations.  Solve m = F(L) for L using Newton's method.
 #
 #    F(L) is very smooth, behaving like a line for L<2 and then scaled
 #    versions of 1/L beyond that.  So iterate to invert, which should be
@@ -75,6 +81,8 @@
 #    slope at x0, slope ~= (f(x+h)-f(x))/h for small h.
 #
 #    i) define basic approximation by pivot at L=4 as initial guess
+#       {Exactly why throw out the accurate approximations above?  I don't
+#        know.  Okay, let's say that we prefer a single, simple function.}
 #
 #          1.0/m , if m <= 0.25
 #          8-16*m, if 0.25 < m < 0.5
@@ -100,22 +108,43 @@
 #                x = decay_newton_step(fn, y_goal, x, prec)
 #                f = fn(x)
 #
-# Do not forget to range check m.  If m <= 0 or m == 0.5, use uniform dist.
-# If m > 0.5, solve using 1-m and reflect the resulting values about the mean.
+#       We can be precise here.  Not only does this converge quickly, but
+#       it is a one time operation per timing class.
 #
-# c) Get a list of exact durations that follow the PDF and have mean m.
+# Handle m in different ranges according to:
+#
+#    m <= 0             illegal
+#    0 < m < 0.5        expected
+#    m ~= 0.5           should use uniform distribution, instead of decay
+#    0.5 < m < 1.0      expected, solve using 1-m and reflect about the mean
+#    m >= 1.0           illegal
+#
+# c) Given L, get a list of N exact durations that follow PDF and have mean m.
 #
 #    This can still apply to [0,inf) with fractional mean m in (0,0.5).
 #
-#       i)   break
+#       times = decay_get_PDF_times(L, N)
 #
-# d) Scale, truncate and adjust the times.
+# d) Scale the times.
 #
-#    Now that inversion is done, given A, M, B, N, apply it to find L
-#    from (M-A)/(B-A) and map 0->L to A->B to get mean M.  Use this to
-#    get N values following that PDF with a mean of M.
+#    Given A, M, B, and N times[], map each time from [0,L] to [A,B] (which
+#    should map the mean m to mean M).
 #
-# e) Truncate and adjust the times.
+#         newval = A + oldval * (B-A)/L
+#
+# e) Round the times.
+#
+#    Maintain CS = cumulative sum of differences between the exact and rounded
+#    times.  If the new abs(CS) >= prec (precision), round in the opposite
+#    direction, to maintain abs(CS) < prec, which should be sufficient.  We
+#    *could* require abs(CS) < prec/2, but that might mean more would be
+#    rounded in the "wrong" direction.  Please discuss amongst yourselves...
+
+# f) if original m > 0.5, reflect times over (A+B)/2
+#
+# g) Verify the mean.  Since the difference between the precise sum and the
+#    rounded sum should be less than prec, the difference between the means
+#    should be less than prec/N, which is all we can ask for in life.
 #
 
 
@@ -165,11 +194,20 @@ def decay_e4_frac_L(L):
       piecewise invertible approximations.
 
       Note: as L->0, E4(L) -> 0.5.
+            if L>100, e^L ~= 10^43, so forget that term
    """
 
    if L < 0: return 0
    if L == 0: return 0.5
-   return 1.0/L - 1.0/(math.exp(L) - 1.0)
+   # set an upper bound to avoid useless math.exp errors
+   if L >= 100: return 1.0/L
+   
+   try: rv = 1.0/L - 1.0/(math.exp(L) - 1.0)
+   except:
+      print('decay_e4_frac_L failure for L = %f' % L)
+      if L < 1.0: rv = 0.5
+      else:       rv = 1.0/L
+   return rv
 
 def decay_e4_gen(A, B, step=0.1):
    """generater function for equation 4"""
@@ -225,6 +263,8 @@ def decay_e4_approx(L):
    """if L in [0,3],   return 0.5 - .073*L
       if L in (3,6),   return 1.0/(1.1174 + 0.8138 * L)
       if L in [6,inf), return 1/L
+
+      okay, those are old-fangled approximations, but you get the picture
    
       check continuity and key points...
       A(0)  = 0.5
@@ -409,6 +449,57 @@ def show_times_PDF(L,N,nbin):
    
    plot_data([[xo,btimes], [xo,yo]], labs=['btimes', 'e^-x'])
 
+# ======================================================================
+# main calling routine
+
+def truncate_to_grid(val, grid, up=1):
+   """return val truncated to a multiple of grid
+
+      if up, val should not decrease, else it should not increase
+      BUT, allow for val to *almost* be a multiple of grid
+         - allow for missing by 0.01*grid
+         - e.g. T2G(val=5.32101, grid=0.001, up=1) should return 5.321, not 5.322
+
+      require grid > 0
+   """
+   if grid <= 0.0: return 0.0
+
+   if up:
+      return math.ceil(val/grid-0.01)*grid
+   else:
+      return math.floor(val/grid+0.01)*grid
+
+def decay_get_ranged_pdf_times(A,B,M,N,t_grid=0.001):
+   """Return N times between A and B, with mean M and following a scaled
+      version of PDF e^x.
+
+      a. preparation:
+
+          -  truncate A, B onto t_grid (multiples of it)
+          -  require 0 <= A < B, N > 3, A < M < B
+          -  define m = (M-A)/(B-A)
+          -  define F(L) = 1/L - 1/(e^L - 1)
+          -  if m ~= 0.5, suggest uniform distribution, instead
+          -  if m > 0.5:
+             -  process as 1.0 - m, and apply offsets as B-time rather than A+time
+
+      b. given m, solve m = F(L) for L
+      c. get N decay times from e^-x on [0,L] with mean m
+      d. scale to [A,B] with mean M
+      e. round to t_grid and possible reflect over (A+B)/2 (if original m > 0.5)
+
+      Note: This does not need to require A >= 0, except in the context of event
+            durations.  Consider allowing A < 0 with a flag.
+   """
+   
+   if t_grid <= 0: # rcr - whine
+      return []
+
+   # truncate times inward (allow for slightly missing multiple of t_grid)
+   A = truncate_to_grid(A, t_grid, up=1)
+   B = truncate_to_grid(A, t_grid, up=0)
+
+   return []
 
 # ======================================================================
 def main():
@@ -441,8 +532,13 @@ def main():
        #xi = [v for v in decay_ident_gen(0.1,0.499,step=0.001)]
        yo = [decay_guess_inv(v) for v in xo]
 
+       # get inverses of all orig y values
+       xi = [decay_solve(decay_e4_frac_L, v, 0.0001) for v in orig]
+
        # plot_data([[xo,orig], [xo, approx], [inv, xi]])
-       plot_data([[xo,orig], [xo, approx], [xo,yo]], labs=['e4', 'approx','N'])
+       # plot_data([[xo,orig], [xo, approx], [xo,yo], [xi, orig]],
+       #           labs=['e4', 'approx','N', 'inv'])
+       plot_data([[xo,orig], [xo,yo], [xi, orig]], labs=['e4', 'N', 'inv'])
 
 
 # main
