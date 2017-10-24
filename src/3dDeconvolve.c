@@ -2322,6 +2322,8 @@ void get_options
           } else {
             ttmax = lmax * DSET_TR(dset) ;
             gtmax *= DSET_TR(dset) ;         /* scale NT by TR */
+            if( DSET_TR(dset) == 0.0 )       /* 23 Oct 2017 [rickr] */
+              WARNING_message("-input dataset seems to have TR = 0.0");
           }
           DSET_delete(dset) ;
         }
@@ -2833,10 +2835,14 @@ void get_options
 
         if( tim != basis_times[k] ) mri_free(tim) ;
 
-        if( nc == 0 )  /* 0 is okay, < 0 is not   26 Jul 2007 [rickr] */
+        if( nc == 0 ) { /* 0 is okay, < 0 is not   26 Jul 2007 [rickr] */
           WARNING_message("'%s %d' didn't read any good times from file '%s'",
                           sopt , ival , argv[nopt] ) ;
-        else if( nc < 0 )
+          /* but 0 might be a symptom of something bad  23 Oct 2017 [rickr] */
+          if( (basis_timetype == GLOBAL_TIMES && gtmax == 0.0) ||
+              (basis_timetype != GLOBAL_TIMES && ttmax == 0.0) )
+             WARNING_message("run time seen as 0.0, verify TR and NT");
+        } else if( nc < 0 )
           ERROR_exit("'%s %d' couldn't read valid times from file '%s' [nopt=%d]",
                      sopt , ival , argv[nopt] , nopt ) ;
 
