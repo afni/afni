@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 23, Oct, 2017, RCR, "3dDeconvolve", MICRO, TYPE_GENERAL,
+   "add warnings if TR or run length is 0.0",
+   NULL
+ } ,
+
  { 20, Sep, 2017, RCR, "3dAutoTcorrelate", MICRO, TYPE_ENHANCE,
    "add help example",
    NULL
