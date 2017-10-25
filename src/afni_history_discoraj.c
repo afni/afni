@@ -51,6 +51,10 @@
 afni_history_struct discoraj_history[] = {
 
  /* can copy to and change one of the examples here */
+ { 25 , OCT , 2017 , JKR , "@afni_R_package_install" , SUPER , TYPE_NEW_PROG ,
+   "add new program @afni_R_package_install" ,
+   "Will install R libraries to run shiny apps"
+ } ,
  { 11 , OCT , 2017 , JKR , "@FATCAT_heatmap_shiny" , SUPER , TYPE_NEW_PROG ,
    "add new program @FATCAT_heatmap_shiny" ,
    "Run a shiny app to view .netcc or .grid files"
