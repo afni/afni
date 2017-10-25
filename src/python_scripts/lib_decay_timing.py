@@ -386,11 +386,11 @@ def decay_show_PDF_times(L,N):
       b = e_Lx(a, L, N)
       f = math.exp(-a) - math.exp(-b)  # should equal off
       ex = decay_e3_Ex(a,b)
-      print '%3s %0.6f  off=%0.6f, f=%0.6f, E(x)=%0.6f' % (ind, b, off, f, ex)
+      print('%3s %0.6f  off=%0.6f, f=%0.6f, E(x)=%0.6f' % (ind, b, off, f, ex))
       sa += ex
       a = b
-   print 'length L=%s, theor mean/L = %s, sa/N/L = %s' \
-         % (L, decay_e3_Ex(0,L)/L, sa/N/L)
+   print('length L=%s, theor mean/L = %s, sa/N/L = %s' \
+         % (L, decay_e3_Ex(0,L)/L, sa/N/L))
 
 def decay_get_PDF_times(L,N):
    """return a list of times distributed as e^-x on [0,L] such that
@@ -647,10 +647,10 @@ def main():
    if 0:
       A = 3
       nd = 50
-      print decay_mean(A,A+1)
-      print decay_mean(A,A+2)
+      print(decay_mean(A,A+1))
+      print(decay_mean(A,A+2))
       for ind in range(nd):
-         print decay_mean(A,A+(1.0*nd-ind)/nd)
+         print(decay_mean(A,A+(float(nd)-ind)/nd))
    elif 0:
       show_times_PDF(5,10000,100)
 
