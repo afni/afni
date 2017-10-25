@@ -339,7 +339,7 @@ def decay_solve(fn, y_goal, prec, maxind=100, verb=0):
          print('** apparent failure in decay_newton_step, x = %g' % x)
          return x0
       fx = fn(x)
-      if verb: print('x0 = %s, x = %s, fx = %s' % (x0, x, fx))
+      if verb: print('-- x0 = %s, x = %s, fx = %s' % (x0, x, fx))
       x0 = x
 
    return x0
@@ -362,7 +362,7 @@ def plot_data(pair_list, labs=[]):
    plt.show()
 
 def e_Lx(a,L,N):
-   """return b such that int_a_b[e^-x] = 1/N * int_0_L[e^-x]"""
+   """return b such that int_a_b[e^-x] = 1/N * Exp[X]/N"""
 
    off = (1.0-math.exp(-L))/N   # full integral / N
    enb = math.exp(-a) - off     # must be e^-b
@@ -389,7 +389,8 @@ def decay_show_PDF_times(L,N):
       print '%3s %0.6f  off=%0.6f, f=%0.6f, E(x)=%0.6f' % (ind, b, off, f, ex)
       sa += ex
       a = b
-   print 'length L=%s, theor mean = %s, sa/N = %s' % (L, decay_e3_Ex(0,L), sa/N)
+   print 'length L=%s, theor mean/L = %s, sa/N/L = %s' \
+         % (L, decay_e3_Ex(0,L)/L, sa/N/L)
 
 def decay_get_PDF_times(L,N):
    """return a list of times distributed as e^-x on [0,L] such that
@@ -415,31 +416,35 @@ def decay_get_PDF_times(L,N):
       a = b
    return times
 
-def decay_get_PDF_bins(L, N, nbin, verb=0):
-   """to evaluate, get lots of PDF times and bin them to see if they
+def decay_get_PDF_bins(vals, nbin, scale=1, verb=0):
+   """to evaluate, get lots of PDF vals and bin them to see if they
       follow e^-x"""
-   if nbin <= 0 or N <= 0 or L <= 0:
+   N = len(vals)
+   if nbin <= 0 or N <= 0:
       print('** get_PDF_bins: inputs must be positive')
       return []
 
-   times = decay_get_PDF_times(L,N)
+   if verb: print('PDF_times: min = %s, max = %s' % (vals[0],vals[-1]))
+
    bcounts = [0] * nbin
-   bsize = L*1.0/nbin
+   v0 = vals[0]
+   bsize = 1.001*(vals[-1]-v0)/float(nbin)
+   if bsize <= 0: return []
 
-   if verb: print('PDF_times: min = %s, max = %s' % (times[0],times[-1]))
-
-   for tt in times:
-      bcounts[int(tt*1.0/bsize)] += 1
-   b0 = float(bcounts[0])
-   for bind in range(nbin):
-      bcounts[bind] /= b0
+   for v in vals:
+      bcounts[int((v-v0)/float(bsize))] += 1
+   if scale:
+       b0 = float(bcounts[0])
+       for bind in range(nbin):
+          bcounts[bind] /= b0
    return bcounts
 
 def show_times_PDF(L,N,nbin):
    """get_PDF_times, count the number in each bin of length L/nbin, and
       get list of count/N
    """
-   btimes = decay_get_PDF_bins(L,N,nbin)
+   times = decay_get_PDF_times(L, N)
+   btimes = decay_get_PDF_bins(times, L, nbin)
    if len(btimes) < 1: return
 
    bsize = L*1.0/nbin
@@ -449,8 +454,171 @@ def show_times_PDF(L,N,nbin):
    
    plot_data([[xo,btimes], [xo,yo]], labs=['btimes', 'e^-x'])
 
+def show_val_bins(vals, nbin, scale=1, L=0):
+   """get_PDF_times, count the number in each bin of length L/nbin, and
+      get list of count/N
+   """
+   N = len(vals)
+   if N < nbin or nbin <= 0: return
+
+   btimes = decay_get_PDF_bins(vals, nbin, scale=scale)
+   if len(btimes) < 1: return
+
+   bsize = 1.001*(vals[-1]-vals[0])/float(nbin)
+
+   xo = [i * bsize for i in range(nbin)]
+   dlist = [[xo, btimes]]
+   labs = ['btimes']
+
+   if scale:
+      # include e^-x
+      if L: xscale = L/float(vals[-1]-vals[0])
+      else: xscale = 1.0
+      yo = [math.exp(-(i*bsize*xscale)) for i in range(nbin)]
+      dlist.append([xo, yo])
+      labs.append('e^-x')
+   
+   plot_data(dlist, labs=labs)
+
 # ======================================================================
 # main calling routine
+
+def decay_pdf_get_ranged_times(A, B, M, N, t_grid=0.001, verb=0):
+   """Return N times between A and B, with mean M and following a scaled
+      version of PDF e^x.
+
+      a. preparation:
+
+         -  truncate A, B onto t_grid (multiples of it)
+         -  require 0 <= A < B, N > 3, A < M < B
+         -  define F(L) = 1/L - 1/(e^L - 1)
+         -  if (M-A)/(B-A) ~= 0.5, suggest uniform distribution, instead
+
+      b. given m = (M-A)/(B-A), solve m = F(L) for L
+         - if m > 0.5: process as 1-m, and apply as B-time rather than A+time
+      c. get N decay times from e^-x on [0,L] with mean m
+      d. reflect if necessary (if orig m>0.5), and scale to [A,B] with mean M
+      e. round to t_grid
+
+      Note: This does not need to require A >= 0, except in the context of event
+            durations.  Consider allowing A < 0 with a flag.
+   """
+
+   # ----------------------------------------------------------------------
+   # a. preaparation
+   
+   # truncate times inward (allow for slightly missing multiple of t_grid)
+   A = truncate_to_grid(A, t_grid, up=1)
+   B = truncate_to_grid(B, t_grid, up=0)
+
+   # this also checks if m is too close to 0.5
+   if not decay_pdf_inputs_ok(A, B, M, N, t_grid):
+      return []
+
+
+   # ----------------------------------------------------------------------
+   # b. from m = fractional mean, get L to restrict e^-x over [0,L],
+   #    so the expected value of x given PDF e^-x is m
+
+   # set m, and note whether to reflect results about the mean
+   m = (M-A)/float(B-A)
+   reflect = (m > 0.5)
+   if reflect:
+      m = 1 - m
+   
+   # note: F(L) = decay_e4_frac_L(L) = 1/L - 1/(e^L - 1)
+   L = decay_solve(decay_e4_frac_L, m, t_grid, verb=verb)
+
+   if verb: print('-- decay: m = %s, L = %s' % (m, L))
+
+   # ----------------------------------------------------------------------
+   # c. get N decay times from e^-x on [0,L] with mean m
+   times = decay_get_PDF_times(L, N)
+   if verb > 1: decay_show_PDF_times(L, N)
+   if times == []: return times
+
+   # ----------------------------------------------------------------------
+   # d. reflect if necessary, and scale to [A,B] with mean M
+   if reflect:
+      # times are in [0,L], so reflecting means applying L-time
+      times = [L-t for t in times]
+      m = 1-m  # do we care anymore?
+
+   # scale t from [0,L] to [0,B-A] and offset by A
+   lrat = (B-A)/float(L)
+   times = [A + t*lrat for t in times]
+
+   # ----------------------------------------------------------------------
+   # e. round times to multiples of t_grid
+   times = cumulative_round_to_grid(times, t_grid)
+
+   return times
+
+def cumulative_round_to_grid(vals, delta, verb=0):
+   """round values to multiples of delta, but try to keep the cumulative sum
+      basically unchanged
+
+      * apply in place
+
+      Maintain CS = cumulative sum of differences between the exact and rounded
+      times.  If the new abs(CS) >= prec (precision), round in the opposite
+      direction, to maintain abs(CS) < prec, which should be sufficient.  We
+      *could* require abs(CS) < prec/2, but that might mean more would be
+      rounded in the "wrong" direction.  Please discuss amongst yourselves...
+   """
+   dsum = 0.0   # cumulative sum of diffs between original and rounded vals
+   for ind, val in enumerate(vals):
+      rval = round(val/delta)*delta
+      rdiff = rval-val
+      if verb: print('-- CR2G: val %d = %s, rdiff = %s'%(ind, val, rdiff))
+      if rdiff == 0.0:
+         continue
+
+      # keep from straying
+      if abs(dsum + rdiff) > delta:
+         if rdiff > 0: rd = rdiff-delta
+         else:         rd = rdiff+delta
+         if verb: print('   alter rdiff %s to %s, dsum %s' % (rdiff, rd, dsum))
+         rdiff = rd
+         rval = val+rdiff
+
+      # apply
+      vals[ind] = rval
+      dsum += rdiff
+
+      if verb:
+         print('   val %s, rval %s, rdiff %s, dsum %s' % (val,rval,rdiff,dsum))
+
+   return vals
+
+def decay_pdf_inputs_ok(A, B, M, N, t_grid):
+   """check all inputs for reasonableness, return 1 if okay, 0 otherwise"""
+   fname = 'decay_pdf_get_ranged_times'
+   if t_grid <= 0:
+      print('** %s: illegal t_grid < 0, %s' % (fname, t_grid))
+      return 0
+
+   if A < 0.0 or A >= B:
+      print('** %s requires 0 <= A < B' % fname)
+      print('   have A = %s, B = %s' % (A,B))
+      return 0
+
+   if N <= 3:
+      print('** %s requires N > 3, have N = %d' % (fname, N))
+      return 0
+
+   if A >= M or B <= M:
+      print('** %s requires A < M < B, have M = %s' % (fname, M))
+      return 0
+
+   # fractional m should not be too close to 0.5
+   m = (M-A)/float(B-A)
+   if abs(m - 0.5) < 0.001:
+      print('** decay PDF mean too close to midpoint, consider uniform PDF')
+      print('** FAILING for mean m = %s' % m)
+      return 0
+
+   return 1
 
 def truncate_to_grid(val, grid, up=1):
    """return val truncated to a multiple of grid
@@ -458,7 +626,8 @@ def truncate_to_grid(val, grid, up=1):
       if up, val should not decrease, else it should not increase
       BUT, allow for val to *almost* be a multiple of grid
          - allow for missing by 0.01*grid
-         - e.g. T2G(val=5.32101, grid=0.001, up=1) should return 5.321, not 5.322
+         - e.g. T2G(val=5.32101, grid=0.001, up=1) should return 5.321,
+           not 5.322, since it is close enough, say
 
       require grid > 0
    """
@@ -469,37 +638,6 @@ def truncate_to_grid(val, grid, up=1):
    else:
       return math.floor(val/grid+0.01)*grid
 
-def decay_get_ranged_pdf_times(A,B,M,N,t_grid=0.001):
-   """Return N times between A and B, with mean M and following a scaled
-      version of PDF e^x.
-
-      a. preparation:
-
-          -  truncate A, B onto t_grid (multiples of it)
-          -  require 0 <= A < B, N > 3, A < M < B
-          -  define m = (M-A)/(B-A)
-          -  define F(L) = 1/L - 1/(e^L - 1)
-          -  if m ~= 0.5, suggest uniform distribution, instead
-          -  if m > 0.5:
-             -  process as 1.0 - m, and apply offsets as B-time rather than A+time
-
-      b. given m, solve m = F(L) for L
-      c. get N decay times from e^-x on [0,L] with mean m
-      d. scale to [A,B] with mean M
-      e. round to t_grid and possible reflect over (A+B)/2 (if original m > 0.5)
-
-      Note: This does not need to require A >= 0, except in the context of event
-            durations.  Consider allowing A < 0 with a flag.
-   """
-   
-   if t_grid <= 0: # rcr - whine
-      return []
-
-   # truncate times inward (allow for slightly missing multiple of t_grid)
-   A = truncate_to_grid(A, t_grid, up=1)
-   B = truncate_to_grid(A, t_grid, up=0)
-
-   return []
 
 # ======================================================================
 def main():
