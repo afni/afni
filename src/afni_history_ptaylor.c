@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 26, Oct , 2017 , PT , "fat_proc_connec_vis" , MAJOR , TYPE_NEW_PROG,
+   "Visualize 'white matter connection' volumes output by 3dTrackID.",
+   "Combine separate '-dump_rois ...' output into SUMAble surface maps.\n"
+},
+
 { 12, Oct , 2017 , PT , "@GradFlipTest" , MINOR , TYPE_MODIFY,
    "Change output formatting and getting basename of prefix name.",
    "Easier output and reading in terminal/files.\n"
