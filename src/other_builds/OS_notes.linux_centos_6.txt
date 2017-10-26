@@ -1,0 +1,17 @@
+# RedHat/CentOS 6 Linux setup, 26 Oct 2017   G Torres
+# (this is for a build machine, requiring more than for a user)
+
+# Install package dependencies
+sudo yum -y install git gcc make m4 zlib-devel libXt-devel libXext-devel \
+    libXmu-devel openmotif-devel expat-devel compat-gcc-34 tcsh libXpm-devel \
+    gsl-devel mesa-libGL-devel mesa-libGLU-devel libXi-devel glib2-devel \
+    gcc-c++ netpbm-devel gcc-gfortran
+
+# Copy Makefile
+cp Makefile.linux_openmp_64 Makefile
+
+# Opt to use the system's X libraries
+perl -p -i -e 's/^USE_LOCAL_X_TREE/#USE_LOCAL_X_TREE/' Makefile
+
+# Create symlink for gcc34
+sudo ln -s /usr/bin/x86_64-redhat-linux-gcc34 /usr/bin/x86_64-redhat-linux-gcc-34
