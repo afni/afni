@@ -415,7 +415,7 @@ cat << EOF
     -tsmoo_kpb   KPB   :"KPB" parameter in IsoSurface program;  default
                         value is ${tsmoo_kpb}.
     -tsmoo_niter NITER :"NITER" parameter in IsoSurface program;  default
-                        value is ${tsmoo_niter}.
+                        value is ${tsmoo_nit}.
     -iso_opt   ISO_OPT :input one of the "iso* options" from IsoSurface 
                         program, such as "isorois+dsets", "mergerois", etc. 
                         Quotations around the entry may be needed, esp
