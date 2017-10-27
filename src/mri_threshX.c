@@ -92,8 +92,7 @@ typedef struct {
      free((xcar)->xclu) ; free(xcar) ;       \
  } while(0)
 
-#if 0
-#define MERGER_Xcluster_array(xcar,ycar)                                       \
+#define MERGE_Xcluster_arrays(xcar,ycar)                                       \
  do{ if( (xcar)->nclu+(ycar)->nclu > (xcar)->nall ){                           \
        (xcar)->nall = (xcar)->nclu+(ycar)->nclu ;                              \
        (xcar)->xclu = (Xcluster **)realloc((xcar)->xclu,                       \
@@ -101,9 +100,8 @@ typedef struct {
      }                                                                         \
      memcpy( (xcar)->xclu+(xcar)->nclu ,                                       \
              (ycar)->xclu , sizeof(Xcluster *)*(ycar)->nclu ) ;                \
-     free((ycar)->xclu) ; free(yclu) ;                                         \
+     free((ycar)->xclu) ; free(ycar) ;                                         \
  } while(0)
-#endif
 
 /*----------------------------------------------------------------------------*/
 /* Create a cluster with initial array allocation of siz */
