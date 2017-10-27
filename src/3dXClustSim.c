@@ -596,7 +596,7 @@ ENTRY("get_options") ;
     zthr_1sid[ii] = (float)zthresh(     pthr[ii] ) ;
     zthr_2sid[ii] = (float)zthresh( 0.5*pthr[ii] ) ;
   }
-  zthr_used = (nnsid==1) ? zthr_1sid : zthr_1sid ;
+  zthr_used = (nnsid==1) ? zthr_1sid : zthr_2sid ;
 
   EXRETURN ;
 }
@@ -640,6 +640,8 @@ void gather_clusters( int icase, int ipthr,
   register int ii ; register float thr ; float *tfar = MRI_FLOAT_PTR(tfim) ;
 
   thr = zthr_used[ipthr] ;
+
+#if 0              /** old code: 1-sided uses only pos (since thr > 0) */
   if( ss == 1 ){
     if( thr >= 0.0f ){
       for( ii=0 ; ii < nxyz ; ii++ )
@@ -652,8 +654,26 @@ void gather_clusters( int icase, int ipthr,
     for( ii=0 ; ii < nxyz ; ii++ )
       tfar[ii] = (fabsf(fim[ii]) >= thr) ? fim[ii] : 0.0f ;
   }
-
   Xclustar_g[icase][ipthr][iter] = find_Xcluster_array( tfim,nn, NULL,NULL,NULL ) ;
+
+#else              /** new code: 1-sided uses both pos and neg **/
+  if( ss == 1 ){
+    Xcluster_array *pcar , *ncar ;
+    thr = fabsf(thr) ;
+    for( ii=0 ; ii < nxyz ; ii++ )
+      tfar[ii] = (fim[ii] >= thr) ? fim[ii] : 0.0f ;
+    pcar = find_Xcluster_array( tfim,nn, NULL,NULL,NULL ) ;
+    for( ii=0 ; ii < nxyz ; ii++ )
+      tfar[ii] = (fim[ii] <= -thr) ? fim[ii] : 0.0f ;
+    ncar = find_Xcluster_array( tfim,nn, NULL,NULL,NULL ) ;
+    MERGE_Xcluster_arrays(pcar,ncar) ; /* ncar is deleted */
+    Xclustar_g[icase][ipthr][iter] = pcar ;
+  } else {
+    for( ii=0 ; ii < nxyz ; ii++ )
+      tfar[ii] = (fabsf(fim[ii]) >= thr) ? fim[ii] : 0.0f ;
+    Xclustar_g[icase][ipthr][iter] = find_Xcluster_array( tfim,nn, NULL,NULL,NULL ) ;
+  }
+#endif
 
   return ;
 }
