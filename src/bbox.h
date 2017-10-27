@@ -243,6 +243,7 @@ extern char * MCW_av_substring_CB( MCW_arrowval * , XtPointer ) ;
 #define MSTUF_INTEGER 1
 #define MSTUF_STRING  2
 #define MSTUF_STRLIST 3
+#define MSTUF_YESNO   4
 
 #define POPDOWN_ovcolor_chooser    MCW_choose_ovcolor(NULL,NULL,0,NULL,NULL)
 #define POPDOWN_string_chooser     MCW_choose_string(NULL,NULL,NULL,NULL,NULL)
