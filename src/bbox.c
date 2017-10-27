@@ -4355,7 +4355,8 @@ printf("MCW_choose_CB: plotting selected timeseries\n") ;
 /*----------------------------------------------------------------------------*/
 /*----------------------------------------------------------------------------*/
 
-#define MSTUF_tofree(ic) ( (ic) == MSTUF_INT || (ic) == MSTUF_STRLIST )
+#define MSTUF_tofree(ic) \
+   ( (ic) == MSTUF_INT || (ic) == MSTUF_STRLIST || (ic) == MSTUF_YESNO )
 
 static int     CS_nsav = 0 ;
 static void ** CS_sav  = NULL ;
@@ -4411,6 +4412,11 @@ ENTRY("MCW_stuff_CB") ;
          MCW_arrowval *av = (MCW_arrowval *)CS_sav[iss] ;
          outval[iss] = (void *)(av->sval) ;
        }
+
+       case MSTUF_YESNO:{
+         MCW_arrowval *av = (MCW_arrowval *)CS_sav[iss] ;
+         outval[iss] = (void *)(av->sval) ;
+       }
        break ;
      }
    }
@@ -4435,6 +4441,7 @@ ENTRY("MCW_stuff_CB") ;
       MSTUF_INT    , label , bot , top , init
       MSTUF_STRING , label
       MSTUF_STRLIST, label, nstring , init_index , string_array
+      MSTUF_YESNO  , label  [like STRLIST with {"No","Yes"} as input array]
 
    The call_func is called like so
 
@@ -4625,6 +4632,25 @@ ENTRY("MCW_choose_stuff") ;
          CS_nsav++ ;
        }
        break ;
+
+       case MSTUF_YESNO:{  /* label */
+         static char *strlist[2] = { "No" , "Yes" } ;
+         char *lab ; MCW_arrowval *av ;
+         lab = va_arg( vararg_ptr , char *  ) ; if( lab == NULL ) break ;
+
+         av = new_MCW_optmenu( wrc , lab ,
+                                0 , 1 , 0 , 0 ,
+                                NULL , NULL ,
+                                MCW_av_substring_CB , strlist ) ;
+
+         CS_sav = (void **)realloc( CS_sav , sizeof(void *)*(CS_nsav+1) ) ;
+         CS_sav[CS_nsav] = (void *)av ;
+         CS_scod = (int *)realloc( CS_scod , sizeof(int)*(CS_nsav+1) ) ;
+         CS_scod[CS_nsav] = scode ;
+         CS_nsav++ ;
+       }
+       break ;
+
      }
    }while(1) ;
    va_end( vararg_ptr ) ;
