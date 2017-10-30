@@ -639,16 +639,16 @@ void gather_clusters( int icase, int ipthr,
 {
   register int ii ; register float thr ; float *tfar = MRI_FLOAT_PTR(tfim) ;
 
-  thr = zthr_used[ipthr] ;
+  thr = fabsf(zthr_used[ipthr]) ;
 
-#if 0              /** old code: 1-sided uses only pos (since thr > 0) */
+#if 1              /** older code **/
   if( ss == 1 ){
-    if( thr >= 0.0f ){
+    if( iter%2 == 0 ){
       for( ii=0 ; ii < nxyz ; ii++ )
         tfar[ii] = (fim[ii] >= thr) ? fim[ii] : 0.0f ;
     } else {
       for( ii=0 ; ii < nxyz ; ii++ )
-        tfar[ii] = (fim[ii] <= thr) ? fim[ii] : 0.0f ;
+        tfar[ii] = (fim[ii] <= -thr) ? fim[ii] : 0.0f ;
     }
   } else {
     for( ii=0 ; ii < nxyz ; ii++ )
@@ -656,10 +656,9 @@ void gather_clusters( int icase, int ipthr,
   }
   Xclustar_g[icase][ipthr][iter] = find_Xcluster_array( tfim,nn, NULL,NULL,NULL ) ;
 
-#else              /** new code: 1-sided uses both pos and neg **/
+#else              /** new code: 1-sided uses both pos and neg [doesn't work] **/
   if( ss == 1 ){
     Xcluster_array *pcar , *ncar ;
-    thr = fabsf(thr) ;
     for( ii=0 ; ii < nxyz ; ii++ )
       tfar[ii] = (fim[ii] >= thr) ? fim[ii] : 0.0f ;
     pcar = find_Xcluster_array( tfim,nn, NULL,NULL,NULL ) ;
