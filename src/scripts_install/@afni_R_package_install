@@ -23,6 +23,7 @@ set prog = `basename $0`
 set afni    = "boo"
 set shiny   = "boo"
 set custom  = "boo"
+set circos  = "boo"
 
 ## list of packages
 set afniPkgs  = "c('afex','phia','snow','nlme','lme4','paran','psych')"
@@ -42,6 +43,8 @@ while ( $narg <= $amax )
         set afni = "yay"
     else if ( "$argv[$narg]" == "-shiny" ) then
         set shiny = "yay"
+    else if ( "$argv[$narg]" == "-circos" ) then
+        set circos = "yay"
     else if ( "$argv[$narg]" == "-custom" ) then
         @ narg ++
         set custom = "yay"
@@ -65,8 +68,14 @@ endif
 
 ## install disco shiny stuff
 if ( $shiny == "yay" ) then
-    echo "Trying to install: ${discoPkgs}" ; echo
+    echo "Trying to install: OmicCircos" ; echo
     Rscript -e "install.packages(${discoPkgs},repos='https://cran.rstudio.com')"
+endif
+
+## install OmicCircos
+if ( $circos == "yay") then
+    echo "Trying to install: OmicCircos" ; echo
+    Rscript /Users/discoraj/Documents/nih/afni_macOS_install/OmicCircos_pkg_install.R
 endif
 
 ## install custom list
