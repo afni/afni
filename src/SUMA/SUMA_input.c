@@ -234,6 +234,8 @@ int SUMA_bracketleft_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    /* do the work */
    switch (k) {
       case XK_bracketleft:
+         /* getting rid of some warnings that happen with normal use */
+         Nwarn_bracket = 1; /* warning always in terminal, no message to window */
          /* toggle showing left hemispheres */
          sv->ShowLeft = !sv->ShowLeft;
          /* do the axis setup */
@@ -253,7 +255,7 @@ int SUMA_bracketleft_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                strcmp(callmode, "interactive") == 0) { 
             SUMA_SLP_Note("%s",stmp); 
          } else { SUMA_S_Note("%s",stmp); } 
-         ++Nwarn_bracket;
+/*         ++Nwarn_bracket;*/
          break;
       default:
          SUMA_S_Err("Il ne faut pas etre la");
@@ -279,6 +281,8 @@ int SUMA_bracketright_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    /* do the work */
    switch (k) {
       case XK_bracketright:
+         /* getting rid of some warnings that happen with normal use */
+         Nwarn_bracket = 1; /* warning always in terminal, no message to window */
          /* toggle showing left hemispheres */
          sv->ShowRight = !sv->ShowRight;
          /* do the axis setup */
@@ -298,7 +302,7 @@ int SUMA_bracketright_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                strcmp(callmode, "interactive") == 0) { 
             SUMA_SLP_Note("%s",stmp); 
          } else { SUMA_S_Note("%s",stmp); } 
-         ++Nwarn_bracket;
+/*         ++Nwarn_bracket;*/
          break;
       default:
          SUMA_S_Err("Il ne faut pas etre la");
