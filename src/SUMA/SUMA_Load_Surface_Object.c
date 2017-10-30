@@ -663,14 +663,16 @@ SUMA_Boolean SUMA_PrepSO_GeomProp_GL(SUMA_SurfaceObject *SO)
       if (!(sv = SUMA_BestViewerForADO((SUMA_ALL_DO *)SO))) sv = SUMAg_SVv;
       if (sv) { /* This can be null when surfaces are created on the fly,
                    No need to warn in that case though.*/
-         if (sv->GVS[sv->StdView].DimSclFac < 5 && !iwarn) {
+           ;  /* took out actual warning - mostly nuisance - 10 Oct 2017 DRG */
+           if (!iwarn) ++iwarn;
+/*         if (sv->GVS[sv->StdView].DimSclFac < 5 && !iwarn) {
             ++iwarn;
-            SUMA_SLP_Warn(
+            SUMA_S_Note(
                "Surface size is quite small, rendering errors might occur.\n"
                "If your coordinate units are in cm, set SUMA_NodeCoordsUnits \n"
                "In your ~/.sumarc to 'cm' instead of the default 'mm'\n"
             "If you do not have a '~/.sumarc', just run 'suma -update_env'\n");
-         }
+         }*/
       }
    }
    SUMA_LH("Computing normals");
