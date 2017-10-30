@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# can be run with python2 or python3
+
 # ===========================================================================
 # functions for defining decay curves
 # 
@@ -324,13 +326,14 @@ def decay_newton_step(fn, y_goal, x0, dx):
       return x0
    return x0 + (y_goal-y0) * dx/dy
 
-def decay_solve(fn, y_goal, prec, maxind=100, verb=0):
+def decay_solve(fn, y_goal, prec, maxind=100, verb=1):
    """find x s.t. |fn(x) - y_goal| < prec
 
       use linear search: x' = x0 + delta_y * dx/dy
    """
    x0 = decay_guess(y_goal)
    fx = fn(x0)
+   if verb > 2: print('-- decay_solve x0 = %s, fx = %s' % (x0, fx))
 
    ind = 0
    while abs(fx - y_goal) > prec and ind < maxind:
@@ -339,8 +342,12 @@ def decay_solve(fn, y_goal, prec, maxind=100, verb=0):
          print('** apparent failure in decay_newton_step, x = %g' % x)
          return x0
       fx = fn(x)
-      if verb: print('-- x0 = %s, x = %s, fx = %s' % (x0, x, fx))
+      if verb > 2: print('   x0 = %s, x = %s, fx = %s' % (x0, x, fx))
       x0 = x
+
+   if verb > 2:
+      print('++ solved: given y = %g, approx with e^-%g = %g' \
+            % (y_goal, x0, fx))
 
    return x0
 
@@ -416,7 +423,7 @@ def decay_get_PDF_times(L,N):
       a = b
    return times
 
-def decay_get_PDF_bins(vals, nbin, scale=1, verb=0):
+def decay_get_PDF_bins(vals, nbin, scale=1, verb=1):
    """to evaluate, get lots of PDF vals and bin them to see if they
       follow e^-x"""
    N = len(vals)
@@ -424,7 +431,7 @@ def decay_get_PDF_bins(vals, nbin, scale=1, verb=0):
       print('** get_PDF_bins: inputs must be positive')
       return []
 
-   if verb: print('PDF_times: min = %s, max = %s' % (vals[0],vals[-1]))
+   if verb > 2: print('PDF_times: min = %s, max = %s' % (vals[0],vals[-1]))
 
    bcounts = [0] * nbin
    v0 = vals[0]
@@ -483,7 +490,7 @@ def show_val_bins(vals, nbin, scale=1, L=0):
 # ======================================================================
 # main calling routine
 
-def decay_pdf_get_ranged_times(A, B, M, N, t_grid=0.001, verb=0):
+def decay_pdf_get_ranged_times(A, B, M, N, t_grid=0.001, verb=1):
    """Return N times between A and B, with mean M and following a scaled
       version of PDF e^x.
 
@@ -500,12 +507,18 @@ def decay_pdf_get_ranged_times(A, B, M, N, t_grid=0.001, verb=0):
       d. reflect if necessary (if orig m>0.5), and scale to [A,B] with mean M
       e. round to t_grid
 
-      Note: This does not need to require A >= 0, except in the context of event
+      Note: this does not need to require A >= 0, except in the context of event
             durations.  Consider allowing A < 0 with a flag.
+
+      Note: times are currently sorted, not randomized.
    """
 
    # ----------------------------------------------------------------------
    # a. preaparation
+
+   if verb > 1:
+      print('-- decay_pdf_GRT: A=%s, M=%s, B=%s, N=%s, t_grid=%s' \
+            % (A, M, B, N, t_grid))
    
    # truncate times inward (allow for slightly missing multiple of t_grid)
    A = truncate_to_grid(A, t_grid, up=1)
@@ -529,12 +542,12 @@ def decay_pdf_get_ranged_times(A, B, M, N, t_grid=0.001, verb=0):
    # note: F(L) = decay_e4_frac_L(L) = 1/L - 1/(e^L - 1)
    L = decay_solve(decay_e4_frac_L, m, t_grid, verb=verb)
 
-   if verb: print('-- decay: m = %s, L = %s' % (m, L))
+   if verb > 1: print('-- decay: m = %s, L = %s' % (m, L))
 
    # ----------------------------------------------------------------------
    # c. get N decay times from e^-x on [0,L] with mean m
    times = decay_get_PDF_times(L, N)
-   if verb > 1: decay_show_PDF_times(L, N)
+   if verb > 2: decay_show_PDF_times(L, N)
    if times == []: return times
 
    # ----------------------------------------------------------------------
@@ -554,7 +567,7 @@ def decay_pdf_get_ranged_times(A, B, M, N, t_grid=0.001, verb=0):
 
    return times
 
-def cumulative_round_to_grid(vals, delta, verb=0):
+def cumulative_round_to_grid(vals, delta, verb=1):
    """round values to multiples of delta, but try to keep the cumulative sum
       basically unchanged
 
@@ -570,7 +583,7 @@ def cumulative_round_to_grid(vals, delta, verb=0):
    for ind, val in enumerate(vals):
       rval = round(val/delta)*delta
       rdiff = rval-val
-      if verb: print('-- CR2G: val %d = %s, rdiff = %s'%(ind, val, rdiff))
+      if verb > 3: print('-- CR2G: val %d = %s, rdiff = %s'%(ind, val, rdiff))
       if rdiff == 0.0:
          continue
 
@@ -578,7 +591,7 @@ def cumulative_round_to_grid(vals, delta, verb=0):
       if abs(dsum + rdiff) > delta:
          if rdiff > 0: rd = rdiff-delta
          else:         rd = rdiff+delta
-         if verb: print('   alter rdiff %s to %s, dsum %s' % (rdiff, rd, dsum))
+         if verb>3: print('   alter rdiff %s to %s, dsum %s' % (rdiff,rd,dsum))
          rdiff = rd
          rval = val+rdiff
 
@@ -586,7 +599,7 @@ def cumulative_round_to_grid(vals, delta, verb=0):
       vals[ind] = rval
       dsum += rdiff
 
-      if verb:
+      if verb > 3:
          print('   val %s, rval %s, rdiff %s, dsum %s' % (val,rval,rdiff,dsum))
 
    return vals
@@ -641,6 +654,9 @@ def truncate_to_grid(val, grid, up=1):
 
 # ======================================================================
 def main():
+   # for testing, add options to plot or compute times, etc
+   # (those won't exist at the higher level, in MRT.py)
+
    L = 10
    step = 0.1
 
