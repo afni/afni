@@ -5,6 +5,32 @@ static int verb=1 ;
 
 void mri_apply_mask( MRI_IMAGE *inim , MRI_IMAGE *bim ) ; /* prototype */
 
+/*----------------------------------------------------------------------------*/
+/*! Threshold for upper tail probability of N(0,1) = 1-inverseCDF(pval) */
+
+#if 0
+#undef  PSMALL
+#define PSMALL 1.e-15
+double zthresh( double pval )
+{
+        if( pval <= 0.0 ) pval = PSMALL ;
+   else if( pval >= 1.0 ) pval = 1.0 - PSMALL ;
+   return qginv(pval) ;   /* mri_stats.c */
+}
+#endif
+
+/*! Convert zthresh to pval, given these:
+        zthr_1sid = zthresh(     pthr )
+        zthr_2sid = zthresh( 0.5*pthr )  */
+
+double ztop( double z , int sid )
+{
+   double pp = qg(z) ;
+   if( sid == 2 ) pp *= 2.0 ;
+   return pp ;
+}
+/*----------------------------------------------------------------------------*/
+
 int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *mset=NULL , *iset=NULL ;
@@ -15,6 +41,7 @@ int main( int argc , char *argv[] )
    int do_hpow0=0,do_hpow1=0,do_hpow2=0, nhpow=0,hpow=0, hstart;
    int do_maskonly=0 , do_pos=-1 ;
    MRI_IMARR *cimar0=NULL , *cimar1=NULL , *cimar2=NULL ;
+   MRI_IMARR *allmask=NULL ; char *prefix_allmask=NULL , *case_allmask=NULL ;
 
    /*----- help, I'm trapped in an instance of vi and can't get out -----*/
 
@@ -45,6 +72,10 @@ int main( int argc , char *argv[] )
       " -maskonly       = Instead of outputing a thresholded version\n"
       "                   of the input dataset, just output a 0/1 mask\n"
       "                   dataset of voxels that survive the process.\n"
+      " -allmask qqq    = Write out a multi-volume dataset with prefix 'qqq'\n"
+      "                   where each volume is the binary mask of voxels that\n"
+      "                   pass ONE of the tests. This dataset can be used\n"
+      "                   to see which tests mattered where in the brain.\n"
       " -nozero         = this option prevents the output of a\n"
       "                   dataset if it would be all zero\n"
       " -quiet          = turn off progress report messages\n"
@@ -101,8 +132,22 @@ int main( int argc , char *argv[] )
          ERROR_exit("need 1 argument after option '%s'",argv[nopt-1]) ;
        prefix = strdup(argv[nopt]) ;
        if( !THD_filename_ok(prefix) )
-         ERROR_exit("prefix '%s' is illegal (and funny looking)",prefix) ;
+         ERROR_exit("-prefix '%s' is illegal (and funny looking)",prefix) ;
        nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-allmask") == 0 ){
+       if( ++nopt >= argc )
+         ERROR_exit("need 1 argument after option '%s'",argv[nopt-1]) ;
+       prefix_allmask = strdup(argv[nopt]) ;
+       if( !THD_filename_ok(prefix_allmask) )
+         ERROR_exit("-allmask '%s' is illegal (and funny looking)",prefix_allmask) ;
+       nopt++ ;
+       if( nopt < argc && argv[nopt][0] != '-' ){
+         case_allmask = strdup(argv[nopt++]) ;
+         if( strlen(case_allmask) > 9 ) case_allmask[9] = '\0' ;
+       }
+       continue ;
      }
 
      if( strcasecmp(argv[nopt],"-input") == 0 ){
@@ -256,7 +301,8 @@ int main( int argc , char *argv[] )
    bfim = mri_multi_threshold_Xcluster( fim ,
                                         nzthr , zthr , nnsid , nnlev ,
                                         cimar0 , cimar1 , cimar2 ,
-                                        XTHRESH_OUTPUT_MASK , &nhits ) ;
+                                        XTHRESH_OUTPUT_MASK , &nhits ,
+                                        (prefix_allmask != NULL) ? &allmask : NULL ) ;
 
    mri_multi_threshold_unsetup() ;
 
@@ -301,6 +347,34 @@ int main( int argc , char *argv[] )
        DSET_write(oset) ;
        if( verb ) WROTE_DSET(oset) ;
      }
+   }
+
+   /* output allmask = mask for each sub-test (zthr) */
+
+   if( prefix_allmask != NULL && allmask != NULL ){
+     THD_3dim_dataset *oset; int nvv; MRI_IMAGE *qfim; char lab[64];
+     if( bfim != NULL ) mri_free(bfim) ;
+     bfim = mri_new_conforming( fim , MRI_byte ) ;
+     memset(MRI_BYTE_PTR(bfim),0,sizeof(byte)*bfim->nvox) ;
+     DSET_unload(iset) ;
+     oset = EDIT_empty_copy(iset) ;
+     nvv = IMARR_COUNT(allmask) ;
+     EDIT_dset_items( oset ,
+                        ADN_nvals  , nvv            ,
+                        ADN_prefix , prefix_allmask ,
+                      ADN_none ) ;
+     for( ival=0 ; ival < nvv ; ival++ ){
+       qfim = IMARR_SUBIM(allmask,ival) ;
+       if( qfim == NULL ) qfim = bfim ;
+       EDIT_substitute_brick( oset , ival , MRI_byte , MRI_BYTE_PTR(qfim) ) ;
+       if( case_allmask == NULL )
+         sprintf(lab,"p=%.4f", ztop(zthr[ival],nnsid) ) ;
+       else
+         sprintf(lab,"%s:p=%.4f", case_allmask , ztop(zthr[ival],nnsid) ) ;
+       EDIT_BRICK_LABEL(oset,ival,lab) ;
+     }
+     DSET_write(oset) ;
+     if( verb ) WROTE_DSET(oset) ;
    }
 
    mri_free(bfim) ;

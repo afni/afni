@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 31 , OCT , 2017 , RWC , "3dMultiThresh" , MINOR , TYPE_NEW_OPT ,
+   "Add -allmask option, to see which case(s) caused a positive" ,
+   "Add then used in 3dttest++ to produce the ETACmaskALL output dataset" } ,
+
  { 12 , OCT , 2017 , RWC , "afni GUI" , MICRO , TYPE_GENERAL ,
    "Slight relocation of UnderLay/OverLay popups -- for the PirATe" ,
    NULL } ,
