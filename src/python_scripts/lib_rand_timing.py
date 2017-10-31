@@ -9,7 +9,8 @@ gDEF_T_GRAN     = 0.01   # default time granularity, in seconds
 gDEF_DEC_PLACES = 2      # decimal places when printing time (-1 ==> %g format)
 
 
-g_valid_dist_types = ['decay', 'decay_old', 'uniform_rand', 'uniform_grid',
+g_valid_dist_types = ['decay', 'decay_old', 'decay_fixed',
+                      'uniform_rand', 'uniform_grid',
                       'fixed', 'INSTANT']
 g_fixed_dist_types = ['fixed', 'INSTANT']
 g_valid_param_types= ['dist', 't_gran']
@@ -28,7 +29,10 @@ g_valid_param_types= ['dist', 't_gran']
 #          - t_gran: granularity of time, default 0.01
 class TimingClass:
    def __init__(self, name, min_dur, mean_dur, max_dur, params=[], verb=1):
-      # required from the command line (name value -> set duration)
+      """required from the command line (name value -> set duration)
+
+         note: this just processes the parameters, times are not created here
+      """
       self.name         = name
 
       self.min_dur      = min_dur       # ** required **
@@ -71,6 +75,7 @@ class TimingClass:
       else:
          self.max_dur = tg * math.floor(self.max_dur / tg + 0.01)
 
+      if verb > 2: self.show("new timing class, '%s'" % name)
 
    def apply_params(self, params):
       """list of VAR=VAL, verify and apply"""
@@ -117,6 +122,10 @@ class TimingClass:
           #       return 1
           #    # apply
           #    self.max_consec = mc
+          
+          # rcr - consider adding parameter 'nuniq', to specify the
+          #       number of unique times (which would need to be an
+          #       integral fraction of nreps, when applied)
           else:
              print "** TimingClass %s, invalid param name %s in '%s'" \
                    % (self.name, pvar, pp)
