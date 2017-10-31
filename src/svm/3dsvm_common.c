@@ -7196,7 +7196,7 @@ int train_classification( MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *ker
   }
 
   /* ----- WRITE MODEL AND BUCKET TO DISC ----- */
-  if( !options->docFileOnly[0] ) {
+  if( !options->docFileOnly[0] && !options->noModelOut ) {
     /* JL May 2010: Modified writeModelBrick to write the model and the mask into
      * a single dataset */
     if( writeModelBrik(&afniModel, dsetTrain, dsetTrainArray, dsetMaskArrayPtr, options,
@@ -7531,7 +7531,7 @@ int train_regression(MODEL *model, LEARN_PARM *learn_parm,
   /* might not be necessary if testing and training are performed all at once */
 
   /* --- write afni model --- */
-  if ( !options->docFileOnly[0] ) {
+  if ( !options->docFileOnly[0] && !options->noModelOut ) {
     /* JL May 2010: Modified writeModelBrick to write the model and the mask into
      * a single dataset */
     if( writeModelBrik(&afniModel, dsetTrain, dsetTrainArray, dsetMaskArrayPtr, options,
@@ -7683,6 +7683,7 @@ int input_parse(int argc, char *argv[], long *main_verbosity,
   strncpy(optionsData->svmType, "",         LONG_STRING);
   strncpy(optionsData->rtIP, "",            LONG_STRING);
   optionsData->outModelNoMask = 0;
+  optionsData->noModelOut     = 0;
   optionsData->noPredDetrend  = 0;
   optionsData->classout       = 0;
   optionsData->noPredCensor   = 0;
@@ -7826,6 +7827,7 @@ int input_parse(int argc, char *argv[], long *main_verbosity,
     }
     if( !strcmp(argv[i],"-no_memcheck") )   { pause_mcw_malloc(); /* ZSS */ }
     if( !strcmp(argv[i],"-nomodelmask") )   { parseFlag=1; optionsData->outModelNoMask = 1; }
+    if( !strcmp(argv[i],"-nomodelfile") )   { parseFlag=1; optionsData->noModelOut = 1; } /* JL Oct. 2017 */
     if( !strcmp(argv[i],"-nodetrend") )     { parseFlag=1; optionsData->noPredDetrend = 1; }
     if( !strcmp(argv[i],"-classout") )      { parseFlag=1; optionsData->classout = 1; } 
     if( !strcmp(argv[i],"-nopredcensored") ){ parseFlag=1; optionsData->noPredCensor = 1; }
@@ -7980,13 +7982,13 @@ int input_parse(int argc, char *argv[], long *main_verbosity,
           "  set environment variable: AFNI_3DSVM_NOMASK=YES\n");
       RETURN(1);
     }
-    if( !(optionsData->modelFile[0]) ) {
+    if( !optionsData->modelFile[0] && !optionsData->noModelOut ) {
       snprintf(errorString, LONG_STRING, "Must specify a model output file for "
-          "training in real time!"); 
+          "training in real time or use option: -nomodelfile"); 
       RETURN (1);
     }
 
-       RETURN(0);
+    RETURN(0);
   }
   else if( optionsData->rtTest ) {
     *mode = RT_TEST;
@@ -8052,6 +8054,12 @@ int input_parse(int argc, char *argv[], long *main_verbosity,
     RETURN(1);
   }
 
+  if( (optionsData->modelFile[0]) && (optionsData->noModelOut) ) { 
+    WARNING_message("Option -model and -nomodelfile was specified. "
+        "Option: -nomodelfile is ignored!");
+    optionsData->noModelOut = 0;
+  }
+
   /* Set mode and do some error checking */
   /* JL Aug. 2009: Changed error checking for testlabels. */
   if( optionsData->trainFile[0] ) {
@@ -8069,9 +8077,9 @@ int input_parse(int argc, char *argv[], long *main_verbosity,
   }
 
   if( !(optionsData->modelFile[0]) ) {
-    if( (*mode == TRAIN) || (*mode == TRAIN_AND_TEST) ) {
+  if( ( (*mode == TRAIN) && !optionsData->noModelOut) || (*mode == TRAIN_AND_TEST) ) {
       snprintf(errorString, LONG_STRING, "Must specify a model output file for "
-          "training!"); RETURN (1);
+          "training or use option: -nomodelfile"); RETURN (1);
     /* In the future it would be great to keep them model in memory for
      * TRAIN_AND_TEST and not write it to disc and read it back in */
     }
