@@ -547,7 +547,7 @@ def decay_pdf_get_ranged_times(A, B, M, N, t_grid=0.001, verb=1):
    # ----------------------------------------------------------------------
    # c. get N decay times from e^-x on [0,L] with mean m
    times = decay_get_PDF_times(L, N)
-   if verb > 2: decay_show_PDF_times(L, N)
+   if verb > 3: decay_show_PDF_times(L, N)
    if times == []: return times
 
    # ----------------------------------------------------------------------
