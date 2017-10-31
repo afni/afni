@@ -4884,49 +4884,69 @@ LABELS_ARE_DONE:  /* target for goto above */
                if( sid == 2 ){
                  INFO_message("3dttest++ ----- merging %d blur cases to make 2-sided activation mask",ncase) ;
                  for( icase=0 ; icase < ncase ; icase++ ){ /* make masks for each blur case */
-                   sprintf( cmd , "3dMultiThresh -quiet -input %s -1tindex 1 -maskonly \\\n   " ,
+                   sprintf( cmd , "3dMultiThresh -input %s -1tindex 1 -maskonly \\\n   " ,
                                   cprefix[icase] ) ;
                    sprintf( cmd+strlen(cmd) , " -prefix %s.ETACtmask.%s.nii" ,
                                               prefix_clustsim , clab[icase] ) ;
                    sprintf( cmd+strlen(cmd) , " -mthresh %s.%s.ETAC.mthresh.%s.%s.nii" ,
                                               prefix_clustsim , nam , clab[icase],sfarp ) ;
+                   sprintf( cmd+strlen(cmd) , " -allmask %s.ETACamask.%s.nii %s" ,
+                                              prefix_clustsim , clab[icase] , clab[icase] ) ;
                    system(cmd) ;
                  }
                  sprintf( cmd ,  /* combine the masks */
                           "3dmask_tool -input %s.ETACtmask.*.nii -union -prefix %s.%s.ETACmask.2sid.%s.nii.gz" ,
                           prefix_clustsim , prefix_clustsim , nam , sfarp ) ;
                  system(cmd) ;
+                 sprintf( cmd ,  /* cat the amasks */
+                          "3dbucket -prefix %s.%s.ETACmaskALL.2sid.%s.nii.gz %s.ETACamask.*.nii" ,
+                          prefix_clustsim , nam , sfarp , prefix_clustsim ) ;
+                 system(cmd) ;
                } else {
                  INFO_message("3dttest++ ----- merging %d blur cases to make pos 1-sided activation mask",ncase) ;
                  for( icase=0 ; icase < ncase ; icase++ ){
-                   sprintf( cmd , "3dMultiThresh -quiet -input %s -1tindex 1 -maskonly -pos \\\n   " ,
+                   sprintf( cmd , "3dMultiThresh -input %s -1tindex 1 -maskonly -pos \\\n   " ,
                                   cprefix[icase] ) ;
                    sprintf( cmd+strlen(cmd) , " -prefix %s.ETACtmask.1pos.%s.nii" ,
                                               prefix_clustsim , clab[icase] ) ;
                    sprintf( cmd+strlen(cmd) , " -mthresh %s.%s.ETAC.mthresh.%s.%s.nii" ,
                                               prefix_clustsim , nam , clab[icase],sfarp ) ;
+                   sprintf( cmd+strlen(cmd) , " -allmask %s.ETACamask.1pos.%s.nii %s" ,
+                                              prefix_clustsim , clab[icase] , clab[icase] ) ;
                    system(cmd) ;
                  }
                  sprintf( cmd ,
                           "3dmask_tool -input %s.ETACtmask.1pos.*.nii -union -prefix %s.%s.ETACmask.1pos.%s.nii.gz" ,
                           prefix_clustsim , prefix_clustsim , nam , sfarp ) ;
                  system(cmd) ;
+                 sprintf( cmd ,  /* cat the masks */
+                          "3dbucket -prefix %s.%s.ETACmaskALL.1pos.%s.nii.gz %s.ETACamask.1pos.*.nii" ,
+                          prefix_clustsim , nam , sfarp , prefix_clustsim ) ;
+                 system(cmd) ;
                  INFO_message("3dttest++ ----- merging %d blur cases to make neg 1-sided activation mask",ncase) ;
                  for( icase=0 ; icase < ncase ; icase++ ){
-                   sprintf( cmd , "3dMultiThresh -quiet -input %s -1tindex 1 -maskonly -neg \\\n   " ,
+                   sprintf( cmd , "3dMultiThresh -input %s -1tindex 1 -maskonly -neg \\\n   " ,
                                   cprefix[icase] ) ;
                    sprintf( cmd+strlen(cmd) , " -prefix %s.ETACtmask.1neg.%s.nii" ,
                                               prefix_clustsim , clab[icase] ) ;
                    sprintf( cmd+strlen(cmd) , " -mthresh %s.%s.ETAC.mthresh.%s.%s.nii" ,
                                               prefix_clustsim , nam , clab[icase],sfarp ) ;
+                   sprintf( cmd+strlen(cmd) , " -allmask %s.ETACamask.1neg.%s.nii %s" ,
+                                              prefix_clustsim , clab[icase] , clab[icase] ) ;
                    system(cmd) ;
                  }
                  sprintf( cmd ,
                           "3dmask_tool -input %s.ETACtmask.1neg.*.nii -union -prefix %s.%s.ETACmask.1neg.%s.nii.gz" ,
                                 prefix_clustsim , prefix_clustsim , nam , sfarp ) ;
                  system(cmd) ;
+                 sprintf( cmd ,  /* cat the masks */
+                          "3dbucket -prefix %s.%s.ETACmaskALL.1neg.%s.nii.gz %s.ETACamask.1neg.*.nii" ,
+                          prefix_clustsim , nam , sfarp , prefix_clustsim ) ;
+                 system(cmd) ;
                }
-               sprintf( cmd , "\\rm %s.ETACtmask.*.nii" , prefix_clustsim ) ; system(cmd) ;
+#if 1
+               sprintf( cmd , "\\rm %s.ETACtmask.*.nii %s.ETACamask.*.nii" , prefix_clustsim ); system(cmd);
+#endif
              } /* end of loop over farp goals */
            } /* end of multi-blur mask making */
          } /* not dryrun */
