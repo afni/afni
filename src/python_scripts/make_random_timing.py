@@ -1615,7 +1615,7 @@ class RandTiming:
              -add_timing_class stimA 3 
              -add_timing_class stimA 3 5 10
              -add_timing_class stimA 3 5 10 dist=decay
-             -add_timing_class stimA 3 3  3 dist=decay t_grid=0.1
+             -add_timing_class stimA 1 3  9 dist=decay t_grid=0.1
        """
 
        params = opt.parlist
@@ -1708,9 +1708,6 @@ class RandTiming:
                                 params=params[4:], verb=self.verb)
        if tclass.status:
           return 1
-
-       if self.verb > 1: print "++ adding new Timing class '%s'" % name
-       if self.verb > 2: tclass.show('new timing class')
 
        self.tclasses.append(tclass)
 
@@ -1831,7 +1828,8 @@ class RandTiming:
                 - randomize: sequence of trials per class and rest
                 - accumulate time: offset + gran (rest) or stim_dur
                 - each class gets a list of times
-            - write all timing lists to files """
+            - write all timing lists to files
+        """
 
         if self.verb > 1: print '\n++ creating timing...'
 
@@ -1841,6 +1839,10 @@ class RandTiming:
 
         # possibly get timing across all runs at once
         if self.across_runs:
+            if not UTIL.vals_are_constant(self.run_time):
+               print '** sorry, no timing across runs if run lengths vary'
+               return 1
+
             self.stimes = self.make_rand_timing(self.num_runs, self.run_time[0])
 
             if self.stimes == None: return 1
