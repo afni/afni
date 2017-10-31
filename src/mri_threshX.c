@@ -51,6 +51,7 @@ typedef struct {
       nbcount ;             /* for dilation decisions (cf. 3dXClustSim) */
   float fomh[3] ;           /* Figure Of Merit for hpow=0, 1, 2 */
   float cth[3] ;            /* FOM threshold for hpow=0, 1, 2 */
+  int hmask ;               /* which h FOM threshs were passed */
   ind_t *ip , *jp , *kp ;   /* 3D indexes for each point */
   int   *ijk ;              /* 1D index for each point */
   int   ijkmin,ijkmax ;     /* smallest and largest ijk[] values */
@@ -287,6 +288,7 @@ Xcluster_array * find_Xcluster_array( MRI_IMAGE *fim, int nnlev,
      xcc->ip[0]   = (ind_t)ii; xcc->jp[0] = (ind_t)jj; xcc->kp[0] = (ind_t)kk;
      xcc->ijk[0]  = xcc->ijkmin = xcc->ijkmax = ijk;
      xcc->npt     = xcc->norig = 1 ;
+     xcc->hmask   = 0 ;
      xcc->fomh[0] = 1.0f ;
      xcc->fomh[1] = fabsf(far[ijk]) ;
      xcc->fomh[2] = far[ijk]*far[ijk] ; far[ijk] = 0.0f ;
@@ -388,11 +390,13 @@ Xcluster_array * find_Xcluster_array( MRI_IMAGE *fim, int nnlev,
 
      if( doccc ){
        int ngood=0 ;
-       if( docim0 && xcc->fomh[0] >= xcc->cth[0] ) ngood++ ;
-       if( docim1 && xcc->fomh[1] >= xcc->cth[1] ) ngood++ ;
-       if( docim2 && xcc->fomh[2] >= xcc->cth[2] ) ngood++ ;
+       if( docim0 && xcc->fomh[0] >= xcc->cth[0] ) ngood += 1 ;
+       if( docim1 && xcc->fomh[1] >= xcc->cth[1] ) ngood += 2 ;
+       if( docim2 && xcc->fomh[2] >= xcc->cth[2] ) ngood += 4 ;
        if( ngood == 0 ){  /* didn't pass any threshold ==> recycle */
          xcc->npt = xcc->norig = 0; continue;
+       } else {
+         xcc->hmask = ngood ;
        }
      }
 
@@ -548,18 +552,21 @@ MRI_IMAGE * mri_multi_threshold_Xcluster( MRI_IMAGE *fim ,
                                           MRI_IMARR *cimar0 ,
                                           MRI_IMARR *cimar1 ,
                                           MRI_IMARR *cimar2 ,
-                                          int flags , int *nhits   )
+                                          int flags , int *nhits ,
+                                          MRI_IMARR **allmask     )
 {
    MRI_IMAGE *tfim , *qfim=NULL , *cim0,*cim1,*cim2 ;
    float *tfar , *far , *qfar=NULL , cth,cval,thr ;
-   int ii,nvox , kth , jhp ;
+   int ii,nvox , kth , jhp , hm ;
    Xcluster_array *xcar ; Xcluster *xcc ; int icl,npt, *ijkar ;
    int do_mask = (flags & XTHRESH_OUTPUT_MASK) ;
    byte *qbyt=NULL ;
+   MRI_IMARR *amask=NULL; MRI_IMAGE *afim=NULL; byte *abyt=NULL;
 
    /* bad inputs? */
 
-   if( nhits != NULL ) *nhits = 0 ;
+   if( nhits   != NULL ) *nhits   = 0 ;
+   if( allmask != NULL ) *allmask = NULL ;
 
    if( fim  == NULL || fim->kind != MRI_float  ) return NULL ;
    if( nthr <= 0    || thar      == NULL       ) return NULL ;
@@ -567,6 +574,8 @@ MRI_IMAGE * mri_multi_threshold_Xcluster( MRI_IMAGE *fim ,
    if( cimar0 != NULL && IMARR_COUNT(cimar0) != nthr ) return NULL ;
    if( cimar1 != NULL && IMARR_COUNT(cimar1) != nthr ) return NULL ;
    if( cimar2 != NULL && IMARR_COUNT(cimar2) != nthr ) return NULL ;
+
+   if( allmask != NULL ) INIT_IMARR(amask) ;
 
    nvox = fim->nvox ;
    far  = MRI_FLOAT_PTR(fim) ;
@@ -599,7 +608,10 @@ MRI_IMAGE * mri_multi_threshold_Xcluster( MRI_IMAGE *fim ,
 
      mri_free(tfim) ;
 
-     if( xcar == NULL ) continue ; /* we got nuthin at this threshold */
+     if( xcar == NULL ){ /* we got nuthin at this threshold */
+       if( amask != NULL ) ADDTO_IMARR(amask,NULL) ;
+       continue ;
+     }
 
      /* put "good" clusters into qfim (copying from original input image) */
 
@@ -612,17 +624,26 @@ MRI_IMAGE * mri_multi_threshold_Xcluster( MRI_IMAGE *fim ,
          qfar = MRI_FLOAT_PTR(qfim) ;
        }
      }
+     if( amask != NULL ){
+       afim = mri_new_conforming(fim,MRI_byte) ;  /* zero filled */
+       abyt = MRI_BYTE_PTR(afim) ;
+     }
 
      for( icl=0 ; icl < xcar->nclu ; icl++ ){
-       xcc = xcar->xclu[icl]; npt = xcc->npt; ijkar = xcc->ijk;
+       xcc = xcar->xclu[icl]; npt = xcc->npt; ijkar = xcc->ijk; hm = xcc->hmask;
        if( do_mask ){
          for( ii=0 ; ii < npt ; ii++ ) qbyt[ijkar[ii]]++ ;
        } else {
          for( ii=0 ; ii < npt ; ii++ ) qfar[ijkar[ii]] = far[ijkar[ii]] ;
        }
+       if( amask != NULL ){
+         for( ii=0 ; ii < npt ; ii++ ) abyt[ijkar[ii]] = hm ;
+       }
      }
 
      DESTROY_Xcluster_array(xcar) ;
+
+     if( amask != NULL ) ADDTO_IMARR(amask,afim) ;
    }
 
    /* count number of hits */
@@ -635,6 +656,8 @@ MRI_IMAGE * mri_multi_threshold_Xcluster( MRI_IMAGE *fim ,
      }
      *nhits = npt ;
    }
+
+   if( allmask != NULL ) *allmask = amask ;
 
    return qfim ;  /* nuthin nowhere nohow ==> NULL */
 }
@@ -662,7 +685,7 @@ MRI_IMAGE * mri_threshold_Xcluster( MRI_IMAGE *fim ,
    thar[0] = thr ;
 
    qfim = mri_multi_threshold_Xcluster(fim,1,thar,sid,nnlev,
-                                       cimar0,cimar1,cimar2,flags,nhits) ;
+                                       cimar0,cimar1,cimar2,flags,nhits,NULL) ;
 
    if( cimar0 != NULL ) FREE_IMARR(cimar0) ;
    if( cimar1 != NULL ) FREE_IMARR(cimar1) ;
