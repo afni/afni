@@ -6,10 +6,10 @@ import lib_afni1D as LD
 
 gDEF_T_GRAN     = 0.01   # default time granularity, in seconds
                          # (OLD one in mrt.py is just 0.1)
-gDEF_DEC_PLACES = 2      # decimal places when printing time (-1 ==> %g format)
+gDEF_DEC_PLACES = 3      # decimal places when printing time (-1 ==> %g format)
 
 
-g_valid_dist_types = ['decay', 'decay_old', 'decay_fixed', # new
+g_valid_dist_types = ['decay', 'decay_old', 'decay_fixed',
                       'uniform_rand', 'uniform_grid',
                       'fixed', 'INSTANT']
 g_fixed_dist_types = ['fixed', 'INSTANT']

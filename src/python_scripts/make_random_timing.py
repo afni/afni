@@ -1929,6 +1929,8 @@ class RandTiming:
                  ]
        """
 
+       # rcr - if no fname, sort times?
+
        if fname:
           if self.verb > 3:
              print "++ writing event list to file '%s'" % fname
