@@ -435,7 +435,7 @@ def decay_get_PDF_bins(vals, nbin, scale=1, verb=1):
 
    bcounts = [0] * nbin
    v0 = vals[0]
-   bsize = 1.001*(vals[-1]-v0)/float(nbin)
+   bsize = 1.0001*(vals[-1]-v0)/float(nbin)
    if bsize <= 0: return []
 
    for v in vals:
@@ -451,7 +451,7 @@ def show_times_PDF(L,N,nbin):
       get list of count/N
    """
    times = decay_get_PDF_times(L, N)
-   btimes = decay_get_PDF_bins(times, L, nbin)
+   btimes = decay_get_PDF_bins(times, nbin)
    if len(btimes) < 1: return
 
    bsize = L*1.0/nbin
@@ -460,6 +460,13 @@ def show_times_PDF(L,N,nbin):
    yo = [math.exp(-(i*bsize)) for i in range(nbin)]
    
    plot_data([[xo,btimes], [xo,yo]], labs=['btimes', 'e^-x'])
+
+def plot_pdf_from_file(fname, nbin, scale=1, L=0):
+  
+   import lib_textdata as TD
+   data = TD.read_1D_file(fname)[0]
+   data.sort()
+   show_val_bins(data, nbin, scale=scale, L=L)
 
 def show_val_bins(vals, nbin, scale=1, L=0):
    """get_PDF_times, count the number in each bin of length L/nbin, and
@@ -471,7 +478,7 @@ def show_val_bins(vals, nbin, scale=1, L=0):
    btimes = decay_get_PDF_bins(vals, nbin, scale=scale)
    if len(btimes) < 1: return
 
-   bsize = 1.001*(vals[-1]-vals[0])/float(nbin)
+   bsize = 1.0001*(vals[-1]-vals[0])/float(nbin)
 
    xo = [i * bsize for i in range(nbin)]
    dlist = [[xo, btimes]]
