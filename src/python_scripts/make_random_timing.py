@@ -834,6 +834,7 @@ make_random_timing.py - Advanced Usage
                                 the parameters (for a fixed set of params, only
                                 the order of durations is random)
                               * new method, as of Oct 31, 2017
+                           see: make_random_timing.py -help_decay_fixed
                   decay_old:    old decay method, which can bunch up at max
                                 limit, if one is applied
                   uniform_rand: randomly chosen durations with uniform dist
