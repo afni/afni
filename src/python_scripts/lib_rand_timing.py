@@ -6,10 +6,11 @@ import lib_afni1D as LD
 
 gDEF_T_GRAN     = 0.01   # default time granularity, in seconds
                          # (OLD one in mrt.py is just 0.1)
-gDEF_DEC_PLACES = 2      # decimal places when printing time (-1 ==> %g format)
+gDEF_DEC_PLACES = 3      # decimal places when printing time (-1 ==> %g format)
 
 
-g_valid_dist_types = ['decay', 'decay_old', 'uniform_rand', 'uniform_grid',
+g_valid_dist_types = ['decay', 'decay_old', 'decay_fixed',
+                      'uniform_rand', 'uniform_grid',
                       'fixed', 'INSTANT']
 g_fixed_dist_types = ['fixed', 'INSTANT']
 g_valid_param_types= ['dist', 't_gran']
@@ -28,7 +29,10 @@ g_valid_param_types= ['dist', 't_gran']
 #          - t_gran: granularity of time, default 0.01
 class TimingClass:
    def __init__(self, name, min_dur, mean_dur, max_dur, params=[], verb=1):
-      # required from the command line (name value -> set duration)
+      """required from the command line (name value -> set duration)
+
+         note: this just processes the parameters, times are not created here
+      """
       self.name         = name
 
       self.min_dur      = min_dur       # ** required **
@@ -71,6 +75,7 @@ class TimingClass:
       else:
          self.max_dur = tg * math.floor(self.max_dur / tg + 0.01)
 
+      if verb > 2: self.show("new timing class, '%s'" % name)
 
    def apply_params(self, params):
       """list of VAR=VAL, verify and apply"""
@@ -117,6 +122,10 @@ class TimingClass:
           #       return 1
           #    # apply
           #    self.max_consec = mc
+          
+          # rcr - consider adding parameter 'nuniq', to specify the
+          #       number of unique times (which would need to be an
+          #       integral fraction of nreps, when applied)
           else:
              print "** TimingClass %s, invalid param name %s in '%s'" \
                    % (self.name, pvar, pp)
@@ -426,6 +435,35 @@ class TimingClass:
             
       return dlist
 
+   def decay_fixed_get_dur_list(self, nevents, tot_time, max_dur):
+      """return a list of durations, distributed as e^-x on [0, max_dur]
+         with mean tot_time/nevents (durations are still on t_gran)
+
+         - mean time is tot/n, max should be positive
+
+         - get n times via decay_pdf_get_ranged_times()
+         - shuffle
+      """
+
+      import lib_decay_timing as LDT
+
+      if nevents <= 0: return []
+      if nevents == 1: return [tot_time]
+      if tot_time <= 0.0: return [0.0]*nevents
+
+      if max_dur <= 0:
+         print '** decay_fixed_GDL: illegal max_dur %g' % max_dur
+         return []
+
+      mean = float(tot_time)/nevents
+
+      durlist = LDT.decay_pdf_get_ranged_times(0, max_dur, mean, nevents,
+                                      t_grid=self.t_gran, verb=self.verb)
+
+      UTIL.shuffle(durlist)
+
+      return durlist
+
    def urand_get_dur_list(self, nevents, tot_time):
       """return a list of durations, distributed uniformly in [0,max_dur]
          (but still on t_gran)
@@ -635,7 +673,7 @@ def random_duration_list(nevents, tclass, total_time=-1.0, force_total=0):
    elif tclass.mean_dur == 0:
       ttime = 0.0
    elif tclass.mean_dur > 0:
-      ttime = 1.0 * tclass.mean_dur * nevents
+      ttime = float(tclass.mean_dur * nevents)
 
       if total_time > 0:
          if (ttime - total_time)/total_time < 0.95 or \
@@ -696,6 +734,9 @@ def random_duration_list(nevents, tclass, total_time=-1.0, force_total=0):
    # we have some time (remain) to distribute, possibly with a max time
    # ======================================================================
 
+   # min_dur is now 0, max_dur is adjusted by min_dur, and mean is
+   # implied by remain
+
    # ----------------------------------------------------------------------
    # g_valid_dist_types = ['decay', 'uniform_rand', 'uniform_grid', 'INSTANT']
 
@@ -705,6 +746,8 @@ def random_duration_list(nevents, tclass, total_time=-1.0, force_total=0):
       dlist = tclass.decay_get_dur_list(nevents, remain, max_dur, maxtype=0)
    elif dtype == 'decay_old':
       dlist = tclass.decay_get_dur_list(nevents, remain, max_dur, maxtype=1)
+   elif dtype == 'decay_fixed':
+      dlist = tclass.decay_fixed_get_dur_list(nevents, remain, max_dur)
    elif dtype == 'uniform_rand':
       dlist = tclass.urand_get_dur_list(nevents, remain)
    elif dtype == 'uniform_grid':
