@@ -16,13 +16,14 @@ Create random stimulus timing files.
 
 
     ---------------------------------------------------------------------------
-    **  There is now basic (old) and advanced usage.  Until I decide whether
-        and how to merge the help, consider:
+    **  There is now basic (old) and advanced usage.  Until I decide how to
+        properly merge the help, consider:
 
             make_random_timing.py -help_advanced
 
-        Otherwise, what follows is the basic usage.  Though all options are
-        listed here.
+        Otherwise, this help covers the complete basic usage, followed by
+        the "Advanced Usage" (search for that string).  Perhaps in the future
+        the basic usage will just be moved below the advanced.
     ---------------------------------------------------------------------------
 
     This can easily be used to generate many sets of random timing files to
@@ -373,14 +374,14 @@ NOTE: distribution of ISI
     done *without* replacement.  The total numbers of each type of class are
     fixed, as is the total rest.
 
-    This differs it from the binomial distribution, where selection is done
-    *with* replacement.
+    This differentiates it from the binomial distribution, where selection
+    is done *with* replacement.
 
     Taking a simplistic view, go back to the probability of starting with
-    exactly r rest events, as stated at the beginning.  That means starting
-    with r rest events followed by one task event.  That means first choosing
-    r rest events ((R choose r) / ((R+T) choose r)), then choosing one task
-    event, T/(R+T-r).
+    exactly r rest events, as stated in the beginning.  That means starting
+    with r rest events followed by one task event, which in turn means first
+    choosing r rest events ((R choose r) / ((R+T) choose r)), then choosing
+    one task event, T/(R+T-r).
 
                  (R)
                  (r)        T            R!        (R+T-r-1)!
@@ -809,7 +810,7 @@ optional arguments:
 
 g_help_advanced = """
 ===========================================================================
-make_random_timing.py - Advanced usage
+make_random_timing.py - Advanced Usage
 
    With advanced usage, timing classes are defined for both stimulus periods
    and rest periods.  Timing classes specify duration types that have different
@@ -827,7 +828,13 @@ make_random_timing.py - Advanced usage
         dtype   : distribution type (default=decay)
                   decay:        shorter events are more likely
                                 see "NOTE: distribution of ISI"
-                              * new method as of Feb 3, 2017
+                              * new method, as of Feb 3, 2017
+                  decay_fixed:  precise decay method, which properly follows a
+                                scaled e^-x PDF, where durations are implied by
+                                the parameters (for a fixed set of params, only
+                                the order of durations is random)
+                              * new method, as of Oct 31, 2017
+                           see: make_random_timing.py -help_decay_fixed
                   decay_old:    old decay method, which can bunch up at max
                                 limit, if one is applied
                   uniform_rand: randomly chosen durations with uniform dist
@@ -915,19 +922,21 @@ make_random_timing.py - Advanced usage
        (per run).  So there will be exactly the rest from -post_stim_rest at
        the end of each run, 10s in this example.
 
-         make_random_timing.py -num_runs 2 -run_time 300         \\
+         make_random_timing.py -num_runs 2 -run_time 400         \\
             -pre_stim_rest 10 -post_stim_rest 10                 \\
             -rand_post_stim_rest no                              \\
             -add_timing_class stima 0.5 3 10                     \\
             -add_timing_class stimb 0.1 0.5 3                    \\
             -add_timing_class stimc 2                            \\
+            -add_timing_class stimd 1 2 6 dist=decay_fixed       \\
             -add_timing_class resta 0.2 .7 1.2 dist=uniform_rand \\
             -add_timing_class restb 0.5 1  1.5 dist=uniform_grid \\
             -add_timing_class restc 0 -1 -1                      \\
             -add_stim_class houses 20 stima resta                \\
             -add_stim_class faces  20 stimb restb                \\
             -add_stim_class donuts 20 stimb restb                \\
-            -add_stim_class pizza  20 stimc restc                \\
+            -add_stim_class tacos  20 stimc restc                \\
+            -add_stim_class pizza  40 stimd restc                \\
             -write_event_list events.adv.2                       \\
             -show_timing_stats                                   \\
             -seed 31415 -prefix stimes.adv.2
@@ -1009,6 +1018,158 @@ R Reynolds  Jan 20, 2017          motivated by K Kircanski and A Stringaris
 ===========================================================================
 """
 
+g_decay_fixed_details = """
+===========================================================================
+background on creating decay_fixed curves
+ 
+ Notes:
+ Given A,M,B,N = desired min,mean,max for list of N (pseudo-randomly ?)
+    generated numbers that follow a decay type distribution (e^-x),
+    generate such a list.
+  
+ Basic equations:
+  
+       (1) integral [e^-x] on (a,b) = e^-a - e^-b
+       (2) integral [xe^-x] on (a,b) = (a+1)e^-a - (b+1)e^-b
+       (3) E[x] = int[xe^-x] / int[e^-x] on (a,b) = (a+1)e^-a - (b+1)e^-b
+                                                    ---------------------
+                                                        e^-a - e^-b
+
+    Since E[x] on [0,L] = (1-(L+1)e^-L)/(1-e^-L) = 1 - L/(e^L - 1), define
+
+       (4) F(L) = E[x]/L = 1/L - 1/(e^L - 1)
+
+  * This is the principle equation we want to invert.  Given mean M, converted
+    to a fractional offset mean m = (M-A)/(B-A), we can solve m = F(L) for L,
+    defining a decay function with the given fractional mean.  So if e^-x on
+    [0,L] has mean m, x in the function can be shifted and scaled to be on
+    [A,B] with the given mean M.
+   
+
+ a) Approximation games...
+
+    Given A,M,B, find L such that E[x]/L = (M-a)/(b-a).
+    So if m is the fractional mean on [a,b], solve m = F(L) = E[x]/L for m.
+  
+    F(L) can be reasonably well approximated by invertible functions on
+    (0,3], (3,6) and [6,inf), being linear, scaled 1/L and 1/L.
+  
+          F(0) -> 0.5     (limit as L->0 of F(L))
+          F(3) ~= 0.281
+          F(6) ~= 0.164 ~= 1/6 (not great, consider using F(8)=.125)
+  
+       i) on (0,3], approximate F(L) with line:
+  
+          F1(L)  = 0.5 - 0.73*L
+          F1I(m) = (0.5 - m)/0.73
+  
+       ii) on (3,6), map 3 -> 1/f1(3) = 3.5587,  map 6 -> 6
+           can use F2_0(x) = 1.1174 + .8138*x
+           So define F2(x) = 1/F2_0(x).
+  
+          F2(L)  = 1 / (1.1174 + 0.8138 * L)
+          F2I(L) = (1.0/m - 1.1174) / 0.8138
+  
+       iii) on [6,inf), approximate F(L) with 1/L
+  
+          F3(L)  = 1/L     (is invertible and is its own inverse)
+          F3I(L) = F3(L)
+
+
+    Better approximation:
+
+       on [0,2]   f1(L) = 0.5 - 0.1565*L/2.0
+       on (2,3]   f2(L) = 1.0 / (1.6154 + 0.6478*L)
+       on [3,6)   f3(L) = 1.0 / (1.1174 + 0.8138 * L)
+       on [6,inf) f4(L) = 1.0 / L
+
+    This looks great, but is still a little unfulfilling (now I want beer).
+
+    Note: if the solution of L is not fairly precise, then generating many
+          random values with slightly incorrect mean M' might throw off the
+          length of a run.  Optimally, (M'-M)*N < t_gran, say.
+    
+    Hmmmm, in the immortal words of the famous philosopher Descartes,
+    "this is kinda stupid".  Move on...
+  
+
+ b) Forget approximations.  Solve m = F(L) for L using Newton's method.
+
+    F(L) is very smooth, behaving like a line for L<2 and then scaled
+    versions of 1/L beyond that.  So iterate to invert, which should be
+    quick and have any desired accuracy.
+
+    Find a very approximate solution, then apply Newton's method where
+    the next iteration of x1 uses the preivious one and the approximate
+    slope at x0, slope ~= (f(x+h)-f(x))/h for small h.
+
+    i) define basic approximation by pivot at L=4 as initial guess
+       {Exactly why throw out the accurate approximations above?  I don't
+        know.  Okay, let's say that we prefer a single, simple function.}
+
+          1.0/m , if m <= 0.25
+          8-16*m, if 0.25 < m < 0.5
+
+    ii) define a step to get the next iteration value
+
+       Use inverse slope (delta x / delta  y) to scale change in y to
+       change in x.
+
+          decay_newton_step(fn, y_goal, x0, dx):
+             y0 = fn(x0)
+             dxdy = dx / (fn(x0+dx) - y0)
+             return x0 + (y_goal-y0) * dxdy
+
+    iii) solve by taking initial guess and iterating until close
+
+       find x s.t. fn(x) ~= y_goal, where |fn(x) - y_goal| < prec
+
+          decay_solve(fn, y_goal, prec, maxind=100):
+             x = decay_guess(y_goal)
+             f = fn(x0)
+             while abs(f - y_goal) > prec
+                x = decay_newton_step(fn, y_goal, x, prec)
+                f = fn(x)
+
+       We can be precise here.  Not only does this converge quickly, but
+       it is a one time operation per timing class.
+
+ Handle m in different ranges according to:
+
+    m <= 0             illegal
+    0 < m < 0.5        expected
+    m ~= 0.5           should use uniform distribution, instead of decay
+    0.5 < m < 1.0      expected, solve using 1-m and reflect about the mean
+    m >= 1.0           illegal
+
+ c) Given L, get a list of N exact durations that follow PDF and have mean m.
+
+    This can still apply to [0,inf) with fractional mean m in (0,0.5).
+
+       times = decay_get_PDF_times(L, N)
+
+ d) Scale the times.
+
+    Given A, M, B, and N times[], map each time from [0,L] to [A,B] (which
+    should map the mean m to mean M).
+
+         newval = A + oldval * (B-A)/L
+
+ e) Round the times.
+
+    Maintain CS = cumulative sum of differences between the exact and rounded
+    times.  If the new abs(CS) >= prec (precision), round in the opposite
+    direction, to maintain abs(CS) < prec, which should be sufficient.  We
+    *could* require abs(CS) < prec/2, but that might mean more would be
+    rounded in the "wrong" direction.  Please discuss amongst yourselves...
+
+ f) if original m > 0.5, reflect times over (A+B)/2
+
+ g) Verify the mean.  Since the difference between the precise sum and the
+    rounded sum should be less than prec, the difference between the means
+    should be less than prec/N, which is all we can ask for in life.
+"""
+
 g_history = """
     make_random_timing.py history:
 
@@ -1059,9 +1220,13 @@ g_history = """
     2.3  May  9, 2017: applied -offset for advanced case
     2.4  May 24, 2017: advanced -save_3dd_cmd and -make_3dd_contrasts
     2.5  Sep 26, 2017: adv: clarify use of -1 for mean, max in help
+    2.6  Oct 31, 2017: adv: added decay_fixed distribution type
+    2.7  Nov  1, 2017:
+         - decay_fixed: make L more precise; make demos accessible
+         - add -help_decay_fixed
 """
 
-g_version = "version 2.5, September 26, 2017"
+g_version = "version 2.7, November 1, 2017"
 
 g_todo = """
    - add -show_consec_stats option?
@@ -1214,6 +1379,8 @@ class RandTiming:
                         helpstr='display program help')
         self.valid_opts.add_opt('-help_advanced', 0, [],      \
                         helpstr='display program help for ADVANCED usage')
+        self.valid_opts.add_opt('-help_decay_fixed', 0, [],      \
+                        helpstr='display background for decay_fixed dist')
         self.valid_opts.add_opt('-help_todo', 0, [],      \
                         helpstr='display stupid todo list')
         self.valid_opts.add_opt('-hist', 0, [],      \
@@ -1310,10 +1477,15 @@ class RandTiming:
         # if argv has only the program name, or user requests help, show it
         if len(sys.argv) <= 1 or '-help' in sys.argv:
             print g_help_string
+            print g_help_advanced
             return 0
 
         if '-help_advanced' in sys.argv:
             print g_help_advanced
+            return 0
+
+        if '-help_decay_fixed' in sys.argv:
+            print g_decay_fixed_details
             return 0
 
         if '-help_todo' in sys.argv:
@@ -1615,7 +1787,7 @@ class RandTiming:
              -add_timing_class stimA 3 
              -add_timing_class stimA 3 5 10
              -add_timing_class stimA 3 5 10 dist=decay
-             -add_timing_class stimA 3 3  3 dist=decay t_grid=0.1
+             -add_timing_class stimA 1 3  9 dist=decay t_grid=0.1
        """
 
        params = opt.parlist
@@ -1708,9 +1880,6 @@ class RandTiming:
                                 params=params[4:], verb=self.verb)
        if tclass.status:
           return 1
-
-       if self.verb > 1: print "++ adding new Timing class '%s'" % name
-       if self.verb > 2: tclass.show('new timing class')
 
        self.tclasses.append(tclass)
 
@@ -1831,7 +2000,8 @@ class RandTiming:
                 - randomize: sequence of trials per class and rest
                 - accumulate time: offset + gran (rest) or stim_dur
                 - each class gets a list of times
-            - write all timing lists to files """
+            - write all timing lists to files
+        """
 
         if self.verb > 1: print '\n++ creating timing...'
 
@@ -1841,6 +2011,10 @@ class RandTiming:
 
         # possibly get timing across all runs at once
         if self.across_runs:
+            if not UTIL.vals_are_constant(self.run_time):
+               print '** sorry, no timing across runs if run lengths vary'
+               return 1
+
             self.stimes = self.make_rand_timing(self.num_runs, self.run_time[0])
 
             if self.stimes == None: return 1
@@ -1926,6 +2100,8 @@ class RandTiming:
                    [ [4 2.0] [2 1.9] .. ]
                  ]
        """
+
+       # rcr - if no fname, sort times?
 
        if fname:
           if self.verb > 3:

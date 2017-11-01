@@ -1879,7 +1879,7 @@ FARP_LOOPBACK:
                                               do_hpow0 ? cimar0[icase] : NULL ,
                                               do_hpow1 ? cimar1[icase] : NULL ,
                                               do_hpow2 ? cimar2[icase] : NULL ,
-                                              0, NULL ) ;
+                                              0, NULL , NULL ) ;
          if( tfim != NULL ){   /* nothing found ==> NULL is returned */
            tfar = MRI_FLOAT_PTR(tfim) ;
            for( qq=0 ; qq < nxyz ; qq++ ){
