@@ -1443,30 +1443,54 @@ void display_help_menu(void)
       "                        which will cause 3dXClustSim to print more verbose\n"
       "                        information as it progresses through the ETAC stages.\n"
       "\n"
-      "The output of ETAC computations (in 3dXClustSim) is a set of multi-threshold\n"
-      "maps that can be used with program 3dMultiThresh to be applied to the 3dttest++\n"
-      "main statistical output. One such 'mthresh' map is computed for each blurring\n"
-      "case.\n"
+      "-----------------\n"
+      "ETAC Output Files\n"
+      "-----------------\n"
+      "ETAC produces a number of output files. Some of these are the multi-threshold\n"
+      "datasets that can be used with program 3dMultiThresh to get thresholded\n"
+      "results. Others of these are a binary mask that indicate which voxels passed\n"
+      "these at least one of the multiple tests, and another mask that indicates\n"
+      "which tests were passed (in each voxel).\n"
       "\n"
-      "A mask dataset is also computed, which is a dataset that is 0 except where\n"
-      "at least one of the multi-thresholding operations produced a result when\n"
-      "applied to the actual 3dttest++ main results. To be more complete in my\n"
-      "description, different mask datasets will be produced, depending on the\n"
-      "sided-ness of the t-tests specified in '-ETAC_opt'. In the filenames below,\n"
-      "'P' refers to '-prefix_clustsim' and 'N' refers to 'name' (in -ETAC_opt):\n"
+      "In the example below, assume\n"
+      "  * Two blurring cases specified using '-ETAC_blur 4 7'\n"
+      "  * The prefix for normal 3dttest++ files is 'P', as in '-prefix P'\n"
+      "  * The prefix for ETAC output files is 'Px', as in '-prefix_clustsim Px'\n"
+      "  * The name for the ETAC analysis was 'name=N' in option '-ETAC_opt'\n"
+      "    (remember, you can run more than one ETAC analysis in a single 3dttest++)\n"
+      "  * That a 2-sided analysis was ordered with 'sid=2 in option '-ETAC_opt'\n"
+      "  * The default 'fpr=5' was used in option '-ETAC_opt'\n"
       "\n"
-      "  For sid=2 (2-sided t-test thresholding): P.N.ETACmask.2sid.5perc.nii.gz\n"
+      "Output filename                     Description\n"
+      "----------------------------------  -----------\n"
+      "P+tlrc.HEAD                         normal 3dttest++ output from input datasets\n"
+      "P.B4.0.nii                          3dttest++ output from blurred datasets (4)\n"
+      "P.B7.0.nii                          3dttest++ output from blurred datasets (7)\n"
+      "Px.B4.0.5percent.txt                voxel-wise threshold to reach a given\n"
+      "Px.B7.0.5percent.txt                  global significance, for blurs 4 and 7\n"
+      "Px.N.ETAC.mthresh.B4.0.5perc.nii    Multi-threshold datasets for blur=4 and\n"
+      "Px.N.ETAC.mthresh.B7.0.5perc.nii      blur=7, to get 5%% false positive rate\n"
+      "Px.N.ETACmask.2sid.5perc.nii.gz     Binary (0 or 1) mask of 'active voxels'\n"
+      "PX.N.ETACmaskALL.2sid.5perc.nii.gz  Multi-volume mask showing which ETAC\n"
+      "                                      sub-method(s) passed in each voxel;\n"
+      "                                      there is one sub-brick per p-value,\n"
+      "                                      and per blur case (e.g., 5*2=10), and\n"
+      "                                      each value encodes which hpow value(s)\n"
+      "                                      had a positive result, as a sum of\n"
+      "                                        1 == hpow=0 passed\n"
+      "                                        2 == hpow=1 passed\n"
+      "                                        4 == hpow=2 passed\n"
       "\n"
-      "  For sid=1 (1-sided t-test thresholding): P.N.ETACmask.1pos.5perc.nii.gz\n"
-      "                                           P.N.ETACmask.1neg.5perc.nii.gz\n"
-      "        (for 1-sided positive and 1-sided negative thresholds, respectively)\n"
-      "\n"
-      "In the ETACmask filenames above, the '5perc' refers to the 5%% FPR goal.\n"
-      "If you use a different FPR goal (in '-ETAC_opt'), this part of the filename\n"
-      "will change to match the new FPR goal.\n"
-      "\n"
-      "*** WARNING: ETAC consumes a lot of CPU time, and a lot of memory ***\n"
-      "***         (especially if many -ETAC_blur cases are used)!       ***\n"
+      "* If a different 'fpr' value was given (say 2), then the filenames containing\n"
+      "  'ETAC' with have the '5perc' component changed to that value (e.g., '4perc').\n"
+      "* If 'fpr=ALL', there would be outputs for '2perc', '3perc', ... '9perc'.\n"
+      "* If 'sid=1' were given in '-ETAC_opt', then each mask filename containing\n"
+      "  '2sid' will instead be replaced by TWO files, one with '1neg' and one\n"
+      "  with '1pos', indicating the results of 1-sided t-test thresholding with\n"
+      "  the negative and positive sides, respectively.\n"
+      "-----------\n"
+      "*** WARNING: ETAC consumes a lot of CPU time, and a lot of memory  ***\n"
+      "***         (especially with many -ETAC_blur cases, or 'fpr=ALL')! ***\n"
       "\n"
       "+++ (: One of these days, I'll expand this section and explain ETAC more :) +++\n"
       "+++ (: ------------------------------ MAYBE ---------------------------- :) +++\n"
@@ -4899,8 +4923,9 @@ LABELS_ARE_DONE:  /* target for goto above */
                           prefix_clustsim , prefix_clustsim , nam , sfarp ) ;
                  system(cmd) ;
                  sprintf( cmd ,  /* cat the amasks */
-                          "3dbucket -prefix %s.%s.ETACmaskALL.2sid.%s.nii.gz %s.ETACamask.*.nii" ,
+                          "3dbucket -verb -prefix %s.%s.ETACmaskALL.2sid.%s.nii.gz %s.ETACamask.*.nii" ,
                           prefix_clustsim , nam , sfarp , prefix_clustsim ) ;
+/* INFO_message("about to run:\n   %s",cmd) ; */
                  system(cmd) ;
                } else {
                  INFO_message("3dttest++ ----- merging %d blur cases to make pos 1-sided activation mask",ncase) ;
@@ -4920,8 +4945,9 @@ LABELS_ARE_DONE:  /* target for goto above */
                           prefix_clustsim , prefix_clustsim , nam , sfarp ) ;
                  system(cmd) ;
                  sprintf( cmd ,  /* cat the masks */
-                          "3dbucket -prefix %s.%s.ETACmaskALL.1pos.%s.nii.gz %s.ETACamask.1pos.*.nii" ,
+                          "3dbucket -verb -prefix %s.%s.ETACmaskALL.1pos.%s.nii.gz %s.ETACamask.1pos.*.nii" ,
                           prefix_clustsim , nam , sfarp , prefix_clustsim ) ;
+/* INFO_message("about to run:\n   %s",cmd) ; */
                  system(cmd) ;
                  INFO_message("3dttest++ ----- merging %d blur cases to make neg 1-sided activation mask",ncase) ;
                  for( icase=0 ; icase < ncase ; icase++ ){
@@ -4940,12 +4966,15 @@ LABELS_ARE_DONE:  /* target for goto above */
                                 prefix_clustsim , prefix_clustsim , nam , sfarp ) ;
                  system(cmd) ;
                  sprintf( cmd ,  /* cat the masks */
-                          "3dbucket -prefix %s.%s.ETACmaskALL.1neg.%s.nii.gz %s.ETACamask.1neg.*.nii" ,
+                          "3dbucket -verb -prefix %s.%s.ETACmaskALL.1neg.%s.nii.gz %s.ETACamask.1neg.*.nii" ,
                           prefix_clustsim , nam , sfarp , prefix_clustsim ) ;
+/* INFO_message("about to run:\n   %s",cmd) ; */
                  system(cmd) ;
                }
 #if 1
-               sprintf( cmd , "\\rm %s.ETACtmask.*.nii %s.ETACamask.*.nii" , prefix_clustsim ); system(cmd);
+               sprintf( cmd , "\\rm %s.ETACtmask.*.nii %s.ETACamask.*.nii" , prefix_clustsim,prefix_clustsim );
+/* INFO_message("about to run:\n   %s",cmd) ; */
+               system(cmd);
 #endif
              } /* end of loop over farp goals */
            } /* end of multi-blur mask making */
