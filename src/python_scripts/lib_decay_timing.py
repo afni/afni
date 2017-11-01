@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# can be run with python2 or python3
+
 # ===========================================================================
 # functions for defining decay curves
 # 
@@ -10,21 +12,21 @@
 #  
 # Basic equations:
 #  
-#    (1) integral [e^-x] on (a,b) = e^-a - e^-b
-#    (2) integral [xe^-x] on (a,b) = (a+1)e^-a - (b+1)e^-b
-#    (3) E[x] = int[xe^-x] / int[e^-x] on (a,b) = (a+1)e^-a - (b+1)e^-b
-#                                                 ---------------------
-#                                                     e^-a - e^-b
+#       (1) integral [e^-x] on (a,b) = e^-a - e^-b
+#       (2) integral [xe^-x] on (a,b) = (a+1)e^-a - (b+1)e^-b
+#       (3) E[x] = int[xe^-x] / int[e^-x] on (a,b) = (a+1)e^-a - (b+1)e^-b
+#                                                    ---------------------
+#                                                        e^-a - e^-b
 
 #    Since E[x] on [0,L] = (1-(L+1)e^-L)/(1-e^-L) = 1 - L/(e^L - 1), define
 #
-#    (4) F(L) = E[x]/L = 1/L - 1/(e^L - 1)
+#       (4) F(L) = E[x]/L = 1/L - 1/(e^L - 1)
 #
-# * This is the principle equation we want to invert.  Given mean M, converted
-#   to a fractional offset mean m = (M-A)/(B-A), we can solve m = F(L) for L,
-#   defining a decay function with the given fractional mean.  So if e^-x on
-#   [0,L] has mean m, x in the function can be shifted and scaled to be on
-#   [A,B] with the given mean M.
+#  * This is the principle equation we want to invert.  Given mean M, converted
+#    to a fractional offset mean m = (M-A)/(B-A), we can solve m = F(L) for L,
+#    defining a decay function with the given fractional mean.  So if e^-x on
+#    [0,L] has mean m, x in the function can be shifted and scaled to be on
+#    [A,B] with the given mean M.
 #   
 #
 # a) Approximation games...
@@ -63,8 +65,14 @@
 #       on (2,3]   f2(L) = 1.0 / (1.6154 + 0.6478*L)
 #       on [3,6)   f3(L) = 1.0 / (1.1174 + 0.8138 * L)
 #       on [6,inf) f4(L) = 1.0 / L
+#
+#    This looks great, but is still a little unfulfilling (now I want beer).
+#
+#    Hmmmm, in the immortal words of the famous philosopher Descartes,
+#    "this is kinda stupid".  Move on...
 #  
-# b) Forget approximations.
+#
+# b) Forget approximations.  Solve m = F(L) for L using Newton's method.
 #
 #    F(L) is very smooth, behaving like a line for L<2 and then scaled
 #    versions of 1/L beyond that.  So iterate to invert, which should be
@@ -75,6 +83,8 @@
 #    slope at x0, slope ~= (f(x+h)-f(x))/h for small h.
 #
 #    i) define basic approximation by pivot at L=4 as initial guess
+#       {Exactly why throw out the accurate approximations above?  I don't
+#        know.  Okay, let's say that we prefer a single, simple function.}
 #
 #          1.0/m , if m <= 0.25
 #          8-16*m, if 0.25 < m < 0.5
@@ -100,22 +110,43 @@
 #                x = decay_newton_step(fn, y_goal, x, prec)
 #                f = fn(x)
 #
-# Do not forget to range check m.  If m <= 0 or m == 0.5, use uniform dist.
-# If m > 0.5, solve using 1-m and reflect the resulting values about the mean.
+#       We can be precise here.  Not only does this converge quickly, but
+#       it is a one time operation per timing class.
 #
-# c) Get a list of exact durations that follow the PDF and have mean m.
+# Handle m in different ranges according to:
+#
+#    m <= 0             illegal
+#    0 < m < 0.5        expected
+#    m ~= 0.5           should use uniform distribution, instead of decay
+#    0.5 < m < 1.0      expected, solve using 1-m and reflect about the mean
+#    m >= 1.0           illegal
+#
+# c) Given L, get a list of N exact durations that follow PDF and have mean m.
 #
 #    This can still apply to [0,inf) with fractional mean m in (0,0.5).
 #
-#       i)   break
+#       times = decay_get_PDF_times(L, N)
 #
-# d) Scale, truncate and adjust the times.
+# d) Scale the times.
 #
-#    Now that inversion is done, given A, M, B, N, apply it to find L
-#    from (M-A)/(B-A) and map 0->L to A->B to get mean M.  Use this to
-#    get N values following that PDF with a mean of M.
+#    Given A, M, B, and N times[], map each time from [0,L] to [A,B] (which
+#    should map the mean m to mean M).
 #
-# e) Truncate and adjust the times.
+#         newval = A + oldval * (B-A)/L
+#
+# e) Round the times.
+#
+#    Maintain CS = cumulative sum of differences between the exact and rounded
+#    times.  If the new abs(CS) >= prec (precision), round in the opposite
+#    direction, to maintain abs(CS) < prec, which should be sufficient.  We
+#    *could* require abs(CS) < prec/2, but that might mean more would be
+#    rounded in the "wrong" direction.  Please discuss amongst yourselves...
+
+# f) if original m > 0.5, reflect times over (A+B)/2
+#
+# g) Verify the mean.  Since the difference between the precise sum and the
+#    rounded sum should be less than prec, the difference between the means
+#    should be less than prec/N, which is all we can ask for in life.
 #
 
 
@@ -165,11 +196,20 @@ def decay_e4_frac_L(L):
       piecewise invertible approximations.
 
       Note: as L->0, E4(L) -> 0.5.
+            if L>100, e^L ~= 10^43, so forget that term
    """
 
    if L < 0: return 0
    if L == 0: return 0.5
-   return 1.0/L - 1.0/(math.exp(L) - 1.0)
+   # set an upper bound to avoid useless math.exp errors
+   if L >= 100: return 1.0/L
+   
+   try: rv = 1.0/L - 1.0/(math.exp(L) - 1.0)
+   except:
+      print('decay_e4_frac_L failure for L = %f' % L)
+      if L < 1.0: rv = 0.5
+      else:       rv = 1.0/L
+   return rv
 
 def decay_e4_gen(A, B, step=0.1):
    """generater function for equation 4"""
@@ -225,6 +265,8 @@ def decay_e4_approx(L):
    """if L in [0,3],   return 0.5 - .073*L
       if L in (3,6),   return 1.0/(1.1174 + 0.8138 * L)
       if L in [6,inf), return 1/L
+
+      okay, those are old-fangled approximations, but you get the picture
    
       check continuity and key points...
       A(0)  = 0.5
@@ -284,13 +326,14 @@ def decay_newton_step(fn, y_goal, x0, dx):
       return x0
    return x0 + (y_goal-y0) * dx/dy
 
-def decay_solve(fn, y_goal, prec, maxind=100, verb=0):
+def decay_solve(fn, y_goal, prec, maxind=100, verb=1):
    """find x s.t. |fn(x) - y_goal| < prec
 
       use linear search: x' = x0 + delta_y * dx/dy
    """
    x0 = decay_guess(y_goal)
    fx = fn(x0)
+   if verb > 2: print('-- decay_solve x0 = %s, fx = %s' % (x0, fx))
 
    ind = 0
    while abs(fx - y_goal) > prec and ind < maxind:
@@ -299,8 +342,12 @@ def decay_solve(fn, y_goal, prec, maxind=100, verb=0):
          print('** apparent failure in decay_newton_step, x = %g' % x)
          return x0
       fx = fn(x)
-      if verb: print('x0 = %s, x = %s, fx = %s' % (x0, x, fx))
+      if verb > 2: print('   x0 = %s, x = %s, fx = %s' % (x0, x, fx))
       x0 = x
+
+   if verb > 2:
+      print('++ solved: given y = %g, approx with e^-%g = %g' \
+            % (y_goal, x0, fx))
 
    return x0
 
@@ -322,7 +369,7 @@ def plot_data(pair_list, labs=[]):
    plt.show()
 
 def e_Lx(a,L,N):
-   """return b such that int_a_b[e^-x] = 1/N * int_0_L[e^-x]"""
+   """return b such that int_a_b[e^-x] = 1/N * Exp[X]/N"""
 
    off = (1.0-math.exp(-L))/N   # full integral / N
    enb = math.exp(-a) - off     # must be e^-b
@@ -346,10 +393,11 @@ def decay_show_PDF_times(L,N):
       b = e_Lx(a, L, N)
       f = math.exp(-a) - math.exp(-b)  # should equal off
       ex = decay_e3_Ex(a,b)
-      print '%3s %0.6f  off=%0.6f, f=%0.6f, E(x)=%0.6f' % (ind, b, off, f, ex)
+      print('%3s %0.6f  off=%0.6f, f=%0.6f, E(x)=%0.6f' % (ind, b, off, f, ex))
       sa += ex
       a = b
-   print 'length L=%s, theor mean = %s, sa/N = %s' % (L, decay_e3_Ex(0,L), sa/N)
+   print('length L=%s, theor mean/L = %s, sa/N/L = %s' \
+         % (L, decay_e3_Ex(0,L)/L, sa/N/L))
 
 def decay_get_PDF_times(L,N):
    """return a list of times distributed as e^-x on [0,L] such that
@@ -375,31 +423,35 @@ def decay_get_PDF_times(L,N):
       a = b
    return times
 
-def decay_get_PDF_bins(L, N, nbin, verb=0):
-   """to evaluate, get lots of PDF times and bin them to see if they
+def decay_get_PDF_bins(vals, nbin, scale=1, verb=1):
+   """to evaluate, get lots of PDF vals and bin them to see if they
       follow e^-x"""
-   if nbin <= 0 or N <= 0 or L <= 0:
+   N = len(vals)
+   if nbin <= 0 or N <= 0:
       print('** get_PDF_bins: inputs must be positive')
       return []
 
-   times = decay_get_PDF_times(L,N)
+   if verb > 2: print('PDF_times: min = %s, max = %s' % (vals[0],vals[-1]))
+
    bcounts = [0] * nbin
-   bsize = L*1.0/nbin
+   v0 = vals[0]
+   bsize = 1.0001*(vals[-1]-v0)/float(nbin)
+   if bsize <= 0: return []
 
-   if verb: print('PDF_times: min = %s, max = %s' % (times[0],times[-1]))
-
-   for tt in times:
-      bcounts[int(tt*1.0/bsize)] += 1
-   b0 = float(bcounts[0])
-   for bind in range(nbin):
-      bcounts[bind] /= b0
+   for v in vals:
+      bcounts[int((v-v0)/float(bsize))] += 1
+   if scale:
+       b0 = float(bcounts[0])
+       for bind in range(nbin):
+          bcounts[bind] /= b0
    return bcounts
 
 def show_times_PDF(L,N,nbin):
    """get_PDF_times, count the number in each bin of length L/nbin, and
       get list of count/N
    """
-   btimes = decay_get_PDF_bins(L,N,nbin)
+   times = decay_get_PDF_times(L, N)
+   btimes = decay_get_PDF_bins(times, nbin)
    if len(btimes) < 1: return
 
    bsize = L*1.0/nbin
@@ -409,19 +461,219 @@ def show_times_PDF(L,N,nbin):
    
    plot_data([[xo,btimes], [xo,yo]], labs=['btimes', 'e^-x'])
 
+def plot_pdf_from_file(fname, nbin, scale=1, L=0):
+  
+   import lib_textdata as TD
+   data = TD.read_1D_file(fname)[0]
+   data.sort()
+   show_val_bins(data, nbin, scale=scale, L=L)
+
+def show_val_bins(vals, nbin, scale=1, L=0):
+   """get_PDF_times, count the number in each bin of length L/nbin, and
+      get list of count/N
+   """
+   N = len(vals)
+   if N < nbin or nbin <= 0: return
+
+   btimes = decay_get_PDF_bins(vals, nbin, scale=scale)
+   if len(btimes) < 1: return
+
+   bsize = 1.0001*(vals[-1]-vals[0])/float(nbin)
+
+   xo = [i * bsize for i in range(nbin)]
+   dlist = [[xo, btimes]]
+   labs = ['btimes']
+
+   if scale:
+      # include e^-x
+      if L: xscale = L/float(vals[-1]-vals[0])
+      else: xscale = 1.0
+      yo = [math.exp(-(i*bsize*xscale)) for i in range(nbin)]
+      dlist.append([xo, yo])
+      labs.append('e^-x')
+   
+   plot_data(dlist, labs=labs)
+
+# ======================================================================
+# main calling routine
+
+def decay_pdf_get_ranged_times(A, B, M, N, t_grid=0.001, verb=1):
+   """Return N times between A and B, with mean M and following a scaled
+      version of PDF e^x.
+
+      a. preparation:
+
+         -  truncate A, B onto t_grid (multiples of it)
+         -  require 0 <= A < B, N > 3, A < M < B
+         -  define F(L) = 1/L - 1/(e^L - 1)
+         -  if (M-A)/(B-A) ~= 0.5, suggest uniform distribution, instead
+
+      b. given m = (M-A)/(B-A), solve m = F(L) for L
+         - if m > 0.5: process as 1-m, and apply as B-time rather than A+time
+      c. get N decay times from e^-x on [0,L] with mean m
+      d. reflect if necessary (if orig m>0.5), and scale to [A,B] with mean M
+      e. round to t_grid
+
+      Note: this does not need to require A >= 0, except in the context of event
+            durations.  Consider allowing A < 0 with a flag.
+
+      Note: times are currently sorted, not randomized.
+   """
+
+   # ----------------------------------------------------------------------
+   # a. preaparation
+
+   if verb > 1:
+      print('-- decay_pdf_GRT: A=%s, M=%s, B=%s, N=%s, t_grid=%s' \
+            % (A, M, B, N, t_grid))
+   
+   # truncate times inward (allow for slightly missing multiple of t_grid)
+   A = truncate_to_grid(A, t_grid, up=1)
+   B = truncate_to_grid(B, t_grid, up=0)
+
+   # this also checks if m is too close to 0.5
+   if not decay_pdf_inputs_ok(A, B, M, N, t_grid):
+      return []
+
+
+   # ----------------------------------------------------------------------
+   # b. from m = fractional mean, get L to restrict e^-x over [0,L],
+   #    so the expected value of x given PDF e^-x is m
+
+   # set m, and note whether to reflect results about the mean
+   m = (M-A)/float(B-A)
+   reflect = (m > 0.5)
+   if reflect:
+      m = 1 - m
+   
+   # note: F(L) = decay_e4_frac_L(L) = 1/L - 1/(e^L - 1)
+   L = decay_solve(decay_e4_frac_L, m, t_grid, verb=verb)
+
+   if verb > 1: print('-- decay: m = %s, L = %s' % (m, L))
+
+   # ----------------------------------------------------------------------
+   # c. get N decay times from e^-x on [0,L] with mean m
+   times = decay_get_PDF_times(L, N)
+   if verb > 3: decay_show_PDF_times(L, N)
+   if times == []: return times
+
+   # ----------------------------------------------------------------------
+   # d. reflect if necessary, and scale to [A,B] with mean M
+   if reflect:
+      # times are in [0,L], so reflecting means applying L-time
+      times = [L-t for t in times]
+      m = 1-m  # do we care anymore?
+
+   # scale t from [0,L] to [0,B-A] and offset by A
+   lrat = (B-A)/float(L)
+   times = [A + t*lrat for t in times]
+
+   # ----------------------------------------------------------------------
+   # e. round times to multiples of t_grid
+   times = cumulative_round_to_grid(times, t_grid)
+
+   return times
+
+def cumulative_round_to_grid(vals, delta, verb=1):
+   """round values to multiples of delta, but try to keep the cumulative sum
+      basically unchanged
+
+      * apply in place
+
+      Maintain CS = cumulative sum of differences between the exact and rounded
+      times.  If the new abs(CS) >= prec (precision), round in the opposite
+      direction, to maintain abs(CS) < prec, which should be sufficient.  We
+      *could* require abs(CS) < prec/2, but that might mean more would be
+      rounded in the "wrong" direction.  Please discuss amongst yourselves...
+   """
+   dsum = 0.0   # cumulative sum of diffs between original and rounded vals
+   for ind, val in enumerate(vals):
+      rval = round(val/delta)*delta
+      rdiff = rval-val
+      if verb > 3: print('-- CR2G: val %d = %s, rdiff = %s'%(ind, val, rdiff))
+      if rdiff == 0.0:
+         continue
+
+      # keep from straying
+      if abs(dsum + rdiff) > delta:
+         if rdiff > 0: rd = rdiff-delta
+         else:         rd = rdiff+delta
+         if verb>3: print('   alter rdiff %s to %s, dsum %s' % (rdiff,rd,dsum))
+         rdiff = rd
+         rval = val+rdiff
+
+      # apply
+      vals[ind] = rval
+      dsum += rdiff
+
+      if verb > 3:
+         print('   val %s, rval %s, rdiff %s, dsum %s' % (val,rval,rdiff,dsum))
+
+   return vals
+
+def decay_pdf_inputs_ok(A, B, M, N, t_grid):
+   """check all inputs for reasonableness, return 1 if okay, 0 otherwise"""
+   fname = 'decay_pdf_get_ranged_times'
+   if t_grid <= 0:
+      print('** %s: illegal t_grid < 0, %s' % (fname, t_grid))
+      return 0
+
+   if A < 0.0 or A >= B:
+      print('** %s requires 0 <= A < B' % fname)
+      print('   have A = %s, B = %s' % (A,B))
+      return 0
+
+   if N <= 3:
+      print('** %s requires N > 3, have N = %d' % (fname, N))
+      return 0
+
+   if A >= M or B <= M:
+      print('** %s requires A < M < B, have M = %s' % (fname, M))
+      return 0
+
+   # fractional m should not be too close to 0.5
+   m = (M-A)/float(B-A)
+   if abs(m - 0.5) < 0.001:
+      print('** decay PDF mean too close to midpoint, consider uniform PDF')
+      print('** FAILING for mean m = %s' % m)
+      return 0
+
+   return 1
+
+def truncate_to_grid(val, grid, up=1):
+   """return val truncated to a multiple of grid
+
+      if up, val should not decrease, else it should not increase
+      BUT, allow for val to *almost* be a multiple of grid
+         - allow for missing by 0.01*grid
+         - e.g. T2G(val=5.32101, grid=0.001, up=1) should return 5.321,
+           not 5.322, since it is close enough, say
+
+      require grid > 0
+   """
+   if grid <= 0.0: return 0.0
+
+   if up:
+      return math.ceil(val/grid-0.01)*grid
+   else:
+      return math.floor(val/grid+0.01)*grid
+
 
 # ======================================================================
 def main():
+   # for testing, add options to plot or compute times, etc
+   # (those won't exist at the higher level, in MRT.py)
+
    L = 10
    step = 0.1
 
    if 0:
       A = 3
       nd = 50
-      print decay_mean(A,A+1)
-      print decay_mean(A,A+2)
+      print(decay_mean(A,A+1))
+      print(decay_mean(A,A+2))
       for ind in range(nd):
-         print decay_mean(A,A+(1.0*nd-ind)/nd)
+         print(decay_mean(A,A+(float(nd)-ind)/nd))
    elif 0:
       show_times_PDF(5,10000,100)
 
@@ -441,8 +693,13 @@ def main():
        #xi = [v for v in decay_ident_gen(0.1,0.499,step=0.001)]
        yo = [decay_guess_inv(v) for v in xo]
 
+       # get inverses of all orig y values
+       xi = [decay_solve(decay_e4_frac_L, v, 0.0001) for v in orig]
+
        # plot_data([[xo,orig], [xo, approx], [inv, xi]])
-       plot_data([[xo,orig], [xo, approx], [xo,yo]], labs=['e4', 'approx','N'])
+       # plot_data([[xo,orig], [xo, approx], [xo,yo], [xi, orig]],
+       #           labs=['e4', 'approx','N', 'inv'])
+       plot_data([[xo,orig], [xo,yo], [xi, orig]], labs=['e4', 'N', 'inv'])
 
 
 # main
