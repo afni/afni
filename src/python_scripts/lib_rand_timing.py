@@ -583,19 +583,25 @@ class StimClass:
    def show_durlist_stats(self, mesg='', details=0):
       tc = self.sclass
       durlist = self.durlist
+      # note number of events in first run
+      if len(durlist) > 0:
+         N = len(durlist[0])
+      else:
+         N = 0
 
       if mesg != '': mstr = '(%s) ' % mesg
       else:          mstr = ''
       print "=== %sstats for StimClass %s ===" % (mstr, self.name)
 
-      print 'run         #      min       mean      max      stdev'
-      print '------    -----  -------   -------   -------   -------'
-      print 'expected        %7.3f   %7.3f   %7.3f     %s' % \
-               (tc.min_dur, tc.mean_dur, tc.max_dur, tc.dist_type)
+      print 'run         #      min       mean      max      total       stdev'
+      print '------    -----  -------   -------   -------   -------     -------'
+      print 'expected        %7.3f   %7.3f   %7.3f   %9.2f    %s' % \
+            (tc.min_dur, tc.mean_dur, tc.max_dur, N*tc.mean_dur, tc.dist_type)
       for rind, durs in enumerate(durlist):
          mmin,mmean,mmax,mstdev = UTIL.min_mean_max_stdev(durs)
-         print '%2d         %3d  %7.3f   %7.3f   %7.3f   %7.3f' % \
-               (rind, len(durs), mmin, mmean, mmax, mstdev)
+         ttime = sum(durs)
+         print '%2d       %5d  %7.3f   %7.3f   %7.3f   %9.2f    %7.3f' % \
+               (rind, len(durs), mmin, mmean, mmax, ttime, mstdev)
       print
 
       if details:
