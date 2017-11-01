@@ -827,7 +827,12 @@ make_random_timing.py - Advanced usage
         dtype   : distribution type (default=decay)
                   decay:        shorter events are more likely
                                 see "NOTE: distribution of ISI"
-                              * new method as of Feb 3, 2017
+                              * new method, as of Feb 3, 2017
+                  decay_fixed:  precise decay method, which properly follows a
+                                scaled e^-x PDF, where durations are implied by
+                                the parameters (for a fixed set of params, only
+                                the order of durations is random)
+                              * new method, as of Oct 31, 2017
                   decay_old:    old decay method, which can bunch up at max
                                 limit, if one is applied
                   uniform_rand: randomly chosen durations with uniform dist
@@ -915,19 +920,21 @@ make_random_timing.py - Advanced usage
        (per run).  So there will be exactly the rest from -post_stim_rest at
        the end of each run, 10s in this example.
 
-         make_random_timing.py -num_runs 2 -run_time 300         \\
+         make_random_timing.py -num_runs 2 -run_time 400         \\
             -pre_stim_rest 10 -post_stim_rest 10                 \\
             -rand_post_stim_rest no                              \\
             -add_timing_class stima 0.5 3 10                     \\
             -add_timing_class stimb 0.1 0.5 3                    \\
             -add_timing_class stimc 2                            \\
+            -add_timing_class stimd 1 2 6 dist=decay_fixed       \\
             -add_timing_class resta 0.2 .7 1.2 dist=uniform_rand \\
             -add_timing_class restb 0.5 1  1.5 dist=uniform_grid \\
             -add_timing_class restc 0 -1 -1                      \\
             -add_stim_class houses 20 stima resta                \\
             -add_stim_class faces  20 stimb restb                \\
             -add_stim_class donuts 20 stimb restb                \\
-            -add_stim_class pizza  20 stimc restc                \\
+            -add_stim_class tacos  20 stimc restc                \\
+            -add_stim_class pizza  40 stimd restc                \\
             -write_event_list events.adv.2                       \\
             -show_timing_stats                                   \\
             -seed 31415 -prefix stimes.adv.2
@@ -1059,9 +1066,10 @@ g_history = """
     2.3  May  9, 2017: applied -offset for advanced case
     2.4  May 24, 2017: advanced -save_3dd_cmd and -make_3dd_contrasts
     2.5  Sep 26, 2017: adv: clarify use of -1 for mean, max in help
+    2.6  Oct 31, 2017: adv: added decay_fixed distribution type
 """
 
-g_version = "version 2.5, September 26, 2017"
+g_version = "version 2.6, October 31, 2017"
 
 g_todo = """
    - add -show_consec_stats option?
