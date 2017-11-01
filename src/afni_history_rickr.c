@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  1, Nov, 2017, RCR, "make_random_timing.py", MAJOR, TYPE_NEW_OPT,
+   "implement the decay_fixed distribution type",
+   "See make_random_timing.py -help_decay_fixed for details."
+ } ,
+
  { 23, Oct, 2017, RCR, "3dDeconvolve", MICRO, TYPE_GENERAL,
    "add warnings if TR or run length is 0.0",
    NULL
