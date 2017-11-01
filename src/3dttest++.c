@@ -1450,7 +1450,8 @@ void display_help_menu(void)
       "datasets that can be used with program 3dMultiThresh to get thresholded\n"
       "results. Others of these are a binary mask that indicate which voxels passed\n"
       "these at least one of the multiple tests, and another mask that indicates\n"
-      "which tests were passed (in each voxel).\n"
+      "which tests were passed (in each voxel). These masks are produced by running\n"
+      "3dMultiThresh for each blur case, then combining the results across blur cases.\n"
       "\n"
       "In the example below, assume\n"
       "  * Two blurring cases specified using '-ETAC_blur 4 7'\n"
@@ -1464,25 +1465,29 @@ void display_help_menu(void)
       "Output filename                     Description\n"
       "----------------------------------  -----------\n"
       "P+tlrc.HEAD                         normal 3dttest++ output from input datasets\n"
-      "P.B4.0.nii                          3dttest++ output from blurred datasets (4)\n"
-      "P.B7.0.nii                          3dttest++ output from blurred datasets (7)\n"
+      "P.B4.0.nii                          3dttest++ output from blurred datasets\n"
+      "P.B7.0.nii                            (4 and 7 mm, respectively)\n"
       "Px.B4.0.5percent.txt                voxel-wise threshold to reach a given\n"
       "Px.B7.0.5percent.txt                  global significance, for blurs 4 and 7\n"
-      "Px.N.ETAC.mthresh.B4.0.5perc.nii    Multi-threshold datasets for blur=4 and\n"
-      "Px.N.ETAC.mthresh.B7.0.5perc.nii      blur=7, to get 5%% false positive rate\n"
+      "Px.N.ETAC.mthresh.B4.0.5perc.nii    Multi-threshold datasets for blur=4 and =7,\n"
+      "Px.N.ETAC.mthresh.B7.0.5perc.nii      for overall 5%% global false positive rate\n"
       "Px.N.ETACmask.2sid.5perc.nii.gz     Binary (0 or 1) mask of 'active voxels'\n"
       "PX.N.ETACmaskALL.2sid.5perc.nii.gz  Multi-volume mask showing which ETAC\n"
-      "                                      sub-method(s) passed in each voxel;\n"
-      "                                      there is one sub-brick per p-value,\n"
+      "                                      sub-method(s) passed in each voxel:\n"
+      "                                      There is one sub-brick per p-value,\n"
       "                                      and per blur case (e.g., 5*2=10), and\n"
       "                                      each value encodes which hpow value(s)\n"
       "                                      had a positive result, as a sum of\n"
       "                                        1 == hpow=0 passed\n"
       "                                        2 == hpow=1 passed\n"
       "                                        4 == hpow=2 passed\n"
-      "\n"
+      "                                      Sub-bricks in this dataset will have\n"
+      "                                      labels of the form\n"
+      "                                        'B4.0:p=0.0100'\n"
+      "                                      indicating the sub-method was blur=4\n"
+      "                                      with pthr=0.01.\n"
       "* If a different 'fpr' value was given (say 2), then the filenames containing\n"
-      "  'ETAC' with have the '5perc' component changed to that value (e.g., '4perc').\n"
+      "  'ETAC' will have the '5perc' component changed to that value (e.g., '4perc').\n"
       "* If 'fpr=ALL', there would be outputs for '2perc', '3perc', ... '9perc'.\n"
       "* If 'sid=1' were given in '-ETAC_opt', then each mask filename containing\n"
       "  '2sid' will instead be replaced by TWO files, one with '1neg' and one\n"
@@ -4923,7 +4928,7 @@ LABELS_ARE_DONE:  /* target for goto above */
                           prefix_clustsim , prefix_clustsim , nam , sfarp ) ;
                  system(cmd) ;
                  sprintf( cmd ,  /* cat the amasks */
-                          "3dbucket -verb -prefix %s.%s.ETACmaskALL.2sid.%s.nii.gz %s.ETACamask.*.nii" ,
+                          "3dbucket -prefix %s.%s.ETACmaskALL.2sid.%s.nii.gz %s.ETACamask.*.nii" ,
                           prefix_clustsim , nam , sfarp , prefix_clustsim ) ;
 /* INFO_message("about to run:\n   %s",cmd) ; */
                  system(cmd) ;
@@ -4945,7 +4950,7 @@ LABELS_ARE_DONE:  /* target for goto above */
                           prefix_clustsim , prefix_clustsim , nam , sfarp ) ;
                  system(cmd) ;
                  sprintf( cmd ,  /* cat the masks */
-                          "3dbucket -verb -prefix %s.%s.ETACmaskALL.1pos.%s.nii.gz %s.ETACamask.1pos.*.nii" ,
+                          "3dbucket -prefix %s.%s.ETACmaskALL.1pos.%s.nii.gz %s.ETACamask.1pos.*.nii" ,
                           prefix_clustsim , nam , sfarp , prefix_clustsim ) ;
 /* INFO_message("about to run:\n   %s",cmd) ; */
                  system(cmd) ;
@@ -4966,7 +4971,7 @@ LABELS_ARE_DONE:  /* target for goto above */
                                 prefix_clustsim , prefix_clustsim , nam , sfarp ) ;
                  system(cmd) ;
                  sprintf( cmd ,  /* cat the masks */
-                          "3dbucket -verb -prefix %s.%s.ETACmaskALL.1neg.%s.nii.gz %s.ETACamask.1neg.*.nii" ,
+                          "3dbucket -prefix %s.%s.ETACmaskALL.1neg.%s.nii.gz %s.ETACamask.1neg.*.nii" ,
                           prefix_clustsim , nam , sfarp , prefix_clustsim ) ;
 /* INFO_message("about to run:\n   %s",cmd) ; */
                  system(cmd) ;
