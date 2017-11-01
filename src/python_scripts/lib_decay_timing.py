@@ -2,155 +2,6 @@
 
 # can be run with python2 or python3
 
-# ===========================================================================
-# functions for defining decay curves
-# 
-# Notes:
-# Given A,M,B,N = desired min,mean,max for list of N (pseudo-randomly ?)
-#    generated numbers that follow a decay type distribution (e^-x),
-#    generate such a list.
-#  
-# Basic equations:
-#  
-#       (1) integral [e^-x] on (a,b) = e^-a - e^-b
-#       (2) integral [xe^-x] on (a,b) = (a+1)e^-a - (b+1)e^-b
-#       (3) E[x] = int[xe^-x] / int[e^-x] on (a,b) = (a+1)e^-a - (b+1)e^-b
-#                                                    ---------------------
-#                                                        e^-a - e^-b
-
-#    Since E[x] on [0,L] = (1-(L+1)e^-L)/(1-e^-L) = 1 - L/(e^L - 1), define
-#
-#       (4) F(L) = E[x]/L = 1/L - 1/(e^L - 1)
-#
-#  * This is the principle equation we want to invert.  Given mean M, converted
-#    to a fractional offset mean m = (M-A)/(B-A), we can solve m = F(L) for L,
-#    defining a decay function with the given fractional mean.  So if e^-x on
-#    [0,L] has mean m, x in the function can be shifted and scaled to be on
-#    [A,B] with the given mean M.
-#   
-#
-# a) Approximation games...
-#
-#    Given A,M,B, find L such that E[x]/L = (M-a)/(b-a).
-#    So if m is the fractional mean on [a,b], solve m = F(L) = E[x]/L for m.
-#  
-#    F(L) can be reasonably well approximated by invertible functions on
-#    (0,3], (3,6) and [6,inf), being linear, scaled 1/L and 1/L.
-#  
-#          F(0) -> 0.5     (limit as L->0 of F(L))
-#          F(3) ~= 0.281
-#          F(6) ~= 0.164 ~= 1/6 (not great, consider using F(8)=.125)
-#  
-#       i) on (0,3], approximate F(L) with line:
-#  
-#          F1(L)  = 0.5 - 0.73*L
-#          F1I(m) = (0.5 - m)/0.73
-#  
-#       ii) on (3,6), map 3 -> 1/f1(3) = 3.5587,  map 6 -> 6
-#           can use F2_0(x) = 1.1174 + .8138*x
-#           So define F2(x) = 1/F2_0(x).
-#  
-#          F2(L)  = 1 / (1.1174 + 0.8138 * L)
-#          F2I(L) = (1.0/m - 1.1174) / 0.8138
-#  
-#       iii) on [6,inf), approximate F(L) with 1/L
-#  
-#          F3(L)  = 1/L     (is invertible and is its own inverse)
-#          F3I(L) = F3(L)
-#
-#
-#    Better approximation:
-#
-#       on [0,2]   f1(L) = 0.5 - 0.1565*L/2.0
-#       on (2,3]   f2(L) = 1.0 / (1.6154 + 0.6478*L)
-#       on [3,6)   f3(L) = 1.0 / (1.1174 + 0.8138 * L)
-#       on [6,inf) f4(L) = 1.0 / L
-#
-#    This looks great, but is still a little unfulfilling (now I want beer).
-#
-#    Hmmmm, in the immortal words of the famous philosopher Descartes,
-#    "this is kinda stupid".  Move on...
-#  
-#
-# b) Forget approximations.  Solve m = F(L) for L using Newton's method.
-#
-#    F(L) is very smooth, behaving like a line for L<2 and then scaled
-#    versions of 1/L beyond that.  So iterate to invert, which should be
-#    quick and have any desired accuracy.
-#
-#    Find a very approximate solution, then apply Newton's method where
-#    the next iteration of x1 uses the preivious one and the approximate
-#    slope at x0, slope ~= (f(x+h)-f(x))/h for small h.
-#
-#    i) define basic approximation by pivot at L=4 as initial guess
-#       {Exactly why throw out the accurate approximations above?  I don't
-#        know.  Okay, let's say that we prefer a single, simple function.}
-#
-#          1.0/m , if m <= 0.25
-#          8-16*m, if 0.25 < m < 0.5
-#
-#    ii) define a step to get the next iteration value
-#
-#       Use inverse slope (delta x / delta  y) to scale change in y to
-#       change in x.
-#
-#          decay_newton_step(fn, y_goal, x0, dx):
-#             y0 = fn(x0)
-#             dxdy = dx / (fn(x0+dx) - y0)
-#             return x0 + (y_goal-y0) * dxdy
-#
-#    iii) solve by taking initial guess and iterating until close
-#
-#       find x s.t. fn(x) ~= y_goal, where |fn(x) - y_goal| < prec
-#
-#          decay_solve(fn, y_goal, prec, maxind=100):
-#             x = decay_guess(y_goal)
-#             f = fn(x0)
-#             while abs(f - y_goal) > prec
-#                x = decay_newton_step(fn, y_goal, x, prec)
-#                f = fn(x)
-#
-#       We can be precise here.  Not only does this converge quickly, but
-#       it is a one time operation per timing class.
-#
-# Handle m in different ranges according to:
-#
-#    m <= 0             illegal
-#    0 < m < 0.5        expected
-#    m ~= 0.5           should use uniform distribution, instead of decay
-#    0.5 < m < 1.0      expected, solve using 1-m and reflect about the mean
-#    m >= 1.0           illegal
-#
-# c) Given L, get a list of N exact durations that follow PDF and have mean m.
-#
-#    This can still apply to [0,inf) with fractional mean m in (0,0.5).
-#
-#       times = decay_get_PDF_times(L, N)
-#
-# d) Scale the times.
-#
-#    Given A, M, B, and N times[], map each time from [0,L] to [A,B] (which
-#    should map the mean m to mean M).
-#
-#         newval = A + oldval * (B-A)/L
-#
-# e) Round the times.
-#
-#    Maintain CS = cumulative sum of differences between the exact and rounded
-#    times.  If the new abs(CS) >= prec (precision), round in the opposite
-#    direction, to maintain abs(CS) < prec, which should be sufficient.  We
-#    *could* require abs(CS) < prec/2, but that might mean more would be
-#    rounded in the "wrong" direction.  Please discuss amongst yourselves...
-
-# f) if original m > 0.5, reflect times over (A+B)/2
-#
-# g) Verify the mean.  Since the difference between the precise sum and the
-#    rounded sum should be less than prec, the difference between the means
-#    should be less than prec/N, which is all we can ask for in life.
-#
-
-
-
 import sys
 # import module_test_lib
 # g_testlibs = ['sys', 'math']
@@ -354,9 +205,17 @@ def decay_solve(fn, y_goal, prec, maxind=100, verb=1):
 # ======================================================================
 # misc
 
-def plot_data(pair_list, labs=[]):
+def plot_data(pair_list, labs=[], y0=0):
    import numpy as N
    import matplotlib.pyplot as plt
+
+   # a lot of work to include 0 in the y axis...
+   if y0:
+      mnx = min([pair[0][0] for pair in pair_list])
+      mxx = max([pair[0][-1] for pair in pair_list])
+      mxy = max([pair[1][0] for pair in pair_list])
+      mxy1 = max([pair[1][-1] for pair in pair_list])
+      mxy = max([mxy, mxy1])
 
    plt.figure("pizza")
    for ind, pair in enumerate(pair_list):
@@ -366,6 +225,13 @@ def plot_data(pair_list, labs=[]):
           plt.plot(pair[0], pair[1])
    if len(labs) > 0:
       plt.legend()
+
+   # use default bounds, excecpt bound minimum y at 0
+   if y0:
+      bounds = [mnx, 1.1*mxx, 0, 1.1*mxy]
+      print('== plot bounds %s' % bounds)
+      plt.axis(bounds)
+
    plt.show()
 
 def e_Lx(a,L,N):
@@ -434,19 +300,29 @@ def decay_get_PDF_bins(vals, nbin, scale=1, verb=1):
    if verb > 2: print('PDF_times: min = %s, max = %s' % (vals[0],vals[-1]))
 
    bcounts = [0] * nbin
-   v0 = vals[0]
-   bsize = 1.0001*(vals[-1]-v0)/float(nbin)
+   v0 = min(vals)
+   bsize = (max(vals)-min(vals))/float(nbin)
    if bsize <= 0: return []
 
+   bover = 0
    for v in vals:
-      bcounts[int((v-v0)/float(bsize))] += 1
+      bind = int((v-v0)/float(bsize))
+      # check whether we overstep out bounds
+      if bind >= nbin:
+         bover += 1
+         bind = nbin - 1
+      bcounts[bind] += 1
+
+   if bover > 0 and verb > 1:
+      print('== get_PDF_bins: bover = %d' % bover)
+
    if scale:
-       b0 = float(bcounts[0])
+       b0 = float(max(bcounts))
        for bind in range(nbin):
           bcounts[bind] /= b0
    return bcounts
 
-def show_times_PDF(L,N,nbin):
+def show_times_PDF(L,N,nbin, y0=0):
    """get_PDF_times, count the number in each bin of length L/nbin, and
       get list of count/N
    """
@@ -459,7 +335,7 @@ def show_times_PDF(L,N,nbin):
    xo = [i * bsize for i in range(nbin)]
    yo = [math.exp(-(i*bsize)) for i in range(nbin)]
    
-   plot_data([[xo,btimes], [xo,yo]], labs=['btimes', 'e^-x'])
+   plot_data([[xo,btimes], [xo,yo]], labs=['btimes', 'e^-x'], y0=y0)
 
 def plot_pdf_from_file(fname, nbin, scale=1, L=0):
   
@@ -468,17 +344,21 @@ def plot_pdf_from_file(fname, nbin, scale=1, L=0):
    data.sort()
    show_val_bins(data, nbin, scale=scale, L=L)
 
-def show_val_bins(vals, nbin, scale=1, L=0):
+def show_val_bins(vals, nbin, scale=1, L=0, verb=1, y0=0):
    """get_PDF_times, count the number in each bin of length L/nbin, and
       get list of count/N
    """
    N = len(vals)
    if N < nbin or nbin <= 0: return
 
-   btimes = decay_get_PDF_bins(vals, nbin, scale=scale)
+   btimes = decay_get_PDF_bins(vals, nbin, scale=scale, verb=verb)
    if len(btimes) < 1: return
 
-   bsize = 1.0001*(vals[-1]-vals[0])/float(nbin)
+   # bsize = 1.00001*(vals[-1]-vals[0])/float(nbin)
+   bsize = (vals[-1]-vals[0])/float(nbin)
+
+   print('== SVB: btimes[0,1,-1] = %f, %f, %f'%(btimes[0],btimes[1],btimes[-1]))
+   print('        nbin %d, bsize %f' % (nbin, bsize))
 
    xo = [i * bsize for i in range(nbin)]
    dlist = [[xo, btimes]]
@@ -486,13 +366,19 @@ def show_val_bins(vals, nbin, scale=1, L=0):
 
    if scale:
       # include e^-x
-      if L: xscale = L/float(vals[-1]-vals[0])
-      else: xscale = 1.0
-      yo = [math.exp(-(i*bsize*xscale)) for i in range(nbin)]
+      if L == 0:
+         xscale = 1.0
+      else:
+         # L < 0 means we should flip the exp distribution
+         xscale = abs(L)/float(vals[-1]-vals[0])
+         if L > 0: ilist = range(nbin)
+         else:     ilist = range(nbin-1,-1,-1)
+      # yo = [math.exp(-(i*bsize*xscale)) for i in range(nbin)]
+      yo = [math.exp(-(i*bsize*xscale)) for i in ilist]
       dlist.append([xo, yo])
       labs.append('e^-x')
    
-   plot_data(dlist, labs=labs)
+   plot_data(dlist, labs=labs, y0=y0)
 
 # ======================================================================
 # main calling routine
@@ -514,8 +400,8 @@ def decay_pdf_get_ranged_times(A, B, M, N, t_grid=0.001, verb=1):
       d. reflect if necessary (if orig m>0.5), and scale to [A,B] with mean M
       e. round to t_grid
 
-      Note: this does not need to require A >= 0, except in the context of event
-            durations.  Consider allowing A < 0 with a flag.
+      Note: this does not need to require A >= 0, except in the context of
+            event durations.  Consider allowing A < 0 with a flag.
 
       Note: times are currently sorted, not randomized.
    """
@@ -547,7 +433,7 @@ def decay_pdf_get_ranged_times(A, B, M, N, t_grid=0.001, verb=1):
       m = 1 - m
    
    # note: F(L) = decay_e4_frac_L(L) = 1/L - 1/(e^L - 1)
-   L = decay_solve(decay_e4_frac_L, m, t_grid, verb=verb)
+   L = decay_solve(decay_e4_frac_L, m, t_grid/1000.0, verb=verb)
 
    if verb > 1: print('-- decay: m = %s, L = %s' % (m, L))
 
@@ -660,47 +546,110 @@ def truncate_to_grid(val, grid, up=1):
 
 
 # ======================================================================
-def main():
-   # for testing, add options to plot or compute times, etc
-   # (those won't exist at the higher level, in MRT.py)
+def run_demo(demo_ind):
 
-   L = 10
-   step = 0.1
+   print('== running demo #%d ...\n' % demo_ind)
 
-   if 0:
+   rv = 0
+
+   if demo_ind == 0:
       A = 3
       nd = 50
       print(decay_mean(A,A+1))
       print(decay_mean(A,A+2))
       for ind in range(nd):
          print(decay_mean(A,A+(float(nd)-ind)/nd))
-   elif 0:
+
+   elif demo_ind == 1:
       show_times_PDF(5,10000,100)
 
-   elif 1:
-       A = 0; B = 10; step = 0.1
+   elif demo_ind in [2,3,4,5]:
+      A = 0; B = 4; M = 1; N = 10000; t_grid = 0.001; verb = 3; y0 = 0
 
-       gen = decay_e4_gen
-       orig = [v for v in gen(A,B,step=step)]
+      # get a mean near (A+B)/2
+      if demo_ind == 3:
+         M = 1.95
+         y0 = 1
+      elif demo_ind == 4:
+         M = 2.05
+         y0 = 1
+      elif demo_ind == 5:
+         M = 3
+         y0 = 1
 
-       gen = decay_e4_approx_gen
-       approx = [v for v in gen(A,B,step=step)]
+      tlist = decay_pdf_get_ranged_times(A,B,M,N,t_grid=t_grid,verb=verb)
 
-       #gen = decay_FM_approx_inv_gen
-       #inv = [v for v in gen(0.1,0.499,step=0.001)]
+      min_val = min(tlist)
+      max_val = max(tlist)
+      sum_val = sum(tlist)
+      print('++ final stats:  min %.4f, mean %.4f, max %.4f' \
+            % (min_val, sum_val/float(N), max_val))
+      print('                 sum %.4f, expect %.4f' % (sum_val, N*M))
 
-       xo = [v for v in decay_ident_gen(A,B,step=step)]
-       #xi = [v for v in decay_ident_gen(0.1,0.499,step=0.001)]
-       yo = [decay_guess_inv(v) for v in xo]
+      m = (M-A)/float(B-A)
+      if m < 0.5:
+         L = decay_solve(decay_e4_frac_L, m, t_grid, verb=0)
+      else:
+         L = decay_solve(decay_e4_frac_L, 1-m, t_grid, verb=0)
+         L = -L
+      print('-- plotting... L = %s' % L)
+      show_val_bins(tlist, 100, scale=1, L=L, verb=2, y0=y0)
+      
 
-       # get inverses of all orig y values
-       xi = [decay_solve(decay_e4_frac_L, v, 0.0001) for v in orig]
+   elif demo_ind == 6:
+      A = 0; B = 10; step = 0.1
 
-       # plot_data([[xo,orig], [xo, approx], [inv, xi]])
-       # plot_data([[xo,orig], [xo, approx], [xo,yo], [xi, orig]],
-       #           labs=['e4', 'approx','N', 'inv'])
-       plot_data([[xo,orig], [xo,yo], [xi, orig]], labs=['e4', 'N', 'inv'])
+      gen = decay_e4_gen
+      orig = [v for v in gen(A,B,step=step)]
 
+      gen = decay_e4_approx_gen
+      approx = [v for v in gen(A,B,step=step)]
+
+      #gen = decay_FM_approx_inv_gen
+      #inv = [v for v in gen(0.1,0.499,step=0.001)]
+
+      xo = [v for v in decay_ident_gen(A,B,step=step)]
+      #xi = [v for v in decay_ident_gen(0.1,0.499,step=0.001)]
+      yo = [decay_guess_inv(v) for v in xo]
+
+      # get inverses of all orig y values
+      xi = [decay_solve(decay_e4_frac_L, v, 0.0001) for v in orig]
+
+      # plot_data([[xo,orig], [xo, approx], [inv, xi]])
+      # plot_data([[xo,orig], [xo, approx], [xo,yo], [xi, orig]],
+      #           labs=['e4', 'approx','N', 'inv'])
+      plot_data([[xo,orig], [xo,yo], [xi, orig]], labs=['e4', 'N', 'inv'])
+
+   else:
+      print('** no such demo')
+      rv = 1
+
+   return rv
+
+def main():
+   # for testing, consider options to plot or compute times, etc
+   # (those won't exist at the higher level, in MRT.py)
+
+   # for now, just run fixed demos
+
+   demo_ind = 2
+
+   if len(sys.argv) > 1:
+      if sys.argv[1][0:2] == '-h':
+         print('you cannot get help here, but please get help somewhere')
+         print('okay, this can be passed a demo index starting at 0')
+      else:
+         try: demo_ind = int(sys.argv[1])
+         except: demo_ind = 2
+
+   if demo_ind >= 0:
+      run_demo(demo_ind)
+   else:
+      demo_ind = -demo_ind
+      print('== running all demos from 0 .. %d' % (demo_ind-1))
+      for dind in range(demo_ind):
+         if run_demo(dind):
+            return
 
 # main
 if __name__ == '__main__':
