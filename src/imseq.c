@@ -4747,7 +4747,7 @@ ENTRY("ISQ_but_save_CB") ;
        MCW_choose_stuff( w , "Image Saver (One)" , ISQ_saver_CB , (XtPointer)seq ,
                            MSTUF_STRING , "Prefix"  ,
                            MSTUF_INT    , "Blowup " , 1 , 8 , ibl ,
-                           MSTUF_YESNO  , "Gimp it?",
+                           MSTUF_YESNO  , "Open in Gimp?",
                          MSTUF_END ) ;
      } else {
        MCW_choose_stuff( w , "Image Saver (One)" , ISQ_saver_CB , (XtPointer)seq ,
