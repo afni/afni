@@ -106,7 +106,7 @@ ENTRY("timeout_CB") ;
 
 int main( int argc , char *argv[] )
 {
-   int ii , quiet = 0, verb=0 , iarg=1 , jj ;
+   int ii , quiet=0, verb=0 , iarg=1 , jj , dopad=0 ;
    MRI_IMAGE *im ;     /* 1 input image */
    MRI_IMARR *qar ;    /* all input images */
    Widget shell ;
@@ -115,9 +115,13 @@ int main( int argc , char *argv[] )
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf(
       "Usage: aiv [-v] [-q] [-title] [-p xxxx ] image ...\n"
+      "\n"
       "AFNI Image Viewer program.\n"
+      "\n"
       "Shows the 2D images on the command line in an AFNI-like image viewer.\n"
+      "\n"
       "Can also read images in NIML '<MRI_IMAGE...>' format from a TCP/IP socket.\n"
+      "\n"
       "Image file formats are those supported by to3d:\n"
       " * various MRI formats (e.g., DICOM, GEMS I.xxx)\n"
       " * raw PPM or PGM\n"
@@ -125,15 +129,21 @@ int main( int argc , char *argv[] )
       " * GIF, TIFF, BMP, and PNG (if netpbm is in the path)\n"
       "\n"
       "The '-v' option will make aiv print out the image filenames\n"
-      "as it reads them - this can be a useful progress meter if\n"
-      "the program starts up slowly.\n"
+      "  as it reads them - this can be a useful progress meter if\n"
+      "  the program starts up slowly.\n"
       "\n"
       "The '-q' option tells the program to be very quiet.\n"
+      "\n"
+      "The '-pad' option tells the program to pad all input images\n"
+      " (from the command line) to be the same size.\n"
+      " Images that are much smaller than the largest image will\n"
+      " also be inflated somewhat so as not to look tiny.\n"
       "\n"
       "The '-title WORD' option titles the window WORD. \n"
       "The default is the name of the image file if only one is \n"
       "specified on the command line. If many images are read in\n"
       "the default window title is 'Images'.\n"
+      "\n"
       "The '-p xxxx' option will make aiv listen to TCP/IP port 'xxxx'\n"
       "for incoming images in the NIML '<MRI_IMAGE...>' format.  The\n"
       "port number must be between 1024 and 65535, inclusive.  For\n"
@@ -164,7 +174,7 @@ int main( int argc , char *argv[] )
       "NI_stream_writestring( ns , \"<ni_do ni_verb='QUIT'>\" ) ;\n"
       "NI_stream_close( ns ) ;  /* do this, or the above, if done with aiv */\n"
       "\n"
-      "-- Author: RW Cox\n"
+      "-- Authors: RW Cox and DR Glen\n"
      ) ;
      PRINT_COMPILE_DATE ; exit(0) ;
    }
@@ -180,15 +190,19 @@ int main( int argc , char *argv[] )
             ERROR_message("Need a string after -title");
             /* ignore option */
          } else {
-            snprintf(wintit,128*sizeof(char),"%s", argv[++iarg]); 
+            snprintf(wintit,128*sizeof(char),"%s", argv[++iarg]);
          }
-         iarg++; continue; 
-     } 
+         iarg++; continue;
+     }
      /*-- verbosity --*/
 
      if( strncmp(argv[iarg],"-v",2) == 0 ){ verb=1; iarg++; continue; }
      if( strncmp(argv[iarg],"-q",2) == 0 ){ quiet=1; iarg++; continue; }
-      
+
+     if( strcmp(argv[iarg],"-pad") == 0 ){  /* 02 Nov 2017 */
+       dopad++ ; iarg++ ; continue ;
+     }
+
      /*-- port or sherry? --*/
 
      if( strncmp(argv[iarg],"-p",2) == 0 ){
@@ -220,8 +234,8 @@ int main( int argc , char *argv[] )
 
      ERROR_message("Unknown option: %s",argv[iarg]) ;
    }
-   if (!quiet) { PRINT_VERSION("aiv") ; } 
-   
+   if (!quiet) { PRINT_VERSION("aiv") ; }
+
 
    /* glob filenames, read images */
 
@@ -267,15 +281,60 @@ int main( int argc , char *argv[] )
 
    if( IMARR_COUNT(MAIN_imar) == 0 && AIVVV_stream==(NI_stream)NULL )
      ERROR_exit("No images found on command line!?") ;
-   if( IMARR_COUNT(MAIN_imar) > 0 ){
-     if (!quiet) fprintf(stderr, (verb) ? " = " : "++ " ) ;
-     if( IMARR_COUNT(MAIN_imar) == 1 )
-       if (!quiet) fprintf(stderr,"1 image\n") ;
-     else
-       if (!quiet) fprintf(stderr,"%d images\n",IMARR_COUNT(MAIN_imar)) ;
+
+   if( !quiet && IMARR_COUNT(MAIN_imar) > 0 ){
+     fprintf(stderr, (verb) ? " = " : "++ " ) ;
+     if( IMARR_COUNT(MAIN_imar) == 1 )fprintf(stderr,"1 image\n") ;
+     else fprintf(stderr,"%d images\n",IMARR_COUNT(MAIN_imar)) ;
    }
 
    if( gnim > 0 ) MCW_free_expand( gnim , gname ) ;
+
+   /*----- padding? [02 Nov 2017] -----*/
+
+   if( dopad && IMARR_COUNT(MAIN_imar) > 1 ){
+     int nxtop=0,nytop=0, nx,ny, bx,tx,by,ty, fx,fy ; MRI_IMAGE *qim ;
+     float sx,sy ; char mark='\0';
+
+     if( !quiet ) fprintf(stderr,"++ padding ") ;
+     for( ii=0 ; ii < IMARR_COUNT(MAIN_imar) ; ii++ ){
+       im = IMARR_SUBIM(MAIN_imar,ii) ;
+       if( im != NULL ){ nxtop = MAX(nxtop,im->nx); nytop = MAX(nytop,im->ny); }
+     }
+     for( ii=0 ; ii < IMARR_COUNT(MAIN_imar) ; ii++ ){
+       im = IMARR_SUBIM(MAIN_imar,ii) ;
+       nx = im->nx ; ny = im->ny ; mark = '\0' ;
+       if( nx >= nxtop && ny >= nytop ) continue ;
+       if( nx <= 2     || ny <= 2     ) continue ;
+       sx = (float)(nxtop) / (float)(nx) ;
+       sy = (float)(nytop) / (float)(ny) ; sx = MIN(sx,sy) ;
+       fx = (int)sx; fy = (int)sy; fx = MIN(fx,fy) ;
+       if( fx > 2 ){
+         qim = mri_dup2D(fx,im) ;
+         if( qim != NULL ){ mri_free(im) ; im = qim ; }
+         nx = im->nx ; ny = im->ny ;
+         mark = '+' ;
+       } else if( sx > 1.1f ){
+         qim = mri_resize( im , (int)(sx*nx) , (int)(sy*ny) ) ;
+         if( qim != NULL ){ mri_free(im) ; im = qim ; }
+         nx = im->nx ; ny = im->ny ;
+         mark = '*' ;
+       }
+       if( nx < nxtop ){ bx = (nxtop-nx)/2 ; tx = nxtop-nx-bx ; }
+       else            { bx = tx = 0 ; }
+       if( ny < nytop ){ by = (nytop-ny)/2 ; ty = nytop-ny-by ; }
+       else            { by = ty = 0 ; }
+       if( bx > 0 || tx > 0 || by > 0 || ty > 0 ){
+         qim = mri_zeropad_2D( bx,tx , by,ty , im ) ;
+         if( qim != NULL ){ mri_free(im) ; im = qim ; }
+         if( mark == '\0' ) mark = '.' ;
+       }
+       IMARR_SUBIM(MAIN_imar,ii) = im ;
+       if( !quiet ) fprintf(stderr,"%c",mark) ;
+     }
+     if( !quiet ) fprintf(stderr,"!\n") ;
+
+   } /*----- end of padding ----*/
 
    /* connect to X11 */
 
