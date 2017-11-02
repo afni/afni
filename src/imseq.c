@@ -372,6 +372,10 @@ void ISQ_setup_ppmto_filters(void)
 
    pg = THD_find_executable( "gimp" ) ;
    if( pg != NULL ) gimp_path = strdup(pg) ;
+#ifdef DARWIN
+   else if( THD_is_directory("/Applications/GIMP.app") )
+     gimp_path = strdup("open -a /Applications/GIMP.app") ;
+#endif
 
    /*-- the cheap way to write PPM  --*/
    /*-- [this must always be first] --*/
