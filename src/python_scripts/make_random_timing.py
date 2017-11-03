@@ -486,6 +486,7 @@ informational arguments:
 advanced arguments/options:
 
     -help_advanced              : display help for advanced usage
+    -help_decay_fixed           : display background on decay_fixed dist type
     -help_todo                  : "to do" list is mostly for advanced things
 
     -add_timing_class           : create a new timing class (stim or rest)
@@ -1005,6 +1006,7 @@ make_random_timing.py - Advanced Usage
 options (specific to the advanced usage):
 
     -help_advanced              : display help for advanced usage
+    -help_decay_fixed           : display background on decay_fixed dist type
     -help_todo                  : "to do" list is mostly for advanced things
 
     -add_timing_class           : create a new timing class (stim or rest)
@@ -1026,6 +1028,11 @@ background on creating decay_fixed curves
  Given A,M,B,N = desired min,mean,max for list of N (pseudo-randomly ?)
     generated numbers that follow a decay type distribution (e^-x),
     generate such a list.
+
+    The first step is to find L such that the fractional mean of e^-x on [0,L]
+    equals the fractional mean of the inputs.  The fractional mean of the
+    inputs is m=(M-A)/(B-A), and the fractional mean of e^-x on [0,L] is the
+    expected value of x (in PDF e^-x) divided by L.
   
  Basic equations:
   
@@ -1080,7 +1087,7 @@ background on creating decay_fixed curves
 
        on [0,2]   f1(L) = 0.5 - 0.1565*L/2.0
        on (2,3]   f2(L) = 1.0 / (1.6154 + 0.6478*L)
-       on [3,6)   f3(L) = 1.0 / (1.1174 + 0.8138 * L)
+       on (3,6)   f3(L) = 1.0 / (1.1174 + 0.8138 * L)
        on [6,inf) f4(L) = 1.0 / L
 
     This looks great, but is still a little unfulfilling (now I want beer).
@@ -1090,22 +1097,26 @@ background on creating decay_fixed curves
           length of a run.  Optimally, (M'-M)*N < t_gran, say.
     
     Hmmmm, in the immortal words of the famous philosopher Descartes,
-    "this is kinda stupid".  Move on...
+    "this is kinda stupid".  Forget approximations.  Moving on...
   
 
- b) Forget approximations.  Solve m = F(L) for L using Newton's method.
+ b) Solve m = F(L) for L using Newton's method.
 
     F(L) is very smooth, behaving like a line for L<2 and then scaled
     versions of 1/L beyond that.  So iterate to invert, which should be
     quick and have any desired accuracy.
 
-    Find a very approximate solution, then apply Newton's method where
-    the next iteration of x1 uses the preivious one and the approximate
+    First find an approximate solution, then apply Newton's method where
+    the next iteration of x1 uses the previous one and the approximate
     slope at x0, slope ~= (f(x+h)-f(x))/h for small h.
 
     i) define basic approximation by pivot at L=4 as initial guess
-       {Exactly why throw out the accurate approximations above?  I don't
-        know.  Okay, let's say that we prefer a single, simple function.}
+       {Exactly why should we throw out the accurate approximations above?
+        I don't know.  Okay, let's say that we prefer a single, simple
+        function.}
+
+       Invert m = { .5 - L/16   L in [0,4]
+                  { 1/L         L > 4
 
           1.0/m , if m <= 0.25
           8-16*m, if 0.25 < m < 0.5
@@ -1132,13 +1143,13 @@ background on creating decay_fixed curves
                 f = fn(x)
 
        We can be precise here.  Not only does this converge quickly, but
-       it is a one time operation per timing class.
+       it is a one time operation per such timing class.
 
  Handle m in different ranges according to:
 
     m <= 0             illegal
     0 < m < 0.5        expected
-    m ~= 0.5           should use uniform distribution, instead of decay
+    m ~= 0.5           should use uniform distribution instead of decay
     0.5 < m < 1.0      expected, solve using 1-m and reflect about the mean
     m >= 1.0           illegal
 
@@ -1147,6 +1158,13 @@ background on creating decay_fixed curves
     This can still apply to [0,inf) with fractional mean m in (0,0.5).
 
        times = decay_get_PDF_times(L, N)
+
+    To do this, break the interval [0,L] into N pieces (a,b), such that the
+    integral over each (a,b) is 1/N (of the full one).  Then find E[x] on each 
+    interval (a,b) so that E[x]*(a-b) = 1/N.  Then the sum of such expected
+    x values is 1 (is the full integral).
+
+  * Note that such values have the desired mean m and follow the PDF on [0,L].
 
  d) Scale the times.
 
