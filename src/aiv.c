@@ -309,13 +309,13 @@ int main( int argc , char *argv[] )
        sx = (float)(nxtop) / (float)(nx) ;
        sy = (float)(nytop) / (float)(ny) ; sx = MIN(sx,sy) ;
        fx = (int)sx; fy = (int)sy; fx = MIN(fx,fy) ;
-       if( fx > 2 ){
+       if( fx > 2 && dopad == 1 ){
          qim = mri_dup2D(fx,im) ;
          if( qim != NULL ){ mri_free(im) ; im = qim ; }
          nx = im->nx ; ny = im->ny ;
          mark = '+' ;
        } else if( sx > 1.1f ){
-         qim = mri_resize( im , (int)(sx*nx) , (int)(sy*ny) ) ;
+         qim = mri_resize( im , (int)(sx*nx) , (int)(sx*ny) ) ;
          if( qim != NULL ){ mri_free(im) ; im = qim ; }
          nx = im->nx ; ny = im->ny ;
          mark = '*' ;
