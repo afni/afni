@@ -387,86 +387,59 @@ shinyServer(function(input,output,session) {
       if(length(net.mat) < 2){ stop('select more than one ROI!') }
       net.mat <- net.mat[,c(nrow(net.mat):1),drop=FALSE] 
       
+      ## get all of the roi labels
+      roi.lab <- t(rownames(net.mat))
+      
       ## show the wait
       showNotification("Creating Circos PNG.",type="error",
                        id="circos",duration=0)
       
       ## get the matrix as a dataframe long with the correct format
       net.upper <- upper.tri(net.mat,diag=FALSE)
-      net1.df <- data.frame(seg1=rownames(net.mat)[row(net.mat)[net.upper]],
-                            start1=0,end1=1,
-                            seg2=rownames(net.mat)[col(net.mat)[net.upper]],
-                            start2=0,end2=1,
-                            value=(net.mat)[net.upper])
+      map.df <- data.frame(seg1=rownames(net.mat)[row(net.mat)[net.upper]],
+                           start1=0,end1=1,
+                           seg2=rownames(net.mat)[col(net.mat)[net.upper]],
+                           start2=0,end2=1,
+                           value=(net.mat)[net.upper])
       
       ## get the max number of connections for any region
-      max.con <- max(by(net1.df$value,net1.df$seg1,
-                        function(x) length(which(!is.na(x)))))
-      
+      max.con <- max(by(map.df$value,map.df$seg1,
+                         function(x) length(which(!is.na(x)))))
+
       ## remove NA rows and reorder by region and get rid of empty levels
-      net1.df <- net1.df[complete.cases(net1.df),]
-      # net1.df <- net1.df[order(net1.df$seg1,net1.df$seg2),]
-      net1.df$seg1 <- factor(net1.df$seg1)
-      net1.df$seg2 <- factor(net1.df$seg2)
+      map.df <- map.df[complete.cases(map.df),]
+      map.df <- map.df[order(map.df$seg1,map.df$seg2),]
+      map.df$seg1 <- factor(map.df$seg1)
+      map.df$seg2 <- factor(map.df$seg2)
+
+      ## get the max number of connections for any region
+      map.long <- c(as.character(map.df$seg1),as.character(map.df$seg2))
+      map.long <- factor(map.long)
+      max.con <- max(tapply(map.long,map.long,length))
+
+      ## make an indexer to keep track of mapping numbers
+      map.ind <- data.frame(roi=t(roi.lab),ind=0)
 
       ## make the connection mapping by the number of connections
       if(max.con > 1){
-
-        ## get the first row
-        net.df <- net1.df[1,]
-        
-        ## for the rest:
-        for(i in 2:nrow(net1.df)){
+        for(i in 1:nrow(map.df)){
+          ## seg1 start
+          start1 <- map.ind$ind[map.ind$roi == as.character(map.df$seg1[i])]
+          map.ind$ind[map.ind$roi == as.character(map.df$seg1[i])] <- start1+1
           
-          ## start at zero
-          s1.1 <- s1.2 <- s2.1 <- s2.2 <- 0
+          ## seg2 start
+          start2 <- map.ind$ind[map.ind$roi == as.character(map.df$seg2[i])]
+          map.ind$ind[map.ind$roi == as.character(map.df$seg2[i])] <- start2+1
           
-          ## get the next row
-          seg.row <- net1.df[i,]
-          
-          ## get the start region
-          cur.lvl <- as.character(seg.row$seg1)
-          
-          ## see if it is in first or second of the previous
-          if(cur.lvl %in% net.df$seg1){
-            s1.1 <- subset(net.df$start1,net.df$seg1 == cur.lvl)
-            s1.1 <- max(s1.1) + 1
-          }
-          if(cur.lvl %in% net.df$seg2){
-            s1.2 <- subset(net.df$start2,net.df$seg2 == cur.lvl)
-            s1.2 <- max(s1.2) + 1
-          } 
-          ## get the max of the max
-          start1 <- max(s1.1,s1.2,0)
-          
-          ## same with the end region
-          cur.lvl <- as.character(seg.row$seg2)
-          if(cur.lvl %in% net.df$seg1){
-            s2.1 <- subset(net.df$start1,net.df$seg1 == cur.lvl)
-            s2.1 <- max(s2.1) + 1
-          } 
-          if(cur.lvl %in% net.df$seg2){
-            s2.2 <- subset(net.df$start2,net.df$seg2 == cur.lvl)
-            s2.2 <- max(s2.2) + 1
-          } 
-          start2 <- max(s2.1,s2.2,0)
-          
-          ## put the maxes in
-          seg.row$start1 <- start1
-          seg.row$end1 <- start1 + 1
-          seg.row$start2 <- start2
-          seg.row$end2 <- start2 + 1
-          
-          ## add to output
-          net.df <- rbind(net.df,seg.row)
-        
-        }   ## end 2:n loop
- 
-      } else { net.df <- net1.df }   ## if not more than one, just rename
-
+          ## put the connection in
+          map.df$start1[i] <- start1
+          map.df$end1[i] <- start1 + 1
+          map.df$start2[i] <- start2
+          map.df$end2[i] <- start2 + 1
+        }   ## end row loop
+      }
 
       ## make segments for rois 
-      roi.lab <- t(rownames(net.mat))
       roi.seg <- data.frame(seg.name=NULL,seg.Start=NULL,
                             seg.End=NULL,the.v=NULL,NO=NULL)
       for(i in 1:length(roi.lab)){
@@ -506,8 +479,8 @@ shinyServer(function(input,output,session) {
              type="chr",print.chr.lab=TRUE,W=10,cex=1,col='black')
       ## connections
       circos(R=circ.center*0.68,xc=circ.center,yc=circ.center,cir=roi.seg.cust,
-             W=40,mapping=net.df,type="link.pg",lwd=1,
-             col=color_fun(net.df$value))
+             W=40,mapping=map.df,type="link.pg",lwd=1,
+             col=color_fun(map.df$value))
       dev.off()
       
       removeNotification(id="circos")
