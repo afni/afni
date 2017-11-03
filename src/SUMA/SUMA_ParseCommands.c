@@ -1178,7 +1178,8 @@ SUMA_Boolean SUMA_RegisterMessage ( DList *list, char *Message,
          break;
       case SMA_LogAndPopup:
          TryLogWindow = YUP;
-         SUMA_PopUpMessage (MD);
+         if(SUMA_isEnv("SUMA_SHOWPOPUPS","y"))
+            SUMA_PopUpMessage (MD);
          break;
       default:
          break;
