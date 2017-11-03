@@ -106,7 +106,7 @@ ENTRY("timeout_CB") ;
 
 int main( int argc , char *argv[] )
 {
-   int ii , quiet=0, verb=0 , iarg=1 , jj , dopad=0 ;
+   int ii , quiet=0, verb=0 , iarg=1 , jj , dopad=0 , xpad=0,ypad=0 ;
    MRI_IMAGE *im ;     /* 1 input image */
    MRI_IMARR *qar ;    /* all input images */
    Widget shell ;
@@ -138,6 +138,8 @@ int main( int argc , char *argv[] )
       " (from the command line) to be the same size.\n"
       " Images that are much smaller than the largest image will\n"
       " also be inflated somewhat so as not to look tiny.\n"
+      "In the form '-pad X Y', where 'X' and 'Y' are integers >= 64,\n"
+      " then all images will be resized to fit inside those dimensions.\n"
       "\n"
       "The '-title WORD' option titles the window WORD. \n"
       "The default is the name of the image file if only one is \n"
@@ -200,7 +202,12 @@ int main( int argc , char *argv[] )
      if( strncmp(argv[iarg],"-q",2) == 0 ){ quiet=1; iarg++; continue; }
 
      if( strcmp(argv[iarg],"-pad") == 0 ){  /* 02 Nov 2017 */
-       dopad++ ; iarg++ ; continue ;
+       dopad++ ;
+       if( iarg+2 < argc && isdigit(argv[iarg+1][0]) && isdigit(argv[iarg+2][0]) ){
+         xpad = (int)strtod(argv[++iarg],NULL) ; if( xpad < 64 || xpad > 6666 ) xpad = 0 ;
+         ypad = (int)strtod(argv[++iarg],NULL) ; if( ypad < 64 || ypad > 6666 ) ypad = 0 ;
+       }
+       iarg++ ; continue ;
      }
 
      /*-- port or sherry? --*/
@@ -294,36 +301,48 @@ int main( int argc , char *argv[] )
 
    if( dopad && IMARR_COUNT(MAIN_imar) > 1 ){
      int nxtop=0,nytop=0, nx,ny, bx,tx,by,ty, fx,fy ; MRI_IMAGE *qim ;
-     float sx,sy ; char mark='\0';
+     float sx,sy ; char mark='\0'; int xfin,yfin ;
 
      if( !quiet ) fprintf(stderr,"++ padding ") ;
      for( ii=0 ; ii < IMARR_COUNT(MAIN_imar) ; ii++ ){
        im = IMARR_SUBIM(MAIN_imar,ii) ;
        if( im != NULL ){ nxtop = MAX(nxtop,im->nx); nytop = MAX(nytop,im->ny); }
      }
+     if( xpad > 0 && ypad > 0 ){ xfin = xpad ; yfin = ypad ; }
+     else                      { xfin = nxtop; yfin = nytop; }
      for( ii=0 ; ii < IMARR_COUNT(MAIN_imar) ; ii++ ){
        im = IMARR_SUBIM(MAIN_imar,ii) ;
        nx = im->nx ; ny = im->ny ; mark = '\0' ;
-       if( nx >= nxtop && ny >= nytop ) continue ;
-       if( nx <= 2     || ny <= 2     ) continue ;
-       sx = (float)(nxtop) / (float)(nx) ;
-       sy = (float)(nytop) / (float)(ny) ; sx = MIN(sx,sy) ;
-       fx = (int)sx; fy = (int)sy; fx = MIN(fx,fy) ;
-       if( fx > 2 && dopad == 1 ){
-         qim = mri_dup2D(fx,im) ;
-         if( qim != NULL ){ mri_free(im) ; im = qim ; }
-         nx = im->nx ; ny = im->ny ;
-         mark = '+' ;
-       } else if( sx > 1.1f ){
+       if( xpad > 0 && ypad > 0 ){
+         if( nx == xpad && ny == ypad ) continue ;
+         sx = (float)(xpad) / (float)(nx) ;
+         sy = (float)(ypad) / (float)(ny) ; sx = MIN(sx,sy) ;
          qim = mri_resize( im , (int)(sx*nx) , (int)(sx*ny) ) ;
          if( qim != NULL ){ mri_free(im) ; im = qim ; }
          nx = im->nx ; ny = im->ny ;
          mark = '*' ;
+       } else {
+         if( nx >= nxtop && ny >= nytop ) continue ;
+         if( nx <= 2     || ny <= 2     ) continue ;
+         sx = (float)(nxtop) / (float)(nx) ;
+         sy = (float)(nytop) / (float)(ny) ; sx = MIN(sx,sy) ;
+         fx = (int)sx; fy = (int)sy; fx = MIN(fx,fy) ;
+         if( fx > 2 && dopad == 1 ){
+           qim = mri_dup2D(fx,im) ;
+           if( qim != NULL ){ mri_free(im) ; im = qim ; }
+           nx = im->nx ; ny = im->ny ;
+           mark = '+' ;
+         } else if( sx > 1.1f ){
+           qim = mri_resize( im , (int)(sx*nx) , (int)(sx*ny) ) ;
+           if( qim != NULL ){ mri_free(im) ; im = qim ; }
+           nx = im->nx ; ny = im->ny ;
+           mark = '*' ;
+         }
        }
-       if( nx < nxtop ){ bx = (nxtop-nx)/2 ; tx = nxtop-nx-bx ; }
-       else            { bx = tx = 0 ; }
-       if( ny < nytop ){ by = (nytop-ny)/2 ; ty = nytop-ny-by ; }
-       else            { by = ty = 0 ; }
+       if( nx < xfin ){ bx = (xfin-nx)/2 ; tx = xfin-nx-bx ; }
+       else           { bx = tx = 0 ; }
+       if( ny < yfin ){ by = (yfin-ny)/2 ; ty = yfin-ny-by ; }
+       else           { by = ty = 0 ; }
        if( bx > 0 || tx > 0 || by > 0 || ty > 0 ){
          qim = mri_zeropad_2D( bx,tx , by,ty , im ) ;
          if( qim != NULL ){ mri_free(im) ; im = qim ; }
