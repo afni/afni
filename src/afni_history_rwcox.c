@@ -44,6 +44,14 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 2 , NOV , 2017 , RWC , "aiv" , MICRO , TYPE_NEW_OPT ,
+   "-pad option makes all images the same size for viewing" ,
+   NULL } ,
+
+ { 01 , NOV , 2017 , RWC , "afni GUI" , MICRO , TYPE_ENHANCE ,
+   "Add 'Gimp it?' option to image save popup chooser" ,
+   "If gimp is present on the system, then user can save and edit image easily" } ,
+
  { 31 , OCT , 2017 , RWC , "3dMultiThresh" , MINOR , TYPE_NEW_OPT ,
    "Add -allmask option, to see which case(s) caused a positive" ,
    "Add then used in 3dttest++ to produce the ETACmaskALL output dataset" } ,
