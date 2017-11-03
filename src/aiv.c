@@ -279,7 +279,17 @@ int main( int argc , char *argv[] )
 
      for( jj=0 ; jj < IMARR_COUNT(qar) ; jj++ ){
        im = IMARR_SUBIM(qar,jj) ;
-       if( im != NULL && im->nx > 1 && im->ny > 1 ) ADDTO_IMARR(MAIN_imar,im);
+       if( im != NULL && im->nx > 1 && im->ny > 1 ){
+         if( im->nx > 6666 || im->ny > 6666 ){ /* no big images [03 Nov 2017] */
+           float sx,sy ; MRI_IMAGE *qim ;
+           sx = (im->nx > 6000) ? im->nx/6000.0f : 1.0f ;
+           sy = (im->ny > 6000) ? im->ny/6000.0f : 1.0f ;
+           sx = MIN(sx,sy) ;
+           qim = mri_resize( im , (int)(sx*im->nx) , (int)(sx*im->ny) ) ;
+           if( qim != NULL ){ mri_free(im) ; im = qim ; }
+         }
+         ADDTO_IMARR(MAIN_imar,im);
+       }
      }
      FREE_IMARR(qar) ;  /* just FREE, not DESTROY */
    }
