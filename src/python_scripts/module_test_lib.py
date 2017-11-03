@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# python3 status: started
+
 # ---------------------------------------------------------------------------
 # These are routines for checking whether libraries can be imported
 # (and getting python version).
@@ -134,14 +136,14 @@ def _get_mesg(libname):
 
 # function definition string for if we are running pythong 2.5 +
 # (this version produces a syntax error in 2.4.x python)
-import_find_test_25_def =       \
-"""def import_find_test_25(libname, details=1, verb=1):
+# (old string method, forget pyton 2.4) import_find_test_25_def =       \
+def import_find_test_25(libname, details=1, verb=1):
    # return loaded library or None (on failure)
 
    try:    mod = sys.modules[libname]
    except: pass
    else:
-      if verb>1: print "++ module already loaded: %s" % libname
+      if verb>1: print("++ module already loaded: %s" % libname)
       return mod
 
    try: fp, pname, desc = imp.find_module(libname)
@@ -150,39 +152,39 @@ import_find_test_25_def =       \
          if details: mesg = _get_mesg(libname)
          else:       mesg = ''
          if mesg:
-            print "---------------------------------------------------------"
-         print "** python module not found: %s" % libname
-         if mesg: print mesg
+            print("---------------------------------------------------------")
+         print("** python module not found: %s" % libname)
+         if mesg: print(mesg)
             
       return None
 
-   if verb>2: print "++ module '%s' found at %s" % (libname, pname)
+   if verb>2: print("++ module '%s' found at %s" % (libname, pname))
 
    # continue and try to load it
    mod = None
    try: mod = imp.load_module(libname, fp, pname, desc)
    except:
-      if verb>0: print "** failed to load module: %s" % libname
+      if verb>0: print("** failed to load module: %s" % libname)
       mod = None  # be sure of return value
    else:
-      if verb>1: print "++ module loaded: %s" % (libname)
+      if verb>1: print("++ module loaded: %s" % (libname))
    finally:
       if fp:
-         if verb>3: print "-- close file for module: %s" % libname
+         if verb>3: print("-- close file for module: %s" % libname)
          fp.close()
    return mod
-"""
+
 
 # function definition string for if we are running pythong 2.4.x
 # (the 2.5 version is a syntax error in 2.4.x python)
-import_find_test_24_def =       \
-"""def import_find_test_24(libname, details=1, verb=1):
+# import_find_test_24_def =       \
+def import_find_test_24(libname, details=1, verb=1):
    # return loaded library or None (on failure)
 
    try:    mod = sys.modules[libname]
    except: pass
    else:
-      if verb>1: print "++ module already loaded: %s" % libname
+      if verb>1: print("++ module already loaded: %s" % libname)
       return mod
 
    try: fp, pname, desc = imp.find_module(libname)
@@ -191,35 +193,35 @@ import_find_test_24_def =       \
          if details: mesg = _get_mesg(libname)
          else:       mesg = ''
          if mesg:
-            print "---------------------------------------------------------"
-         print "** python module not found: %s" % libname
-         if mesg: print mesg
+            print("---------------------------------------------------------")
+         print("** python module not found: %s" % libname)
+         if mesg: print(mesg)
       return None
 
-   if verb>2: print "++ module '%s' found at %s" % (libname, pname)
+   if verb>2: print("++ module '%s' found at %s" % (libname, pname))
 
    # continue and try to load it
    mod = None
    try:
       try: mod = imp.load_module(libname, fp, pname, desc)
       except:
-         if verb>0: print "** failed to load module: %s" % libname
+         if verb>0: print("** failed to load module: %s" % libname)
          mod = None  # be sure of return value
       else:
-         if verb>1: print "++ module loaded: %s" % (libname)
+         if verb>1: print("++ module loaded: %s" % (libname))
    finally:
       if fp:
-         if verb>3: print "-- close file for module '%s'" % libname
+         if verb>3: print("-- close file for module '%s'" % libname)
          fp.close()
 
    return mod
-"""
+
 
 def test_import(libname, details=1, verb=1):
    """try to import a single library, specified as a string
-        e.g. if test_import('numpy'): print '** failure'
+        e.g. if test_import('numpy'): print('** failure')
 
-        details: if libname is in g_mesglist, print message
+        details: if libname is in g_mesglist, print(message)
       return 0 on success, 1 on failure"""
 
    # note python version
@@ -229,7 +231,7 @@ def test_import(libname, details=1, verb=1):
       exec(import_find_test_24_def)
       imptest = import_find_test_24
    else:        # use 2.5 version
-      exec(import_find_test_25_def)
+      #exec(import_find_test_25_def)
       imptest = import_find_test_25
 
    if imptest(libname, details, verb): return 0
@@ -239,19 +241,19 @@ def num_import_failures(liblist=[], details=1, verb=1):
    """try to import a list of library names as strings
 
         liblist: e.g. ['wx', 'numpy']
-        details: if libname is in g_mesglist, print message
+        details: if libname is in g_mesglist, print(message)
       return the number of failures (0=success)"""
 
    # note python version
    pv = get_py_ver_float()
 
-   if verb > 2: print '-- python version %s' % pv
+   if verb > 2: print('-- python version %s' % pv)
 
    if pv < 2.5: # use 2.4 version (might fail)
       exec(import_find_test_24_def)
       imptest = import_find_test_24
    else:        # use 2.5 version
-      exec(import_find_test_25_def)
+      # import_find_test_25_def
       imptest = import_find_test_25
 
    if liblist: libs = liblist
