@@ -486,6 +486,7 @@ informational arguments:
 advanced arguments/options:
 
     -help_advanced              : display help for advanced usage
+    -help_decay_fixed           : display background on decay_fixed dist type
     -help_todo                  : "to do" list is mostly for advanced things
 
     -add_timing_class           : create a new timing class (stim or rest)
@@ -1005,6 +1006,7 @@ make_random_timing.py - Advanced Usage
 options (specific to the advanced usage):
 
     -help_advanced              : display help for advanced usage
+    -help_decay_fixed           : display background on decay_fixed dist type
     -help_todo                  : "to do" list is mostly for advanced things
 
     -add_timing_class           : create a new timing class (stim or rest)
