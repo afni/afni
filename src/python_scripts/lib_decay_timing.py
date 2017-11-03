@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# can be run with python2 or python3
+# python3 status: working
 
 import sys
 # import module_test_lib
@@ -273,7 +273,8 @@ def decay_get_PDF_times(L,N):
       each segment is 1/N of the entire one, i.e., each integral would be
       p_int(L,N) = (1-e^-L)/N.
       Then on each such segment [a,b), find E[x], which would mean that 
-      E[x] * (a-b) = p_int(L,N), and so their sum would equal E[x] on [0,L].
+      E[x] * (a-b) = partition_integral(L,N) over [a,b], and so their sum
+      would equal E[x] on [0,L].
    """
    if L <= 0 or N <= 0: return []
 
@@ -546,79 +547,82 @@ def truncate_to_grid(val, grid, up=1):
 
 
 # ======================================================================
+# demonstration functions
+# ======================================================================
+
+def demo1(A=3, nd=50):
+   print(decay_mean(A,A+1))
+   print(decay_mean(A,A+2))
+   for ind in range(nd):
+      print(decay_mean(A,A+(float(nd)-ind)/nd))
+   return 0
+
+def demo_plot_bins(A=0, B=4, M=1, N=10000, t_grid=0.001, verb=3, y0=0):
+   tlist = decay_pdf_get_ranged_times(A,B,M,N,t_grid=t_grid,verb=verb)
+
+   min_val = min(tlist)
+   max_val = max(tlist)
+   sum_val = sum(tlist)
+   print('++ final stats:  min %.4f, mean %.4f, max %.4f' \
+         % (min_val, sum_val/float(N), max_val))
+   print('                 sum %.4f, expect %.4f' % (sum_val, N*M))
+
+   m = (M-A)/float(B-A)
+   if m < 0.5:
+      L = decay_solve(decay_e4_frac_L, m, t_grid, verb=0)
+   else:
+      L = decay_solve(decay_e4_frac_L, 1-m, t_grid, verb=0)
+      L = -L
+   print('-- plotting... L = %s' % L)
+   show_val_bins(tlist, 100, scale=1, L=L, verb=2, y0=y0)
+
+   return 0
+      
+def demo_plot_e4_N_inv(A=0, B=10, step=0.1):
+   gen = decay_e4_gen
+   orig = [v for v in gen(A,B,step=step)]
+
+   gen = decay_e4_approx_gen
+   approx = [v for v in gen(A,B,step=step)]
+
+   #gen = decay_FM_approx_inv_gen
+   #inv = [v for v in gen(0.1,0.499,step=0.001)]
+
+   xo = [v for v in decay_ident_gen(A,B,step=step)]
+   #xi = [v for v in decay_ident_gen(0.1,0.499,step=0.001)]
+   yo = [decay_guess_inv(v) for v in xo]
+
+   # get inverses of all orig y values
+   xi = [decay_solve(decay_e4_frac_L, v, 0.0001) for v in orig]
+
+   # plot_data([[xo,orig], [xo, approx], [inv, xi]])
+   # plot_data([[xo,orig], [xo, approx], [xo,yo], [xi, orig]],
+   #           labs=['e4', 'approx','N', 'inv'])
+   plot_data([[xo,orig], [xo,yo], [xi, orig]], labs=['e4', 'N', 'inv'])
+
+   return 0
+
 def run_demo(demo_ind):
 
    print('== running demo #%d ...\n' % demo_ind)
 
    rv = 0
 
-   if demo_ind == 0:
-      A = 3
-      nd = 50
-      print(decay_mean(A,A+1))
-      print(decay_mean(A,A+2))
-      for ind in range(nd):
-         print(decay_mean(A,A+(float(nd)-ind)/nd))
+   if demo_ind == 1:
+      rv = demo1()
 
-   elif demo_ind == 1:
+   elif demo_ind == 2:
       show_times_PDF(5,10000,100)
+      rv = 0
 
-   elif demo_ind in [2,3,4,5]:
-      A = 0; B = 4; M = 1; N = 10000; t_grid = 0.001; verb = 3; y0 = 0
+   elif demo_ind in [3,4,5,6]:
+      if   demo_ind == 4: rv = demo_plot_bins(M=1.95, y0=1)
+      elif demo_ind == 5: rv = demo_plot_bins(M=2.05, y0=1)
+      elif demo_ind == 6: rv = demo_plot_bins(M=3,    y0=1)
+      else:               rv = demo_plot_bins()
 
-      # get a mean near (A+B)/2
-      if demo_ind == 3:
-         M = 1.95
-         y0 = 1
-      elif demo_ind == 4:
-         M = 2.05
-         y0 = 1
-      elif demo_ind == 5:
-         M = 3
-         y0 = 1
-
-      tlist = decay_pdf_get_ranged_times(A,B,M,N,t_grid=t_grid,verb=verb)
-
-      min_val = min(tlist)
-      max_val = max(tlist)
-      sum_val = sum(tlist)
-      print('++ final stats:  min %.4f, mean %.4f, max %.4f' \
-            % (min_val, sum_val/float(N), max_val))
-      print('                 sum %.4f, expect %.4f' % (sum_val, N*M))
-
-      m = (M-A)/float(B-A)
-      if m < 0.5:
-         L = decay_solve(decay_e4_frac_L, m, t_grid, verb=0)
-      else:
-         L = decay_solve(decay_e4_frac_L, 1-m, t_grid, verb=0)
-         L = -L
-      print('-- plotting... L = %s' % L)
-      show_val_bins(tlist, 100, scale=1, L=L, verb=2, y0=y0)
-      
-
-   elif demo_ind == 6:
-      A = 0; B = 10; step = 0.1
-
-      gen = decay_e4_gen
-      orig = [v for v in gen(A,B,step=step)]
-
-      gen = decay_e4_approx_gen
-      approx = [v for v in gen(A,B,step=step)]
-
-      #gen = decay_FM_approx_inv_gen
-      #inv = [v for v in gen(0.1,0.499,step=0.001)]
-
-      xo = [v for v in decay_ident_gen(A,B,step=step)]
-      #xi = [v for v in decay_ident_gen(0.1,0.499,step=0.001)]
-      yo = [decay_guess_inv(v) for v in xo]
-
-      # get inverses of all orig y values
-      xi = [decay_solve(decay_e4_frac_L, v, 0.0001) for v in orig]
-
-      # plot_data([[xo,orig], [xo, approx], [inv, xi]])
-      # plot_data([[xo,orig], [xo, approx], [xo,yo], [xi, orig]],
-      #           labs=['e4', 'approx','N', 'inv'])
-      plot_data([[xo,orig], [xo,yo], [xi, orig]], labs=['e4', 'N', 'inv'])
+   elif demo_ind == 7:
+      rv = demo_plot_e4_N_inv()
 
    else:
       print('** no such demo')
@@ -626,30 +630,44 @@ def run_demo(demo_ind):
 
    return rv
 
+# *** note the nubmer of demos
+g_num_demos = 7
+
+# end demo functions
+# ======================================================================
+
 def main():
    # for testing, consider options to plot or compute times, etc
    # (those won't exist at the higher level, in MRT.py)
 
    # for now, just run fixed demos
 
-   demo_ind = 2
+   demo_ind = 3
 
    if len(sys.argv) > 1:
       if sys.argv[1][0:2] == '-h':
          print('you cannot get help here, but please get help somewhere')
-         print('okay, this can be passed a demo index starting at 0')
+         print('okay, this can be passed a demo index starting at 1,')
+         print('or a negative N, to do 1..N, or 0 to do all')
+         return 0
       else:
          try: demo_ind = int(sys.argv[1])
          except: demo_ind = 2
 
-   if demo_ind >= 0:
+   # if zero, set to do all
+   if demo_ind == 0:
+      demo_ind = -g_num_demos
+
+   if demo_ind > 0:
       run_demo(demo_ind)
    else:
       demo_ind = -demo_ind
-      print('== running all demos from 0 .. %d' % (demo_ind-1))
+      print('== running all demos from 1 .. %d' % (demo_ind))
       for dind in range(demo_ind):
-         if run_demo(dind):
-            return
+         if run_demo(dind+1):
+            return 1
+
+   return 0
 
 # main
 if __name__ == '__main__':
