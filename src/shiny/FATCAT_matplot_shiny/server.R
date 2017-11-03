@@ -416,7 +416,7 @@ shinyServer(function(input,output,session) {
       map.long <- c(as.character(map.df$seg1),as.character(map.df$seg2))
       map.long <- factor(map.long)
       max.con <- max(tapply(map.long,map.long,length))
-      print(map.long)
+
       ## make an indexer to keep track of mapping numbers
       map.ind <- data.frame(roi=t(roi.lab),ind=0)
 
@@ -438,8 +438,7 @@ shinyServer(function(input,output,session) {
           map.df$end2[i] <- start2 + 1
         }   ## end row loop
       }
-print(map.df)
-print(max.con)
+
       ## make segments for rois 
       roi.seg <- data.frame(seg.name=NULL,seg.Start=NULL,
                             seg.End=NULL,the.v=NULL,NO=NULL)
