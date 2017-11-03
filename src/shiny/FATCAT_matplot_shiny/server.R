@@ -391,24 +391,90 @@ shinyServer(function(input,output,session) {
       showNotification("Creating Circos PNG.",type="error",
                        id="circos",duration=0)
       
+      ## get the matrix as a dataframe long with the correct format
       net.upper <- upper.tri(net.mat,diag=FALSE)
-      net.df <- data.frame(seg1=rownames(net.mat)[row(net.mat)[net.upper]],
-                           start1=0,end1=3,
-                           seg2=rownames(net.mat)[col(net.mat)[net.upper]],
-                           start2=0,end2=3,
-                           value=(net.mat)[net.upper])
+      net1.df <- data.frame(seg1=rownames(net.mat)[row(net.mat)[net.upper]],
+                            start1=0,end1=1,
+                            seg2=rownames(net.mat)[col(net.mat)[net.upper]],
+                            start2=0,end2=1,
+                            value=(net.mat)[net.upper])
       
+      ## get the max number of connections for any region
+      max.con <- max(by(net1.df$value,net1.df$seg1,
+                        function(x) length(which(!is.na(x)))))
+      
+      ## remove NA rows and reorder by region and get rid of empty levels
+      net1.df <- net1.df[complete.cases(net1.df),]
+      # net1.df <- net1.df[order(net1.df$seg1,net1.df$seg2),]
+      net1.df$seg1 <- factor(net1.df$seg1)
+      net1.df$seg2 <- factor(net1.df$seg2)
+
+      ## make the connection mapping by the number of connections
+      if(max.con > 1){
+
+        ## get the first row
+        net.df <- net1.df[1,]
+        
+        ## for the rest:
+        for(i in 2:nrow(net1.df)){
+          
+          ## start at zero
+          s1.1 <- s1.2 <- s2.1 <- s2.2 <- 0
+          
+          ## get the next row
+          seg.row <- net1.df[i,]
+          
+          ## get the start region
+          cur.lvl <- as.character(seg.row$seg1)
+          
+          ## see if it is in first or second of the previous
+          if(cur.lvl %in% net.df$seg1){
+            s1.1 <- subset(net.df$start1,net.df$seg1 == cur.lvl)
+            s1.1 <- max(s1.1) + 1
+          }
+          if(cur.lvl %in% net.df$seg2){
+            s1.2 <- subset(net.df$start2,net.df$seg2 == cur.lvl)
+            s1.2 <- max(s1.2) + 1
+          } 
+          ## get the max of the max
+          start1 <- max(s1.1,s1.2,0)
+          
+          ## same with the end region
+          cur.lvl <- as.character(seg.row$seg2)
+          if(cur.lvl %in% net.df$seg1){
+            s2.1 <- subset(net.df$start1,net.df$seg1 == cur.lvl)
+            s2.1 <- max(s2.1) + 1
+          } 
+          if(cur.lvl %in% net.df$seg2){
+            s2.2 <- subset(net.df$start2,net.df$seg2 == cur.lvl)
+            s2.2 <- max(s2.2) + 1
+          } 
+          start2 <- max(s2.1,s2.2,0)
+          
+          ## put the maxes in
+          seg.row$start1 <- start1
+          seg.row$end1 <- start1 + 1
+          seg.row$start2 <- start2
+          seg.row$end2 <- start2 + 1
+          
+          ## add to output
+          net.df <- rbind(net.df,seg.row)
+        
+        }   ## end 2:n loop
+ 
+      } else { net.df <- net1.df }   ## if not more than one, just rename
+
+
       ## make segments for rois 
       roi.lab <- t(rownames(net.mat))
       roi.seg <- data.frame(seg.name=NULL,seg.Start=NULL,
                             seg.End=NULL,the.v=NULL,NO=NULL)
       for(i in 1:length(roi.lab)){
-        temp.seg <- data.frame(seg.name=rep(roi.lab[i],3),
-                               seg.Start=c(0:2),seg.End=c(1:3),
+        temp.seg <- data.frame(seg.name=rep(roi.lab[i],max.con),
+                               seg.Start=c(0:(max.con-1)),seg.End=c(1:max.con),
                                the.v=NA,NO=NA)
         roi.seg <- rbind(roi.seg,temp.seg)
       }
-      
       ## get the angles from the segments
       roi.seg.cust <- segAnglePo(roi.seg,seg=roi.lab)
       
@@ -419,7 +485,6 @@ shinyServer(function(input,output,session) {
         col.ramp <- colorRampPalette(c(input$col1,input$col2,input$col3),
                                      alpha=TRUE)
       }
-      
       color_fun <- function(x,n=10000){ col.ramp(n)[cut(x,n)] }
       stat.lab <- stat.df$description[stat.df$label == input$stat_sel]
       plot.title <- paste(basename(input$net_file),stat.lab,sep='\n')
@@ -431,11 +496,15 @@ shinyServer(function(input,output,session) {
       png(file,width=input$circos_dim,height=input$circos_dim,
           units='in',res=input$circos_dpi)
       par(mar=c(2,2,2,2))
+      
+      ## empty plot
       plot(c(1,input$circos_dim*100),c(1,input$circos_dim*100),type="n",
            axes=FALSE,xlab="",ylab="",main=plot.title)
       
+      ## segments with labels
       circos(R=circ.center*0.7,xc=circ.center,yc=circ.center,cir=roi.seg.cust,
              type="chr",print.chr.lab=TRUE,W=10,cex=1,col='black')
+      ## connections
       circos(R=circ.center*0.68,xc=circ.center,yc=circ.center,cir=roi.seg.cust,
              W=40,mapping=net.df,type="link.pg",lwd=1,
              col=color_fun(net.df$value))
@@ -479,7 +548,7 @@ shinyServer(function(input,output,session) {
       
       ## paste as comma separated strings per row
       out.data <- apply(out.mat,1,paste,collapse=",")
-
+      
       ## main header description
       header.lab <- paste0("FileName,Stat,LowPass,HighPass,Min,Max,Matrix,",
                            "RemoveZero,ClusterLinkage,DistanceMethod,",
@@ -505,11 +574,11 @@ shinyServer(function(input,output,session) {
       }
       
       header.info <- paste(c(input$net_file,input$stat_sel,t.min,t.max,
-                           input$range_min,input$range_max,input$tri_sel,
-                           input$zero_yn,input$h_clust,dist.meth,
-                           input$col1,col.2,input$col3),
+                             input$range_min,input$range_max,input$tri_sel,
+                             input$zero_yn,input$h_clust,dist.meth,
+                             input$col1,col.2,input$col3),
                            collapse=",")
-            
+      
       ## open file
       datafile <- file(file, open = 'wt')
       
@@ -519,10 +588,10 @@ shinyServer(function(input,output,session) {
       writeLines(" ",con=datafile)
       
       writeLines(paste(t(colnames(out.mat)),collapse=","),con=datafile)
-        
+      
       writeLines(out.data,con=datafile)
-        
-
+      
+      
       close(datafile)
     })
   ############################################
