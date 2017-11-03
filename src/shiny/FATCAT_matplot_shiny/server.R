@@ -387,28 +387,67 @@ shinyServer(function(input,output,session) {
       if(length(net.mat) < 2){ stop('select more than one ROI!') }
       net.mat <- net.mat[,c(nrow(net.mat):1),drop=FALSE] 
       
+      ## get all of the roi labels
+      roi.lab <- t(rownames(net.mat))
+      
       ## show the wait
       showNotification("Creating Circos PNG.",type="error",
                        id="circos",duration=0)
       
+      ## get the matrix as a dataframe long with the correct format
       net.upper <- upper.tri(net.mat,diag=FALSE)
-      net.df <- data.frame(seg1=rownames(net.mat)[row(net.mat)[net.upper]],
-                           start1=0,end1=3,
+      map.df <- data.frame(seg1=rownames(net.mat)[row(net.mat)[net.upper]],
+                           start1=0,end1=1,
                            seg2=rownames(net.mat)[col(net.mat)[net.upper]],
-                           start2=0,end2=3,
+                           start2=0,end2=1,
                            value=(net.mat)[net.upper])
       
+      ## get the max number of connections for any region
+      max.con <- max(by(map.df$value,map.df$seg1,
+                         function(x) length(which(!is.na(x)))))
+
+      ## remove NA rows and reorder by region and get rid of empty levels
+      map.df <- map.df[complete.cases(map.df),]
+      map.df <- map.df[order(map.df$seg1,map.df$seg2),]
+      map.df$seg1 <- factor(map.df$seg1)
+      map.df$seg2 <- factor(map.df$seg2)
+
+      ## get the max number of connections for any region
+      map.long <- c(as.character(map.df$seg1),as.character(map.df$seg2))
+      map.long <- factor(map.long)
+      max.con <- max(tapply(map.long,map.long,length))
+
+      ## make an indexer to keep track of mapping numbers
+      map.ind <- data.frame(roi=t(roi.lab),ind=0)
+
+      ## make the connection mapping by the number of connections
+      if(max.con > 1){
+        for(i in 1:nrow(map.df)){
+          ## seg1 start
+          start1 <- map.ind$ind[map.ind$roi == as.character(map.df$seg1[i])]
+          map.ind$ind[map.ind$roi == as.character(map.df$seg1[i])] <- start1+1
+          
+          ## seg2 start
+          start2 <- map.ind$ind[map.ind$roi == as.character(map.df$seg2[i])]
+          map.ind$ind[map.ind$roi == as.character(map.df$seg2[i])] <- start2+1
+          
+          ## put the connection in
+          map.df$start1[i] <- start1
+          map.df$end1[i] <- start1 + 1
+          map.df$start2[i] <- start2
+          map.df$end2[i] <- start2 + 1
+        }   ## end row loop
+      }
+
       ## make segments for rois 
-      roi.lab <- t(rownames(net.mat))
       roi.seg <- data.frame(seg.name=NULL,seg.Start=NULL,
                             seg.End=NULL,the.v=NULL,NO=NULL)
       for(i in 1:length(roi.lab)){
-        temp.seg <- data.frame(seg.name=rep(roi.lab[i],3),
-                               seg.Start=c(0:2),seg.End=c(1:3),
+        temp.seg <- data.frame(seg.name=rep(roi.lab[i],max.con),
+                               seg.Start=c(0:(max.con-1)),seg.End=c(1:max.con),
                                the.v=NA,NO=NA)
         roi.seg <- rbind(roi.seg,temp.seg)
       }
-      
       ## get the angles from the segments
       roi.seg.cust <- segAnglePo(roi.seg,seg=roi.lab)
       
@@ -419,7 +458,6 @@ shinyServer(function(input,output,session) {
         col.ramp <- colorRampPalette(c(input$col1,input$col2,input$col3),
                                      alpha=TRUE)
       }
-      
       color_fun <- function(x,n=10000){ col.ramp(n)[cut(x,n)] }
       stat.lab <- stat.df$description[stat.df$label == input$stat_sel]
       plot.title <- paste(basename(input$net_file),stat.lab,sep='\n')
@@ -431,14 +469,18 @@ shinyServer(function(input,output,session) {
       png(file,width=input$circos_dim,height=input$circos_dim,
           units='in',res=input$circos_dpi)
       par(mar=c(2,2,2,2))
+      
+      ## empty plot
       plot(c(1,input$circos_dim*100),c(1,input$circos_dim*100),type="n",
            axes=FALSE,xlab="",ylab="",main=plot.title)
       
+      ## segments with labels
       circos(R=circ.center*0.7,xc=circ.center,yc=circ.center,cir=roi.seg.cust,
              type="chr",print.chr.lab=TRUE,W=10,cex=1,col='black')
+      ## connections
       circos(R=circ.center*0.68,xc=circ.center,yc=circ.center,cir=roi.seg.cust,
-             W=40,mapping=net.df,type="link.pg",lwd=1,
-             col=color_fun(net.df$value))
+             W=40,mapping=map.df,type="link.pg",lwd=1,
+             col=color_fun(map.df$value))
       dev.off()
       
       removeNotification(id="circos")
@@ -479,7 +521,7 @@ shinyServer(function(input,output,session) {
       
       ## paste as comma separated strings per row
       out.data <- apply(out.mat,1,paste,collapse=",")
-
+      
       ## main header description
       header.lab <- paste0("FileName,Stat,LowPass,HighPass,Min,Max,Matrix,",
                            "RemoveZero,ClusterLinkage,DistanceMethod,",
@@ -505,11 +547,11 @@ shinyServer(function(input,output,session) {
       }
       
       header.info <- paste(c(input$net_file,input$stat_sel,t.min,t.max,
-                           input$range_min,input$range_max,input$tri_sel,
-                           input$zero_yn,input$h_clust,dist.meth,
-                           input$col1,col.2,input$col3),
+                             input$range_min,input$range_max,input$tri_sel,
+                             input$zero_yn,input$h_clust,dist.meth,
+                             input$col1,col.2,input$col3),
                            collapse=",")
-            
+      
       ## open file
       datafile <- file(file, open = 'wt')
       
@@ -519,10 +561,10 @@ shinyServer(function(input,output,session) {
       writeLines(" ",con=datafile)
       
       writeLines(paste(t(colnames(out.mat)),collapse=","),con=datafile)
-        
+      
       writeLines(out.data,con=datafile)
-        
-
+      
+      
       close(datafile)
     })
   ############################################
