@@ -918,7 +918,7 @@ def shell_exec(s,opt="",capture=1):
    
    return so, se
    
-def shell_exec2(s, capture=0):
+def shell_exec2(s, capture=0, decode=1):
 
    # moved to python_ver_float()   16 May 2011 [rickr]
    if (python_ver_float() < 2.5): #Use old version and pray
@@ -973,10 +973,14 @@ def shell_exec2(s, capture=0):
          so = o.splitlines()
          se = e.splitlines()                           
 
+         if decode:
+            so = [l.decode() for l in so]
+            se = [l.decode() for l in se]
+
    return status, so, se
    
 # basically shell_exec2, but no splitlines()            16 May 2011 [rickr]
-def simple_shell_exec(command, capture=0):
+def simple_shell_exec(command, capture=0, decode=1):
    """return status, so, se  (without any splitlines)"""
 
    if (python_ver_float() < 2.5):
@@ -991,6 +995,10 @@ def simple_shell_exec(command, capture=0):
                       close_fds=True)
       so, se = pipe.communicate() # returns after command is done
       status = pipe.returncode
+
+      if decode:
+         so = so.decode()
+         se = se.decode()
    else:
 #      pipe = SP.Popen(command,shell=True, executable='/bin/tcsh',
       pipe = SP.Popen(command,shell=True,

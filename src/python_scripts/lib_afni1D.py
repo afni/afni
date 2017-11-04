@@ -2205,7 +2205,7 @@ class Afni1D:
          
          if verb: print("    col %d: response length = %d" % (cind, mind))
          else:    print("%d" % mind, end=' ')
-      print()
+      print('')
 
    def slice_order_to_times(self, verb=1):
       """given a slice order, resort index list to slice times
