@@ -617,13 +617,13 @@ class Afni1D:
       for ind in range(1,6):
          print('----------------- GCOR test %d --------------------' % ind)
          exec('val = self.gcor%d()' % ind)
-         print("GCOR rv = %s" % val)
+         exec('print("GCOR rv = %s" % val)')
 
    def show_gcor_doc_all(self):
       for ind in range(1,6):
          print('----------------- GCOR doc %d --------------------' % ind)
          exec('val = self.gcor%d.__doc__' % ind)
-         print("%s" % val)
+         exec('print("%s" % val)')
 
    # basically, a link to the one we really want to call
    def gcor(self): return self.gcor2()
