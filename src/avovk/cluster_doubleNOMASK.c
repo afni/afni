@@ -28,7 +28,7 @@
 
 #include <time.h>
 #include <stdlib.h>
-#include </usr/include/math.h>
+#include <math.h>
 #include <float.h>
 #include <limits.h>
 #include <string.h>
