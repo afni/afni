@@ -38,6 +38,8 @@ float_pair ttest_toz_singletonA( float xar, int numy, float *yar, float *xres, f
 /*----- convert t-stat to z-score -----*/
 
 double GIC_student_t2z( double tt , double dof ) ;
+static double GIC_qginv( double p ) ;
+static double zthresh( double pval ) ;
 
 /*----- setup the covariates matrices -----*/
 
@@ -1226,6 +1228,10 @@ void display_help_menu(void)
       "                           q=1/43000, which may not be a coincidence.\n"
       "                  -->>++ It is perfectly legal to use the same string here\n"
       "                         as given in the '-prefix' option.\n"
+      "                  -->>++ This file has been updated to give the voxel-wise\n"
+      "                         statistic threshold for global FPRs from 1%% to 9%%.\n"
+      "                         However, the name is still '.5percent.txt' for the\n"
+      "                         sake of nostalgia.\n"
       "\n"
       " -no5percent         = Don't output the 'cc'.5percent.txt file that comes\n"
       "                       for free with '-Clustsim' and/or '-ETAC'.\n"
@@ -4731,7 +4737,7 @@ LABELS_ARE_DONE:  /* target for goto above */
              int nall=2*allim->nx , n05 ;
              float *allar=MRI_FLOAT_PTR(allim) ;
              float oneside_05 , twoside_05 ; FILE *fp ;
-             int ipp ;
+             int ipp ; double bpval,bzth1,bzth2 ;
 
              for( pp=0 ; pp < nall ; pp++ ) allar[pp] = fabsf(allar[pp]) ;
              qsort_float_rev(nall,allar) ;  /* decreasing order */
@@ -4741,14 +4747,21 @@ LABELS_ARE_DONE:  /* target for goto above */
              INFO_message("3dttest++ ----- Global %% FPR points for simulated z-stats:") ;
 
              for( ipp=9 ; ipp > 0 ; ipp-- ){
-               n05 = (int)rintf(0.01f*ipp*nall) ;
-               twoside_05 = allar[n05] ;      /* ipp% in all cases */
+               bpval = (0.01*ipp)/(double)nmask_hits ;
+               bzth1 = zthresh(bpval) ;
+               bzth2 = zthresh(0.5*bpval) ;
+               n05   = (int)rintf(0.01f*ipp*nall) ;
+               twoside_05 = allar[n05] ;      /* ipp% in all cases (pos and neg) */
                oneside_05 = allar[2*n05] ;    /* 2*ipp% in all cases = ipp% one side */
-               fprintf(stderr,"   %.3f = 1-sided %1d%% FPR %s\n",oneside_05,ipp,clab[icase]) ;
-               fprintf(stderr,"   %.3f = 2-sided %1d%% FPR %s\n",twoside_05,ipp,clab[icase]) ;
+               fprintf(stderr,"   %.3f = 1-sided %1d%% FPR %s [Bonferroni=%.3f]\n",
+                              oneside_05,ipp,clab[icase],bzth1) ;
+               fprintf(stderr,"   %.3f = 2-sided %1d%% FPR %s [Bonferroni=%.3f]\n",
+                              twoside_05,ipp,clab[icase],bzth2) ;
                if( fp != NULL ){
-                 fprintf(fp," %.3f = 1-sided %1d%% FPR\n",oneside_05,ipp) ;
-                 fprintf(fp," %.3f = 2-sided %1d%% FPR\n",twoside_05,ipp) ;
+                 fprintf(fp," %.3f = 1-sided %1d%% FPR [Bonferroni=%.3f]\n",
+                            oneside_05,ipp,bzth1) ;
+                 fprintf(fp," %.3f = 2-sided %1d%% FPR [Bonferroni=%.3f]\n",
+                            twoside_05,ipp,bzth2) ;
                } else if( ipp==9 ){  /* should never happen */
                  WARNING_message("   [for some reason, unable to write above results to a file]") ;
                }
@@ -5536,6 +5549,19 @@ static double GIC_qginv( double p )
 
    if( dx > 13.0 ) dx = 13.0 ;
    return ( (p <= 0.5) ? (dx) : (-dx) ) ;  /* return with correct sign */
+}
+
+/*----------------------------------------------------------------------------*/
+/*! Threshold for upper tail probability of N(0,1) */
+
+#undef  PSMALL
+#define PSMALL 1.e-15
+
+static double zthresh( double pval )
+{
+        if( pval <= 0.0 ) pval = PSMALL ;
+   else if( pval >= 1.0 ) pval = 1.0 - PSMALL ;
+   return GIC_qginv(pval) ;
 }
 
 #ifdef NO_GAMMA
