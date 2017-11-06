@@ -617,13 +617,13 @@ class Afni1D:
       for ind in range(1,6):
          print('----------------- GCOR test %d --------------------' % ind)
          exec('val = self.gcor%d()' % ind)
-         print("GCOR rv = %s" % val)
+         exec('print("GCOR rv = %s" % val)')
 
    def show_gcor_doc_all(self):
       for ind in range(1,6):
          print('----------------- GCOR doc %d --------------------' % ind)
          exec('val = self.gcor%d.__doc__' % ind)
-         print("%s" % val)
+         exec('print("%s" % val)')
 
    # basically, a link to the one we really want to call
    def gcor(self): return self.gcor2()
@@ -2205,7 +2205,7 @@ class Afni1D:
          
          if verb: print("    col %d: response length = %d" % (cind, mind))
          else:    print("%d" % mind, end=' ')
-      print()
+      print('')
 
    def slice_order_to_times(self, verb=1):
       """given a slice order, resort index list to slice times

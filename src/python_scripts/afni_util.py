@@ -646,7 +646,7 @@ def list_to_datasets(words, whine=0):
             errs = 1
 
     if errs:
-        if whine: print() # for separation
+        if whine: print('') # for separation
         return None
     return dsets
 
