@@ -137,6 +137,8 @@ def _get_mesg(libname):
 # function definition string for if we are running pythong 2.5 +
 # (this version produces a syntax error in 2.4.x python)
 # (old string method, forget pyton 2.4) import_find_test_25_def =       \
+import_find_test_25_def =       \
+"""
 def import_find_test_25(libname, details=1, verb=1):
    # return loaded library or None (on failure)
 
@@ -173,11 +175,13 @@ def import_find_test_25(libname, details=1, verb=1):
          if verb>3: print("-- close file for module: %s" % libname)
          fp.close()
    return mod
+"""
 
 
 # function definition string for if we are running pythong 2.4.x
 # (the 2.5 version is a syntax error in 2.4.x python)
-# import_find_test_24_def =       \
+import_find_test_24_def =       \
+"""
 def import_find_test_24(libname, details=1, verb=1):
    # return loaded library or None (on failure)
 
@@ -215,7 +219,7 @@ def import_find_test_24(libname, details=1, verb=1):
          fp.close()
 
    return mod
-
+"""
 
 def test_import(libname, details=1, verb=1):
    """try to import a single library, specified as a string
@@ -229,10 +233,10 @@ def test_import(libname, details=1, verb=1):
 
    if pv < 2.5: # use 2.4 version (might fail)
       exec(import_find_test_24_def)
-      imptest = import_find_test_24
+      imptest = eval('import_find_test_24')
    else:        # use 2.5 version
-      #exec(import_find_test_25_def)
-      imptest = import_find_test_25
+      exec(import_find_test_25_def)
+      imptest = eval('import_find_test_25')
 
    if imptest(libname, details, verb): return 0
    else:                               return 1
@@ -251,10 +255,10 @@ def num_import_failures(liblist=[], details=1, verb=1):
 
    if pv < 2.5: # use 2.4 version (might fail)
       exec(import_find_test_24_def)
-      imptest = import_find_test_24
+      imptest = eval('import_find_test_24')
    else:        # use 2.5 version
-      # import_find_test_25_def
-      imptest = import_find_test_25
+      exec(import_find_test_25_def)
+      imptest = eval('import_find_test_25')
 
    if liblist: libs = liblist
    else:       libs = alllibs
