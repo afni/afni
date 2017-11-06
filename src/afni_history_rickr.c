@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  6, Nov, 2017, RCR, "afni-general", MAJOR, TYPE_ENHANCE,
+   "first stab at making python program p2/p3 compatible",
+   "Based on 2to3 and dglen mods, and tested in p2 and p3 environments."
+ } ,
+
  {  1, Nov, 2017, RCR, "make_random_timing.py", MAJOR, TYPE_NEW_OPT,
    "implement the decay_fixed distribution type",
    "See make_random_timing.py -help_decay_fixed for details."
