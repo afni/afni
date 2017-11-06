@@ -1,5 +1,9 @@
 #!/usr/bin/env python
+
+# python3 status: started
+
 import os, sys, glob, operator, string, re, afni_base
+from functools import reduce
 
 valid_afni_views = ['+orig', '+acpc', '+tlrc']
 valid_new_views  = ['+orig', '+acpc', '+tlrc', '']
@@ -8,7 +12,7 @@ valid_new_views  = ['+orig', '+acpc', '+tlrc', '']
 SAVE_SHELL_HISTORY = 400
 MAX_SHELL_HISTORY  = 600
 
-class afni_name:
+class afni_name(object):
    def __init__(self, name="", do_sel=1, view=None):
       """do_sel : apply selectors (col, row, range)"""
       self.initname = name
@@ -30,7 +34,7 @@ class afni_name:
    def p(self):   #Full path 
       """show path only, no dataset name"""
       pp = "%s/" % os.path.abspath('./')  #full path at this location
-      fn = string.find(pp,self.path)      #is path at end of abspath?
+      fn = pp.find(self.path)      #is path at end of abspath?
       if (fn > 0 and fn+len(self.path) == len(pp)): #path is at end of abs path
          return pp
       else:
@@ -39,7 +43,7 @@ class afni_name:
    def realp(self):   #Full path following symbolic links 
       """show path only, no dataset name"""
       pp = "%s/" % os.path.realpath('./')  #full path at this location
-      fn = string.find(pp,self.path)      #is path at end of abspath?
+      fn = str.find(pp,self.path)      #is path at end of abspath?
       if (fn > 0 and fn+len(self.path) == len(pp)): #path is at end of abs path
          return pp
       else:
@@ -164,13 +168,13 @@ class afni_name:
    def rpv(self, sel=0):
       """return relative path, prefix, view formatted name
          - do not include ./ as relative path"""
-      rp = string.replace(self.path, "%s/" % os.path.abspath(os.curdir), '')
+      rp = str.replace(self.path, "%s/" % os.path.abspath(os.curdir), '')
       s = "%s%s" % (rp, self.pv(sel=sel))
       return s
    def rpve(self, sel=0):
       """return relative path, prefix, view, extension formatted name
          - do not include ./ as relative path"""
-      rp = string.replace(self.path, "%s/" % os.path.abspath(os.curdir), '')
+      rp = str.replace(self.path, "%s/" % os.path.abspath(os.curdir), '')
       s = "%s%s" % (rp, self.pve(sel=sel))
       return s
    def pp(self):
@@ -234,12 +238,12 @@ class afni_name:
          if com.status or not com.so or len(com.so[0]) < 2:
            # call this a non-fatal error for now
            if 0:
-              print '   status = %s' % com.status
-              print '   stdout = %s' % com.so
-              print '   stderr = %s' % com.se
+              print('   status = %s' % com.status)
+              print('   stdout = %s' % com.so)
+              print('   stderr = %s' % com.se)
            return 0
 
-         self.path = com.so[0]
+         self.path = com.so[0].decode()
          # nuke any newline character
          newline = self.path.find('\n')
          if newline > 1: self.path = self.path[0:newline]
@@ -286,10 +290,10 @@ class afni_name:
             if (found > 0):
                self.new_path(path)
                if ( not self.exist() and oexec != "dry_run"):
-                  print "Error: Move to %s failed" % (self.ppv())
+                  print("Error: Move to %s failed" % (self.ppv()))
                   return 0
             else:
-               print "Error: Found no .HEAD or .BRIK or .BRIK.gz (or .bz2 or .Z) of %s" % (self.ppv())
+               print("Error: Found no .HEAD or .BRIK or .BRIK.gz (or .bz2 or .Z) of %s" % (self.ppv()))
                return 0
          else:
             if os.path.isfile("%s" % self.ppve()):
@@ -298,13 +302,13 @@ class afni_name:
             if (found > 0):
                self.new_path(path)
                if ( not self.exist() and oexec != "dry_run"):
-                  print "Error: Move to %s failed" % (self.ppv())
+                  print("Error: Move to %s failed" % (self.ppv()))
                   return 0
             else:
-               print "Error: Found no file %s to move." % self.ppve()
+               print("Error: Found no file %s to move." % self.ppve())
                return 0
       else:
-         print "Error: Path %s not found for moving %s." % (path, self.ppv())
+         print("Error: Path %s not found for moving %s." % (path, self.ppv()))
          return 0
       return 1
       
@@ -331,22 +335,22 @@ class afni_name:
    def show(self, mesg='', verb=1):
       """options to see the path require verb>1"""
       if mesg: mesg = ' (%s)' % mesg
-      print "AFNI filename%s:" % mesg
-      if verb > 1: print "   curdir  : %s" % os.path.abspath(os.curdir)
+      print("AFNI filename%s:" % mesg)
+      if verb > 1: print("   curdir  : %s" % os.path.abspath(os.curdir))
 
-      print "   initial : %s" % self.initname
-      if verb > 1: print "   name    : %s" % self.ppve()
-      if verb > 1: print "   path    : %s" % self.path
+      print("   initial : %s" % self.initname)
+      if verb > 1: print("   name    : %s" % self.ppve())
+      if verb > 1: print("   path    : %s" % self.path)
 
-      print "   prefix  : %s" % self.prefix   
-      print "   view    : %s" % self.view
-      print "   exten.  : %s" % self.extension
-      print "   type    : %s" % self.type
-      print "   On Disk : %d" % self.exist()
-      print "   Row Sel : %s" % self.rowsel
-      print "   Col Sel : %s" % self.colsel
-      print "   Node Sel: %s" % self.nodesel
-      print "   RangeSel: %s" % self.rangesel
+      print("   prefix  : %s" % self.prefix)   
+      print("   view    : %s" % self.view)
+      print("   exten.  : %s" % self.extension)
+      print("   type    : %s" % self.type)
+      print("   On Disk : %d" % self.exist())
+      print("   Row Sel : %s" % self.rowsel)
+      print("   Col Sel : %s" % self.colsel)
+      print("   Node Sel: %s" % self.nodesel)
+      print("   RangeSel: %s" % self.rangesel)
       
    def new(self, new_pref='', new_view='', parse_pref=0):  
       """return a copy with optional new_prefix and new_view
@@ -390,7 +394,7 @@ class afni_name:
       self.extension = ''  # clear 
       return
                
-class comopt:
+class comopt(object):
    def __init__(self, name, npar, defpar, acplist=[], helpstr=""):
       self.name = name
       self.i_name = -1      # index of option name in argv
@@ -407,48 +411,48 @@ class comopt:
       return 
 
    def show(self, mesg = '', short = 0):
-      print "%sComopt: %s" % (mesg, self.name)
+      print("%sComopt: %s" % (mesg, self.name))
       if short: return      # 22 Jan 2008 [rickr]
 
-      print "  (i_name, n_exp, n_found) = (%d, %d, %d)" % \
-               (self.i_name, self.n_exp, self.n_found)
-      print "  parlist = %s" % self.parlist
-      print "  deflist = %s" % self.deflist
-      print "  acceptlist = %s" % self.acceptlist
+      print("  (i_name, n_exp, n_found) = (%d, %d, %d)" % \
+               (self.i_name, self.n_exp, self.n_found))
+      print("  parlist = %s" % self.parlist)
+      print("  deflist = %s" % self.deflist)
+      print("  acceptlist = %s" % self.acceptlist)
 
    def test(self):
       if (len(self.deflist) != 0 and self.parlist == None):
          # some checks possible, parlist not set yet
          if self.n_exp >= 0:
             if len(self.deflist) != self.n_exp:
-               print "Error: Option %s needs %d parameters\n" \
+               print("Error: Option %s needs %d parameters\n" \
                      "Default list has %d parameters." \
-                        % (self.name, self.n_exp, len(self.deflist))
+                        % (self.name, self.n_exp, len(self.deflist)))
                return None
          else:
             if len(self.deflist) < -self.n_exp:
-               print "Error: Option %s needs at least %d parameters\n"  \
+               print("Error: Option %s needs at least %d parameters\n"  \
                      "Default list has %d parameters."\
-                        % (self.name, -self.n_exp, len(self.deflist))
+                        % (self.name, -self.n_exp, len(self.deflist)))
                return None 
       else :
          if self.n_exp >= 0:
             #print "option %s n_exp = %d, len(parlist)=%d" % (self.name, self.n_exp, len(self.parlist))
             #self.show()
             if len(self.parlist) != self.n_exp:
-               print "Error: Option %s needs %d parameters\n" \
+               print("Error: Option %s needs %d parameters\n" \
                      "Parameter list has %d parameters." \
-                        % (self.name, self.n_exp, len(self.parlist))
+                        % (self.name, self.n_exp, len(self.parlist)))
                return None
          else:
             if len(self.parlist) < -self.n_exp:
-               print "Error: Option %s needs at least %d parameters\n"  \
+               print("Error: Option %s needs at least %d parameters\n"  \
                      "Parameter list has %d parameters."\
-                        % (self.name, -self.n_exp, len(self.parlist))
+                        % (self.name, -self.n_exp, len(self.parlist)))
                return None 
       return 1
 
-class shell_com:
+class shell_com(object):
    history = []         # shell_com history
    save_hist = 1        # whether to record as we go
 
@@ -463,6 +467,7 @@ class shell_com:
 
       self.com = com    # command string to be executed
       self.eo = eo      # echo mode (echo/dry_run/script/"")
+                        # note: getcwdu() would be an option, but not needed
       self.dir = os.getcwd()
       self.exc = 0      #command not executed yet
       self.so = ''
@@ -485,9 +490,9 @@ class shell_com:
    def trim(self):
       #try to remove absolute path and numerous blanks
       if self.dir[-1] != '/':
-         tcom = string.replace(re.sub(r"[ ]{2,}", ' ', self.com), "%s/" % (self.dir), './')
+         tcom = re.sub(r"[ ]{2,}", ' ', self.com).replace("%s/" % (self.dir), './')
       else:
-         tcom = string.replace(re.sub(r"[ ]{2,}", ' ', self.com), self.dir, './')
+         tcom = re.sub(r"[ ]{2,}", ' ', self.com).replace(self.dir, './')
       return tcom
    def echo(self): 
       if (len(self.trimcom) < len(self.com)):
@@ -495,19 +500,19 @@ class shell_com:
       else:
          ms = ""
       if self.eo == "echo":
-         print "#Now running%s:\n   cd %s\n   %s" % (ms, self.dir, self.trimcom)
+         print("#Now running%s:\n   cd %s\n   %s" % (ms, self.dir, self.trimcom))
          sys.stdout.flush()
       elif self.eo == "dry_run":
-         print "#Would be running%s:\n  %s" % (ms, self.trimcom)
+         print("#Would be running%s:\n  %s" % (ms, self.trimcom))
          sys.stdout.flush()
       elif (self.eo == "script"):
-         print "#Script is running%s:\n  %s" % (ms, self.trimcom)
+         print("#Script is running%s:\n  %s" % (ms, self.trimcom))
          sys.stdout.flush()
       elif (self.eo == "quiet"):
          pass
       
       if self.exc==1:
-         print "#    WARNING: that command has been executed already! "
+         print("#    WARNING: that command has been executed already! ")
          sys.stdout.flush()
       else: self.add_to_history()
 
@@ -543,63 +548,63 @@ class shell_com:
 
    def stdout(self):
       if (len(self.so)):
-         print "++++++++++ stdout:" 
+         print("++++++++++ stdout:") 
          sys.stdout.flush()
          for ln in self.so:
-            print "   %s" % ln
+            print("   %s" % ln)
             sys.stdout.flush()
    def stderr(self):   
       if (len(self.se)):
-            print "---------- stderr:" 
+            print("---------- stderr:") 
             sys.stdout.flush()
             for ln in self.se:
-               print "   %s" % ln
+               print("   %s" % ln)
    def out(self):
       if self.exc:
          self.stdout()
          self.stderr()
       else:
-         print "#............. not executed."
+         print("#............. not executed.")
          sys.stdout.flush()
    
    def val(self, i, j=-1): #return the jth string from the ith line of output. if j=-1, return all ith line
       if not self.exc:
-         print "Error: Command not executed"
+         print("Error: Command not executed")
          return None
       elif self.eo == "dry_run":
          return "0"  #Just something that won't cause trouble for places expecting numbers
       elif len(self.so) == 0:
-         print "Error: Empty output."
+         print("Error: Empty output.")
          self.stderr()
          return None
       elif len(self.so) <= i:
-         print "Error: First index i=%d >= to number of elements (%d) in output " %  \
-               (i, len(self.so))
+         print("Error: First index i=%d >= to number of elements (%d) in output " %  \
+               (i, len(self.so)))
          return None
       
       if j>= 0:
-         l = string.split(self.so[i])
+         l = self.so[i].split()
          if len(l) <= j:
-            print "Error: Second index j=%d is >= to number of elements (%d) in %dth line of output" % \
-                     (j, len(l), i)
+            print("Error: Second index j=%d is >= to number of elements (%d) in %dth line of output" % \
+                     (j, len(l), i))
             return None
          else:
-            return l[j]
+            return l[j].decode()
       else:
-         return self.so[i]
+         return self.so[i].decode()
 
 # return the attribute list for the given dataset and attribute
 def read_attribute(dset, atr, verb=1):
     [so, se] = shell_exec('3dAttribute %s %s' % (atr, dset))
     if len(so) == 0:
         if verb > 0:
-           print '** 3dAttribute exec failure for "%s %s"' % (atr, dset)
-           if len(se) > 0: print "shell error:\n   %s\n" % '\n   '.join(se)
+           print('** 3dAttribute exec failure for "%s %s"' % (atr, dset))
+           if len(se) > 0: print("shell error:\n   %s\n" % '\n   '.join(se))
         return None
     list = so[0].split()
     if len(list) > 0: return list
     else:
-        if verb > 0: print '** 3dAttribute failure for "%s %s":' % (atr, dset)
+        if verb > 0: print('** 3dAttribute failure for "%s %s":' % (atr, dset))
         return None
 
 # return dimensions of dset, 4th dimension included
@@ -618,23 +623,23 @@ def dset_dims(dset):
       com = shell_com(cstr, capture=1);
       rv = com.run()
       if rv:
-         print '** Failed "%s"' % cstr
+         print('** Failed "%s"' % cstr)
          return dl
       if len(com.so) < 1:
-         print '** no stdout from "%s"' % cstr
+         print('** no stdout from "%s"' % cstr)
          return dl
       vlist = com.so[0].split()
       if len(vlist) != 4:
-         print '** failed "%s"' % cstr
+         print('** failed "%s"' % cstr)
          return dl
       try:
          vl = [int(val) for val in vlist]
          # so only if success
          dl = vl
       except:
-         print '** could not convert output to int:\n'  \
+         print('** could not convert output to int:\n'  \
                '   command: %s\n'                       \
-               '   output: %s' % (cstr, com.so)
+               '   output: %s' % (cstr, com.so))
       # dl = [int(com.val(0,0)), int(com.val(0,1)),
       #       int(com.val(0,2)), int(com.val(0,3))]   
    return dl
@@ -649,7 +654,7 @@ def anlist(vlst, sb=''):
       sbs = ''
    for an in vlst:
       namelst.append("%s%s" % (an.ppv(), sbs))    
-   return string.join(namelst,' ')
+   return str.join(' ',namelst)
 
 
 #parse options, put into dictionary
@@ -665,14 +670,14 @@ def getopts(argv):
 
 def show_opts2(opts):
    if opts == None:
-      print "Option dictionary is None\n"
+      print("Option dictionary is None\n")
       return
-   print opts
-   for key in opts.keys():
-      print "Option Name: %s" % key
-      print "       Found: %d" % opts[key].n_found
-      print "       User Parameter List: %s" % opts[key].parlist
-      print "       Default Parameter List: %s\n" % opts[key].deflist
+   print(opts)
+   for key in list(opts.keys()):
+      print("Option Name: %s" % key)
+      print("       Found: %d" % opts[key].n_found)
+      print("       User Parameter List: %s" % opts[key].parlist)
+      print("       Default Parameter List: %s\n" % opts[key].deflist)
    return
    
 def getopts2(argv,oplist):
@@ -723,10 +728,10 @@ def getopts2(argv,oplist):
                  and argv[op.iname] not in optnames:
                if len(op.acceptlist):
                   if argv[op.iname] not in op.acceptlist:
-                     print "Error: parameter value %s for %s is not "   \
+                     print("Error: parameter value %s for %s is not "   \
                            "acceptable\nChoose from %s" %               \
                            (argv[op.iname], op.name,                    \
-                           string.join(op.acceptlist, ' , '))
+                           str.join(' , ',op.acceptlist)))
                op.parlist.append(argv[op.iname]) #string added
                argv.remove(argv[op.iname])       #remove this string from list          
             op.n_found = len(op.parlist)
@@ -749,14 +754,14 @@ def getopts2(argv,oplist):
             op.parlist.extend(argv)    #stick'em all in
             opts[op.name] = op
             if op.n_exp > 0 and len(op.parlist) != op.n_exp:
-               print "Error: Expecting %d parameters\n" \
+               print("Error: Expecting %d parameters\n" \
                      "Have %d on command line (%s).\n" % \
-                     (op.n_exp, len(op.parlist), op.parlist)
+                     (op.n_exp, len(op.parlist), op.parlist))
                return None
       elif len(argv) > 0:
-         print "Error: Expecting no loose parameters.\n"        \
+         print("Error: Expecting no loose parameters.\n"        \
                "Have %d loose parameters (or bad option) on "   \
-               "command line (%s).\n" % (len(argv), argv)
+               "command line (%s).\n" % (len(argv), argv))
          return None
    
    #go west young man
@@ -790,9 +795,9 @@ def strip_extension(name, extlist):
          #Go to next element
          extlist = extlist[1:]
    else: #Nothing specified, work the dot
-      spl = string.split(name,'.')
+      spl = name.split('.')
       if len(spl) > 1:
-         res[0] = string.join(spl[0:-1],'.')
+         res[0] = str.join('.',spl[0:-1])
          res[1] = '.'+spl[-1]
          return res
          
@@ -903,16 +908,17 @@ def shell_exec(s,opt="",capture=1):
    #no echoing should be done here. It is better
    #to use the shell_com objects
    if opt == "dry_run":
-      print "#In %s, would execute:\n   %s" % (os.getcwd(), s)
+      print("#In %s, would execute:\n   %s" % (os.getcwd(), s))
       sys.stdout.flush()
    elif opt == "echo":
-      print "#In %s, about to execute:\n   %s" % (os.getcwd(), s)   
+      print("#In %s, about to execute:\n   %s" % (os.getcwd(), s))   
       sys.stdout.flush()
       
    status, so, se = shell_exec2(s,capture)
+   
    return so, se
    
-def shell_exec2(s, capture=0):
+def shell_exec2(s, capture=0, decode=1):
 
    # moved to python_ver_float()   16 May 2011 [rickr]
    if (python_ver_float() < 2.5): #Use old version and pray
@@ -967,10 +973,14 @@ def shell_exec2(s, capture=0):
          so = o.splitlines()
          se = e.splitlines()                           
 
+         if decode:
+            so = [l.decode() for l in so]
+            se = [l.decode() for l in se]
+
    return status, so, se
    
 # basically shell_exec2, but no splitlines()            16 May 2011 [rickr]
-def simple_shell_exec(command, capture=0):
+def simple_shell_exec(command, capture=0, decode=1):
    """return status, so, se  (without any splitlines)"""
 
    if (python_ver_float() < 2.5):
@@ -985,6 +995,10 @@ def simple_shell_exec(command, capture=0):
                       close_fds=True)
       so, se = pipe.communicate() # returns after command is done
       status = pipe.returncode
+
+      if decode:
+         so = so.decode()
+         se = se.decode()
    else:
 #      pipe = SP.Popen(command,shell=True, executable='/bin/tcsh',
       pipe = SP.Popen(command,shell=True,
@@ -1044,7 +1058,7 @@ def unique(s):
     except TypeError:
         del u  # move on to the next method
     else:
-        return u.keys()
+        return list(u.keys())
 
     # We can't hash all the elements.  Second fastest is to sort,
     # which brings the equal elements together; then duplicates are
@@ -1081,16 +1095,16 @@ def unique(s):
 #e.g: GetFiles(["*.HEAD", "*.1D"])
 def GetFiles(wild):
    #print "wild is: >>>%s<<<" % wild
-   an = reduce(operator.add, map(glob.glob, wild))
+   an = reduce(operator.add, list(map(glob.glob, wild)))
    #print "Expanded is: %s" % an
    return an
 
 def PrintIndexedList(l):
    cnt = 0
    for il in l:
-      print "%d-  %s" % (cnt, il)
+      print("%d-  %s" % (cnt, il))
       cnt += 1
-   print ""
+   print("")
 
 def match(txt, l):
    lm = []
@@ -1114,14 +1128,14 @@ def GetSelectionFromList(l, prmpt = ""):
       prmpt = 'Enter Selection by number or name: '
    cnt = 0
    while cnt < 10:
-      name = raw_input(prmpt)
+      name = input(prmpt)
       if not name:
          return None
       if name.isdigit():
          if int(name) < len(l) and int(name) >= 0:
             return l[int(name)]
          else:
-            print "Input error: number must be between 0 and %d" % (len(l)-1)
+            print("Input error: number must be between 0 and %d" % (len(l)-1))
       else:
          if name in l:
             return name
@@ -1129,11 +1143,11 @@ def GetSelectionFromList(l, prmpt = ""):
          if nameg:
             return nameg
          else:
-            print "Input error: selection %s has %d matches in list." %  \
-                  ( name, len(match(name, l)))
+            print("Input error: selection %s has %d matches in list." %  \
+                  ( name, len(match(name, l))))
       cnt += 1
-   print "Vous ne comprenez pas l'anglais?"
-   print "Ciao"
+   print("Vous ne comprenez pas l'anglais?")
+   print("Ciao")
    
 # determine if a string is a valid floating point number
 # from http://mail.python.org/pipermail/python-list/2002-September/164892.html
@@ -1142,5 +1156,5 @@ def isFloat(s):
     try:
         float(s)
         return True
-    except (ValueError, TypeError), e:
+    except (ValueError, TypeError) as e:
         return False
