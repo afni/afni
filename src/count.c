@@ -142,7 +142,8 @@ int main( int argc , char *argv[] )
          if (narg+1>= argc) ERROR_exit("Need argument after -sseed\n");
          sseed=argv[++narg];
          for (kk=0;kk<strlen(sseed);++kk) 
-            seed += (int)(sseed[kk]) ;
+            seed += (long int)(sseed[kk]) *
+                    (long int)( (kk <= 16) ? (1<<kk) : (kk*7) ) ;
          continue ;
       }
       if( strncmp(argv[narg],"-root",5) == 0 ){
