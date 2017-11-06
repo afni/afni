@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 # python3 status: started
-#
 
 # afni_util.py : general utilities for python programs
 
