@@ -3,7 +3,6 @@
 # python3 status: started
 
 import os, sys, glob, operator, string, re, afni_base
-from functools import reduce
 
 valid_afni_views = ['+orig', '+acpc', '+tlrc']
 valid_new_views  = ['+orig', '+acpc', '+tlrc', '']
@@ -1106,11 +1105,12 @@ def unique(s):
 #Get files from a wild card list
 #e.g: GetFiles(["*.HEAD", "*.1D"])
 def GetFiles(wild):
-   #print "wild is: >>>%s<<<" % wild
-   an = reduce(operator.add, list(map(glob.glob, wild)))
-   #print "Expanded is: %s" % an
-   return an
-
+   # was reduce(operator.add, list(map(glob.glob, wild))), but be simple
+   rl = []
+   for mstr in wild:
+      rl.extend(glob.glob(mstr))
+   return rl
+     
 def PrintIndexedList(l):
    cnt = 0
    for il in l:
@@ -1168,5 +1168,5 @@ def isFloat(s):
     try:
         float(s)
         return True
-    except (ValueError, TypeError) as e:
+    except:
         return False
