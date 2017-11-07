@@ -2017,7 +2017,7 @@ class SubjProcSream:
     def find_block_index(self, label):
         block = self.find_block(label)
         if block: return self.blocks.index(block)
-        return None
+        return -1
 
     def find_block_or_prev(self, blabel, cblock):
        """find block of given label, or some prior block
