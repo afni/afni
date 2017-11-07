@@ -973,6 +973,12 @@ def shell_exec2(s, capture=0):
          pipe = SP.Popen(s,shell=True, stdout=SP.PIPE, stderr=SP.PIPE, close_fds=True)
          o,e = pipe.communicate()   #This won't return until command is over
          status = pipe.returncode   #NOw get returncode
+
+         # for python3, convert bytes to unicode
+         if type(o) == bytes or type(e) == bytes:
+            o = o.decode()
+            e = e.decode()
+
          so = o.splitlines()
          se = e.splitlines()                           
 
@@ -999,9 +1005,11 @@ def simple_shell_exec(command, capture=0):
       so, se = pipe.communicate() # returns after command is done
       status = pipe.returncode
 
-      #if decode:
-      #   so = so.decode()
-      #   se = se.decode()
+      # for python3, convert bytes to unicode
+      if type(so) == bytes or type(se) == bytes:
+         so = so.decode()
+         se = se.decode()
+
    else:
 #      pipe = SP.Popen(command,shell=True, executable='/bin/tcsh',
       pipe = SP.Popen(command,shell=True,
