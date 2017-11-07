@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# python3 status: started
+# python3 status: compatible
 
 # note: in the script, runs are 1-based (probably expected)
 
@@ -576,9 +576,10 @@ g_history = """
     5.16 Sep  7, 2017: fix help typos for -regress_ROI_PC_per_run
     5.17 Sep 11, 2017: if no regress block, skip gen_ss_review_scripts.py
     5.18 Sep 12, 2017: use lpc+ZZ cost function in examples
+    6.00 Nov  7, 2017: python3 compatible
 """
 
-g_version = "version 5.18, September 12, 2017"
+g_version = "version 6.00, November 7, 2017"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -590,6 +591,9 @@ g_requires_afni = [ \
       [  "1 Apr 2015",  "1d_tool.py uncensor from 1D" ] ]
 
 g_todo_str = """todo:
+  - be able to run simple forms of @Align_Centers
+  - implement multi-echo OC and possibly meica functionality
+  - improve on distortion correction via gentle NL alignment with anat
   - finish @radial_correlate updates, like _opts and _volreg
      - maybe add to gen_ss_review_scripts.py
   - allow for 3dAllineate in place of 3dvolreg: -volreg_use_allineate
