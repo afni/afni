@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# python3 status: started
+# python3 status: compatible
 
 # system libraries
 import sys, os
@@ -1054,9 +1054,10 @@ g_history = """
    1.27 Sep 23, 2016 - added -select_runs; tiny nruns adjust
    1.28 Apr 17, 2017
         - clarify source in -show_censored_trs (if Xmat, use header info)
+   2.00 Nov  7, 2017 - python3 compatible
 """
 
-g_version = "1d_tool.py version 1.28, April 17, 2017"
+g_version = "1d_tool.py version 2.00, November 7, 2017"
 
 
 class A1DInterface:

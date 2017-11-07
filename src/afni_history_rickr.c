@@ -49,6 +49,21 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  7, Nov, 2017, RCR, "afni_proc.py", MAJOR, TYPE_ENHANCE,
+   "python3 compatible as of version 6.00",
+   NULL
+ } ,
+
+ {  7, Nov, 2017, RCR, "1d_tool.py", MINOR, TYPE_ENHANCE,
+   "python3 compatible as of version 2.00",
+   NULL
+ } ,
+
+ {  7, Nov, 2017, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "python3 compatible as of version 1.00",
+   NULL
+ } ,
+
  {  6, Nov, 2017, RCR, "afni-general", MAJOR, TYPE_ENHANCE,
    "first stab at making python program p2/p3 compatible",
    "Based on 2to3 and dglen mods, and tested in p2 and p3 environments."

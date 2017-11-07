@@ -5,7 +5,15 @@
 # system libraries
 import sys, os
 
-# AFNI libraries
+# AFNI libraries (test first)
+import module_test_lib
+g_testlibs = ['option_list', 'afni_util', 'lib_system_check']
+if module_test_lib.num_import_failures(g_testlibs,details=0,verb=0):
+   print("\n** failed to load standard AFNI python libraries")
+   print("   python version = %s" % sys.version.split()[0])
+   sys.exit(1)
+
+# now load AFNI libraries by name
 import option_list as OL
 import afni_util as UTIL        # not actually used, but probably will be
 import lib_system_check as SC
@@ -198,9 +206,10 @@ g_history = """
         - check 3dClustSim, for OpenMP library
         - for mac, force cheating variable check via interactive shell
    0.30 Sep 27, 2017 - PyQt4 is no longer needed for an AFNI bootcamp
+   1.00 Nov  7, 2017 - python3 compatible
 """
 
-g_version = "afni_system_check.py version 0.30, September 30, 2017"
+g_version = "afni_system_check.py version 1.00, November 7, 2017"
 
 
 class CmdInterface:
