@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+
+# python3 status: started
+
 import sys
 
 # whine about execution as a main program
