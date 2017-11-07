@@ -72,10 +72,12 @@ def write_text_to_file(fname, tdata, mode='w', wrap=0, wrapstr='\\\n', exe=0):
     if fname != 'stdout' and fname != 'stderr':
        fp.close()
        if exe:
+           try: code = eval('0o755')
+           except: code = eval('0755')
            try:
-               os.chmod(fname, 0o755)
-           except OSError as e:
-                print(e)
+               os.chmod(fname, code)
+           except:
+               print("** failed chmod 755 on %s" % fname)
 
     return 0
 
