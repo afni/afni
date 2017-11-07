@@ -78,5 +78,11 @@ allVars <- c(catVar,qntVar)
 ## input files as string for extraction
 InputFile.str <- paste(data.df$InputFile,collapse=' ')
 
+## copy one dataset to temp folder for the master
+master.dset <- paste0(out.dir,'/',basename(as.character(data.df$InputFile[1])))
+system(paste0('cd ',cur.dir,' ; ',
+              afni.path,'/3dcopy ',as.character(data.df$InputFile[1]),' ',
+              master.dset) )
+
 ## launch afni
-afni_launch(as.character(data.df$InputFile[1]),out.dir)
+afni_launch(master.dset,out.dir)

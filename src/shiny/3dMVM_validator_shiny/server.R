@@ -40,7 +40,7 @@ shinyServer(function(input,output,session) {
   observeEvent(input$make_roi,{
     if(!is.na(coord.mat)){
       removeNotification(id="coordDone")
-      afni_roi(data.df$InputFile[1],input$srad_num,coord.mat[3,1],
+      afni_roi(master.dset,input$srad_num,coord.mat[3,1],
                coord.mat[3,2],coord.mat[3,3])
       afni_add_mask(coord.mat[3,1],coord.mat[3,2],coord.mat[3,3],input$srad_num)
       showNotification("ROI set. Now extract data.",

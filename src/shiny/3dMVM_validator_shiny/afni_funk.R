@@ -7,14 +7,16 @@
 voxel_extract <- function(dset.list,x.in,y.in,z.in,vox.file,vox_roi,srad){
 
   if(vox_roi == "Voxel"){
-    system(paste0(afni.path,'/3dmaskave -ibox ',
+    system(paste0('cd ',cur.dir,' ; ',
+                  afni.path,'/3dmaskave -ibox ',
                   x.in,' ',y.in,' ',z.in,' -quiet "',
                   dset.list,'" > ',vox.file) )
 
   } else if(vox_roi == "ROI"){   ## if ROI use an image
     mask.img <- paste0(out.dir,"/seed_mask_",x.in,"_",y.in,"_",z.in,
                        "_",srad,".nii.gz")
-    system(paste0(afni.path,'/3dmaskave -mask ',mask.img,' -quiet "',
+    system(paste0('cd ',cur.dir,' ; ',
+                  afni.path,'/3dmaskave -mask ',mask.img,' -quiet "',
                   dset.list,'" > ',vox.file) )
   }
   system("echo ; echo EXTRACTION COMPLETE! ; echo ")
@@ -60,6 +62,9 @@ get_ijk_xyz <- function(){
 ## launch afni functions
 
 afni_launch <- function(under.in,dir.in){
+
+  ## set the current dir for any relative paths
+  # setwd(cur.dir)
 
   ## get the file name without the path to switch
   under.img  <- basename(under.in)
@@ -128,7 +133,8 @@ afni_roi <- function(master,srad,ijk.x,ijk.y,ijk.z){
   coord.file <- paste0(out.dir,"/temp_mask.txt")
 
   ## make coordinate file
-  system(paste0('echo ',ijk.x,' ',ijk.y,' ',ijk.z,' > ',coord.file))
+  system(paste0('echo ',ijk.x,' ',ijk.y,' ',ijk.z,
+                ' > ',coord.file))
 
   system(paste0(afni.path,'/3dUndump -ijk -prefix ',mask.img,
                 ' -master ',master,' -srad ',srad,' ',coord.file))
