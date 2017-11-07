@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# python3 status: started
+
 import sys, os
 import copy
 

@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# python3 status: started
+
 # note: in the script, runs are 1-based (probably expected)
 
 from __future__ import print_function
