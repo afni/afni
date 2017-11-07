@@ -974,8 +974,9 @@ def shell_exec2(s, capture=0):
          o,e = pipe.communicate()   #This won't return until command is over
          status = pipe.returncode   #NOw get returncode
 
-         # for python3, convert bytes to unicode
-         if type(o) == bytes or type(e) == bytes:
+         # for python3, convert bytes to unicode (note type is bytes, but
+         # that matches str in p2), just use stupid python version
+         if python_ver_float() >= 3.0:
             o = o.decode()
             e = e.decode()
 
@@ -1005,8 +1006,8 @@ def simple_shell_exec(command, capture=0):
       so, se = pipe.communicate() # returns after command is done
       status = pipe.returncode
 
-      # for python3, convert bytes to unicode
-      if type(so) == bytes or type(se) == bytes:
+      # for python3, convert bytes to unicode (cannot use type(so) == bytes)
+      if python_ver_float() >= 3.0:
          so = so.decode()
          se = se.decode()
 
