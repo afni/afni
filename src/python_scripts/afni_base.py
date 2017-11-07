@@ -243,7 +243,8 @@ class afni_name(object):
               print('   stderr = %s' % com.se)
            return 0
 
-         self.path = com.so[0].decode()
+         # self.path = com.so[0].decode()
+         self.path = com.so[0]
          # nuke any newline character
          newline = self.path.find('\n')
          if newline > 1: self.path = self.path[0:newline]
@@ -589,9 +590,11 @@ class shell_com(object):
                      (j, len(l), i))
             return None
          else:
-            return l[j].decode()
+            # return l[j].decode()
+            return l[j]
       else:
-         return self.so[i].decode()
+         # return self.so[i].decode()
+         return self.so[i]
 
 # return the attribute list for the given dataset and attribute
 def read_attribute(dset, atr, verb=1):
@@ -918,7 +921,7 @@ def shell_exec(s,opt="",capture=1):
    
    return so, se
    
-def shell_exec2(s, capture=0, decode=1):
+def shell_exec2(s, capture=0):
 
    # moved to python_ver_float()   16 May 2011 [rickr]
    if (python_ver_float() < 2.5): #Use old version and pray
@@ -973,14 +976,14 @@ def shell_exec2(s, capture=0, decode=1):
          so = o.splitlines()
          se = e.splitlines()                           
 
-         if decode:
-            so = [l.decode() for l in so]
-            se = [l.decode() for l in se]
+         #if decode:
+         #   so = [l.decode() for l in so]
+         #   se = [l.decode() for l in se]
 
    return status, so, se
    
 # basically shell_exec2, but no splitlines()            16 May 2011 [rickr]
-def simple_shell_exec(command, capture=0, decode=1):
+def simple_shell_exec(command, capture=0):
    """return status, so, se  (without any splitlines)"""
 
    if (python_ver_float() < 2.5):
@@ -996,9 +999,9 @@ def simple_shell_exec(command, capture=0, decode=1):
       so, se = pipe.communicate() # returns after command is done
       status = pipe.returncode
 
-      if decode:
-         so = so.decode()
-         se = se.decode()
+      #if decode:
+      #   so = so.decode()
+      #   se = se.decode()
    else:
 #      pipe = SP.Popen(command,shell=True, executable='/bin/tcsh',
       pipe = SP.Popen(command,shell=True,
