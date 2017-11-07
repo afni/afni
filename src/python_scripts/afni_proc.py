@@ -2596,10 +2596,12 @@ class SubjProcSream:
         if not self.make_main_script: return 0
 
         if self.script and os.path.isfile(self.script):
+            try: code = eval('0o755')
+            except: code = eval('0755')
             try:
-                os.chmod(self.script, 0o755)
-            except OSError as e:
-                print(e)
+                os.chmod(self.script, code)
+            except:
+                print("** failed: chmod %s %s" % (code, self.script))
 
     def prev_lab(self, block):
        if block.index <= 0:
