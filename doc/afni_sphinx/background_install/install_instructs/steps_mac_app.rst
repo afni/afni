@@ -2,7 +2,7 @@
 .. _install_steps_mac_app:
 
 
-**macOS**:  *The App-based system setup* 
+**macOS**: *The App-based system setup*
 ========================================
 
 .. contents:: :local:
