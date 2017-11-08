@@ -69,8 +69,6 @@ Break It Down Again [#f3]_
     Make sure you have permissions for the folder you choose for AFNI!
 
 * This script does not install fink. Nor does it download the class data.
-    But it will point you to where you can get it.
-    (https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/background_install/install_instructs/steps_mac.html)
 
 .. figure:: media/apple_brain_color_flipped.png
     :width: 5%
