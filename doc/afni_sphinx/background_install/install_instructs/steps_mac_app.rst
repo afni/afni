@@ -33,7 +33,7 @@ on 10.10 to 10.13 with various hardware.
 *If you are seeking the non-App version of install instructions,
 please see* :ref:`HERE <install_steps_mac>`.
 
-Get the File and Run [#f2]_
+Take the File and Run [#f2]_
 ---------------------------
 
 * `Download .dmg Version <https://afni.nimh.nih.gov/pub/dist/bin/misc/afni_macOS_install_BETA.dmg>`_
