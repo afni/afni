@@ -138,11 +138,14 @@ int main( int argc , char *argv[] )
       }
       if( strncmp(argv[narg],"-sseed",5) == 0 ){
          char *sseed=NULL;
+         static long int ppp[10] = { 3,5,7,11,13,17,19,23,29,31 } ;
          int kk;
          if (narg+1>= argc) ERROR_exit("Need argument after -sseed\n");
          sseed=argv[++narg];
-         for (kk=0;kk<strlen(sseed);++kk) 
-            seed += (int)(sseed[kk]) ;
+         for (kk=0;kk<strlen(sseed);++kk){
+            seed += (long int)(sseed[kk]) *
+                    ((long int)( (kk <= 16) ? (1<<kk) : (kk*7) )+ppp[kk%9]) ;
+         }
          continue ;
       }
       if( strncmp(argv[narg],"-root",5) == 0 ){

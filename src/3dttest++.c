@@ -38,6 +38,8 @@ float_pair ttest_toz_singletonA( float xar, int numy, float *yar, float *xres, f
 /*----- convert t-stat to z-score -----*/
 
 double GIC_student_t2z( double tt , double dof ) ;
+static double GIC_qginv( double p ) ;
+static double zthresh( double pval ) ;
 
 /*----- setup the covariates matrices -----*/
 
@@ -1224,6 +1226,12 @@ void display_help_menu(void)
       "                           stringent for many purposes. This threshold value\n"
       "                           was also close to the threshold at which the FDR\n"
       "                           q=1/43000, which may not be a coincidence.\n"
+      "                  -->>++ It is perfectly legal to use the same string here\n"
+      "                         as given in the '-prefix' option.\n"
+      "                  -->>++ This file has been updated to give the voxel-wise\n"
+      "                         statistic threshold for global FPRs from 1%% to 9%%.\n"
+      "                         However, the name is still '.5percent.txt' for the\n"
+      "                         sake of nostalgia.\n"
       "\n"
       " -no5percent         = Don't output the 'cc'.5percent.txt file that comes\n"
       "                       for free with '-Clustsim' and/or '-ETAC'.\n"
@@ -1454,30 +1462,30 @@ void display_help_menu(void)
       "3dMultiThresh for each blur case, then combining the results across blur cases.\n"
       "\n"
       "In the example below, assume\n"
-      "  * Two blurring cases specified using '-ETAC_blur 4 7'\n"
+      "  * Two blurring cases are specified using '-ETAC_blur 4 7'\n"
       "  * The prefix for normal 3dttest++ files is 'P', as in '-prefix P'\n"
       "  * The prefix for ETAC output files is 'Px', as in '-prefix_clustsim Px'\n"
-      "  * The name for the ETAC analysis was 'name=N' in option '-ETAC_opt'\n"
+      "  * The name for the ETAC analysis is 'name=N' in option '-ETAC_opt'\n"
       "    (remember, you can run more than one ETAC analysis in a single 3dttest++)\n"
-      "  * That a 2-sided analysis was ordered with 'sid=2 in option '-ETAC_opt'\n"
-      "  * The default 'fpr=5' was used in option '-ETAC_opt'\n"
+      "  * That a 2-sided analysis is ordered with 'sid=2 in option '-ETAC_opt'\n"
+      "  * The default 'fpr=5' is used in option '-ETAC_opt'\n"
       "\n"
-      "Output filename                     Description\n"
-      "----------------------------------  -----------\n"
+      "Output filename                     Description and Contents\n"
+      "----------------------------------  -------------------------------------------\n"
       "P+tlrc.HEAD                         normal 3dttest++ output from input datasets\n"
       "P.B4.0.nii                          3dttest++ output from blurred datasets\n"
       "P.B7.0.nii                            (4 and 7 mm, respectively)\n"
-      "Px.B4.0.5percent.txt                voxel-wise threshold to reach a given\n"
-      "Px.B7.0.5percent.txt                  global significance, for blurs 4 and 7\n"
+      "Px.B4.0.5percent.txt                voxel-wise threshold list for a variety\n"
+      "Px.B7.0.5percent.txt                  of global FPRs, for blurs 4 and 7\n"
       "Px.N.ETAC.mthresh.B4.0.5perc.nii    Multi-threshold datasets for blur=4 and =7,\n"
       "Px.N.ETAC.mthresh.B7.0.5perc.nii      for overall 5%% global false positive rate\n"
       "Px.N.ETACmask.2sid.5perc.nii.gz     Binary (0 or 1) mask of 'active voxels'\n"
       "PX.N.ETACmaskALL.2sid.5perc.nii.gz  Multi-volume mask showing which ETAC\n"
       "                                      sub-method(s) passed in each voxel:\n"
       "                                      There is one sub-brick per p-value,\n"
-      "                                      and per blur case (e.g., 5*2=10), and\n"
-      "                                      each value encodes which hpow value(s)\n"
-      "                                      had a positive result, as a sum of\n"
+      "                                      per blur case (e.g., 5*2=10), and each\n"
+      "                                      mask value encodes which hpow value(s)\n"
+      "                                      had a positive result, as the sum of\n"
       "                                        1 == hpow=0 passed\n"
       "                                        2 == hpow=1 passed\n"
       "                                        4 == hpow=2 passed\n"
@@ -1493,6 +1501,8 @@ void display_help_menu(void)
       "  '2sid' will instead be replaced by TWO files, one with '1neg' and one\n"
       "  with '1pos', indicating the results of 1-sided t-test thresholding with\n"
       "  the negative and positive sides, respectively.\n"
+      "* It is quite possible that the various ETACmask files are all zero,\n"
+      "  indicating that nothing survived the multi-thresholding operations.\n"
       "-----------\n"
       "*** WARNING: ETAC consumes a lot of CPU time, and a lot of memory  ***\n"
       "***         (especially with many -ETAC_blur cases, or 'fpr=ALL')! ***\n"
@@ -4727,7 +4737,7 @@ LABELS_ARE_DONE:  /* target for goto above */
              int nall=2*allim->nx , n05 ;
              float *allar=MRI_FLOAT_PTR(allim) ;
              float oneside_05 , twoside_05 ; FILE *fp ;
-             int ipp ;
+             int ipp ; double bpval,bzth1,bzth2 ;
 
              for( pp=0 ; pp < nall ; pp++ ) allar[pp] = fabsf(allar[pp]) ;
              qsort_float_rev(nall,allar) ;  /* decreasing order */
@@ -4737,14 +4747,21 @@ LABELS_ARE_DONE:  /* target for goto above */
              INFO_message("3dttest++ ----- Global %% FPR points for simulated z-stats:") ;
 
              for( ipp=9 ; ipp > 0 ; ipp-- ){
-               n05 = (int)rintf(0.01f*ipp*nall) ;
-               twoside_05 = allar[n05] ;      /* ipp% in all cases */
+               bpval = (0.01*ipp)/(double)nmask_hits ;
+               bzth1 = zthresh(bpval) ;
+               bzth2 = zthresh(0.5*bpval) ;
+               n05   = (int)rintf(0.01f*ipp*nall) ;
+               twoside_05 = allar[n05] ;      /* ipp% in all cases (pos and neg) */
                oneside_05 = allar[2*n05] ;    /* 2*ipp% in all cases = ipp% one side */
-               fprintf(stderr,"   %.3f = 1-sided %1d%% FPR %s\n",oneside_05,ipp,clab[icase]) ;
-               fprintf(stderr,"   %.3f = 2-sided %1d%% FPR %s\n",twoside_05,ipp,clab[icase]) ;
+               fprintf(stderr,"   %.3f = 1-sided %1d%% FPR %s [Bonferroni=%.3f]\n",
+                              oneside_05,ipp,clab[icase],bzth1) ;
+               fprintf(stderr,"   %.3f = 2-sided %1d%% FPR %s [Bonferroni=%.3f]\n",
+                              twoside_05,ipp,clab[icase],bzth2) ;
                if( fp != NULL ){
-                 fprintf(fp," %.3f = 1-sided %1d%% FPR\n",oneside_05,ipp) ;
-                 fprintf(fp," %.3f = 2-sided %1d%% FPR\n",twoside_05,ipp) ;
+                 fprintf(fp," %.3f = 1-sided %1d%% FPR [Bonferroni=%.3f]\n",
+                            oneside_05,ipp,bzth1) ;
+                 fprintf(fp," %.3f = 2-sided %1d%% FPR [Bonferroni=%.3f]\n",
+                            twoside_05,ipp,bzth2) ;
                } else if( ipp==9 ){  /* should never happen */
                  WARNING_message("   [for some reason, unable to write above results to a file]") ;
                }
@@ -5532,6 +5549,19 @@ static double GIC_qginv( double p )
 
    if( dx > 13.0 ) dx = 13.0 ;
    return ( (p <= 0.5) ? (dx) : (-dx) ) ;  /* return with correct sign */
+}
+
+/*----------------------------------------------------------------------------*/
+/*! Threshold for upper tail probability of N(0,1) */
+
+#undef  PSMALL
+#define PSMALL 1.e-15
+
+static double zthresh( double pval )
+{
+        if( pval <= 0.0 ) pval = PSMALL ;
+   else if( pval >= 1.0 ) pval = 1.0 - PSMALL ;
+   return GIC_qginv(pval) ;
 }
 
 #ifdef NO_GAMMA
