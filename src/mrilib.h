@@ -120,6 +120,11 @@ extern AFD_dicom_header **MRILIB_dicom_header ;
 #  define WAY_BIG 1.e+10
 #endif
 
+#ifndef TINY_NUMBER
+/*! A tiny, infinitessimal number */
+#  define TINY_NUMBER 1.e-10
+#endif
+
 #ifndef FLDIF
 /*! Are 2 floats significantly different? */
 #  define FLDIF(x,y) ( fabs(x-y) > 1.e-4 * (fabs(x)+fabs(y)) )
