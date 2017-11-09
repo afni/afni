@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# python3 status: started
+
 # Timing library, accessed via timing_tool.py.
 #
 # - offers class AfniTiming
@@ -39,15 +41,15 @@ class AfniTiming(LD.AfniData):
    def add_rows(self, newdata):
       """add newdata.nrows of data (additional runs), return 0 on success"""
       if not self.ready or not newdata.ready:
-         print '** AMTiming elements not ready for adding rows (%d,%d)' % \
-               (self.ready, newdata.ready)
+         print('** AMTiming elements not ready for adding rows (%d,%d)' % \
+               (self.ready, newdata.ready))
          return 1
 
-      if self.verb > 1: print '++ Timing: adding %d rows' % newdata.nrows
+      if self.verb > 1: print('++ Timing: adding %d rows' % newdata.nrows)
 
       if self.mtype != newdata.mtype:
-         print '** add rows: mis-match mtypes (%d vs. %d)' \
-               % (self.mtype, newdata.mtype)
+         print('** add rows: mis-match mtypes (%d vs. %d)' \
+               % (self.mtype, newdata.mtype))
 
       # get data and mdata
       edata = copy.deepcopy(newdata.data)
@@ -111,26 +113,26 @@ class AfniTiming(LD.AfniData):
          prefix_label.1D"""
 
       if not self.ready:
-         print '** Timing element not ready for partitioning'
+         print('** Timing element not ready for partitioning')
          return 1
 
       labels = read_value_file(part_file)
       if labels == None:
-         print "** failed to read partition label file '%s'" % part_file
+         print("** failed to read partition label file '%s'" % part_file)
          return 1
 
       nlabr = len(labels)
 
-      if self.verb > 3: print '-- partition: %d labels: %s' % (nlabr, labels)
+      if self.verb > 3: print('-- partition: %d labels: %s' % (nlabr, labels))
 
       # first test nrows, then test lengths per row
       if self.nrows != nlabr:
-         print '** Timing nrows differs from partition nrows (%d, %d)' % \
-               (self.nrows,nlabr)
+         print('** Timing nrows differs from partition nrows (%d, %d)' % \
+               (self.nrows,nlabr))
          return 1
       for ind in range(self.nrows):
          if len(self.data[ind]) != len(labels[ind]):
-            print "** timing and label row lengths differ at line %d"%(ind+1)
+            print("** timing and label row lengths differ at line %d"%(ind+1))
             return 1
 
       # make unique label list
@@ -138,10 +140,10 @@ class AfniTiming(LD.AfniData):
       for line in labels:
          ulabs.extend(line)
       ulabs = UTIL.get_unique_sublist(ulabs)
-      if self.verb > 2: print '-- partition: unique label list: %s' % ulabs
+      if self.verb > 2: print('-- partition: unique label list: %s' % ulabs)
       if ulabs.count('0'): ulabs.remove('0')
 
-      if self.verb > 1: print '++ Timing: partitioning with %s' % part_file
+      if self.verb > 1: print('++ Timing: partitioning with %s' % part_file)
 
       # ------------------------------------------------------------
       # do the work, starting with copy:
@@ -168,21 +170,21 @@ class AfniTiming(LD.AfniData):
          return 0 on success, 1 on any error"""
 
       if not self.ready:
-         print '** global timing not ready'
+         print('** global timing not ready')
          return 1
 
       if len(run_len) == 0:
-         print '** global_to_local requires -run_len'
+         print('** global_to_local requires -run_len')
          return 1
 
       if not self.is_rect():
-         print '** global timing is not rectangular'
+         print('** global timing is not rectangular')
          return 1
 
       rlen = len(self.mdata[0])         # note row length
 
       if rlen > 1:
-         print '** global timing is not a single column'
+         print('** global timing is not a single column')
          return 1
 
       if rlen < 1: return 0             # nothing to do
@@ -194,10 +196,10 @@ class AfniTiming(LD.AfniData):
 
       if self.verb > 2:
          self.show('global_to_local')
-         print '-- run lengths : %s' % run_len
+         print('-- run lengths : %s' % run_len)
 
       if self.verb > 4:
-         print '-- global start time matrix %s' % self.data
+         print('-- global start time matrix %s' % self.data)
 
       # now walk through runs and insert times as we go
       newdata = []
@@ -225,7 +227,7 @@ class AfniTiming(LD.AfniData):
       # insert any remaining times at end of last run(and warn user)
       if sind < ntimes:
          if self.verb > 0:
-            print '** global to local: %d times after last run' % (ntimes-sind)
+            print('** global to local: %d times after last run' % (ntimes-sind))
          mtimes = stimes[sind:]
          for tentry in mtimes: tentry[0] -= starttime
          newdata[-1].extend([t[0] for t in mtimes])
@@ -238,7 +240,7 @@ class AfniTiming(LD.AfniData):
       self.nrows = len(self.mdata)
 
       if self.verb > 4:
-         print '-- local time matrix %s' % newdata
+         print('-- local time matrix %s' % newdata)
 
       return 0
 
@@ -247,12 +249,12 @@ class AfniTiming(LD.AfniData):
          return 0 on success, 1 on any error"""
 
       if not self.ready:
-         print '** local timing not ready'
+         print('** local timing not ready')
          return 1
 
       if len(run_len) != self.nrows:
-         print '** local_to_global: have %d run times but %d data rows' \
-               % (len(run_len), self.nrows)
+         print('** local_to_global: have %d run times but %d data rows' \
+               % (len(run_len), self.nrows))
          return 1
 
       # make sure it is sorted for this
@@ -260,10 +262,10 @@ class AfniTiming(LD.AfniData):
 
       if self.verb > 2:
          self.show('local_to_global')
-         print '-- run lengths : %s' % run_len
+         print('-- run lengths : %s' % run_len)
 
       if self.verb > 4:
-         print '-- local time matrix %s' % self.data
+         print('-- local time matrix %s' % self.data)
 
       # now walk through runs and insert times as we go
       newdata = []
@@ -285,7 +287,7 @@ class AfniTiming(LD.AfniData):
       self.nrows = len(self.data)
 
       if self.verb > 4:
-         print '-- global time matrix %s' % newdata
+         print('-- global time matrix %s' % newdata)
 
       return 0
 
@@ -296,10 +298,10 @@ class AfniTiming(LD.AfniData):
       if type(val) == str:
          try: val = float(val)
          except:
-            print "** invalid value to add to timing: '%s'" % val
+            print("** invalid value to add to timing: '%s'" % val)
             return 1
 
-      if self.verb > 1: print '-- Timing: adding %f to data...' % val
+      if self.verb > 1: print('-- Timing: adding %f to data...' % val)
 
       for row in self.data:
          for ind in range(len(row)):
@@ -320,10 +322,10 @@ class AfniTiming(LD.AfniData):
       if type(offset) == str:
          try: offset = float(offset)
          except:
-            print "** invalid offset to add to timing: '%s'" % offset
+            print("** invalid offset to add to timing: '%s'" % offset)
             return 1
 
-      if self.verb > 1: print '-- timing: setting offset to %f ...' % offset
+      if self.verb > 1: print('-- timing: setting offset to %f ...' % offset)
 
       # make sure it is sorted for this
       self.sort()
@@ -337,7 +339,7 @@ class AfniTiming(LD.AfniData):
             continue
          diff = row[0][0] - offset
          if diff < 0:
-            print '** offset shift to %f too big for run %d' % (offset, rind)
+            print('** offset shift to %f too big for run %d' % (offset, rind))
             return 1
          for ind in range(len(row)):
             row[ind][0] -= diff
@@ -352,10 +354,10 @@ class AfniTiming(LD.AfniData):
       if type(val) == type('hi'):
          try: val = float(val)
          except:
-            print "** invalid value to scale into timing: '%s'" % val
+            print("** invalid value to scale into timing: '%s'" % val)
             return 1
 
-      if self.verb > 1: print '-- Timing: scaling data by %f ...' % val
+      if self.verb > 1: print('-- Timing: scaling data by %f ...' % val)
 
       for row in self.data:
          for ind in range(len(row)):
@@ -377,26 +379,26 @@ class AfniTiming(LD.AfniData):
       """
       if not self.ready: return 1
       if tr <= 0:
-         print "** truncate_times: invalid tr %s" % tr
+         print("** truncate_times: invalid tr %s" % tr)
          return 1
 
       # convert to fraction to add before truncation (and be sure of type)
       try: rf = 1.0 - round_frac
       except:
-         print "** truncate_times: invalid round_frac '%s'" % round_frac
+         print("** truncate_times: invalid round_frac '%s'" % round_frac)
          return 1
 
       try: tr = float(tr)
       except:
-         print "** truncate_times: invalid tr '%s'" % tr
+         print("** truncate_times: invalid tr '%s'" % tr)
          return 1
 
       if rf < 0.0 or rf > 1.0:
-         print "** truncate_times: bad round_frac outside [0,1]: %s" % rf
+         print("** truncate_times: bad round_frac outside [0,1]: %s" % rf)
          return 1
 
       if self.verb > 1:
-         print '-- Timing: round times to multiples of %s (frac = %s)'%(tr,rf)
+         print('-- Timing: round times to multiples of %s (frac = %s)'%(tr,rf))
 
       # fr to use for floor and ceil (to assist with fractional TRs)
       if tr == math.floor(tr): tiny = 0.0
@@ -435,7 +437,7 @@ class AfniTiming(LD.AfniData):
       # g_marry_AM_methods = ['lin_run_fraq', 'lin_event_index']
 
       if mtype not in g_marry_AM_methods:
-         print "** marry_AM: invalid mod type '%s'" % mtype
+         print("** marry_AM: invalid mod type '%s'" % mtype)
          return 1
 
       if len(rlens) == 1 and len(self.mdata) > 1:
@@ -446,10 +448,10 @@ class AfniTiming(LD.AfniData):
          nruns = len(self.mdata)
          nlens = len(rlens)
          if nlens == 0:
-            print '** marry_AM needs run lengths'
+            print('** marry_AM needs run lengths')
             return 1
          if nlens != nruns:
-            print '** marry_AM: have %d runs but %d run lengths'%(nruns, nlens)
+            print('** marry_AM: have %d runs but %d run lengths'%(nruns, nlens))
             return 1
 
       # append the modulator to each event in mdata
@@ -461,7 +463,7 @@ class AfniTiming(LD.AfniData):
             if mtype == 'lin_event_index':
                mval = ind+1
             elif mtype == 'lin_run_fraq':
-               mval = event[0]/rlen
+               mval = event[0]/float(rlen)
                if nplaces >= 0:
                   power = 10.0**nplaces
                   mval = int(power*mval)/power
@@ -586,7 +588,7 @@ class AfniTiming(LD.AfniData):
       tdata = self.get_start_end_timing(sort=1)
 
       if self.verb > 1:
-         print 'timing_to_tr_fr, tr = %g, nruns = %d' % (tr,len(run_len))
+         print('timing_to_tr_fr, tr = %g, nruns = %d' % (tr,len(run_len)))
 
       # need to check each run for being empty
       for ind, data in enumerate(tdata):
@@ -598,28 +600,28 @@ class AfniTiming(LD.AfniData):
       # process one run at a time, first converting to TR indices
       for rind, data in enumerate(tdata):
          if self.verb > 4:
-            print '\n++ stimulus on/off times, run %d :' % (rind+1)
-            print data
+            print('\n++ stimulus on/off times, run %d :' % (rind+1))
+            print(data)
 
          for tind in range(len(data)):  # convert seconds to TRs
-            data[tind][0] = round(data[tind][0]/tr,3)
-            data[tind][1] = round(data[tind][1]/tr,3)
+            data[tind][0] = round(data[tind][0]/float(tr),3)
+            data[tind][1] = round(data[tind][1]/float(tr),3)
 
             if tind > 0 and data[tind][0] < data[tind-1][1]:
                 return '** run %d, index %d, stimulus overlap with next' \
                        % (rind, tind), []
          if self.verb > 4:
-            print '++ stimulus on/off TR times, run %d :' % (rind+1)
-            print data
+            print('++ stimulus on/off TR times, run %d :' % (rind+1))
+            print(data)
          if self.verb > 3:
-            print '++ tr fractions, run %d :' % (rind+1)
-            print [data[tind][1]-data[tind][0] for tind in range(len(data))]
+            print('++ tr fractions, run %d :' % (rind+1))
+            print([data[tind][1]-data[tind][0] for tind in range(len(data))])
 
          # do the real work, for each stimulus, fill appropriate tr fractions
          # init frac list with TR timing (and enough TRs for run)
-         num_trs = int(math.ceil( run_len[rind]/tr ))
-         if self.verb>2: print '-- TR frac: have %d TRs and %d events over run'\
-                               % (num_trs, len(data))
+         num_trs = int(math.ceil(run_len[rind]/float(tr)))
+         if self.verb>2: print('-- TR frac: have %d TRs and %d events over run'\
+                               % (num_trs, len(data)))
          rdata = [0 for i in range(num_trs)]
          for sind in range(len(data)):
             start  = data[sind][0]      # initial TR (fractional) time
@@ -640,8 +642,8 @@ class AfniTiming(LD.AfniData):
             rdata[endp] = round(end-endp, 3)
 
          if self.verb > 4:
-            print '\n++ timing_to_tr_fr, result for run %d:' % (rind+1)
-            print ' '.join(["%g" % rdata[ind] for ind in range(len(rdata))])
+            print('\n++ timing_to_tr_fr, result for run %d:' % (rind+1))
+            print(' '.join(["%g" % rdata[ind] for ind in range(len(rdata))]))
 
          if per_run: result.append(rdata)
          else:       result.extend(rdata)
@@ -676,15 +678,15 @@ class AfniTiming(LD.AfniData):
       """
 
       if not self.ready:
-         print '** M Timing: nothing to compute ISI stats from'
+         print('** M Timing: nothing to compute ISI stats from')
          return 1
 
       if not (self.mtype & LD.MTYPE_DUR):
-         print '** warning: computing stats without duration'
+         print('** warning: computing stats without duration')
 
       if self.nrows != len(self.data):
-         print '** bad MTiming, nrows=%d, datalen=%d, failing...' % \
-               (self.nrows, len(self.data))
+         print('** bad MTiming, nrows=%d, datalen=%d, failing...' % \
+               (self.nrows, len(self.data)))
          return 1
 
       # make a sorted copy
@@ -702,17 +704,17 @@ class AfniTiming(LD.AfniData):
       elif len(run_len) == self.nrows:
          rlens = run_len
       else:     # failure
-         print '** invalid len(run_len)=%d, must be one of 0,1,%d' % \
-               (len(run_len), self.nrows)
+         print('** invalid len(run_len)=%d, must be one of 0,1,%d' % \
+               (len(run_len), self.nrows))
          return 1
 
       if self.verb > 1:
-         print '-- show_isi_stats, run_len = %s, tr = %s, rest_file = %s' \
-               % (run_len, tr, rest_file)
+         print('-- show_isi_stats, run_len = %s, tr = %s, rest_file = %s' \
+               % (run_len, tr, rest_file))
 
       if self.verb > 3:
-         print scopy.make_data_string(nplaces=1, flag_empty=0, check_simple=0,
-                        mesg='scopy data')
+         print(scopy.make_data_string(nplaces=1, flag_empty=0, check_simple=0,
+                        mesg='scopy data'))
       
       all_stim  = []    # all stimulus durations (one row per run)
       all_isi   = []    # all isi times (one row per run)
@@ -736,11 +738,11 @@ class AfniTiming(LD.AfniData):
          # if no run len specified, use end of last stimulus
          if rlen == 0.0: rlen = run[-1][1]
          elif rlen < run[-1][1]:
-            print '** run %d: given length = %s, last stim ends at %s' % \
-                  (rind+1, rlen, run[-1][1])
+            print('** run %d: given length = %s, last stim ends at %s' % \
+                  (rind+1, rlen, run[-1][1]))
             errs += 1
             if errs > max_errs:
-               print '** bailing...'
+               print('** bailing...')
                return 1
 
          # pre- and post-stim times are set
@@ -748,11 +750,11 @@ class AfniTiming(LD.AfniData):
          post = rlen - run[-1][1]
 
          if pre < 0:
-            print '** ISI error: first stimulus of run %d at negative time %s'%\
-                  (rind+1, run[0][0])
+            print('** ISI error: first stimulus of run %d at negative time %s'%\
+                  (rind+1, run[0][0]))
             errs += 1
             if errs > max_errs:
-               print '** bailing...'
+               print('** bailing...')
                return 1
 
          # init accumulation vars
@@ -765,11 +767,11 @@ class AfniTiming(LD.AfniData):
             olap = run[sind-1][1] - run[sind][0]
             # there may be float/ascii reason for a tiny overlap...
             if olap > 0.0001:
-               print '** ISI error: stimuli overlap at run %d, time %s,' \
-                     'overlap %s' % (rind+1, run[sind][0], olap)
+               print('** ISI error: stimuli overlap at run %d, time %s,' \
+                     'overlap %s' % (rind+1, run[sind][0], olap))
                errs += 1
                if errs > max_errs:
-                  print '** bailing...'
+                  print('** bailing...')
                   return 1
             stimes.append(run[sind][1]-run[sind][0])
             itimes.append(run[sind][0]-run[sind-1][1])
@@ -797,48 +799,48 @@ class AfniTiming(LD.AfniData):
 
       if mesg: mstr = '(%s) ' % mesg
       else:    mstr = ''
-      print '\nISI statistics %s:\n' % mstr
+      print('\nISI statistics %s:\n' % mstr)
 
-      print '                        total      per run'
-      print '                       ------      ------------------------------'
-      print '    total time         %6.1f     %s'   % \
-                 (UTIL.loc_sum(run_time), float_list_string(run_time, ndec=1))
-      print '    total time: stim   %6.1f     %s'   % \
-                 (UTIL.loc_sum(rtot_stim),float_list_string(rtot_stim,7,ndec=1))
-      print '    total time: rest   %6.1f     %s'   % \
-                 (UTIL.loc_sum(rtot_rest),float_list_string(rtot_rest,7,ndec=1))
-      print ''
-      print '    rest: total isi    %6.1f     %s'   % \
-                 (UTIL.loc_sum(rtot_isi), float_list_string(rtot_isi,7,ndec=1))
-      print '    rest: pre stim     %6.1f     %s'   % \
-                 (UTIL.loc_sum(pre_time), float_list_string(pre_time,7,ndec=1))
-      print '    rest: post stim    %6.1f     %s'   % \
-                 (UTIL.loc_sum(post_time),float_list_string(post_time,7,ndec=1))
-      print ''
-      print '    num stimuli      %6d     %s'   % \
-            (UTIL.loc_sum(nstim_list), float_list_string(nstim_list,7,ndec=0))
-      print '\n'
+      print('                        total      per run')
+      print('                       ------      ------------------------------')
+      print('    total time         %6.1f     %s'   % \
+                 (UTIL.loc_sum(run_time), float_list_string(run_time, ndec=1)))
+      print('    total time: stim   %6.1f     %s'   % \
+                 (UTIL.loc_sum(rtot_stim),float_list_string(rtot_stim,7,ndec=1)))
+      print('    total time: rest   %6.1f     %s'   % \
+                 (UTIL.loc_sum(rtot_rest),float_list_string(rtot_rest,7,ndec=1)))
+      print('')
+      print('    rest: total isi    %6.1f     %s'   % \
+                 (UTIL.loc_sum(rtot_isi), float_list_string(rtot_isi,7,ndec=1)))
+      print('    rest: pre stim     %6.1f     %s'   % \
+                 (UTIL.loc_sum(pre_time), float_list_string(pre_time,7,ndec=1)))
+      print('    rest: post stim    %6.1f     %s'   % \
+                 (UTIL.loc_sum(post_time),float_list_string(post_time,7,ndec=1)))
+      print('')
+      print('    num stimuli      %6d     %s'   % \
+            (UTIL.loc_sum(nstim_list), float_list_string(nstim_list,7,ndec=0)))
+      print('\n')
 
-      print '                         min      mean     max     stdev'
-      print '                       -------  -------  -------  -------'
+      print('                         min      mean     max     stdev')
+      print('                       -------  -------  -------  -------')
 
-      print '    rest: pre-stim     %7.3f  %7.3f  %7.3f  %7.3f' % \
-            (UTIL.min_mean_max_stdev(pre_time))
-      print '    rest: post-stim    %7.3f  %7.3f  %7.3f  %7.3f' % \
-            (UTIL.min_mean_max_stdev(post_time))
-      print ''
+      print('    rest: pre-stim     %7.3f  %7.3f  %7.3f  %7.3f' % \
+            (UTIL.min_mean_max_stdev(pre_time)))
+      print('    rest: post-stim    %7.3f  %7.3f  %7.3f  %7.3f' % \
+            (UTIL.min_mean_max_stdev(post_time)))
+      print('')
 
       for ind in range(self.nrows):
          m0, m1, m2, s = UTIL.min_mean_max_stdev(all_isi[ind])
-         print '    rest: run #%d ISI   %7.3f  %7.3f  %7.3f  %7.3f' % \
-                    (ind, m0, m1, m2, s)
+         print('    rest: run #%d ISI   %7.3f  %7.3f  %7.3f  %7.3f' % \
+                    (ind, m0, m1, m2, s))
 
-      print ''
-      print '    all runs: ISI      %7.3f  %7.3f  %7.3f  %7.3f' % \
-            (UTIL.min_mean_max_stdev(isi_list))
-      print '    all runs: stimuli  %7.3f  %7.3f  %7.3f  %7.3f' % \
-            (UTIL.min_mean_max_stdev(stim_list))
-      print ''
+      print('')
+      print('    all runs: ISI      %7.3f  %7.3f  %7.3f  %7.3f' % \
+            (UTIL.min_mean_max_stdev(isi_list)))
+      print('    all runs: stimuli  %7.3f  %7.3f  %7.3f  %7.3f' % \
+            (UTIL.min_mean_max_stdev(stim_list)))
+      print('')
 
       # and possibly print out offset info
       if tr > 0: self.show_TR_offset_stats(tr, '')
@@ -871,17 +873,19 @@ class AfniTiming(LD.AfniData):
       """
 
       if not self.ready:
-         print '** M Timing: nothing to compute ISI stats from'
+         print('** M Timing: nothing to compute ISI stats from')
          return []
 
       if self.nrows != len(self.data):
-         print '** bad MTiming, nrows=%d, datalen=%d, failing...' % \
-               (self.nrows, len(self.data))
+         print('** bad MTiming, nrows=%d, datalen=%d, failing...' % \
+               (self.nrows, len(self.data)))
          return []
 
       if tr < 0.0:
-         print '** show_TR_offset_stats: invalid TR %s' % tr
+         print('** show_TR_offset_stats: invalid TR %s' % tr)
          return []
+
+      tr = float(tr) # to be sure
 
       # make a copy of format run x stim x [start,end], i.e. is 3-D
       tdata = self.get_start_end_timing()
@@ -923,7 +927,7 @@ class AfniTiming(LD.AfniData):
       """
 
       rv, rstr = self.get_TR_offset_stats_str(tr, mesg=mesg, wlimit=wlimit)
-      print rstr
+      print(rstr)
 
    def get_TR_offset_stats_str(self, tr, mesg='', wlimit=0.4):
       """return a string to display statistics regarding within-TR
@@ -965,7 +969,7 @@ class AfniTiming(LD.AfniData):
 
       # if no events ere found, we're outta here
       if len(off_means) == 0:
-         print 'file %s: no events?' % self.name
+         print('file %s: no events?' % self.name)
          return 0, ''
 
       # and get overall stats (absolute and fractional)
@@ -1042,30 +1046,30 @@ def read_multi_3col_tsv(flist, verb=1):
       if not h0:
          h0 = header
       elif h0 != header:
-         print '** inconsistent column headers in 3 column tsv file %s' % fname
-         print '   orig:    %s' % ' '.join(h0)
-         print '   current: %s' % ' '.join(header)
+         print('** inconsistent column headers in 3 column tsv file %s' % fname)
+         print('   orig:    %s' % ' '.join(h0))
+         print('   current: %s' % ' '.join(header))
 
       # update list of class names, as they are found,
       # and add to cdict (including empty runs)
       for event in elist:
          cname = event[2]
-         if cname not in cdict.keys():
+         if cname not in list(cdict.keys()):
             cdict[cname] = [[]]*rind
             if verb > 4:
-               print '++ RM3CT: init cdict[%s] with %s' % (cname, cdict[cname])
+               print('++ RM3CT: init cdict[%s] with %s' % (cname, cdict[cname]))
 
       # partition elist per known class (should be complete, as all class
       # names were added to dict)
-      for cname in cdict.iterkeys():
+      for cname in cdict.keys():
          # okay if empty
          cevents = [[e[0], [], e[1]] for e in elist if e[2] == cname]
          cdict[cname].append(cevents)
          if verb > 4:
-            print '++ RM3CT: append cdict[%s] with %s' % (cname, cevents)
+            print('++ RM3CT: append cdict[%s] with %s' % (cname, cevents))
 
    # now convert to AfniTiming instances
-   for cname in cdict.iterkeys():
+   for cname in cdict.keys():
       mdata = cdict[cname]
       timing = AfniTiming(mdata=cdict[cname])
       # init name and fname based on label, consider ability to change
@@ -1087,7 +1091,7 @@ def parse_3col_tsv(fname, verb=1):
    """
    lines = UTIL.read_text_file(fname, lines=1)
    if len(lines) < 1:
-      print "** failed parse_3col_tsv for '%s'" % fname
+      print("** failed parse_3col_tsv for '%s'" % fname)
       return 1, [], []
 
    # pare lines down to useful ones
@@ -1097,14 +1101,14 @@ def parse_3col_tsv(fname, verb=1):
       if len(vv) == 3:
          newlines.append(vv)
       elif len(vv) > 0:
-         print '** skipping bad line %d of 3col tsv file %s' % (lind, fname)
-         if verb > 2: print '   vals[%d] = %s' % (len(vv),vv)
+         print('** skipping bad line %d of 3col tsv file %s' % (lind, fname))
+         if verb > 2: print('   vals[%d] = %s' % (len(vv),vv))
       elif verb > 2:
-         print '** skipping empty line %d of 3col tsv file %s' % (lind, fname)
+         print('** skipping empty line %d of 3col tsv file %s' % (lind, fname))
    lines = newlines
 
    if len(lines) < 1:
-      print "** parse_3col_tsv for '%s' is empty" % fname
+      print("** parse_3col_tsv for '%s' is empty" % fname)
       return 1, [], []
 
    # set header list, if a header exists
@@ -1125,7 +1129,7 @@ def parse_3col_tsv(fname, verb=1):
          dur   = float(line[1])
          lab   = line[2].replace(' ', '_')   # convert spaces to underscores
       except:
-         print '** bad line 3col tsv file %s: %s' % (fname, ' '.join(line))
+         print('** bad line 3col tsv file %s: %s' % (fname, ' '.join(line)))
          return 1, [], []
       slist.append([onset, dur, lab])
 
@@ -1135,7 +1139,7 @@ def read_value_file(fname):
    """read value file, returning generic values in a matrix (no comments)"""
    try: fp = open(fname, 'r')
    except:
-      print "** failed to open value file '%s'" % fname
+      print("** failed to open value file '%s'" % fname)
       return None
 
    data = []         # data lines

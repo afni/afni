@@ -3058,17 +3058,17 @@ class AfniData(object):
             else:            rstr += '%g ' % (val[0])
          else:
             if self.mtype & MTYPE_AMP and len(val[1]) > 0:
-               alist = ['*%s'%a for a in val[1]]
+               alist = ['*%g'%a for a in val[1]]
                astr = ''.join(alist)
             else: astr = ''
 
             # if married and want durations, include them
             if self.write_dm and (self.mtype & MTYPE_DUR):
-               dstr = ':%s' % val[2]
+               dstr = ':%g' % val[2]
             else: dstr = ''
 
             if nplaces >= 0: rstr += '%.*f%s%s ' % (nplaces, val[0], astr, dstr)
-            else: rstr += '%s%s%s ' % (val[0], astr, dstr)
+            else: rstr += '%g%s%s ' % (val[0], astr, dstr)
 
       return rstr + '\n'
 
