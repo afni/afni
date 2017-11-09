@@ -38,7 +38,7 @@ source(first.in.path('AFNIio.R'))
 #	if (dim==1) inData <-  matrix(data = NA, nrow = dim(read.table(inFile[[ii]], header=FALSE))[1], ncol = nFiles)
 #   if (dim==2) inData <- vector('list', nFiles)
 #   for (ii in 1:nFiles) {
-#     inFile[[ii]] <- scan(sprintf("No. %i %s file name: ", ii, type))  
+#     inFile[[ii]] <- readline(sprintf("No. %i %s file name: ", ii, type))  
 #     fn[[ii]] <- strsplit(inFile[[ii]], "/")[[1]][length(strsplit(inFile[[ii]], "/")[[1]])]
 #     print(sprintf("No. %i file just read in: %s", ii, fn[[ii]]))
 #     if (dim==1) inData[,ii] <- read.table(inFile[[ii]], header=FALSE)
@@ -51,12 +51,12 @@ readMultiFiles <- function(nFiles, dim, type) {
    inFile <- vector('list', nFiles) # list of file names with path attached
 	fn <- vector('list', nFiles)     # list of file names
 	if (dim==1) {
-      inFile[[1]] <- scan(sprintf("No. 1 %s file name: ", type))
+      inFile[[1]] <- readline(sprintf("No. 1 %s file name: ", type))
       inData <-  matrix(data = NA, nrow = dim(read.table(inFile[[1]], header=FALSE))[1], ncol = nFiles)
    }
    if (dim==2) inData <- vector('list', nFiles)
    for(ii in 1:nFiles) {
-	   if(((dim==1)&(ii>1))|(dim==2)) inFile[[ii]] <- scan(sprintf("No. %i %s file name: ", ii, type))  
+	   if(((dim==1)&(ii>1))|(dim==2)) inFile[[ii]] <- readline(sprintf("No. %i %s file name: ", ii, type))  
 		fn[[ii]] <- strsplit(inFile[[ii]], "/")[[1]][length(strsplit(inFile[[ii]], "/")[[1]])]
 		print(sprintf("No. %i file just read in: %s", ii, fn[[ii]]))
 		#browser()
@@ -392,7 +392,7 @@ print("################################################################")
 
 print("Use CNTL-C on Unix or ESC on GUI version of R to stop at any moment.")
 
-anaType <- as.integer(scan("Analysis type (0: quit; 1: individual; 2: group)? "))
+anaType <- as.integer(readline("Analysis type (0: quit; 1: individual; 2: group)? "))
 
 if (anaType==1) {
 #libLoad("gsl")      # Legendre polynomials
@@ -403,20 +403,20 @@ anotherAna <- 1
 while (anotherAna==1) {
 
 
-nROIs <- as.integer(scan("Number of regions/nodes (e.g., 6)? "))     # number of ROIs
+nROIs <- as.integer(readline("Number of regions/nodes (e.g., 6)? "))     # number of ROIs
 print("Header with one line of labels is optional in multi-column files, but NOT allowed in one-column files.")
-yForm <- as.integer(scan("ROI time series data type (0: MULTIPLE one-column files; 1: ONE multi-column file)? "))     # input format
+yForm <- as.integer(readline("ROI time series data type (0: MULTIPLE one-column files; 1: ONE multi-column file)? "))     # input format
 
 if (yForm) { # read ROI file (in dataframe), and take label from the header
 #   fn <- tclvalue( tkgetOpenFile( filetypes = 
 #      "{{ROI files in multi-column 1D format} {.1D}} {{All files} *}",
 #      title = paste('Choose ROIs time series file')))
-   fn <- scan("ROIs time series file name: ")
+   fn <- readline("ROIs time series file name: ")
 	print(sprintf("File just read in: %s", strsplit(fn, "/")[[1]][length(strsplit(fn, "/")[[1]])]))
-   yHeader <- as.integer(scan("Does this multi-column file have a header (0: no; 1: yes)? ")) 
+   yHeader <- as.integer(readline("Does this multi-column file have a header (0: no; 1: yes)? ")) 
    if (yHeader == 1) myData <- read.table(fn, header=TRUE) else {
       myData <- read.table(fn, header=FALSE)
-      for (ii in 1:nROIs) names(myData)[ii] <- scan(sprintf("Name for region/node number %i? ", ii))
+      for (ii in 1:nROIs) names(myData)[ii] <- readline(sprintf("Name for region/node number %i? ", ii))
    }
 #   nROIs <- ncol(myData)
    nTotal <- nrow(myData) 
@@ -426,7 +426,7 @@ if (yForm) { # read ROI file (in dataframe), and take label from the header
 #   fn[[1]] <- tclvalue(tkgetOpenFile(filetypes = 
 #      "{{ROI files in one-column 1D format} {.1D}} {{All files} *}",
 #      title = paste('Choose number', 1, 'ROI time series file')))
-   fn[[1]] <- scan(sprintf("No. 1 ROI time series file name: "))
+   fn[[1]] <- readline(sprintf("No. 1 ROI time series file name: "))
 	print(sprintf("No. %i file just read in: %s", 1, strsplit(fn[[1]], "/")[[1]][length(strsplit(fn[[1]], "/")[[1]])]))
    myData <- data.frame(matrix(data=NA, nrow=dim(read.table(fn[[1]], header=FALSE))[1], ncol=nROIs, dimnames = NULL))
    myData[,1] <- read.table(fn[[1]], header=FALSE)
@@ -434,11 +434,11 @@ if (yForm) { # read ROI file (in dataframe), and take label from the header
 #   fn[[ii]] <- tclvalue( tkgetOpenFile( filetypes = 
 #      "{{ROI files in one-column format} {.1D}} {{All files} *}",
 #      title = paste('Choose number', ii, 'ROI time series file')))
-   fn[[ii]] <- scan(sprintf("No. %i ROI time series file name: ", ii))
+   fn[[ii]] <- readline(sprintf("No. %i ROI time series file name: ", ii))
 	print(sprintf("No. %i file just read in: %s", ii, strsplit(fn[[ii]], "/")[[1]][length(strsplit(fn[[ii]], "/")[[1]])]))
 	myData[,ii] <- read.table(fn[[ii]], header=FALSE)    
    } #for (ii in 2:nROIs)
-	for (ii in 1:nROIs) names(myData)[ii] <- scan(sprintf("Name for region/node number %i? ", ii))
+	for (ii in 1:nROIs) names(myData)[ii] <- readline(sprintf("Name for region/node number %i? ", ii))
 # take labels from the filenames
 #   ROIlab <- vector('list', nROIs)
 #   for (ii in 1:nROIs) ROIlab[[ii]] <- strsplit(strsplit(fn[[ii]], "/")[[1]][length(strsplit(fn[[ii]], "/")[[1]])], ".1D")[[1]]
@@ -448,11 +448,11 @@ if (yForm) { # read ROI file (in dataframe), and take label from the header
 print("#++++++++++++++++++++++++++++++++++++++++++++")
 print("If there are n consecutive chunks of data, enter n-1 here.")
 print("If all the time series are consecutive, enter 0 breaks.")
-nChunks <- as.integer(scan("Number of breaks in the time series? "))+1     # number of runs
+nChunks <- as.integer(readline("Number of breaks in the time series? "))+1     # number of runs
 
 nPts <- array(data = NA, dim=nChunks)
 if (nChunks == 1) nPts[1] <- nTotal else
-for (ii in 1:nChunks) nPts[ii] <- as.integer(scan(paste("Length of number", ii, "run/segment? ")))
+for (ii in 1:nChunks) nPts[ii] <- as.integer(readline(paste("Length of number", ii, "run/segment? ")))
 
 print("#++++++++++++++++++++++++++++++++++++++++++++")
 
@@ -461,24 +461,24 @@ print("Trend can be modeled through specifying the order of a polynomial here, "
 print("or can be included as part of covariates later on. If you plan to model the")
 print("trend with your own regressors or don't need to model it, choose -1 here.")
 print("If trend has already been removed (not recommended), choose 0 here.")
-nPoly <- as.integer(scan("Order of polynomials for drifting effects (note: -1 means no trend removal!)? "))  # Legendre
+nPoly <- as.integer(readline("Order of polynomials for drifting effects (note: -1 means no trend removal!)? "))  # Legendre
 
 print("#++++++++++++++++++++++++++++++++++++++++++++")
 
-COV <- as.integer(scan("Any other covariates or confounding effects than drifting (0: no; 1: yes)? ")) 
+COV <- as.integer(readline("Any other covariates or confounding effects than drifting (0: no; 1: yes)? ")) 
 if (as.logical(COV)) {
-   nCOVs <- as.integer(scan("Number of covariates (e.g., 6)? "))     # number of regions: 6
+   nCOVs <- as.integer(readline("Number of covariates (e.g., 6)? "))     # number of regions: 6
 	print("Header with one line of labels is optional in multi-column files, but NOT allowed in one-column files.")
-	covForm <- as.integer(scan("Covariates data type (0: MULTIPLE one-column files; 1: ONE multi-column file)? "))     # covariates format
+	covForm <- as.integer(readline("Covariates data type (0: MULTIPLE one-column files; 1: ONE multi-column file)? "))     # covariates format
    if (covForm) {
 #      fncov <- tclvalue( tkgetOpenFile( filetypes = 
 #      "{{Covariate File} {.1D}} {{All files} *}",
 #      title = paste('Choose covariates file in multi-column format')))
-      fncov <- scan("Covariates file name: ")
-		covHeader <- as.integer(scan("Does this multi-column file have a header (0: no; 1: yes)? "))
+      fncov <- readline("Covariates file name: ")
+		covHeader <- as.integer(readline("Does this multi-column file have a header (0: no; 1: yes)? "))
 		if (covHeader == 1) exData <- read.table(fncov, header=TRUE) else {
          exData <- read.table(fncov, header=FALSE)
-         for (ii in 1:nCOVs) names(exData)[ii] <- scan(sprintf("Name for covariate number %i? ", ii))
+         for (ii in 1:nCOVs) names(exData)[ii] <- readline(sprintf("Name for covariate number %i? ", ii))
       }
    } else {
 #      covn <- vector('list', nCOVs)
@@ -493,7 +493,7 @@ if (as.logical(COV)) {
 #         print(sprintf("No. %i file just read in: %s", ii, strsplit(covn[[ii]], "/")[[1]][length(strsplit(covn[[ii]], "/")[[1]])]))
 #			exData[,ii] <- read.table(covn[[ii]], header=FALSE)    
 #      }
-      for (ii in 1:nCOVs) names(exData)[ii] <- scan(sprintf("Name for covariate number %i? ", ii))
+      for (ii in 1:nCOVs) names(exData)[ii] <- readline(sprintf("Name for covariate number %i? ", ii))
 #		COVlab <- vector('list', nCOVs)
 #      for (ii in 1:nCOVs) COVlab[[ii]] <- strsplit(covFN[[ii]], ".1D")[[1]]
 #      names(exData) <- COVlab
@@ -502,13 +502,13 @@ if (as.logical(COV)) {
 print("#++++++++++++++++++++++++++++++++++++++++++++")
 
 # plot out the time series, and let the user make sure they look OK
-plotROIs <- as.integer(scan("Plot out the original ROI time series (0: no; 1: yes)? "))
+plotROIs <- as.integer(readline("Plot out the original ROI time series (0: no; 1: yes)? "))
 #print("Check the fitting for each ROI time series")
 if (plotROIs) plotTS(myData, nROIs, "Original time series")
 
 
 if (as.logical(COV)) {
-   plotCov <- as.integer(scan("Plot out covariates time series provided by you (0: no; 1: yes)? "))
+   plotCov <- as.integer(readline("Plot out covariates time series provided by you (0: no; 1: yes)? "))
    if (plotCov) plotTS(exData, nCOVs, "Covariate time series")
 } # if (as.logical(COV))
 print("-----------------")
@@ -516,7 +516,7 @@ print("-----------------")
 # scaling the data per run per ROI
 newData <- myData
 print(sprintf("If normalization was NOT performed during pre-processing, you can scale the data now."))
-scaleTS <- as.integer(scan("Scale the ROI time series (0: no; 1: yes)? "))
+scaleTS <- as.integer(readline("Scale the ROI time series (0: no; 1: yes)? "))
 if (scaleTS) {
    jumpPts <- 0
    for (ii in 1:nChunks) {
@@ -540,7 +540,7 @@ if (nPoly > -1) {
 } else exMat <- exData # if no baseline and trend, do nothing
 # plot out those polynomials here???
 
-maxLags <- as.integer(scan("Highest order (or number of lags) for the VAR model (1,2,...)? "))
+maxLags <- as.integer(readline("Highest order (or number of lags) for the VAR model (1,2,...)? "))
 
 critSel <- VARselect(newData, lag.max = maxLags, type = "none", exogen=exMat)
 print(sprintf("Suggested orders for VAR:"))
@@ -560,7 +560,7 @@ anotherLag <- TRUE
 while (anotherLag) {
 
 #print(sprintf("Select the order of VAR model based on above criteria:"))
-nLags <- as.integer(scan("Select order of VAR model based on above criteria (e.g., 3)? "))
+nLags <- as.integer(readline("Select order of VAR model based on above criteria (e.g., 3)? "))
 
 # generate intervention dummy variables for across-run/block breaks: nLags dummies per run
 if (nChunks > 1) {
@@ -581,7 +581,7 @@ print("#++++++++++++++++++++++++++++++++++++++++++++")
 
 fm <- VAR(newData, p=nLags, type="none", exogen=exMatMod)
 
-qualityCheck <- as.integer(scan("Want to run a few quality check tests (0: no; 1: yes)? "))
+qualityCheck <- as.integer(readline("Want to run a few quality check tests (0: no; 1: yes)? "))
 if (qualityCheck) {
 # the modulus of the eigenvalues (presumably less than 1 as stable condition) in the reverse characteristic polynomial; stable process is stationary, but the converse is not true
 #print("Quality check of the model:")
@@ -598,10 +598,10 @@ print(serial.test(fm, lags.pt=16, lags.bg=5, type=c("ES")))
 print("-----------------")
 print("Autoregressive conditional heteroskedasticity (ARCH) test")
 print(arch.test(fm))
-archPlot <- as.integer(scan("Plot out ARCH test result (0: no; 1: yes)? "))
+archPlot <- as.integer(readline("Plot out ARCH test result (0: no; 1: yes)? "))
 if (archPlot) {dev.new(); plot(arch.test(fm))}
 print("-----------------")
-statPlot <- as.integer(scan("Plot out stability test (0: no; 1: yes)? "))
+statPlot <- as.integer(readline("Plot out stability test (0: no; 1: yes)? "))
 if (statPlot) {	
    print("Available empirical fluctuation process (efp) types are:")
    print("1. OLS-CUSUM:   CUmulative SUMs of Ordinary Least Squares residuals;")
@@ -614,7 +614,7 @@ if (statPlot) {
    print("8. Score-MOSUM: MOving SUMs of the ML scores.")
    anotherType <- TRUE
    while (anotherType) {
-   procNo <- as.integer(scan("Select process type (1-8)? "))
+   procNo <- as.integer(readline("Select process type (1-8)? "))
    if (procNo==1) procType <- "OLS-CUSUM"
    if (procNo==2) procType <- "Rec-CUSUM"
    if (procNo==3) procType <- "OLS-MOSUM"
@@ -624,17 +624,17 @@ if (statPlot) {
    if (procNo==7) procType <- "Score-CUSUM"
    if (procNo==8) procType <- "Score-CUSUM"
    dev.new(); plot(stability(fm, type = procType, h = 0.15, dynamic = FALSE, rescale = TRUE))
-   anotherType <- as.integer(scan("Want to plot stability with another type (0: no; 1: yes)? "))
+   anotherType <- as.integer(readline("Want to plot stability with another type (0: no; 1: yes)? "))
    } # while (anotherType)
 } # if (statPlot)
 	
 print("-----------------")	
-checkCov <- as.integer(scan("Check significance of covariates (0: no; 1: yes)? "))
+checkCov <- as.integer(readline("Check significance of covariates (0: no; 1: yes)? "))
 if (checkCov) {
    anotherCovPth <- TRUE
 	totCOVs <- (nPoly+1)*nChunks+nCOVs  # total covariates
    while (anotherCovPth) {
-	   pCovThresh <- as.numeric(scan("p-threshold for covariates (e.g., 0.05)? "))
+	   pCovThresh <- as.numeric(readline("p-threshold for covariates (e.g., 0.05)? "))
 		#Info about all the covariates:
 		#lapply(coef(fm), function(x) x[nROIs*nLags+(1:totCOVs),])
 		covPList <- lapply(coef(fm), function(x) x[nROIs*nLags+(1:totCOVs),4]<=pCovThresh)
@@ -649,7 +649,7 @@ if (checkCov) {
 			print("show up in the above list, only if the highest order of the polynomials")
 			print("indicates insignificant would you try decreasing the order.")
 	   } else print(sprintf("All covarates show significance in the model with a threshold of %f.", pCovThresh))
-		anotherCovPth <- as.integer(scan("Want to try another p-threshold for covariates (0: no; 1: yes)? "))
+		anotherCovPth <- as.integer(readline("Want to try another p-threshold for covariates (0: no; 1: yes)? "))
 	} #
 }	
 } # model quality check
@@ -668,18 +668,18 @@ for (ii in 1:nROIs) for (jj in 1:nROIs) for (kk in 1:nLags)  { # ii: target, jj:
 #for (ii in 1:nLags) {
 #   print(sprintf("Path coefficient matrix with a lag of %i (direction goes from row to column):", ii))
 #   print(matrix(netMatR[ii,,], nrow = nROIs, ncol = nROIs, dimnames = list(names(myData), names(myData))))
-#   saveMat <- as.integer(scan("Save above path matrix for group analysis (0: no; 1: yes)? "))
+#   saveMat <- as.integer(readline("Save above path matrix for group analysis (0: no; 1: yes)? "))
 #   if (saveMat) {
-#      matName <- as.character(scan("File name prefix (e.g., PathLag1Subj1)? "))
+#      matName <- as.character(readline("File name prefix (e.g., PathLag1Subj1)? "))
 #      write.table(netMatR[ii,,], file=sprintf("%s.1D", matName), append=FALSE, row.names=names(myData), col.names=names(myData))
 #   }   	
 #   print("-----------------")
 #	print(sprintf("Matrix of t values with a lag of %i (direction goes from row to column):", ii))
 #   print(matrix(netMatT[ii,,], nrow = nROIs, ncol = nROIs, dimnames = list(names(myData), names(myData))))
 #	print(sprintf("DFs = %i for null hypothesis H_0: a path coefficient = 0.", summary(fm)$varresult[[1]]$df[2]))
-#	saveMatT <- as.integer(scan("Save matrix of t values for group analysis (0: no; 1: yes)? "))
+#	saveMatT <- as.integer(readline("Save matrix of t values for group analysis (0: no; 1: yes)? "))
 #   if (saveMatT) {
-#      matName <- as.character(scan("File name prefix (e.g., TLag1Subj1)? "))
+#      matName <- as.character(readline("File name prefix (e.g., TLag1Subj1)? "))
 #      write.table(netMatT[ii,,], file=sprintf("%s.1D", matName), append=FALSE, row.names=names(myData), col.names=names(myData))
 #   }   	
 #   print("-----------------")
@@ -701,9 +701,9 @@ for (ii in 1:nROIs) for (jj in 1:nROIs) for (kk in 1:nLags)  { # ii: target, jj:
 #   print(netCMatF)
 #	print(sprintf("Numerator DFs = %i, and Denominator DFs =%i", -ltTmp$Df[2], ltTmp$Res.Df[1]))
 #	print(sprintf("Null hypothesis H_0: path coef from region i to j is 0 for all %i lags.", nLags))
-#   saveCMatF <- as.integer(scan("Save above F matrix (0: no; 1: yes)? "))
+#   saveCMatF <- as.integer(readline("Save above F matrix (0: no; 1: yes)? "))
 #   if (saveCMatF) {
-#      matCFName <- as.character(scan("File name prefix (e.g., FMatSubj1)? "))
+#      matCFName <- as.character(readline("File name prefix (e.g., FMatSubj1)? "))
 #      write.table(netCMatF, file=sprintf("%s.1D", matCFName), append=FALSE)
 #   }
 #	print("-----------------")
@@ -711,9 +711,9 @@ for (ii in 1:nROIs) for (jj in 1:nROIs) for (kk in 1:nLags)  { # ii: target, jj:
 #   print(netCMatP)
 #	print(sprintf("Numerator DFs = %i, and Denominator DFs =%i", -ltTmp$Df[2], ltTmp$Res.Df[1]))
 #	print(sprintf("Null hypothesis H_0: path coef from region i to j is 0 for all %i lags.", nLags))
-#   saveCMatP <- as.integer(scan("Save above p-value matrix (0: no; 1: yes)? "))
+#   saveCMatP <- as.integer(readline("Save above p-value matrix (0: no; 1: yes)? "))
 #   if (saveCMatP) {
-#      matCPName <- as.character(scan("File name prefix (e.g., PMatSubj1)? "))
+#      matCPName <- as.character(readline("File name prefix (e.g., PMatSubj1)? "))
 #      write.table(netCMatP, file=sprintf("%s.1D", matCPName), append=FALSE)
 #   }	   	
 #   print("-----------------")
@@ -727,27 +727,27 @@ for (ii in 1:nROIs) for (jj in 1:nROIs) for (kk in 1:nLags)  { # ii: target, jj:
 
 print("Covariance matrix of residuals:")
 print(summary(fm)$covres)
-#saveCovMat <- as.integer(scan("Save above contemporaneous covariance matrix (0: no; 1: yes)? "))
+#saveCovMat <- as.integer(readline("Save above contemporaneous covariance matrix (0: no; 1: yes)? "))
 #if (saveCovMat) {
-#   matCovName <- as.character(scan("File name prefix (e.g., CovSubj1)? "))
+#   matCovName <- as.character(readline("File name prefix (e.g., CovSubj1)? "))
 #   write.table(summary(fm)$covres, file=sprintf("%s.1D", matCovName), append=FALSE, row.names=TRUE, col.names=TRUE)
 #}   	
 print("-----------------")
 
 print("Correlation matrix of residuals:")
 print(summary(fm)$corres)
-#saveCorMat <- as.integer(scan("Save above contemporaneous correlation matrix (0: no; 1: yes)? "))
+#saveCorMat <- as.integer(readline("Save above contemporaneous correlation matrix (0: no; 1: yes)? "))
 #if (saveCorMat) {
-#   matCorName <- as.character(scan("File name prefix (e.g., CorSubj1)? "))
+#   matCorName <- as.character(readline("File name prefix (e.g., CorSubj1)? "))
 #   write.table(summary(fm)$corres, file=sprintf("%s.1D", matCorName), append=FALSE, row.names=TRUE, col.names=TRUE)
 #}   	
 print("-----------------")
 
-seeModel <- as.integer(scan("Want to see the model details and statistics (0: no; 1: yes)? "))
+seeModel <- as.integer(readline("Want to see the model details and statistics (0: no; 1: yes)? "))
 if (seeModel) print(summary(fm))
 
 print("#++++++++++++++++++++++++++++++++++++++++++++")
-plotFit <- as.integer(scan("Plot out the model fit, residuals, residual ACF and PACF (0: no; 1: yes)? "))
+plotFit <- as.integer(readline("Plot out the model fit, residuals, residual ACF and PACF (0: no; 1: yes)? "))
 print("-----------------")
 
 if (plotFit) { dev.new(); plot(fm) }
@@ -757,7 +757,7 @@ if (plotFit) { dev.new(); plot(fm) }
 
 #print(sprintf("There are totally %i paths in the model. Select a low p value ", nLags*nROIs^2))
 #print("if you're concerned about multiple comparisons issue:")
-#pThresh <- as.numeric(scan("p-threshold for causal effects (e.g., 0.05)? "))
+#pThresh <- as.numeric(readline("p-threshold for causal effects (e.g., 0.05)? "))
 
 # connection goes from row to column, which is the default in network package
 #netMat <- array(data=NA, dim=c(nLags+1, nROIs, nROIs))  # thresholded network
@@ -800,16 +800,16 @@ if (plotFit) { dev.new(); plot(fm) }
 #      dimnames = list(names(myData), names(myData))))
 #}
 					
-#plotNetwork <- as.integer(scan("Plot out the identified network (0: no; 1: yes)? "))
+#plotNetwork <- as.integer(readline("Plot out the identified network (0: no; 1: yes)? "))
 #if (plotNetwork) {
 
 #set.seed(1702)
 #net <- network.initialize(nROIs)
 #attr(net, "vertex.names") <- names(myData)
-#edgeScale <- as.numeric(scan("Scale factor for path thickness (e.g., 20)? "))
-#arrowScale <- as.numeric(scan("Scale factor for arrows (e.g., 2)? "))
+#edgeScale <- as.numeric(readline("Scale factor for path thickness (e.g., 20)? "))
+#arrowScale <- as.numeric(readline("Scale factor for arrows (e.g., 2)? "))
 #print("A self-loop indicates a region/node has effect on itself from t-1 to t.")
-#selfLoop <- as.integer(scan("Show self-loops in the network (0: no; 1: yes)? "))
+#selfLoop <- as.integer(readline("Show self-loops in the network (0: no; 1: yes)? "))
 
 #for (ii in 1:nLags) {
 #	netData <- netMat[ii,,]
@@ -828,10 +828,10 @@ if (plotFit) { dev.new(); plot(fm) }
 	
 
 #print("#++++++++++++++++++++++++++++++++++++++++++++")
-#anotherPth <- as.integer(scan("Want to try another p-threshold/plotting set-up for network (0: no; 1: yes)? "))
+#anotherPth <- as.integer(readline("Want to try another p-threshold/plotting set-up for network (0: no; 1: yes)? "))
 #}
 #print("#++++++++++++++++++++++++++++++++++++++++++++")
-anotherLag <- as.integer(scan("Want to try a different lag number for SVAR (0: no; 1: yes)? "))
+anotherLag <- as.integer(readline("Want to try a different lag number for SVAR (0: no; 1: yes)? "))
 }
 print("#++++++++++++++++++++++++++++++++++++++++++++")
 
@@ -861,7 +861,7 @@ bb <- diag(nROIs); diag(bb) <- NA  # make B as a diagonal matrix with unknown el
 cat("\nThe following two options are for numerical algorithm. Choose first")
 cat("\n'Iterative', switch to 'Direct' if the iterative approach fails.\n\n")
 
-estMeth <- as.integer(scan("Numerical scheme (0: Iterative; 1: Direct)? "))
+estMeth <- as.integer(readline("Numerical scheme (0: Iterative; 1: Direct)? "))
 
 if(estMeth==0) fm2 <- SVAR(x = fm, estmethod = "scoring", Amat = instMat, Bmat = bb, max.iter = 100, maxls = 1000, conv.crit = 1.0e-6)
 if(estMeth==1) fm2 <- SVAR(x = fm, estmethod = "direct", Amat = instMat, Bmat = bb, max.iter = 100, maxls = 1000, conv.crit = 1.0e-6)
@@ -875,16 +875,16 @@ instMatPt <- instMatP/apply(fm2$Ase, c(1,2), nZ)   # t-value for instantaneous e
 cat("\nInstantaneous effect matrix:\n")
 print(t(instMatP))
 print(fm2$LR)
-saveInstMatP <- as.integer(scan("\nSave instantaneous effect matrix (0: no; 1: yes)? "))
+saveInstMatP <- as.integer(readline("\nSave instantaneous effect matrix (0: no; 1: yes)? "))
 if (saveInstMatP) {
-   instMatPName <- as.character(scan("File name prefix for instantaneous matrix? "))
+   instMatPName <- as.character(readline("File name prefix for instantaneous matrix? "))
    write.table(t(instMatP), file=sprintf("%s.1D", instMatPName), append=FALSE, row.names=names(myData), col.names=names(myData))
 }
 cat("\nT-values for instantaneous effect matrix:\n")
 print(t(instMatPt))
-saveInstMatPt <- as.integer(scan("\nSave t-values for instantaneous effect matrix (0: no; 1: yes)? "))
+saveInstMatPt <- as.integer(readline("\nSave t-values for instantaneous effect matrix (0: no; 1: yes)? "))
 if (saveInstMatPt) {   
-   instMatPtName <- as.character(scan("File name prefix for t-values of instantaneous matrix? "))
+   instMatPtName <- as.character(readline("File name prefix for t-values of instantaneous matrix? "))
    write.table(t(instMatPt), file=sprintf("%sSEMt.1D", instMatPtName), append=FALSE, row.names=names(myData), col.names=names(myData))
 }
 
@@ -892,18 +892,18 @@ for (ii in 1:nLags) {
    cat("\n"); print(sprintf("Path coefficient matrix with a lag of %i (direction goes from row to column):", ii))
    lagMat <- netMatR[ii,,]%*%t(fm2$A); rownames(lagMat) <- colnames(instMatP)
    print(lagMat)
-   cat("\n"); saveLagMat <- as.integer(scan("Save above path matrix (0: no; 1: yes)? "))
+   cat("\n"); saveLagMat <- as.integer(readline("Save above path matrix (0: no; 1: yes)? "))
    if (saveLagMat) {
-      cat("\n"); lagMatName <- as.character(scan("Filename prefix (e.g., PathLag1Subj1)? "))
+      cat("\n"); lagMatName <- as.character(readline("Filename prefix (e.g., PathLag1Subj1)? "))
       write.table(lagMat, file=sprintf("%s.1D", lagMatName), append=FALSE, row.names=names(myData), col.names=names(myData))
    }   	
    print("-----------------") # Need to work out the t-values for the lagged effects
 	#print(sprintf("Matrix of t values with a lag of %i (direction goes from row to column):", ii))
    #print(matrix(netMatT[ii,,], nrow = nROIs, ncol = nROIs, dimnames = list(names(myData), names(myData))))
 	#print(sprintf("DFs = %i for null hypothesis H_0: a path coefficient = 0.", summary(fm)$varresult[[1]]$df[2]))
-	#saveMatT <- as.integer(scan("Save matrix of t values for group analysis (0: no; 1: yes)? "))
+	#saveMatT <- as.integer(readline("Save matrix of t values for group analysis (0: no; 1: yes)? "))
    #if (saveMatT) {
-   #   matName <- as.character(scan("File name prefix (e.g., TLag1Subj1)? "))
+   #   matName <- as.character(readline("File name prefix (e.g., TLag1Subj1)? "))
    #   write.table(netMatT[ii,,], file=sprintf("%s.1D", matName), append=FALSE, row.names=names(myData), col.names=names(myData))
    #}   	
    #print("-----------------")
@@ -926,7 +926,7 @@ if(search) {
 
 
 
-anotherAna <- as.integer(scan("Next (0: quit; 1: another individual analysis; 2: group analysis)? "))
+anotherAna <- as.integer(readline("Next (0: quit; 1: another individual analysis; 2: group analysis)? "))
 } # while (anotherAna==1)
 
 } # if (anaType==1)
@@ -944,7 +944,7 @@ print("(3) t-statistics only (NOT recommended); or")
 print("(4) F-statistics only (NOT recommended).")
 print("-----------------")
 
-grpType <- as.integer(scan("Which type of input files (1: path and t; 2: path only; 3: t only; 4: F only)? ")) 
+grpType <- as.integer(readline("Which type of input files (1: path and t; 2: path only; 3: t only; 4: F only)? ")) 
 
 #fishConv <- TRUE  # Fisher transformation
 #if(fishConv) libLoad("psych")
@@ -952,10 +952,10 @@ grpType <- as.integer(scan("Which type of input files (1: path and t; 2: path on
 doneGrp <- 1
 while (doneGrp) {
 
-nGrp <- as.integer(scan("Number of groups (1 or 2)? "))
+nGrp <- as.integer(readline("Number of groups (1 or 2)? "))
 if (nGrp==1) {   #one-sample t
 
-nSubjs <- as.integer(scan("Number of subjects (e.g., 12)? "))     # number of subjects
+nSubjs <- as.integer(readline("Number of subjects (e.g., 12)? "))     # number of subjects
 #gfn <- vector('list', nSubjs)
 pathList <- vector('list', nSubjs)
 
@@ -1040,18 +1040,18 @@ if (runMeta) {
 	print("Group path matrix (direction goes from row to column):")
    print(grpR)
 	print("-----------------")	
-	saveRMat <- as.integer(scan("Save the above path matrix (0: no; 1: yes)? "))
+	saveRMat <- as.integer(readline("Save the above path matrix (0: no; 1: yes)? "))
       if (saveRMat) {
-         matRName <- as.character(scan("File name prefix for path matrix? "))
+         matRName <- as.character(readline("File name prefix for path matrix? "))
          write.table(grpR, file=sprintf("%s.1D", matRName), append=FALSE, row.names=TRUE, col.names=TRUE)
       }	
 	print("-----------------")
 	print("Group p matrix (direction goes from row to column):")
    print(grpP)
 	print("-----------------")
-   savePMat <- as.integer(scan("Save the above p matrix (0: no; 1: yes)? "))
+   savePMat <- as.integer(readline("Save the above p matrix (0: no; 1: yes)? "))
       if (savePMat) {
-         matPName <- as.character(scan("File name prefix for p matrix? "))
+         matPName <- as.character(readline("File name prefix for p matrix? "))
          write.table(grpP, file=sprintf("%s.1D", matPName), append=FALSE, row.names=TRUE, col.names=TRUE)
       }	
    print("-----------------")
@@ -1063,7 +1063,7 @@ if (runMeta) {
    anotherPthG <- TRUE
    while (anotherPthG) {
 						
-   pThreshG <- as.numeric(scan("p-threshold for group analysis (e.g., 0.05)? "))
+   pThreshG <- as.numeric(readline("p-threshold for group analysis (e.g., 0.05)? "))
    surviveR <- as.numeric(grpP<=pThreshG)*grpR  # for network plotting
    showSigR <- matrix(mapply(function(x,y) ifelse(x, y, NA), grpP<=pThreshG, grpR), nrow=nROIsG, ncol=nROIsG, 
       dimnames = list(roiNames, roiNames))
@@ -1084,20 +1084,20 @@ if (runMeta) {
    }
    print("-----------------")				
 					
-   plotNetG <- as.integer(scan("Plot out the identified network (0: no; 1: yes)? "))
+   plotNetG <- as.integer(readline("Plot out the identified network (0: no; 1: yes)? "))
    if (plotNetG) {
       print("The thickness of a path indicates its relative strength (or effect).")
       print("A path in red means positive strength (or effect) while blue is the opposite.")
       set.seed(1702)
       net <- network.initialize(nROIsG)
       attr(net, "vertex.names") <- names(pathList[[1]])
-      edgeScaleG <- as.numeric(scan("Scale factor for path thickness (e.g., 1)? "))
-      arrowScaleG <- as.numeric(scan("Scale factor for arrow size (e.g., 2)? "))
-      selfLoop <- as.integer(scan("Show self-loops in the network (0: no; 1: yes)? "))
+      edgeScaleG <- as.numeric(readline("Scale factor for path thickness (e.g., 1)? "))
+      arrowScaleG <- as.numeric(readline("Scale factor for arrow size (e.g., 2)? "))
+      selfLoop <- as.integer(readline("Show self-loops in the network (0: no; 1: yes)? "))
       	plotNet(surviveR, selfLoop, surviveR*edgeScaleG, arrowScaleG, 3-sign(surviveR), sprintf("Group network with %s subjects", nSubjs))
    } # if (plotNetG)
 
-   anotherPthG <- as.integer(scan("Want to try another p-threshold/plotting set-up for group network (0: no; 1: yes)? "))
+   anotherPthG <- as.integer(readline("Want to try another p-threshold/plotting set-up for group network (0: no; 1: yes)? "))
 }
 } else {  # more than one group
 
@@ -1113,7 +1113,7 @@ zSEMat <- vector('list', nGrp)
 DF <- vector('list', nGrp)
 
 for (ii in 1:nGrp) {  # Fisher tranformation not done since it doesn't seem to matter much in testing
-	nSubjs[ii] <- as.integer(scan(sprintf("Number of subjects in group %s (e.g., 12)? ", ii)))
+	nSubjs[ii] <- as.integer(readline(sprintf("Number of subjects in group %s (e.g., 12)? ", ii)))
    pathList[[ii]] <- vector('list', nSubjs[ii])
 	if (grpType==1 ) {   
       print("Provide path coef files first:")
@@ -1133,7 +1133,7 @@ for (ii in 1:nGrp) {  # Fisher tranformation not done since it doesn't seem to m
       
       runMeta <- TRUE
 #      print("-----------------") 
-#      DF[[ii]] <- as.integer(scan(sprintf("Degrees of freedom for the t-statistics in group %s? ", ii)))
+#      DF[[ii]] <- as.integer(readline(sprintf("Degrees of freedom for the t-statistics in group %s? ", ii)))
       print("-----------------")
    }
    if (grpType==2) {  # Fisher tranformation not done here since it doesn't seem to matter much in testing
@@ -1218,18 +1218,18 @@ if (runMeta) {
       print("Group1 path matrix (direction goes from row to column):")
       print(grp1R)
       print("-----------------")
-      saveRMat <- as.integer(scan("Save Group1 path matrix (0: no; 1: yes)? "))
+      saveRMat <- as.integer(readline("Save Group1 path matrix (0: no; 1: yes)? "))
          if (saveRMat) {
-            matRName <- as.character(scan("File name prefix for path matrix? "))
+            matRName <- as.character(readline("File name prefix for path matrix? "))
             write.table(grp1R, file=sprintf("%s.1D", matRName), append=FALSE, row.names=TRUE, col.names=TRUE)
          }
       print("-----------------")   
       print("Group2 path matrix (direction goes from row to column):")
       print(grp2R)
       print("-----------------")
-      saveRMat <- as.integer(scan("Save Group2 path matrix (0: no; 1: yes)? "))
+      saveRMat <- as.integer(readline("Save Group2 path matrix (0: no; 1: yes)? "))
       if (saveRMat) {
-         matRName <- as.character(scan("File name prefix for path matrix? "))
+         matRName <- as.character(readline("File name prefix for path matrix? "))
          write.table(grp2R, file=sprintf("%s.1D", matRName), append=FALSE, row.names=TRUE, col.names=TRUE)
       }
       print("-----------------")
@@ -1237,9 +1237,9 @@ if (runMeta) {
 	print("Group2-Group1 path matrix (direction goes from row to column):")
    print(grpR)
 	print("-----------------")	
-	saveRMat <- as.integer(scan("Save Group2-Group1 path matrix (0: no; 1: yes)? "))
+	saveRMat <- as.integer(readline("Save Group2-Group1 path matrix (0: no; 1: yes)? "))
       if (saveRMat) {
-         matRName <- as.character(scan("File name prefix for path matrix? "))
+         matRName <- as.character(readline("File name prefix for path matrix? "))
          write.table(grpR, file=sprintf("%s.1D", matRName), append=FALSE, row.names=TRUE, col.names=TRUE)
       }	
 	print("-----------------")
@@ -1247,18 +1247,18 @@ if (runMeta) {
       print("Group1 p matrix (direction goes from row to column):")
       print(grp1P)
       print("-----------------")
-      savePMat <- as.integer(scan("Save Group1 p matrix (0: no; 1: yes)? "))
+      savePMat <- as.integer(readline("Save Group1 p matrix (0: no; 1: yes)? "))
          if (savePMat) {
-            matPName <- as.character(scan("File name prefix for p matrix? "))
+            matPName <- as.character(readline("File name prefix for p matrix? "))
             write.table(grp1P, file=sprintf("%s.1D", matPName), append=FALSE, row.names=TRUE, col.names=TRUE)
          }	
       print("-----------------")
       print("Group2 p matrix (direction goes from row to column):")
       print(grp2P)
       print("-----------------")
-      savePMat <- as.integer(scan("Save Group2 p matrix (0: no; 1: yes)? "))
+      savePMat <- as.integer(readline("Save Group2 p matrix (0: no; 1: yes)? "))
          if (savePMat) {
-            matPName <- as.character(scan("File name prefix for p matrix? "))
+            matPName <- as.character(readline("File name prefix for p matrix? "))
             write.table(grp2P, file=sprintf("%s.1D", matPName), append=FALSE, row.names=TRUE, col.names=TRUE)
          }	
       print("-----------------")
@@ -1266,9 +1266,9 @@ if (runMeta) {
    print("Group2-Group1 p matrix (direction goes from row to column):")
    print(grpP)
 	print("-----------------")
-   savePMat <- as.integer(scan("Save Group2-Group1 p matrix (0: no; 1: yes)? "))
+   savePMat <- as.integer(readline("Save Group2-Group1 p matrix (0: no; 1: yes)? "))
       if (savePMat) {
-         matPName <- as.character(scan("File name prefix for p matrix? "))
+         matPName <- as.character(readline("File name prefix for p matrix? "))
          write.table(grpP, file=sprintf("%s.1D", matPName), append=FALSE, row.names=TRUE, col.names=TRUE)
       }	
    print("-----------------")
@@ -1281,7 +1281,7 @@ if (runMeta) {
    anotherPthG <- TRUE
    while (anotherPthG) {
 						
-   pThreshG <- as.numeric(scan("Two-tailed p-threshold for group analysis (e.g., 0.05)? "))
+   pThreshG <- as.numeric(readline("Two-tailed p-threshold for group analysis (e.g., 0.05)? "))
    surviveR <- as.numeric(grpP<=pThreshG)*grpR   # for plotting
    showSigR <- matrix(mapply(function(x,y) ifelse(x, y, NA), grpP<=pThreshG, grpR), nrow=nROIsG[1], 
       ncol=nROIsG[1], dimnames = list(roiNames[[1]], roiNames[[1]]))
@@ -1328,16 +1328,16 @@ if (runMeta) {
    }
    print("-----------------")				
 					
-   plotNetG <- as.integer(scan("Plot out the identified network (0: no; 1: yes)? "))
+   plotNetG <- as.integer(readline("Plot out the identified network (0: no; 1: yes)? "))
    if (plotNetG) {
       print("The thickness of a path indicates the difference magnitude.")
       print("A path in red means positive difference while blue is the opposite.")
       set.seed(1702)
       net <- network.initialize(nROIsG[1])
       attr(net, "vertex.names") <- names(pathList[[1]][[1]])
-      edgeScaleG <- as.numeric(scan("Scale factor for path thickness (e.g., 1)? "))
-      arrowScaleG <- as.numeric(scan("Scale factor for arrows (e.g., 2)? "))
-      selfLoop <- as.integer(scan("Show self-loops in the network (0: no; 1: yes)? "))
+      edgeScaleG <- as.numeric(readline("Scale factor for path thickness (e.g., 1)? "))
+      arrowScaleG <- as.numeric(readline("Scale factor for arrows (e.g., 2)? "))
+      selfLoop <- as.integer(readline("Show self-loops in the network (0: no; 1: yes)? "))
 	 # if path +, col<-2 (red); if path -, col<-4 (blue)
    	if (runMeta) {
          plotNet(survive1R, selfLoop, survive1R*edgeScaleG, arrowScaleG, 3-sign(survive1R), "Network of Group1")
@@ -1346,19 +1346,19 @@ if (runMeta) {
       plotNet(surviveR, selfLoop, surviveR*edgeScaleG, arrowScaleG, 3-sign(surviveR), "Network of Group2-Group1")
    } # if (plotNetG)
   
-anotherPthG <- as.integer(scan("Want to try another p-threshold/plotting set-up for group network (0: no; 1: yes)? "))
+anotherPthG <- as.integer(readline("Want to try another p-threshold/plotting set-up for group network (0: no; 1: yes)? "))
 } # while (anotherPthG)
 
 } # more than one group
 
-doneGrp <- as.integer(scan("Next (0: done; 1: another group analysis)? "))
+doneGrp <- as.integer(readline("Next (0: done; 1: another group analysis)? "))
 } # while (doneGrp)
 
 } # if (anaType==2 || anotherAna==2)
 
 if (anaType==0 || doneGrp==0 || anotherAna==0) {
    print("Make sure to save all desirable figures before leaving!")
-   quitMe <- as.integer(scan("Quit R (0: no; 1: yes)? "))
+   quitMe <- as.integer(readline("Quit R (0: no; 1: yes)? "))
 	print("***********Thanks for using the program!***********")
 	print("Any feedback will be welcome - Gang Chen (gangchen@mail.nih.gov)")
    if (quitMe) {dev.off(); q()}

@@ -59,12 +59,13 @@ cat << EOF
    $prog
       Launch a shiny app to visualize .netcc and/or .grid files.
       Takes one argument, a path to a folder with said files.
+      That path MUST be the last argument!
       May need "@afni_R_package_install -shiny -circos" for R libraries.
 
    -----------------------------------------------------------------------------
    options:
-      -help        : show this help
-      -ShinyFolder : use a custom shiny folder (for testing purposes)
+      -help        : Show this help.
+      -ShinyFolder : Use a custom shiny folder (for testing purposes).
 
    -----------------------------------------------------------------------------
    examples:

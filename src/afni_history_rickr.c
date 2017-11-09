@@ -49,6 +49,36 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  9, Nov, 2017, RCR, "make_random_timing.py", MINOR, TYPE_ENHANCE,
+   "python3 compatible as of version 3.0",
+   NULL
+ } ,
+
+ {  9, Nov, 2017, RCR, "timing_tool.py", MINOR, TYPE_ENHANCE,
+   "python3 compatible as of version 3.00",
+   NULL
+ } ,
+
+ {  7, Nov, 2017, RCR, "afni_proc.py", MAJOR, TYPE_ENHANCE,
+   "python3 compatible as of version 6.00",
+   NULL
+ } ,
+
+ {  7, Nov, 2017, RCR, "1d_tool.py", MINOR, TYPE_ENHANCE,
+   "python3 compatible as of version 2.00",
+   NULL
+ } ,
+
+ {  7, Nov, 2017, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "python3 compatible as of version 1.00",
+   NULL
+ } ,
+
+ {  6, Nov, 2017, RCR, "afni-general", MAJOR, TYPE_ENHANCE,
+   "first stab at making python program p2/p3 compatible",
+   "Based on 2to3 and dglen mods, and tested in p2 and p3 environments."
+ } ,
+
  {  1, Nov, 2017, RCR, "make_random_timing.py", MAJOR, TYPE_NEW_OPT,
    "implement the decay_fixed distribution type",
    "See make_random_timing.py -help_decay_fixed for details."

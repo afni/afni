@@ -997,7 +997,7 @@ STATUS("creating menu window") ;
    XtSetArg( args[nargs] , XmNlabelString , xstr ) ; nargs++ ;
 
 STATUS("creating option menu") ;
-   av->wrowcol = XmCreateOptionMenu( parent , DIALOG , args , nargs ) ;
+   av->wrowcol = XmCreateOptionMenu( parent , MENU , args , nargs ) ;
    XmStringFree(xstr) ;
    XtVaSetValues( av->wrowcol ,
                      XmNmarginWidth  , 0 ,
@@ -1061,7 +1061,7 @@ STATUS("creating option menu") ;
       xstr = XmStringCreateLtoR( blab , XmFONTLIST_DEFAULT_TAG ) ;
 
       wbut = XtVaCreateManagedWidget(
-                DIALOG , xmPushButtonWidgetClass , wmenu ,
+                MENU , xmPushButtonWidgetClass , wmenu ,
                   XmNlabelString  , xstr ,
                   XmNmarginWidth  , 0 ,
                   XmNmarginHeight , 0 ,
@@ -1186,7 +1186,7 @@ rcparent = XtVaCreateWidget ("rowcolumn",
 
    xstr = XmStringCreateLtoR( "" , XmFONTLIST_DEFAULT_TAG ) ;
    XtSetArg( args[nargs] , XmNlabelString , xstr ) ; nargs++ ;
-   av->wrowcol = XmCreateOptionMenu( rcholder , DIALOG , args , nargs ) ;
+   av->wrowcol = XmCreateOptionMenu( rcholder , MENU , args , nargs ) ;
    XmStringFree(xstr) ;
    XtVaSetValues( av->wrowcol ,
                      XmNmarginWidth  , 0 ,
@@ -1280,7 +1280,7 @@ rcparent = XtVaCreateWidget ("rowcolumn",
       xstr = XmStringCreateLtoR( blab , XmFONTLIST_DEFAULT_TAG ) ;
 
       wbut = XtVaCreateManagedWidget(
-                DIALOG , xmPushButtonWidgetClass , wmenu ,
+                MENU , xmPushButtonWidgetClass , wmenu ,
                   XmNlabelString  , xstr ,
                   XmNmarginWidth  , 0 ,
                   XmNmarginHeight , 0 ,
@@ -1462,7 +1462,7 @@ ENTRY("refit_MCW_optmenu") ;
       } else {
          STATUS("setting up new button") ;
          wbut = XtVaCreateManagedWidget(
-                   DIALOG , xmPushButtonWidgetClass , wmenu ,
+                   MENU , xmPushButtonWidgetClass , wmenu ,
                      XmNlabelString  , xstr ,
                      XmNmarginWidth  , 0 ,
                      XmNmarginHeight , 0 ,
@@ -4472,7 +4472,7 @@ ENTRY("MCW_choose_stuff") ;
    }
 
    if( ! XtIsRealized(wpar) ){  /* illegal call */
-     fprintf(stderr,"\n*** illegal call to MCW_choose_integer: %s\n",XtName(wpar)) ;
+     fprintf(stderr,"\n*** illegal call to MCW_choose_stuff: %s\n",XtName(wpar)) ;
      EXRETURN ;
    }
 
@@ -4504,11 +4504,11 @@ ENTRY("MCW_choose_stuff") ;
    if( MCW_isitmwm(CS_wpar) ){
       XtVaSetValues( CS_wpop ,
                         XmNmwmDecorations , MWM_DECOR_BORDER ,
-                        XmNmwmFunctions   ,  MWM_FUNC_MOVE ,
+                        XmNmwmFunctions   , MWM_FUNC_MOVE ,
                      NULL ) ;
    }
 
-   XtAddCallback( CS_wpop , XmNdestroyCallback , MCW_destroy_chooser_CB , &CS_wpop ) ;
+   XtAddCallback( CS_wpop, XmNdestroyCallback, MCW_destroy_chooser_CB, &CS_wpop ) ;
 
    XmAddWMProtocolCallback(
         CS_wpop ,
