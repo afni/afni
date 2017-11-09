@@ -1980,11 +1980,11 @@ def float_list_string(vals, nchar=7, ndec=3, nspaces=2, mesg='', left=0):
         nspaces : [2] number of spaces between each float
    """
 
-   if left: format = '%-*.*f%*s'
-   else:    format = '%*.*f%*s'
+   if left: form = '%-*.*f%*s'
+   else:    form = '%*.*f%*s'
 
    istr = mesg
-   for val in vals: istr += format % (nchar, ndec, val, nspaces, '')
+   for val in vals: istr += form % (nchar, ndec, val, nspaces, '')
 
    return istr
 
@@ -1993,15 +1993,15 @@ def gen_float_list_string(vals, mesg='', nchar=0, left=0):
 
    istr = mesg
 
-   if left: format = '%-'
-   else:    format = '%'
+   if left: form = '%-'
+   else:    form = '%'
 
    if nchar > 0:
-      format += '*g '
-      for val in vals: istr += format % (nchar, val)
+      form += '*g '
+      for val in vals: istr += form % (nchar, val)
    else:
-      format += 'g '
-      for val in vals: istr += format % val
+      form += 'g '
+      for val in vals: istr += form % val
 
    return istr
 
