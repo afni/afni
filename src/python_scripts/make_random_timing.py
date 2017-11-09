@@ -3570,9 +3570,9 @@ class RandTiming:
        randtime = rtime-pprest
 
        if self.verb > 2 or randtime < 0:
-          print('-- run %02d: run time = %s, stime = %s, rtime = %s' \
+          print('-- run %02d: run time = %g, stime = %g, rtime = %g' \
                 % (rind+1, self.run_time[rind], stime, rtime))
-          print('   pre-rest = %s, post-rest = %s, random rest = %s' \
+          print('   pre-rest = %g, post-rest = %g, random rest = %g' \
                 % (self.pre_stim_rest, self.post_stim_rest, randtime))
 
        if randtime < 0:
