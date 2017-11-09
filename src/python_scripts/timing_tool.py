@@ -1172,9 +1172,10 @@ g_history = """
    2.20 Sep 12, 2017
         - added -multi_timing_3col_tsv, -write_multi_timing and
           -multi_show_duration_stats for TSV files
+   3.00 Nov  9, 2017 - python3 compatible
 """
 
-g_version = "timing_tool.py version 2.20, September 12, 2017"
+g_version = "timing_tool.py version 3.00, November 9, 2017"
 
 
 

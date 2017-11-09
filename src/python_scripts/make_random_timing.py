@@ -1246,9 +1246,10 @@ g_history = """
     2.7  Nov  1, 2017:
          - decay_fixed: make L more precise; make demos accessible
          - add -help_decay_fixed
+    3.0  Nov  9, 2017: python3 compatible
 """
 
-g_version = "version 2.7, November 1, 2017"
+g_version = "version 3.0 November 9, 2017"
 
 g_todo = """
    - add -show_consec_stats option?

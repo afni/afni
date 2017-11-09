@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  9, Nov, 2017, RCR, "make_random_timing.py", MINOR, TYPE_ENHANCE,
+   "python3 compatible as of version 3.0",
+   NULL
+ } ,
+
+ {  9, Nov, 2017, RCR, "timing_tool.py", MINOR, TYPE_ENHANCE,
+   "python3 compatible as of version 3.00",
+   NULL
+ } ,
+
  {  7, Nov, 2017, RCR, "afni_proc.py", MAJOR, TYPE_ENHANCE,
    "python3 compatible as of version 6.00",
    NULL
