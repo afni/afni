@@ -372,6 +372,10 @@ void ISQ_setup_ppmto_filters(void)
 
    pg = THD_find_executable( "gimp" ) ;
    if( pg != NULL ) gimp_path = strdup(pg) ;
+#ifdef DARWIN
+   else if( THD_is_directory("/Applications/GIMP.app") )
+     gimp_path = strdup("open -a /Applications/GIMP.app") ;
+#endif
 
    /*-- the cheap way to write PPM  --*/
    /*-- [this must always be first] --*/
@@ -4743,7 +4747,7 @@ ENTRY("ISQ_but_save_CB") ;
        MCW_choose_stuff( w , "Image Saver (One)" , ISQ_saver_CB , (XtPointer)seq ,
                            MSTUF_STRING , "Prefix"  ,
                            MSTUF_INT    , "Blowup " , 1 , 8 , ibl ,
-                           MSTUF_YESNO  , "Gimp it?",
+                           MSTUF_YESNO  , "Open in Gimp?",
                          MSTUF_END ) ;
      } else {
        MCW_choose_stuff( w , "Image Saver (One)" , ISQ_saver_CB , (XtPointer)seq ,

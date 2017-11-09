@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 
+# python3 status: started
+
 import sys, os
 import copy
 
 # whine about execution as a main program
 if __name__ == '__main__':
-   print '** %s: not a main program' % sys.argv[0].split('/')[-1]
+   print('** %s: not a main program' % sys.argv[0].split('/')[-1])
    sys.exit(1)
 
 
@@ -134,12 +136,12 @@ class VarsObject(object):
       if v2 == None: return
 
       if type(v2) != VarsObject:
-         print ("** trying to merge %s with VarsObject" % type(v2))
+         print("** trying to merge %s with VarsObject" % type(v2))
          return
 
       if typedef != None:
          if type(typedef) != VarsObject:
-            print ("** invalid object used for typedef in merge")
+            print("** invalid object used for typedef in merge")
             return
 
       newatrs = v2.attributes()
@@ -154,18 +156,18 @@ class VarsObject(object):
             if dtype == int:
                try: val = int(newval)
                except:
-                  print "** failed to merge %s '%s' as int" % (atr, newval)
+                  print("** failed to merge %s '%s' as int" % (atr, newval))
                   val = newval
             elif dtype == float:
                try: val = float(newval)
                except:
-                  print "** failed to merge %s '%s' as float" % (atr, newval)
+                  print("** failed to merge %s '%s' as float" % (atr, newval))
                   val = newval
 
          setattr(self, atr, val)
 
          if verb > 1:
-            print "== merge: setting %s %s = %s" % (atr, dtype, val)
+            print("== merge: setting %s %s = %s" % (atr, dtype, val))
 
    def set_var_with_defs(self, vname, vlist, defs, as_type=0, oname='',
                         verb=1, spec=None, csort=1):
@@ -204,18 +206,18 @@ class VarsObject(object):
          else:                 oname = '<noname>'
 
       if not defs.valid(vname):
-         print '** SVWD: invalid %s variable: %s' % (oname, vname)
+         print('** SVWD: invalid %s variable: %s' % (oname, vname))
          return -1
 
       dtype = type(defs.val(vname))
       if dtype not in g_valid_atomic_types:
-         print '** SVWD: unknown %s variable type for %s' % (oname, vname)
+         print('** SVWD: unknown %s variable type for %s' % (oname, vname))
          return -1
 
       # if simple type but have list, fail
       if dtype != list and len(vlist) > 1:
-         print "** SVWD: simple variable '%s' %s\n" \
-               "         but have list value: %s" % (vname, dtype, vlist)
+         print("** SVWD: simple variable '%s' %s\n" \
+               "         but have list value: %s" % (vname, dtype, vlist))
          return -1
 
       # ----------------------------------------
@@ -229,22 +231,22 @@ class VarsObject(object):
          val = vlist[0]
          try: vv = dtype(val)
          except:
-            print '** SVWD %s.%s, cannot convert value %s to %s' \
-                  (oname, vname, val, dtype)
+            print('** SVWD %s.%s, cannot convert value %s to %s' \
+                  (oname, vname, val, dtype))
             return -1
          # possibly apply the defs type
          if as_type: val = vv
       elif dtype == list: val = vlist
       else: 
-         print '** SVWD: invalid type %s for %s'%(dtype,vname)
+         print('** SVWD: invalid type %s for %s'%(dtype,vname))
          return -1
 
       # actually set the value
       rv = self.set_var(vname, val)
       if verb > 1:
-         if rv: print '++ %s: updating %s to %s %s' \
-                      % (oname, vname, val, type(val))
-         else:  print '++ %s: no update for %s to %s' % (oname, vname, val)
+         if rv: print('++ %s: updating %s to %s %s' \
+                      % (oname, vname, val, type(val)))
+         else:  print('++ %s: no update for %s to %s' % (oname, vname, val))
 
       # if no update, we're outta here
       if rv == 0: return rv
@@ -262,7 +264,7 @@ class VarsObject(object):
    def valcopy(self, atr):
       """use deepcopy to copy any value, since it may be a list"""
       if self.get_atomic_type(atr) == None:
-         print ("** attribute '%s' is not simple, copy may be bad" % atr)
+         print("** attribute '%s' is not simple, copy may be bad" % atr)
 
       return copy.deepcopy(self.val(atr))
 
@@ -314,7 +316,7 @@ class VarsObject(object):
       """direct comparison is okay for any valid atomic type
       """
       if type(vobj) != VarsObject:
-         print '** vals_are_equal: no VarsObject'
+         print('** vals_are_equal: no VarsObject')
          return False
 
       if self.get_atomic_type(atr) not in g_valid_atomic_types: return False
@@ -430,12 +432,12 @@ class VarsObject(object):
 
       # make sure atr is a string
       if type(atr) != str:
-         print "** valid_atr_type: 'atr' must be passed as a string"
+         print("** valid_atr_type: 'atr' must be passed as a string")
          return 0
 
       # make sure atype is valid as well
       if not atype in [float, int, str]:
-         print "** valid_atr_type: invalid atype %s" % atype
+         print("** valid_atr_type: invalid atype %s" % atype)
          return 0
 
       # first just check for existence
@@ -479,8 +481,8 @@ class VarsObject(object):
 
    def show(self, mesg='', prefix=None, pattern=None, name=1, all=0):
       if all: name=1
-      print self.make_show_str(mesg=mesg, prefix=prefix, pattern=pattern,
-                               name=name, all=all)
+      print(self.make_show_str(mesg=mesg, prefix=prefix, pattern=pattern,
+                               name=name, all=all))
 
    def make_show_str(self, mesg='', prefix=None, pattern=None, name=1, all=0):
       """if all, put atomic attributes first and instancemethods last"""

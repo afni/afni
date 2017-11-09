@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+# python3 status: started
+
+from __future__ import print_function
+
 import sys, random, os, math, copy
 import option_list as OL, afni_util as UTIL
 import lib_rand_timing as LRT
@@ -486,6 +490,7 @@ informational arguments:
 advanced arguments/options:
 
     -help_advanced              : display help for advanced usage
+    -help_decay_fixed           : display background on decay_fixed dist type
     -help_todo                  : "to do" list is mostly for advanced things
 
     -add_timing_class           : create a new timing class (stim or rest)
@@ -1005,6 +1010,7 @@ make_random_timing.py - Advanced Usage
 options (specific to the advanced usage):
 
     -help_advanced              : display help for advanced usage
+    -help_decay_fixed           : display background on decay_fixed dist type
     -help_todo                  : "to do" list is mostly for advanced things
 
     -add_timing_class           : create a new timing class (stim or rest)
@@ -1026,6 +1032,11 @@ background on creating decay_fixed curves
  Given A,M,B,N = desired min,mean,max for list of N (pseudo-randomly ?)
     generated numbers that follow a decay type distribution (e^-x),
     generate such a list.
+
+    The first step is to find L such that the fractional mean of e^-x on [0,L]
+    equals the fractional mean of the inputs.  The fractional mean of the
+    inputs is m=(M-A)/(B-A), and the fractional mean of e^-x on [0,L] is the
+    expected value of x (in PDF e^-x) divided by L.
   
  Basic equations:
   
@@ -1080,7 +1091,7 @@ background on creating decay_fixed curves
 
        on [0,2]   f1(L) = 0.5 - 0.1565*L/2.0
        on (2,3]   f2(L) = 1.0 / (1.6154 + 0.6478*L)
-       on [3,6)   f3(L) = 1.0 / (1.1174 + 0.8138 * L)
+       on (3,6)   f3(L) = 1.0 / (1.1174 + 0.8138 * L)
        on [6,inf) f4(L) = 1.0 / L
 
     This looks great, but is still a little unfulfilling (now I want beer).
@@ -1090,22 +1101,26 @@ background on creating decay_fixed curves
           length of a run.  Optimally, (M'-M)*N < t_gran, say.
     
     Hmmmm, in the immortal words of the famous philosopher Descartes,
-    "this is kinda stupid".  Move on...
+    "this is kinda stupid".  Forget approximations.  Moving on...
   
 
- b) Forget approximations.  Solve m = F(L) for L using Newton's method.
+ b) Solve m = F(L) for L using Newton's method.
 
     F(L) is very smooth, behaving like a line for L<2 and then scaled
     versions of 1/L beyond that.  So iterate to invert, which should be
     quick and have any desired accuracy.
 
-    Find a very approximate solution, then apply Newton's method where
-    the next iteration of x1 uses the preivious one and the approximate
+    First find an approximate solution, then apply Newton's method where
+    the next iteration of x1 uses the previous one and the approximate
     slope at x0, slope ~= (f(x+h)-f(x))/h for small h.
 
     i) define basic approximation by pivot at L=4 as initial guess
-       {Exactly why throw out the accurate approximations above?  I don't
-        know.  Okay, let's say that we prefer a single, simple function.}
+       {Exactly why should we throw out the accurate approximations above?
+        I don't know.  Okay, let's say that we prefer a single, simple
+        function.}
+
+       Invert m = { .5 - L/16   L in [0,4]
+                  { 1/L         L > 4
 
           1.0/m , if m <= 0.25
           8-16*m, if 0.25 < m < 0.5
@@ -1132,13 +1147,13 @@ background on creating decay_fixed curves
                 f = fn(x)
 
        We can be precise here.  Not only does this converge quickly, but
-       it is a one time operation per timing class.
+       it is a one time operation per such timing class.
 
  Handle m in different ranges according to:
 
     m <= 0             illegal
     0 < m < 0.5        expected
-    m ~= 0.5           should use uniform distribution, instead of decay
+    m ~= 0.5           should use uniform distribution instead of decay
     0.5 < m < 1.0      expected, solve using 1-m and reflect about the mean
     m >= 1.0           illegal
 
@@ -1147,6 +1162,13 @@ background on creating decay_fixed curves
     This can still apply to [0,inf) with fractional mean m in (0,0.5).
 
        times = decay_get_PDF_times(L, N)
+
+    To do this, break the interval [0,L] into N pieces (a,b), such that the
+    integral over each (a,b) is 1/N (of the full one).  Then find E[x] on each 
+    interval (a,b) so that E[x]*(a-b) = 1/N.  Then the sum of such expected
+    x values is 1 (is the full integral).
+
+  * Note that such values have the desired mean m and follow the PDF on [0,L].
 
  d) Scale the times.
 
@@ -1224,9 +1246,10 @@ g_history = """
     2.7  Nov  1, 2017:
          - decay_fixed: make L more precise; make demos accessible
          - add -help_decay_fixed
+    3.0  Nov  9, 2017: python3 compatible
 """
 
-g_version = "version 2.7, November 1, 2017"
+g_version = "version 3.0 November 9, 2017"
 
 g_todo = """
    - add -show_consec_stats option?
@@ -1476,29 +1499,29 @@ class RandTiming:
 
         # if argv has only the program name, or user requests help, show it
         if len(sys.argv) <= 1 or '-help' in sys.argv:
-            print g_help_string
-            print g_help_advanced
+            print(g_help_string)
+            print(g_help_advanced)
             return 0
 
         if '-help_advanced' in sys.argv:
-            print g_help_advanced
+            print(g_help_advanced)
             return 0
 
         if '-help_decay_fixed' in sys.argv:
-            print g_decay_fixed_details
+            print(g_decay_fixed_details)
             return 0
 
         if '-help_todo' in sys.argv:
-            print g_todo
+            print(g_todo)
             return 0
 
         # check for -ver and -hist, too
         if '-hist' in sys.argv:
-            print g_history
+            print(g_history)
             return 0
 
         if '-ver' in sys.argv:
-            print g_version
+            print(g_version)
             return 0
 
         # maybe the user wants to list valid options
@@ -1535,9 +1558,9 @@ class RandTiming:
         # ADVANCED: -add_stim_class, -add_timing_class
         if self.has_any_opts(g_style_opts_new):
            if self.has_any_opts(g_style_opts_old):
-              print '** have both new- and old-styled options, use only one'
-              print '   ADVAN: %s' % ', '.join(g_style_opts_new)
-              print '   BASIC: %s' % ', '.join(g_style_opts_old)
+              print('** have both new- and old-styled options, use only one')
+              print('   ADVAN: %s' % ', '.join(g_style_opts_new))
+              print('   BASIC: %s' % ', '.join(g_style_opts_old))
               return 1
 
            # note that we have the advanced style
@@ -1546,7 +1569,7 @@ class RandTiming:
            # get timing classes first, required for stim classes
            olist = self.user_opts.find_all_opts('-add_timing_class')
            if len(olist) == 0:
-               print '** ADV STYLE: missing option -add_timing_class'
+               print('** ADV STYLE: missing option -add_timing_class')
                return 1
            for opt in olist:
                if self.apply_opt_timing_class(opt):
@@ -1554,7 +1577,7 @@ class RandTiming:
 
            olist = self.user_opts.find_all_opts('-add_stim_class')
            if len(olist) == 0:
-               print '** ADV STYLE: missing option -add_stim_class'
+               print('** ADV STYLE: missing option -add_stim_class')
                return 1
            for opt in olist:
                if self.apply_opt_stim_class(opt):
@@ -1581,20 +1604,20 @@ class RandTiming:
                                                self.num_stim, 'num_stim')
            if self.num_reps == None or err: return 1
            if self.verb > 1:
-               print UTIL.int_list_string(self.num_reps, '-- num_reps : ')
+               print(UTIL.int_list_string(self.num_reps, '-- num_reps : '))
 
            # set stim_dur list of length num_stim
            self.stim_dur, err = self.user_opts.get_type_list(float, '-stim_dur',
                                                self.num_stim, 'stim_dur')
            if self.stim_dur == None or err: return 1
            if self.verb > 1:
-               print UTIL.gen_float_list_string(self.stim_dur, '-- stim_dur : ')
+               print(UTIL.gen_float_list_string(self.stim_dur, '-- stim_dur : '))
 
            # get any labels
            self.labels, err = self.user_opts.get_string_list('-stim_labels')
            if self.labels and len(self.labels) != self.num_stim:
-               print '** error: %d stim classes but %d labels: %s' \
-                     % (self.num_stim, len(self.labels), self.labels)
+               print('** error: %d stim classes but %d labels: %s' \
+                     % (self.num_stim, len(self.labels), self.labels))
                return 1
 
            self.min_rest, err = self.user_opts.get_type_opt(float,'-min_rest')
@@ -1615,8 +1638,8 @@ class RandTiming:
         if self.prefix == None or err: return 1
 
         if self.verb > 1:
-            print '-- have %d stim and %d runs, prefix = %s' %  \
-                  (self.num_stim, self.num_runs, self.prefix)
+            print('-- have %d stim and %d runs, prefix = %s' %  \
+                  (self.num_stim, self.num_runs, self.prefix))
 
         # ----------------------------------------
         # required args - (possibly) multiple parameter
@@ -1626,7 +1649,7 @@ class RandTiming:
                                     self.num_runs, 'num_runs')
         if self.run_time == None or err: return 1
         if self.verb > 1:
-            print UTIL.gen_float_list_string(self.run_time, '-- run_time : ')
+            print(UTIL.gen_float_list_string(self.run_time, '-- run_time : '))
 
         # ----------------------------------------
         # optional arguments (if failure, use default)
@@ -1667,7 +1690,7 @@ class RandTiming:
                          length=self.num_stim, len_name='num_stim', opt=opt)
            if err: return 1
            if self.max_consec and self.verb > 1:
-               print UTIL.int_list_string(self.max_consec, '-- max_consec : ')
+               print(UTIL.int_list_string(self.max_consec, '-- max_consec : '))
 
         # gather a list of lists specified by -ordered_stimuli options
         oname = '-ordered_stimuli'
@@ -1679,19 +1702,19 @@ class RandTiming:
                 # see if they are labels
                 slist, err = self.user_opts.get_string_list(opt=opt)
                 if err:
-                    print '** %s: need list of ints or labels' % oname
+                    print('** %s: need list of ints or labels' % oname)
                     return 1
                 # see if we have labels to convert into indices
                 ilist, err = self.labels_to_indices(slist)
                 if err:
-                    print '** %s requires indices or known labels' % oname
-                    print '   have: %s %s' % (oname, ' '.join(slist))
+                    print('** %s requires indices or known labels' % oname)
+                    print('   have: %s %s' % (oname, ' '.join(slist)))
                     return 1
                 self.orderlabs.append(slist)
                 slist = ilist
             self.orderstim.append(slist)
             if self.verb>1:
-               print UTIL.int_list_string(slist, '-- orderstim (1-based): ')
+               print(UTIL.int_list_string(slist, '-- orderstim (1-based): '))
 
         if self.verb > 1 or self.user_opts.find_opt('-show_timing_stats'):
             self.show_timing_stats = 1
@@ -1709,20 +1732,20 @@ class RandTiming:
 
         if self.tr_locked:  # set t_gran, and check stim_lengths
             if self.t_gran:
-                print '** cannot use both -tr_locked and -t_gran'
+                print('** cannot use both -tr_locked and -t_gran')
                 return 1
             if self.tr == 0.0:
-                print '** -tr_locked option requires -tr'
+                print('** -tr_locked option requires -tr')
                 return 1
             self.t_gran = self.tr;
             if self.verb > 1:
-                print '++ setting t_gran to TR, %0.1f s' % self.tr
+                print('++ setting t_gran to TR, %0.1f s' % self.tr)
             # fixed print and added min_rest to durations   8 Jun, 2011
             sd = [dur + self.min_rest for dur in self.stim_dur]
             if not UTIL.vals_are_multiples(self.tr, sd, digits=4):
-                print '** want TR-locked, but stim durations are not'  \
-                      ' multiples of TR %.3f' % self.tr
-                print '   min_rest + duration(s): %s' % sd
+                print('** want TR-locked, but stim durations are not'  \
+                      ' multiples of TR %.3f' % self.tr)
+                print('   min_rest + duration(s): %s' % sd)
                 return 1
 
         # if t_gran was set, note the fact, else apply default
@@ -1751,21 +1774,21 @@ class RandTiming:
 
         if self.make_3dd_contr:
             if not self.file_3dd_cmd:
-                print '** cannot use -make_3dd_contrasts without -save_3dd_cmd'
+                print('** cannot use -make_3dd_contrasts without -save_3dd_cmd')
                 return 1
             # advanced style has labels built in
             elif not self.labels and not self.advanced:
-                print '** cannot use -make_3dd_contrasts without -stim_labels'
+                print('** cannot use -make_3dd_contrasts without -stim_labels')
                 return 1
 
         if self.verb > 1:
-            print '-- pre_stim_rest=%g, post_stim_rest=%g, seed=%s'     \
-                  % (self.pre_stim_rest, self.post_stim_rest, self.seed)
-            print '   min_rest=%g, max_rest=%g,'        \
+            print('-- pre_stim_rest=%g, post_stim_rest=%g, seed=%s'     \
+                  % (self.pre_stim_rest, self.post_stim_rest, self.seed))
+            print('   min_rest=%g, max_rest=%g,'        \
                   % (self.min_rest, self.max_rest),     \
                   'offset=%g, t_gran=%g, t_digits=%d'   \
-                  % (self.offset, self.t_gran, self.t_digits)
-            if self.labels: print '   labels are: %s' % ', '.join(self.labels)
+                  % (self.offset, self.t_gran, self.t_digits))
+            if self.labels: print('   labels are: %s' % ', '.join(self.labels))
 
     def has_any_opts(self, olist):
        """check user_opts for any name in olist"""
@@ -1796,15 +1819,15 @@ class RandTiming:
        error_string = "** bad usage in '%s %s'" % (oname, ' '.join(params))
 
        if nparm < 2:
-          print error_string
+          print(error_string)
           return 1
 
        # get label (verify that it is not a number)
        name = params[0]        
        try:
           ff = float(name)
-          print error_string
-          print '   first parameter should be a timing class label'
+          print(error_string)
+          print('   first parameter should be a timing class label')
           return 1
        except: pass
 
@@ -1813,8 +1836,8 @@ class RandTiming:
 
        try: min_dur = float(params[1])
        except:
-          print error_string
-          print '   second parameter should be a duration'
+          print(error_string)
+          print('   second parameter should be a duration')
           return 1
 
        # just one duration implies all 3
@@ -1823,8 +1846,8 @@ class RandTiming:
 
        # two is not allowed
        elif nparm == 3:
-          print error_string
-          print "   either supply a fixed duration or 'min mean max'"
+          print(error_string)
+          print("   either supply a fixed duration or 'min mean max'")
           return 1
 
        # get all 3
@@ -1833,8 +1856,8 @@ class RandTiming:
              mean_dur = float(params[2])
              max_dur  = float(params[3])
           except:
-             print error_string
-             print '   not all 3 durations convert to float'
+             print(error_string)
+             print('   not all 3 durations convert to float')
              return 1
 
        # ------------------------------------------------------------
@@ -1843,32 +1866,32 @@ class RandTiming:
 
        # and check for non-decreasing or negative (allow zero)
        if min_dur < 0:
-          print error_string
-          print "   invalid negative duration"
+          print(error_string)
+          print("   invalid negative duration")
           return 1
 
        # meandur is allowed to be -1, for unspecified
        if mean_dur == -1:
           if self.verb > 2:
-             print "-- timing class %s will have no fixed mean duration" % name
+             print("-- timing class %s will have no fixed mean duration" % name)
        elif min_dur > mean_dur:
-          print error_string
-          print "   durations must have: min <= mean"
+          print(error_string)
+          print("   durations must have: min <= mean")
           return 1
 
        # max can also be -1, for unspecified
        if max_dur == -1:
           if self.verb > 2:
-             print "-- timing class %s will have no maximum duration" % name
+             print("-- timing class %s will have no maximum duration" % name)
        # max set, mean unset, so check min vs max
        elif mean_dur == -1 and min_dur > max_dur:
-          print error_string
-          print "   durations must have: min <= max"
+          print(error_string)
+          print("   durations must have: min <= max")
           return 1
        # max set, mean set, so check mean vs max
        elif mean_dur != -1 and mean_dur > max_dur:
-          print error_string
-          print "   durations must have: mean <= max"
+          print(error_string)
+          print("   durations must have: mean <= max")
           return 1
 
        # ------------------------------------------------------------
@@ -1899,7 +1922,7 @@ class RandTiming:
        error_string = "** bad usage in '%s %s'" % (oname, ' '.join(params))
 
        if nparm != 4:
-          print error_string
+          print(error_string)
           return 1
 
        # ------------------------------------------------------------
@@ -1909,8 +1932,8 @@ class RandTiming:
        name = params[0]
        try:
           ff = float(name)
-          print error_string
-          print '   first parameter should be a stim class label'
+          print(error_string)
+          print('   first parameter should be a stim class label')
           return 1
        except: pass
 
@@ -1918,8 +1941,8 @@ class RandTiming:
        try:
           nreps = int(params[1])
        except:
-          print error_string
-          print '   second parameter should be nreps (integer > 0)'
+          print(error_string)
+          print('   second parameter should be nreps (integer > 0)')
           return 1
 
        # get stim and rest timing classes, verify existence
@@ -1928,24 +1951,24 @@ class RandTiming:
 
        sclass = self.get_timing_class(stname)
        if sclass == None:
-          print error_string
-          print "** did not find timing class '%s' for stim" % stname
+          print(error_string)
+          print("** did not find timing class '%s' for stim" % stname)
           return 1
 
        rclass = self.get_timing_class(rtname)
        if rclass == None:
-          print error_string
-          print "** did not find timing class '%s' for rest" % rtname
+          print(error_string)
+          print("** did not find timing class '%s' for rest" % rtname)
           return 1
 
        # ------------------------------------------------------------
        # ready to roll, create the actual stim class instance
        sclass = LRT.StimClass(name, nreps, sclass, rclass, verb=self.verb)
        if sclass == None:
-          print error_string
+          print(error_string)
           return 1
 
-       if self.verb > 1: print "++ adding new Stim class '%s'" % name
+       if self.verb > 1: print("++ adding new Stim class '%s'" % name)
        if self.verb > 2: sclass.show('new stim class')
 
        self.sclasses.append(sclass)
@@ -1979,13 +2002,13 @@ class RandTiming:
         """
         if len(labels) == 0: return [], 0
         if len(self.labels) == 0:
-           if print_err: print '** missing labels for conversion'
+           if print_err: print('** missing labels for conversion')
            return [], 1
         ilist = []
         for lab in labels:
            try: ind = self.labels.index(lab)
            except:
-              print '** assumed label %s is not in label list' % lab
+              print('** assumed label %s is not in label list' % lab)
               return [], 1
            ilist.append(ind+1)
         return ilist, 0
@@ -2003,16 +2026,16 @@ class RandTiming:
             - write all timing lists to files
         """
 
-        if self.verb > 1: print '\n++ creating timing...'
+        if self.verb > 1: print('\n++ creating timing...')
 
         if self.seed != None:
-            if self.verb > 1: print '++ init random with seed %d' % self.seed
+            if self.verb > 1: print('++ init random with seed %d' % self.seed)
             random.seed(self.seed)
 
         # possibly get timing across all runs at once
         if self.across_runs:
             if not UTIL.vals_are_constant(self.run_time):
-               print '** sorry, no timing across runs if run lengths vary'
+               print('** sorry, no timing across runs if run lengths vary')
                return 1
 
             self.stimes = self.make_rand_timing(self.num_runs, self.run_time[0])
@@ -2020,7 +2043,7 @@ class RandTiming:
             if self.stimes == None: return 1
             if len(self.stimes) != self.num_stim or     \
                     len(self.stimes[0]) != self.num_runs:
-                print '** make_rand_timing failure: bad list size'
+                print('** make_rand_timing failure: bad list size')
                 return 1
 
         # create a timing list for each run separately
@@ -2037,15 +2060,15 @@ class RandTiming:
 
                 # check for failure
                 if stim_list == None:
-                    print '** rand_timing failure for run %d' % (run+1)
+                    print('** rand_timing failure for run %d' % (run+1))
                     return 1
 
                 if len(stim_list) != self.num_stim:
-                    print '** bad stim_list length %d' % len(stim_list)
+                    print('** bad stim_list length %d' % len(stim_list))
                     return 1
 
                 if len(stim_list[0]) != 1:
-                    print '** bad stim_list[0] length %d' % len(stim_list[0])
+                    print('** bad stim_list[0] length %d' % len(stim_list[0]))
                     return 1
 
                 # add lists to stimes
@@ -2053,11 +2076,11 @@ class RandTiming:
                     self.stimes[index].append(stim_list[index][0])
 
         if self.verb > 2:
-            print '--------- final list ---------'
+            print('--------- final list ---------')
             for s in range(len(self.stimes)):
                 for r in range(len(self.stimes[0])):
-                    print UTIL.gen_float_list_string(self.stimes[s][r],
-                               '++ stim list[%d][%d] = '%((s+1),r))
+                    print(UTIL.gen_float_list_string(self.stimes[s][r],
+                               '++ stim list[%d][%d] = '%((s+1),r)))
             # print self.stimes
 
         return None
@@ -2105,10 +2128,10 @@ class RandTiming:
 
        if fname:
           if self.verb > 3:
-             print "++ writing event list to file '%s'" % fname
+             print("++ writing event list to file '%s'" % fname)
           fd = open(fname, 'w')
           if not fd:
-             print "** failed to open '%s' for writing event list" % fname
+             print("** failed to open '%s' for writing event list" % fname)
              return 1
        else:
           fd = sys.stderr
@@ -2138,11 +2161,11 @@ class RandTiming:
         """write timing from slist to files from the prefix"""
 
         if len(self.stimes) != self.num_stim or self.num_stim <= 0:
-            print '** bad stim data for file write'
+            print('** bad stim data for file write')
             return 1
 
         if len(self.fnames) != self.num_stim:
-            print '** missing filenames for timing output'
+            print('** missing filenames for timing output')
             return 1
 
         # rcr - 
@@ -2161,10 +2184,10 @@ class RandTiming:
             fname = self.fnames[sind]
             fp = open(fname, 'w')
             if not fp:
-                print "** failed to open timing file '%s'" % fname
+                print("** failed to open timing file '%s'" % fname)
                 return 1
 
-            if self.verb > 0: print 'writing timing file: %s' % fname
+            if self.verb > 0: print('writing timing file: %s' % fname)
 
             for rind in range(self.num_runs):
                 stims = stim_all[rind]
@@ -2189,7 +2212,7 @@ class RandTiming:
             # and add this filename to the list, in case we want it later
 
         if self.verb > 1:
-            print 'min, max stim times are: %.1f, %.1f' % (mint, maxt)
+            print('min, max stim times are: %.1f, %.1f' % (mint, maxt))
 
         return None
 
@@ -2198,18 +2221,19 @@ class RandTiming:
 
         if not self.file_3dd_cmd:       return
         if os.path.isfile(self.file_3dd_cmd):
-            print "** 3dD command file '%s' already exists, failing..." \
-                        % self.file_3dd_cmd
+            print("** 3dD command file '%s' already exists, failing..." \
+                        % self.file_3dd_cmd)
             return
 
         if len(self.fnames) != self.num_stim:
-            print '** fname list does not have expected length'
+            print('** fname list does not have expected length')
             return
 
         # set tr and nt for the command
         if self.tr != 0.0:      tr = self.tr
         elif self.t_gran > 1.0: tr = self.t_gran
         else:                   tr = 1.0
+        tr = float(tr)  # to be sure
 
         nt = round(UTIL.loc_sum(self.run_time) / tr)
 
@@ -2251,14 +2275,14 @@ class RandTiming:
         cmd += UTIL.add_line_wrappers(c2)
 
         if self.verb > 0:
-            print "saving 3dD command to file '%s'...\n" % self.file_3dd_cmd
+            print("saving 3dD command to file '%s'...\n" % self.file_3dd_cmd)
         if self.verb > 1:
-            print cmd
+            print(cmd)
 
         fp = open(self.file_3dd_cmd,"w")
         if not fp:
-            print '** failed to open %s for writing 3dDecon cmd'        \
-                  % self.file_3dd_cmd,
+            print('** failed to open %s for writing 3dDecon cmd'        \
+                  % self.file_3dd_cmd)
             return
 
         fp.write(cmd)
@@ -2286,40 +2310,40 @@ class RandTiming:
         """display statistics of ISIs (inter-stimulus intervals)"""
 
         if not self.isi:
-            if self.verb: print '-- no ISI stats to show'
+            if self.verb: print('-- no ISI stats to show')
             return
 
-        print '\nISI statistics :\n\n'                                  \
+        print('\nISI statistics :\n\n'                                  \
               'data              min      mean     max     stdev\n'     \
-              '-----------     -------  -------  -------  -------'
+              '-----------     -------  -------  -------  -------')
 
-        print 'pre-rest        %7.3f  %7.3f  %7.3f  %7.3f' %            \
-              (UTIL.min_mean_max_stdev(self.prerest))
+        print('pre-rest        %7.3f  %7.3f  %7.3f  %7.3f' %            \
+              (UTIL.min_mean_max_stdev(self.prerest)))
 
-        print 'post-rest       %7.3f  %7.3f  %7.3f  %7.3f\n' %          \
-              (UTIL.min_mean_max_stdev(self.postrest))
+        print('post-rest       %7.3f  %7.3f  %7.3f  %7.3f\n' %          \
+              (UTIL.min_mean_max_stdev(self.postrest)))
 
         for ind in range(len(self.isi)):
            m0, m1, m2, s = UTIL.min_mean_max_stdev(self.isi[ind])
-           print 'run #%d ISI      %7.3f  %7.3f  %7.3f  %7.3f' %        \
-                 (ind, m0, m1, m2, s)
+           print('run #%d ISI      %7.3f  %7.3f  %7.3f  %7.3f' %        \
+                 (ind, m0, m1, m2, s))
 
         allruns = []
         for run in self.isi: allruns.extend(run)
 
-        print '\nall runs ISI    %7.3f  %7.3f  %7.3f  %7.3f\n' %        \
-              (UTIL.min_mean_max_stdev(allruns))
+        print('\nall runs ISI    %7.3f  %7.3f  %7.3f  %7.3f\n' %        \
+              (UTIL.min_mean_max_stdev(allruns)))
 
         if self.verb > 3:
-            for ind in range(len(self.isi)):
-                print UTIL.gen_float_list_string(self.isi[ind],'ISI #%d : '%ind)
-            print
+           for ind in range(len(self.isi)):
+              print(UTIL.gen_float_list_string(self.isi[ind],'ISI #%d : '%ind))
+           print('')
                 
         if self.verb > 3:
             for ind in range(len(self.isi)):
                 self.isi[ind].sort()
-                print UTIL.gen_float_list_string(self.isi[ind],
-                           'sorted ISI #%d : '%ind)
+                print(UTIL.gen_float_list_string(self.isi[ind],
+                           'sorted ISI #%d : '%ind))
                 
 
     def make_rand_timing(self, nruns, run_time):
@@ -2356,29 +2380,29 @@ class RandTiming:
         verb        = self.verb
 
         if verb > 2:
-            print '-- make_rand_timing: nruns = %d' % nruns
-            print '   rtime, offset, tinit, tfinal = %g, %g, %g, %g' \
-                      % (run_time, offset, tinitial, tfinal)
-            print '   reps_list  = %s' % reps_list
-            print UTIL.gen_float_list_string(sdur_list,'   sdur_list = ')
+            print('-- make_rand_timing: nruns = %d' % nruns)
+            print('   rtime, offset, tinit, tfinal = %g, %g, %g, %g' \
+                      % (run_time, offset, tinitial, tfinal))
+            print('   reps_list  = %s' % reps_list)
+            print(UTIL.gen_float_list_string(sdur_list,'   sdur_list = '))
             # print '   sdur_list = %s' % sdur_list
-            print '   tgran = %.4f, verb = %d' % (tgran, verb)
+            print('   tgran = %.4f, verb = %d' % (tgran, verb))
 
         # verify inputs
         if nruns <= 0:
-            print '** make_rand_timing error: nruns = %d' % nruns
+            print('** make_rand_timing error: nruns = %d' % nruns)
             return
         if run_time <= 0.0 or nstim <= 0 or tinitial < 0 or tfinal < 0:
-            print '** bad rand_timing inputs: rtime, nstim, tinit, tfinal = '+ \
-                  '%g, %d, %g, %g' % (run_time, nstim, tinitial, tfinal)
+            print('** bad rand_timing inputs: rtime, nstim, tinit, tfinal = '+ \
+                  '%g, %d, %g, %g' % (run_time, nstim, tinitial, tfinal))
             return
         if tgran < gDEF_MIN_T_GRAN:
-            print '** time granularity (%f) below minimum (%f)' %   \
-                  (tgran, gDEF_MIN_T_GRAN)
+            print('** time granularity (%f) below minimum (%f)' %   \
+                  (tgran, gDEF_MIN_T_GRAN))
         if not reps_list or not sdur_list or       \
            len(reps_list) != nstim or len(sdur_list) != nstim:
-            print '** invalid rand_timing input lists: reps, stimes = %s %s '% \
-                  (reps_list, sdur_list)
+            print('** invalid rand_timing input lists: reps, stimes = %s %s '% \
+                  (reps_list, sdur_list))
             return
 
         # steal a copy of sdur_list so that we can trash it with min_rest
@@ -2388,7 +2412,7 @@ class RandTiming:
         if nruns > 1 and ctrl_breaks:
             smax = max(sdur_list)
             if verb > 1:
-                print '++ adding max stim (%.1f) to post_stim_rest' % smax
+                print('++ adding max stim (%.1f) to post_stim_rest' % smax)
             tfinal += smax
 
         # compute total stim time across all runs together
@@ -2396,8 +2420,8 @@ class RandTiming:
         stime = 0.0 
         for ind in range(nstim):
             if reps_list[ind] < 0 or stim_durs[ind] < 0:
-                print '** invalid negative reps or stimes list entry in %s, %s'\
-                      % (reps_list, stim_durs)
+                print('** invalid negative reps or stimes list entry in %s, %s'\
+                      % (reps_list, stim_durs))
                 return
             stime += reps_list[ind]*stim_durs[ind]
 
@@ -2411,16 +2435,16 @@ class RandTiming:
         nrest = int(rtime / tgran)
 
         if verb > 1 or self.show_timing_stats:
-            print '\n++ total time = %.1f, (stim = %.1f, rest = %.1f)\n'     \
+            print('\n++ total time = %.1f, (stim = %.1f, rest = %.1f)\n'     \
                   '   init rest = %.1f, end rest = %.1f, min rest = %.1f\n'  \
                   '   total ISI = %.1f, rand ISI = %.1f\n'                   \
                   '   rand ISI rest time = %d intervals of %.3f seconds\n' % \
                   (nruns*run_time, stime, tot_rest, tinitial, tfinal, min_rest,
-                  isi_rtime, rtime, nrest, tgran)
+                  isi_rtime, rtime, nrest, tgran))
 
-        if rtime == 0: print '** warning, exactly no time remaining for rest...'
+        if rtime == 0: print('** warning, exactly no time remaining for rest...')
         elif rtime < 0:
-            print '** required stim and rest time exceed run length, failing...'
+            print('** required stim and rest time exceed run length, failing...')
             return
 
         # make a random events list, based on reps_list[] and nrest
@@ -2453,7 +2477,7 @@ class RandTiming:
                 run += 1
                 ctime = tinitial
                 if run >= nruns:    # we've gone beyond our bounds
-                    print '** failure!  total run time has been exeeded...'
+                    print('** failure!  total run time has been exeeded...')
                     return
 
             if not event:
@@ -2478,11 +2502,11 @@ class RandTiming:
         self.isi.append(s_isi)
 
         if verb > 3:
-            print '-- end make_random_timing() --'
+            print('-- end make_random_timing() --')
             for s in range(nstim):
                 for r in range(nruns):
-                    print UTIL.gen_float_list_string(slist[s][r],
-                               '++ stim list[%d][%d] = '%((s+1),r))
+                    print(UTIL.gen_float_list_string(slist[s][r],
+                               '++ stim list[%d][%d] = '%((s+1),r)))
 
         return slist
 
@@ -2500,17 +2524,17 @@ class RandTiming:
 
         errs = 0
         for olist in self.orderstim:
-            if self.verb > 4: print "-- testing olist: %s" % olist
+            if self.verb > 4: print("-- testing olist: %s" % olist)
             if len(olist) < 2:
-                print "** orderstim too short: %s" % olist
+                print("** orderstim too short: %s" % olist)
                 errs += 1
             for val in olist:
                 if val < 1 or val > self.num_stim:
-                    print "** orderstim list has values outside {1..%d}: %s" \
-                          % (self.num_stim, olist)
+                    print("** orderstim list has values outside {1..%d}: %s" \
+                          % (self.num_stim, olist))
                     errs += 1
                 elif val in used:
-                    print "** orderstim '%d' is not unique in lists" % val
+                    print("** orderstim '%d' is not unique in lists" % val)
                     errs += 1
                 else: used.append(val)
 
@@ -2519,17 +2543,17 @@ class RandTiming:
             # and check that all reps are the same 
             vlist = [self.num_reps[v-1] for v in olist]
             if not UTIL.vals_are_constant(vlist, cval=None):
-                print "** stimuli in order list need constant nreps\n"  \
+                print("** stimuli in order list need constant nreps\n"  \
                       "   orderstim: %s\n"                          \
-                      "   nreps: %s\n" % (olist, vlist)
+                      "   nreps: %s\n" % (olist, vlist))
                 errs += 1
 
         if errs:
-            if self.verb > 1: print '** valid_orderstim: %d errors' % errs
+            if self.verb > 1: print('** valid_orderstim: %d errors' % errs)
             return 0
         else:
             if self.verb > 1:
-                print '-- %d orderstim lists are valid' % len(self.orderstim)
+                print('-- %d orderstim lists are valid' % len(self.orderstim))
             return 1
 
     def randomize_ordered_events(self, nrest):
@@ -2539,7 +2563,7 @@ class RandTiming:
         """
 
         if len(self.orderstim) < 1:
-            print '** no orderstim to apply'
+            print('** no orderstim to apply')
             return 1, None
         if not self.valid_orderstim(): return 1, None
 
@@ -2559,28 +2583,28 @@ class RandTiming:
         for stim in range(nstim):
             sval = stim+1 # stim val, for ease of typing
             if sval not in used:
-                if self.verb > 1: print '++ filling unordered stim %d' % sval
+                if self.verb > 1: print('++ filling unordered stim %d' % sval)
                 elist += [sval for i in range(self.num_reps[stim])]
 
         if self.verb > 3:
-            print '++ elist (len %d, unordered): %s' % (len(elist), elist)
+            print('++ elist (len %d, unordered): %s' % (len(elist), elist))
 
         # and append 'first' entries to elist
         for ind in range(len(self.orderstim)):
             olist = self.orderstim[ind]
             sval = olist[0]
             elist += [sval for i in range(self.num_reps[sval-1])]
-            if self.verb > 1: print '++ filling order[0] stim %d' % sval
+            if self.verb > 1: print('++ filling order[0] stim %d' % sval)
 
         if self.verb > 3:
-            print '++ elist (len %d, order base): %s' % (len(elist), elist)
+            print('++ elist (len %d, order base): %s' % (len(elist), elist))
 
         # ------------------------- step 2 ---------------------------
         # randomize this list (other orderlist stimuli are not random)
 
         UTIL.shuffle(elist)
         if self.verb > 3:
-            print '++ elist (len %d, base, rand): %s' % (len(elist), elist)
+            print('++ elist (len %d, base, rand): %s' % (len(elist), elist))
 
         # ------------------------- step 3 ---------------------------
         # fill in orderstim events:
@@ -2614,7 +2638,7 @@ class RandTiming:
                 mergelist[mind] = elist[eind]
                 eind += 1
         if eind != len(elist):
-            print '** randomize panic: mergelist/elist mismatch'
+            print('** randomize panic: mergelist/elist mismatch')
             return 1, None
 
         return 0, mergelist
@@ -2628,7 +2652,7 @@ class RandTiming:
             firstdict[sval] = ind # which list contains sval
 
         if self.verb > 3:
-            print '++ firstdict lookup table: %s' % firstdict
+            print('++ firstdict lookup table: %s' % firstdict)
 
         return firstdict
 
@@ -2643,12 +2667,12 @@ class RandTiming:
         """
         enew = []
         for val in elist:
-            if firstdict.has_key(val):          # then append orderlist
+            if val in firstdict:          # then append orderlist
                 enew.extend(orderstim[firstdict[val]])
             else: enew.append(val)
         if self.verb > 3:
-            print '++ elist with followers (len %d, all stim): %s' \
-                  % (len(enew), enew)
+            print('++ elist with followers (len %d, all stim): %s' \
+                  % (len(enew), enew))
         return enew
 
 
@@ -2659,7 +2683,7 @@ class RandTiming:
            - return error code (0=success) and event list"""
 
         if nrest < 0:
-            print "** randomize_events: nrest < 0"
+            print("** randomize_events: nrest < 0")
             return 1, []
 
         # might also handle orderstim case
@@ -2678,14 +2702,14 @@ class RandTiming:
         elist.extend([0 for i in range(nrest)])
 
         if self.verb > 2:
-            print '++ elist (len %d, sorted): %s' % (len(elist), elist)
+            print('++ elist (len %d, sorted): %s' % (len(elist), elist))
 
         UTIL.shuffle(elist)
 
         if self.verb > 2:
-            print '++ elist (len %d, random): %s' % (len(elist), elist)
+            print('++ elist (len %d, random): %s' % (len(elist), elist))
             for stim in range(nstim):
-                print '   number of type %d = %d' % (stim+1,elist.count(stim+1))
+                print('   number of type %d = %d' % (stim+1,elist.count(stim+1)))
 
         return 0, elist
 
@@ -2705,7 +2729,7 @@ class RandTiming:
 
         # if stimuli are ordered, clear num_reps for followers
         if len(self.orderstim) > 0:
-            if self.verb > 1: print '-- have limited events w/ordered stim...'
+            if self.verb > 1: print('-- have limited events w/ordered stim...')
             num_reps = self.num_reps[:]
             for orderlist in self.orderstim:
                 # stim in lists are 1-based, num_reps_is 0-based
@@ -2719,12 +2743,12 @@ class RandTiming:
         elist = []
         for entry in clist:
             elist.extend([entry[0]+1 for i in range(entry[1])])
-        if self.verb > 2: print "== clist (0-based) %s" % clist
-        if self.verb > 2: print "== elist (1-based) %s" % elist
+        if self.verb > 2: print("== clist (0-based) %s" % clist)
+        if self.verb > 2: print("== elist (1-based) %s" % elist)
 
         # if orderstim, create a firstdict table and insert follower events
         if len(self.orderstim) > 0:
-           if self.verb > 1: print '-- inserting order followers...'
+           if self.verb > 1: print('-- inserting order followers...')
            firstdict = self.make_ordered_firstdict(self.orderstim)
            elist = self.insert_order_followers(elist, firstdict, self.orderstim)
 
@@ -2743,7 +2767,7 @@ class RandTiming:
         rv, clist, rtype, rcount =  \
             self.init_limited_event_list(num_reps, max_consec)
         if rv:
-            print '** failure of randomize_limited_events'
+            print('** failure of randomize_limited_events')
             return 1, None
 
         # if we ran out of space for one event type, try to fill
@@ -2754,7 +2778,7 @@ class RandTiming:
             if rv: return 1, None
 
         if self.verb > 4:
-           print '++ MLSL: reps list %s' % clist
+           print('++ MLSL: reps list %s' % clist)
 
         return 0, clist
 
@@ -2777,9 +2801,9 @@ class RandTiming:
         """
 
         if self.verb > 3:
-           print '-- init_limited_event_list\n' \
+           print('-- init_limited_event_list\n' \
                  '      num_reps   = %s\n'       \
-                 '      max_consec = %s' % (num_reps, max_consec)
+                 '      max_consec = %s' % (num_reps, max_consec))
 
         remain   = num_reps[:]
         nremain  = sum(remain)
@@ -2791,7 +2815,7 @@ class RandTiming:
             if m <= 0: max_consec[i] = num_reps[i]
 
         if self.verb > 1:
-            print "-- limited events reps = %s, max = %s" % (remain, max_consec)
+            print("-- limited events reps = %s, max = %s" % (remain, max_consec))
 
         # create a list of [[event, count]], from which to generate elist
         # (so insertion of over-the-limit events will be easier)
@@ -2824,7 +2848,7 @@ class RandTiming:
 
             # verify that we didin't screw up
             if eind >= len(t_remain):
-                print '** eind too big for t_remain, failing...'
+                print('** eind too big for t_remain, failing...')
                 return 1, None, 0, 0
 
             # account for applied event index and resync t_remain
@@ -2843,17 +2867,17 @@ class RandTiming:
             nremain -= 1
 
         if remain[prev] != nremain:
-            print '** LE failure, nremain = %d, remain = %s' % (nremain,remain)
+            print('** LE failure, nremain = %d, remain = %s' % (nremain,remain))
             return 1, None, 0, 0
         if not self.limited_events_are_valid(clist, max_consec):
-            print '** LE failure, some events exceed maximum'
+            print('** LE failure, some events exceed maximum')
             return 1, None, 0, 0
 
         if self.verb > 1:
-            if nremain == 0: print '-- have 0 events to insert'
+            if nremain == 0: print('-- have 0 events to insert')
             else:
-               print '++ have %d events of type %d to insert' % (nremain, prev)
-               print '   (note: events are currently 0-based)'
+               print('++ have %d events of type %d to insert' % (nremain, prev))
+               print('   (note: events are currently 0-based)')
 
         return 0, clist, prev, nremain
 
@@ -2871,25 +2895,25 @@ class RandTiming:
         pmax = max_consec[rtype]
 
         if clist[-1] != [rtype, pmax]:
-            print "** messed up max for limited events..."
+            print("** messed up max for limited events...")
             return 1, None
 
         # do we have enough space for remaining events?
         space, npos = self.count_limited_space(clist, rtype, max_consec[rtype])
         if space < rcount:        # we are in trouble
-            print '** limited_events: only %d positions for %d inserts' \
-                  % (space, rcount)
+            print('** limited_events: only %d positions for %d inserts' \
+                  % (space, rcount))
             return 1, None
         if self.verb > 2:
-           print '-- space for insert: %d, positions %d ' % (space, npos)
-           if self.verb > 3: print '   clist %s' % clist
+           print('-- space for insert: %d, positions %d ' % (space, npos))
+           if self.verb > 3: print('   clist %s' % clist)
 
         # okay, insert the remaining rcount events of type rtype
         # rely on rcount being small and do linear searches for each insert
         for ind in range(rcount): # rcount times, insert rtype event
             rind = int(npos*random.random())  # insertion index
             if self.verb > 2:
-               print '-- random insertion index %d of %d' % (rind, npos)
+               print('-- random insertion index %d of %d' % (rind, npos))
             ecount = 0  # count of all potential events
 
             # find valid position index rind (check positions per cind)
@@ -2926,11 +2950,11 @@ class RandTiming:
                 break
 
             if cind >= len(clist):
-                print '** LE: failed to find insertion index'
+                print('** LE: failed to find insertion index')
                 return 1, None
 
-            if self.verb>3: print '++ inserting at index %d (of %d), rind %d' \
-                                  % (cind, len(clist), rind)
+            if self.verb>3: print('++ inserting at index %d (of %d), rind %d' \
+                                  % (cind, len(clist), rind))
 
             # if adjacent to an 'rtype' event, increment event count
             if c0 == rtype:
@@ -2946,16 +2970,16 @@ class RandTiming:
 
             # fill cases subtraced pmax+1, so all can add 1 here
             space -= 1
-            if self.verb > 5: print '   clist %s' % clist
+            if self.verb > 5: print('   clist %s' % clist)
             snew, npos = self.count_limited_space(clist, rtype,
                                                   max_consec[rtype])
             if space != snew:
-               print "** space count failure, space = %d, count = %d" \
-                     % (space, snew)
+               print("** space count failure, space = %d, count = %d" \
+                     % (space, snew))
                return 1, None
 
         if not self.limited_events_are_valid(clist, max_consec):
-            print '** LE fill remain failure, some events exceed maximum'
+            print('** LE fill remain failure, some events exceed maximum')
             return 1, None
 
         return 0, clist
@@ -2971,16 +2995,16 @@ class RandTiming:
         space = 0
         positions = 0
         if self.verb > 5:
-           print '== eind, emax: %d, %d' % (eind, emax)
-           print '== CLS clist: %s' % clist
+           print('== eind, emax: %d, %d' % (eind, emax))
+           print('== CLS clist: %s' % clist)
         for ind in range(1, len(clist)):
-            if self.verb > 5: print '  %02d  %s  ' % (ind, clist[ind]),
+            if self.verb > 5: print('  %02d  %s  ' % (ind, clist[ind]), end=' ')
             # if next is eind, can go up to max
             ncur = clist[ind][1] # note number of current entries
             if clist[ind][0] == eind:
                space += emax - ncur
                if emax - ncur > 0: positions += ncur
-               if self.verb > 5: print space, positions
+               if self.verb > 5: print(space, positions)
                continue
     
             # have ncur postions times emax space, unless prev was eind
@@ -2994,14 +3018,14 @@ class RandTiming:
                space -= emax
                if clist[ind-1][1] == emax: positions -= 1
 
-            if self.verb > 5: print space, positions
+            if self.verb > 5: print(space, positions)
 
         # maybe there is space at the end
         ind = len(clist)-1
         if clist[ind][0] != eind:
-           print '** space at end (index %d of %d), this should not happen' \
-                 % (ind, len(clist))
-           print '== clist: %s' % clist
+           print('** space at end (index %d of %d), this should not happen' \
+                 % (ind, len(clist)))
+           print('== clist: %s' % clist)
            space += emax
            positions += 1
         
@@ -3014,8 +3038,8 @@ class RandTiming:
         for ind in range(1, len(clist)):
             # if next is full, skip
             if clist[ind][1] > maxlist[clist[ind][0]]:
-                print '** check events failure for maxlist %s' % maxlist
-                print '%s' % clist
+                print('** check events failure for maxlist %s' % maxlist)
+                print('%s' % clist)
                 return 0
         return 1
 
@@ -3028,8 +3052,8 @@ class RandTiming:
         max_rest = self.max_rest
         if self.min_rest > 0:
             max_rest -= self.min_rest
-            if self.verb > 2: print '-- updating max_rest from %g to %g' \
-                                    % (self.max_rest, max_rest)
+            if self.verb > 2: print('-- updating max_rest from %g to %g' \
+                                    % (self.max_rest, max_rest))
 
         # note the maximum rest as a number of intervals
         maxnrest = int(max_rest/self.t_gran)
@@ -3045,7 +3069,7 @@ class RandTiming:
                 rlist.append(elist)
             else: elist[1] += 1
 
-        if self.verb > 3: print '++ event rlist', rlist
+        if self.verb > 3: print('++ event rlist', rlist)
 
         # make extendable and fix lists
         elist = []              # extend list (space to add rest)
@@ -3059,21 +3083,21 @@ class RandTiming:
                 elist.append(ind)
 
         if self.verb > 3:
-            print '-- maxnrest = %d (%s/%s = %s)' \
-                      % (maxnrest, max_rest, self.t_gran, max_rest/self.t_gran)
-            print '-- maxrest extendable lists:', elist
-            print '-- maxrest fix lists:', flist
+            print('-- maxnrest = %d (%s/%s = %s)' \
+                      % (maxnrest, max_rest, self.t_gran, max_rest/self.t_gran))
+            print('-- maxrest extendable lists:', elist)
+            print('-- maxrest fix lists:', flist)
             fl = [rlist[flist[i]][1]-maxnrest for i in range(len(flist))]
             el = [maxnrest-rlist[elist[i]][1] for i in range(len(elist))]
-            print '==========================================================='
-            print 'fix : %s' % ' '.join(['%s' % v for v in fl])
-            print '==========================================================='
-            print 'ext : %s' % ' '.join(['%s' % v for v in el])
-            print '==========================================================='
+            print('===========================================================')
+            print('fix : %s' % ' '.join(['%s' % v for v in fl]))
+            print('===========================================================')
+            print('ext : %s' % ' '.join(['%s' % v for v in el]))
+            print('===========================================================')
 
         # maybe there is nothing to do
         if len(flist) < 1:
-            if self.verb > 1: print '-- no event block exceeds max rest'
+            if self.verb > 1: print('-- no event block exceeds max rest')
             return
         # note how much rest we need to move around
         ftotal = UTIL.loc_sum([rlist[flist[i]][1]-maxnrest
@@ -3082,25 +3106,25 @@ class RandTiming:
                                 for i in range(len(elist))])
 
         if self.verb > 1:
-            print '-- shifting %g seconds of excessive rest (%g available)' \
-                  % (ftotal*self.t_gran, etotal*self.t_gran)
+            print('-- shifting %g seconds of excessive rest (%g available)' \
+                  % (ftotal*self.t_gran, etotal*self.t_gran))
             if self.verb > 3:
-                print '== excessive rest exeeds %d events...' % maxnrest
-                print '   (%s/%s = %s)' % (max_rest, self.t_gran,
-                                           max_rest/self.t_gran)
+                print('== excessive rest exeeds %d events...' % maxnrest)
+                print('   (%s/%s = %s)' % (max_rest, self.t_gran,
+                                           max_rest/self.t_gran))
 
         if etotal < ftotal:
-            print "** max_rest too small to adjust (%g < %g)" % (etotal, ftotal)
+            print("** max_rest too small to adjust (%g < %g)" % (etotal, ftotal))
             return
         elif self.verb > 3:
-            print '--> distributing %d rest events among %d slots' \
-                  % (ftotal, etotal)
+            print('--> distributing %d rest events among %d slots' \
+                  % (ftotal, etotal))
 
         for fix in flist:
             nshift = rlist[fix][1] - maxnrest
             for count in range(nshift):
                 if len(elist) <= 0:
-                    print '** panic: empty elist but rest to shift'
+                    print('** panic: empty elist but rest to shift')
                     sys.exit(1)
                 # choose where to shift rest to and shift it
                 rind = int(len(elist)*random.random())
@@ -3122,11 +3146,11 @@ class RandTiming:
                 rlist[iind][0] -= nshift
                 
         if self.verb > 3:
-            print '++ fixed event rlist', rlist
-            if self.verb > 4: print '++ updated eventlist', eventlist
+            print('++ fixed event rlist', rlist)
+            if self.verb > 4: print('++ updated eventlist', eventlist)
             etotal = UTIL.loc_sum([maxnrest-rlist[elist[i]][1]
                                   for i in range(len(elist))])
-            print '-- updated etotal = %d' % etotal
+            print('-- updated etotal = %d' % etotal)
 
     # ======================================================================
     # ADV: functions for modern timing method
@@ -3142,18 +3166,18 @@ class RandTiming:
                  rest for last stim might be zero
         """
 
-        if self.verb > 1: print '\n++ new: creating timing...'
+        if self.verb > 1: print('\n++ new: creating timing...')
 
         if self.seed != None:
-            if self.verb > 1: print '++ init with random seed %d' % self.seed
+            if self.verb > 1: print('++ init with random seed %d' % self.seed)
             random.seed(self.seed)
 
         # create stimdict, a name -> StimClass index list
         for sind, sc in enumerate(self.sclasses):
            self.stimdict[sc.name] = sind
         if self.verb > 3:
-           print '++ have len %d stimdict : %s' \
-                 % (len(self.stimdict.keys()), self.stimdict)
+           print('++ have len %d stimdict : %s' \
+                 % (len(list(self.stimdict.keys())), self.stimdict))
 
         # apply any such command line options to the stim classes
         if self.set_max_consec():
@@ -3190,26 +3214,26 @@ class RandTiming:
           # expand list to linclude all
           self.max_consec = [self.max_consec[0]] * nsc
        elif nmc != nsc:
-          print '** have %d -max_consec params, but %d stim classes'%(nmc,nsc)
+          print('** have %d -max_consec params, but %d stim classes'%(nmc,nsc))
           return 1
 
        mclist = self.max_consec
 
        mcnames = [self.sclasses[ind].name for ind in range(nmc) \
                                           if mclist[ind] > 0]
-       print '++ applying max_consec to: %s' % ', '.join(mcnames)
+       print('++ applying max_consec to: %s' % ', '.join(mcnames))
        if len(mcnames) == 0: return 0
 
        # apply to each stim class
        for sind, sc in enumerate(self.sclasses):
           if mclist[sind] <= 0: continue
           if sc.max_consec > 0:
-             print '** max_consec alread set for class %s' % sc.name
+             print('** max_consec alread set for class %s' % sc.name)
              return 1
           sc.max_consec = mclist[sind]
           if self.verb > 1:
-             print '-- setting max_consec = %d for class %s' \
-                   % (sc.max_consec, sc.name)
+             print('-- setting max_consec = %d for class %s' \
+                   % (sc.max_consec, sc.name))
 
        return 0
         
@@ -3242,13 +3266,13 @@ class RandTiming:
                 # if ordered stim and sc is not a leader: skip
                 if ordered and sc.name in self.osfollow:
                    if self.verb>3:
-                      print '-- no shuffle for follower %s' % sc.name
+                      print('-- no shuffle for follower %s' % sc.name)
                    continue
                 erun.extend([[sind, dur] for dur in sc.durlist[rind]])
              UTIL.shuffle(erun)
 
           if self.verb > 1:
-             print '-- randomized event lists (no followers) for run %d' % rind
+             print('-- randomized event lists (no followers) for run %d' % rind)
              self.disp_consec_event_counts([erun])
 
           # if ordered stim, insert followers
@@ -3264,7 +3288,7 @@ class RandTiming:
              return 1
 
        if self.verb > 4:
-          print '-- randomized event lists across all runs'
+          print('-- randomized event lists across all runs')
           self.disp_consec_event_counts(eall)
 
        return 0
@@ -3288,21 +3312,21 @@ class RandTiming:
              call[cind].append(eind-ecur)
 
        if self.verb > 1:
-          print '++ consec event counts:'
+          print('++ consec event counts:')
        slen = max([len(sc.name) for sc in self.sclasses])
 
        if self.verb > 4:
           for sind, sc in enumerate(self.sclasses):
-             print '-- consec list for #%2d=%-*s (len %3d): %s' \
-                   % (sind, slen, sc.name, len(call[sind]), call[sind])
-          print
+             print('-- consec list for #%2d=%-*s (len %3d): %s' \
+                   % (sind, slen, sc.name, len(call[sind]), call[sind]))
+          print('')
 
        for sind, sc in enumerate(self.sclasses):
           mi, mn, mx, st = UTIL.min_mean_max_stdev(call[sind])
           if self.verb > 1:
-             print '   consec for %*s, sum %4d,'        \
+             print('   consec for %*s, sum %4d,'        \
                    ' mmms: %7.3f  %7.3f  %7.3f  %7.3f'  \
-                   % (slen, sc.name, sum(call[sind]), mi, mn, mx, st)
+                   % (slen, sc.name, sum(call[sind]), mi, mn, mx, st))
 
     def adv_limited_shuffled_run(self, rind, ordered):
        """return randomized events subject to max_consec
@@ -3310,7 +3334,7 @@ class RandTiming:
        """
        numc = len(self.sclasses)
        if len(self.max_consec) != numc:
-          print '** ALSR: bad max_consec list: %s' % self.max_consec
+          print('** ALSR: bad max_consec list: %s' % self.max_consec)
           return None
 
        # create a modified reps list that omits followers
@@ -3318,7 +3342,7 @@ class RandTiming:
        if ordered:
           for sind, sc in enumerate(self.sclasses):
              if sc.name in self.osfollow:
-                if self.verb>3: print '-- no consec for follower %s' % sc.name
+                if self.verb>3: print('-- no consec for follower %s' % sc.name)
                 reps[sind] = 0
 
        # generate a random list of the form [[sind nconsec] ...]
@@ -3344,7 +3368,7 @@ class RandTiming:
 
           return new event list"""
        if self.verb > 3:
-          print '-- insert followers: starting with %d events' % len(events)
+          print('-- insert followers: starting with %d events' % len(events))
        enew = []
        for event in events:
           ename = self.sclasses[event[0]].name
@@ -3359,7 +3383,7 @@ class RandTiming:
                 enew.append([sind, dur])
 
        if self.verb > 3:
-          print '-- insert followers: returning %d events' % len(enew)
+          print('-- insert followers: returning %d events' % len(enew))
 
        return enew
 
@@ -3369,7 +3393,7 @@ class RandTiming:
        nostim = len(self.orderstim)
        nolabs = len(self.orderlabs)
        if nostim > 0 and nolabs == 0:
-          print '** advanced usage requires labels in %s' % oname
+          print('** advanced usage requires labels in %s' % oname)
           return -1
        if nolabs == 0: return 0
 
@@ -3379,8 +3403,8 @@ class RandTiming:
        followers = []
        for olabs in self.orderlabs:
           if len(olabs) < 2:
-             print '** %s requires at least 2 labels, have: %s' \
-                   % (oname, ' '.join(olabs))
+             print('** %s requires at least 2 labels, have: %s' \
+                   % (oname, ' '.join(olabs)))
              errs += 1
              continue
 
@@ -3388,11 +3412,11 @@ class RandTiming:
           follow = olabs[1:]
           for lab in olabs:
              if lab not in self.labels:
-                print '** invalid label %s in %s %s' \
-                      % (lab, oname, ' '.join(olabs))
+                print('** invalid label %s in %s %s' \
+                      % (lab, oname, ' '.join(olabs)))
                 return -1   # fatal
              if lab in alllabs:
-                print '** %s: label %s used multiple times' % (oname, lab)
+                print('** %s: label %s used multiple times' % (oname, lab))
                 errs += 1
              alllabs.append(lab)
 
@@ -3401,9 +3425,9 @@ class RandTiming:
           for fname in follow:
              fs = self.sclasses[self.stimdict[fname]]
              if fs.nreps != ls.nreps:
-                print '** -ordered_stimuli: classes must have equal num stim'
-                print '   %s has %d, %s has %d' \
-                      % (lead, ls.nreps, fname, fs.nreps)
+                print('** -ordered_stimuli: classes must have equal num stim')
+                print('   %s has %d, %s has %d' \
+                      % (lead, ls.nreps, fname, fs.nreps))
                 errs += 1
 
           self.osdict[lead] = follow
@@ -3416,11 +3440,11 @@ class RandTiming:
        self.osfollow = followers
 
        if self.verb > 2:
-          print '-- have %d ordered stim, with %d leaders and %d followers' \
-                % (nolabs, len(leaders), len(followers))
+          print('-- have %d ordered stim, with %d leaders and %d followers' \
+                % (nolabs, len(leaders), len(followers)))
           if self.verb > 3:
-             print '   leaders  : %s' % ', '.join(leaders)
-             print '   followers: %s' % ', '.join(followers)
+             print('   leaders  : %s' % ', '.join(leaders))
+             print('   followers: %s' % ', '.join(followers))
 
        return 1
 
@@ -3429,7 +3453,7 @@ class RandTiming:
        """break stim_event_list into num_runs"""
        if not self.across_runs: return 0
 
-       print '** rcr - adv_partition_sevents_across_runs'
+       print('** rcr - adv_partition_sevents_across_runs')
 
        return 1
 
@@ -3464,7 +3488,7 @@ class RandTiming:
        # add any offset
        offset = self.offset
        if offset != 0 and self.verb > 1:
-          print '++ applying offset of %g to all times' % offset
+          print('++ applying offset of %g to all times' % offset)
           
        for sind, sc in enumerate(self.sclasses):
           sc.mdata = []
@@ -3495,9 +3519,9 @@ class RandTiming:
           rv, ferun = self.adv_stim2full_run_elist(rind, erun)
           if rv: return 1
           if self.verb > 5:
-             print '== full timing list: run %d, elist:' % (rind+1)
+             print('== full timing list: run %d, elist:' % (rind+1))
              for fe in ferun:
-                print '   %s' % ', '.join(['%g'%e for e in fe])
+                print('   %s' % ', '.join(['%g'%e for e in fe]))
           felist.append(ferun)
 
        self.full_event_list = felist
@@ -3547,13 +3571,13 @@ class RandTiming:
        randtime = rtime-pprest
 
        if self.verb > 2 or randtime < 0:
-          print '-- run %02d: run time = %s, stime = %s, rtime = %s' \
-                % (rind+1, self.run_time[rind], stime, rtime)
-          print '   pre-rest = %s, post-rest = %s, random rest = %s' \
-                % (self.pre_stim_rest, self.post_stim_rest, randtime)
+          print('-- run %02d: run time = %g, stime = %g, rtime = %g' \
+                % (rind+1, self.run_time[rind], stime, rtime))
+          print('   pre-rest = %g, post-rest = %g, random rest = %g' \
+                % (self.pre_stim_rest, self.post_stim_rest, randtime))
 
        if randtime < 0:
-          print '** unsolvable random timing for rest'
+          print('** unsolvable random timing for rest')
           return 1, []
 
        rv, rcounts, rtypes = self.count_all_rest_types(events)
@@ -3562,10 +3586,10 @@ class RandTiming:
        rv, rtimes = self.partition_rest_time(randtime, rcounts, rtypes)
        if rv: return 1, events
        if self.verb > 3:
-          print '== partitioned rest:'
+          print('== partitioned rest:')
           for cind, rc in enumerate(rtypes):
-             print "   %4d rest events of type '%s', time = %g" \
-                   %(rcounts[cind], rc.name, rtimes[cind])
+             print("   %4d rest events of type '%s', time = %g" \
+                   %(rcounts[cind], rc.name, rtimes[cind]))
 
        # get rest events, and apply to timing (append accumulated time)
        for rtind, rc in enumerate(rtypes):
@@ -3580,7 +3604,7 @@ class RandTiming:
        if self.verb > 3:
           rc = sum([len(rc.etimes) for rc in rtypes])
           ec = len(events)
-          print '== have %d rest events and %d stim events' % (rc, ec)
+          print('== have %d rest events and %d stim events' % (rc, ec))
 
        # for each event, get the current rest time
        rall = 0
@@ -3599,7 +3623,7 @@ class RandTiming:
              rtime = rc.etimes.pop(0)
              event.append(rtime)
        except:
-          print '** rest time extraction error'
+          print('** rest time extraction error')
           return 0, events
 
        # replace rest time with event time
@@ -3611,7 +3635,7 @@ class RandTiming:
 
        # and finally remove the pre- and post- rest events
        if events[0][0] != -2 or events[-1][0] != -1:
-          print '** pre/post-stim rest events out of order'
+          print('** pre/post-stim rest events out of order')
        else:
           events.pop(0)
           events.pop()
@@ -3644,7 +3668,7 @@ class RandTiming:
 
        remain = rtot - tot_min
        if remain < 0:
-          print '** partition rest: insufficient space for even min rest'
+          print('** partition rest: insufficient space for even min rest')
           return 1, []
 
        # now go back and track those with applied means (mean > min)
@@ -3672,9 +3696,9 @@ class RandTiming:
        # (remain < 0 was checked above, but be safe)
        if remain <= 0:
           if tot_mean > 0:
-             print '** PRT: no time left for above-min mean-based rest'
+             print('** PRT: no time left for above-min mean-based rest')
           if have_rand == 1:
-             print '** PRT: no time left for above-min random rest'
+             print('** PRT: no time left for above-min random rest')
           return 0, rtimes
 
        # -----------------------------------------------------------------
@@ -3688,10 +3712,10 @@ class RandTiming:
 
        # possibly provide more details on scalar
        if abs(mean_scalar-1) > 0.05 or self.verb > 2:
-          print '-- have %g of %g mean seconds available, scaling by %g' \
-                % (remain, tot_mean, mean_scalar)
+          print('-- have %g of %g mean seconds available, scaling by %g' \
+                % (remain, tot_mean, mean_scalar))
           if remain > tot_mean and have_rand:
-             print '   (no scaling due to unlimited rest classes)'
+             print('   (no scaling due to unlimited rest classes)')
        
        # -----------------------------------------------------------------
        # now actually distribute into rtimes
@@ -3758,16 +3782,16 @@ class RandTiming:
              rcounts.append(1)
 
        if self.verb > 2:
-          print "-- have %d rest events across %d rest classes" \
-                % (sum(rcounts), len(rcounts))
+          print("-- have %d rest events across %d rest classes" \
+                % (sum(rcounts), len(rcounts)))
           if self.verb > 3:
              for cind, rc in enumerate(rtypes):
-                print "   %4d rest events of type '%s'"%(rcounts[cind],rc.name)
+                print("   %4d rest events of type '%s'"%(rcounts[cind],rc.name))
 
        return 0, rcounts, rtypes
 
     def adv_rest_across_runs(self, sall):
-       print '** RCR - rest across runs...'
+       print('** RCR - rest across runs...')
        return []
 
     def adv_make_3dd_cmd(self):
@@ -3775,8 +3799,8 @@ class RandTiming:
 
         if not self.file_3dd_cmd:       return
         if os.path.isfile(self.file_3dd_cmd):
-            print "** 3dD command file '%s' already exists, failing..." \
-                        % self.file_3dd_cmd
+            print("** 3dD command file '%s' already exists, failing..." \
+                        % self.file_3dd_cmd)
             return
 
         nstim = len(self.sclasses)
@@ -3860,12 +3884,12 @@ class RandTiming:
         cmd += UTIL.add_line_wrappers(c2)
 
         if self.verb > 0:
-            print "saving 3dD command to file '%s'...\n" % self.file_3dd_cmd
+            print("saving 3dD command to file '%s'...\n" % self.file_3dd_cmd)
         if self.verb > 1:
-            print cmd
+            print(cmd)
 
         if UTIL.write_text_to_file(self.file_3dd_cmd, cmd):
-            print '** failed to write 3dD command to %s' % self.file_3dd_cmd,
+            print('** failed to write 3dD command to %s' % self.file_3dd_cmd)
             return
 
 def adv_basis_from_time(sclass):
@@ -3897,7 +3921,7 @@ def do_isi_pdfs(argv):
          NT = int(argv[ind+1])
          NR = int(argv[ind+2])
       except:
-         print '** %s requires 2 integer params, NTask, NRest' % oname
+         print('** %s requires 2 integer params, NTask, NRest' % oname)
          return 1
       show_sum_pswr(NT, NR)
 
@@ -3908,7 +3932,7 @@ def do_isi_pdfs(argv):
          NT = int(argv[ind+1])
          NR = int(argv[ind+2])
       except:
-         print '** %s requires 2 integer params, NTask, NRest' % oname
+         print('** %s requires 2 integer params, NTask, NRest' % oname)
          return 1
       show_isi_pdf(NT, NR)
 
@@ -3924,28 +3948,28 @@ def show_isi_pdf(T, R):
    cump = pcur
    rat  = pcur
 
-   print 'nstart   prob        inc'
-   print '------   ----------  ----------'
+   print('nstart   prob        inc')
+   print('------   ----------  ----------')
    for r in range(0,R+1):
-      print "%5d   %-10g   %-10g" % (r, pcur, rat)
+      print("%5d   %-10g   %-10g" % (r, pcur, rat))
       rat = (1.0*R - r) / (R + T - 1 - r)
       pcur *= rat
       cump += pcur
-   print 'cum result is %g' % cump
+   print('cum result is %g' % cump)
 
 def show_sum_pswr(nT, nR):
    cp = 0.0
    prev = 0
-   print 'nstart   prob        inc'
-   print '------   ----------  ----------'
+   print('nstart   prob        inc')
+   print('------   ----------  ----------')
    for r in range(nR+1):
       p = prob_start_with_R(nT,nR,r)
       cp += p
       # print 'prob at %3d = %g (cum %g)' % (r, p, cp)
       if prev == 0: prev = p
-      print r, p, p/prev
+      print(r, p, p/prev)
       prev = p
-   print 'cum result is %g' % cp
+   print('cum result is %g' % cp)
 
 
 def prob_start_with_R(nA, nB, nS):

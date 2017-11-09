@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# python3 status: compatible
+
 # system libraries
 import sys, os
 
@@ -1052,9 +1054,10 @@ g_history = """
    1.27 Sep 23, 2016 - added -select_runs; tiny nruns adjust
    1.28 Apr 17, 2017
         - clarify source in -show_censored_trs (if Xmat, use header info)
+   2.00 Nov  7, 2017 - python3 compatible
 """
 
-g_version = "1d_tool.py version 1.28, April 17, 2017"
+g_version = "1d_tool.py version 2.00, November 7, 2017"
 
 
 class A1DInterface:
@@ -1167,7 +1170,7 @@ class A1DInterface:
 
       if not adata.ready: return 1
 
-      if self.verb > 2: print "++ read 1D data from file '%s'" % fname
+      if self.verb > 2: print("++ read 1D data from file '%s'" % fname)
 
       self.fname = fname
       self.adata = adata
@@ -1177,9 +1180,9 @@ class A1DInterface:
 
    def write_1D(self, fname):
       """write the current 1D data out (return status)"""
-      if self.verb > 1: print '++ writing 1D file %s' % fname
+      if self.verb > 1: print('++ writing 1D file %s' % fname)
       if not self.adata:
-         print '** no 1D data to write'
+         print('** no 1D data to write')
          return 1
       return self.adata.write(fname, overwrite=self.overwrite)
 
@@ -1187,7 +1190,7 @@ class A1DInterface:
       """write the current 1D data out as a timing file, where a time
          is written if data at the current TR is set (non-zero)"""
       if not self.adata:
-         print '** no 1D data to write as timing'
+         print('** no 1D data to write as timing')
          return 1
       return self.adata.write_as_timing(fname, invert=invert)
 
@@ -1195,10 +1198,10 @@ class A1DInterface:
       """break input file into one file per run, where each output file has
          all non-current runs as 0 (so file lengths stay the same)"""
       if not self.adata:
-         print '** no 1D data to write as timing'
+         print('** no 1D data to write as timing')
          return 1
       if self.set_nruns == 0 and len(self.set_run_lengths) == 0:
-         print '** -split_into_pad_runs requires -set_nruns or -set_run_lengths'
+         print('** -split_into_pad_runs requires -set_nruns or -set_run_lengths')
          return 1
       return self.adata.split_into_padded_runs(prefix, overwrite=self.overwrite)
 
@@ -1458,11 +1461,11 @@ class A1DInterface:
       self.valid_opts.check_special_opts(sys.argv)
 
       if len(sys.argv) <= 1 or '-help' in sys.argv:
-         print g_help_string
+         print(g_help_string)
          return 0
 
       if '-hist' in sys.argv:
-         print g_history
+         print(g_history)
          return 0
 
       if '-show_valid_opts' in sys.argv:
@@ -1470,7 +1473,7 @@ class A1DInterface:
          return 0
 
       if '-ver' in sys.argv:
-         print g_version
+         print(g_version)
          return 0
 
       # ============================================================
@@ -1513,10 +1516,10 @@ class A1DInterface:
             if err: return 1
             if val > 0: self.set_nruns = val
             else:
-               print '** -set_nruns must be positive'
+               print('** -set_nruns must be positive')
                return 1
             if len(self.set_run_lengths) > 0:
-               print '** cannot use both -set_nruns and -set_run_lengths'
+               print('** cannot use both -set_nruns and -set_run_lengths')
                return 1
 
          elif opt.name == '-set_run_lengths':
@@ -1524,7 +1527,7 @@ class A1DInterface:
             if err: return 1
             self.set_run_lengths = val
             if self.set_nruns > 0:
-               print '** cannot use both -set_nruns and -set_run_lengths'
+               print('** cannot use both -set_nruns and -set_run_lengths')
                return 1
 
          elif opt.name == '-set_tr':
@@ -1532,7 +1535,7 @@ class A1DInterface:
             if err: return 1
             if val > 0: self.set_tr = val
             else:
-               print '** -set_tr must be positive'
+               print('** -set_tr must be positive')
                return 1
 
          # ----- general options -----
@@ -1566,10 +1569,10 @@ class A1DInterface:
             if err: return 1
             try: limit = float(val[0])
             except:
-               print "** -censor_motion: bad limit '%s'" % val[0]
+               print("** -censor_motion: bad limit '%s'" % val[0])
                return 1
             if limit < 0:
-               print "** -censor_motion: LIMIT must be positive, have %g"%limit
+               print("** -censor_motion: LIMIT must be positive, have %g"%limit)
                return 1
             # check for redundant options
             errors = 0
@@ -1577,11 +1580,11 @@ class A1DInterface:
                      'moderate_mask', '-write_censor', '-write_CENSORTR']
             for oname in olist:
                if uopts.find_opt(oname):
-                  print "** option %s is redundant with -censor_motion" % oname
+                  print("** option %s is redundant with -censor_motion" % oname)
                   errors += 1
             if errors:
                ss = "\n** -censor_motion implies each of: %s"%', '.join(olist)
-               print UTIL.add_line_wrappers(ss, wrapstr='\n')
+               print(UTIL.add_line_wrappers(ss, wrapstr='\n'))
                return 1
             # set implied options
             self.derivative = 1
@@ -1614,7 +1617,7 @@ class A1DInterface:
             if err: return 1
             if val >= 0 and val < 1.0: self.cormat_cutoff = val
             else:
-               print '** -cormat_cutoff must be in [0,1)'
+               print('** -cormat_cutoff must be in [0,1)')
                return 1
 
          elif opt.name == '-demean':
@@ -1636,7 +1639,7 @@ class A1DInterface:
                self.extreme_min = val[0]
                self.extreme_max = val[1]
             else:
-               print '** -extreme_mask: must have min <= max'
+               print('** -extreme_mask: must have min <= max')
                return 1
 
          elif opt.name == '-backward_diff':
@@ -1660,7 +1663,7 @@ class A1DInterface:
                self.extreme_min = val[0]
                self.extreme_max = val[1]
             else:
-               print '** -extreme_mask: must have min <= max'
+               print('** -extreme_mask: must have min <= max')
                return 1
 
          elif opt.name == '-label_prefix_drop':
@@ -1699,10 +1702,10 @@ class A1DInterface:
             if err: return 1
             try: limit = float(val[0])
             except:
-               print "** -censor_motion: bad limit '%s'" % val[0]
+               print("** -censor_motion: bad limit '%s'" % val[0])
                return 1
             if limit < 0:
-               print "** -quick_censor_count: LIMIT must be > 0, have %g"%limit
+               print("** -quick_censor_count: LIMIT must be > 0, have %g"%limit)
                return 1
             # check for redundant options
             errors = 0
@@ -1711,14 +1714,14 @@ class A1DInterface:
                      '-show_censor_count', '-verb']
             for oname in olist:
                if uopts.find_opt(oname):
-                  print "** option %s is redundant with -quick_censor_count" \
-                        % oname
+                  print("** option %s is redundant with -quick_censor_count" \
+                        % oname)
                   errors += 1
             olist = ['-censor_motion', '-write_censor', '-extreme_mask']
             for oname in olist:
                if uopts.find_opt(oname):
-                  print "** option %s is not allowed with -quick_censor_count" \
-                        % oname
+                  print("** option %s is not allowed with -quick_censor_count" \
+                        % oname)
                   errors += 1
             if errors: return 1
             # set implied options
@@ -1878,7 +1881,7 @@ class A1DInterface:
             self.incheck = 0
 
          else:
-            print "** unknown option: %s" % opt.name
+            print("** unknown option: %s" % opt.name)
             return 1
 
       return
@@ -1887,14 +1890,14 @@ class A1DInterface:
       """return None on completion, else error code (0 being okay)"""
 
       if not self.adata.ready and self.dtype != 2:
-         print '** not ready to process AfniData'
+         print('** not ready to process AfniData')
          return 1
 
       if self.verb > 1:
-         print '++ process_afnidata: looks_like = %d' %  self.looks_like
+         print('++ process_afnidata: looks_like = %d' %  self.looks_like)
 
       if not self.looks_like:
-         print '** no looks_like action to perform on AfniData'
+         print('** no looks_like action to perform on AfniData')
          return 1
 
       # use verb of at least 1 to print result
@@ -1922,7 +1925,7 @@ class A1DInterface:
       # ---- data input options -----
 
       if self.incheck and not self.infile:
-         print '** missing -infile option'
+         print('** missing -infile option')
          return 1
       elif self.infile and self.init_from_file(self.infile): return 1
 
@@ -1932,7 +1935,7 @@ class A1DInterface:
       if self.censor_infile:
          cdata = LAD.Afni1D(self.censor_infile, verb=self.verb)
          if cdata == None:
-            print '** failed to censor input file'
+            print('** failed to censor input file')
             return 1
          self.adata.apply_censor_dset(cdata)
 
@@ -1995,14 +1998,14 @@ class A1DInterface:
 
       if len(self.pad_to_runs) > 0:
          if self.transpose:
-            print '** -transpose is illegal with -pad_into_many_runs'
+            print('** -transpose is illegal with -pad_into_many_runs')
             return 1
          val = self.pad_to_runs
          rlens = self.set_run_lengths # pass empty or not
          # if run_len list, verify number of runs
          if len(rlens) > 0 and len(rlens) != val[1]:
-            print '** -pad_into_many_runs: nruns=%d != length of run list: %s'\
-                  % (val[1], rlens)
+            print('** -pad_into_many_runs: nruns=%d != length of run list: %s'\
+                  % (val[1], rlens))
             return 1
          if self.adata.pad_into_many_runs(val[0], val[1], rlens): return 1
 
@@ -2060,21 +2063,21 @@ class A1DInterface:
       if self.show_argmax:
          amax = UTIL.argmax(self.adata.mat[0])
          if self.verb > 1:
-            print '-- val[%d] = %s' % (amax, self.adata.mat[0][amax])
-         print '%d' % amax
+            print('-- val[%d] = %s' % (amax, self.adata.mat[0][amax]))
+         print('%d' % amax)
 
       if self.show_argmin:
          amin = UTIL.argmin(self.adata.mat[0])
          if self.verb > 1:
-            print '-- val[%d] = %s' % (amin, self.adata.mat[0][amin])
-         print '%d' % amin
+            print('-- val[%d] = %s' % (amin, self.adata.mat[0][amin]))
+         print('%d' % amin)
 
       if self.show_indices:
          istr = self.adata.get_indices_str(self.show_indices)
-         print istr
+         print(istr)
 
       if self.show_displace:
-         print self.adata.get_max_displacement_str(verb=self.verb)
+         print(self.adata.get_max_displacement_str(verb=self.verb))
 
       if self.show_gcor:
          if self.show_gcor & 1:
@@ -2109,7 +2112,7 @@ class A1DInterface:
       if self.show_cormat_warn:
          err, wstr = self.adata.make_cormat_warnings_string(self.cormat_cutoff,
                                                            name=self.infile)
-         print wstr
+         print(wstr)
 
       # ---- possibly write: last option -----
 
@@ -2140,14 +2143,14 @@ class A1DInterface:
       run, tr = UTIL.index_to_run_tr(self.global_index, rlens)
 
       if self.verb > 1:
-         print 'global index %d = run %d, TR %d'%(self.global_index,run,tr)
-      else: print '%02d %d' % (run, tr)
+         print('global index %d = run %d, TR %d'%(self.global_index,run,tr))
+      else: print('%02d %d' % (run, tr))
 
    def show_nruns(self):
       """display the number of runs"""
       if self.verb > 1: pstr = 'number of runs: '
       else:             pstr = ''
-      print '%s%s' % (pstr, self.adata.nruns)
+      print('%s%s' % (pstr, self.adata.nruns))
 
    def show_TR_run_counts(self):
       """display list of TRs per run, according to self.show_tr_run_counts
@@ -2167,8 +2170,8 @@ class A1DInterface:
       # if desired, just get sub-list
       if self.show_trs_run >= 0:
          if self.show_trs_run >= self.adata.nruns:
-            print '** -show_trs_run (%d) exceeds num runs (%d)' \
-                  % (self.show_trs_run+1, self.adata.nruns)
+            print('** -show_trs_run (%d) exceeds num runs (%d)' \
+                  % (self.show_trs_run+1, self.adata.nruns))
             return
 
          trs    = trs   [self.show_trs_run:self.show_trs_run+1]
@@ -2176,18 +2179,18 @@ class A1DInterface:
 
       style = self.show_tr_run_counts
       if style == 'trs':
-         print UTIL.int_list_string(trs, sepstr=' ')
+         print(UTIL.int_list_string(trs, sepstr=' '))
       elif style == 'trs_cen':
          tlist = [trs_nc[r]-trs[r] for r in range(len(trs))]
-         print UTIL.int_list_string(tlist, sepstr=' ')
+         print(UTIL.int_list_string(tlist, sepstr=' '))
       elif style == 'trs_no_cen':
-         print UTIL.int_list_string(trs_nc, sepstr=' ')
+         print(UTIL.int_list_string(trs_nc, sepstr=' '))
       elif style == 'frac_cen':
          tlist = [1.0-trs[r]*1.0/trs_nc[r] for r in range(len(trs))]
-         print UTIL.gen_float_list_string(tlist)
+         print(UTIL.gen_float_list_string(tlist))
       else:
-         print '** invalid -show_tr_run_counts STYLE %s' \
-               % self.show_tr_run_counts
+         print('** invalid -show_tr_run_counts STYLE %s' \
+               % self.show_tr_run_counts)
 
    def show_TR_censor_list(self, censored=0):
       """output either the cencored or uncensored TR index list in the
@@ -2207,33 +2210,33 @@ class A1DInterface:
       if style == '': return
       if rv: return 1
 
-      if   style == 'comma':   print UTIL.int_list_string(tlist, sepstr=',')
-      elif style == 'space':   print UTIL.int_list_string(tlist, sepstr=' ')
-      elif style == 'encoded': print UTIL.encode_1D_ints(tlist)
+      if   style == 'comma':   print(UTIL.int_list_string(tlist, sepstr=','))
+      elif style == 'space':   print(UTIL.int_list_string(tlist, sepstr=' '))
+      elif style == 'encoded': print(UTIL.encode_1D_ints(tlist))
       elif style == 'describe':
          if len(self.adata.goodlist) > 0: ntot = self.adata.nrowfull
          else:                            ntot = self.adata.nt
-         print '%s %d of %d TR indices: %s' \
-               % (action, len(tlist), ntot, UTIL.encode_1D_ints(tlist))
+         print('%s %d of %d TR indices: %s' \
+               % (action, len(tlist), ntot, UTIL.encode_1D_ints(tlist)))
       else: # assume verbose = describe + actual list
          if len(self.adata.goodlist) > 1: ntot = self.adata.nrowfull
          else:                            ntot = self.adata.nt
-         print '%s %d of %d TR indices: %s' \
-               % (action, len(tlist), ntot, UTIL.encode_1D_ints(tlist))
-         print UTIL.int_list_string(tlist, mesg='TRs = ',sepstr=', ')
+         print('%s %d of %d TR indices: %s' \
+               % (action, len(tlist), ntot, UTIL.encode_1D_ints(tlist)))
+         print(UTIL.int_list_string(tlist, mesg='TRs = ',sepstr=', '))
 
 def test(self, verb=3):
       # init
-      print '------------------------ initial reads -----------------------'
+      print('------------------------ initial reads -----------------------')
       self.verb = verb
       # these should not fail, so quit if they do
       # first try AFNI_data4, then regression data
 
       # reset
-      print '------------------------ reset files -----------------------'
+      print('------------------------ reset files -----------------------')
 
       # failures
-      print '------------------------ should fail -----------------------'
+      print('------------------------ should fail -----------------------')
 
       # more tests
       return None
