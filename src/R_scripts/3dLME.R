@@ -25,7 +25,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dLME ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.9.6, May 19, 2017
+Version 1.9.7, Nov 13, 2017
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/sscc/gangc/lme.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -377,7 +377,12 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
    "         This option currently cannot be combined with -ICC, -ICCb, -LOGIT.\n",
              sep = '\n'
                      ) ),
-       
+
+            '-ML' = apl(n=0, d=3, h = paste(
+   "-ML: Add this option if Maximum Likelihood is wanted instead of the default",
+   "         method, Maximum Likelihood (REML).\n",
+             sep = '\n'
+                     ) ),   
        
      '-LOGIT' = apl(n=0, d=3, h = paste(
    "-LOGIT: This option allows 3dLME to perform voxel-wise logistic modeling.",
@@ -530,6 +535,7 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
       lop$ICC     <- FALSE
       lop$ICCb    <- FALSE
       lop$logLik  <- FALSE
+      lop$ML      <- FALSE
       lop$LOGIT   <- FALSE
       lop$num_glt <- 0
       lop$gltLabel <- NULL
@@ -564,6 +570,7 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
              ICC     = lop$ICC     <- TRUE,
              ICCb    = lop$ICCb    <- TRUE,
              logLik  = lop$logLik  <- TRUE,
+             ML      = lop$ML      <- TRUE,
              LOGIT   = lop$LOGIT   <- TRUE,
              num_glt = lop$num_glt <- ops[[i]],
              gltLabel = lop$gltLabel <- ops[[i]],
@@ -913,12 +920,22 @@ runLME <- function(inData, dataframe, ModelForm) {
    if (!all(abs(inData) < 10e-8)) {        
       dataframe$Beta<-inData[1:nrow(dataframe)]
       fm <- NULL
-      if(!is.na(lop$corStr[1]))
-         try(fm <- lme(ModelForm, random = lop$ranEffList, dataframe, correlation=corAR1(0.3, form=lop$corStrList)), silent=TRUE)
+      if(lop$ML) {
+         if(!is.na(lop$corStr[1]))
+            try(fm <- lme(ModelForm, random = lop$ranEffList, dataframe, correlation=corAR1(0.3, form=lop$corStrList), method='ML'), silent=TRUE)
          # case of basis functions
-      if(is.null(fm)) { # case of basis functions fails or other cases
-         try(fm <- lme(ModelForm, random = lop$ranEffList, dataframe), silent=TRUE)
-         if(is.null(fm)) try(fm <- lme(ModelForm, random = ~1|Subj, dataframe), silent=TRUE)
+         if(is.null(fm)) { # case of basis functions fails or other cases
+            try(fm <- lme(ModelForm, random = lop$ranEffList, dataframe, method='ML'), silent=TRUE)
+           if(is.null(fm)) try(fm <- lme(ModelForm, random = ~1|Subj, dataframe), silent=TRUE)
+         }
+      } else {
+         if(!is.na(lop$corStr[1]))
+            try(fm <- lme(ModelForm, random = lop$ranEffList, dataframe, correlation=corAR1(0.3, form=lop$corStrList)), silent=TRUE)
+         # case of basis functions
+         if(is.null(fm)) { # case of basis functions fails or other cases
+            try(fm <- lme(ModelForm, random = lop$ranEffList, dataframe), silent=TRUE)
+            if(is.null(fm)) try(fm <- lme(ModelForm, random = ~1|Subj, dataframe), silent=TRUE)
+         }
       } 
       #if(is.null(fm) | class(fm$apVar)[1] == "character") {  # contrast cares about fm$apVar
       if(is.null(fm)) {  # phia doesn't care about fm$apVar
