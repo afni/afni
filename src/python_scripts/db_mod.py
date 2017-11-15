@@ -1067,7 +1067,7 @@ def db_cmd_despike(proc, block):
     prev   = proc.prev_prefix_form_run(block, view=1)
 
     # maybe the user wants to mask here (to speed this step up)
-    if block.opts.find_opt('-despike_opts_mask'): mstr = ''
+    if block.opts.find_opt('-despike_mask'): mstr = ''
     else:                                         mstr = ' -nomask'
 
     # default to 3dDespike -NEW for now
