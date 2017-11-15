@@ -144,10 +144,9 @@ not guaranteed to be perfect).  Therefore, one can run::
 
     # A) do autoflip check: not ideal to need this, but such is life
     @GradFlipTest \
-        -in_dwi       $itort/buddi.nii        \
-        -in_col_matT  $itort/buddi.bmtxt      \
-        -outdir       "$itort"                \
-        -prefix       GradFlipTest_rec.txt
+        -in_dwi       $itort/buddi.nii                \
+        -in_col_matT  $itort/buddi.bmtxt              \
+        -prefix       $itort/GradFlipTest_rec.txt
 
     # get the 'recommended' flip; still should verify visually!!
     set my_flip = `cat $itort/GradFlipTest_rec.txt`
