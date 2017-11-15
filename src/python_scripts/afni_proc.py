@@ -577,9 +577,10 @@ g_history = """
     5.17 Sep 11, 2017: if no regress block, skip gen_ss_review_scripts.py
     5.18 Sep 12, 2017: use lpc+ZZ cost function in examples
     6.00 Nov  7, 2017: python3 compatible
+    6.01 Nov 15, 2017: fixed -despike_mask (by D Plunkett)
 """
 
-g_version = "version 6.00, November 7, 2017"
+g_version = "version 6.01, November 15, 2017"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
