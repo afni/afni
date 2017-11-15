@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 15, Nov, 2017, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "-despike_mask had been tested with wrong option name",
+   "Fix submitted by D Plunkett."
+ } ,
+
  {  9, Nov, 2017, RCR, "make_random_timing.py", MINOR, TYPE_ENHANCE,
    "python3 compatible as of version 3.0",
    NULL

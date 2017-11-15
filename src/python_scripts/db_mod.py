@@ -1069,8 +1069,17 @@ def db_cmd_despike(proc, block):
     # maybe the user wants to mask here (to speed this step up)
     #
     # was applied as -despike_opts_mask, fixed by D Plunkett  15 Nov 2017 [rickr]
-    if block.opts.find_opt('-despike_mask'):      mstr = ''
-    else:                                         mstr = ' -nomask'
+    mstr = ' -nomask'
+    if block.opts.find_opt('-despike_mask'):
+       # require -mask_apply epi
+       okay = 0
+       opt = proc.find_block_opt('mask', '-mask_apply')
+       if opt:
+          okay = opt.parlist[0] == 'epi'
+       if not okay:
+          print("** option -despike_mask requires -mask_apply epi")
+          return
+       mstr = ''
 
     # default to 3dDespike -NEW for now
     if block.opts.have_no_opt('-despike_new'): newstr = ''
