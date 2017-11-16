@@ -16,3 +16,4 @@ Tutorials, Examples
    StandardMeshes/StandardMeshes
    Coding/Writing_Help
    ClusterExplorer/main_toc
+   FATCAT_matplot/main_toc
