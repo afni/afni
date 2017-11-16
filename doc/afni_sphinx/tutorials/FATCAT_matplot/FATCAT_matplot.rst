@@ -30,7 +30,7 @@ Gotta get up to get down [#f2]_
 | ``@FATCAT_matplot ~/my_Netcc_files``
 |
 | With "~/my_Netcc_files" being some folder with .netcc or .grid files.
-| This will open your default web browser and read the dataset in ~/my_Netcc_files.
+| This will open your default web browser and read all valid datasets in ~/my_Netcc_files
 
 Walking in your footsteps [#f3]_
 --------------------------------
