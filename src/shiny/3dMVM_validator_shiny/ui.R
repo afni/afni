@@ -107,12 +107,18 @@ body <-  dashboardBody(
     #################################
     tabPanel('Script',icon=icon("newspaper-o"),br(),
              fluidRow(
-               column(width=4,
-                      downloadButton('downloadScript','Download Script')),
-               column(width=8,
-                      textInput('script_name','Script file name:',
-                                value="My_MVM.txt") )
-             ),br(),
+               box(width=9,title='Enter script file name:',
+                      textInput('script_name',NULL,
+                                value="My_MVM.txt",width='100%') ),
+               box(width=3,
+                      downloadButton('downloadScript','Download Script') )
+             ),
+             fluidRow(
+               box(width=12,title='Execute script at terminal with:',
+                      verbatimTextOutput('exec_script') )
+             ),
+
+             br(),
              fluidRow(
                box(width=12,status="primary",solidHeader=TRUE,
                    textOutput('mvm_script'),

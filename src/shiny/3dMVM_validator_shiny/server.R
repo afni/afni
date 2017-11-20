@@ -299,6 +299,16 @@ shinyServer(function(input,output,session) {
 
   })   ## end MVM script
 
+  ## download the script give run instructions
+  output$downloadScript <- downloadHandler(
+    filename = function() { input$script_name },
+    content = function(con) { writeLines(mvmScript(), con) },
+    contentType = "application/x-sh"
+  )
+  output$exec_script <- renderText({
+    paste('tcsh',input$script_name)
+  })
+
   ############################################
   ## GLTs
 
@@ -394,13 +404,10 @@ shinyServer(function(input,output,session) {
   ## test the current glt code
   observeEvent(input$test_glt,{
 
-    ## clear old
+    ## clear old and check for badness
     output$glt_test_out <- renderTable("",colnames=FALSE)
-
-    ## check for badness
     bad.out <- gltCheckFun(input$glt_label,input$glt_lvl,input$glt_weights,
                            input$glt_list)
-
     if(length(bad.out) > 0){
       output$glt_test_out <- renderTable({"Model Fail! Try again..."},
                                          colnames=FALSE)
@@ -425,7 +432,6 @@ shinyServer(function(input,output,session) {
     ## check for qVars and center them to mean or specified
     if(input$qnt_vars_in != ""){
       qnt_var_sel <- unlist(tstrsplit(input$qnt_vars_in,','))
-
       if(input$qnt_vars_center != ""){
         qnt_var_cent_sel <- as.numeric(
           unlist(tstrsplit(input$qnt_vars_center,',')))
@@ -460,6 +466,7 @@ shinyServer(function(input,output,session) {
       return()
     }
 
+    ## split the pieces
     test.slp <- glt.terms$slpList
     test.glt <- glt.terms$gltList
     if(length(glt.terms$slpList) == 0){ test.slp <- NULL }
@@ -527,10 +534,12 @@ shinyServer(function(input,output,session) {
         new.glt.c <- paste0("-gltCode  ",glt.n," '",cur.code,"' \\")
         glt.tab <- paste(input$glt_list,new.glt.l,new.glt.c,sep='\n')
       }
-      ## update all of the things
+      ## update and clear all of the things
       updateTextAreaInput(session,'glt_list',value=glt.tab)
       updateTextInput(session,'glt_label',value="")
       updateTextInput(session,'glt_code',value="")
+      updateTextInput(session,'glt_weights',value="")
+      updateSelectInput(session,'glt_lvl',selected="")
       output$glt_test_out <- renderTable("",colnames=FALSE)
       glt.good <<- FALSE
     }
@@ -571,20 +580,19 @@ shinyServer(function(input,output,session) {
     } else { return(" ") }
   },colnames=FALSE)
 
+  ## long list of options
   dataTableOptions <- list(paging=TRUE,info=FALSE,searching=FALSE,scrollX=TRUE,
                            pageLength=25)
 
+  ## many outputs
   output$mvm_table <- renderDataTable({data_load()},options=dataTableOptions)
   output$bad_vars  <- renderTable({badVars()},colnames=FALSE)
   output$model_summary <- reactivePrint(function(){calcModel()})
   output$mvm_script <- renderText({ mvmScript() })
-
   output$glt_cur_mod <- renderText({
-    junk <- calcModel()
+    junk <- calcModel()   ## update the model.static global (bad disco)
     as.character(model.static)
   })
-
-
 
   ## update the summary when you select that tab
   observeEvent(input$tabs,{
@@ -605,16 +613,10 @@ shinyServer(function(input,output,session) {
     }
   })   ## end summary tab
 
-  ## download the script
-  output$downloadScript <- downloadHandler(
-    filename = function() { input$script_name },
-    content = function(con) { writeLines(mvmScript(), con) }
-  )
-
   ## help page embed
   output$mvm_help <- renderUI({
     tags$iframe(src="https://afni.nimh.nih.gov/pub/dist/doc/program_help/3dMVM.html",
-                height=800, width="100%")
+                height=800,width="100%")
   })
 
 })   ## end server
