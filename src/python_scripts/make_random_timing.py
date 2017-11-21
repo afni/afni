@@ -1247,9 +1247,11 @@ g_history = """
          - decay_fixed: make L more precise; make demos accessible
          - add -help_decay_fixed
     3.0  Nov  9, 2017: python3 compatible
+    3.1  Nov 21, 2017: added -not_first and -not_last for C Smith
+                       (still needs to be added to advanced case)
 """
 
-g_version = "version 3.0 November 9, 2017"
+g_version = "version 3.1 November 21, 2017"
 
 g_todo = """
    - add -show_consec_stats option?
@@ -1366,6 +1368,12 @@ class RandTiming:
         self.min_rest = 0.0             # minimum rest after each stimulus
         self.offset   = 0.0             # offset for all stimulus times
         self.seed     = None            # random number seed
+
+        self.notfirst = []              # class indices that cannot start a run
+        self.notlast  = []              # class indices that cannot end a run
+        self.nflabs   = []              # class labels that cannot start a run
+        self.nllabs   = []              # class labels that cannot start a run
+
         self.orderstim= []              # list of ordered stimulus lists (ints)
         self.orderlabs= []              # list of ordered stimulus lists (strs)
         self.osleaders= []              # leaders and followers
@@ -1459,6 +1467,10 @@ class RandTiming:
                         helpstr='maximum rest time after each stimulus')
         self.valid_opts.add_opt('-min_rest', 1, [],
                         helpstr='minimum rest time after each stimulus')
+        self.valid_opts.add_opt('-not_first', -1, [],
+                        helpstr='list of event labels that should not start a run')
+        self.valid_opts.add_opt('-not_last', -1, [],
+                        helpstr='list of event labels that should not end a run')
         self.valid_opts.add_opt('-offset', 1, [],
                         helpstr='offset to add to every stimulus time')
         self.valid_opts.add_opt('-ordered_stimuli', -1, [], okdash=0,
@@ -1675,6 +1687,21 @@ class RandTiming:
         if self.max_rest == None: self.max_rest = 0
         elif err: return 1
 
+        # check for not_first or not_last options
+        self.nflabs, err = self.user_opts.get_string_list('-not_first')
+        if self.nflabs and not err:
+           self.notfirst, err = self.labels_to_indices(self.nflabs, onebased=0)
+           if err:
+              print('** failure processing -not_first %s' % ' '.join(self.nflabs))
+              return 1
+
+        self.nllabs, err = self.user_opts.get_string_list('-not_last')
+        if self.nllabs and not err:
+           self.notlast, err = self.labels_to_indices(self.nllabs, onebased=0)
+           if err:
+              print('** failure processing -not_last %s' % ' '.join(self.nllabs))
+              return 1
+
         self.offset, err = self.user_opts.get_type_opt(float,'-offset')
         if self.offset == None: self.offset = 0
         elif err: return 1
@@ -1780,6 +1807,14 @@ class RandTiming:
             elif not self.labels and not self.advanced:
                 print('** cannot use -make_3dd_contrasts without -stim_labels')
                 return 1
+
+        # is notfirst appropriate?
+        if len(self.notfirst) > 0 or len(self.notlast) > 0:
+           if self.across_runs or self.max_consec:
+              print("** illegal: -not_first/last with -across_runs or -max_consec")
+              return 1
+           # for now, do not allow this with advanced timing
+           # apply: rv, efirst, elast = self.select_first_last_events(reps_list)
 
         if self.verb > 1:
             print('-- pre_stim_rest=%g, post_stim_rest=%g, seed=%s'     \
@@ -1995,22 +2030,30 @@ class RandTiming:
 
         return None
 
-    def labels_to_indices(self, labels, print_err=1):
+    def labels_to_indices(self, labels, print_err=1, onebased=1):
         """convert the labels list into an index list
               - entries must be in self.labels
+
+           self.labels should be populated in either basic or advanced usage
+
            return index_list, err (0 = success)
         """
+
         if len(labels) == 0: return [], 0
+
         if len(self.labels) == 0:
            if print_err: print('** missing labels for conversion')
            return [], 1
+
         ilist = []
         for lab in labels:
            try: ind = self.labels.index(lab)
            except:
-              print('** assumed label %s is not in label list' % lab)
+              print('** label to index: label %s is not in label list' % lab)
               return [], 1
-           ilist.append(ind+1)
+           if onebased: ilist.append(ind+1)
+           else:        ilist.append(ind)
+
         return ilist, 0
 
     def create_timing(self):
@@ -2693,8 +2736,15 @@ class RandTiming:
         if len(self.orderstim) > 0:
             return self.randomize_ordered_events(nrest)
 
+        # copy reps list, in case it gets temporarily modified
         nstim = self.num_stim
-        reps_list = self.num_reps
+        reps_list = self.num_reps[:]
+
+        # ------------------------------------------------------------
+        # allow the user to specify tasks that cannot come first or last
+        # (these event types are 0-based)
+        rv, efirst, elast = self.select_first_last_events(reps_list)
+        if rv: return 1, []
 
         elist = []
         for stim in range(nstim):
@@ -2706,12 +2756,85 @@ class RandTiming:
 
         UTIL.shuffle(elist)
 
+        # if we have already chosen the first or last element, insert
+        # (convert to 1-based)
+        if efirst >= 0: elist.insert(0, efirst+1)
+        if elast >= 0:  elist.append(elast+1)
+
         if self.verb > 2:
             print('++ elist (len %d, random): %s' % (len(elist), elist))
             for stim in range(nstim):
                 print('   number of type %d = %d' % (stim+1,elist.count(stim+1)))
 
         return 0, elist
+
+    def select_first_last_events(self, reps):
+        """apply notfirst and notlast,
+           - return status and first and last event indices
+           - adjust reps for any applied first and last events
+        """
+
+        efirst = -1  # first event type (1-based; 0=unspecified)
+        elast = -1   # last  event type (1-based; 0=unspecified)
+
+        if len(self.notfirst) == 0 and len(self.notlast) == 0:
+            return 0, efirst, elast
+
+        if len(self.notfirst) > 0:
+           efirst = self.get_random_allowed_index(reps, self.notfirst)
+           if efirst < 0: 
+              print("** failed to get random event index to start run")
+              return 1, efirst, elast
+           # decrement this event count
+           reps[efirst] -= 1
+           if self.verb > 3:
+              print("-- ignoring %s for first event" % ', '.join(self.nflabs))
+           if self.verb > 2:
+              print("-- saving %s for first event" % self.labels[efirst])
+        if len(self.notlast) > 0:
+           elast = self.get_random_allowed_index(reps, self.notlast)
+           if elast < 0: 
+              print("** failed to get random event index to end run")
+              return 1, efirst, elast
+           # decrement this event count
+           reps[elast] -= 1
+           if self.verb > 3:
+              print("-- ignoring %s for last event" % ', '.join(self.nllabs))
+           if self.verb > 2:
+              print("-- saving %s for last event" % self.labels[elast])
+
+        return 0, efirst, elast
+
+    def get_random_allowed_index(self, reps, ignore):
+        """given an array of number of repetitions and an ignore list,
+           return a random index into reps which is not in ignore list
+
+           return -1 on failure, index on success
+        """
+        # total indices not in ignore list
+        etotal = 0
+        for ind in range(len(reps)):
+           if ind in ignore: continue
+           etotal += reps[ind]
+
+        if etotal == 0:
+           return -1
+
+        # choose random index
+        rind = int(etotal*random.random())
+
+        # find corresponding index
+        rtotal = 0
+        for ind in range(len(reps)):
+           if ind in ignore: continue
+           rtotal += reps[ind]
+           if rtotal > rind:
+              return ind                    # success
+
+        print("** GRAI index error: reps %s, ignore %s, rind %d, rtotal %d" \
+              % (reps, ignore, rind, rtotal))
+
+        return -1
 
     def randomize_limited_events(self, nrest):
         """return a random list of events, where each event type may have a
@@ -3261,6 +3384,15 @@ class RandTiming:
              erun = self.adv_limited_shuffled_run(rind, ordered)
              if erun == None: return 1
           else:
+             # consider applying -not_first or -not_last    21 Nov 2017
+             #
+             # create a reps_list out of sclasses (follower = 0), then apply:
+             # rv, efirst, elast = self.select_first_last_events(reps_list)
+             # to get sind values, and pop random durlist entry
+             #
+             # to preserve durlist, maybe in sind loop, pop random index,
+             #    add to erun, insert back at same index
+
              erun = []
              for sind, sc in enumerate(self.sclasses):
                 # if ordered stim and sc is not a leader: skip
@@ -3984,7 +4116,7 @@ def prob_start_with_R(nA, nB, nS):
                     / UTIL.factorial(nA+nB, init=nA+nB-nS)
 
 
-def process():
+def main():
     timing = RandTiming('make random timing')
     timing.init_opts()
 
@@ -4038,6 +4170,6 @@ def process():
     return 0
 
 if __name__ == "__main__":
-    rv = process()
+    rv = main()
     sys.exit(rv)
 
