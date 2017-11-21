@@ -12,7 +12,7 @@
 .. contents:: :local:
     :depth: 2
 
-Ready, ready, ready, ready, ready to run [#f1]_
+Ready, ready, ready, ready, ready to run. [#f1]_
 -----------------------------------------------
 
 #. Make sure AFNI and R are installed and configured correctly.
@@ -22,7 +22,7 @@ Ready, ready, ready, ready, ready to run [#f1]_
 #. Process some data with `FATCAT <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/FATCAT/main_toc.html>`_ or `3dNetcorr <https://afni.nimh.nih.gov/pub/dist/doc/program_help/3dNetCorr.html>`_.
 #. Put the output .grid or .netcc datasets in some folder.
 
-Gotta get up to get down [#f2]_
+Gotta get up to get down. [#f2]_
 --------------------------------
 
 | Launch FATCAT matplot from the terminal with:
@@ -61,7 +61,7 @@ So it should look like this:
 The *statistic* selector will default to "none" because there is no information
 as to what the data represents.
 
-Walking in your footsteps [#f3]_
+Walking in your footsteps. [#f3]_
 --------------------------------
 
 Dataset Selector
@@ -284,6 +284,6 @@ Download Circos
 
 .. rubric:: Footnotes
 
-.. [#f1] Dixie Chicks
-.. [#f2] George Micheal (Fastlove). Original: Brass Construction
+.. [#f1] Ready to Run by the Dixie Chicks.
+.. [#f2] Fastlove by George Micheal. Original: Brass Construction
 .. [#f3] The Police
