@@ -2,7 +2,7 @@
 .. _tutorial_FATCAT_matplot_main:
 
 
-**FATCAT Matplot**
+**@FATCAT_matplot**
 ========================================
 
 .. image:: media/FATCAT_matplot_main.png
@@ -12,7 +12,7 @@
 .. contents:: :local:
     :depth: 2
 
-Ready, ready, ready, ready, ready to run [#f1]_
+Ready, ready, ready, ready, ready to run. [#f1]_
 -----------------------------------------------
 
 #. Make sure AFNI and R are installed and configured correctly.
@@ -22,17 +22,46 @@ Ready, ready, ready, ready, ready to run [#f1]_
 #. Process some data with `FATCAT <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/FATCAT/main_toc.html>`_ or `3dNetcorr <https://afni.nimh.nih.gov/pub/dist/doc/program_help/3dNetCorr.html>`_.
 #. Put the output .grid or .netcc datasets in some folder.
 
-Gotta get up to get down [#f2]_
+Gotta get up to get down. [#f2]_
 --------------------------------
 
 | Launch FATCAT matplot from the terminal with:
 |
 | ``@FATCAT_matplot ~/my_Netcc_files``
-|
-| With "~/my_Netcc_files" being some folder with .netcc or .grid files.
-| This will open your default web browser and read all valid datasets in ~/my_Netcc_files
 
-Walking in your footsteps [#f3]_
+With "~/my_Netcc_files" being some folder with .netcc or .grid files.
+This will open your default web browser and read all valid datasets
+in "~/my_Netcc_files".
+
+@FATCAT_matplot can also read *non* FATCAT or 3dnetcorr formatted datasets if
+they are in the following format:
+
+* The data must be a symmetrical square matrix.
+* There must be row and column names that match.
+* The row and column names must begin with a letter.
+* The first cell (upper left) must be empty.
+* The data needs to be saved as a tab or comma separated file.
+* The file extension needs to be one of the following: csv, tsv, dat, or 1d.
+* There can be NO other header information or comments.
+
+So it should look like this:
+
++------+------+------+------+------+
+|      | roi1 | roi2 | roi3 | roi4 |
++------+------+------+------+------+
+| roi1 | 1.0  | 0.2  | 0.3  | 0.4  |
++------+------+------+------+------+
+| roi2 | 0.2  | 1.0  | 0.5  | 0.6  |
++------+------+------+------+------+
+| roi3 | 0.3  | 0.5  | 1.0  | 0.7  |
++------+------+------+------+------+
+| roi4 | 0.4  | 0.6  | 0.7  | 1.0  |
++------+------+------+------+------+
+
+The *statistic* selector will default to "none" because there is no information
+as to what the data represents.
+
+Walking in your footsteps. [#f3]_
 --------------------------------
 
 Dataset Selector
@@ -255,6 +284,6 @@ Download Circos
 
 .. rubric:: Footnotes
 
-.. [#f1] Dixie Chicks
-.. [#f2] George Micheal (Fastlove). Original: Brass Construction
+.. [#f1] Ready to Run by the Dixie Chicks.
+.. [#f2] Fastlove by George Micheal. Original: Brass Construction
 .. [#f3] The Police

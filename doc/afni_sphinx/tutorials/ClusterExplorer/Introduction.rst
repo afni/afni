@@ -5,11 +5,11 @@
 .. image:: media/ClusterExplorer_general.png
    :width: 100%
 
-.. contents:: Infinite Contents
+.. contents:: Infinite Content [#f5]_
    :depth: 3
 
-Too much information
-====================
+Too Much Information. [#f1]_
+============================
 
 Cluster Explorer is a set of scripts that will allow you to explore your data
 after you have run some group level analysis. This may hopefully save you some
@@ -38,8 +38,8 @@ shiny apps `here <https://shiny.rstudio.com/>`_.
 * ``ClustExp_StatParse.py``
 * ``@ClustExp_run_shiny``
 
-Ready, ready, ready, ready, ready to run
-========================================
+Ready, ready, ready, ready, ready to run. [#f2]_
+================================================
 
 #. Make sure AFNI and R are installed and configured correctly.
     `See installation
@@ -47,8 +47,8 @@ Ready, ready, ready, ready, ready to run
 #. Run ``@afni_R_package_install -shiny`` to install necessary R libraries.
 
 
-What you need
-=============
+What You Need. [#f3]_
+=====================
 
 It helps to be fairly organized...
 Although not necessary, it is a bit easier if all of your analyses and input
@@ -66,8 +66,8 @@ You will need (more specifics below):
 #. The master template to which the input datasets were aligned.
     * This will serve as an underlay for viewing results with the shiny app.
 
-Go with the flow
-================
+Go with the Flow. [#f4]_
+========================
 
 #. ``@ClustExp_CatLab`` will collect the input datasets into one big dataset.
 #. ``ClustExp_StatParse.py`` will extract cluster-wise subject level
@@ -237,6 +237,10 @@ the ``-master`` as the underlay and a thresholded version of
 your ``-StatDSET`` as the overlay. The browser will launch a shiny app
 with the extracted data to explore.
 
+.. rubric:: Footnotes
 
-
-
+.. [#f1] The Police
+.. [#f2] Ready to Run by the Dixie Chicks
+.. [#f3] INXS
+.. [#f4] Queens of the Stone Age
+.. [#f5] Arcade Fire
