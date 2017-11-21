@@ -37,7 +37,8 @@ in "~/my_Netcc_files".
 they are in the following format:
 
 * The data must be a symmetrical square matrix.
-* There must be row names and column names that match.
+* There must be row and column names that match.
+* The row and column names must begin with a letter.
 * The first cell (upper left) must be empty.
 * The data needs to be saved as a tab or comma separated file.
 * The file extension needs to be one of the following: csv, tsv, dat, or 1d.
