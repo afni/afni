@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21, Nov, 2017, RCR, "make_random_timing.py", MINOR, TYPE_ENHANCE,
+   "add options -not_first and -not_last, to block tasks at run boundaries",
+   "For C Smith."
+ } ,
+
  { 15, Nov, 2017, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
    "-despike_mask had been tested with wrong option name",
    "Fix submitted by D Plunkett."
