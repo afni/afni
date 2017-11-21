@@ -107,7 +107,7 @@ extern "C" {
 
 /*! Max length of a "name" of a file, or stuff like that. */
 
-#define THD_MAX_NAME      (999+THD_MAX_PREFIX)     /* (ZSS Jan 07)*/
+#define THD_MAX_NAME      (4096+THD_MAX_PREFIX)     /* (ZSS Jan 07)*/
 
 /*! Max length of a dataset view code (+orig, etc). */
 
