@@ -1833,6 +1833,9 @@ class RandTiming:
               return 1
            # for now, do not allow this with advanced timing
            # apply: rv, efirst, elast = self.select_first_last_events(reps_list)
+           if self.advanced:
+              print("** illegal: advanced usage not ready for -not_first/last")
+              return 1
 
         if self.verb > 1:
             print('-- pre_stim_rest=%g, post_stim_rest=%g, seed=%s'     \
