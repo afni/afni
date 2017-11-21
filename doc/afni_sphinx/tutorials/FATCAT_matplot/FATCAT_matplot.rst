@@ -28,9 +28,37 @@ Gotta get up to get down [#f2]_
 | Launch FATCAT matplot from the terminal with:
 |
 | ``@FATCAT_matplot ~/my_Netcc_files``
-|
-| With "~/my_Netcc_files" being some folder with .netcc or .grid files.
-| This will open your default web browser and read all valid datasets in ~/my_Netcc_files
+
+With "~/my_Netcc_files" being some folder with .netcc or .grid files.
+This will open your default web browser and read all valid datasets
+in "~/my_Netcc_files".
+
+@FATCAT_matplot can also read *non* FATCAT or 3dnetcorr formatted datasets if
+they are in the following format:
+
+* The data must be a symmetrical square matrix.
+* There must be row names and column names that match.
+* The first cell (upper left) must be empty.
+* The data needs to be saved as a tab or comma separated file.
+* The file extension needs to be one of the following: csv, tsv, dat, or 1d.
+* There can be NO other header information or comments.
+
+So it should look like this:
+
++------+------+------+------+------+
+|      | roi1 | roi2 | roi3 | roi4 |
++------+------+------+------+------+
+| roi1 | 1.0  | 0.2  | 0.3  | 0.4  |
++------+------+------+------+------+
+| roi2 | 0.2  | 1.0  | 0.5  | 0.6  |
++------+------+------+------+------+
+| roi3 | 0.3  | 0.5  | 1.0  | 0.7  |
++------+------+------+------+------+
+| roi4 | 0.4  | 0.6  | 0.7  | 1.0  |
++------+------+------+------+------+
+
+The *statistic* selector will default to "none" because there is no information
+as to what the data represents.
 
 Walking in your footsteps [#f3]_
 --------------------------------
