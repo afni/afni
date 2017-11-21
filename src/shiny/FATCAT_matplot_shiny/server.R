@@ -3,7 +3,24 @@
 ## FATCAT matrix plot
 ## Server
 
-######################################################################################
+###########################################################################
+## misc functions
+
+## get number of ROIs and matrices and the ROI labels
+mat_info_fun <- function(in.file){
+  num.rois <- as.numeric(strsplit(readLines(in.file,n=1),
+                                  split=' ')[[1]][2])
+  num.mat <- as.numeric(strsplit(readLines(in.file,n=2)[2],
+                                 split=' ')[[1]][2])
+  
+  ## rois labels or add "roi" to just numeric ones
+  roi.lab <- as.matrix(read.table(in.file,nrows=1,header=FALSE))
+  if(is.numeric(roi.lab)){ roi.lab <- paste0('roi_',roi.lab) }
+  
+  return(list(num.rois=num.rois,num.mat=num.mat,roi.lab=roi.lab))
+}   ## end mat_info_fun
+
+###########################################################################
 ## code for server for input and output
 shinyServer(function(input,output,session) {
   
@@ -14,40 +31,52 @@ shinyServer(function(input,output,session) {
   ############################################
   ## get the rois and info
   observe({
-    ## get the selected file and info
-    num.rois <- as.numeric(strsplit(readLines(input$net_file,n=1),
-                                    split=' ')[[1]][2])
-    num.mat <- as.numeric(strsplit(readLines(input$net_file,n=2)[2],
-                                   split=' ')[[1]][2])
     
-    ## rois for choices
-    roi.lab <- as.matrix(read.table(input$net_file,nrows=1,header=FALSE))
-    if(is.numeric(roi.lab)){ roi.lab <- paste0('roi_',roi.lab) }
-    
-    stat.list <- c()
-    stat.names <- c()
-    start.line <- 5
-    withProgress(message = 'Finding stat types.', value = 0, {
-      for(i in 1:num.mat){
-        
-        ## cut out the stat and add to list
-        stat.type <- as.character(scan(input$net_file,what='character',n=2,
-                                       skip=start.line,nlines=1,
-                                       quiet=TRUE)[2][1])
-        stat.list <- rbind(stat.list,stat.type[1])
-        
-        ## get the pretty name and add to name list
-        name.temp <- ifelse(stat.type[1] %in% stat.df$label,
-                            stat.df$description[stat.df$label == stat.type[1]],
-                            stat.type[1])
-        stat.names <- rbind(stat.names,name.temp)
-        
-        start.line <- 5 + (num.rois*i+1*i)
-        incProgress(1/num.mat,detail=stat.type[[1]])
-      }
-      names(stat.list) <- stat.names
-      updateSelectInput(session,'stat_sel',choices=stat.list)
-    })
+    ## see if it is a .grid or .netcc file
+    if( ! file_ext(input$net_file) %in% c('grid','netcc')){
+      
+      ## get roi labels and prepend 'roi_' if only numbers
+      roi.lab <- colnames(data.frame(fread(input$net_file,header=TRUE),
+                                     row.names=1,check.names=FALSE))
+      roi.lab <- type.convert(roi.lab,as.is=TRUE)
+      if(is.numeric(roi.lab)){ roi.lab <- paste0('roi_',roi.lab) }
+      
+      ## no stat because we don't know what it is
+      stat.list <- 'none'
+      
+    } else { 
+      
+      ## get the selected file and info
+      mat.info <- mat_info_fun(input$net_file)
+      num.rois <- mat.info$num.rois
+      num.mat <- mat.info$num.mat
+      roi.lab <- mat.info$roi.lab
+      
+      ## build the stat list
+      stat.list <- c() ; stat.names <- c() ; start.line <- 5
+      withProgress(message = 'Finding stat types.', value = 0, {
+        for(i in 1:num.mat){
+          ## cut out the stat and add to list
+          stat.type <- as.character(scan(input$net_file,what='character',n=2,
+                                         skip=start.line,nlines=1,
+                                         quiet=TRUE)[2][1])
+          stat.list <- rbind(stat.list,stat.type[1])
+          
+          ## get the pretty name and add to name list
+          name.temp <- ifelse(stat.type[1] %in% stat.df$label,
+                              stat.df$description[stat.df$label == stat.type[1]],
+                              stat.type[1])
+          stat.names <- rbind(stat.names,name.temp)
+          
+          start.line <- 5 + (num.rois*i+1*i)
+          incProgress(1/num.mat,detail=stat.type[[1]])
+        }
+        names(stat.list) <- stat.names
+      })   ## end progress
+      
+    }
+    ## update stats and rois
+    updateSelectInput(session,'stat_sel',choices=stat.list)
     updateSelectInput(session,'rois',choices=roi.lab,selected=roi.lab)
   })   ## end observe for rois
   
@@ -55,14 +84,8 @@ shinyServer(function(input,output,session) {
   ## color min/max reset
   observeEvent(input$col_thresh,{
     if(length(input$rois) > 1){
-      ## get the data and subset and find min max
-      net.mat <- mat_read()
-      net.mat <- net.mat[rownames(net.mat) %in% input$rois, ]
-      net.mat <- net.mat[, colnames(net.mat) %in% input$rois]
-      data.range <- range(net.mat)
-      
-      ## reset if they select no
       if(input$col_thresh == 'No'){
+        data.range <- range(mat_read())
         updateNumericInput(session,'range_min',value=data.range[1])
         updateNumericInput(session,'range_max',value=data.range[2])
       }
@@ -73,22 +96,35 @@ shinyServer(function(input,output,session) {
   ## read matrices
   mat_read <- reactive({
     if(length(input$rois) > 1){
-      ## get info
-      num.rois <- as.numeric(strsplit(readLines(input$net_file,n=1),split=' ')
-                             [[1]][2])
-      num.mat <- as.numeric(strsplit(readLines(input$net_file,n=2)[2],split=' ')
-                            [[1]][2])
-      roi.lab <- as.matrix(read.table(input$net_file,nrows=1,header=FALSE))
-      if(is.numeric(roi.lab)){ roi.lab <- paste0('roi_',roi.lab) }
       
-      ## read in data
-      net.mat <- as.matrix(fread(input$net_file,skip=input$stat_sel,
-                                 nrows=num.rois,header=FALSE))
-      if(is.na(sum(net.mat[,ncol(net.mat)]))){
-        net.mat <- net.mat[,1:ncol(net.mat)-1]
+      ## change read in based on file extension
+      if( ! file_ext(input$net_file) %in% c('grid','netcc')){
+        net.mat <- as.matrix(data.frame(fread(input$net_file,header=TRUE),
+                                        row.names=1,check.names=FALSE))
+        
+        ## fix labels if they are all numeric
+        roi.lab <- colnames(net.mat)
+        roi.lab <- type.convert(roi.lab,as.is=TRUE)
+        if(is.numeric(roi.lab)){ roi.lab <- paste0('roi_',roi.lab) }
+        rownames(net.mat) <- colnames(net.mat) <- roi.lab
+        
+      } else { 
+        ## get the selected file and info
+        mat.info <- mat_info_fun(input$net_file)
+        num.rois <- mat.info$num.rois
+        num.mat <- mat.info$num.mat
+        roi.lab <- mat.info$roi.lab
+        
+        ## read in data (get rid of empty column?)
+        net.mat <- as.matrix(fread(input$net_file,skip=input$stat_sel,
+                                   nrows=num.rois,header=FALSE))
+        if(is.na(sum(net.mat[,ncol(net.mat)]))){
+          net.mat <- net.mat[,1:ncol(net.mat)-1]
+        }
+        rownames(net.mat) <- colnames(net.mat) <- roi.lab
       }
-      rownames(net.mat) <- colnames(net.mat) <- roi.lab
       
+      ## get range and update choices
       data.range <- range(net.mat)
       updateNumericInput(session,'range_min',value=data.range[1])
       updateNumericInput(session,'range_max',value=data.range[2])
@@ -106,11 +142,12 @@ shinyServer(function(input,output,session) {
     
     if(length(input$rois) < 2){ stop('ERROR: select more than one ROI!') }
     
-    ## get data
+    ## get the data
     net.mat <- mat_read()
     net.mat <- net.mat[rownames(net.mat) %in% input$rois, ]
     net.mat <- net.mat[, colnames(net.mat) %in% input$rois]
-    if(length(net.mat) < 2){ stop('select more than one ROI!') }
+    
+    if(length(net.mat) < 2){ stop('ERROR: select more than one ROI!') }
     
     ## suppress the stupid extra pdf
     if(length(dev.list()) > 0 ){ graphics.off() }
@@ -336,7 +373,6 @@ shinyServer(function(input,output,session) {
                   colsep=seq(1,ncol(hm2$carpet),2),
                   rowsep=seq(1,nrow(hm2$carpet),2))
       }  ## end cluster check
-      
       dev.off()
     })   ## end static heatmap
   
@@ -404,22 +440,22 @@ shinyServer(function(input,output,session) {
       
       ## get the max number of connections for any region
       max.con <- max(by(map.df$value,map.df$seg1,
-                         function(x) length(which(!is.na(x)))))
-
+                        function(x) length(which(!is.na(x)))))
+      
       ## remove NA rows and reorder by region and get rid of empty levels
       map.df <- map.df[complete.cases(map.df),]
       map.df <- map.df[order(map.df$seg1,map.df$seg2),]
       map.df$seg1 <- factor(map.df$seg1)
       map.df$seg2 <- factor(map.df$seg2)
-
+      
       ## get the max number of connections for any region
       map.long <- c(as.character(map.df$seg1),as.character(map.df$seg2))
       map.long <- factor(map.long)
       max.con <- max(tapply(map.long,map.long,length))
-
+      
       ## make an indexer to keep track of mapping numbers
       map.ind <- data.frame(roi=t(roi.lab),ind=0)
-
+      
       ## make the connection mapping by the number of connections
       if(max.con > 1){
         for(i in 1:nrow(map.df)){
@@ -438,7 +474,7 @@ shinyServer(function(input,output,session) {
           map.df$end2[i] <- start2 + 1
         }   ## end row loop
       }
-
+      
       ## make segments for rois 
       roi.seg <- data.frame(seg.name=NULL,seg.Start=NULL,
                             seg.End=NULL,the.v=NULL,NO=NULL)
@@ -532,8 +568,7 @@ shinyServer(function(input,output,session) {
         t.min <- input$thresh_min
         t.max <- input$thresh_max
       } else {
-        t.min <- NA
-        t.max <- NA
+        t.min <- t.max <- NA
       }
       if(input$h_clust == 'none'){ 
         dist.meth <- "none" 
@@ -552,21 +587,16 @@ shinyServer(function(input,output,session) {
                              input$col1,col.2,input$col3),
                            collapse=",")
       
-      ## open file
+      ## open file and write out
       datafile <- file(file, open = 'wt')
-      
-      ## write out
       writeLines(header.lab,con=datafile)
       writeLines(header.info,con=datafile)
       writeLines(" ",con=datafile)
-      
       writeLines(paste(t(colnames(out.mat)),collapse=","),con=datafile)
-      
       writeLines(out.data,con=datafile)
-      
-      
       close(datafile)
     })
+  
   ############################################
   ## help links
   output$hclust_link <- renderUI({
