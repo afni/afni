@@ -2,7 +2,7 @@
 .. _tutorial_FATCAT_matplot_main:
 
 
-**FATCAT Matplot**
+**@FATCAT_matplot**
 ========================================
 
 .. image:: media/FATCAT_matplot_main.png
