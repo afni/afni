@@ -53,8 +53,8 @@
  * readAllocateAfniModel is using the version number to read in model
  * parameters correctly */
 
-#define VERSION_3DSVM "V1.29"
-#define VERSION_DATE_3DSVM "10/31/17"
+#define VERSION_3DSVM "V1.30"
+#define VERSION_DATE_3DSVM "11/21/17"
 #define CLASS_MAX 300
 #define SCALE 4000000
 #define MAX_FILE_NAME_LENGTH 500
@@ -912,6 +912,11 @@ static char contribution_string [] =
 
 /*----- String that briefly describes changes -------------------*/
 static char change_string[] = "\n"
+"V1.30 (11/21/17)\n"
+"  1) Write prediction and alpha output files using four significant digits,\n"
+"     since Lagrange multipliers (alphas) are currently written/read using\n"
+"     single precision.\n"
+"\n"
 "V1.29 (10/31/17)\n"
 "  1) Added flag: -nomodelfile.\n"
 "\n"

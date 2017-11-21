@@ -4106,7 +4106,7 @@ void addToAfniModel(AFNI_MODEL *afniModel, MODEL *model, LEARN_PARM *learn_parm,
 
       /* - write alpha to file - */
       if( options->modelAlphaFile[0] ) {
-        fprintf(fp,"%.8g", afniModel->alphas[classCount][t]);
+        fprintf(fp,"%.4g", afniModel->alphas[classCount][t]);
       }
 
       /* For regression, the number of alphas might double, so the 
@@ -4126,7 +4126,7 @@ void addToAfniModel(AFNI_MODEL *afniModel, MODEL *model, LEARN_PARM *learn_parm,
         }
         /* - write second alpha to file - */
         if( options->modelAlphaFile[0] ) {
-          fprintf(fp,"\t %.8g", afniModel->alphas[classCount][nt+t]);
+          fprintf(fp,"\t %.4g", afniModel->alphas[classCount][nt+t]);
         }
       }
       
@@ -4140,10 +4140,10 @@ void addToAfniModel(AFNI_MODEL *afniModel, MODEL *model, LEARN_PARM *learn_parm,
       /* - censored timepoints alpha=0 - -*/
       if( options->modelAlphaFile[0] ) {
         if( !strcmp(options->svmType, "regression") ) { 
-          fprintf(fp,"%.8g\t %.8g\n", 0.0, 0.0);
+          fprintf(fp,"%.4g\t %.4g\n", 0.0, 0.0);
         }
         else {
-          fprintf(fp,"%.8g\n", 0.0);
+          fprintf(fp,"%.4g\n", 0.0);
         }
       }
     }
@@ -6198,9 +6198,9 @@ int test_classification (ASLoptions *options, MODEL *model, AFNI_MODEL *afniMode
 
       /* only write non-censored predictions */
       if ( options->testLabelFile[0] && options->noPredCensor ) {
-        if( abs((int)rint(censoredTargets[j])) != 9999) fprintf(fp,"%.8g\n",dist[j]);
+        if( abs((int)rint(censoredTargets[j])) != 9999) fprintf(fp,"%.4g\n",dist[j]);
       }
-      else fprintf(fp,"%.8g\n",dist[j]);
+      else fprintf(fp,"%.4g\n",dist[j]);
     }
 
     fclose(fp);
@@ -6703,11 +6703,11 @@ int test_regression (ASLoptions *options, MODEL *model, AFNI_MODEL *afniModel,
   for(j=0; j<nt; ++j) {
     if ( options->testLabelFile[0] ) {
       if (options->noPredCensor) {
-        if( testLabels.cnsrs[j] == 1 ) fprintf(fp,"%.8g\n",dist[j]);
+        if( testLabels.cnsrs[j] == 1 ) fprintf(fp,"%.4g\n",dist[j]);
       }
-      else fprintf(fp,"%.8g\n",dist[j]);
+      else fprintf(fp,"%.4g\n",dist[j]);
     }
-    else fprintf(fp,"%.8g\n",dist[j]);
+    else fprintf(fp,"%.4g\n",dist[j]);
   }
 
   /*----- DETERMINE RMS ERROR -----*/
