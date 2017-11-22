@@ -380,7 +380,7 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
 
             '-ML' = apl(n=0, d=3, h = paste(
    "-ML: Add this option if Maximum Likelihood is wanted instead of the default",
-   "         method, Maximum Likelihood (REML).\n",
+   "         method, Restricted Maximum Likelihood (REML).\n",
              sep = '\n'
                      ) ),   
        
