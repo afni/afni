@@ -1829,6 +1829,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Am I the crazy one, or is it everyone else on Earth?"          ,
      "Everyone's crazy but you and me (and I'm not sure about you)"  ,
      "We live in crazy times"                                        ,
+     "Just because your idea is crazy does not mean it is wrong"     ,
      "There are no facts, only interpretations (at p < 0.05 level)"  ,
      "The best weapon against an enemy is another enemy"             ,
      "Paris is always a good idea"                                   ,
@@ -1906,6 +1907,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Be careful out there"                                          ,
      "Yesterday, all my troubles seemed so far away"                 ,
      "Stochastic delights have deterministic ends"                   ,
+     "Remember -- The laws of physics always win"                    ,
      "Remember -- To prolong doubt is to prolong hope"               ,
      "Remember -- Time and tide wait for no brain imaging software"  ,
      "Remember -- AFNI is free, but worth at least 1000 times more"  ,
@@ -2386,6 +2388,16 @@ void AFNI_sigfunc_alrm(int sig)
      "Remember:\n"
      "  To argue with those who have renounced the use and authority\n"
      "  of reason is as futile as to administer medicine to the dead"                         ,
+
+     "Remember the Manager's Mantra:\n"
+     "  * Work Harder.\n"
+     "  * Work Smarter.\n"
+     "  * Work Faster.\n"
+     "  * Do More with Less.\n"
+     "  * You're screwed (this part isn't spoken aloud)"                                      ,
+
+     "\n  I don't want any 'downs' in my life:\n"
+     "  I just want 'ups', and then 'upper ups'"                                              ,
 
      "\n  It is a truth universally acknowledged, that a single scientist\n"
      "  in possession of a large FMRI data collection, is in need of an AFNI"                 ,
