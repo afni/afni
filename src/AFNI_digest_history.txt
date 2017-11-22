@@ -1,4 +1,38 @@
 ========================================================================
+
+AFNI Digest, week of 2017/11/22.
+
+00) Job Opening in the AFNI group.
+The Scientific and Statistical Computing Core (a.k.a. the AFNI group)
+at the NIMH, NIH (Bethesda, MD, USA) is lookin' to hire a postdoc,
+particularly someone with C and/or C++ experience, with Python and
+OpenGL skills also being quite useful.
+
+If you like problem solving and working with a fun group of people,
+then check out the advert here for details:
+https://afni.nimh.nih.gov/afni/community/board/read.php?1,156739,156739#msg-156739
+(And please feel free to forward on.)
+
+01) 3dLME: new fun option in the program.
+Option "-ML" has been added in 3dLME, which can be invoked when
+Maximum Likelihood is desirable, instead of the default method,
+Restricted Maximum Likelihood (REML).
+
+02) Have a good Thanksgiving!
+And remember: "An optimist is a person who starts a new diet on
+Thanksgiving Day." -- I. Kupcinet
+
+---------------------------------------------------------------------
++ This Digest is not a comprehensive list of code updates.
++ Please direct comments or questions to the AFNI Message Board:
+  https://afni.nimh.nih.gov/afni/community/board/list.php?1
++ To unsubscribe or otherwise manage your Digest settings, click here:
+  https://list.nih.gov/cgi-bin/wa.exe?SUBED1=afni_digest&A=1
+---------------------------------------------------------------------
+# ======================================================================== #
+
+
+========================================================================
 AFNI Digest, week of 2017/09/26.
 
 00) More FMRI cluster exploration.
@@ -42,13 +76,6 @@ to afni.bootcamp@gmail.com with your first name in the
 subject.  We will verify the output and help resolve any issues.  
 (And please note that all spots for this Bootcamp have already been
 filled.)
-
-
-
-
-
-
-
 
 
 ========================================================================
