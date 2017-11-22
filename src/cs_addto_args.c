@@ -7,7 +7,7 @@
 #include "cs.h"
 #include "string.h"
 
-#define BLEN 4096
+#define BLEN 40960
 
 /*------------------ 18 Nov 1999: utility routines --------------------*/
 

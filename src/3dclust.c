@@ -680,6 +680,7 @@ int main( int argc , char * argv[] )
       clar = clbig ;
       if( clar == NULL || clar->num_clu == 0 ){
          printf("%s** NO CLUSTERS FOUND ***\n", c1d) ;
+         if( AFNI_yesenv("AFNI_3dclust_report_zero") ) printf(" 0\n") ;
          if( clar != NULL ) DESTROY_CLARR(clar) ;
          continue ;
       }
@@ -913,8 +914,10 @@ int main( int argc , char * argv[] )
       }
 
       DESTROY_CLARR(clar) ;
-      if( ndet == 0 )
+      if( ndet == 0 ){
          printf("%s** NO CLUSTERS FOUND ABOVE THRESHOLD VOLUME ***\n", c1d) ;
+         if( AFNI_yesenv("AFNI_3dclust_report_zero") ) printf(" 0\n") ;
+      }
 
 
       /* MSB 11/1/96  Calculate global SEM */

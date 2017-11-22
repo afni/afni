@@ -3394,6 +3394,9 @@ int main( int argc , char *argv[] )
      ERROR_exit("You can't use %s in a 2-sample test with nval_AAA+nval_BBB=%d < 14",
                 clustsim_opt,nval_AAA+nval_BBB) ;
 
+   if( (do_Xclustsim || do_clustsim) && singletonA )  /* 21 Nov 2017 */
+     ERROR_exit("You can't use -singletonA with -Clustsim OR with -ETAC :(") ;
+
    if( do_clustsim && nval_AAA < 4 )
      ERROR_exit("You can't use %s with nval_AAA=%d < 4",clustsim_opt,nval_AAA) ;
    if( do_clustsim && nval_BBB > 0 && nval_BBB < 4 )
