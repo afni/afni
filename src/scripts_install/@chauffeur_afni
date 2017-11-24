@@ -793,6 +793,9 @@ installed (and suuuurely they should??).
 Each call to this function will make a set of montages in the axial,
 coronal and sagittal planes, of user-specified dimensionality.
 
+This function can be used on both 3D and 4D data sets, but for the
+latter, probably @djunct_4d_imager would be much more simple to use.
+
 A lot of the help descriptions for command line options, below, will
 refer to the variables in the "AFNI Driver" doc:
 https://afni.nimh.nih.gov/pub/dist/doc/program_help/README.driver.html
@@ -970,6 +973,44 @@ For example, "(see ENV: SAVE_MPEG)".
 -do_clean          :by default, the temporary directory of copying
                     files and such is not removed;  using this option
                     means that that working directory *is* removed.
+
+# ========================================================================
+
+EXAMPLES:
+
+
+    # 1) Basic vanilla: make a 3x5 montage of just a ulay; there will
+    #    be 15 slices shown, evenly spaced along each axis, with some
+    #    labels on the corners.
+
+    @chauffeur_afni                     \
+        -ulay    MY_ULAY.nii.gz         \
+        -prefix  PRETTY_PICTURE         \
+        -montx 5 -monty 3               \
+        -set_xhairs OFF                 \
+        -label_mode 1 -label_size 3     \
+        -do_clean  
+
+
+    # 2) Make a 3x5 montage of an overlayed data set that has an ROI
+    #    map, so we want it to be colored-by-integer.  Put the images
+    #    into a pre-existing directory, SUBDIR/.
+
+    @chauffeur_afni                       \
+        -ulay  MY_ULAY.nii.gz             \
+        -olay  MY_OLAY.nii.gz             \
+        -pbar_posonly                     \
+        -cbar "ROI_i256"                  \
+        -func_range 256                   \
+        -opacity 4                        \
+        -prefix   SUBDIR/PRETTY_PICTURE2  \
+        -montx 5 -monty 3                 \
+        -set_xhairs OFF                   \
+        -label_mode 1 -label_size 3       \
+        -do_clean 
+
+
+
 
 EOF
 
