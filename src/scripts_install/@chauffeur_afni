@@ -771,6 +771,7 @@ SHOW_VERSION:
 SHOW_HELP:
 
 cat <<EOF
+# -------------------------------------------------------------------------
 
 This was originally a helper function in processing scripts, to take
 quality control (QC) snapshots automatically.  It wraps around a lot
@@ -805,7 +806,7 @@ References to these are sometimes noted explicitely with "see DR" or
 "see ENV", respectively, and potentially with the particular variable.
 For example, "(see ENV: SAVE_MPEG)".
 
-++ constructed by PA Taylor.
+++ constructed by PA Taylor (NIMH, NIH, USA).
 
 # =========================================================================
 
@@ -1009,9 +1010,7 @@ EXAMPLES:
         -label_mode 1 -label_size 3       \
         -do_clean 
 
-
-
-
+# -------------------------------------------------------------------
 EOF
 
     goto GOOD_EXIT
