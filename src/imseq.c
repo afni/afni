@@ -13875,7 +13875,8 @@ ENTRY("ISQ_save_anim") ;
                   "%s%s.*.ppm [%06d-%06d]\n"  /* prefix, tsuf, from, to */
                   "END_INPUT\n"
                , oof , frate , pattrn , qscale ,
-                 ppo,tsuf,0,akk) ;
+                 /* akk is 1 too big, was corrected elsewhere  27 Nov 2017 */
+                 ppo,tsuf,0,akk-1) ;
         fclose(fpar) ;
         if( mpar ) free(pattrn) ;
 

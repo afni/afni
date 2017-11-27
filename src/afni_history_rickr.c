@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, Nov, 2017, RCR, "afni", MICRO, TYPE_BUG_FIX,
+   "fix imseq.c: driven SAVE_MPEG offset by 1",
+   NULL
+ } ,
+
  { 27, Nov, 2017, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
    "warn user for python version != 2.7 (3+ in particular)",
    NULL
