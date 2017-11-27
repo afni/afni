@@ -2362,6 +2362,7 @@ void AFNI_sigfunc_alrm(int sig)
      "We may all have come on different ships, but we're all in the same boat now"            ,
      "You can always find me out on the Long Line -- I hang out by the Church-Kleene ordinal" ,
      "Outside of a dog, a book is Man's best friend; inside of a dog, it's too dark to read"  ,
+     "I've narrowed the answer to your hypothesis down to two possibilities: right and wrong" ,
 
      "Someday I'll tell you of the Giant Rat of Sumatra, a tale for which the world is not prepared"    ,
      "People have to learn to live with newly-discovered facts; if they don't, they die of them"        ,
