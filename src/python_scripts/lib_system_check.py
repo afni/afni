@@ -692,11 +692,27 @@ class SysInfo:
             print('%-20s : %s' % (prog, vinfo))
             continue
 
+         # as is afni
          elif prog == 'afni label':
             nfound += 1   # do not call this an error yet
             s, v = self.get_prog_version('afni')
             print('%-20s : %s' % ('', self.afni_label))
             continue
+
+         # and python - add a comment if they are using version 3 (no continue)
+         #            - do not 'continue'
+         elif prog == 'python':
+            s, vstr = self.get_prog_version(prog)
+            vf = self.get_python_ver_float()
+            mesg = ''
+            if vf >= 3.0:
+               mesg = 'have python version %s, should use 2.7.x' % vstr
+            elif vf < 2.7:
+               mesg = 'have python version %s, consider using 2.7.x' % vstr
+            if mesg != '':
+               self.comments.append(mesg)
+
+         # now run the normal test
 
          cmd = 'which %s' % prog
          s, so, se = BASE.simple_shell_exec(cmd, capture=1)
@@ -904,6 +920,25 @@ class SysInfo:
 
       if not os.path.isfile('%s%s' % (pre, fname)):
          self.comments.append(comment)
+
+   def get_python_ver_float(self):
+      """just return the python version in A.B format
+         (ignore lower order terms)
+         return 0.0 on error
+      """
+      vstr = platform.python_version()
+      try:
+         posn = vstr.find('.')
+         if posn > 0:
+            posn = vstr.find('.', posn+1)
+            pvs = vstr[0:posn]
+         else:
+            pvs = vstr
+         vf = float(pvs)
+      except:
+         vf = 0.0
+
+      return vf
 
    def get_prog_version(self, prog):
       """return a simple string with program version
