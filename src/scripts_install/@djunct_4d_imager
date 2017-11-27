@@ -489,10 +489,6 @@ written by PA Taylor (NIMH, NIH, USA).
                     This is optional; by default, a montage of PNG images
                     is created: the same slice across the 4D set.
 
--no_clean          :by default, the temporary directory made by this
-                    program is deleted when finishing.  Use this option
-                    to keep the final intermediate files.
-
 # ========================================================================
 
 EXAMPLE:
