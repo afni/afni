@@ -1,6 +1,15 @@
 
 # This Makefile is for Mac OS 10.12 for 64 bit AFNI, with local linking.
 # The required libraries for use should come with Xcode and XQuartz.
+#
+# On top of the typical instructions for installing fink on a mac, this
+# depends on the following fink packages:
+#
+#    gcc7 pyqt4-mac-py27
+#    libxt mesa-libglw-openmotif4 openmotif4 gsl glib2-dev pkgconfig
+#    r-base33-dev r-base
+#
+
 
 SW_ROOT   = /sw
 
