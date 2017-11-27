@@ -58,8 +58,11 @@
 #     + set default zoom to NN, so no smoothing
 #       via -> AFNI_IMAGE_ZOOM_NN
 #
-set version   = "3.0";   set rev_dat   = "Nov 24, 2017"
+#set version   = "3.0";   set rev_dat   = "Nov 24, 2017"
 #     + start helpifying
+#
+set version   = "3.1";   set rev_dat   = "Nov 27, 2017"
+#     + improve/correct slice-width selection (thanks, J. Lee!)
 #
 # =====================================================================
 
@@ -204,21 +207,17 @@ while ( $ac <= $#argv )
         @ ac += 1
         set opac = "$argv[$ac]"
         
-    else if ( "$argv[$ac]" == "-del_slice_sag" ) then
+    else if ( "$argv[$ac]" == "-delta_slices" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
-        set delsag = "$argv[$ac]"
-        
-    else if ( "$argv[$ac]" == "-del_slice_axi" ) then
-        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ gapord[1] = "$argv[$ac]"
         @ ac += 1
-        set delaxi = "$argv[$ac]"
-        
-    else if ( "$argv[$ac]" == "-del_slice_cor" ) then
-        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ gapord[2] = "$argv[$ac]"
         @ ac += 1
-        set delcor = "$argv[$ac]"
-        
+        @ gapord[3] = "$argv[$ac]"
+
+        echo "Hi! My gapord is: $gapord"
+
     else if ( "$argv[$ac]" == "-thr_olay" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
@@ -771,7 +770,6 @@ SHOW_VERSION:
 SHOW_HELP:
 
 cat <<EOF
-# -------------------------------------------------------------------------
 
 This was originally a helper function in processing scripts, to take
 quality control (QC) snapshots automatically.  It wraps around a lot
@@ -804,7 +802,7 @@ or variables in the "AFNI Environment" doc:
 https://afni.nimh.nih.gov/pub/dist/doc/program_help/README.environment.html
 References to these are sometimes noted explicitely with "see DR" or
 "see ENV", respectively, and potentially with the particular variable.
-For example, "(see ENV: SAVE_MPEG)".
+For example, "(see ENV: SAVE_AGIF)".
 
 ++ constructed by PA Taylor (NIMH, NIH, USA).
 
@@ -840,19 +838,21 @@ For example, "(see ENV: SAVE_MPEG)".
                     an integer in the interval [0, 9], with the 9 being
                     opaque (see DR).
 
--del_slice_sag DSS :when montaging, DSS is the integer number of slices
-                    to use as spacing between views along the sagittal 
-                    axis (def: automatically calculate to ~evenly fit 
-                    the number of selected montage slices along this
-                    axis).
-                    (See DR: "mont=PxQ:R"; basically, DSS is the 'R' 
-                    value along the sagittal axis).
--del_slice_axi DSA :Equivalent of "DSS" above, along axial axis.
-                    (See DR: "mont=PxQ:R"; basically, DSA is the 'R' 
-                    value along the axial axis).
--del_slice_cor DSC :Equivalent of "DSS" above, along coronal axis.
-                    (See DR: "mont=PxQ:R"; basically, DSC is the 'R' 
-                    value along the coronal axis).
+-delta_slices DS DC DA :when montaging, (DS, DC, DA) is the integer
+                     number of slices to use as spacing between views
+                     along the (sag, cor, axi) axes, respectively
+                     (def: automatically calculate to ~evenly fit the
+                     number of selected montage slices along this
+                     axis).  (See DR: "mont=PxQ:R"; basically, each D?
+                     is the 'R' value along the given axis).  Users
+                     can specify a delta_slice value along *some* axis
+                     and leave other(s) to be chosen automatically, by
+                     specifying a D? value >0 for their own value, and
+                     given any other D? value -1.  For example:
+                      -delta_slices 40 -1 -1
+                     would specify every 40th slice along the sag axis, 
+                     while the cor and axi spacing would be automatically 
+                     calculated.
 
 -thr_olay  THR     :threshold the olay dset at THR (def: 0, or 
                     unthreshold). (See DR: SET_THRESHNEW)
@@ -979,7 +979,6 @@ For example, "(see ENV: SAVE_MPEG)".
 
 EXAMPLES:
 
-
     # 1) Basic vanilla: make a 3x5 montage of just a ulay; there will
     #    be 15 slices shown, evenly spaced along each axis, with some
     #    labels on the corners.
@@ -1011,6 +1010,7 @@ EXAMPLES:
         -do_clean 
 
 # -------------------------------------------------------------------
+
 EOF
 
     goto GOOD_EXIT
