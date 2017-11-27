@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, Nov, 2017, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
+   "warn user for python version != 2.7 (3+ in particular)",
+   NULL
+ } ,
+
  { 21, Nov, 2017, RCR, "make_random_timing.py", MINOR, TYPE_ENHANCE,
    "add options -not_first and -not_last, to block tasks at run boundaries",
    "For C Smith."
