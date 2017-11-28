@@ -7127,7 +7127,8 @@ g_help_string = """
                         
         Example 6. A modern example.  GOOD TO CONSIDER.
 
-           Align the EPI to the anatomy.  Also, process in standard space.
+           Align the EPI to the anatomy.  Also, process in MNI space, using
+           the 2009c non-linear template.
 
            For alignment in either direction, add the 'align' block, which
            aligns the anatomy to the EPI.  To then align the EPI to the anat
@@ -7153,6 +7154,7 @@ g_help_string = """
                         -copy_anat sb23/sb23_mpra+orig                     \\
                         -tcat_remove_first_trs 3                           \\
                         -align_opts_aea -cost lpc+ZZ                       \\
+                        -tlrc_base MNI152_T1_2009c+tlrc                    \\
                         -volreg_align_to last                              \\
                         -volreg_align_e2a                                  \\
                         -volreg_tlrc_warp                                  \\
@@ -7162,6 +7164,7 @@ g_help_string = """
                         -regress_basis 'BLOCK(30,1)'                       \\
                         -regress_motion_per_run                            \\
                         -regress_censor_motion 0.3                         \\
+                        -regress_reml_exec                                 \\
                         -regress_opts_3dD                                  \\
                             -gltsym 'SYM: +eneg -fneg'                     \\
                             -glt_label 1 eneg_vs_fneg                      \\
@@ -7480,7 +7483,7 @@ g_help_string = """
            than the default lpc one.
          o Register EPI volumes to the one which has the minimum outlier
               fraction (so hopefully the least motion).
-         o Use non-linear registration to MNI template.
+         o Use non-linear registration to MNI template (non-linear 2009c).
            * This adds a lot of processing time.
          o No bandpassing.
          o Use fast ANATICOR method (slightly different from default ANATICOR).
@@ -7520,7 +7523,7 @@ g_help_string = """
                   -dsets FT_epi_r?+orig.HEAD                                 \\
                   -tcat_remove_first_trs 2                                   \\
                   -align_opts_aea -cost lpc+ZZ                               \\
-                  -tlrc_base MNI_caez_N27+tlrc                               \\
+                  -tlrc_base MNI152_T1_2009c+tlrc                            \\
                   -tlrc_NL_warp                                              \\
                   -volreg_align_to MIN_OUTLIER                               \\
                   -volreg_align_e2a                                          \\
