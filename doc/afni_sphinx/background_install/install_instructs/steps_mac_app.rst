@@ -67,6 +67,8 @@ Break It Down Again [#f3]_
     For some sections, you may need to type in your password.
     If you are not an administrator on your computer, this installation may fail.
     Make sure you have permissions for the folder you choose for AFNI!
+    The ``sudo`` prompt **will** time out after awhile, so this is
+    **not** an unattended install.
 
 * This script does not install fink. Nor does it download the class data.
 
