@@ -29,8 +29,13 @@ set this_prog = "@djunct_4d_imager"
 #set set version = "1.6";  set rev_dat = "Sep 14, 2017"
 #   + run with subbrick selection now (didn't before...)
 #
-set set version = "2.0";  set rev_dat = "Nov 24, 2017"
+#set set version = "2.0";  set rev_dat = "Nov 24, 2017"
 #   + helpify this program
+#
+set set version = "2.1";  set rev_dat = "Nov 29, 2017"
+#   + ~bug fix: voxel sizes got ignored, and for dsets with non-iso
+#     voxel dims, images could look squashed, etc.  Fixed now by
+#     putting a 3drefit command in.
 #
 # ----------------- find AFNI and set viewer ---------------------
 
@@ -39,7 +44,7 @@ set adir      = ""
 set my_viewer = ""
 which afni >& /dev/null
 if ( $status ) then
-    echo "** Cannot find 'afni' (??!?!)."
+    echo "** Cannot find 'afni' (?)."
     goto BAD_EXIT
 else
     set aa   = `which afni`
@@ -304,6 +309,14 @@ foreach ii ( `seq 1 1 3` )
         -prefix "$ovol"               \
         "3D${mstr}:0:0:${mdim[1]}:${mdim[2]}:1:${slpref}*"
 
+    # [PT: Nov 29, 2017] make sure proper voxel dims are remembered
+    set vdel = `3dinfo -ad3 $mfile`
+    3drefit \
+        -xdel $vdel[1] \
+        -ydel $vdel[2] \
+        -zdel $vdel[3] \
+        "$ovol"
+
     # Feb 24, 2017: lights, camera, action!
     if ( "$movie" != "" ) then
         echo "++ Making '${mview[$ii]}' movie"
@@ -488,6 +501,10 @@ written by PA Taylor (NIMH, NIH, USA).
                       MPEG   AGIF
                     This is optional; by default, a montage of PNG images
                     is created: the same slice across the 4D set.
+
+-no_clean          :by default, the temporary directory made by this
+                    program is deleted when finishing.  Use this option
+                    to keep the final intermediate files.
 
 # ========================================================================
 
