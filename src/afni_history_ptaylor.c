@@ -66,6 +66,16 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 29, Sep , 2017 , PT , "@chauffeur_afni" , MINOR , TYPE_MODIFY,
+   "Now has help with list of options.",
+   "Should be useful for users during processing.\n"
+},
+
+{ 29, Nov , 2017 , PT , "@djunct_4d_imager" , MAJOR , TYPE_NEW_PROG,
+   "Helper function to make montages and movies of 4D dsets.",
+   "Useful when proc'ing dsets, make record of them.\n"
+},
+
 { 26, Oct , 2017 , PT , "fat_proc_connec_vis" , MAJOR , TYPE_NEW_PROG,
    "Visualize 'white matter connection' volumes output by 3dTrackID.",
    "Combine separate '-dump_rois ...' output into SUMAble surface maps.\n"
