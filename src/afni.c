@@ -1986,6 +1986,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Are you ready for the Big Rip?"                                ,
      "I hereby declare the Null Hypothesis to be ..... Falsified"    ,
      "I'm sick of thinking about p-values -- how about you?"         ,
+     "To (mis)quote Han Solo: Never tell me the p-value!"            ,
      "Did you fail to negate the opposite of the null hypothesis?"   ,
      "I'd like to live as a poor man with lots of money"             ,
      "Wine is proof that God loves us and wants to see us happy"     ,
