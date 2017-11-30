@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 30, Nov, 2017, RCR, "afni_base.py", MICRO, TYPE_BUG_FIX,
+   "fix problems with relative path to root directory",
+   "This affected afni_proc.py, for example, adding '/' in path names.\n"
+   "Thanks to D Nielson for noting the problem."
+ } ,
+
  { 27, Nov, 2017, RCR, "afni", MICRO, TYPE_BUG_FIX,
    "fix imseq.c: driven SAVE_MPEG offset by 1",
    NULL

@@ -164,16 +164,33 @@ class afni_name(object):
       """return path, prefix, view formatted name resolving symbolic links"""
       s = "%s%s" % (self.realp(), self.pv(sel=sel))
       return s
+   def rel_dir(self, sel=0):
+      """return relative directory of an object
+         - this will be empty (instead of "./") if in current directory
+      """
+      cwd = os.path.abspath(os.curdir)
+      # if not at root (not mentioning any names, Dylan), append '/'
+      # to remove current directory from prefix   30 Nov 2017 [rickr]
+      if cwd != '/': cwd += '/'
+      # check if equal, where staring from len() would fail
+      if self.path == cwd:
+          pp = ''
+      elif self.path.startswith(cwd):
+          pp = self.path[len(cwd):]
+      else:
+          pp = self.path
+      return pp
    def rpv(self, sel=0):
       """return relative path, prefix, view formatted name
          - do not include ./ as relative path"""
-      rp = str.replace(self.path, "%s/" % os.path.abspath(os.curdir), '')
+      # rp = str.replace(self.path, "%s/" % os.path.abspath(os.curdir), '')
+      rp = self.rel_dir()
       s = "%s%s" % (rp, self.pv(sel=sel))
       return s
    def rpve(self, sel=0):
       """return relative path, prefix, view, extension formatted name
          - do not include ./ as relative path"""
-      rp = str.replace(self.path, "%s/" % os.path.abspath(os.curdir), '')
+      rp = self.rel_dir()
       s = "%s%s" % (rp, self.pve(sel=sel))
       return s
    def pp(self):
@@ -323,11 +340,13 @@ class afni_name(object):
    def brickZ(self):
       return "%s.BRIK.Z" % self.ppv() 
    def new_path(self,path=""):
-      #give name a new path
-      if len(path) == 0:
-         self.path = "%s/" % os.path.abspath("./")
-      else:
-         self.path = "%s/" % os.path.abspath(path)
+      #give name a new path (check for root)
+      if len(path) == 0: pp = "./"
+      else:              pp = path
+      ap = os.path.abspath(pp)
+      # require this to end in a '/'
+      if ap[-1] != '/': ap += '/'
+      self.path = ap
    def new_prefix(self, prefix=""):
       self.prefix = prefix
    def new_view(self,view=""):
@@ -850,7 +869,10 @@ def parse_afni_name(name, aname=None, do_sel=1):
    #Build the dictionary result
    if len(rp) == 0:
       rp = '.'
-   res['path'] = "%s/" % ap   #A world of trouble when relative path is used. So use ap instead April 08
+   # A world of trouble when relative path is used. So use ap instead April 08
+   # (do not append '/' to root)
+   if ap == '/': res['path'] = ap
+   else:         res['path'] = "%s/" % ap
    res['prefix'] = pr
    res['view'] = vi
    res['extension'] = ex
