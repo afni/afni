@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  4, Dec, 2017, RCR, "3dDeconvolve", MICRO, TYPE_BUG_FIX,
+   "fix gtmax in case of global times and only 1 input dset",
+   "This just lead to an inappropriate warning."
+   "Thanks to P Bedard for noting the problem."
+ } ,
+
  { 30, Nov, 2017, RCR, "afni_base.py", MICRO, TYPE_BUG_FIX,
    "fix problems with relative path to root directory",
    "This affected afni_proc.py, for example, adding '/' in path names.\n"
