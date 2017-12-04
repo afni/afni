@@ -270,7 +270,7 @@ Download Circos
 .. topic:: Circos as .png:
 
     +-----------------------------------------------------+--------------------------------------------------+-------------------------------------------+
-    | Download with dendrogram from clustering:           | May take a few seconds to render with many ROIs: | Looks better with fewer connections:      |
+    | Download:                                           | May take a few seconds to render with many ROIs: | Looks better with fewer connections:      |
     +-----------------------------------------------------+--------------------------------------------------+-------------------------------------------+
     | .. figure:: media/FATCAT_matplot_circos_png.png     | .. figure:: media/o.OME1_000.grid_NT_circos.png  | .. figure:: media/REST_corr_rz_circos.png |
     |    :width: 50%                                      |    :width: 100%                                  |    :width: 130%                           |
