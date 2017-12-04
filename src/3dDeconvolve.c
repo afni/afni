@@ -2306,15 +2306,18 @@ void get_options
           CHECK_OPEN_ERROR(dset,option_data->input_filename) ;
           lmax = DSET_NVALS(dset) ;
           /* compute gtmax, as ttmax for global timing  19 Jul 2017 [rickr] */
-          gtmax = 0.0;
+          /* (init to lmax if not in TCAT case)          4 Dec 2017 [rickr] */
+          gtmax = lmax;
           if( DSET_IS_TCAT(dset) && !option_data->tcat_noblock ){
             int it ;
+            gtmax = 0.0;
             for( lmax=2,it=0 ; it < dset->tcat_num ; it++ ) {
               lmax = MAX( lmax , dset->tcat_len[it] ) ;
               /* accumulate time points, scale by TR later */
               gtmax += dset->tcat_len[it];
             }
           }
+
           /* if force_TR is set, apply it           5 Jul 2017 [rickr] */
           if( option_data->force_TR > 0.0 ) {
             ttmax = lmax * option_data->force_TR ;
