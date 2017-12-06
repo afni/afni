@@ -1,0 +1,280 @@
+========================================================================
+
+AFNI Digest, week of 2017/11/22.
+
+00) Job Opening in the AFNI group.
+The Scientific and Statistical Computing Core (a.k.a. the AFNI group)
+at the NIMH, NIH (Bethesda, MD, USA) is lookin' to hire a postdoc,
+particularly someone with C and/or C++ experience, with Python and
+OpenGL skills also being quite useful.
+
+If you like problem solving and working with a fun group of people,
+then check out the advert here for details:
+https://afni.nimh.nih.gov/afni/community/board/read.php?1,156739,156739#msg-156739
+(And please feel free to forward on.)
+
+01) 3dLME: new fun option in the program.
+Option "-ML" has been added in 3dLME, which can be invoked when
+Maximum Likelihood is desirable, instead of the default method,
+Restricted Maximum Likelihood (REML).
+
+02) Have a good Thanksgiving!
+And remember: "An optimist is a person who starts a new diet on
+Thanksgiving Day." -- I. Kupcinet
+
+---------------------------------------------------------------------
++ This Digest is not a comprehensive list of code updates.
++ Please direct comments or questions to the AFNI Message Board:
+  https://afni.nimh.nih.gov/afni/community/board/list.php?1
++ To unsubscribe or otherwise manage your Digest settings, click here:
+  https://list.nih.gov/cgi-bin/wa.exe?SUBED1=afni_digest&A=1
+---------------------------------------------------------------------
+# ======================================================================== #
+
+
+========================================================================
+AFNI Digest, week of 2017/09/26.
+
+00) More FMRI cluster exploration.
+A recent (brief) study by Mueller et al. found that SPM12 exhibits a
+large, uniform dependence of FMRI clustering results on resampling
+(i.e., voxel size, spatial resolution).  So, Bob checked what happens
+in AFNI when resampling, to see if any such badness occurs.  In short
+the effect is small (about 4x smaller), and not as uniform-- phew.
+The MB post here:
+https://afni.nimh.nih.gov/afni/community/board/read.php?1,156093,156093#msg-156093
+contains a link to the AFNI work now available arXiv, as well as to
+the Mueller et al. article.
+
+01) New program: 3dBrainSync
+This program “synchronizes” one dataset’s time series with another
+dataset, in the sense of maximizing the average time series
+correlation of the transformed dataset with the reference dataset. Two
+different methods for the transformation are provided: orthogonal
+matrix, and time index permutation. One goal is to allow direct
+inter-run correlation between rs-FMRI datasets.  This program was
+inspired by the nice poster on the BrainSync approach by Joshi et
+al. at this past year's OHBM (also see here
+http://neuroimage.usc.edu/neuro/Resources/BrainSync).
+
+
+02) Bug Fix: 3dttest++ -ETAC
+A bug was introduced when the multiple blur cases option "-ETAC_blur"
+was added: runs without multiple blur cases would fail because the
+intermediate filenames (used to communicate between 3dttest++ and
+3dXClustSim) were formatted incorrectly. This bug has (fondly do we
+hope) been patched.
+
+
+03) Re. AFNI Bootcamp at NIH (October 2-6, 2017).
+For those attending the AFNI bootcamp starting October 2nd, please get
+your laptops ready.  Installation instructions are available at
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/background_install/install_instructs/index.html.  
+Once ready, please sent the output from: 
+afni_system_check.py -check_all 
+to afni.bootcamp@gmail.com with your first name in the
+subject.  We will verify the output and help resolve any issues.  
+(And please note that all spots for this Bootcamp have already been
+filled.)
+
+
+========================================================================
+AFNI Digest, week of 2017/07/28.
+
+00) ETAC notes.
+A presentation by Bob describing philosophy+implementation of some new
+clustering options in AFNI:
+https://afni.nimh.nih.gov/afni/community/board/read.php?1,155528,155528#msg-155528
+
+---------------------------------------------------------------------
++ This Digest is not a comprehensive list of code updates.
++ Please direct comments or questions to the AFNI Message Board:
+ https://afni.nimh.nih.gov/afni/community/board/list.php?1
+---------------------------------------------------------------------
+
+========================================================================
+AFNI Digest, week of 2017/07/21.
+
+00) Dartmouth Bootcamp announcement:
+    https://afni.nimh.nih.gov/afni/community/board/read.php?1,155427
+
+01) 3dFWHMx will now output the mixed model ACF parameters by default,
+    rather than the Gaussian FWHM ones.  This follows from recent
+    discussion+changes related to FMRI clustering.  To discourage use,
+    the Gaussian FWHM output row will show zeros (and will be reported
+    by afni_proc.py as such, until the options are updated).
+
+
+02) New program: 3dTto1D - a general program for collapsing time series data.
+    The most useful computations are probably:
+
+    enorm  - Euclidean norm of first differences 
+             (of motion parameters or of EPI time series data, say)
+    RMS    - Root Mean Square (a.k.a DVARS) of first differences
+             (= enorm/sqrt(nvoxels))
+    SRMS   - Scaled RMS, scaled by mean of input
+             (= RMS/mean)
+             (probably very good for censoring)
+             (might be the same as DVARS censoring in FSL)
+
+    Censoring with SRMS has not yet been incorporated into afni_proc.py.
+
+
+03) Changes+problems with OpenGL on very recent versions MacOS (10.12.5).
+    These changes will result in SUMA crashing under some circumstances,
+    namely when the object controller panel (ctrl+s) is opened, then closed,
+    then opened again;  something like this often occurs behind the scenes
+    when scripts are driving SUMA.
+    This new OpenGL behavior on Mac has been affecting many different
+    softwares;  while we are looking into any fixes/workarounds, it is
+    likely that a full solution is outside of our hands and will have to
+    come from Mac.
+
+========================================================================
+AFNI Digest, week of 2017/07/07.
+
+00) AFNI Bootcamp at NIH October 2-6, 2017: Registration open.
+    Please see here:
+    https://afni.nimh.nih.gov/bootcamp/
+    ... for the registration page and for more information.
+
+01) We will be retiring some of the AFNI packages.  Please let us know
+    via the AFNI Message Board if there is a need to keep any of them.
+    a) Linux_fedora_21_64.tgz     - not replaced
+    b) macosx_10.8_gcc/icc.tgz    - not replaced
+    c) macosx_10.10_gcc/icc.tgz   - probably replaced by a local version
+    d) linux_xorg7/_64.tgz        - not replaced
+
+02) New or planned AFNI binary packages include:
+    a) new: linux_ubuntu_16_64.tgz
+    b) new: linux_centos_7_64.tgz
+    c) planned: macosx_10.10_local.tgz  (convenient for 10.10, 10.11)
+    d) planned: macosx_10.12_local.tgz  (convenient for 10.12+)
+    e) possibly: linux_fedora_25_64.tgz
+
+ 
+ 
+---------------------------------------------------------------------
++ This Digest is not a comprehensive list of code updates.
++ Please direct comments or questions to the AFNI Message Board:
+ https://afni.nimh.nih.gov/afni/community/board/list.php?1
+---------------------------------------------------------------------
+
+===========================================================================
+AFNI Digest, week of 2017/06/23. 
+
+00) Posters from the AFNI group for the OHBM (Organization for Human
+Brain Mapping) conference are available online:
+
+++ New FMRI clustering tools (more?!?), here with an emphasis on being
+   "equitable" across the brain and in dependence on various
+   parameters such as smoothing, voxelwise p-value, etc.:
+   https://afni.nimh.nih.gov/pub/dist/OHBM2017/OHBM_2017_ETAC.pdf
+
+++ New work on calculating intraclass correlation (ICC):
+   https://afni.nimh.nih.gov/pub/dist/OHBM2017/OHBM_2017_ICC.pdf
+
+++ New tools for FATCAT (whose online help is being written...)
+   https://afni.nimh.nih.gov/pub/dist/OHBM2017/OHBM_2017_FATCAT.pdf
+
+++ Comparisons of two FMRI task paradigms: "naturalistic" (=movie) and
+   rest:
+   https://afni.nimh.nih.gov/pub/dist/OHBM2017/OHBM_2017_ISC_and_RSFMRI.pdf
+
+No doubt these make great plane reading for anyone flying to
+Vancouver, or metro reading for any city.
+
+---------------------------------------------------------------------
++ This Digest is not a comprehensive list of code updates.
++ Please direct comments or questions to the AFNI Message Board:
+  https://afni.nimh.nih.gov/afni/community/board/list.php?1
+---------------------------------------------------------------------
+
+===========================================================================
+AFNI Digest, week of 2017/06/09. 
+
+00) Updated N27 FreeSurfer surfaces are available in MNI and Talairach spaces.
+These were remade with FS 6.0 and the updated "@SUMA_MakeSpecFS -NIFTI
+...".  The surfaces are available at their standard address:
+https://afni.nimh.nih.gov/pub/dist/tgz/suma_TT_N27.tgz
+https://afni.nimh.nih.gov/pub/dist/tgz/suma_MNI_N27.tgz
+ 
+01) AFNI now usable on Windows (who'd have thought??).
+Via the "Bash on Ubuntu on Windows 10" interface, AFNI and SUMA can
+now be run directly on Windows systems.  Setup instructions are
+provided here:
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/background_install/install_instructs/steps_windows10.html
+ 
+02) New AFNI binary package for Linux Ubuntu 16.
+We now distribute a set of new precompiled binaries for Ubuntu 16 (and
+potentially for later systems), streamlinining installation.  Setup
+instructions are provided here:
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/background_install/install_instructs/steps_linux_ubuntu16.html
+ 
+03) SUMA and AFNI in concert at the Kennedy Center.
+Internationally famous soprano, Renee Fleming, performed with her own
+functional results overlaid on the aforementioned N27 brain
+surfaces. Dr. David Jangraw, a post-doc in Peter Bandettini's group,
+used AFNI+SUMA for the analysis and display. Ms. Fleming and SUMA
+presented the "high notes" of the evening:
+https://www.facebook.com/KennedyCenter/photos/a.10155104350680865.1073741876.73250630864/10155104351155865/?type=3&theater
+Associated article by Dr. Francis Collins and Ms. Fleming:
+http://jamanetwork.com/journals/jama/fullarticle/2630954
+ 
+---------------------------------------------------------------------
++ This Digest is not a comprehensive list of code updates.
++ Please direct comments or questions to the AFNI Message Board:
+ https://afni.nimh.nih.gov/afni/community/board/list.php?1
+---------------------------------------------------------------------
+
+===========================================================================
+AFNI Digest, week of 2017/05/26.
+
+00) AFNI is starting a new “Digest” email distribution-- welcome!
+
+01) FMRI Clustering has been a widely discussed topic this year. These
+recent papers by the AFNI group discuss the work by Eklund et
+al. (with useful summaries of their results) and discuss both old and
+new AFNI clustering functionality.
++ Full Brain Connectivity paper:
+  http://online.liebertpub.com/doi/full/10.1089/brain.2016.0475
++ And its “Executive Summary”:
+  https://drive.google.com/file/d/0B6Sn11ZTBrhvR2VYWmhvYmpZU2M/view
++ PNAS reply Letter:
+  http://www.pnas.org/content/114/17/E3370.full
++ Presentation slides:
+  https://drive.google.com/file/d/0B6Sn11ZTBrhvMi1TRDdKRUlMaEk/view
+
+02) In afni_proc.py, blur estimation and clustering are now done using
+the ACF method by default, replacing Gaussian FWHM (as of Aug. 15,
+2016). Further progress in this area will be debuted at the OHBM
+meeting in Vancouver BC (end of June).
+
+03) The AFNI team has a new member, Justin "DiscoRaj" Rajendra.
+Please direct your most complicated inquiries directly to him.
+
+04) For Mac users, a note about AFNI compiling, installation, and
+updates: For relative ease, please use the "local" Mac version now
+(easier dependencies), described in Step #2 here:
+  https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/background_install/install_instructs/steps_mac.html
+
+05) The command line form of dcm2niix is now distributed with AFNI, as
+"dcm2niix_afni" (renamed to avoid potential filename conflicts for
+anyone with it already installed from elsewhere):
+   https://afni.nimh.nih.gov/pub/dist/doc/program_help/dcm2niix_afni.html
+Thanks very much to Chris Rorden!
+
+06) For convenient referencing+remembering, the AFNI version number is
+now stored in the header of data files, as part of the history
+(viewable with 3dinfo).  For example,
+   ----- HISTORY -----
+   [user@computer: Mon May 22 17:21:52 2017] {AFNI_17.1.06:linux_openmp_64} 3dmask_tool -input ...
+
+---------------------------------------------------------------------
++ This Digest is not a comprehensive list of code updates.
++ Please direct comments or questions to the AFNI Message Board:
+  https://afni.nimh.nih.gov/afni/community/board/list.php?1
++ To unsubscribe or otherwise manage your Digest settings, click here:
+  https://list.nih.gov/cgi-bin/wa.exe?SUBED1=afni_digest&A=1
+---------------------------------------------------------------------
+

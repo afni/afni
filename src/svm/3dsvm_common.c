@@ -4106,7 +4106,7 @@ void addToAfniModel(AFNI_MODEL *afniModel, MODEL *model, LEARN_PARM *learn_parm,
 
       /* - write alpha to file - */
       if( options->modelAlphaFile[0] ) {
-        fprintf(fp,"%.8g", afniModel->alphas[classCount][t]);
+        fprintf(fp,"%.4g", afniModel->alphas[classCount][t]);
       }
 
       /* For regression, the number of alphas might double, so the 
@@ -4126,7 +4126,7 @@ void addToAfniModel(AFNI_MODEL *afniModel, MODEL *model, LEARN_PARM *learn_parm,
         }
         /* - write second alpha to file - */
         if( options->modelAlphaFile[0] ) {
-          fprintf(fp,"\t %.8g", afniModel->alphas[classCount][nt+t]);
+          fprintf(fp,"\t %.4g", afniModel->alphas[classCount][nt+t]);
         }
       }
       
@@ -4140,10 +4140,10 @@ void addToAfniModel(AFNI_MODEL *afniModel, MODEL *model, LEARN_PARM *learn_parm,
       /* - censored timepoints alpha=0 - -*/
       if( options->modelAlphaFile[0] ) {
         if( !strcmp(options->svmType, "regression") ) { 
-          fprintf(fp,"%.8g\t %.8g\n", 0.0, 0.0);
+          fprintf(fp,"%.4g\t %.4g\n", 0.0, 0.0);
         }
         else {
-          fprintf(fp,"%.8g\n", 0.0);
+          fprintf(fp,"%.4g\n", 0.0);
         }
       }
     }
@@ -6198,9 +6198,9 @@ int test_classification (ASLoptions *options, MODEL *model, AFNI_MODEL *afniMode
 
       /* only write non-censored predictions */
       if ( options->testLabelFile[0] && options->noPredCensor ) {
-        if( abs((int)rint(censoredTargets[j])) != 9999) fprintf(fp,"%.8g\n",dist[j]);
+        if( abs((int)rint(censoredTargets[j])) != 9999) fprintf(fp,"%.4g\n",dist[j]);
       }
-      else fprintf(fp,"%.8g\n",dist[j]);
+      else fprintf(fp,"%.4g\n",dist[j]);
     }
 
     fclose(fp);
@@ -6703,11 +6703,11 @@ int test_regression (ASLoptions *options, MODEL *model, AFNI_MODEL *afniModel,
   for(j=0; j<nt; ++j) {
     if ( options->testLabelFile[0] ) {
       if (options->noPredCensor) {
-        if( testLabels.cnsrs[j] == 1 ) fprintf(fp,"%.8g\n",dist[j]);
+        if( testLabels.cnsrs[j] == 1 ) fprintf(fp,"%.4g\n",dist[j]);
       }
-      else fprintf(fp,"%.8g\n",dist[j]);
+      else fprintf(fp,"%.4g\n",dist[j]);
     }
-    else fprintf(fp,"%.8g\n",dist[j]);
+    else fprintf(fp,"%.4g\n",dist[j]);
   }
 
   /*----- DETERMINE RMS ERROR -----*/
@@ -7196,7 +7196,7 @@ int train_classification( MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *ker
   }
 
   /* ----- WRITE MODEL AND BUCKET TO DISC ----- */
-  if( !options->docFileOnly[0] ) {
+  if( !options->docFileOnly[0] && !options->noModelOut ) {
     /* JL May 2010: Modified writeModelBrick to write the model and the mask into
      * a single dataset */
     if( writeModelBrik(&afniModel, dsetTrain, dsetTrainArray, dsetMaskArrayPtr, options,
@@ -7531,7 +7531,7 @@ int train_regression(MODEL *model, LEARN_PARM *learn_parm,
   /* might not be necessary if testing and training are performed all at once */
 
   /* --- write afni model --- */
-  if ( !options->docFileOnly[0] ) {
+  if ( !options->docFileOnly[0] && !options->noModelOut ) {
     /* JL May 2010: Modified writeModelBrick to write the model and the mask into
      * a single dataset */
     if( writeModelBrik(&afniModel, dsetTrain, dsetTrainArray, dsetMaskArrayPtr, options,
@@ -7683,6 +7683,7 @@ int input_parse(int argc, char *argv[], long *main_verbosity,
   strncpy(optionsData->svmType, "",         LONG_STRING);
   strncpy(optionsData->rtIP, "",            LONG_STRING);
   optionsData->outModelNoMask = 0;
+  optionsData->noModelOut     = 0;
   optionsData->noPredDetrend  = 0;
   optionsData->classout       = 0;
   optionsData->noPredCensor   = 0;
@@ -7826,6 +7827,7 @@ int input_parse(int argc, char *argv[], long *main_verbosity,
     }
     if( !strcmp(argv[i],"-no_memcheck") )   { pause_mcw_malloc(); /* ZSS */ }
     if( !strcmp(argv[i],"-nomodelmask") )   { parseFlag=1; optionsData->outModelNoMask = 1; }
+    if( !strcmp(argv[i],"-nomodelfile") )   { parseFlag=1; optionsData->noModelOut = 1; } /* JL Oct. 2017 */
     if( !strcmp(argv[i],"-nodetrend") )     { parseFlag=1; optionsData->noPredDetrend = 1; }
     if( !strcmp(argv[i],"-classout") )      { parseFlag=1; optionsData->classout = 1; } 
     if( !strcmp(argv[i],"-nopredcensored") ){ parseFlag=1; optionsData->noPredCensor = 1; }
@@ -7980,13 +7982,13 @@ int input_parse(int argc, char *argv[], long *main_verbosity,
           "  set environment variable: AFNI_3DSVM_NOMASK=YES\n");
       RETURN(1);
     }
-    if( !(optionsData->modelFile[0]) ) {
+    if( !optionsData->modelFile[0] && !optionsData->noModelOut ) {
       snprintf(errorString, LONG_STRING, "Must specify a model output file for "
-          "training in real time!"); 
+          "training in real time or use option: -nomodelfile"); 
       RETURN (1);
     }
 
-       RETURN(0);
+    RETURN(0);
   }
   else if( optionsData->rtTest ) {
     *mode = RT_TEST;
@@ -8052,6 +8054,12 @@ int input_parse(int argc, char *argv[], long *main_verbosity,
     RETURN(1);
   }
 
+  if( (optionsData->modelFile[0]) && (optionsData->noModelOut) ) { 
+    WARNING_message("Option -model and -nomodelfile was specified. "
+        "Option: -nomodelfile is ignored!");
+    optionsData->noModelOut = 0;
+  }
+
   /* Set mode and do some error checking */
   /* JL Aug. 2009: Changed error checking for testlabels. */
   if( optionsData->trainFile[0] ) {
@@ -8069,9 +8077,9 @@ int input_parse(int argc, char *argv[], long *main_verbosity,
   }
 
   if( !(optionsData->modelFile[0]) ) {
-    if( (*mode == TRAIN) || (*mode == TRAIN_AND_TEST) ) {
+  if( ( (*mode == TRAIN) && !optionsData->noModelOut) || (*mode == TRAIN_AND_TEST) ) {
       snprintf(errorString, LONG_STRING, "Must specify a model output file for "
-          "training!"); RETURN (1);
+          "training or use option: -nomodelfile"); RETURN (1);
     /* In the future it would be great to keep them model in memory for
      * TRAIN_AND_TEST and not write it to disc and read it back in */
     }

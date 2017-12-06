@@ -283,6 +283,7 @@ static char ** ppmto_filter  = NULL ;
 static char ** ppmto_suffix  = NULL ;
 static int   * ppmto_bval    = NULL ;
 static int     ppmto_num     = -1 ;
+static int   * ppmto_gimpize = NULL ;
 
 static char *  ppmto_gif_filter  = NULL ;   /* 27 Jul 2001 */
 static char *  ppmto_agif_filter = NULL ;
@@ -299,6 +300,8 @@ static char *  ppmto_ppm_filter  = NULL ;
 static char *  ppmto_jpg75_filter = NULL ;  /* 27 Mar 2002 */
 static char *  ppmto_jpg95_filter = NULL ;  /* 28 Jul 2005 */
 static char *  ppmto_png_filter   = NULL ;  /* 07 Dec 2006 */
+
+static char *  gimp_path          = NULL ;  /* 27 Oct 2017 */
 
  /* the first %s will be the list of input gif filenames     */
  /* the second %s is the single output animated gif filename */
@@ -323,16 +326,19 @@ static char *  ppmto_png_filter   = NULL ;  /* 07 Dec 2006 */
      ((sss)->mont_nx == 1 && (sss)->mont_ny     == 1)      )
 #endif
 
-#define ADDTO_PPMTO(pnam,suff,bbb)                                       \
+#define ADDTO_PPMTO(pnam,suff,bbb,ggg)                                   \
   do{ ppmto_filter = (char **) realloc( ppmto_filter ,                   \
                                         sizeof(char *)*(ppmto_num+1) ) ; \
       ppmto_suffix = (char **) realloc( ppmto_suffix  ,                  \
                                         sizeof(char *)*(ppmto_num+1) ) ; \
       ppmto_bval   = (int *)   realloc( ppmto_bval    ,                  \
                                         sizeof(int)   *(ppmto_num+1) ) ; \
-      ppmto_filter[ppmto_num] = (pnam) ;                                 \
-      ppmto_suffix[ppmto_num] = (suff) ;                                 \
-      ppmto_bval  [ppmto_num] = (bbb)  ; ppmto_num++ ;                   \
+      ppmto_gimpize= (int *)   realloc( ppmto_gimpize ,                  \
+                                        sizeof(int)   *(ppmto_num+1) ) ; \
+      ppmto_filter [ppmto_num] = (pnam) ;                                \
+      ppmto_suffix [ppmto_num] = (suff) ;                                \
+      ppmto_bval   [ppmto_num] = (bbb)  ;                                \
+      ppmto_gimpize[ppmto_num] = (ggg)&&(gimp_path!=NULL); ppmto_num++;  \
       if( dbg ) fprintf(stderr,"IMSAVE: filter '%s' for suffix '%s'\n",  \
                         (pnam) , (suff) ) ;                              \
   } while(0)
@@ -362,6 +368,15 @@ void ISQ_setup_ppmto_filters(void)
 
    dbg = AFNI_yesenv("AFNI_IMSAVE_DEBUG") ;  /* 03 Sep 2004 */
 
+   /*-- path to open gimp [27 Oct 2017] --*/
+
+   pg = THD_find_executable( "gimp" ) ;
+   if( pg != NULL ) gimp_path = strdup(pg) ;
+#ifdef DARWIN
+   else if( THD_is_directory("/Applications/GIMP.app") )
+     gimp_path = strdup("open -a /Applications/GIMP.app") ;
+#endif
+
    /*-- the cheap way to write PPM  --*/
    /*-- [this must always be first] --*/
 
@@ -369,7 +384,7 @@ void ISQ_setup_ppmto_filters(void)
    if( pg != NULL ){
       str = AFMALL( char, strlen(pg)+32) ;
       sprintf(str,"%s > %%s",pg) ;
-      bv <<= 1 ; ADDTO_PPMTO(str,"ppm",bv) ;
+      bv <<= 1 ; ADDTO_PPMTO(str,"ppm",bv,0) ;
 
       /* 02 Aug 2001: also try for mpeg */
 
@@ -404,7 +419,7 @@ printf("\njpeg_compress %d\n", jpeg_compress);
 #endif
       str = AFMALL( char, strlen(pg)+32) ;
       sprintf(str,"%s -quality %d > %%s",pg,jpeg_compress);
-      bv <<= 1 ; ADDTO_PPMTO(str,"jpg",bv) ;
+      bv <<= 1 ; ADDTO_PPMTO(str,"jpg",bv,1) ;
       ppmto_jpg95_filter = strdup(str) ;  /* 28 Jul 2005 */
 
       /* lower quality JPEGs */
@@ -424,7 +439,7 @@ printf("\njpeg_compress %d\n", jpeg_compress);
 
       str = AFMALL( char, strlen(pg)+strlen(pg2)+32) ;
       sprintf(str,"%s 255 | %s > %%s",pg2,pg) ;
-      bv <<= 1 ; ADDTO_PPMTO(str,"gif",bv) ;
+      bv <<= 1 ; ADDTO_PPMTO(str,"gif",bv,0) ;
 
       /*-- 27 Jul 2001: also try for Animated GIF --*/
 
@@ -471,7 +486,7 @@ printf("\njpeg_compress %d\n", jpeg_compress);
    if( pg != NULL ){
       str = AFMALL( char, strlen(pg)+32) ;
       sprintf(str,"%s -c none %%s",pg) ;
-      bv <<= 1 ; ADDTO_PPMTO(str,"tif",bv) ;
+      bv <<= 1 ; ADDTO_PPMTO(str,"tif",bv,1) ;
    } else {                                      /* 03 Jul 2001:      */
       pg = THD_find_executable( "pnmtotiff" ) ;
       if( pg == NULL )
@@ -479,7 +494,7 @@ printf("\njpeg_compress %d\n", jpeg_compress);
       if( pg != NULL ){                          /* and pnmtotiff     */
          str = AFMALL( char, strlen(pg)+32) ;    /* differently       */
          sprintf(str,"%s > %%s",pg) ;
-         bv <<= 1 ; ADDTO_PPMTO(str,"tif",bv) ;
+         bv <<= 1 ; ADDTO_PPMTO(str,"tif",bv,1) ;
       }
       else { CANT_FIND("ppm2tiff OR pnmtotiff OR pamtotiff","TIFF"); need_netpbm++; }
    }
@@ -493,13 +508,13 @@ printf("\njpeg_compress %d\n", jpeg_compress);
      if( pg != NULL && pg2 != NULL ){
         str = AFMALL( char, strlen(pg)+strlen(pg2)+32) ;
         sprintf(str,"%s 255 | %s -windows > %%s",pg2,pg) ;
-        bv <<= 1 ; ADDTO_PPMTO(str,"bmp",bv) ;
+        bv <<= 1 ; ADDTO_PPMTO(str,"bmp",bv,0) ;
      }
      else { CANT_FIND("ppmtobmp AND/OR ppmquant","BMP"); need_netpbm++; }
    } else if( pg != NULL ){                   /* 21 Feb 2003: don't quantize */
       str = AFMALL( char, strlen(pg)+32) ;
       sprintf(str,"%s -bpp 24 -windows > %%s",pg) ;
-      bv <<= 1 ; ADDTO_PPMTO(str,"bmp",bv) ;
+      bv <<= 1 ; ADDTO_PPMTO(str,"bmp",bv,0) ;
    }
    else { CANT_FIND("ppmtobmp","BMP"); need_netpbm++; }
 
@@ -509,7 +524,7 @@ printf("\njpeg_compress %d\n", jpeg_compress);
    if( pg != NULL ){
       str = AFMALL( char, strlen(pg)+32) ;
       sprintf(str,"%s -noturn > %%s",pg) ;
-      bv <<= 1 ; ADDTO_PPMTO(str,"eps",bv) ;
+      bv <<= 1 ; ADDTO_PPMTO(str,"eps",bv,0) ;
    }
 #if 0
    else { CANT_FIND("pnmtops","EPS"); need_netpbm++; }
@@ -522,7 +537,7 @@ printf("\njpeg_compress %d\n", jpeg_compress);
    if( pg != NULL && pg2 != NULL ){            /* check pg!=NULL */
       str = AFMALL( char, strlen(pg)+strlen(pg2)+32) ;
       sprintf(str,"%s -noturn | %s --filter > %%s",pg,pg2) ;
-      bv <<= 1 ; ADDTO_PPMTO(str,"pdf",bv) ;
+      bv <<= 1 ; ADDTO_PPMTO(str,"pdf",bv,0) ;
    }
    else CANT_FIND("pnmtops AND/OR epstopdf","PDF") ;
 #endif
@@ -533,7 +548,7 @@ printf("\njpeg_compress %d\n", jpeg_compress);
    if( pg != NULL ){
       str = AFMALL( char, strlen(pg)+32) ;
       sprintf(str,"%s -compression 9 > %%s",pg) ;
-      bv <<= 1 ; ADDTO_PPMTO(str,"png",bv) ;
+      bv <<= 1 ; ADDTO_PPMTO(str,"png",bv,1) ;
       ppmto_png_filter = strdup(str) ;  /* 07 Dec 2007 */
    }
    else { CANT_FIND("pnmtopng","PNG"); need_netpbm; }
@@ -3917,7 +3932,7 @@ void ISQ_saver_CB( Widget w , XtPointer cd , int nval , void **val )
    int dbg ;                          /* 03 Sep 2004 */
    int adup=1 , akk,aa ;              /* 09 Feb 2009 */
 
-   char *cval1 ; int ival2 , ival3=0 , ival4=0 , ll ;  /* 26 Nov 2013 */
+   char *cval1; int ival2, ival3=0, ival4=0, ll, use_gimp=0 ; /* 26 Nov 2013 */
 
 #ifndef DONT_USE_METER
 #  define METER_MINCOUNT 20
@@ -3927,13 +3942,16 @@ void ISQ_saver_CB( Widget w , XtPointer cd , int nval , void **val )
 
 ENTRY("ISQ_saver_CB") ;
 
-   if( nval != 2 && nval != 4 ) EXRETURN ;  /* bad inputs */
+   if( nval < 2 || nval > 4 ) EXRETURN ;  /* bad inputs */
 
    cval1 = (char *)val[0] ;  /* copy input values to local variables */
    ival2 = (int)(intptr_t)val[1] ;
-   if( nval > 2 ){
+   if( nval == 4 ){
      ival3 = (int)(intptr_t)val[2] ;
      ival4 = (int)(intptr_t)val[3] ;
+   } else if( nval == 3 ){            /* 27 Oct 2017 */
+     char *cpt = (char *)val[2] ;
+     use_gimp  = (cpt != NULL) && *cpt == 'Y' ;
    }
    if( cval1 == NULL || *cval1 == '\0' ) EXRETURN ;
    ll = strlen(cval1) ; if( ll > 32 ) EXRETURN ;
@@ -3987,7 +4005,7 @@ ENTRY("ISQ_saver_CB") ;
 
       /*-- April 1996: Save One case here --*/
 
-      if( nval == 2 ){
+      if( nval == 2 || nval == 3 ){
          char *ppnm = strstr( seq->saver_prefix , ".pnm." ) ;
          int   sll  = strlen( seq->saver_prefix ) ;
 
@@ -4113,6 +4131,12 @@ ENTRY("ISQ_saver_CB") ;
                   fprintf(stderr,"** filter command was %s\n",filt) ;
                   POPDOWN_first_one ; mri_free(tim) ; EXRETURN ;
                }
+
+               /* 27 Oct 2017 */
+               if( gimp_path != NULL && use_gimp && THD_is_file(fname) ){
+                 sprintf(filt,"%s %s &",gimp_path,fname) ;
+                 system(filt) ;
+               }
             }
 
             mri_free( tim ) ; tim = NULL ;  /* 17 June 1997 */
@@ -4134,6 +4158,8 @@ ENTRY("ISQ_saver_CB") ;
          EXRETURN ;
       }
    }
+
+   /*--- save many case here ---*/
 
    seq->saver_from = ival3 ;
    seq->saver_to   = ival4 ;
@@ -4716,10 +4742,19 @@ ENTRY("ISQ_but_save_CB") ;
    seq->saver_from = seq->saver_to = -1 ;
 
    if( seq->opt.save_one && !DO_ANIM(seq) ){
-     MCW_choose_stuff( w , "Image Saver (One)" , ISQ_saver_CB , (XtPointer)seq ,
-                         MSTUF_STRING , "Prefix"  ,
-                         MSTUF_INT    , "Blowup " , 1 , 8 , ibl ,
-                       MSTUF_END ) ;
+     if( seq->opt.save_filter >= 0 &&
+         ppmto_gimpize != NULL     && ppmto_gimpize[seq->opt.save_filter] ){
+       MCW_choose_stuff( w , "Image Saver (One)" , ISQ_saver_CB , (XtPointer)seq ,
+                           MSTUF_STRING , "Prefix"  ,
+                           MSTUF_INT    , "Blowup " , 1 , 8 , ibl ,
+                           MSTUF_YESNO  , "Open in Gimp?",
+                         MSTUF_END ) ;
+     } else {
+       MCW_choose_stuff( w , "Image Saver (One)" , ISQ_saver_CB , (XtPointer)seq ,
+                           MSTUF_STRING , "Prefix"  ,
+                           MSTUF_INT    , "Blowup " , 1 , 8 , ibl ,
+                         MSTUF_END ) ;
+     }
    } else {
      MCW_choose_stuff( w , "Image Saver (Multiple)" , ISQ_saver_CB , (XtPointer)seq ,
                          MSTUF_STRING , "Prefix"  ,
@@ -8939,7 +8974,7 @@ ENTRY("ISQ_overlay_label_CB") ;
    if( seq->overlay_label != NULL ){
      free(seq->overlay_label) ; seq->overlay_label = NULL ;
    }
-   if( cbs != NULL       && cbs->reason == mcwCR_string       &&
+   if( cbs       != NULL && cbs->reason == mcwCR_string       &&
        cbs->cval != NULL && strcasecmp(cbs->cval,"NULL") != 0   ){
      seq->overlay_label = strdup(cbs->cval) ;
    }
@@ -13840,7 +13875,8 @@ ENTRY("ISQ_save_anim") ;
                   "%s%s.*.ppm [%06d-%06d]\n"  /* prefix, tsuf, from, to */
                   "END_INPUT\n"
                , oof , frate , pattrn , qscale ,
-                 ppo,tsuf,0,akk) ;
+                 /* akk is 1 too big, was corrected elsewhere  27 Nov 2017 */
+                 ppo,tsuf,0,akk-1) ;
         fclose(fpar) ;
         if( mpar ) free(pattrn) ;
 
@@ -14071,5 +14107,6 @@ static MRI_IMAGE * mri_vgize( MRI_IMAGE *iim )
 
    mri_free(bxim) ; mri_free(byim) ; mri_free(im) ;
 
-   return blim ;
+   im = mri_sharpen_rgb(0.666f,blim) ; mri_free(blim) ; /* 26 Sep 2017 */
+   return im ;
 }

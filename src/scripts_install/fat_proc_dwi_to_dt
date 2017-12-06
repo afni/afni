@@ -1,0 +1,1212 @@
+#!/bin/tcsh -e
+
+# --------------------- revision history -------------------------
+# Jan, 2017
+#   + rename
+#
+# Jan 27, 2017
+#   + update opts
+#
+#set version   = "1.3"
+#set rev_dat   = "Feb, 2017"
+#   + drive viewer
+#
+#set version   = "1.4"
+#set rev_dat   = "Feb 20, 2017"
+#   + supplementary anat input
+#
+#set version   = "1.5"
+#set rev_dat   = "Feb 26, 2017"
+#   + more with anat input
+#   + wdir
+#   + pre-alignment/matching stuff
+#
+#set version   = "1.6";    set rev_dat   = "Feb 27, 2017"
+#   + pre-alignment/matching stuff
+#
+#set version   = "1.7";    set rev_dat   = "March 10, 2017"
+#   + fix when res struct and dwi don't have same origin to start
+#   + add QC snapshot of b0 edges overlayed on orig anat
+#
+#set version   = "1.8";    set rev_dat   = "Apr 13, 2017"
+#   + alter I/O to be consistent across progs
+#   + wdir update
+#
+#set version   = "1.9";    set rev_dat   = "Apr 26, 2017"
+#   + wdir update
+#
+#set version   = "2.0";    set rev_dat   = "May 1, 2017"
+#   + add in ability to mask struc set
+#
+#set version   = "2.1";    set rev_dat   = "May 12, 2017"
+#   + fixed error if no anat entered
+#
+#set version   = "2.2";    set rev_dat   = "May 17, 2017"
+#   + now '3dDWItoDT -debug_briks ...' by default
+#   + Has some fit-type parameters there.
+#
+#set version   = "2.3";    set rev_dat   = "Aug 1, 2017"
+#   + now '-reweight' on by default
+#   + now '-cumulative_wts' on by default
+#
+#set version   = "2.4";    set rev_dat   = "Sep 04, 2017"
+#   + work with new @chauffeur, -prefix only
+#   + updated format of help file, so that user can be prompted for
+#     more opts
+#   + output QC images for uncert (V12 and FA), and also for showing
+#     anat lines on the dwi vol
+#
+set version   = "2.5b";    set rev_dat   = "Sep 06, 2017"
+#   + for showing anat lines on DWI, allow anat lines to be clearer
+#     --> quickchange in how this is done: don't use -master.
+# ----------------------------------------------------------------
+
+set this_prog = "fat_proc_dwi_to_dt"
+set tpname    = "${this_prog:gas/fat_proc_//}"
+set here      = $PWD
+
+# ----------------- find AFNI and set viewer ---------------------
+
+# find AFNI binaries directory and viewer location
+set adir      = ""
+set my_viewer = ""
+which afni >& /dev/null
+if ( $status ) then
+    echo "** Cannot find 'afni' (?!)."
+    goto BAD_EXIT
+else
+    set aa   = `which afni`
+    set adir = $aa:h
+endif
+
+# default location of viewer: user could modify!
+set my_viewer = "$adir/@chauffeur_afni"
+
+# ----------------------- set defaults --------------------------
+
+set idwi     = ""                 # necessary input: DWI dset
+set invecmat = ( "" "" "" "" )    # switches+names for bvecs and bvals
+set imask    = ""                 # optional mask; otherwise, automask
+set istrc    = ""                 # optional struc vol (like in TORT)
+set iref     = ""                 # option, for getting orient + orig
+
+set iflip    = ""                 # for 1dDW_*++: can flip (yaaawn)
+set sca      = "-scale_out_1000"  # for 3dDWItoDT: -scale_out_1000
+set do_rwt   = "-reweight"        # on by def
+set do_cwt   = "-cumulative_wts"  # on by def
+
+set odir     = ""
+set opref    = ""
+set dtipref  = "dt"               # NIFTI prefix for NII output
+set ori_new  = "RPI"              # default file output orientation
+
+set DO_VIEWER   = 1               # def: do viewing
+set qc_prefix   = ""              # def: autoname; user can enter
+set qc_fa_thr   = 0.2             # def: FA olay thr for QC
+set qc_fa_max   = 0.9             # def: FA olay max for QC
+set qc_v12unc_max = 0.349         # def: V12 uncert stdev max, ~20deg
+set qc_faunc_max = 0.05           # def: FA uncert stdev max
+set output_cmd  = 1               # def: output copy of this command
+                                  # -> should expand to have all cmds
+set cmd_file    = ""              # def: same name as viewer
+set postfix     = "_"             # stick into name
+
+set DO_UNCERT   = 1
+set Niters      = 300
+set extra_unc_cmds = ""
+
+set DO_CLEAN = "1"
+set wdir     = "__WORKING_$tpname"
+set WDIR_EX  = "1"                # put opref on wdir (unless user names)
+
+set DO_STRUC_MASK = "0"
+
+# ------------------- process options, a la rr ----------------------
+
+if ( $#argv == 0 ) goto SHOW_HELP
+
+set ac = 1
+while ( $ac <= $#argv )
+    # terminal options
+    if ( ("$argv[$ac]" == "-h" ) || ("$argv[$ac]" == "-help" )) then
+        goto SHOW_HELP
+    endif
+    if ( "$argv[$ac]" == "-ver" ) then
+        goto SHOW_VERSION
+    endif
+
+    # --------------- input dset(s) ----------------
+    if ( "$argv[$ac]" == "-in_dwi" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set idwi = "$argv[$ac]"
+        
+    else if ( "$argv[$ac]" == "-mask" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set imask = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-in_struc_res" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set istrc = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-in_ref_orig" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set iref = "$argv[$ac]"
+
+    # ------------- make mask from struc --------------
+    else if ( "$argv[$ac]" == "-mask_from_struc" ) then
+        set DO_STRUC_MASK = "1"
+
+    # ------------- input vecmat and bval --------------
+    else if ( "$argv[$ac]" == "-in_col_matA" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        set invecmat[1]  = $argv[$ac] 
+        @ ac += 1
+        set invecmat[2]  = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-in_col_matT" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        set invecmat[1]  = $argv[$ac] 
+        @ ac += 1
+        set invecmat[2]  = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-in_col_vec" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        set invecmat[1]  = $argv[$ac] 
+        @ ac += 1
+        set invecmat[2]  = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-in_row_vec" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        set invecmat[1]  = $argv[$ac] 
+        @ ac += 1
+        set invecmat[2]  = "$argv[$ac]"
+
+    # not necessary; default is just empty
+    else if ( "$argv[$ac]" == "-in_bvals" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        set invecmat[3]  = $argv[$ac] 
+        @ ac += 1
+        set invecmat[4]  = "$argv[$ac]"
+
+    # ----------------- outputs ---------------------
+    # *THIS* is the main prefix that can determine
+    # output file location-- required!
+    else if ( "$argv[$ac]" == "-prefix" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set opref = "$argv[$ac]"
+
+    # will just take the basename of this-- optional
+    else if ( "$argv[$ac]" == "-prefix_dti" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set dtipref = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-workdir" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set wdir = "$argv[$ac]"
+        set WDIR_EX  = "0"
+
+    # ----------------- other opts ---------------------
+    else if ( ("$argv[$ac]" == "-flip_x") || \
+              ("$argv[$ac]" == "-flip_y") || \
+              ("$argv[$ac]" == "-flip_z") || \
+              ("$argv[$ac]" == "-no_flip") ) then
+        set iflip = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-no_scale_out_1000" ) then
+        set sca = ""
+
+    else if ( "$argv[$ac]" == "-no_reweight" ) then
+        set do_rwt = ""
+
+    else if ( "$argv[$ac]" == "-no_cumulative_wts" ) then
+        set do_cwt = ""
+
+    else if ( "$argv[$ac]" == "-qc_fa_thr" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set qc_fa_thr = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-qc_fa_max" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set qc_fa_max = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-qc_fa_unc_max" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set qc_faunc_max = "$argv[$ac]"
+        
+    else if ( "$argv[$ac]" == "-qc_v12_unc_max" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set qc_v12unc_max = "$argv[$ac]"
+        
+    else if ( "$argv[$ac]" == "-qc_prefix" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set qc_prefix = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-no_qc_view" ) then
+        set DO_VIEWER = 0
+
+    else if ( "$argv[$ac]" == "-no_cmd_out" ) then
+        set output_cmd = 0
+
+    else if ( "$argv[$ac]" == "-no_clean" ) then
+        set DO_CLEAN = "0"
+
+    # ------ dti par uncert --------------
+    else if ( "$argv[$ac]" == "-uncert_off" ) then
+        set DO_UNCERT = 0
+
+    else if ( "$argv[$ac]" == "-uncert_iters" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set Niters = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-uncert_extra_cmds" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set extra_unc_cmds = "$argv[$ac]"
+
+    else
+        echo "** unexpected option #$ac = '$argv[$ac]'"
+        goto BAD_EXIT
+
+    endif
+    @ ac += 1
+end
+
+# =======================================================================
+# ============================ ** SETUP ** ==============================
+# =======================================================================
+
+# ============================ input files ==============================
+
+echo "++ Start script version: $version"
+
+# NEED these two inputs
+if ( "$idwi" == "" ) then
+    echo "** ERROR: no DWI file input?!"
+    goto BAD_EXIT
+else if ( "$invecmat[2]" == "" ) then
+    echo "** ERROR: no gradient/matrix file input?!"
+    goto BAD_EXIT
+endif
+
+# make sure we can read DWI OK
+set check = `3dinfo "$idwi"`
+if ( "$#check" == "0" ) then
+    echo "** ERROR: can't find inset file:  $idwi !"
+    goto BAD_EXIT
+else
+    echo "++ Found inset DWI file:   $idwi"
+endif
+
+# check for vec/mat file ???????????????/
+if ( 0 ) then
+if ( -f "$invecmat[2]" ) then
+    echo "++ Found input vec/mat file:  $invecmat[2]"
+else
+    echo "** ERROR: can't find entered vec/mat file $invecmat[2] !"
+    goto BAD_EXIT
+endif
+endif
+
+# -------------------------------
+
+# check if MASK was input, then if can be read
+if ( "$imask" != "" ) then
+    set check = `3dinfo "$imask"`
+    if ( "$#check" == "0" ) then
+        echo "** ERROR: can't find input mask file:  $imask !"
+        goto BAD_EXIT
+    else
+        echo "++ Found inset input file:   $imask"
+    endif
+endif
+
+# check if ANAT was input, then if can be read
+if ( "$istrc" != "" ) then
+    set check = `3dinfo "$istrc"`
+    if ( "$#check" == "0" ) then
+        echo "** ERROR: can't find input anatomical file:  $istrc !"
+        goto BAD_EXIT
+    else
+        echo "++ Found inset input file:   $istrc"
+    endif
+endif
+
+# check if REF was input, then if can be read
+if ( "$iref" != "" ) then
+    set check = `3dinfo "$iref"`
+    if ( "$#check" == "0" ) then
+        echo "** ERROR: can't find input ref file:  $iref !"
+        goto BAD_EXIT
+    else
+        echo "++ Found input ref file:   $iref"
+        set ori_new = `3dinfo -orient "$iref"`
+    endif
+endif
+
+# can't have struc mask opt used if no struc vol, and can't input
+# another mask
+if ( "$DO_STRUC_MASK" == "1" ) then
+    if ( "$istrc" == "" ) then
+        echo "** ERROR: you asked for masking a struc file, but no such"
+        echo "**        struc file was input using '-in_struc_res ...'"
+        goto BAD_EXIT
+    endif
+    if ( "$imask" != "" ) then
+        echo "** ERROR: you asked for masking a struc file, but you also"
+        echo "**        input a mask file using '-mask ...'."
+        echo "**        Sorry, mate, can't have both!"
+        goto BAD_EXIT
+    endif
+endif
+
+# check for bval file, if entered
+if ( 0 ) then
+if ( "$invecmat[4]" != "" ) then
+    if ( -f "$invecmat[4]" ) then
+        echo "++ Found entered bval file:   $invecmat[4]"
+    else
+        echo "** ERROR: can't find entered bval file:  $invecmat[4] !"
+        goto BAD_EXIT
+    endif
+endif
+endif
+
+# ========================= output/working dir ==========================
+
+if ( "$opref" == "" ) then
+    echo "** ERROR: need '-prefix ...' option provided!"
+    echo "   See the helpfile for more information."
+    goto BAD_EXIT
+else
+    set odir = `dirname $opref`
+    set opref = `basename $opref`
+    echo ""
+    echo "++ Based on prefix, the output directory will be:"
+    echo "     $odir"
+    echo "++ Based on prefix, the output prefix will be:"
+    echo "     $opref"
+    echo ""
+endif
+
+# check output directory, use input one if nothing given
+
+# default output dir, if nothing input.
+if ( ! -e "$odir" ) then
+    echo "+* Output directory didn't exist.  Trying to make '$odir' now."
+    mkdir "$odir"
+endif
+
+# and put working directory as subdirectory.
+if ( "$WDIR_EX" == "1" ) then
+    set wdir = $odir/${wdir}_$opref
+else
+    set wdir = $odir/$wdir
+endif
+
+# make the working directory
+if ( ! -e $wdir ) then
+    echo "++ Making working directory: $wdir"
+    mkdir $wdir
+else
+    echo "+* WARNING: Somehow found a premade working directory (?):"
+    echo "      $wdir"
+
+    # don't clean preexisting directories-- could be user mistake.
+    echo "   NB: will *not* clean it afterwards."
+    set DO_CLEAN = "0"
+endif
+
+# file names for lots of outputs
+
+set ocmd   = "${opref}_cmd.txt"      # name for output command
+set omata  = "${opref}_bmatA.txt"    # name for full afni bmatrix
+set obvec  = "${opref}_bvec.txt"     # name for full afni grads
+set obval  = "${opref}_bval.txt"     # name for full afni bvals
+set odwi   = "${opref}_dwi.nii.gz"   # name for dwis
+set omask  = "${opref}_mask.nii.gz"  # name for mask
+set oanat  = "${opref}_anat.nii.gz"  # name for anat in output
+
+#set dti    = "DTI"
+set dti_par = "${dtipref}.nii.gz"    # NIFTI prefix for NII output
+set dti_unc = "${dtipref}_UNC.nii.gz" # name for mask
+
+# =======================================================================
+# =========================== ** PROCESS ** =============================
+# =======================================================================
+
+echo "\n-----> STARTING $this_prog ---->"
+
+# ---------------------------- CMD ---------------------------------
+
+echo "\n\nThis command:"
+echo "$this_prog $argv\n\n"
+
+if ( "$cmd_file" == "" ) then
+    set cmd_file = "$odir/$ocmd"
+endif
+
+# copy original command:
+# dump copy of command into workdir/..
+if ( $output_cmd == 1 ) then
+    echo "++ Echoing the command to: $cmd_file"
+
+    set rec_afni_ver = `afni -ver`
+    echo "### AFNI version:"  > $cmd_file
+    echo "# $rec_afni_ver\n"            >> $cmd_file
+
+    echo "### Executed from the directory location:"  >> $cmd_file
+    echo "# $here\n"            >> $cmd_file
+    echo "### The command was:" >> $cmd_file
+    echo "# $this_prog $argv"   >> $cmd_file
+    echo "\n"                   >> $cmd_file
+endif
+
+# ----------------- grads/bmats ---------------------
+# Make grad file: bmatrix, bvector and bvalues
+
+# make grads ...
+1dDW_Grad_o_Mat++                     \
+    -overwrite                        \
+    -echo_edu                         \
+    $iflip                            \
+    -out_col_vec      $odir/$obvec    \
+    -out_col_bval_sep $odir/$obval    \
+    "$invecmat[1]" "$invecmat[2]"     \
+    "$invecmat[3]" "$invecmat[4]" 
+# NB: the above works somewhat cheatingly by having the empty strings
+# at the end of the function call.
+
+# ... and matching matA
+1dDW_Grad_o_Mat++                     \
+    -echo_edu                         \
+    -in_col_vec       $odir/$obvec    \
+    -out_col_matA     $odir/$omata    \
+    -overwrite
+
+# -------------- copy DWI/reset ori^2 --------------
+
+if ( "$iref" != "" ) then
+
+    # make sure this is in same orientation with ref
+    set ori_idwi = `3dinfo -orient "$idwi"`
+    if ( "$ori_idwi" != "$ori_new" ) then
+        echo "++ Resampling/fitting input DWI vols."
+        set tmp_idwi = $wdir/DWI_res.nii
+        3dresample               \
+            -echo_edu            \
+            -overwrite           \
+            -inset  "$idwi"      \
+            -orient "$ori_new"   \
+            -prefix $tmp_idwi
+    else
+        # ... or just use input file as is
+        set tmp_idwi = "$idwi"
+    endif
+
+    if ( "$istrc" != "" ) then
+
+        # resample anat, if nec; then use it to find shift to get to
+        # refspace
+        set tmp_istrc = $wdir/anat_res.nii
+
+        set ori_anat = `3dinfo -orient "$istrc"`
+
+        if ( "$ori_anat" != "$ori_new" ) then
+            echo "++ Resampling/fitting input anat vol."
+            3dresample               \
+                -echo_edu            \
+                -overwrite           \
+                -inset  "$istrc"     \
+                -orient "$ori_new"   \
+                -prefix $tmp_istrc
+        else
+            # ... or just use input file as is
+            echo "++ Copying input anat vol."
+            3dcalc                   \
+                -echo_edu            \
+                -overwrite           \
+                -a "$istrc"          \
+                -expr 'a'            \
+                -prefix $tmp_istrc
+        endif
+
+        # check IJK dimensions of anat and dwi. [March 10, 2017]
+        set dimA = `3dinfo -n4 $tmp_istrc`
+        set dimD = `3dinfo -n4 $tmp_idwi`
+        foreach i ( `seq 1 1 3` ) 
+            if ( $dimA[$i] != $dimD[$i] ) then
+                echo "** ERROR! IJK dimensions of $istrc and $idwi don't match!"
+                goto BAD_EXIT
+            endif
+        end
+
+        # [March 10, 2017]
+        echo "++ Making sure the anat and DWI have the same origin!"
+        3drefit                      \
+            -echo_edu                \
+            -duporigin $tmp_idwi     \
+            $tmp_istrc
+
+        # [May 2, 2017]
+        if ( "$DO_STRUC_MASK" == "1" ) then
+            set ss_istrc = $wdir/anat_ss.nii
+            set imask    = $wdir/anat_mask.nii
+
+            3dSkullStrip \
+                -echo_edu               \
+                -overwrite              \
+                -mask_vol               \
+                -prefix $ss_istrc       \
+                -input  $tmp_istrc
+
+            # smooth out a bit, maybe fill small holes, and make
+            # output be smoothed
+            3dmask_tool                 \
+                -overwrite                    \
+                -prefix $imask                \
+                -dilate_inputs 2 -2           \
+                -inputs  $ss_istrc
+        endif
+
+        # now do alignment to ref anat
+        set isetinref  = $wdir/anat_in_ref.nii
+        set map_to_ref = $wdir/map_to_ref.param.1D
+        3dAllineate                      \
+            -lpa                         \
+            -source_automask             \
+            -autoweight                  \
+            -cmass                       \
+            -final wsinc5                \
+            -1Dparam_save $map_to_ref    \
+            -warp shift_only             \
+            -source $tmp_istrc           \
+            -base "$iref"                \
+            -prefix $isetinref           \
+            -overwrite
+    else
+        # use dwi[0] for it.
+        set isetinref  = $wdir/dwi0_in_ref.nii
+        set map_to_ref = $wdir/map_to_ref.param.1D
+        3dAllineate                      \
+            -lpa                         \
+            -source_automask             \
+            -autoweight                  \
+            -cmass                       \
+            -final wsinc5                \
+            -1Dparam_save $map_to_ref    \
+            -warp shift_only             \
+            -source $tmp_idwi"[0]"       \
+            -base "$iref"                \
+            -prefix $isetinref           \
+            -overwrite
+    endif
+
+    if ( $DO_VIEWER ) then
+
+        echo "++ Initial QC images: how did we align to ref?"
+
+        if ( "$istrc" == "" ) then
+            set ffo = "b0"
+        else
+            set ffo = "struc"
+        endif
+
+        if( $qc_prefix == "" ) then
+            set vpref0 = ${opref}${postfix}_qc00_ref_$ffo
+        else
+            set vpref0 = ${qc_prefix}${postfix}_qc00_ref_$ffo
+        endif
+
+        echo "\n\n"
+        echo "++ QC image 00 ($isetinref on $iref): $vpref0"
+        echo "\n\n"
+        # need to put '[0]' on $iref?
+        $my_viewer                            \
+            -ulay "$iref"                     \
+            -ulay_range "2%" "98%"            \
+            -olay "$isetinref"                \
+            -pbar_posonly                     \
+            -opacity 4                        \
+            -prefix "$odir/$vpref0"           \
+            -montx 5 -monty 3                 \
+            -set_xhairs OFF                   \
+            -label_mode 1 -label_size 3       \
+            -do_clean 
+
+    endif
+
+    # --> from either of the above maps, we just care about the
+    # --> $map_to_ref, to apply those shifts to the DWI set, so it
+    # --> isn't resampled/smoothed.
+    
+    # les shifts; need to reverse signs to apply
+    set shsh = `grep -v -h "#" $map_to_ref`
+    set sss  = ( 0 0 0 )
+    foreach i ( `seq 1 1 3` ) 
+        set sss[$i]  = `echo "scale=2; -1.0 * $shsh[$i]" | bc`
+    end
+
+    # copy dwi, and apply shifts with refit
+    3dcalc                   \
+        -echo_edu            \
+        -overwrite           \
+        -a  "$tmp_idwi"      \
+        -expr 'a'            \
+        -prefix $odir/$odwi
+
+    # apply to both DWI and, if applicable, the anat
+    3drefit                  \
+        -dxorigin "$sss[1]"  \
+        -dyorigin "$sss[2]"  \
+        -dzorigin "$sss[3]"  \
+        $odir/$odwi
+
+    if ( "$istrc" != "" ) then
+        3dcalc                   \
+            -echo_edu            \
+            -overwrite           \
+            -a  "$tmp_istrc"     \
+            -expr 'a'            \
+            -prefix $odir/$oanat
+        3drefit                  \
+            -dxorigin "$sss[1]"  \
+            -dyorigin "$sss[2]"  \
+            -dzorigin "$sss[3]"  \
+            $odir/$oanat
+    endif
+
+else
+    # just copy
+    3dcalc                   \
+        -echo_edu            \
+        -overwrite           \
+        -a  "$idwi"          \
+        -expr 'a'            \
+        -prefix $odir/$odwi
+
+    if ( "$istrc" != "" ) then
+        3dcalc                   \
+            -echo_edu            \
+            -overwrite           \
+            -a  "$istrc"         \
+            -expr 'a'            \
+            -prefix $odir/$oanat
+    endif
+endif
+
+# ----------------- WB mask: make or copy -------------
+
+if ( "$imask" == "" ) then
+    # make mask.
+    # [June 6, 2017]: updated because TORTOISE can have large
+    #    neg values in DWIs, so take abs value
+    echo "++ Automasking to make:  $odir/$omask"
+    3dAutomask                \
+        -echo_edu             \
+        -overwrite            \
+        -prefix $odir/$omask  \
+        "3dcalc( -a ${odir}/${odwi}[0] -expr (a*step(a)) )"
+        #$odir/$odwi'[0]'
+else
+    # just copy mask and apply transform [May 2, 2017]
+    3dcalc                    \
+        -echo_edu             \
+        -overwrite            \
+        -a  $imask            \
+        -expr 'a'             \
+        -prefix $odir/$omask
+
+    3drefit                  \
+        -dxorigin "$sss[1]"  \
+        -dyorigin "$sss[2]"  \
+        -dzorigin "$sss[3]"  \
+        $odir/$omask
+endif
+
+# [March 10, 2017]
+if ( $DO_VIEWER ) then
+    if ( "$iref" != "" ) then
+
+        echo "++ More QC images: b0 on initial ref."
+
+        set b0mskd = "$wdir/b0mskd.nii"   
+        set b0edge = "$wdir/b0edge.nii"   
+
+        3dcalc                          \
+            -a $odir/$omask             \
+            -b $odir/$odwi'[0]'         \
+            -expr 'step(a)*b'           \
+            -prefix $b0mskd             \
+            -float                      \
+            -overwrite
+
+        3dedge3                         \
+            -overwrite                  \
+            -prefix $b0edge             \
+            -input  $b0mskd
+
+        if( $qc_prefix == "" ) then
+            set vpref0 = ${opref}${postfix}_qc01a_ref_eb0
+        else
+            set vpref0 = ${qc_prefix}${postfix}_qc01a_ref_eb0
+        endif
+
+        echo "\n\n"
+        echo "++ QC image 01 ($odir/$odwi'[0]' on $iref): $vpref0"
+        echo "\n\n"
+        # need to put '[0]' on $iref?
+        $my_viewer                            \
+            -ulay "$iref"                     \
+            -ulay_range "2%" "98%"            \
+            -olay "$b0edge"                   \
+            -func_range_perc 50               \
+            -pbar_posonly                     \
+            -cbar "red_monochrome"            \
+            -opacity 6                        \
+            -prefix "$odir/$vpref0"           \
+            -montx 5 -monty 3                 \
+            -set_xhairs OFF                   \
+            -label_mode 1 -label_size 3       \
+            -do_clean 
+
+        # -------------
+            
+        echo "++ More QC images: initial ref on b0."
+
+        set refedge = "$wdir/refedge.nii"   
+        3dedge3                         \
+            -overwrite                  \
+            -prefix $refedge            \
+            -input  $iref
+
+        # we want to view real b0 at its resolution, but also want the
+        # olay anat edges to be clear; so make this resampled version
+        # that looks the same (b/c of NN interp) but has higher res
+        # (so we see the olay nicerly).
+
+        set newres  = `3dinfo -ad3 $iref`
+            
+        set b0resam = "$wdir/b0resam.nii"   
+        3dresample                      \
+            -echo_edu                   \
+            -prefix $b0resam            \
+            -rmode NN                   \
+            -dxyz $newres               \
+            -input $odir/$odwi'[0]'
+
+            
+        if( $qc_prefix == "" ) then
+            set vpref0b = ${opref}${postfix}_qc01b_b0_eref
+        else
+            set vpref0b = ${qc_prefix}${postfix}_qc01b_b0_eref
+        endif
+
+        echo "\n\n"
+        echo "++ QC image 01 (edgey $iref on $odir/$odwi'[0]'): $vpref0b"
+        echo "\n\n"
+        # need to put '[0]' on $iref?
+        $my_viewer                            \
+            -ulay $b0resam                    \
+            -ulay_range "2%" "98%"            \
+            -olay "$refedge"                  \
+            -func_range_perc 50               \
+            -pbar_posonly                     \
+            -cbar "red_monochrome"            \
+            -opacity 6                        \
+            -prefix "$odir/$vpref0b"          \
+            -montx 5 -monty 3                 \
+            -set_xhairs OFF                   \
+            -label_mode 1 -label_size 3       \
+            -do_clean 
+
+    endif
+endif
+
+
+# ------------------- tensor fit -----------------
+
+echo "++ Fitting tensor, estimating params and fit:  $odir/${dti_par}*"
+3dDWItoDT                              \
+    -echo_edu                          \
+    -overwrite                         \
+    -debug_briks                       \
+    -eigs -nonlinear -sep_dsets        \
+    $do_rwt                            \
+    $do_cwt                            \
+    $sca                               \
+    -prefix       $odir/$dti_par       \
+    -mask         $odir/$omask         \
+    -bmatrix_FULL $odir/$omata         \
+                  $odir/$odwi
+
+echo "++ Tensor par. uncertainty with $Niters iterations:  $odir/${dti_unc}*"
+
+if ( $DO_UNCERT ) then
+    3dDWUncert                             \
+        -echo_edu                          \
+        -overwrite                         \
+        -inset         $odir/$odwi         \
+        -input         $odir/$dtipref      \
+        -bmatrix_FULL  $odir/$omata        \
+        -mask          $odir/$omask        \
+        -prefix        $odir/$dti_unc      \
+        -iters         $Niters             \
+        $extra_unc_cmds
+
+    if ( $DO_VIEWER ) then
+
+        if( $qc_prefix == "" ) then
+            set vpref4 = ${opref}${postfix}_qc04_b0_uncV12
+            set vpref5 = ${opref}${postfix}_qc05_b0_uncFA
+        else
+            set vpref4 = ${qc_prefix}${postfix}_qc04_b0_uncV12
+            set vpref5 = ${qc_prefix}${postfix}_qc05_b0_uncFA
+        endif
+
+        echo "\n\n"
+        echo "++ QC image 04 (final output uncert-stdev of V1 on b0): $vpref4"
+        echo "   (olay colorbar is 'Viridis', with max value ${qc_v12unc_max})"
+        echo "\n\n"
+
+        $my_viewer                              \
+            -ulay "$odir/$odwi""[0]"            \
+            -ulay_range "2%" "98%"              \
+            -olay "$odir/${dtipref}_UNC.nii.gz""[1]"  \
+            -func_range $qc_v12unc_max          \
+            -pbar_posonly                       \
+            -cbar "Viridis"                     \
+            -opacity 6                          \
+            -prefix "$odir/$vpref4"             \
+            -montx 5 -monty 3                   \
+            -set_xhairs OFF                     \
+            -label_mode 1 -label_size 3         \
+            -do_clean    
+
+        echo "\n\n"
+        echo "++ QC image 05 (final output uncert-stdev of FA on b0): $vpref5"
+        echo "   (olay colorbar is 'Viridis', with max value ${qc_faunc_max})"
+        echo "\n\n"
+
+        $my_viewer                              \
+            -ulay "$odir/$odwi""[0]"            \
+            -ulay_range "2%" "98%"              \
+            -olay "$odir/${dtipref}_UNC.nii.gz""[5]"  \
+            -func_range $qc_faunc_max           \
+            -pbar_posonly                       \
+            -cbar "Viridis"                     \
+            -opacity 6                          \
+            -prefix "$odir/$vpref5"             \
+            -montx 5 -monty 3                   \
+            -set_xhairs OFF                     \
+            -label_mode 1 -label_size 3         \
+            -do_clean    
+    endif
+endif
+
+# ---------------------------- VIEWER ---------------------------------
+
+if ( $DO_VIEWER ) then
+
+    echo "++ Making QC images."
+
+    if( $qc_prefix == "" ) then
+        set vpref0 = ${opref}${postfix}_qc02_ref_b0
+        set vpref1 = ${opref}${postfix}_qc03_MD_FA_thr${qc_fa_thr}
+    else
+        set vpref0 = ${qc_prefix}${postfix}_qc02_ref_b0
+        set vpref1 = ${qc_prefix}${postfix}_qc03_MD_FA_thr${qc_fa_thr}
+    endif
+
+    if( "$iref" != "" ) then
+
+        echo "\n\n"
+        echo "++ QC image 02 ($odir/${odwi}[0] on $iref): $vpref0"
+        echo "\n\n"
+        # need to put '[0]' on $iref?
+        $my_viewer                            \
+            -ulay "$iref"                     \
+            -ulay_range "2%" "98%"            \
+            -olay "$odir/${odwi}""[0]"        \
+            -pbar_posonly                     \
+            -opacity 4                        \
+            -prefix "$odir/$vpref0"           \
+            -montx 5 -monty 3                 \
+            -set_xhairs OFF                   \
+            -label_mode 1 -label_size 3       \
+            -do_clean 
+    endif
+
+    echo "\n\n"
+    echo "++ QC image 03 (final output FA>${qc_fa_thr} on MD): $vpref1"
+    echo "   (olay colorbar is 'Plasma', with max value ${qc_fa_max})"
+    echo "\n\n"
+
+    $my_viewer                              \
+        -ulay "$odir/${dtipref}_MD.nii.gz"  \
+        -ulay_range "2%" "98%"              \
+        -olay "$odir/${dtipref}_FA.nii.gz"  \
+        -func_range $qc_fa_max              \
+        -thr_olay $qc_fa_thr                \
+        -pbar_posonly                       \
+        -opacity 7                          \
+        -prefix "$odir/$vpref1"             \
+        -montx 5 -monty 3                   \
+        -set_xhairs OFF                     \
+        -label_mode 1 -label_size 3         \
+        -do_clean    
+
+endif
+
+# ------------------------- clean (y/n) -----------------------------
+
+# clean, by default
+if ( "$DO_CLEAN" == "1" ) then
+    echo "\n++ Cleaning working directory!\n"
+    \rm -rf $wdir
+else
+    echo "\n++ NOT removing working directory '$wdir'.\n"
+endif
+
+# final messages
+echo ""
+echo "++ The final DWI data are here:  $odir/${opref}*"
+echo "++ The final DTI data are here:  $odir/${dtipref}*"
+echo ""
+
+
+
+# ---------------------------------------------------------------------
+
+goto GOOD_EXIT
+
+# ========================================================================
+# ========================================================================
+
+SHOW_HELP:
+cat << EOF
+-------------------------------------------------------------------------
+
+ This program is for doing tensor and DT parameter fitting, as well as
+ the uncertainty of DT parameters that are needed for tractography.
+
+  Ver. $version (PA Taylor, ${rev_dat})
+
+-------------------------------------------------------------------------
+
+  RUNNING:
+
+  This script has two *required* arguments ('-in_dwi ...' and some
+  kind of gradient/matrix file input.  
+
+  The rest are optional, but it is highly recommended to input a
+  reference data set ('-in_ref ...')  if you have used a processing
+  tool that resets origin+orientation (such as TORTOISE), as well as
+  using '-scale_out_1000' to make the output units of the physical DT
+  measures nicer.
+
+  $this_prog  \
+   -in_dwi       DWI                              \
+   {-in_col_matA | -in_col_matT |                 \
+    -in_col_vec | -in_row_vec} GRADMAT            \
+   -prefix        PPP                             \
+   {-in_bvals     BVAL}                           \
+   {-mask         MASK}                           \
+   {-mask_from_struc}                             \
+   {-in_struc_res STRUC}                          \
+   {-in_ref_orig  REF}                            \
+   {-prefix_dti   PREFIX_D}                       \
+   {-flip_x | -flip_y | -flip_z | -no_flip}       \
+   {-no_scale_out_1000}                           \
+   {-no_reweight}                                 \
+   {-no_cumulative_wts}                           \
+   {-qc_prefix    QCPREF}                         \
+   {-qc_fa_thr    TTT}                            \
+   {-qc_fa_max    MMM}                            \
+   {-qc_fa_unc_max UM}                            \
+   {-qc_v12_unc_max V}                            \
+   {-no_qc_view}                                  \
+   {-no_cmd_out}                                  \
+   {-workdir WWW}                                 \
+   {-no_clean}                                    \
+   {-uncert_off}                                  \
+   {-uncert_iters NN}                             \
+   {-uncert_extra_cmds STR}
+
+  where:
+
+    -in_dwi  DWI     :4D volume of N DWIs. Required.
+
+    -in_col_matA | 
+    -in_col_matT | 
+    -in_col_vec  | 
+    -in_row_vec  GRADMAT
+                     :input text file of N gradient vectors or 
+                      bmatrices. By default, it is assumed that
+                      these still have physical units in them (or that
+                      there is an accompanying BVAL file input), so
+                      scaling physical values by 1000 is on by default;
+                      see turning this scaling off, if unnecessary, by 
+                      using '-no_scale_out_1000', below.
+
+    -prefix   PPP    :set prefix for output DWI data; required.
+
+    -in_bvals   BVAL :optional, if bvalue information is
+                      in a separate file from the b-vectors
+                      or matrices; should have same number N as
+                      volumes and vectors/matrices.
+    -flip_x | 
+    -flip_y | 
+    -flip_z | 
+    -no_flip         :can flip the DW grads, if needed; for example, 
+                      based on the recommendation of @GradFlipTest.
+
+   -mask    MASK     :optional whole brain mask can be input;
+                      otherwise, automasking is performed for the 
+                      region to be tensor and parameter fit.
+   -mask_from_struc  :flag to make a mask using 3dSkullStrip+3dmask_tool
+                      from the STRUC file.
+        NB ---> If no "-mask*" option is given, then 3dAutomask is run on 
+                the DWI set.  This often ain't great, so if TORTOISE isn't
+                producing a mask, 1) email Okan and ask him about that, and
+                2) try '-mask_from_struc'.
+                ALSO, if you want the whole volume to be estimated
+                tensorially for some reason, then make a volume fully
+                filled with 1s and pass that in as the MASK, et voila
+                (but then calcs will likely be slooow).
+
+   -in_ref_orig REF  :use another data set to adjust the DWI (and
+                      subsequent parameter) dsets' orientation and
+                      origin; for example, TORTOISE has default 
+                      orientation and origin for all output DWIs-- it
+                      would be very advisable to use the anatomical
+                      volume that you had input into TORTOISE as REF,
+                      so that the DWIs should be viewable overlaying
+                      it afterwards; if an ANAT (below) that has been 
+                      merely resampled is *not* used, then you really, 
+                      really want REF to have the same contrast as the
+                      b=0 DWI volume. *Highly recommended to include!*
+ -in_struc_res STRUC :accomplish the alignment of the output DWI to the 
+                      REF data set via ANAT: a version of the anatomical 
+                      that has been resampled to match the DWI set (in 
+                      both orientation and origin);  for example, in
+                      TORTOISE there is a 'structural.nii' file that should
+                      match this description.  Both ANAT and DWI should 
+                      then be well aligned to the original REF (and to  
+                      each other). *Highly recommended to include!*
+         
+ -prefix_dti PREFIX2 :set prefix for output DTI data; optional, 
+                      default is '${dtipref}'.
+
+  -no_scale_out_1000 :by default, for tensor fitting it is assumed
+                      that 1) the DW b-value information is included
+                      in the gradient vectors or grads, and 2) you are
+                      happy to have tiny numbers of physical
+                      diffusion, which in standard units are like
+                      MD~0.001 "mm^2/s", scaled by 1000 so that they
+                      are returned as MD~1 "10^{-3} mm^2/s".  Isn't
+                      that nicer?  I thought you'd agree-- therefore,
+                      such a kind of scaling is *on* by default.  To
+                      turn that *off*, use this option flag.
+                      See the 3dDWItoDT help file for what this
+                      entails.  Basically, you will likely have nicer
+                      numeric values (from scaling physical length
+                      units by 1000); otherwise, you might have small
+                      numerical values leading to issues with
+                      statistical modeling.
+
+   -no_reweight      :by default, we *do* reweight+refit tensors during 
+                      estimation; should improve fit.  But what do I
+                      know?  This option turns that functionality *off*.
+   -no_cumulative_wts:by default, show  overall weight factors for each 
+                      gradient; may be useful as a quality control, but 
+                      this option will turn that functionality *off*.
+
+   -qc_fa_thr TTT    :set threshold for overlay FA volume in QC image
+                      (default:  TTT=0.2, as for healthy adult human 
+                      parenchyma).
+   -qc_fa_max MMM    :set cbar max for overlay FA volume in QC image
+                      (default:  MMM=0.9, a very large value even for 
+                      healthy adult human parenchyma).
+   -qc_fa_unc_max UM :set cbar max for overlay uncert (stdev) of FA 
+                      in QC image (default:  UM=0.05).
+   -qc_v12_unc_max V :set cbar max for overlay uncert (stdev) of V1 
+                      towards the V2 direction for DTs, in QC image
+                      (default:  UM=0.349 rads, which corresponds to  
+                      20 deg).
+
+   -qc_prefix QCPREF :can set the prefix of the QC image files separately
+                      (default is '$opref').
+   -no_qc_view       :can turn off generating QC image files (why?)
+   -no_cmd_out       :don't save the command line call of this program
+                      and the location where it was run (otherwise, it is
+                      saved by default in the ODIR/).
+
+   -no_clean         :is an optional switch to NOT remove working 
+                      directory '$wdir'; (default: remove working dir).
+   -workdir WWW      :specify a working directory, which can be removed;
+                      (default name = '$wdir').
+
+   -uncert_off       :don't do uncertainty calc (default is to do so); 
+                      perhaps if it is slow or you want *very* different
+                      options.
+   -uncert_iters NN  :set the number of Monte Carlo iterations for the
+                      uncertainty calc (default NN=300).
+-uncert_extra_cmds STR:put in extra commands for the uncertainty calcs
+                      (see the 3dDWUncert helpfile for more opts).
+
+# -----------------------------------------------------------------------
+
+  EXAMPLE
+
+    $this_prog \
+        -in_dwi       DWI.nii                \
+        -in_col_matA  BMTXT_AFNI.txt         \
+        -in_struc_res ../structural.nii      \
+        -in_ref_orig  t2w.nii                \
+        -mask         mask_DWI.nii.gz        \
+        -prefix       OUTPUT/dwi
+
+    or
+
+    $this_prog \
+        -in_dwi        ap_proc_DRBUDDI_final.nii    \
+        -in_col_matT   ap_proc_DRBUDDI_final.bmtxt  \
+        -in_struc_res  structural.nii               \
+        -in_ref_orig   t2w.nii                      \
+        -mask_from_struc                            \
+        -prefix        dwi_03/dwi
+
+
+-------------------------------------------------------------------------
+
+EOF
+
+    goto GOOD_EXIT
+
+SHOW_VERSION:
+    echo "version  $version (${rev_dat})"
+    goto GOOD_EXIT
+
+FAIL_MISSING_ARG:
+    echo "** ERROR! Missing an argument after option flag: '$argv[$ac]'"
+    goto BAD_EXIT
+
+BAD_EXIT:
+    exit 1
+
+# send everyone here, in case there is any cleanup to do
+GOOD_EXIT:
+    exit 0

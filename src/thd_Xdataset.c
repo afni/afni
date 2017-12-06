@@ -26,8 +26,11 @@ typedef struct {
   int   *ijk_to_vec ;    /* map from index in volume to pts in the mask */
 
   int    nsdat ;                               /* number of input files */
+  char **sname ;                                 /* name of input files */
   int    *nvol , nvtot ;  /* length of each file (in volumes) and total */
-  short **sdat ;            /* pointer to data from each file (mmap-ed) */
+  short  **sdat ;           /* pointer to data from each file (mmap-ed) */
+  size_t *ssiz ;                         /* length of each file (bytes) */
+  size_t totsiz ;                        /* length of all files (bytes) */
 } Xdataset ;
 
 /*----------------------------------------------------------*/
@@ -79,40 +82,48 @@ Xdataset * open_Xdataset( char *mask_fname, int nsdat, char **sdat_fname )
    /*--- open data files with the short-ized and mask-ized data ---*/
 
    xds->nsdat = nsdat ;
-   xds->nvol  = (int *)calloc(sizeof(int),nsdat) ;
+   xds->nvol  = (int *)   calloc(sizeof(int)    ,nsdat) ;
    xds->sdat  = (short **)calloc(sizeof(short *),nsdat) ;
+   xds->ssiz  = (size_t *)calloc(sizeof(size_t) ,nsdat) ;
+   xds->sname = (char **) calloc(sizeof(char *) ,nsdat) ; /* 22 Aug 2017 */
+
+   xds->totsiz = 0 ;                                      /* 22 Aug 2017 */
    nvtot = 0 ;
 
    for( ids=0 ; ids < nsdat ; ids++ ){
 
-     if( sdat_fname[ids] == NULL ) ERROR_exit("NULL .sdat filename :-(") ;
+     if( sdat_fname[ids] == NULL ) ERROR_exit("NULL .sdat filename [%d] :-(",ids) ;
 
-     fsiz = (int64_t)THD_filesize(sdat_fname[ids]) ;  /* in bytes */
-     if( fsiz == 0 )
-       ERROR_exit("can't find any data in file '%s'",sdat_fname[ids]) ;
+     xds->sname[ids] = strdup(sdat_fname[ids]) ;
+
+     fsiz = (int64_t)THD_filesize(xds->sname[ids]) ;  /* in bytes */
+     if( fsiz <= 0 )
+       ERROR_exit("can't find any data in file '%s'",xds->sname[ids]) ;
 
      xds->nvol[ids] = (int)( fsiz /(sizeof(short)*xds->ngood) ); /* num volumes */
      if( xds->nvol[ids] == 0 )                                   /* in file */
-       ERROR_exit("data file '%s' isn't long enough",sdat_fname[ids]) ;
+       ERROR_exit("data file '%s' isn't long enough",xds->sname[ids]) ;
      nvtot += xds->nvol[ids] ;
 
-     fdes = open( sdat_fname[ids] , O_RDONLY ) ; /* open, get file descriptor */
+     fdes = open( xds->sname[ids] , O_RDONLY ) ; /* open, get file descriptor */
      if( fdes < 0 )
-       ERROR_exit("can't open data file '%s'",sdat_fname[ids]) ;
+       ERROR_exit("can't open data file '%s'",xds->sname[ids]) ;
 
      /* memory map the data file */
 
+     xds->ssiz[ids] = (size_t)fsiz ;
+     xds->totsiz   += xds->ssiz[ids] ;
      xds->sdat[ids] = (short *)mmap( 0, (size_t)fsiz, PROT_READ, THD_MMAP_FLAG, fdes, 0 ) ;
      close(fdes) ;
      if( xds->sdat[ids] == (short *)(-1) )
        ERROR_exit("can't mmap() data file '%s' -- memory space exhausted?",
-                  sdat_fname[ids]) ;
+                  xds->sname[ids]) ;
 
      /* page fault the data into memory */
 
 #if 0
      if( verb )
-       INFO_message("mapping %s into memory",sdat_fname[ids]) ;
+       INFO_message("mapping %s into memory",xds->sname[ids]) ;
 #endif
 
 #if 0
@@ -129,6 +140,56 @@ Xdataset * open_Xdataset( char *mask_fname, int nsdat, char **sdat_fname )
    /* e finito */
 
    return xds ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void unmap_Xdataset( Xdataset *xds )
+{
+   int jj ;
+
+   if( xds == NULL ) return ;
+
+   for( jj=0 ; jj < xds->nsdat ; jj++ )
+     munmap( xds->sdat[jj] , xds->ssiz[jj] ) ;
+
+   return ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void remap_Xdataset( Xdataset *xds )  /* undo the unmap [22 Aug 2017] */
+{
+   int ids,fdes ; int64_t fsiz ;
+
+   if( xds == NULL ) return ; /* duh */
+
+   for( ids=0 ; ids < xds->nsdat ; ids++ ){
+
+     fsiz = (int64_t)THD_filesize(xds->sname[ids]) ;  /* in bytes */
+     if( fsiz <= 0 )
+       ERROR_exit("can't re-find any data in file '%s'",xds->sname[ids]) ;
+
+     xds->nvol[ids] = (int)( fsiz /(sizeof(short)*xds->ngood) ); /* num volumes */
+     if( xds->nvol[ids] == 0 )                                   /* in file */
+       ERROR_exit("re-data file '%s' isn't long enough",xds->sname[ids]) ;
+
+     fdes = open( xds->sname[ids] , O_RDONLY ) ; /* open, get file descriptor */
+     if( fdes < 0 )
+       ERROR_exit("can't re-open data file '%s'",xds->sname[ids]) ;
+
+     /* memory map the data file */
+
+     xds->ssiz[ids] = (size_t)fsiz ;
+     xds->sdat[ids] = (short *)mmap( 0, (size_t)fsiz, PROT_READ, THD_MMAP_FLAG, fdes, 0 ) ;
+     close(fdes) ;
+     if( xds->sdat[ids] == (short *)(-1) )
+       ERROR_exit("can't re-mmap() data file '%s' -- memory space exhausted?",
+                  xds->sname[ids]) ;
+
+   } /* end of loop over input .sdat files */
+
+   return ;
 }
 
 /*---------------------------------------------------------------------------*/

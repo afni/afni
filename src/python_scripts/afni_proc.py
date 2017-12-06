@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 
+# python3 status: compatible
+
 # note: in the script, runs are 1-based (probably expected)
+
+from __future__ import print_function
 
 import string, sys, os
 from time import asctime
@@ -568,9 +572,15 @@ g_history = """
     5.14 Apr 11, 2017:
         - added GENERAL ANALYSIS NOTE to help
         - mentioned scaling as an option in resting state analysis
+    5.15 Apr 25, 2017: fix follower warps for gzipped WARP datasets
+    5.16 Sep  7, 2017: fix help typos for -regress_ROI_PC_per_run
+    5.17 Sep 11, 2017: if no regress block, skip gen_ss_review_scripts.py
+    5.18 Sep 12, 2017: use lpc+ZZ cost function in examples
+    6.00 Nov  7, 2017: python3 compatible
+    6.01 Nov 15, 2017: fixed -despike_mask (by D Plunkett)
 """
 
-g_version = "version 5.14, April 11, 2017"
+g_version = "version 6.01, November 15, 2017"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -582,6 +592,9 @@ g_requires_afni = [ \
       [  "1 Apr 2015",  "1d_tool.py uncensor from 1D" ] ]
 
 g_todo_str = """todo:
+  - be able to run simple forms of @Align_Centers
+  - implement multi-echo OC and possibly meica functionality
+  - improve on distortion correction via gentle NL alignment with anat
   - finish @radial_correlate updates, like _opts and _volreg
      - maybe add to gen_ss_review_scripts.py
   - allow for 3dAllineate in place of 3dvolreg: -volreg_use_allineate
@@ -853,19 +866,19 @@ class SubjProcSream:
         return
 
     def show(self, mesg):
-        print '%sSubjProcSream: %s' % (mesg, self.label)
+        print('%sSubjProcSream: %s' % (mesg, self.label))
         if self.verb > 3:
             for block in self.blocks:
                 block.show('    Block %d: ' % self.blocks.index(block))
-        print '    Dsets : ',
-        if len(self.dsets) < 1: print 'not yet set'
+        print('    Dsets : ', end=' ')
+        if len(self.dsets) < 1: print('not yet set')
         else:
             if self.verb > 2:
-                print
+                print()
                 for dset in self.dsets: dset.show()
             else:
-                for dset in self.dsets: print dset.rel_input(),
-                print
+                for dset in self.dsets: print(dset.rel_input(), end=' ')
+                print()
         if self.verb > 3: self.valid_opts.show('valid_opts: ')
         if self.verb > 1: self.user_opts.show('user_opts: ')
 
@@ -1353,12 +1366,12 @@ class SubjProcSream:
         self.user_opts = read_options(self.argv, self.valid_opts)
         if self.user_opts == None: return 1     # error condition
         if len(self.user_opts.olist) == 0:      # no options: apply -help
-            print g_help_string
+            print(g_help_string)
             return 0
         if self.user_opts.trailers:
             opt = self.user_opts.find_opt('trailers')
-            if not opt: print "** seem to have trailers, but cannot find them!"
-            else: print "** have invalid trailing args: %s", opt.show()
+            if not opt: print("** seem to have trailers, but cannot find them!")
+            else: print("** have invalid trailing args: %s", opt.show())
             return 1  # failure
 
         # maybe the users justs wants a complete option list
@@ -1384,35 +1397,35 @@ class SubjProcSream:
         if opt != None: self.verb = int(opt.parlist[0])
 
         if opt_list.find_opt('-help'):     # just print help
-            print g_help_string
+            print(g_help_string)
             return 0  # gentle termination
         
         if opt_list.find_opt('-hist'):     # print the history
-            print g_history
+            print(g_history)
             return 0  # gentle termination
         
         if opt_list.find_opt('-requires_afni_version'): # print required version
-            print g_requires_afni[0][0]
+            print(g_requires_afni[0][0])
             return 0  # gentle termination
         
         if opt_list.find_opt('-requires_afni_hist'): # print required history
             hlist = ['   %11s, for : %s' % (h[0],h[1]) for h in g_requires_afni]
-            print '%s' % '\n'.join(hlist)
+            print('%s' % '\n'.join(hlist))
             return 0  # gentle termination
         
         if opt_list.find_opt('-todo'):     # print "todo" list
-            print g_todo_str
+            print(g_todo_str)
             return 0
         
         if opt_list.find_opt('-ver'):      # show the version string
-            print g_version
+            print(g_version)
             return 0  # gentle termination
         
         # options which are NO LONGER VALID
 
         if opt_list.find_opt('-surf_blur_fwhm'):
-            print '** option -surf_blur_fwhm is no longer valid\n' \
-                  '   (please stick with -blur_size)\n'
+            print('** option -surf_blur_fwhm is no longer valid\n' \
+                  '   (please stick with -blur_size)\n')
             return 1
 
         # end terminal options
@@ -1425,9 +1438,9 @@ class SubjProcSream:
            or opt_list.find_opt('-regress_anaticor_fast'):
            if not opt_list.find_opt('-regress_anaticor_label'):
               if opt_list.find_opt('-anat_follower_ROI'):
-                 print '** applying anaticor without label, using 3dSeg mask'
+                 print('** applying anaticor without label, using 3dSeg mask')
               elif self.verb:
-                 print '++ applying anaticor without label, using 3dSeg mask'
+                 print('++ applying anaticor without label, using 3dSeg mask')
               opt_list.add_opt("-mask_segment_anat", 1, ["yes"], setpar=1)
               opt_list.add_opt("-mask_segment_erode", 1, ["yes"], setpar=1)
 
@@ -1523,7 +1536,7 @@ class SubjProcSream:
                 missing = 0
                 for dset in self.dsets:
                     if not dset.exist():
-                        print '** missing dataset: %s' % dset.rpv()
+                        print('** missing dataset: %s' % dset.rpv())
                         missing = 1
                 if missing: return 1
 
@@ -1531,12 +1544,12 @@ class SubjProcSream:
             if self.dsets[0].view and self.dsets[0].view != self.view:
                 self.view = self.dsets[0].view
                 self.origview = self.view
-                if self.verb > 0: print '-- applying view as %s' % self.view
+                if self.verb > 0: print('-- applying view as %s' % self.view)
             elif self.dsets[0].view == '':
                 view = dset_view(self.dsets[0].ppve())
                 self.view = view
                 self.origview = self.view
-                if self.verb>0: print '-- applying orig view as %s' % self.view
+                if self.verb>0: print('-- applying orig view as %s' % self.view)
 
             # get voxel dimensions
             dims = UTIL.get_3dinfo_val_list(self.dsets[0].rel_input(),
@@ -1565,8 +1578,8 @@ class SubjProcSream:
 
         # just do a quick check after all of the confusion
         if blocks[0] != 'tcat' or blocks[1] != 'postdata':
-           print '** block list should start with tcat,postdata, have:\n   %s'\
-                 % blocks
+           print('** block list should start with tcat,postdata, have:\n   %s'\
+                 % blocks)
            return 1
 
         # check for -do_block options
@@ -1613,8 +1626,8 @@ class SubjProcSream:
 
         # check for unique blocks (except for 'empty')
         if not self.blocks_are_unique(blocks):
-            print '** blocks must be unique\n'  \
-                  '   (is there overlap between -blocks and -do_block?)\n'
+            print('** blocks must be unique\n'  \
+                  '   (is there overlap between -blocks and -do_block?)\n')
             return 1
 
         # call db_mod_functions
@@ -1636,19 +1649,19 @@ class SubjProcSream:
             for label in blocks:
                 block = self.find_block(label)
                 if not block:
-                    print "** error: missing block '%s' in ask_me update"%label
+                    print("** error: missing block '%s' in ask_me update"%label)
                     return 1
                 BlockModFunc[label](block, self, self.user_opts) # modify block
 
         # rcr - if there is another place to update options from, do it
         uopt = self.user_opts.find_opt('-opt_source')
         if uopt != None:
-            print '** not ready to update options from %s' % str(uopt.parlist)
+            print('** not ready to update options from %s' % str(uopt.parlist))
             return 1
 
         # do some final error checking
         if len(self.dsets) == 0:
-            print 'error: dsets have not been specified (consider -dsets)'
+            print('error: dsets have not been specified (consider -dsets)')
             return 1
 
         # no errors, just warn the user (for J Britton)   25 May 2011
@@ -1689,7 +1702,7 @@ class SubjProcSream:
         if direct > 0: return self.add_block_after_label(blocks, bname, adj)
 
         # failure
-        print "** ABTL: have adj=%s but no direct" % adj
+        print("** ABTL: have adj=%s but no direct" % adj)
         return 1, blocks
 
 
@@ -1760,8 +1773,8 @@ class SubjProcSream:
 
         try: prevlab = OtherDefLabels[bname]
         except:
-            print "** failed to find position for block '%s' in %s" \
-                  % (bname, blocks)
+            print("** failed to find position for block '%s' in %s" \
+                  % (bname, blocks))
             prevlab = ''
         
         if prevlab == '': return 0, prevlab     # failure
@@ -1773,19 +1786,19 @@ class SubjProcSream:
            return error code and new list"""
         err = 0
         if not bname in BlockLabels:
-            print "** ABAL error: block '%s' is invalid" % bname
+            print("** ABAL error: block '%s' is invalid" % bname)
             return 1, blocks
         if not prelab in BlockLabels:
-            print "** ABAL error: prelab '%s' is invalid" % prelab
+            print("** ABAL error: prelab '%s' is invalid" % prelab)
             return 1, blocks
         try: preindex = blocks.index(prelab)
         except:     
-            print "** cannot find block '%s' to insert block '%s' after" \
-                  % (prelab, bname)
+            print("** cannot find block '%s' to insert block '%s' after" \
+                  % (prelab, bname))
             preindex = 0
             err = 1
         if preindex < 0:
-            print "** error: blocks.index failure for '%s'" % prelab
+            print("** error: blocks.index failure for '%s'" % prelab)
             err = 1
         
         if err: return 1, blocks
@@ -1802,19 +1815,19 @@ class SubjProcSream:
            return error code and new list"""
         err = 0
         if not bname in BlockLabels:
-            print "** ABBL error: block '%s' is invalid" % bname
+            print("** ABBL error: block '%s' is invalid" % bname)
             return 1, blocks
         if not postlab in BlockLabels:
-            print "** ABBL error: postlab '%s' is invalid" % postlab
+            print("** ABBL error: postlab '%s' is invalid" % postlab)
             return 1, blocks
         try: postindex = blocks.index(postlab)
         except:     
-            print "** cannot find block '%s' to insert block '%s' before" \
-                  % (postlab, bname)
+            print("** cannot find block '%s' to insert block '%s' before" \
+                  % (postlab, bname))
             postindex = 0
             err = 1
         if postindex < 0:
-            print "** error: blocks.index failure for '%s'" % postlab
+            print("** error: blocks.index failure for '%s'" % postlab)
             err = 1
         
         if err: return 1, blocks
@@ -1838,7 +1851,7 @@ class SubjProcSream:
         for block in self.blocks:
             cmd_str = BlockCmdFunc[block.label](self, block)
             if cmd_str == None:
-               print "** script creation failure for block '%s'" % block.label
+               print("** script creation failure for block '%s'" % block.label)
                errs += 1
                break
 
@@ -1847,23 +1860,23 @@ class SubjProcSream:
 
             if block.post_cstr != '':
                if self.verb > 2:
-                  print '++ adding post_cstr to block %s:\n%s=======' \
-                        % (block.label, block.post_cstr)
+                  print('++ adding post_cstr to block %s:\n%s=======' \
+                        % (block.label, block.post_cstr))
                cmd_str += block.post_cstr
             self.write_text(add_line_wrappers(cmd_str))
             if self.verb>3: block.show('+d post command creation: ')
-            if self.verb>4: print '+d %s cmd: \n%s'%(block.label, cmd_str)
+            if self.verb>4: print('+d %s cmd: \n%s'%(block.label, cmd_str))
 
         if self.epi_review:
             cmd_str = db_cmd_gen_review(self)
             if cmd_str:
                 self.write_text(add_line_wrappers(cmd_str))
                 if self.verb > 1:
-                    print "+d generated EPI review script %s" % self.epi_review
+                    print("+d generated EPI review script %s" % self.epi_review)
             else:
                 errs += 1
                 if self.verb > 1:
-                    print '** failed to generate EPI review script'
+                    print('** failed to generate EPI review script')
 
         rv = self.finalize_script()     # finish the script
         if rv: errs += 1
@@ -1888,32 +1901,32 @@ class SubjProcSream:
             if self.mask != None:
                 if self.regmask:
                   if self.mask != self.mask_group:
-                    print "** masking single subject EPI is not recommended"
-                    print "   (see 'MASKING NOTE' from the -help for details)"
+                    print("** masking single subject EPI is not recommended")
+                    print("   (see 'MASKING NOTE' from the -help for details)")
                 else:
-                    print "-- using default: will not apply EPI Automask"
-                    print "   (see 'MASKING NOTE' from the -help for details)"
+                    print("-- using default: will not apply EPI Automask")
+                    print("   (see 'MASKING NOTE' from the -help for details)")
 
             if self.ricor_nreg > 0 and self.ricor_apply == 'no':
                 if not self.user_opts.find_opt('-regress_apply_ricor'):
-                    print '** note: ricor regressors are no longer applied' \
-                              ' in final regresion'
+                    print('** note: ricor regressors are no longer applied' \
+                              ' in final regresion')
 
             if self.runs == 1:
-                print "\n-------------------------------------\n" \
+                print("\n-------------------------------------\n" \
                         "** warning have only 1 run to analyze\n" \
-                        "-------------------------------------"
+                        "-------------------------------------")
 
-            print "\n--> script is file: %s" % self.script
-            print   '    consider the script execution command: \n\n' \
-                    '      %s\n' % self.exec_cmd
+            print("\n--> script is file: %s" % self.script)
+            print('    consider the script execution command: \n\n' \
+                    '      %s\n' % self.exec_cmd)
 
         return
 
     def get_run_info(self):
         self.runs = len(self.dsets)
         if self.runs < 1:
-            print "** have no dsets to analyze"
+            print("** have no dsets to analyze")
             return 1
 
         # updated by 'tcat' opteration (and -remove_trs option)
@@ -1932,7 +1945,7 @@ class SubjProcSream:
             self.reps_all.append(reps)
             if reps != self.reps: self.reps_vary = 1
             if tr != self.tr:
-                print '** TR of %g != run #1 TR %g' % (tr, self.tr)
+                print('** TR of %g != run #1 TR %g' % (tr, self.tr))
                 return 1
 
         # note data type and whether data is scaled
@@ -1949,8 +1962,8 @@ class SubjProcSream:
                 self.scaled = 1
 
         if self.verb > 1:
-            print '-- reps = %g, tr = %g, datatype = %g, scaled = %d' \
-                  % (self.reps, self.tr, self.datatype, self.scaled)
+            print('-- reps = %g, tr = %g, datatype = %g, scaled = %d' \
+                  % (self.reps, self.tr, self.datatype, self.scaled))
 
     def get_vr_base_indices(self, verb=1):
         """return 0-based run and TR indices for volreg base
@@ -1959,12 +1972,12 @@ class SubjProcSream:
         
         block = self.find_block('volreg')
         if not block:
-            if verb>0: print "** warning: no volreg block for vr_base_indices"
+            if verb>0: print("** warning: no volreg block for vr_base_indices")
             return -1, -1
         opt = block.opts.find_opt('-volreg_base_ind')
 
         if not opt:
-            if self.verb > 2: print '-- no -volreg_base_ind opt for vr_base'
+            if self.verb > 2: print('-- no -volreg_base_ind opt for vr_base')
             if len(self.reps_all) == self.runs:
                return self.runs-1, self.reps_all[-1]-1  # defaults
             return self.runs-1, self.reps-1  # defaults
@@ -1982,7 +1995,7 @@ class SubjProcSream:
     def add_block(self, label):
         block = ProcessBlock(label, self)
         if not block.valid:
-            print '** invalid block : %s' % block.label
+            print('** invalid block : %s' % block.label)
             return 1
         if self.verb > 3: block.show('+d post init block: ')
         self.blocks.append(block)
@@ -2011,7 +2024,7 @@ class SubjProcSream:
     def find_block_index(self, label):
         block = self.find_block(label)
         if block: return self.blocks.index(block)
-        return None
+        return -1
 
     def find_block_or_prev(self, blabel, cblock):
        """find block of given label, or some prior block
@@ -2032,8 +2045,8 @@ class SubjProcSream:
        if rblock: return rblock
 
        if self.verb > 2:
-          print '== FBOP: no block %s, searching before %d (%s)' \
-                % (blabel, bind, cblock.label)
+          print('== FBOP: no block %s, searching before %d (%s)' \
+                % (blabel, bind, cblock.label))
 
        # ** not found, search for a block and return the prior one **
 
@@ -2062,8 +2075,8 @@ class SubjProcSream:
         for block in blocks:
             if block in exclude_list: continue
             if block in checked:
-                if whine: print "** warning: block '%s' used multiple times" \
-                                % block
+                if whine: print("** warning: block '%s' used multiple times" \
+                                % block)
                 unique = 0
             else: checked.append(block)
 
@@ -2077,7 +2090,7 @@ class SubjProcSream:
         for label in blocks:
             if label in badlist: badlist.remove(label)
 
-        if self.verb > 3: print '++ unused blocks: %s' % badlist
+        if self.verb > 3: print('++ unused blocks: %s' % badlist)
 
         # for speed, make an explicit list of option prefixes to search for
         badlist = ['-%s_' % label for label in badlist]
@@ -2087,8 +2100,8 @@ class SubjProcSream:
             ind = opt.name.find('_')
             if ind < 0: continue
             if opt.name[0:ind+1] in badlist:
-                if whine: print "** missing '%s' block for option '%s'" \
-                                % (opt.name[1:ind], opt.name)
+                if whine: print("** missing '%s' block for option '%s'" \
+                                % (opt.name[1:ind], opt.name))
                 errs += 1
 
         return errs
@@ -2104,37 +2117,37 @@ class SubjProcSream:
         if self.find_block('align'):
             if not self.blocks_ordered('align', 'volreg'):
                 errs += 1
-                print "** warning: 'align' should preceed 'volreg'"
+                print("** warning: 'align' should preceed 'volreg'")
             if not self.blocks_ordered('align', 'tlrc'):
                 errs += 1
-                print "** warning: 'align' should preceed 'tlrc'"
+                print("** warning: 'align' should preceed 'tlrc'")
         if self.find_block('ricor'):
             if not self.blocks_ordered('despike', 'ricor', must_exist=1):
                 errs += 1
-                print "** warning: 'despike' should preceed 'ricor'"
+                print("** warning: 'despike' should preceed 'ricor'")
             if not self.blocks_ordered('ricor', 'tshift'):
                 errs += 1
-                print "** warning: 'tshift' should preceed 'ricor'"
+                print("** warning: 'tshift' should preceed 'ricor'")
             if not self.blocks_ordered('ricor', 'volreg'):
                 errs += 1
-                print "** warning: 'volreg' should preceed 'ricor'"
+                print("** warning: 'volreg' should preceed 'ricor'")
         if self.find_block('blur'):
             if not self.blocks_ordered('blur', 'scale'):
                 errs += 1
-                print "** warning: 'blur' should preceed 'scale'"
+                print("** warning: 'blur' should preceed 'scale'")
         if self.find_block('regress'):
             if not self.blocks_ordered('tshift', 'regress'):
                 errs += 1
-                print "** warning: 'tshift' should preceed 'regress'"
+                print("** warning: 'tshift' should preceed 'regress'")
             if not self.blocks_ordered('volreg', 'regress'):
                 errs += 1
-                print "** warning: 'volreg' should preceed 'regress'"
+                print("** warning: 'volreg' should preceed 'regress'")
             if not self.blocks_ordered('blur', 'regress'):
                 errs += 1
-                print "** warning: 'blur' should preceed 'regress'"
+                print("** warning: 'blur' should preceed 'regress'")
             if not self.blocks_ordered('scale', 'regress'):
                 errs += 1
-                print "** warning: 'scale' should preceed 'regress'"
+                print("** warning: 'scale' should preceed 'regress'")
 
         return errs
 
@@ -2151,9 +2164,9 @@ class SubjProcSream:
         bind1 = self.find_block_index(name1)
         if bind0 < 0 or bind1 < 0: # something is missing
             if must_exist:
-                print '** warning: missing block',
-                if bind0 < 0: print "'%s' (to preceed '%s')" % (name0,name1)
-                if bind1 < 0: print "'%s' (to follow '%s')" % (name1,name0)
+                print('** warning: missing block', end=' ')
+                if bind0 < 0: print("'%s' (to preceed '%s')" % (name0,name1))
+                if bind1 < 0: print("'%s' (to follow '%s')" % (name1,name0))
             return 1
         elif bind0 < bind1: return 1
         else:               return 0
@@ -2317,7 +2330,7 @@ class SubjProcSream:
             self.censor_file = os.path.basename(fname)
             self.censor_count += 1
             if self.verb > 1:
-                print '++ copying external censor file to %s'%self.censor_file
+                print('++ copying external censor file to %s'%self.censor_file)
 
         # copy any -regress_ROI_* datasets; possibly convert to AFNI
         if len(self.afollowers) > 0:
@@ -2343,7 +2356,7 @@ class SubjProcSream:
            # find in ROI dict
            aname = self.get_roi_dset(label)
            if not aname:
-              print "** no -mask_import label set for '%s' to copy" % label
+              print("** no -mask_import label set for '%s' to copy" % label)
               return 1
            tstr += '3dcopy %s %s/%s\n' % (dset, self.od_var, aname.prefix)
         if tstr:
@@ -2538,7 +2551,7 @@ class SubjProcSream:
         if self.make_main_script and os.path.isfile(self.script) \
                                  and not self.overwrite:
             if report:
-               print "error: script file '%s' already exists" % self.script
+               print("error: script file '%s' already exists" % self.script)
             return 1
 
         return 0
@@ -2554,12 +2567,12 @@ class SubjProcSream:
         if not self.make_main_script: return 0
 
         if self.overwrite_error():
-            print "exiting..." 
+            print("exiting...") 
             return 1
 
         try: self.fp = open(self.script,'w')
         except:
-            print "cannot open script file '%s' for writing" % self.script
+            print("cannot open script file '%s' for writing" % self.script)
             return 1
 
         return 0
@@ -2588,20 +2601,22 @@ class SubjProcSream:
         if not self.make_main_script: return 0
 
         if self.script and os.path.isfile(self.script):
+            try: code = eval('0o755')
+            except: code = eval('0755')
             try:
-                os.chmod(self.script, 0755)
-            except OSError, e:
-                print e
+                os.chmod(self.script, code)
+            except:
+                print("** failed: chmod %s %s" % (code, self.script))
 
     def prev_lab(self, block):
        if block.index <= 0:
-          print '** asking for prev lab on block %s (ind %d)' \
-                % (block.label, block.index)
+          print('** asking for prev lab on block %s (ind %d)' \
+                % (block.label, block.index))
        return self.block_index_label(block.index-1)
 
     def block_index_label(self, index):
        if index < 0 or index >= len(self.pblabels):
-          print '** invalid index for block label: %d' % index
+          print('** invalid index for block label: %d' % index)
           return 'NO_LABEL'
        return self.pblabels[index]
 
@@ -2655,22 +2670,22 @@ class SubjProcSream:
         # force an aname element
         if aname == None:
            if name == '':
-              print '** new_anat_follower requires name or aname'
+              print('** new_anat_follower requires name or aname')
               return None 
            aname = afni_name(name)
 
         if label:
            lname = afni_name(label)
            if lname.exist():
-              print "** ERROR: anat_follower label exists as dataset: '%s'" \
-                    % label
+              print("** ERROR: anat_follower label exists as dataset: '%s'" \
+                    % label)
               return None
 
         dgridtypes = ['epi', 'anat', 'self']
         if dgrid not in dgridtypes:
-           print "** error: invalid dgrid '%s' for %s" \
-                 % (dgrid, aname.rel_input())
-           print '   (must be one of: %s)' % ', '.join(dgridtypes)
+           print("** error: invalid dgrid '%s' for %s" \
+                 % (dgrid, aname.rel_input()))
+           print('   (must be one of: %s)' % ', '.join(dgridtypes))
            return None
 
         vo = VO.VarsObject()
@@ -2793,7 +2808,7 @@ class SubjProcSream:
         """
 
         if aname == None and name == '':
-           print '** new_anat_follower requires name or aname'
+           print('** new_anat_follower requires name or aname')
            return None
 
         if aname == None: aname = afni_name(name)
@@ -2802,7 +2817,7 @@ class SubjProcSream:
         # warn user if dupe is seen
         for af in self.afollowers:
            if af.aname.shortinput() == si:
-              print '** warning: have duplicate anat follower: %s' % si
+              print('** warning: have duplicate anat follower: %s' % si)
 
         # not yet in list
         af = self.anat_follower(aname=aname, dgrid=dgrid, label=label,
@@ -2811,9 +2826,9 @@ class SubjProcSream:
 
         # warn if it does not seem to exist
         if check and not aname.exist():
-           print '** WARNING: anat follower does not seem to exist: %s' \
-                 % aname.rel_input()
-           print '   originally from %s' % aname.initname
+           print('** WARNING: anat follower does not seem to exist: %s' \
+                 % aname.rel_input())
+           print('   originally from %s' % aname.initname)
            if self.verb > 1: aname.show()
 
         return af
@@ -2831,33 +2846,33 @@ class SubjProcSream:
        elif aname: newname = aname
        else: newname = 'NOT_YET_SET'
 
-       if self.roi_dict.has_key(key):
+       if key in self.roi_dict:
           oname = self.roi_dict[key]
           if isinstance(oname, afni_name): oldname = oname.shortinput()
           else: oldname = 'NOT_YET_SET'
 
           if self.verb > 1 or not overwrite:
-             print "** trying to overwrite roi_dict['%s'] = %s with %s" \
-                   % (key, oldname, newname)
+             print("** trying to overwrite roi_dict['%s'] = %s with %s" \
+                   % (key, oldname, newname))
 
           if not overwrite:
              if key in self.def_roi_keys: 
-                print "** ROI key '%s' in default list, consider renaming"%key
-                print "   (default list comes from 3dSeg result)"
+                print("** ROI key '%s' in default list, consider renaming"%key)
+                print("   (default list comes from 3dSeg result)")
              return 1
 
        elif self.verb > 1:
-            print "++ setting roi_dict['%s'] = %s" % (key, newname)
+            print("++ setting roi_dict['%s'] = %s" % (key, newname))
 
        self.roi_dict[key] = aname
 
        return 0
 
     def show_roi_dict_keys(self, verb=0):
-       keys = self.roi_dict.keys()
+       keys = list(self.roi_dict.keys())
        nkeys = len(keys)
        if nkeys <= 0: return
-       print '-- have %d ROI dict entries ...' % nkeys
+       print('-- have %d ROI dict entries ...' % nkeys)
        # get max key string length, with 2 positions for surrounding quotes
        maxlen = max((len(key)+2) for key in keys)
        if verb < 0: verb = 0
@@ -2869,15 +2884,15 @@ class SubjProcSream:
           if verb:
              if isinstance(aname, afni_name):
                 if verb > 1: aname.show(mesg=mesg, verb=verb-1)
-                else:        print "   %s : %s" % (mesg, aname.shortinput())
+                else:        print("   %s : %s" % (mesg, aname.shortinput()))
              else:
-                print "   %s : %s" % (mesg, aname)
-       if verb>1: print
+                print("   %s : %s" % (mesg, aname))
+       if verb>1: print()
 
     def get_roi_dset(self, label):
        """check roi_dict and afollowers list for label"""
 
-       if self.roi_dict.has_key(label):
+       if label in self.roi_dict:
           return self.roi_dict[label]
 
        af = self.get_anat_follower(label)
@@ -2888,7 +2903,7 @@ class SubjProcSream:
     def have_roi_label(self, label):
        """check roi_dict and afollowers list for label"""
 
-       if self.roi_dict.has_key(label): return 1
+       if label in self.roi_dict: return 1
 
        af = self.get_anat_follower(label)
        if not af: return 0
@@ -2939,13 +2954,13 @@ class SubjProcSream:
         oname = '-regress_ppi_stim_files'
         pregs, rv = self.user_opts.get_string_list(oname)
         if pregs == None or len(pregs) < 1:
-           print '** missing %s list' % oname
+           print('** missing %s list' % oname)
            errs += 1
         
         oname = '-regress_ppi_stim_labels'
         plabs, rv = self.user_opts.get_string_list(oname)
         if plabs == None or len(plabs) < 1:
-           print '** missing %s list' % oname
+           print('** missing %s list' % oname)
            errs += 1
 
         if errs: return 1
@@ -3061,7 +3076,7 @@ class SubjProcSream:
     def dset_form_wild(self, blabel, view=None, surf_names=-1):
         block = self.find_block(blabel)
         if not block:
-            print "** DFW: failed to find block for label '%s'" % blabel
+            print("** DFW: failed to find block for label '%s'" % blabel)
             return ''
 
         bind = block.index
@@ -3094,10 +3109,10 @@ class ProcessBlock:
 
         if self.verb > 2:
             if self.valid: self.show('+d successful add ')
-            else:          print '+d invalid ProcessBlock: %s' % label
+            else:          print('+d invalid ProcessBlock: %s' % label)
 
     def show(self, mesg):
-        print '------- %sProcessBlock: %s -------' % (mesg, self.label)
+        print('------- %sProcessBlock: %s -------' % (mesg, self.label))
         self.opts.show('new options: ')
 
 def make_proc(do_reg_nocensor=0, do_reg_ppi=0):

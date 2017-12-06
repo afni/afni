@@ -293,7 +293,7 @@ extern MEM_topshell_data * suma_memplot_to_topshell( Display *dpy,
 extern void plotkill_topshell( MEM_topshell_data * ) ;
 extern void redraw_topshell( MEM_topshell_data * ) ;
 extern void set_wintitle_memplot( char *s );
-extern void memplot_topshell_setsaver( char * , 
+extern void memplot_topshell_setsaver( char * ,
                                        void (*)(char *,MEM_plotdata *) ) ;
 
 #define memplot_to_shell(d) memplot_to_topshell( (d),get_active_memplot(),1 )
@@ -312,9 +312,13 @@ extern void plot_ts_yfix( int,int , float,float ) ;
 extern void plot_ts_add_vbox( int,float,float,float,float,float ); /* 24 Apr 2012 */
 
 extern void plot_ts_add_rbox( int ygr ,
-                              float x1,float y1 , float x2,float y2 ,
+                              float x1,float y1 , float x2,float y2,float y3 ,
                               float rr,float gg,float bb,
                               float r2,float g2,float b2 ) ;       /* 29 Jan 2017 */
+
+extern void plot_ts_add_tlin( int ygr ,                            /* 19 Sep 2017 */
+                              float x1,float y1 , float x2,float y2,
+                              float rr,float gg,float bb, int dcode ) ;
 
 extern void plot_ts_add_sepx( int lx , float *x ) ;                /* 21 Oct 2013 */
 extern void plot_ts_clear_sepx(void) ;

@@ -40,9 +40,11 @@ static void isort_floatint( int n , float * ar , int * iar )
 /********************************************************************************/
 /* qsrec : recursive part of quicksort (stack implementation)                   */
 
-#define QS_STACK  1024  /* stack size */
 #define QS_SWAPF(x,y) ( temp=(x),(x)=(y),(y)= temp)
 #define QS_SWAPI(i,j) (itemp=(i),(i)=(j),(j)=itemp)
+#ifndef QS_STACK
+# define QS_STACK 9999
+#endif
 
 static void qsrec_floatint( int n , float * ar , int * iar , int cutoff )
 {

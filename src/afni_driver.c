@@ -732,6 +732,34 @@ ENTRY("AFNI_switch_function") ;
 }
 
 /*---------------------------------------------------------------------*/
+/* Lifted from NIML code [19 May 2017] */
+
+#define IS_STRING_CHAR(c) ( isgraph(c) && !isspace(c) &&  \
+                            (c) != '>' && (c) != '/'  &&  \
+                            (c) != '=' && (c) != '<'    )
+
+#define IS_QUOTE_CHAR(c)  ( (c) == '"' || (c) == '\'' )
+
+static int_pair find_string( int nst, int nch, char *ch )
+{
+   int_pair ans = {-1,-1} ;  /* default answer ==> nothing found */
+   int ii,jj ; char quot ;
+
+   if( nst >= nch || nch < 2 || ch == NULL ) return ans;        /* bad input */
+   for( ii=nst; ii<nch && !IS_STRING_CHAR(ch[ii]); ii++ ) ; /* skip to start */
+   if( ii >= nch ) return ans ;                                 /* bad input */
+   if( IS_QUOTE_CHAR(ch[ii]) ){                             /* quoted string */
+      if( ii == nch-1 ) return ans ;                            /* bad input */
+      quot = ch[ii] ; ii++ ;
+      for( jj=ii ; jj<nch && ch[jj]!=quot && ch[jj]!= '\0' ; jj++ ); /* skip */
+   } else {
+      for( jj=ii+1 ; jj<nch && IS_STRING_CHAR(ch[jj]) ; jj++ ) ; /* to blank */
+   }
+   ans.i = ii ; ans.j = jj ; /* answer starts at ch[ii] and goes to ch[jj-1] */
+   return ans ;
+}
+
+/*---------------------------------------------------------------------*/
 /* Macros for deciding on which window is in play -- allows for
    various mis-spellings that might naturally transpire -- 22 Feb 2007 */
 
@@ -917,6 +945,24 @@ ENTRY("AFNI_drive_open_window") ;
         sscanf( cpt+6 , "%f%c%f" , rrr+0 , &s1 , rrr+1 ) ;
         if( rrr[0] >= rrr[1] ) rrr[0] = rrr[1] = 0.0f ;
         drive_MCW_imseq( isq , isqDR_setrange , (XtPointer)rrr ) ;
+      }
+
+      /* overlay_label [19 May 2017] */
+
+      cpt = strcasestr(cmd,"overlay_label=") ;
+      if( cpt == NULL ) cpt = strcasestr(cmd,"overlay_label:") ;
+      if( cpt != NULL ){
+        int_pair ans ;
+        ans = find_string( 14 , strlen(cpt) , cpt ) ;
+        if( ans.i > 0 && ans.j > ans.i ){
+          MCW_choose_cbs cbs ; int qq , nqq=ans.j-ans.i ;
+          cbs.reason = mcwCR_string ;
+          cbs.cval   = malloc(sizeof(char)*(nqq+8)) ;
+          for( qq=0 ; qq < nqq ; qq++ ) cbs.cval[qq] = cpt[ans.i+qq] ;
+          cbs.cval[ans.i+nqq] = '\0' ;
+          ISQ_overlay_label_CB( NULL , (XtPointer)isq , &cbs ) ;
+          free(cbs.cval) ;
+        }
       }
 
       /* keypress [18 Feb 2005] */

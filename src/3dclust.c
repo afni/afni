@@ -12,8 +12,8 @@
 /*---------------------------------------------------------------------------*/
 
 #define PROGRAM_NAME   "3dclust"                     /* name of this program */
-#define PROGRAM_AUTHOR "RW Cox et al"                      /* program author */
-#define PROGRAM_DATE   "21 Jul 2005"             /* date of last program mod */
+#define PROGRAM_AUTHOR "RW Cox et alii"                    /* program author */
+#define PROGRAM_DATE   "12 Jul 2017"             /* date of last program mod */
 
 /*---------------------------------------------------------------------------*/
 
@@ -66,6 +66,9 @@ voxels per original voxel
 
 #include "mrilib.h"
 
+static int do_NN = 0 ;  /* 12 Jul 2017 */
+static int NNvox = 0 ;  /* 08 Sep 2017 */
+
 static EDIT_options CL_edopt ;
 static int CL_ivfim=-1 , CL_ivthr=-1 ;
 
@@ -79,8 +82,9 @@ static int CL_verbose = 0 ; /* RWC 01 Nov 1999 */
 
 static int CL_quiet = 0;   /* MSB 02 Dec 1999 */
 
-static char * CL_prefix = NULL ; /* 29 Nov 2001 -- RWCox */
+static char * CL_prefix   = NULL ; /* 29 Nov 2001 -- RWCox */
 static char * CL_savemask = NULL ; /* 26 Aug 2011 */
+static int    do_binary   = 0 ;    /* 26 May 2017 */
 
 static int    CL_do_mni = 0 ;    /* 30 Apr 2002 -- RWCox */
 
@@ -96,8 +100,7 @@ static THD_coorder CL_cord ;
 
 int compare_cluster( void * , void * ) ;
 void CL_read_opts( int , char ** ) ;
-#define CL_syntax(str) \
-  do{ fprintf(stderr,"\n*** %s\a\n",str) ; exit(1) ; } while(0)
+#define CL_syntax(str) ERROR_exit("%s",(str))
 
 void MCW_fc7( float qval , char * buf ) ;
 
@@ -127,9 +130,9 @@ int main( int argc , char * argv[] )
    int do_mni ;                         /* 30 Apr 2002 */
    char c1d[2] = {""}, c1dn[2] = {""};
    byte *mask=NULL ; int nmask=0 ;      /* 02 Aug 2011 */
-   
+
    mainENTRY("3dclust"); machdep();
-   
+
    if( argc < 4 || strncmp(argv[1],"-help",4) == 0 ){
       printf ("\n\n");
       printf ("Program: %s \n", PROGRAM_NAME);
@@ -144,15 +147,33 @@ int main( int argc , char * argv[] )
   "      * 'Active' refers to nonzero voxels that survive the threshold    \n"
   "         that you (the user) have specified                             \n"
   "      * Clusters are defined by a connectivity radius parameter 'rmm'   \n"
+  "        *OR*\n"
+  "        Clusters are defined by how close neighboring voxels must\n"
+  "        be in the 3D grid:\n"
+  "          first nearest neighbors  (-NN1)\n"
+  "          second nearest neighbors (-NN2)\n"
+  "          third nearest neighbors  (-NN3)\n"
   "                                                                        \n"
   "      Note: by default, this program clusters on the absolute values    \n"
   "            of the voxels                                               \n"
   "----------------------------------------------------------------------- \n"
-  "Usage: 3dclust [editing options] [other options] rmm vmul dset ...      \n"
-  "-----                                                                   \n"
+  "Usage:\n"
   "                                                                        \n"
+  "   3dclust [editing options] [other options] rmm vmul dset ...          \n"
+  "                                                                        \n"
+  " *OR*\n"
+  "                                                                        \n"
+  "   3dclust [editing options] -NNx dset ...\n"
+  "     where '-NNx' is one of '-NN1' or '-NN2' or '-NN3':\n"
+  "      -NN1 == 1st nearest-neighbor (faces touching) clustering\n"
+  "      -NN2 == 2nd nearest-neighbor (edges touching) clustering\n"
+  "      -NN2 == 3rd nearest-neighbor (corners touching) clustering\n"
+  "     Optionally, you can put an integer after the '-NNx' option, to\n"
+  "     indicate the minimum number of voxels to allow in a cluster;\n"
+  "     for example: -NN2 60\n"
+  "----------------------------------------------------------------------- \n"
   "Examples:                                                               \n"
-  "--------                                                                \n"
+  "---------                                                               \n"
   "                                                                        \n"
   "    3dclust         -1clip   0.3  5 2000 func+orig'[1]'                 \n"
   "    3dclust -1noneg -1thresh 0.3  5 2000 func+orig'[1]'                 \n"
@@ -172,6 +193,8 @@ int main( int argc , char * argv[] )
   "Arguments (must be included on command line):                           \n"
   "---------                                                               \n"
   "                                                                        \n"
+  "THE OLD WAY TO SPECIFY THE TYPE OF CLUSTERING\n"
+  "\n"
   "   rmm            : cluster connection radius (in millimeters).         \n"
   "                    All nonzero voxels closer than rmm millimeters      \n"
   "                    (center-to-center distance) to the given voxel are  \n"
@@ -184,11 +207,29 @@ int main( int argc , char * argv[] )
   "                     * If vmul = 0, then all clusters are kept.         \n"
   "                     * If vmul < 0, then the absolute vmul is the minimum\n"
   "                          number of voxels allowed in a cluster.        \n"
+  "\n"
+  "  If you do not use one of the '-NNx' options, you must give the\n"
+  "  numbers for rmm and vmul just before the input dataset name(s)\n"
+  "\n"
+  "THE NEW WAY TO SPECIFY TYPE OF CLUSTERING [13 Jul 2017]\n"
+  "\n"
+  "   -NN1 or -NN2 or -NN3\n"
+  "\n"
+  "  If you use one of these '-NNx' options, you do NOT give the rmm\n"
+  "  and vmul values.  Instead, after all the options that start with '-',\n"
+  "  you just give the input dataset name(s).\n"
+  "  If you want to set a minimum cluster size using '-NNx', put the minimum\n"
+  "  voxel count immediately after, as in '-NN3 100'.\n"
+  "\n"
+  "FOLLOWED BY ONE (or more) DATASETS\n"
   "                                                                        \n"
   "   dset           : input dataset (more than one allowed, but only the  \n"
   "                    first sub-brick of the dataset)                     \n"
   "                                                                        \n"
-  " The results are sent to standard output (i.e., the screen)             \n"
+  " The results are sent to standard output (i.e., the screen):            \n"
+  " if you want to save them in a file, then use redirection, as in\n"
+  "\n"
+  "   3dclust -1thresh 0.4 -NN2 Elvis.nii'[1]' > Elvis.clust.txt\n"
   "                                                                        \n"
   "----------------------------------------------------------------------- \n"
   "                                                                        \n"
@@ -197,6 +238,10 @@ int main( int argc , char * argv[] )
   "                                                                        \n"
   "* Editing options are as in 3dmerge (see 3dmerge -help)                 \n"
   "  (including -1thresh, -1dindex, -1tindex, -dxyz=1 options)             \n"
+  "\n"
+  "* -NN1        => described earlier;\n"
+  "  -NN2        => replaces the use of 'rmm' to specify the\n"
+  "  -NN3        => clustering method (vmul is set to 2 voxels)\n"
   "                                                                        \n"
   "* -noabs      => Use the signed voxel intensities (not the absolute     \n"
   "                 value) for calculation of the mean and Standard        \n"
@@ -271,6 +316,9 @@ int main( int argc , char * argv[] )
   "                 that the largest cluster is labeled '1', the next      \n"
   "                 largest '2' and so forth.  Should be the same as       \n"
   "                 '3dmerge -1clust_order' or Clusterize 'SaveMsk'.       \n"
+  "  -binary     => This turns the output of '-savemask' into a binary     \n"
+  "                 (0 or 1) mask, rather than a cluster-index mask.       \n"
+  "          **-->> If no clusters are found, the mask is not written!     \n"
   "\n"
   "----------------------------------------------------------------------- \n"
   " N.B.: 'N.B.' is short for 'Nota Bene', Latin for 'Note Well';          \n"
@@ -387,25 +435,34 @@ int main( int argc , char * argv[] )
    }
 #endif
 
-   if( nopt+3 >  argc ){
-      fprintf(stderr,"\n*** No rmm or vmul arguments?\a\n") ;
-      exit(1) ;
-   }
+   if( do_NN ){    /* 12 Jul 2017 */
+     CL_edopt.fake_dxyz = 1 ;
+     switch( do_NN ){
+       default:
+       case 1: rmm = 1.11f ; break ;
+       case 2: rmm = 1.44f ; break ;
+       case 3: rmm = 1.77f ; break ;
+     }
+     if( NNvox > 0 ) vmul = (float)NNvox ;
+     else            vmul = 2.0f ;
+   } else {        /* the OLDE way (with rmm and vmul) */
+     if( nopt+3 > argc )
+        ERROR_exit("No rmm or vmul arguments?") ;
 
-   rmm  = strtod( argv[nopt++] , NULL ) ;
-   vmul = strtod( argv[nopt++] , NULL ) ;
-   if( rmm < 0.0 ){
-      fprintf(stderr,"\n*** Illegal rmm=%f \a\n",rmm) ;
-      exit(1) ;
-   } else if ( rmm == 0.0f ){
-      CL_edopt.fake_dxyz = 1 ;  /* 26 Dec 2007 */
-      rmm = 1.001f ;
+     rmm  = strtod( argv[nopt++] , NULL ) ;
+     vmul = strtod( argv[nopt++] , NULL ) ;
+     if( rmm < 0.0 )
+        ERROR_exit("Illegal rmm=%f",rmm) ;
+     else if ( rmm == 0.0f ){
+        CL_edopt.fake_dxyz = 1 ;  /* 26 Dec 2007 */
+        rmm = 1.11f ;
+     }
    }
 
    /* BDW  26 March 1999  */
 
    if( CL_edopt.clust_rmm >= 0.0 ){  /* 01 Nov 1999 */
-      fprintf(stderr,"** Warning: -1clust can't be used in 3dclust!\n") ;
+      WARNING_message("-1clust can't be used in 3dclust") ;
       CL_edopt.clust_rmm  = -1.0 ;
    }
 
@@ -428,7 +485,7 @@ int main( int argc , char * argv[] )
          continue ;
       }
 
-      THD_force_malloc_type( dset->dblk , DATABLOCK_MEM_MALLOC ) ;    /* mmap */
+      THD_force_malloc_type( dset->dblk , DATABLOCK_MEM_MALLOC ) ;  /* no mmap */
       if( CL_verbose )
          INFO_message("Loading dataset %s",argv[iarg]) ;
       DSET_load(dset); CHECK_LOAD_ERROR(dset);                     /* read in */
@@ -623,6 +680,7 @@ int main( int argc , char * argv[] )
       clar = clbig ;
       if( clar == NULL || clar->num_clu == 0 ){
          printf("%s** NO CLUSTERS FOUND ***\n", c1d) ;
+         if( AFNI_yesenv("AFNI_3dclust_report_zero") ) printf(" 0\n") ;
          if( clar != NULL ) DESTROY_CLARR(clar) ;
          continue ;
       }
@@ -650,7 +708,7 @@ int main( int argc , char * argv[] )
              cl = clar->clar[iclu] ; if( cl == NULL ) continue ;
              for( ipt=0 ; ipt < cl->num_pt ; ipt++ ){
                ii = cl->i[ipt] ; jj = cl->j[ipt] ; kk = cl->k[ipt] ;
-               mmm[ii+jj*nx+kk*nxy] = (short)(iclu+1) ;
+               mmm[ii+jj*nx+kk*nxy] = (do_binary) ? 1 : (iclu+1) ;
              }
            }
 
@@ -679,35 +737,35 @@ int main( int argc , char * argv[] )
                       if( mmm[ii] == 0 ) bar[ii] = 0 ;
                   }
                   break ;
-  
+
                   case MRI_int:{
                     int *bar = (int *) DSET_ARRAY(dset,qv) ;
                     for( ii=0 ; ii < nxyz ; ii++ )
                       if( mmm[ii] == 0 ) bar[ii] = 0 ;
                   }
                   break ;
-  
+
                   case MRI_float:{
                     float *bar = (float *) DSET_ARRAY(dset,qv) ;
                     for( ii=0 ; ii < nxyz ; ii++ )
                       if( mmm[ii] == 0 ) bar[ii] = 0.0 ;
                   }
                   break ;
-  
+
                   case MRI_double:{
                     double *bar = (double *) DSET_ARRAY(dset,qv) ;
                     for( ii=0 ; ii < nxyz ; ii++ )
                       if( mmm[ii] == 0 ) bar[ii] = 0.0 ;
                   }
                   break ;
-  
+
                   case MRI_complex:{
                     complex *bar = (complex *) DSET_ARRAY(dset,qv) ;
                     for( ii=0 ; ii < nxyz ; ii++ )
                       if( mmm[ii] == 0 ) bar[ii].r = bar[ii].i = 0.0 ;
                   }
                   break ;
-  
+
                   case MRI_rgb:{
                     byte *bar = (byte *) DSET_ARRAY(dset,qv) ;
                     for( ii=0 ; ii < nxyz ; ii++ )
@@ -786,7 +844,7 @@ int main( int argc , char * argv[] )
             mm = fabs(ms);
 
        mssum += ms;
-	    mmsum += mm;
+       mmsum += mm;
 
             sqsum += mm * mm;
             xxsum += mm * xx ; yysum += mm * yy ; zzsum += mm * zz ;
@@ -795,7 +853,7 @@ int main( int argc , char * argv[] )
                mmmax = mm ; msmax = ms ;
             }
 
-	    /* Dimensions: */
+       /* Dimensions: */
             if ( xx > RLmax )
             	RLmax = xx;
             if ( xx < RLmin )
@@ -856,8 +914,10 @@ int main( int argc , char * argv[] )
       }
 
       DESTROY_CLARR(clar) ;
-      if( ndet == 0 )
+      if( ndet == 0 ){
          printf("%s** NO CLUSTERS FOUND ABOVE THRESHOLD VOLUME ***\n", c1d) ;
+         if( AFNI_yesenv("AFNI_3dclust_report_zero") ) printf(" 0\n") ;
+      }
 
 
       /* MSB 11/1/96  Calculate global SEM */
@@ -945,6 +1005,44 @@ void CL_read_opts( int argc , char * argv[] )
       }
 #endif
 
+      if( strcmp(argv[nopt],"-NN1") == 0 ){   /* 12 Jul 2017 */
+        do_NN = 1 ; nopt++ ;
+        if( nopt < argc && isdigit(argv[nopt][0]) )
+          NNvox = (int)strtod(argv[nopt++],NULL) ;
+        else
+          NNvox = 0 ;
+        continue ;
+      }
+      if( strcmp(argv[nopt],"-NN2") == 0 ){
+        do_NN = 2 ; nopt++ ;
+        if( nopt < argc && isdigit(argv[nopt][0]) )
+          NNvox = (int)strtod(argv[nopt++],NULL) ;
+        else
+          NNvox = 0 ;
+        continue ;
+      }
+      if( strcmp(argv[nopt],"-NN3") == 0 ){
+        do_NN = 3 ; nopt++ ;
+        if( nopt < argc && isdigit(argv[nopt][0]) )
+          NNvox = (int)strtod(argv[nopt++],NULL) ;
+        else
+          NNvox = 0 ;
+        continue ;
+      }
+      if( strcmp(argv[nopt],"-NN") == 0 ){
+        nopt++ ;
+        if( nopt >= argc ) ERROR_exit("need argument after '-NN'") ;
+        do_NN = (int)strtod(argv[nopt],NULL) ;
+        if( do_NN < 1 || do_NN > 3 )
+          ERROR_exit("Illegal value '%s' after '-NN'",argv[nopt]) ;
+        nopt++ ;
+        if( nopt < argc && isdigit(argv[nopt][0]) )
+          NNvox = (int)strtod(argv[nopt++],NULL) ;
+        else
+          NNvox = 0 ;
+        continue ;
+      }
+
       if( strcmp(argv[nopt],"-no_inmask") == 0 ){  /* 02 Aug 2011 */
         no_inmask = 1 ; nopt++ ; continue ;
       }
@@ -963,11 +1061,11 @@ void CL_read_opts( int argc , char * argv[] )
 
       if( strcmp(argv[nopt],"-prefix") == 0 ){
          if( ++nopt >= argc ){
-            fprintf(stderr,"need an argument after -prefix!\n") ; exit(1) ;
+            ERROR_exit("need an argument after -prefix!") ;
          }
          CL_prefix = argv[nopt] ;
          if( !THD_filename_ok(CL_prefix) ){
-            fprintf(stderr,"-prefix string is illegal: %s\n",CL_prefix); exit(1);
+            ERROR_exit("-prefix string is illegal: %s\n",CL_prefix);
          }
          nopt++ ; continue ;
       }
@@ -976,20 +1074,24 @@ void CL_read_opts( int argc , char * argv[] )
 
       if( strcmp(argv[nopt],"-savemask") == 0 ){
          if( ++nopt >= argc ){
-            fprintf(stderr,"need an argument after -savemask!\n") ; exit(1) ;
+            ERROR_exit("need an argument after -savemask!\n") ;
          }
          CL_savemask = argv[nopt] ;
          if( !THD_filename_ok(CL_savemask) ){
-            fprintf(stderr,"-savemask string is illegal: %s\n",CL_savemask); exit(1);
+            ERROR_exit("-savemask string is illegal: %s\n",CL_savemask);
          }
          nopt++ ; continue ;
+      }
+
+      if( strcmp(argv[nopt],"-binary") == 0 ){  /* 26 May 2017 */
+        do_binary = 1 ; nopt++ ; continue ;
       }
 
       /**** Sep 16 1999: -1tindex and -1dindex ****/
 
       if( strncmp(argv[nopt],"-1dindex",5) == 0 ){
          if( ++nopt >= argc ){
-            fprintf(stderr,"need an argument after -1dindex!\n") ; exit(1) ;
+            ERROR_exit("need an argument after -1dindex!\n") ;
          }
          CL_ivfim = CL_edopt.iv_fim = (int) strtod( argv[nopt++] , NULL ) ;
          continue ;
@@ -997,7 +1099,7 @@ void CL_read_opts( int argc , char * argv[] )
 
       if( strncmp(argv[nopt],"-1tindex",5) == 0 ){
          if( ++nopt >= argc ){
-            fprintf(stderr,"need an argument after -1tindex!\n") ; exit(1) ;
+            ERROR_exit("need an argument after -1tindex!\n") ;
          }
          CL_ivthr = CL_edopt.iv_thr = (int) strtod( argv[nopt++] , NULL ) ;
          continue ;
@@ -1059,7 +1161,7 @@ void CL_read_opts( int argc , char * argv[] )
 
       /**** unknown switch ****/
 
-      fprintf(stderr,"** Unrecognized option %s\a\n",argv[nopt]) ;
+      ERROR_message("Unrecognized option %s",argv[nopt]) ;
       suggest_best_prog_option(argv[0], argv[nopt]);
       exit(1) ;
 

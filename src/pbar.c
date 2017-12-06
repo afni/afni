@@ -309,8 +309,18 @@ STATUS("init pval_save") ;
                                NULL ) ;
       XtAddCallback( pbar->big_scaledn_pb, XmNactivateCallback, PBAR_big_menu_CB , pbar ) ;
       MCW_register_hint( pbar->big_scaledn_pb , "Halve the maximum possible value" ) ;
+
+      pbar->big_picktopbot_pb = XtVaCreateManagedWidget(
+                                "menu" , xmPushButtonWidgetClass , pbar->big_menu ,
+                                  LABEL_ARG("Pick Bot/Top") ,
+                                  XmNtraversalOn , True  ,
+                                  XmNinitialResourcesPersistent , False ,
+                               NULL ) ;
+      XtAddCallback( pbar->big_picktopbot_pb, XmNactivateCallback, PBAR_big_menu_CB , pbar ) ;
+      MCW_register_hint( pbar->big_picktopbot_pb , "Choose the display range" ) ;
    } else {
      pbar->big_scaleup_pb = pbar->big_scaledn_pb = NULL ;
+     pbar->big_picktopbot_pb = NULL ;
    }
 
    /*-- go home --*/
@@ -319,6 +329,7 @@ STATUS("init pval_save") ;
 
    /* ZSS: Jan 13 Now add some funky ones */
 
+   PBAR_define_bigmap( R_AND_B_INV_256_CMD ); // [PT: Aug 17, 2017]
    PBAR_define_bigmap( CB_CS_35 );
    PBAR_define_bigmap( CB_CS );
    PBAR_define_bigmap( CYTOARCH_ROI_256_CMD );
@@ -435,7 +446,7 @@ ENTRY("PBAR_add_bigmap") ;
 
    for( ii=0 ; ii < NPANE_BIG ; ii++ ) bigmap[nn][ii] = cmap[ii] ;
    if(debugprint)
-      printf("%s: %d\n", name, nn);
+      fprintf(stderr,"%s: %d\n", name, nn);
    POPDOWN_strlist_chooser ; EXRETURN ;
 }
 
@@ -506,7 +517,7 @@ ENTRY("PBAR_define_bigmap") ;
   name[0] = '\0' ; ii = 0 ;
   sscanf(cmd,"%127s%n",name,&ii) ;
   if(debugprint)
-       printf("%s %d\n",name,ii);
+       fprintf(stderr,"%s %d\n",name,ii);
   if( *name == '\0' || ii == 0 ) RETURN(-1);
   cmd += ii ;
   /* get lines of form "value=colordef" */
@@ -515,7 +526,7 @@ ENTRY("PBAR_define_bigmap") ;
     eqn[0] = '\0' ; ii = 0 ;
     sscanf(cmd,"%127s%n",eqn,&ii) ;
     if(debugprint)
-       printf("%s %d\n",eqn,ii);
+       fprintf(stderr,"%s %d\n",eqn,ii);
     if( *eqn == '\0' || ii == 0 ) break ;   /* exit loop */
     cmd += ii ;
     if( neq == 0 && (isalpha(eqn[0]) || eqn[0]=='#') ) nonum = 1 ;
@@ -525,7 +536,7 @@ ENTRY("PBAR_define_bigmap") ;
     if( *rhs == '\0' || ii == 0 ) RETURN(-1);
       ii = DC_parse_color( myfirst_dc , rhs, &fr,&fg,&fb ) ;
       if(debugprint)
-         printf("%s %f %f %f\n",rhs,fr,fg,fb);
+         fprintf(stderr,"%s %f %f %f\n",rhs,fr,fg,fb);
       if( ii ) RETURN(-1); /* bad */
       col[neq].r = (byte)(255.0f*fr+0.5f) ;
       col[neq].g = (byte)(255.0f*fg+0.5f) ;
@@ -533,13 +544,13 @@ ENTRY("PBAR_define_bigmap") ;
   }
 
   if( nonum ) {                   /* supply numbers, if missing */
-    if(debugprint) printf("Supplying indices to colorscale\n");
+    if(debugprint) fprintf(stderr,"Supplying indices to colorscale\n");
     for( ii=0 ; ii < neq ; ii++ ) val[ii] = neq-ii ;
   }
 
   if(debugprint) {
      for(ii=0;ii<neq;ii++)
-       printf("%f %x %x %x\n", val[ii], col[ii].r, col[ii].g, col[ii].b);
+       fprintf(stderr,"%f %x %x %x\n", val[ii], col[ii].r, col[ii].g, col[ii].b);
   }
   PBAR_make_bigmap( name , neq, val, col, myfirst_dc );
   RETURN(0) ;
@@ -720,6 +731,47 @@ ENTRY("PBAR_button_EV") ;
 
 /*--------------------------------------------------------------------*/
 
+void PBAR_topbot_finalize( Widget w , XtPointer cd , int nval , void **val )
+{
+   MCW_pbar *pbar = (MCW_pbar *)cd ;
+   float bot , top ;
+   char *spt ;
+   Three_D_View *im3d ;
+
+ENTRY("PBAR_topbot_finalize") ;
+
+   if( pbar==NULL ) EXRETURN ;
+
+   im3d = (Three_D_View *)pbar->parent ;
+   if( !ISVALID_IM3D(im3d) || !pbar->bigmode || w==NULL || nval!=2 || val==NULL ){
+     XBell(pbar->dc->display,100) ; EXRETURN ;
+   }
+
+   spt = (char *)val[0] ;
+   if( spt != NULL && *spt != '\0' ){
+     bot = (float)strtod(spt,NULL) ;
+   } else {
+     XBell(pbar->dc->display,100) ; EXRETURN ;
+   }
+
+   spt = (char *)val[1] ;
+   if( spt != NULL && *spt != '\0' ){
+     top = (float)strtod(spt,NULL) ;
+   } else {
+     XBell(pbar->dc->display,100) ; EXRETURN ;
+   }
+   if( top <= bot ){
+     XBell(pbar->dc->display,100) ; EXRETURN ;
+   }
+
+   /* INFO_message("bot=%g top=%g",bot,top) ; */
+   PBAR_set_bigmode( pbar , 1 , bot,top ) ;
+   AFNI_inten_pbar_CB( pbar , im3d , 0 ) ;
+   EXRETURN ;
+}
+
+/*--------------------------------------------------------------------*/
+
 static void PBAR_big_menu_CB( Widget w , XtPointer cd , XtPointer qd )
 {
    MCW_pbar *pbar = (MCW_pbar *)cd ;
@@ -760,6 +812,19 @@ ENTRY("PBAR_big_menu_CB") ;
        XBell(pbar->dc->display,100) ;
      }
 
+   } else if( w == pbar->big_picktopbot_pb ){
+     Three_D_View *im3d=(Three_D_View *)pbar->parent ;
+     Widget wtop ;
+     if( ISVALID_IM3D(im3d) ){
+       wtop = im3d->vwid->func->inten_label ;
+     } else {
+       XBell(pbar->dc->display,100) ;
+     }
+     MCW_choose_stuff( wtop , "Color pbar range" ,
+                       PBAR_topbot_finalize, (XtPointer)pbar ,
+                         MSTUF_STRING , "Bot" ,
+                         MSTUF_STRING , "Top" ,
+                       MSTUF_END ) ;
    }
 
    EXRETURN ;

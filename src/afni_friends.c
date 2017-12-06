@@ -290,10 +290,11 @@ static mday holiday[] = {
    {MAR, 8,"Kenneth Grahame's birthday"                              } ,
    {MAR, 8,"International Women's Day"                               } ,
    {MAR,11,"World Day of Muslim Culture"                             } ,
+   {MAR,11,"Douglas Adams' birthday"                                 } ,
    {MAR,12,"Kemal Ataturk's birthday"                                } ,
    {MAR,12,"Mauritius Independence Day"                              } ,
    {MAR,14,"Albert Einstein's birthday"                              } ,
-   {MAR,15,"The Ides of March"                                       } ,
+   {MAR,15,"The Ides of March - Beware!"                             } ,
    {MAR,16,"James Madison's birthday"                                } ,
    {MAR,17,"Saint Patrick's Day"                                     } ,
    {MAR,17,"Anniversario dell'Unita d'Italia!"                       } ,
@@ -365,6 +366,7 @@ static mday holiday[] = {
    {APR,27,"Sierra Leone Independence Day"                           } ,
    {APR,27,"Togo Independence Day"                                   } ,
    {APR,28,"Kurt Goedel's birthday"                                  } ,
+   {APR,28,"Sir Terry Pratchett's birthday"                          } ,
    {APR,28,"Bahai Feast of Jamal"                                    } ,
    {APR,29,"Duke Ellington's birthday"                               } ,
    {APR,29,"Henri Poincare's birthday"                               } ,
@@ -401,6 +403,7 @@ static mday holiday[] = {
    {MAY,14,"Paraguay Independence Day"                               } ,
    {MAY,15,"Israel Independence Day"                                 } ,
    {MAY,16,"Maria Gaetana Agnesi's birthday"                         } ,
+   {MAY,16,"Try Not To Be Stupid Day"                                } ,
    {MAY,17,"Norway National Day"                                     } ,
    {MAY,18,"John Paul II's birthday"                                 } ,
    {MAY,18,"Bertrand Russell's birthday"                             } ,
@@ -414,6 +417,7 @@ static mday holiday[] = {
    {MAY,24,"Oliver Cromwell's birthday"                              } ,
    {MAY,25,"Argentina Revolution Day"                                } ,
    {MAY,25,"Jordan Independence Day"                                 } ,
+   {MAY,26,"Wear a Towel Day"                                        } ,
    {MAY,26,"Guyana Independence Day"                                 } ,
    {MAY,26,"Founding of US NIH (1930)"                               } ,
    {MAY,27,"Wild Bill Hickock's birthday"                            } ,
@@ -626,7 +630,7 @@ static mday holiday[] = {
    {SEP,21,"Chile Independence Day"                                  } ,
    {SEP,21,"Belize Independence Day"                                 } ,
    {SEP,21,"Malta Independence Day"                                  } ,
-   {SEP,22,"Bilbo & Frodo Baggin's birthday"                         } ,
+   {SEP,22,"Bilbo & Frodo Baggins' birthday"                         } ,
    {SEP,22,"Mali Republic Day"                                       } ,
    {SEP,23,"Saudi Arabia National Day"                               } ,
    {SEP,23,"Emperor Augustus Caesar's birthday"                      } ,
@@ -635,7 +639,7 @@ static mday holiday[] = {
    {SEP,28,"Anniversary of discovery of penicillin"                  } ,
    {SEP,28,"Seymour Cray's birthday"                                 } ,
    {SEP,29,"Lech Walesa's birthday"                                  } ,
-   {SEP,30,"Botswana Independence Day"                               } ,
+   {SEP,30,"Botswana Independence Day!"                              } ,
 
    {OCT, 1,"Nigeria Independence Day"                                } ,
    {OCT, 2,"Guinea Independence Day"                                 } ,
@@ -1415,6 +1419,66 @@ int AFNI_is_Easter( int yy , int mm , int dd )
    return ( mm == EasterDate[yy].mm && dd == EasterDate[yy].dd ) ;
 }
 
+/*----------------------------------------------------------------------------*/
+/* Stuff for Rosh Hashanah calculation [22 Sep 2017] */
+
+/* Simple day of week calculator (Gregorian):
+   m=1..12 ; d=1..31 ; y=1800... ; return=0..6 (Sun..Sat) */
+
+static int dow(int m,int d,int y){
+  y -= (m<3) ;
+  return(y+y/4-y/100+y/400+"-bed=pen+mad."[m]+d)%7;
+}
+
+/* Compute date of Rosh Hashanah in Sep, given year number (>= 1800):
+   see https://quasar.as.utexas.edu/BillInfo/ReligiousCalendars.html */
+
+static int rosh(int y)
+{
+   int gold , nn , dd ;
+   double nplus , ff ;
+
+   gold = y%19 + 1 ; /* G */
+
+   /* N + fraction =
+       {[Y/100] - [Y/400] - 2} + 765433/492480*Remainder(12G|19)
+                               + Remainder(Y|4)/4 - (313Y+89081)/98496 */
+
+   nplus = ((y/100)-(y/400)-2) + 765433.0/492480.0*((12*gold)%19)
+                               + 0.25*(y%4) - (313.0*y+89081.0)/98496.0 ;
+
+   nn = (int)nplus ;
+   ff = nplus - (double)nn ;
+
+   dd = dow(9,nn,y) ; /* day of week: 0..6 (Sun..Sat) */
+
+   /* If the day calculated above is a Sunday, Wednesday, or Friday,
+      Rosh Hashanah falls on the next day (Monday, Thursday or Saturday).
+
+      If the calculated day is a Monday, and if the fraction is greater than
+      or equal to 23269/25920, and if Remainder(12G|19) is greater than 11,
+      Rosh Hashanah falls on the next day, a Tuesday.
+
+      If it is a Tuesday, and if the fraction is greater than or equal to
+      1367/2160, and if Remainder(12G|19) is greater than 6, Rosh Hashanah
+      falls two days later, on Thursday (NOT WEDNESDAY!!).                 */
+
+   if( dd==0 || dd==3 || dd==5 ){                    /* Sun, Wed, or Fri are taboo */
+     nn++ ;
+   } else if( dd==1 && ff >= 23269.0/25920.0 && (12*gold)%19 > 11 ){ /* Mon -> Tue */
+     nn++ ;
+   } else if( dd==2 && ff >= 1367.0/2160.0   && (12*gold)%19 >  6 ){ /* Tue -> Thu */
+     nn += 2 ;
+   }
+
+   return nn ;
+}
+
+int AFNI_is_Rosh_Hashanah( int yy , int mm , int dd )
+{
+   return ( (mm==9) && (rosh(yy)==dd) ) ;
+}
+
 /*------------------------------------------------------------------------------*/
 
 static yymmdd DiwaliDate[] = {
@@ -1547,6 +1611,11 @@ char * AFNI_get_date_trivia(void)
    if( ntar < NTMAX && AFNI_is_Easter(lt->tm_year+1900,lt->tm_mon+1,lt->tm_mday) )
       tar[ntar++] = "Easter (Western rite)" ;
 
+   /* Rosh Hashanah [22 Sep 2017] */
+
+   if( ntar < NTMAX && AFNI_is_Rosh_Hashanah(lt->tm_year+1900,lt->tm_mon+1,lt->tm_mday) )
+      tar[ntar++] = "Rosh Hashanah" ;
+
    /* Diwali? */
 
    if( ntar < NTMAX && AFNI_is_Diwali(lt->tm_year+1900,lt->tm_mon+1,lt->tm_mday) )
@@ -1588,4 +1657,5 @@ char * AFNI_get_date_trivia(void)
 #else
    return "[Elen sila lumenn' omentielvo]" ;
 #endif
+
 }

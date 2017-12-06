@@ -4,6 +4,16 @@
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
+/**** Complex in-place FFT functions.
+      Prototypes below, after some inclusions.
+      If USE_FFTN is enabled, any length is allowed;
+      otherwise, limited to powers of 2 combined with
+      powers of 3 and 5 (no more than 3^3 and 5^5, though).
+      The original csfft_cox() functions are somehwat faster when
+      applicable, and so are used in preference to the FFTN functions.
+      However, the interface is still via csfft_cox(), described below. ****/
+
+/*-------------------------------------------------------------*/
 #undef STANDALONE  /* Define this if you want to use this code */
                    /* outside of the AFNI package (libmri.a).  */
 
@@ -13,19 +23,32 @@
 #  include <stdio.h>
 #  include <math.h>
    typedef struct complex { float r,i ; } complex ;  /* need this! */
-#  undef USE_FFTW
 #  define EXIT exit
 #else
 #  include "mrilib.h"   /* AFNI package library header */
-
-#  ifdef USE_FFTW         /* 20 Oct 2000 */
-#    include "fftw.h"
-#  endif
-
 #endif  /* STANDALONE */
+/*-------------------------------------------------------------*/
 
-static int use_fftw=1 ;
-void csfft_use_fftw( int uf ){ use_fftw = uf; return; }
+/* whether to use the fftn package, which allows for arbitrary lengths */
+
+#define USE_FFTN
+#ifdef USE_FFTN
+#  define FFT_NODOUBLE    /* use only the float version */
+#  include "fftn.c"
+static int force_fftn=0 ;
+#else
+# define force_fftn 0
+#endif
+
+/*---- force the use of fftn even if csfft_cox is better;
+       this ability is really here just for speed testing -----*/
+
+void csfft_force_fftn( int fff )
+{
+#ifdef USE_FFTN
+  force_fftn = fff ;
+#endif
+}
 
 /***=====================================================================**
  *** Prototypes for externally callable functions:                       **
@@ -40,7 +63,7 @@ void csfft_cox( int mode , int idim , complex *xc ) ;
 int  csfft_nextup( int idim ) ;
 int  csfft_nextup_one35( int idim ) ;
 void csfft_scale_inverse( int scl ) ; /* scl=1 ==> force 1/N for mode=+1 **/
-                                      /* scl=0 ==> no 1/N scaling        **/
+                                      /* scl=0 ==> no 1/N scaling here   **/
 
 /*** Aug 1999:                                                           **
  ***   idim can now contain factors of 3 and/or 5, up to and including   **
@@ -56,6 +79,11 @@ void csfft_scale_inverse( int scl ) ; /* scl=1 ==> force 1/N for mode=+1 **/
  ***   of 5, and least one power of 2.  In trials, these are the most    **
  ***   time efficient.                                                   **/
 
+/*** Oct 2017:
+ ***   If fftn is enabled, idim can be arbitrary.       **
+ ***   However, csfft_cox functions are used for their  **
+ ***   special cases, since they are somewhat faster :) **/
+
 /*-- Aug 1999: routines to do FFTs by decimation by 3 or 5 --*/
 
 static void fft_3dec( int , int , complex * ) ;
@@ -68,12 +96,13 @@ static void fft_5dec( int , int , complex * ) ;
 #define PI (3.141592653589793238462643)
 
 /*-------------- To order the 1/N scaling on inversion: Aug 1999 ------------*/
+/*-------------- Inversion is when mode == 1                     ------------*/
 
 static int sclinv = 0 ;  /* set by csfft_scale_inverse */
 
 void csfft_scale_inverse( int scl ){ sclinv = scl; return; }
 
-/*-------------- For the unrolled FFT routines: November 1998 --------------*/
+/*-------------- For the unrolled FFT routines: November 1998 ---------------*/
 
 #undef  DONT_UNROLL_FFTS
 #ifndef DONT_UNROLL_FFTS
@@ -200,9 +229,9 @@ static void csfft_trigconsts( int idim )  /* internal function */
 ----------------------------------------------------------------------*/
 
 /*- Macro to do 1/N scaling on inverse:
-      if it is ordered by the user, and
-      if mode is positive, and
-      if this is not a recursive call.  -*/
+      IF it is ordered by the user, and
+      IF mode is positive, and
+      IF this is not a recursive call.  -*/
 
 #define SCLINV                                                 \
  if( sclinv && mode > 0 && rec == 0 ){                         \
@@ -219,51 +248,24 @@ void csfft_cox( int mode , int idim , complex *xc )
 
    if( idim <= 1 ) return ;  /* stoopid inpoot */
 
-   /*-- 20 Oct 2000: maybe use FFTW instead --*/
+   /*-- possibly use fftn instead of Cox/AJ funcs [Oct 2017] --*/
 
-#ifdef USE_FFTW
-   if( use_fftw ){
-     static int first=1 , oldmode=0, oldidim=0 ;
-     static fftw_plan fpl ;
-     if( first ){
-        char *env = getenv("AFNI_FFTW_WISDOM") ;
-        int gotit=0 ;
-        first = 0 ;
-        if( env != NULL ){
-           int nw = THD_filesize(env) ;
-           if( nw > 0 ){
-              int fd = open( env , O_RDONLY ) ;
-              if( fd >= 0 ){
-                 char *w = AFMALL( char, nw+4 ) ;
-                 int ii = read( fd , w , nw ) ;
-                 close(fd) ;
-                 if( ii > 0 ){
-                    w[nw] = '\0' ;
-                    nw = (int) fftw_import_wisdom_from_string(w) ;
-                    gotit=(nw == FFTW_SUCCESS);
-                 } /* else fprintf(stderr,"csfft_cox: read fails\n"); */
-                 free(w) ;
-              } /* else fprintf(stderr,"csfft_cox: open fails\n"); */
-           } /* else fprintf(stderr,"csfft_cox: THD_filesize(%s) fails\n",env); */
-        } /* else fprintf(stderr,"csfft_cox: getenv fails\n"); */
-     /* if( gotit )
-          fprintf(stderr,"csfft_cox imported FFTW wisdom from file %s\n",env);
-        else
-          fprintf(stderr,"csfft_cox failed to import FFTW wisdom\n"); */
+#ifdef USE_FFTN
+   { static int last_idim=-1 , last_fftn=0 ;
+     if( idim != last_idim ){
+       m = csfft_nextup_even(idim) ; last_idim = idim ;
+       last_fftn = (force_fftn || idim != m || idim > 32768 ) ;
+#if 0
+       INFO_message("csfft_cox(%d) %s replaced by fftn",
+                    idim , (last_fftn) ? "IS" : "IS NOT" ) ;
+#endif
      }
-
-     if( idim != oldidim || mode != oldmode ){
-        if( oldidim ) fftw_destroy_plan(fpl) ;
-        fpl = fftw_create_plan( idim ,
-                                (mode < 0) ? FFTW_FORWARD : FFTW_BACKWARD ,
-                                FFTW_ESTIMATE|FFTW_USE_WISDOM|FFTW_IN_PLACE );
-        oldidim = idim ; oldmode = mode ;
+     if( last_fftn ){
+       fftnf( idim, NULL, &(xc[0].r), &(xc[0].i), 2*mode, 0.0 ) ;
+       SCLINV ; return ;
      }
-
-     fftw_one( fpl , (fftw_complex *)xc , NULL ) ;
-     SCLINV ; return ;
    }
-#endif /* USE_FFTW */
+#endif
 
    /*-- November 1998: maybe use the unrolled FFT routines --*/
 
@@ -1341,6 +1343,7 @@ static void fft32( int mode , complex *xc )
 
 /*----------------------------------------------------------------
    Do a 64 FFT using fft32 and decimation-by-2
+   (complete unrolling wasn't as efficient)
 ------------------------------------------------------------------*/
 
 static void fft64( int mode , complex *xc )
@@ -1454,17 +1457,17 @@ static void fft128( int mode , complex *xc )
       for( k=0 ; k < M ; k++ ){
          t1  = bb[k].r; t2  = bb[k].i;
          tr  = cs[k].r; ti  = cs[k].i;
-         bbr = tr*t1 - ti*t2  ; bbi = tr*t2 + ti*t1  ;  /* b[k]*exp(+2*Pi*k/N) */
+         bbr = tr*t1 - ti*t2  ; bbi = tr*t2 + ti*t1 ; /* b[k]*exp(i*2*Pi*k/N) */
 
          t1  = cc[  k].r; t2  = cc[  k].i;
          tr  = cs[2*k].r; ti  = cs[2*k].i;
-         ccr = tr*t1 - ti*t2  ; cci = tr*t2 + ti*t1  ;  /* c[k]*exp(+4*Pi*k/N) */
+         ccr = tr*t1 - ti*t2  ; cci = tr*t2 + ti*t1 ; /* c[k]*exp(i*4*Pi*k/N) */
 
          t1  = dd[  k].r; t2  = dd[  k].i;
          tr  = cs[3*k].r; ti  = cs[3*k].i;
-         ddr = tr*t1 - ti*t2  ; ddi = tr*t2 + ti*t1  ;  /* d[k]*exp(+6*Pi*k/N) */
+         ddr = tr*t1 - ti*t2  ; ddi = tr*t2 + ti*t1 ; /* d[k]*exp(i*6*Pi*k/N) */
 
-         aar = aa[k].r; aai = aa[k].i;                  /* a[k] */
+         aar = aa[k].r; aai = aa[k].i;                /* a[k] */
 
          acpr = aar + ccr ; acmr = aar - ccr ;
          bdpr = bbr + ddr ; bdmr = bbr - ddr ;
@@ -1480,17 +1483,17 @@ static void fft128( int mode , complex *xc )
       for( k=0 ; k < M ; k++ ){
          t1  = bb[k].r; t2  = bb[k].i;
          tr  = cs[k].r; ti  = cs[k].i;
-         bbr = tr*t1 + ti*t2  ; bbi = tr*t2 - ti*t1  ;  /* b[k]*exp(-2*Pi*k/N) */
+         bbr = tr*t1 + ti*t2  ; bbi = tr*t2 - ti*t1 ; /* b[k]*exp(-i*2*Pi*k/N) */
 
          t1  = cc[  k].r; t2  = cc[  k].i;
          tr  = cs[2*k].r; ti  = cs[2*k].i;
-         ccr = tr*t1 + ti*t2  ; cci = tr*t2 - ti*t1  ;  /* c[k]*exp(-4*Pi*k/N) */
+         ccr = tr*t1 + ti*t2  ; cci = tr*t2 - ti*t1 ; /* c[k]*exp(-i*4*Pi*k/N) */
 
          t1  = dd[  k].r; t2  = dd[  k].i;
          tr  = cs[3*k].r; ti  = cs[3*k].i;
-         ddr = tr*t1 + ti*t2  ; ddi = tr*t2 - ti*t1  ;  /* d[k]*exp(-6*Pi*k/N) */
+         ddr = tr*t1 + ti*t2  ; ddi = tr*t2 - ti*t1 ; /* d[k]*exp(-i*6*Pi*k/N) */
 
-         aar = aa[k].r; aai = aa[k].i;                  /* a[k] */
+         aar = aa[k].r; aai = aa[k].i;                 /* a[k] */
 
          acpr = aar + ccr ; acmr = aar - ccr ;
          bdpr = bbr + ddr ; bdmr = bbr - ddr ;
@@ -1554,17 +1557,17 @@ static void fft256( int mode , complex *xc )
       for( k=0 ; k < M ; k++ ){
          t1  = bb[k].r; t2  = bb[k].i;
          tr  = cs[k].r; ti  = cs[k].i;
-         bbr = tr*t1 - ti*t2  ; bbi = tr*t2 + ti*t1  ;  /* b[k]*exp(+2*Pi*k/N) */
+         bbr = tr*t1 - ti*t2  ; bbi = tr*t2 + ti*t1 ; /* b[k]*exp(i*2*Pi*k/N) */
 
          t1  = cc[  k].r; t2  = cc[  k].i;
          tr  = cs[2*k].r; ti  = cs[2*k].i;
-         ccr = tr*t1 - ti*t2  ; cci = tr*t2 + ti*t1  ;  /* c[k]*exp(+4*Pi*k/N) */
+         ccr = tr*t1 - ti*t2  ; cci = tr*t2 + ti*t1 ; /* c[k]*exp(i*4*Pi*k/N) */
 
          t1  = dd[  k].r; t2  = dd[  k].i;
          tr  = cs[3*k].r; ti  = cs[3*k].i;
-         ddr = tr*t1 - ti*t2  ; ddi = tr*t2 + ti*t1  ;  /* d[k]*exp(+6*Pi*k/N) */
+         ddr = tr*t1 - ti*t2  ; ddi = tr*t2 + ti*t1 ; /* d[k]*exp(i*6*Pi*k/N) */
 
-         aar = aa[k].r; aai = aa[k].i;                  /* a[k] */
+         aar = aa[k].r; aai = aa[k].i;                /* a[k] */
 
          acpr = aar + ccr ; acmr = aar - ccr ;
          bdpr = bbr + ddr ; bdmr = bbr - ddr ;
@@ -1580,17 +1583,17 @@ static void fft256( int mode , complex *xc )
       for( k=0 ; k < M ; k++ ){
          t1  = bb[k].r; t2  = bb[k].i;
          tr  = cs[k].r; ti  = cs[k].i;
-         bbr = tr*t1 + ti*t2  ; bbi = tr*t2 - ti*t1  ;  /* b[k]*exp(-2*Pi*k/N) */
+         bbr = tr*t1 + ti*t2  ; bbi = tr*t2 - ti*t1 ; /* b[k]*exp(-i*2*Pi*k/N) */
 
          t1  = cc[  k].r; t2  = cc[  k].i;
          tr  = cs[2*k].r; ti  = cs[2*k].i;
-         ccr = tr*t1 + ti*t2  ; cci = tr*t2 - ti*t1  ;  /* c[k]*exp(-4*Pi*k/N) */
+         ccr = tr*t1 + ti*t2  ; cci = tr*t2 - ti*t1 ; /* c[k]*exp(-i*4*Pi*k/N) */
 
          t1  = dd[  k].r; t2  = dd[  k].i;
          tr  = cs[3*k].r; ti  = cs[3*k].i;
-         ddr = tr*t1 + ti*t2  ; ddi = tr*t2 - ti*t1  ;  /* d[k]*exp(-6*Pi*k/N) */
+         ddr = tr*t1 + ti*t2  ; ddi = tr*t2 - ti*t1 ; /* d[k]*exp(-i*6*Pi*k/N) */
 
-         aar = aa[k].r; aai = aa[k].i;                  /* a[k] */
+         aar = aa[k].r; aai = aa[k].i;                /* a[k] */
 
          acpr = aar + ccr ; acmr = aar - ccr ;
          bdpr = bbr + ddr ; bdmr = bbr - ddr ;

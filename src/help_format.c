@@ -31,6 +31,15 @@ static void qsort_intchar( int n , int *a , char **ia ) ; /* at end of file */
                           (str)[7] != '*'                  &&  \
                           (str)[7] != '.'                     )
 
+/* Also handle https [Aug 2017] */
+
+#define HTTPS_check(str) ( strncmp((str),"https://",8) == 0 &&  \
+                           !isspace((str)[8])               &&  \
+                           !iscntrl((str)[8])               &&  \
+                           (str)[8] != '\0'                 &&  \
+                           (str)[8] != '*'                  &&  \
+                           (str)[8] != '.'                     )
+
 /*-------------------------------------------------------------------------*/
 
 int WSUB_check( char *str )
@@ -80,7 +89,7 @@ int need_expansion( char *buf )
 
 void complex_echo_line( char *buf )
 {
-   int hend , ii , jj , is_img ;
+   int hend , ii , jj , is_img , is_http,is_https ;
    char *hpt , cc , lch ;
 
    /* scan thru buf, printing stuff */
@@ -90,11 +99,15 @@ void complex_echo_line( char *buf )
 
      /* direct link to a web page? */
 
-     if( HTTP_check(buf) ){
+     is_http  = HTTP_check(buf) ;
+     is_https = HTTPS_check(buf) ;
+
+     if( is_http || is_https ){
+       int hll = (is_http) ? 7 : 8 ;
 
        /* scan forward to get to end of 'http://something' string at hend */
 
-       for( hend=7 ; buf[hend] != '\0' && !isspace(buf[hend]) ; hend++ ) ; /*nada*/
+       for( hend=hll ; buf[hend] != '\0' && !isspace(buf[hend]) ; hend++ ) ; /*nada*/
 
        /* is this a link to an image? */
 
@@ -393,10 +406,12 @@ static void isort_intchar( int n , int *ar , char **iar )
 /********************************************************************************/
 /* qsrec : recursive part of quicksort (stack implementation)                   */
 
-#define QS_STACK  1024  /* stack size */
 #define QS_SWAPF(x,y) ( temp=(x),(x)=(y),(y)= temp)
 #define QS_SWAPI(i,j) (itemp=(i),(i)=(j),(j)=itemp)
 #define QS_SWAPV(i,j) (vtemp=(i),(i)=(j),(j)=vtemp)
+#ifndef QS_STACK
+# define QS_STACK 9999
+#endif
 
 static void qsrec_intchar( int n , int *ar , char **iar , int cutoff )
 {

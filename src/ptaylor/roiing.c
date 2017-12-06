@@ -59,14 +59,15 @@ int ROI_make_inflate( int *Dim,
 
    int n,m,k,j,i,ii,jj,kk,idx,aaa;
 
-
+   INFO_message("SKEL_STOP = %d", SKEL_STOP);
 	for( n=0 ; n<INFL_NUM ; n++) {
 		for( m=0 ; m<Dim[3] ; m++ ) {
 			for( k=0 ; k<Dim[2] ; k++ ) 
 				for( j=0 ; j<Dim[1] ; j++ ) 
 					for( i=0 ; i<Dim[0] ; i++ ) 
 						if(DATA[i][j][k][m]>0) {
-							// now check surroundings
+							// now check surroundings: only expand from
+							// non-skel, if desired
 							if( !(SKEL_STOP && SKEL[i][j][k]))
 								for( ii=-DEP ; ii<=DEP ; ii++)
 									for( jj=-DEP ; jj<=DEP ; jj++)
@@ -94,8 +95,13 @@ int ROI_make_inflate( int *Dim,
 														// grow if ngb=0; give temp value
 														// of -[value it will have]
 														if( DATA[i+ii][j+jj][k+kk][m]==0) {
-															DATA[i+ii][j+jj][k+kk][m] = 
-																-DATA[i][j][k][m];
+                                             // [PT: June 6, 2017]: new, stricter
+                                             // non-inflation condition, if so
+                                             // desired: don't expand into SKEL,
+                                             // even by one voxel
+                                             if( !((SKEL_STOP==2) && SKEL[i+ii][j+jj][k+kk]))
+                                                DATA[i+ii][j+jj][k+kk][m] = 
+                                                   -DATA[i][j][k][m];
 														}
 													}
 												}

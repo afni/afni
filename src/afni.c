@@ -1829,6 +1829,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Am I the crazy one, or is it everyone else on Earth?"          ,
      "Everyone's crazy but you and me (and I'm not sure about you)"  ,
      "We live in crazy times"                                        ,
+     "Just because your idea is crazy does not mean it is wrong"     ,
      "There are no facts, only interpretations (at p < 0.05 level)"  ,
      "The best weapon against an enemy is another enemy"             ,
      "Paris is always a good idea"                                   ,
@@ -1906,6 +1907,8 @@ void AFNI_sigfunc_alrm(int sig)
      "Be careful out there"                                          ,
      "Yesterday, all my troubles seemed so far away"                 ,
      "Stochastic delights have deterministic ends"                   ,
+     "Remember -- The laws of physics always win"                    ,
+     "Remember -- To prolong doubt is to prolong hope"               ,
      "Remember -- Time and tide wait for no brain imaging software"  ,
      "Remember -- AFNI is free, but worth at least 1000 times more"  ,
      "Remember -- Nothing is always absolutely so"                   ,
@@ -1925,6 +1928,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Remember -- A monad is the same as an endofunctor"             ,
      "Remember -- Things aren't always what they seem"               ,
      "Remember -- eggs cannot be unscrambled"                        ,
+     "Remember -- a closed mouth gathers no feet"                    ,
      "Fools give you reasons, wise men never try"                    ,
      "People willingly trust the statistics they wish to believe"    ,
      "Heaven's last best gift, my ever new delight"                  ,
@@ -1947,6 +1951,7 @@ void AFNI_sigfunc_alrm(int sig)
      "If I can find the man calling me ruthless, I'll destroy him"   ,
      "'It remains to be seen' == 'When pigs fly'"                    ,
      "Do not scorn pity that is the gift of a gentle heart"          ,
+     "Do not go gentle into that good abend"                         ,
      "The best laid statistics of mice and men gang aft agley"       ,
      "A thousand farewells pass in one moment"                       ,
      "Did you see hyperconnectivity in the disconnected fibers?"     ,
@@ -1956,6 +1961,7 @@ void AFNI_sigfunc_alrm(int sig)
      "All this Dark Matter whizzing around makes it hard to think"   ,
      "Thank you so so so very much"                                  ,
      "Will you miss me?"                                             ,
+     "It wasn't me that did it. It was my brain"                     ,
      "Was there life before Google?"                                 ,
      "If you can't be good, be careful"                              ,
      "What sweet madness has seized me?"                             ,
@@ -1980,6 +1986,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Are you ready for the Big Rip?"                                ,
      "I hereby declare the Null Hypothesis to be ..... Falsified"    ,
      "I'm sick of thinking about p-values -- how about you?"         ,
+     "To (mis)quote Han Solo: Never tell me the p-value!"            ,
      "Did you fail to negate the opposite of the null hypothesis?"   ,
      "I'd like to live as a poor man with lots of money"             ,
      "Wine is proof that God loves us and wants to see us happy"     ,
@@ -1993,7 +2000,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Do you still miss the NIH Bear? I do"                          ,
      "Always be patient with the rich and powerful"                  ,
      "Better to visit hell in your lifetime than afterwards"         ,
-     "Halfway is 12 miles, when you have 14 miles to go"             ,
+     "Halfway is 12 miles, when you are on a 14 mile hike"           ,
      "How beautiful it is to do nothing, then rest afterwards"       ,
      "When the sky falls, hold up your hands"                        ,
      "If you can't bite, don't show your teeth"                      ,
@@ -2039,7 +2046,6 @@ void AFNI_sigfunc_alrm(int sig)
      "Remember to take your brain out and polish it"                 ,
      "What in God's Holy Name are you blathering on about?"          ,
      "Are you a Dada-ist or a Dude-ist?"                             ,
-     "I'm completely innocent. Within reason"                        ,
      "Believe those who seek the truth; doubt those who find it"     ,
      "There is more to truth that just the facts"                    ,
      "There is more to truth than a small p-value"                   ,
@@ -2063,6 +2069,31 @@ void AFNI_sigfunc_alrm(int sig)
      "Give into temptation; it might not come again"                 ,
      "Insanity is my best and only means of relaxation"              ,
      "The three 'Ups' of life: Grow Up, Shut Up, Lighten Up"         ,
+     "I am not a hexadecimal number, I am a free software!"          ,
+     "Correlation isn't causation, but what else do we have?"        ,
+     "Are you indeed there, my skylark?"                             ,
+     "Life is an experiment; please reject the dull hypothesis"      ,
+     "Hard work pays off in the future, but laziness pays off now"   ,
+     "We learn from our mistakes -- I've learned a lot today"        ,
+     "If a turtle loses its shell, is it naked or homeless?"         ,
+     "There is no mistake so great as being right"                   ,
+
+     /* bastardizations of Shakespeare */
+
+     "No longer mourn for me when I am crashed"                      ,
+     "If you read this line, remember not the bits that rendered it" ,
+     "Not from the stars do I my statisticks pluck"                  ,
+     "No more be grieved at that which thou hast computed"           ,
+     "Is it thy will thy brain image should stay open?"              ,
+
+     /* Innocence */
+
+     "I'm completely innocent. Within reason"                          ,
+     "I'm completely innocent. I was just doing what they told me"     ,
+     "I'm completely innocent. It was someone else who looked like me" ,
+     "I'm completely innocent. Or at least, you can't prove anything"  ,
+     "I'm completely innocent. Of what, I'm not saying"                ,
+     "I'm completely innocent. What are we talking about?"             ,
 
      /* paraprosdokians */
 
@@ -2075,6 +2106,8 @@ void AFNI_sigfunc_alrm(int sig)
      "We never really grow up; we only learn how to act in public"        ,
      "I didn't say it was your fault; I said I was blaming you"           ,
      "Money can't buy happiness, but it makes misery easier to live with" ,
+
+     /* self referential */
 
      "The 'Lead Standard' for neuroimaging since 1994"               ,
      "Shedding new light on the brain since 1994"                    ,
@@ -2176,6 +2209,31 @@ void AFNI_sigfunc_alrm(int sig)
 
      /* Longer quotes */
 
+     "It is a poem in our eyes, its ample analyses dazzle the imagination"            ,
+     "Do not go where the path leads; go instead where there is no path"              ,
+     "Be yourself, in a world that is always trying to make you something else"       ,
+     "Beauty is the handwriting of God"                                               ,
+     "Glory lies not in never failing, but in rising every time we fail"              ,
+     "A hero is no braver than others: she is just braver 5 minutes longer"           ,
+     "It is not length of life, but depth of life, that matters"                      ,
+     "Foolish consistency is the hobgoblin of little minds"                           ,
+     "The years teach much that the days never know"                                  ,
+     "Keep your face to the sunshine, and the shadows will fall behind you"           ,
+     "Be curious, but not judgmental"                                                 ,
+     "And my very code shall be a great poem"                                         ,
+     "Either define the moment, or the moment will define you"                        ,
+     "Let your soul stand cool and composed before a million universes"               ,
+     "I cannot travel the road for you; you must travel it by yourself"               ,
+     "The truth is simple. If it was complicated, everyone would understand it"       ,
+     "I hate, commas, in the wrong, place"                                            ,
+     "The only true wisdom is in knowing you know nothing"                            ,
+     "There is no harm in repeating a good thing! There is no harm in ..."            ,
+     "It is in our darkest moments that we must focus to see the light"               ,
+     "Dignity does not consist of possessing honors, but in deserving them"           ,
+     "What is a billion years, when compared to the lifespan of AFNI?"                ,
+     "In a billion years, the sun gets so hot Earth with be fried. Are you ready?"    ,
+
+     "I look to that which is, and beyond, to that which will ever be"                ,
      "To steal ideas from one person is plagiarism; to steal from many is research"   ,
      "The early bird gets the worm, but the second mouse gets the cheese"             ,
      "I believe in giving everybody a fair and equal chance to foul things up"        ,
@@ -2218,7 +2276,10 @@ void AFNI_sigfunc_alrm(int sig)
      "Next time, just for fun, I'll toss in some extra blobs in CSF for you"          ,
      "Next time, just for fun, I'll toss in some extra blobs in air just for you"     ,
      "What do you mean, you don't believe all those clusters in white matter?"        ,
+     "What do you mean, you don't believe all those clusters in empty space?"         ,
+     "Those results scream 'ARTIFACT' to me, but what do I know?"                     ,
      "For an extra pumpernickel bagel, I'll put a blob wherever you want it"          ,
+     "For a Torcik Wedlowski, I'll colorize TWO extra regions for you -- anywhere"    ,
      "I don't know about you, but my amygdala is lighting up like it's on fire"       ,
      "My hippocampus stopped working years ago -- what did you say?"                  ,
      "Will all great Neptune's ocean wash this modeling error from my regression?"    ,
@@ -2256,6 +2317,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Let me be fell, force I must be brief"                                          ,
      "Meet me at the Torre Pendente di Pisa on the feast of St Rainerius"             ,
      "One martini is just right; two is too many; three is never enough"              ,
+     "Martinis -- not just for breakfast anymore"                                     ,
      "If you can't explain it simply, you don't understand it well enough"            ,
      "Even the Universe bends back on itself, but stupidity goes on forever"          ,
      "Get your statistics first, then you can distort them as you please"             ,
@@ -2289,7 +2351,9 @@ void AFNI_sigfunc_alrm(int sig)
      "The best revenge is to be unlike him who performed the injury"                  ,
      "The art of living is more like wrestling than dancing"                          ,
      "If the genome is the source code, it should have come with comments"            ,
+     "So the days float through my eyes, but still the days seem the same"            ,
 
+     "When all you have is a computer, every problem looks like it needs linear algebra"      ,
      "You know you're in trouble when it takes a 64 bit integer to count your unread emails"  ,
      "Once you've done what you have to do, no one will let you do what you want to do"       ,
      "My name is AFNImandias, Brain of Brains; Look on my Statistics, ye Clever, and Despair" ,
@@ -2298,13 +2362,17 @@ void AFNI_sigfunc_alrm(int sig)
      "You must accept finite disappointments, but never lose your infinite hopes"             ,
      "We may all have come on different ships, but we're all in the same boat now"            ,
      "You can always find me out on the Long Line -- I hang out by the Church-Kleene ordinal" ,
-     "Outside of a dog, a book is Man's best friend. Inside of a dog, it's too dark to read"  ,
+     "Outside of a dog, a book is Man's best friend; inside of a dog, it's too dark to read"  ,
+     "I've narrowed the answer to your hypothesis down to two possibilities: right and wrong" ,
 
      "Someday I'll tell you of the Giant Rat of Sumatra, a tale for which the world is not prepared"    ,
      "People have to learn to live with newly-discovered facts; if they don't, they die of them"        ,
      "It is the pardonable vanity of lonely people everywhere to assume that they have no counterparts" ,
 
      /* Multi-line quotes */
+     "\n  A journey of a thousand miles begins with a single stride,\n"
+     "  and then continues on and on and on and on and on,\n"
+     "  with a million more plodding steps to trudge through endlessly"  ,
 
      "\n  Ever returning spring, trinity sure to me you bring\n"
      "  Lilac blooming perennial, drooping star in the West,\n"
@@ -2314,9 +2382,24 @@ void AFNI_sigfunc_alrm(int sig)
      "   If you don't like the facts, ignore them.\n"
      "   And if you need facts, dream up some you DO like"                                    ,
 
+     "\n  We shall not cease from exploration\n"
+     "  And the end of all our exploring\n"
+     "  Will be to arrive where we started\n"
+     "  And know the place for the first time."                                               ,
+
      "Remember:\n"
      "  To argue with those who have renounced the use and authority\n"
      "  of reason is as futile as to administer medicine to the dead"                         ,
+
+     "Remember the Manager's Mantra:\n"
+     "  * Work Harder.\n"
+     "  * Work Smarter.\n"
+     "  * Work Faster.\n"
+     "  * Do More with Less.\n"
+     "  * You're screwed (this part isn't spoken aloud)"                                      ,
+
+     "\n  I don't want any 'downs' in my life:\n"
+     "  I just want 'ups', and then 'upper ups'"                                              ,
 
      "\n  It is a truth universally acknowledged, that a single scientist\n"
      "  in possession of a large FMRI data collection, is in need of an AFNI"                 ,
@@ -2351,6 +2434,12 @@ void AFNI_sigfunc_alrm(int sig)
      "\n  To be stupid, selfish, and have good health are three requirements\n"
      "  for happiness; though if stupidity is lacking, all is lost"                           ,
 
+     "\n  May the following be true for you:\n"
+     "   'Work is about a search for daily meaning as well as daily bread,\n"
+     "    for recognition as well as cash, for astonishment rather than torpor;\n"
+     "    in short, for a sort of life rather than a Monday through Friday sort of dying.'\n"
+     "  ... especially if you are working on a Saturday!"                                     ,
+
      "\n xkcd's translation of p-values into words:\n"
      "     0.001  = Highly significant\n"
      "     0.01   = Highly significant\n"
@@ -2367,9 +2456,34 @@ void AFNI_sigfunc_alrm(int sig)
      "     0.099  = Significant at the p < 0.1 level\n"
      "     > 0.1  = Hey! Look at this interesting subgroup analysis"   ,
 
+     "\n Possible answers to a binary question:\n"
+     "     Yes\n"
+     "     No\n"
+     "     Maybe\n"
+     "     I don't know\n"
+     "     I know but I'm not telling you\n"
+     "     I need to talk to my lawyer\n"
+     "     I need to talk to my dentist\n"
+     "     Please repeat the question\n"
+     "     Could you clarify what you mean, exactly?\n"
+     "     Quantum indeterminacy makes any answer uncertain\n"
+     "     That depends on the truth of the Riemann Hypothesis\n"
+     "     Is there an odd perfect number?\n"
+     "     Go Fish\n"
+     "     I like eggs\n"
+     "     Look, a squirrel" ,
+
      "\n There comes a time when you look into the mirror and you realize\n"
-     "  what you see is all that you will ever be. And then you accept it.\n"
-     "  Or you stop looking in mirrors"
+     " what you see is all that you will ever be. And then you accept it.\n"
+     " Or you stop looking in mirrors" ,
+
+     /* from John Tukey */
+
+     "\n  Better an approximate answer to the right question,\n"
+     "  than an exact answer to the wrong question"                                    ,
+
+     "\n  The combination of some data and an aching desire for an answer does not\n"
+     "  ensure that a reasonable answer can be extracted from a given body of data"
 
    } ;
 #undef NTOP
@@ -2387,7 +2501,7 @@ void AFNI_sigfunc_alrm(int sig)
 #define NDUN (sizeof(dun)/sizeof(char *))
        static char *dun[] = { "is done" , "wraps up"   , "concludes" ,
                               "is over" , "terminates" , "finishes"   } ;
-       fprintf(stderr,"\n** AFNI %s: %s!\n\n",dun[lrand48()%NDUN],msg[nn]) ;
+       fprintf(stderr,"\n** AFNI %s: %s!  [%d/%d]\n\n",dun[lrand48()%NDUN],msg[nn],nn+1,(int)NMSG) ;
        if( sig < 0 ){
          int ss ;
          for( ss=-1 ; ss > sig ; ss-- ){

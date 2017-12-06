@@ -1679,7 +1679,7 @@ int DC_parse_color( MCW_DC *dc, char *str, float *rr, float *gg, float *bb )
      }
    }
 
-   ok = find_color_name(str,rr,bb,gg) ; if( ok >= 0 ) return 0 ; /* 02 Dec 2015 */
+   ok = find_color_name(str,rr,gg,bb) ; if( ok >= 0 ) return 0 ; /* 02 Dec 2015 */
 
    /* let X11 try to understand the input string */
 

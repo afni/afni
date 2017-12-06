@@ -1,9 +1,19 @@
 #!/usr/bin/env python
 
+# python3 status: started
+
 # system libraries
 import sys, os
 
-# AFNI libraries
+# AFNI libraries (test first)
+import module_test_lib
+g_testlibs = ['option_list', 'afni_util', 'lib_system_check']
+if module_test_lib.num_import_failures(g_testlibs,details=0,verb=0):
+   print("\n** failed to load standard AFNI python libraries")
+   print("   python version = %s" % sys.version.split()[0])
+   sys.exit(1)
+
+# now load AFNI libraries by name
 import option_list as OL
 import afni_util as UTIL        # not actually used, but probably will be
 import lib_system_check as SC
@@ -190,9 +200,17 @@ g_history = """
    0.24 Dec  7, 2016 - check for python2 and python3
    0.25 Jan 25, 2017 - new OS X, check any DYLD vars via sub-shells
    0.26 Feb  1, 2017 - updates for brew/fink, and check for fink python link
+   0.27 Jun 16, 2017 - check for libXt.7.dylib without flat_namespace
+   0.28 Jul 12, 2017 - idiot; forget libXt.7 checks
+   0.29 Aug 15, 2017 
+        - check 3dClustSim, for OpenMP library
+        - for mac, force cheating variable check via interactive shell
+   0.30 Sep 27, 2017 - PyQt4 is no longer needed for an AFNI bootcamp
+   1.00 Nov  7, 2017 - python3 compatible
+   1.01 Nov 27, 2017 - warn user on python 3 (!= 2.7 even)
 """
 
-g_version = "afni_system_check.py version 0.26, February 1, 2017"
+g_version = "afni_system_check.py version 1.01, November 27, 2017"
 
 
 class CmdInterface:
@@ -276,15 +294,15 @@ class CmdInterface:
 
       # if no arguments are given, apply -help
       if '-help' in argv or len(argv) < 2:
-         print g_help_string
+         print(g_help_string)
          return 0
 
       if '-help_rc_files' in argv or '-help_dot_files' in argv:
-         print g_help_rc_files
+         print(g_help_rc_files)
          return 0
 
       if '-hist' in argv:
-         print g_history
+         print(g_history)
          return 0
 
       if '-show_valid_opts' in argv:
@@ -292,11 +310,11 @@ class CmdInterface:
          return 0
 
       if '-todo' in argv:
-         print g_todo
+         print(g_todo)
          return 0
 
       if '-ver' in argv:
-         print g_version
+         print(g_version)
          return 0
 
       # ============================================================
@@ -360,11 +378,11 @@ class CmdInterface:
          if opt.name == '-verb': continue
 
          # an unhandled option
-         print '** option %s not yet supported' % opt.name
+         print('** option %s not yet supported' % opt.name)
          return 1
 
       if not self.act:
-         print '** no action option found, please see -help output\n'
+         print('** no action option found, please see -help output\n')
          return 1
 
       return None
@@ -385,12 +403,12 @@ class CmdInterface:
       for dfile in g_dotfiles:
          if os.path.isfile('%s/%s' % (home, dfile)):
             dfound.append(dfile)
-            print 'found under $HOME : %s' % dfile
+            print('found under $HOME : %s' % dfile)
 
       if show:
          for dfile in dfound:
-            print UTIL.section_divider(dfile, hchar='=')
-            print '%s\n' % UTIL.read_text_file('%s/%s' % (home, dfile), lines=0)
+            print(UTIL.section_divider(dfile, hchar='='))
+            print('%s\n' % UTIL.read_text_file('%s/%s' % (home, dfile), lines=0))
 
       if pack:
          import shutil
@@ -402,20 +420,20 @@ class CmdInterface:
             pgz = package
             package = package[0:ext]
          if os.path.exists(package) or os.path.exists('%s.tgz'%package):
-            print "** error: package dir '%s' or file '%s' already exists"\
-                  % (package, pgz)
+            print("** error: package dir '%s' or file '%s' already exists"\
+                  % (package, pgz))
             return 1
 
          try: os.mkdir(package)
          except:
-            print "** failed to make dot file package dir '%s'"  % package
+            print("** failed to make dot file package dir '%s'"  % package)
             return 1
          for dfile in dfound:
             shutil.copy2('%s/%s' % (home, dfile), package)
          os.system("tar cfz %s %s" % (pgz, package))
          shutil.rmtree(package)
-         if os.path.exists(pgz): print '++ dot file package is in %s' % pgz
-         else: print '** failed to make dot file packge %s' % pgz
+         if os.path.exists(pgz): print('++ dot file package is in %s' % pgz)
+         else: print('** failed to make dot file packge %s' % pgz)
 
       return 0
 

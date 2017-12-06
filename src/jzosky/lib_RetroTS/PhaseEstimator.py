@@ -160,6 +160,11 @@ def phase_base(amp_type, phasee):
 
     # Time series time vector
     phasee['time_series_time'] = arange(0, (max(phasee['t']) - 0.5 * phasee['volume_tr']), phasee['volume_tr'])
+    # Python uses half open ranges, so we need to catch the case when the stop
+    # is evenly divisible by the step and add one more to the time series in
+    # order to match Matlab, which uses closed ranges  1 Jun 2017 [D Nielson]
+    if (max(phasee['t']) - 0.5 * phasee['volume_tr'])%phasee['volume_tr'] == 0:
+        phasee['time_series_time'] = append(phasee['time_series_time'],[phasee['time_series_time'][-1]+phasee['volume_tr']])
     phasee['phase_slice'] = zeros((len(phasee['time_series_time']), phasee['number_of_slices']))
     phasee['phase_slice_reg'] = zeros((len(phasee['time_series_time']), 4, phasee['number_of_slices']))
     for i_slice in range(phasee['number_of_slices']):

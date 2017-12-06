@@ -2150,6 +2150,7 @@ void get_options
   int iglt = 0;                     /* general linear test index */
   int nerr ;
   float ttmax=big_time ;   /* 28 Aug 2015 */
+  float gtmax=big_time ;   /* same, for global timing  19 Jul 2017 [rickr] */
 
   /*-- addto the arglist, if user wants to --*/
   { int new_argc ; char **new_argv ;
@@ -2304,12 +2305,29 @@ void get_options
           dset = THD_open_dataset (option_data->input_filename);
           CHECK_OPEN_ERROR(dset,option_data->input_filename) ;
           lmax = DSET_NVALS(dset) ;
+          /* compute gtmax, as ttmax for global timing  19 Jul 2017 [rickr] */
+          /* (init to lmax if not in TCAT case)          4 Dec 2017 [rickr] */
+          gtmax = lmax;
           if( DSET_IS_TCAT(dset) && !option_data->tcat_noblock ){
             int it ;
-            for( lmax=2,it=0 ; it < dset->tcat_num ; it++ )
+            gtmax = 0.0;
+            for( lmax=2,it=0 ; it < dset->tcat_num ; it++ ) {
               lmax = MAX( lmax , dset->tcat_len[it] ) ;
+              /* accumulate time points, scale by TR later */
+              gtmax += dset->tcat_len[it];
+            }
           }
-          ttmax = lmax * DSET_TR(dset) ;
+
+          /* if force_TR is set, apply it           5 Jul 2017 [rickr] */
+          if( option_data->force_TR > 0.0 ) {
+            ttmax = lmax * option_data->force_TR ;
+            gtmax *= option_data->force_TR ; /* scale NT by TR */
+          } else {
+            ttmax = lmax * DSET_TR(dset) ;
+            gtmax *= DSET_TR(dset) ;         /* scale NT by TR */
+            if( DSET_TR(dset) == 0.0 )       /* 23 Oct 2017 [rickr] */
+              WARNING_message("-input dataset seems to have TR = 0.0");
+          }
           DSET_delete(dset) ;
         }
 
@@ -2370,6 +2388,12 @@ void get_options
       /*-----   -force_TR  -------*/
       if (strcmp(argv[nopt], "-force_TR") == 0)  /* 18 Aug 2008 */
       {
+        /* if ttmax is alreay set (from -input), suggest putting -force_TR
+         * earlier (this is for _IM, at least)          5 Jul 2017 [rickr] */
+        if (ttmax < big_time)
+           ERROR_exit("please apply -force_TR before -input\n"
+                      "   (or use 3drefit so it is not needed)") ;
+
         nopt++;
         if (nopt >= argc)  DC_error ("need argument after -force_TR ");
         option_data->force_TR = (float)strtod(argv[nopt++],NULL) ;
@@ -2806,14 +2830,22 @@ void get_options
 
         /* check number of reasonable times */
 
-        nc = mri_counter( tim , 0.0f , ttmax ) ;
+        /* allow for global timing    19 Jul 2017 [rickr] */
+        if( basis_timetype == GLOBAL_TIMES )
+           nc = mri_counter( tim , 0.0f , gtmax ) ;
+        else
+           nc = mri_counter( tim , 0.0f , ttmax ) ;
 
         if( tim != basis_times[k] ) mri_free(tim) ;
 
-        if( nc == 0 )  /* 0 is okay, < 0 is not   26 Jul 2007 [rickr] */
+        if( nc == 0 ) { /* 0 is okay, < 0 is not   26 Jul 2007 [rickr] */
           WARNING_message("'%s %d' didn't read any good times from file '%s'",
                           sopt , ival , argv[nopt] ) ;
-        else if( nc < 0 )
+          /* but 0 might be a symptom of something bad  23 Oct 2017 [rickr] */
+          if( (basis_timetype == GLOBAL_TIMES && gtmax == 0.0) ||
+              (basis_timetype != GLOBAL_TIMES && ttmax == 0.0) )
+             WARNING_message("run time seen as 0.0, verify TR and NT");
+        } else if( nc < 0 )
           ERROR_exit("'%s %d' couldn't read valid times from file '%s' [nopt=%d]",
                      sopt , ival , argv[nopt] , nopt ) ;
 

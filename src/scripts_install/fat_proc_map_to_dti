@@ -1,0 +1,956 @@
+#!/bin/tcsh -e
+
+# written by PA Taylor (NIMH, NIH, USA)
+# started March, 2017
+
+# --------------------- revision history -------------------------
+#
+#set version   = "1.0";    set rev_dat   = "March 16, 2017"
+#   + inception
+#
+#set version   = "1.1";    set rev_dat   = "March 19, 2017"
+#   + follower NN, wsinc5 lists
+#   + snapshotting of images
+#   + update help file
+#
+#set version   = "1.2";    set rev_dat   = "March 20, 2017"
+#   + propagate labeltables for NN sets
+#
+#set version   = "1.3";    set rev_dat   = "March 21, 2017"
+#   + consistent option/help names
+#
+#set version   = "1.4";    set rev_dat   = "Apr 12, 2017"
+#   + standardizing names, I/O
+#   + change option names
+#   + allow 3dAllineate matrix to be input+applied
+#
+#set version   = "1.5";  set rev_dat   = "Apr 26, 2017"
+#   + better naming wdir
+#
+#set version   = "1.6";  set rev_dat   = "Aug 8, 2017"
+#   + allow surface files to be input+move
+#   + take *.niml.dsets and *spec files with them
+#
+#set version   = "1.7";  set rev_dat   = "Aug 11, 2017"
+#   + set cbar range to 256
+#
+#set version   = "1.8";  set rev_dat   = "Sep 04, 2017"
+#   + work with new @chauffeur*, -prefix only
+#
+set version   = "1.9";  set rev_dat   = "Sep 22, 2017"
+#   + for Mac compatability, apparently I need to wrap around 
+#     some for loops if a particular type of dset weren't input
+#     --> Thanks, Jiajia, for finding+noting.
+#   + also, movie $imtrx loop above, don't need to Unifize
+#     if the matrix is input directly: save time.
+#
+# ---------------------------------------------------------------
+
+set this_prog = "fat_proc_map_to_dti"
+set tpname    = "${this_prog:gas/fat_proc_//}"
+set here      = $PWD
+
+# ----------------- find AFNI and set viewer ---------------------
+
+# find AFNI binaries directory and viewer location
+set adir      = ""
+set my_viewer = ""
+which afni >& /dev/null
+if ( $status ) then
+    echo "** Cannot find 'afni' (?!)."
+    goto BAD_EXIT
+else
+    set aa   = `which afni`
+    set adir = $aa:h
+endif
+
+# default location of viewer: user could modify!
+set my_viewer = "$adir/@chauffeur_afni"
+
+# ----------------------- set defaults --------------------------
+
+set isrc       = ""              # t1w
+set ibase      = ""              # b=0 or t2w
+set imtrx      = ""              # user can input 12 DOF made elsewhere
+
+set odir       = ""
+set opref      = ""
+
+set fNN        = ()              # followers to be interpolated with NN
+set fWS5       = ()              # followers to be interpolated with wsinc5
+set fss        = ()              # followers that are surfaces
+set fsniml     = ()              # followers that are niml files
+set fsspec     = ()              # followers that are spec files
+
+set DO_VIEWER  = 1               # def: do viewing
+set DO_CLEAN   = "1"
+set wdir       = "__WORKING_$tpname"
+set WDIR_EX  = "1"               # put opref on wdir (unless user names)
+set output_cmd = 1               # def: output copy of this command
+set cmd_file   = ""              # def: same name as viewer
+set qc_prefix  = ""              # def: autoname; user can enter
+set postfix    = "_"             # stick into name
+
+# ------------------- process options, a la rr ----------------------
+
+if ( $#argv == 0 ) goto SHOW_HELP
+
+set ac = 1
+while ( $ac <= $#argv )
+    # terminal options
+    if ( ("$argv[$ac]" == "-h" ) || ("$argv[$ac]" == "-help" )) then
+        goto SHOW_HELP
+    endif
+    if ( "$argv[$ac]" == "-ver" ) then
+        goto SHOW_VERSION
+    endif
+
+    # --------------- input dset(s) ----------------
+
+    # input volume 'source', likely to have opposite contrast to the
+    # b0/T2w to which we are matching.
+    if ( "$argv[$ac]" == "-source" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set isrc = "$argv[$ac]"
+
+    # our name for the b0 file still
+    else if ( "$argv[$ac]" == "-base" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set ibase = "$argv[$ac]"
+
+    # optional input: premade 3dAllineate matrix
+    else if ( "$argv[$ac]" == "-matrix" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set imtrx = "$argv[$ac]"
+
+    # ----------------- outputs ---------------------
+
+    else if ( "$argv[$ac]" == "-prefix" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set opref = "$argv[$ac]"
+
+    # ------------------- other opts ---------------
+
+    else if ( "$argv[$ac]" == "-no_cmd_out" ) then
+        set output_cmd = 0
+
+    else if ( "$argv[$ac]" == "-no_clean" ) then
+        set DO_CLEAN = "0"
+
+    else if ( "$argv[$ac]" == "-workdir" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set wdir = "$argv[$ac]"
+        set WDIR_EX  = "0"
+
+    # -------------- get followers --------------------
+    # can be arbitrary list (a bit clunky method...)
+    
+    else if ( "$argv[$ac]" == "-followers_NN" ) then
+        set i0 = $ac
+        # check that this ain't the end of argv[] entries
+        if ( $i0 == $#argv ) then
+            echo "** ERROR: need at least one dset after $argv[$ac]!"
+            goto BAD_EXIT
+        else 
+            # check that next argv[] member isn't a new option: shd be
+            # a dset
+            @ i0 += 1
+            set c0 = ""
+            while ( ( $i0 <= $#argv ) && ( "$c0" != "-" )  )
+                set fNN = ( $fNN "$argv[$i0]" )
+                @ ac += 1
+
+                @ i0 += 1
+                if ( $i0 <= $#argv ) then
+                    set c0 = `echo $argv[$i0] | awk '{print substr($0,1,1)}'`
+                endif
+            end
+
+            if ( $#fNN == 0 ) then
+                echo "** ERROR: need at least one dset after $argv[$ac]!"
+                goto BAD_EXIT
+            else
+                echo "++ User has listed $#fNN followers_NN dsets"
+            endif
+        endif
+
+    else if ( "$argv[$ac]" == "-followers_wsinc5" ) then
+        set i0 = $ac
+        # check that this ain't the end of argv[] entries
+        if ( $i0 == $#argv ) then
+            echo "** ERROR: need at least one dset after $argv[$ac]!"
+            goto BAD_EXIT
+        else 
+            # check that next argv[] member isn't a new option: shd be
+            # a dset
+            @ i0 += 1
+            set c0 = ""
+            while ( ( $i0 <= $#argv ) && ( "$c0" != "-" )  )
+                set fWS5 = ( $fWS5 "$argv[$i0]" )
+                @ ac += 1
+
+                @ i0 += 1
+                if ( $i0 <= $#argv ) then
+                    set c0 = `echo $argv[$i0] | awk '{print substr($0,1,1)}'`
+                endif
+            end
+
+            if ( $#fWS5 == 0 ) then
+                echo "** ERROR: need at least one dset after $argv[$ac]!"
+                goto BAD_EXIT
+            else
+                echo "++ User has listed $#fWS5 followers_ws5 dsets"
+            endif
+        endif
+
+    # [PT: Aug 8, 2017] Allow surfaces to be input to move
+    else if ( "$argv[$ac]" == "-followers_surf" ) then
+        set i0 = $ac
+        # check that this ain't the end of argv[] entries
+        if ( $i0 == $#argv ) then
+            echo "** ERROR: need at least one dset after $argv[$ac]!"
+            goto BAD_EXIT
+        else 
+            # check that next argv[] member isn't a new option: shd be
+            # a dset
+            @ i0 += 1
+            set c0 = ""
+            while ( ( $i0 <= $#argv ) && ( "$c0" != "-" )  )
+                set fss = ( $fss "$argv[$i0]" )
+                @ ac += 1
+
+                @ i0 += 1
+                if ( $i0 <= $#argv ) then
+                    set c0 = `echo $argv[$i0] | awk '{print substr($0,1,1)}'`
+                endif
+            end
+
+            if ( $#fss == 0 ) then
+                echo "** ERROR: need at least one dset after $argv[$ac]!"
+                goto BAD_EXIT
+            else
+                echo "++ User has listed $#fss followers_surf dsets"
+            endif
+        endif
+
+    # [PT: Aug 8, 2017] Allow niml to be input to move
+    else if ( "$argv[$ac]" == "-followers_ndset" ) then
+        set i0 = $ac
+        # check that this ain't the end of argv[] entries
+        if ( $i0 == $#argv ) then
+            echo "** ERROR: need at least one dset after $argv[$ac]!"
+            goto BAD_EXIT
+        else 
+            # check that next argv[] member isn't a new option: shd be
+            # a dset
+            @ i0 += 1
+            set c0 = ""
+            while ( ( $i0 <= $#argv ) && ( "$c0" != "-" )  )
+                set fsniml = ( $fsniml "$argv[$i0]" )
+                @ ac += 1
+
+                @ i0 += 1
+                if ( $i0 <= $#argv ) then
+                    set c0 = `echo $argv[$i0] | awk '{print substr($0,1,1)}'`
+                endif
+            end
+
+            if ( $#fsniml == 0 ) then
+                echo "** ERROR: need at least one dset after $argv[$ac]!"
+                goto BAD_EXIT
+            else
+                echo "++ User has listed $#fsniml followers_niml dsets"
+            endif
+        endif
+
+    # [PT: Aug 8, 2017] Allow spec to be input to move
+    else if ( "$argv[$ac]" == "-followers_spec" ) then
+        set i0 = $ac
+        # check that this ain't the end of argv[] entries
+        if ( $i0 == $#argv ) then
+            echo "** ERROR: need at least one spec file after $argv[$ac]!"
+            goto BAD_EXIT
+        else 
+            # check that next argv[] member isn't a new option: shd be
+            # a dset
+            @ i0 += 1
+            set c0 = ""
+            while ( ( $i0 <= $#argv ) && ( "$c0" != "-" )  )
+                set fsspec = ( $fsspec "$argv[$i0]" )
+                @ ac += 1
+
+                @ i0 += 1
+                if ( $i0 <= $#argv ) then
+                    set c0 = `echo $argv[$i0] | awk '{print substr($0,1,1)}'`
+                endif
+            end
+
+            if ( $#fsspec == 0 ) then
+                echo "** ERROR: need at least one spec file after $argv[$ac]!"
+                goto BAD_EXIT
+            else
+                echo "++ User has listed $#fsspec followers_spec dsets"
+            endif
+        endif
+
+    # ---------------------------------------------------------------------
+
+    else
+        echo "** unexpected option #$ac = '$argv[$ac]'"
+        goto BAD_EXIT
+
+    endif
+    @ ac += 1
+end
+
+# =======================================================================
+# ============================ ** SETUP ** ==============================
+# =======================================================================
+
+# ============================ input files ==============================
+
+echo "++ Start script version: $version"
+
+# NEED these two inputs
+if ( "$isrc" == "" ) then
+    echo "** ERROR: no t1w file input?!"
+    goto BAD_EXIT
+else if ( "$ibase" == "" ) then
+    echo "** ERROR: no t2w file input?!"
+    goto BAD_EXIT
+endif
+
+# make sure we can read volumes OK
+foreach ff ( "$isrc" "$ibase" $fNN $fWS5 )
+    set check = `3dinfo "$ff"`
+    if ( "$#check" == "0" ) then
+        echo "** ERROR: can't find input file:  $ff !"
+        goto BAD_EXIT
+    else
+        echo "++ Found input file:   $ff"
+    endif
+end
+
+# [PT: Aug 8, 2017] make sure we can read surfs OK -- can't use 3dinfo
+foreach ff ( $fss $fsniml $fsspec )
+    set check = `ls "$ff"`
+    if ( "$#check" == "0" ) then
+        echo "** ERROR: can't find input file:  $ff !"
+        goto BAD_EXIT
+    else
+        echo "++ Found input file:   $ff"
+    endif
+end
+
+# ===================== output and working dirs =========================
+
+if ( "$opref" == "" ) then
+    echo "** ERROR: need '-prefix ...' option provided!"
+    echo "   See the helpfile for more information."
+    goto BAD_EXIT
+else
+    set odir = `dirname $opref`
+    set opref = `basename $opref`
+    echo ""
+    echo "++ Based on prefix, the output directory will be:"
+    echo "     $odir"
+    echo "++ Based on prefix, the output prefix will be:"
+    echo "     $opref"
+    echo ""
+endif
+
+# check output directory, use input one if nothing given
+
+# default output dir, if nothing input.
+if ( ! -e "$odir" ) then
+    echo "+* Output directory didn't exist.  Trying to make it now."
+    mkdir "$odir"
+endif
+
+# and put working directory as subdirectory.
+if ( "$WDIR_EX" == "1" ) then
+    set wdir = $odir/${wdir}_$opref
+else
+    set wdir = $odir/$wdir
+endif
+
+# make the working directory
+if ( ! -e $wdir ) then
+    echo "++ Making working directory: $wdir"
+    mkdir $wdir
+else
+    echo "+* WARNING: Somehow found a premade working directory (?):"
+    echo "      $wdir"
+
+    # don't clean preexisting directories-- could be user mistake.
+    echo "   NB: will *not* clean it afterwards."
+    set DO_CLEAN = "0"
+endif
+
+# ========================= output fnames ==========================
+
+set ocmd   = "${opref}_cmd.txt"            # name for output command
+set osrc   = "${opref}.nii.gz"             # name for output t1w
+set omtrx  = "${opref}_map_allin.aff12.1D" # save matrix with other files
+
+# =======================================================================
+# =========================== ** PROCESS ** =============================
+# =======================================================================
+
+echo "\n-----> STARTING $this_prog ---->"
+
+# ---------------------------- CMD ---------------------------------
+
+echo "\n\nThis command:"
+echo "$this_prog $argv\n\n"
+
+if ( "$cmd_file" == "" ) then
+    set cmd_file = "$odir/$ocmd"
+endif
+
+# copy original command:
+# dump copy of command into workdir/..
+if ( $output_cmd == 1 ) then
+    echo "++ Echoing the command to: $cmd_file"
+
+    set rec_afni_ver = `afni -ver`
+    echo "### AFNI version:"  > $cmd_file
+    echo "# $rec_afni_ver\n"            >> $cmd_file
+
+    echo "### Executed from the directory location:"  >> $cmd_file
+    echo "# $here\n"            >> $cmd_file
+    echo "### The command was:" >> $cmd_file
+    echo "# $this_prog $argv"   >> $cmd_file
+    echo "\n"                   >> $cmd_file
+endif
+
+# --------------------- start proc ---------------------------
+
+# copy the t1w file to wdir via resampling: match t2w-t1w orients
+set orient_t2w = `3dinfo -orient "$ibase"`
+set t1res      = $wdir/f00_t1res.nii
+set T1TOMAP    = $t1res                 # we will apply map to this!
+3dresample                          \
+    -overwrite                      \
+    -prefix $t1res                  \
+    -orient $orient_t2w             \
+    -inset "$isrc"
+
+# [PT: Sep 20, 2017] Move this here, no need to unifize if matrix has
+# been input already-- save you time & money!
+if ( "$imtrx" == "" ) then
+
+    # prep this side for aligning with a bit of unifizing and brightness
+    # thresholding
+    echo "++ Unifize T1w proc vol."
+    set t1uni = $wdir/f01_t1uni.nii
+    3dUnifize                            \
+        -GM                              \
+        -prefix  $t1uni                  \
+        -input   "$t1res"                \
+        -overwrite 
+
+    echo "++ Threshold T1w proc vol."
+    set t1thr = $wdir/f02_t1thr.nii
+    set v1 = `3dBrickStat -non-zero -automask   \
+                -percentile 95 1 95 ${t1uni}`
+    echo ${v1[2]}
+    3dcalc -a  ${t1uni}                         \
+           -expr "maxbelow(${v1[2]},a)"         \
+           -prefix $t1thr                       \
+           -overwrite
+
+    set t1align   = $wdir/f05_t1align.nii
+
+    echo "++ Calculating alignment matrix."
+
+    set imtrx = $wdir/map_to_dti.aff12.1D
+
+    3dAllineate   -echo_edu               \
+        -1Dmatrix_save  $imtrx            \
+        -prefix         "$t1align"        \
+        -base           "$ibase"          \
+        -twopass                          \
+        -cost lpc                         \
+        -cmass                            \
+        -source_automask                  \
+        -autoweight                       \
+        -source "$t1thr"                  \
+        -final wsinc5                     \
+        -overwrite
+
+endif
+
+echo "++ Apply alignment matrix."
+
+# --> always match dti grid...
+set t1mapped = $wdir/f06_t1mapped.nii
+if ( 1 ) then
+    echo "++ Outputting final image to t2w space"
+    3dAllineate   -echo_edu               \
+        -overwrite                        \
+        -1Dmatrix_apply   $imtrx          \
+        -source           $T1TOMAP        \
+        -master           "$ibase"        \
+        -prefix           $t1mapped       \
+        -float                            \
+        -final wsinc5
+endif
+
+# map all NN followers
+set list_ofNN = ()
+if ( $#fNN > 0 ) then
+    echo "++ Map $#fNN 'NN' followers."
+    foreach i ( `seq 1 1 $#fNN` ) 
+
+        set ffi = "$fNN[$i]"
+        set ppi = `3dinfo -prefix_noext $ffi`
+        set ffr = "$wdir/fff_${ppi}.nii"
+        set off = "$odir/${opref}_${ppi}.nii.gz"
+
+        3dresample                          \
+            -overwrite                      \
+            -prefix $ffr                    \
+            -orient $orient_t2w             \
+            -inset $ffi
+
+        3dAllineate   -echo_edu               \
+            -overwrite                        \
+            -1Dmatrix_apply   $imtrx          \
+            -source           $ffr            \
+            -master           "$ibase"        \
+            -prefix           $off            \
+            -final NN
+
+        # AND propagate labeltables
+        set lt = `3dinfo -labeltable $ffi`
+        if ( "$lt" == "NO_LABEL_TABLE" ) then
+            echo "++ Dset $ffi has *no* labeltable to propagate."
+        else
+            echo "++ Dset $ffi has a labeltable to propagate.  So I will."
+            3drefit -copytables $ffi $off 
+        endif
+
+        set list_ofNN = ( $list_ofNN $off )
+    end
+endif 
+
+# map all WS5 followers
+set list_ofWS5 = ()
+if ( $#fWS5 > 0 ) then
+    echo "++ Map $#fWS5 'wsinc5' followers."
+    foreach i ( `seq 1 1 $#fWS5` ) 
+
+        set ffi = "$fWS5[$i]"
+        set ppi = `3dinfo -prefix_noext $ffi`
+        set ffr = "$wdir/fff_${ppi}.nii"
+        set off = "$odir/${opref}_${ppi}.nii.gz"
+
+        3dresample                          \
+            -overwrite                      \
+            -prefix $ffr                    \
+            -orient $orient_t2w             \
+            -inset $ffi
+
+        3dAllineate   -echo_edu               \
+            -overwrite                        \
+            -1Dmatrix_apply   $imtrx          \
+            -source           $ffr            \
+            -master           "$ibase"        \
+            -prefix           $off            \
+            -final wsinc5
+
+        set list_ofWS5 = ( $list_ofWS5 $off )
+    end
+endif
+
+# [PT: Aug 8, 2017] map all surf followers
+set list_ofsurf = ()
+if ( $#fss > 0 ) then
+    echo "++ Map $#fss 'surf' followers."
+    foreach i ( `seq 1 1 $#fss` ) 
+
+        set ffi = "$fss[$i]"
+        set ffe = "$ffi:e"    # ext
+        set ppi = "$ffi:t:r"  # fname, no path, no ext
+        set off = "$odir/${opref}_${ppi}.$ffe"
+
+        ConvertSurface                       \
+            -ixmat_1D $imtrx                 \
+            -i $ffi                          \
+            -o $off
+
+        set list_ofsurf = ( $list_ofsurf $off )
+    end
+endif
+
+# [PT: Aug 8, 2017] map all niml followers
+set list_ofniml = ()
+if ( $#fsniml > 0 ) then
+    echo "++ Map $#fsniml 'surf' followers."
+    foreach i ( `seq 1 1 $#fsniml` ) 
+
+        set ffi = "$fsniml[$i]"
+        set ffe = "$ffi:e"    # ext
+        set ppi = "$ffi:t"    # fname, no path, KEEP ext
+        set off = "$odir/${opref}_${ppi}"
+
+        # appears to be all we need? formats get recognized by extension,
+        # methinks...
+        ConvertDset                          \
+            -input     $ffi                  \
+            -prefix    $off
+
+        set list_ofniml = ( $list_ofniml $off )
+    end
+endif
+
+# [PT: Aug 8, 2017] map all spec followers
+set list_ofspec = ()
+if ( $#fsspec > 0 ) then
+    echo "++ Map $#fsspec 'surf' followers."
+    foreach i ( `seq 1 1 $#fsspec` ) 
+
+        set ffi = "$fsspec[$i]"
+        set ffe = "$ffi:e"    # ext
+        set ppi = "$ffi:t"    # fname, no path, KEEP ext
+        #set off = "$odir/${opref}_${ppi}"
+
+        # experimental new function: rename LabelDsets and 
+        @suma_reprefixize_spec                  \
+            -input      $ffi                    \
+            -preprefix  ${opref}                \
+            -odir       $odir
+
+        set list_ofspec = ( $list_ofspec $off )
+    end
+endif
+
+set T1TOCOPY = $t1mapped
+set fdims = `3dinfo -n4 ${T1TOCOPY}`
+set fres  = `3dinfo -ad3 ${T1TOCOPY}`
+
+echo "++ Done workin'.  Just need to copy the final dset."
+
+3dcopy $T1TOCOPY $odir/$osrc
+\cp $imtrx $odir/$omtrx
+
+if ( $DO_VIEWER == 1 ) then
+
+    set vedge = $wdir/f10_edges.nii
+
+    echo "++ Calc edges of source."
+    3dedge3                         \
+        -overwrite                  \
+        -prefix $vedge              \
+        -input  $odir/$osrc
+
+    if( $qc_prefix == "" ) then
+        set vpref0 = ${opref}${postfix}_qc00_base_u_esrc
+        set vpref1 = ${opref}${postfix}_qc01_base_u_src
+    else
+        set vpref0 = ${qc_prefix}${postfix}_qc00_base_u_esrc
+        set vpref1 = ${qc_prefix}${postfix}_qc01_base_u_src
+    endif
+
+    echo "\n\n"
+    echo "++ QC image 00 ($odir/$osrc edges on $ibase): $vpref0"
+    echo "\n\n"
+    # need to put '[0]' on $iref?
+    $my_viewer                            \
+        -ulay "$ibase"                    \
+        -ulay_range "2%" "98%"            \
+        -olay "$vedge"                    \
+        -func_range_perc 50               \
+        -pbar_posonly                     \
+        -cbar "red_monochrome"            \
+        -opacity 6                        \
+        -prefix "$odir/$vpref0"           \
+        -montx 5 -monty 3                 \
+        -set_xhairs OFF                   \
+        -label_mode 1 -label_size 3       \
+        -do_clean 
+
+    echo "\n\n"
+    echo "++ QC image 01 ($odir/$osrc olay on $ibase): $vpref1"
+    echo "\n\n"
+
+    $my_viewer                            \
+        -ulay "$ibase"                    \
+        -ulay_range "2%" "98%"            \
+        -olay "$odir/$osrc"               \
+        -pbar_posonly                     \
+        -opacity 4                        \
+        -prefix "$odir/$vpref1"           \
+        -montx 5 -monty 3                 \
+        -set_xhairs OFF                   \
+        -label_mode 1 -label_size 3       \
+        -do_clean 
+
+    # for NN
+    foreach ff ( ${list_ofNN} )
+        echo "++ QC imaging for the NN followers dset list:"
+        echo "    ${list_ofNN}"
+
+        # fun file name manipulation: get non-prefix and non-prefix
+        # (ha!)  name
+        set pp = `3dinfo -prefix_noext "$ff"`
+        # numbers of chars in $opref
+        set Lopref = `echo $opref | awk '{print length($0)}'`
+        # where to start reading from in $pp to cut out "${opref}_"
+        @ sss = $Lopref + 2
+        # apply
+        set ppp = `echo "$pp" | cut -c ${sss}-`
+
+        if( $qc_prefix == "" ) then
+            set vprefnn = ${opref}${postfix}_qc_$ppp
+        else
+            set vprefnn = ${qc_prefix}${postfix}_qc_$ppp
+        endif
+
+        echo "++ Make image for: $ff"
+        # NB: with this colorbar, use full 256 for range
+        $my_viewer                            \
+            -ulay "$ibase"                    \
+            -ulay_range "2%" "98%"            \
+            -olay "$ff"                       \
+            -pbar_posonly                     \
+            -cbar "ROI_i256"                  \
+            -func_range 256                   \
+            -opacity 4                        \
+            -prefix "$odir/$vprefnn"          \
+            -montx 5 -monty 3                 \
+            -set_xhairs OFF                   \
+            -label_mode 1 -label_size 3       \
+            -do_clean 
+    end
+
+    # for WS5
+    foreach ff ( ${list_ofWS5} )
+        echo "++ QC imaging for the wsinc5 followers dset list:"
+        echo "    ${list_ofWS5}"
+
+        # fun file name manipulation: get non-prefix and non-prefix
+        # (ha!)  name
+        set pp = `3dinfo -prefix_noext "$ff"`
+        # numbers of chars in $opref
+        set Lopref = `echo $opref | awk '{print length($0)}'`
+        # where to start reading from in $pp to cut out "${opref}_"
+        @ sss = $Lopref + 2
+        # apply
+        set ppp = `echo "$pp" | cut -c ${sss}-`
+
+        if( $qc_prefix == "" ) then
+            set vprefnn = ${opref}${postfix}_qc_$ppp
+        else
+            set vprefnn = ${qc_prefix}${postfix}_qc_$ppp
+        endif
+
+        $my_viewer                            \
+            -ulay "$ibase"                    \
+            -ulay_range "2%" "98%"            \
+            -olay "$ff"                       \
+            -pbar_posonly                     \
+            -cbar "Viridis"                   \
+            -opacity 4                        \
+            -prefix "$odir/$vprefnn"          \
+            -montx 5 -monty 3                 \
+            -set_xhairs OFF                   \
+            -label_mode 1 -label_size 3       \
+            -do_clean 
+    end
+
+endif
+
+# clean, by default
+if ( "$DO_CLEAN" == "1" ) then
+    echo "\n++ Cleaning working directory!\n"
+    \rm -rf $wdir
+else
+    echo "\n++ NOT removing working directory '$wdir'.\n"
+endif
+
+# final messages
+echo ""
+echo "++ The final data set is here:  $odir/$osrc"
+echo "++ The final spatial dims are:  $fdims[1] $fdims[2] $fdims[3]"
+echo "++ The spatial resolution is:   $fres[1] $fres[2] $fres[3]"
+echo ""
+
+# ---------------------------------------------------------------------
+
+goto GOOD_EXIT
+
+# ========================================================================
+# ========================================================================
+
+SHOW_HELP:
+cat << EOF
+# -----------------------------------------------------------------------
+
+ This program is for bringing data sets into DWI space, with the
+ particular thought that bringing anatomically-defined ROI maps or EPI
+ data that are aligned to a subject's anatomical might be useful.
+ This might be useful after having run FreeSurfer, for example.
+
+ An affine transformation matrix between, say, a subject's T1w volume
+ and a DWI reference volume is calculated, and then applied to
+ follower data sets.  The transformation can be applied either as 'NN'
+ (-> for preserving integer values in sets) or as 'wsinc5' (-> if one
+ has floating point values).  The final dsets will reside in the DWI
+ space. Yay.
+
+ At the moment this program *assumes* that the input source ('-source
+ SSS') and reference base ('-base BBB') are from the same subject,
+ because only 12 DOF affine alignment is calculated (using
+ 3dAllineate).  Maybe something could be done with 3dQwarp in the
+ future.  Maybe.
+
+ This program mainly assumes that the T1w and DWI reference volume
+ have similar contrasts expected for standard sequences and healthy
+ adult brains.  This might still work for other applications, but
+ caveat emptor (even more than usual!).  This would *not* be
+ recommended for aligning brains that aren't from the same subject.
+
+  Ver. $version (PA Taylor, ${rev_dat})
+
+# ----------------------------------------------------------------------
+
+  OUTPUT:
+
+     + NIFTI file: aligned T1w volume.
+
+     + NIFTI files: each follower DSET* ends up in the DWI/DTI space
+       and has a respective name PREFIX_DSET*.nii.gz.
+
+     + QC snapshots of the T1w volume overlaying the DWI reference 
+       volume, and also the T1w edges overlaying the ref vol.
+
+     + QC snapshots of each of the follower dsets overlaying the DWI ref
+       volume.
+
+# ----------------------------------------------------------------------
+
+  RUNNING:
+
+    $this_prog \
+      -source   SSS                                  \
+      -base     DDD                                  \
+      -prefix  PPP                                   \
+      {-followers_NN      DSET01 DSET02 DSET03 ...}  \
+      {-followers_wsinc5  DSET1 DSET2 DSET3 ...}     \
+      {-followers_surf    SURF1 SURF2 SURF3 ...}     \
+      {-followers_ndset   NDSET1 NDSET2 NDSET3 ...}  \
+      {-followers_spec    SPEC1 SPEC2 SPEC3 ...}     \
+      {-matrix MMM}                                  \
+      {-workdir WWW}                                 \
+      {-no_cmd_out}                                  \
+      {-no_clean} 
+
+  where:
+
+   -source SSS    :T1w volume (required); 'source' volume from which we
+                   are mapping, such as an anatomical volume in whose
+                   space ROIs might have been defined.  SSS gets
+                   mapped into the '-base BBB' volume's space.
+   -base BBB      :DWI reference volume (required; should be from same
+                   subject as SSS), such as the b=0 (or minimally DWed
+                   volume), for aligning to; subbrick selections are
+                   allowed, so that dwi_dwi.nii'[0]', for example,
+                   would be allowed.  This is the base dset for the
+                   alignment, with the purpose to bring other volumes
+                   into the DWI/DTI space (see the '-followers* ...'
+                   options, below).  **NOTE**: BBB and SSS should be
+                   from the same subject by this function, because
+                   only affine alignment with 3dAllineate is
+                   performed!
+
+   -prefix  PPP   :output prefix for files and snapshots.  Required.
+
+   -followers_NN  DSET01 DSET02 DSET03 ...
+                  :apply the same transformation to 'follower' data
+                   sets; one or more dsets can be listed, with each
+                   assumed to overlay on the T1W source set. The 'NN'
+                   interpolation of 3dAllineate is applied to these
+                   dsets, so that integer values remain integer
+                   valued; thus, these might be dsets with ROI maps
+                   already created.  NB: subbrick selectors are not
+                   allowed on the DSETs here at present.  Labeltables 
+                   attached to these dsets do get propagated, as well.
+   -followers_wsinc5  DSET1 DSET2 DSET3 ...
+                   similar to the above '-followers_NN ...', except in
+                   this case the final applied mapping is 'wsinc5', which
+                   is appropriate, for example, for floating point values.
+                   Again, a list of one or more volumes (sans subbrick
+                   selectors) can be provided here.  No labeltable is
+                   propagated for these sets (I doubt they would have one,
+                   anyways).
+   -followers_surf    SURF1 SURF2 SURF3 ...
+                  :similar to the above '-followers_* ...', except in 
+                   this case the mapping is applied to surface dsets, such 
+                   as '*.gii'.  Per usual, a list of one or more surfaces  
+                   can be provided here. 
+   -followers_ndset   NDSET1 NDSET2 NDSET3 ...
+                  :similar to the above '-followers_* ...', except in 
+                   this case the mapping is applied to '*.niml.dset' files,  
+                   such as '*.annot.niml.dset'.  Per usual, a list of one or 
+                   more surfaces can be provided here. Prob wouldn't make  
+                   sense to use this without using '-followers_surf ...'.
+   -followers_spec    SPEC1 SPEC2 SPEC3 ...
+                  :similar to the above '-followers_* ...', except in 
+                   this case the mapping is applied to '*.spec' files.
+                   Per usual, a list of one or more surfaces can be 
+                   provided here.  Wouldn't make sense to use this without 
+                   using both '-followers_surf ...' and '-followers_ndset ...'
+                   to map the dsets referred to in the file!
+ 
+   -matrix MMM    :one can apply a pre-made matrix that has been made by
+                   3dAllineate previously.  With this option.  If you want.
+
+   -workdir WWW   :specify a working directory, which can be removed;
+                   (default name = '$wdir')
+
+   -no_cmd_out    :don't save the command line call of this program
+                   and the location where it was run (otherwise, it is
+                   saved by default in the ODIR/).                     
+   -no_clean      :do not delete temporary working directory (default is 
+                   to remove it to save disk space).
+
+# ----------------------------------------------------------------------
+
+  EXAMPLE
+
+    $this_prog  \
+        -source          brain.nii            \
+        -base            dwi_dwi.nii.gz'[0]'  \
+        -prefix          indt                 \
+        -followers_NN    aparc*_REN_*.nii.gz  \
+        -followers_surf  std.141.*gii         \
+        -followers_ndset std.141.*niml.dset   \
+        -followers_spec  std.141.*.spec
+
+# -----------------------------------------------------------------------
+
+EOF
+
+    goto GOOD_EXIT
+
+SHOW_VERSION:
+    echo "version  $version (${rev_dat})"
+    goto GOOD_EXIT
+
+FAIL_MISSING_ARG:
+    echo "** ERROR! Missing an argument after option flag: '$argv[$ac]'"
+    goto BAD_EXIT
+
+BAD_EXIT:
+    exit 1
+
+# send everyone here, in case there is any cleanup to do
+GOOD_EXIT:
+    exit 0

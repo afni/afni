@@ -44,6 +44,130 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 2 , NOV , 2017 , RWC , "aiv" , MICRO , TYPE_NEW_OPT ,
+   "-pad option makes all images the same size for viewing" ,
+   NULL } ,
+
+ { 01 , NOV , 2017 , RWC , "afni GUI" , MICRO , TYPE_ENHANCE ,
+   "Add 'Gimp it?' option to image save popup chooser" ,
+   "If gimp is present on the system, then user can save and edit image easily" } ,
+
+ { 31 , OCT , 2017 , RWC , "3dMultiThresh" , MINOR , TYPE_NEW_OPT ,
+   "Add -allmask option, to see which case(s) caused a positive" ,
+   "Add then used in 3dttest++ to produce the ETACmaskALL output dataset" } ,
+
+ { 12 , OCT , 2017 , RWC , "afni GUI" , MICRO , TYPE_GENERAL ,
+   "Slight relocation of UnderLay/OverLay popups -- for the PirATe" ,
+   NULL } ,
+
+ { 12 , OCT , 2017 , RWC , "afni" , MICRO , TYPE_BUG_FIX ,
+   "Fixed color def problem in pbars (etc) with new find_color_name func" ,
+   NULL } ,
+
+ { 10 , OCT , 2017 , RWC , "csfft.c" , MICRO , TYPE_ENHANCE ,
+   "Add use of fftn.c for general length DFTs" ,
+   "csfft_cox() still uses my own method for 'reasonable' values, as it\n"
+   "seems to be faster than the general fftn function. Here, reasonable is\n"
+   "defined as having only factors of 3 and 5 up to at most 3^3 * 5^3." } ,
+
+ { 5 , OCT , 2017 , RWC , "3dTsort" , MICRO , TYPE_NEW_OPT ,
+   "add -ranFFT option, for Cesar" ,
+   NULL } ,
+
+ { 4 , OCT , 2017 , RWC , "3dTsort" , MICRO , TYPE_NEW_OPT ,
+   "add -random option = shuffle each time series independently" ,
+   NULL } ,
+
+ { 3 , OCT , 2017 , RWC , "afni GUI" , MICRO , TYPE_ENHANCE ,
+   "Add bot/top selection to pbar in THREE mode" ,
+   NULL } ,
+
+ { 27 , SEP , 2017 , RWC , "3dXClustSim" , MICRO , TYPE_BUG_FIX ,
+   "Ooops: modify to have different min thresholds for each FPR goal" ,
+   NULL } ,
+
+ { 26 , SEP , 2017 , RWC , "3dttest++" , MINOR , TYPE_ENHANCE ,
+   "Make -zskip work nicely with -resid" ,
+   NULL } ,
+
+ { 21 , SEP , 2017 , RWC , "3dXClustSim" , MICRO , TYPE_NEW_OPT ,
+   "Allow user to set -minclust (instead of fixed at 5)" ,
+   NULL } ,
+
+ { 19 , SEP , 2017 , RWC , "1dplot" , MICRO , TYPE_NEW_OPT ,
+   "add -line option for drawing arbitrary line segments" ,
+   NULL } ,
+
+ { 15 , SEP , 2017 , RWC , "1dplot" , MINOR , TYPE_ENHANCE ,
+   "Allow -xaxis to have bot > top, so x decreases from left to right" ,
+   NULL } ,
+
+ { 12 , SEP , 2017 , RWC , "sorting functions" , MICRO , TYPE_MODIFY ,
+   "Increase stack size in qsort funcs, for very large arrays" ,
+   NULL } ,
+
+ { 23 , AUG , 2017 , RWC , "3dttest++" , MINOR , TYPE_ENHANCE ,
+   "All 'fpr=ALL' in -ETAC_opt" ,
+   "To let user get results for FPR goals from 2-9 percent." } ,
+
+ { 22 , AUG , 2017 , RWC , "3dttest++" , MICRO , TYPE_ENHANCE ,
+   "Small changes in running ETAC" ,
+   "1) Option -ETAC_mem prints out ETAC memory usage (and stops) to help\n"
+   "user setup\n"
+   "2) If usage is high, runs 3dXClustSim with -unmap option to unmap/remap\n"
+   "datasets to economize memory usage" } ,
+
+ { 4 , AUG , 2017 , RWC , "3dttest++" , MINOR , TYPE_BUG_FIX ,
+   "-ETAC failed without multiple blur cases" ,
+   "Addition of -ETAC_blur broke the non-blur runs, due to lack of the\n"
+   "correct 'label' for dealing with the results from 3dXClustSim.\n"
+   "Obviously, this was the work of saboteurs." } ,
+
+ { 2 , AUG , 2017 , RWC , "3dBrainSync" , MAJOR , TYPE_NEW_PROG ,
+   "BrainSync algorithm of Joshi, from OHBM 2017" ,
+   "Also, my own permutation method (to avoid linear combination of\n"
+   "disparate time points)." } ,
+
+ { 25 , JUL , 2017 , RWC , "3dttest++" , MICRO , TYPE_ENHANCE ,
+   "Extend '5percent' outputs to cover 1-9 percent range." ,
+   "Just for fun fun fun in the sun sun sun.  Also, the whole replicability\n"
+   "thing that's going down these days." } ,
+
+ { 20 , JUL , 2017 , RWC , "3dFWHMx" , MAJOR , TYPE_NEW_OPT ,
+   "Require -ShowMeClassicFWHM to get the Forman FWHM estimates" ,
+   "Otherwise, these results are shown only as zeros.  The intention is to\n"
+   "make it harder to use an archaic model for the noise spatial\n"
+   "correlation.  But not to break afni_proc.py, which expects 4 values to\n"
+   "be output there." } ,
+
+ { 13 , JUL , 2017 , RWC , "3dclust" , MINOR , TYPE_NEW_OPT ,
+   "Add '-NNx' options to specify clustering method" ,
+   "-NN1 or -NN2 or -NN3\n"
+   "These can replace the use of 'rmm' and 'vmul', and are meant\n"
+   "to make using this program simpler and more compatible with\n"
+   "Clusterize in the AFNI GUI." } ,
+
+ { 17 , MAY , 2017 , RWC , "3dttest++" , MICRO , TYPE_MODIFY ,
+   "Make -ETAC and -Clustsim work together" ,
+   "Makes it easier to test these two methods at the same time." } ,
+
+ { 3 , MAY , 2017 , RWC , "Historical Records" , MINOR , TYPE_ENHANCE ,
+   "Add the AFNI version to the History Note for new datasets" ,
+   "So the user can see (via 3dinfo) exactly what version created a dataset." } ,
+
+ { 26 , APR , 2017 , RWC , "3dMultiThresh" , MICRO , TYPE_NEW_OPT ,
+   "Add option to choose sign for 1-sided thresholding" ,
+   NULL } ,
+
+ { 26 , APR , 2017 , RWC , "3dXClustSim" , MICRO , TYPE_BUG_FIX ,
+   "Bug in looping index in STEP 2 caused malloc() problems.  Oog" ,
+   NULL } ,
+
+ { 21 , APR , 2017 , RWC , "3dttest++" , MAJOR , TYPE_ENHANCE ,
+   "Extensive modifications to ETAC" ,
+   "Adding the ability to due multiple amounts of blurring.  Some changes to\n"
+   "3dttest++ and 3dMultiThresh, big changes to 3dXClustSim." } ,
+
  { 27 , MAR , 2017 , RWC , "afni GUI" , MICRO , TYPE_NEW_ENV ,
    "AFNI_LEFT_IS_POSTERIOR" ,
    "To show posterior of brain on the left (instead of right) in sagittal\n"

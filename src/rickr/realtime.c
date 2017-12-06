@@ -11,8 +11,22 @@ extern ART_comm  gAC;
 /* maybe we will want this elsewhere at some point */
 static char orient_side_rai( float coord, char dir );
 
+/* Keep a copy of a single image/volume as the size to send for end of
+ * run (maybe lost at commit 030341058c7c759639ddb26ed910661e73e887d5,
+ * 4 Jan 2011, when no longer sending via alloc'd im_store.x_im).  The
+ * afni server will attempt to read the same image size that it has been,
+ * so sending less would cause it to hang.
+ *
+ * Allocate xim of size xim_size, required to be >= xim_last_vsize.
+ * But always send using xim_last_vsize.       6 Sep 2017 [rickr]
+ */
+static char * xim = NULL;         /* space for end_of_run            */
+static int    xim_size = -1;      /* alloc'd, >= xim_last_vsize      */
+static int    xim_last_vsize = 0; /* size of last image sent to afni */
+
+
 /*----------------------------------------------------------------------
- * history:  see 'Imon -hist'
+ * history:  see 'Dimon -hist'
  *----------------------------------------------------------------------
 */
 
@@ -191,38 +205,65 @@ int ART_send_end_of_run( ART_comm * ac, int run, int seq, int debug )
     static int   prev_seq = -1;
     int          bytes = ART_COMMAND_MARKER_LEN+1;
 
-    if ( ac->state != ART_STATE_IN_USE )
+    if ( ac->state != ART_STATE_IN_USE ) {
+        if( debug > 3 ) fprintf(stderr,"ART: end of run, but not in use\n");
         return 0;
-
-    if ( (run != prev_run) || (seq != prev_seq) )
-    {
-        prev_run = run;
-        prev_seq = seq;
-
-        /* send only the marker */
-        if ( iochan_sendall( ac->ioc, ART_COMMAND_MARKER, bytes ) < 0 )
-        {
-            char * ebuf = iochan_error_string();
-            fprintf( stderr, "ART: ** failed to transmit EOR to afni @ %s\n"
-                             "      - closing afni connection\n", ac->host );
-            fprintf(stderr,  "      - iochan error: %s\n",ebuf?ebuf:"EMPTY" );
-            ac->state = ART_STATE_NO_USE;
-            ART_exit();
-            return -1;
-        }
-
-        if ( debug > 1 )
-            fprintf( stderr, "ART: EOR: end of run signal (%d,%d)\n", run,seq);
-
-        /* we will need to send new control info to afni */
-        ac->state = ART_STATE_TO_SEND_CTRL;
-
-        iochan_sleep(50);                         /* give afni some time    */
-
-        return 1;
     }
 
-    return 0;
+    /* do nothing if run and seq number have not changed... */
+    if ( (run == prev_run) && (seq == prev_seq) ) {
+        if( debug > 3 )
+           fprintf(stderr,"ART: end of run, but no change in run %d, seq %d\n",
+                   run, seq);
+        return 0;
+    }
+    
+    /* otherwise, note update for next time */
+    prev_run = run;
+    prev_seq = seq;
+
+    /* if xim has less space than last image size, allocate more */
+    if( xim_size < xim_last_vsize ) {
+       if ( debug > 1 ) fprintf(stderr, "ART: xim alloc: %d -> %d bytes\n",
+                                xim_size, xim_last_vsize);
+       xim_size = xim_last_vsize;
+       if( ! xim ) xim = malloc(xim_size * sizeof(char));
+       else        xim = realloc(xim, xim_size * sizeof(char));
+    }
+
+    /* xim still too small?  afni will expect an image's worth of data */
+    if( xim_size < ART_COMMAND_MARKER_LEN+1 ) {
+       fprintf(stderr,"** ART: end of run im size only %d bytes\n", xim_size);
+       ac->state = ART_STATE_NO_USE;
+       ART_exit();
+       return -1;
+    }
+
+    /* this really needs to be done only once ever, but hey... */
+    strcpy(xim, ART_COMMAND_MARKER);
+    xim[ART_COMMAND_MARKER_LEN] = '\0';
+
+    /* send only the marker, but of the size of the previous image */
+    if ( iochan_sendall( ac->ioc, xim, xim_last_vsize ) < 0 )
+    {
+        char * ebuf = iochan_error_string();
+        fprintf( stderr, "ART: ** failed to transmit EOR to afni @ %s\n"
+                         "      - closing afni connection\n", ac->host );
+        fprintf(stderr,  "      - iochan error: %s\n",ebuf?ebuf:"EMPTY" );
+        ac->state = ART_STATE_NO_USE;
+        ART_exit();
+        return -1;
+    }
+
+    if ( debug > 1 )
+        fprintf( stderr, "ART: EOR: end of run signal (%d,%d)\n", run,seq);
+
+    /* we will need to send new control info to afni */
+    ac->state = ART_STATE_TO_SEND_CTRL;
+
+    iochan_sleep(50);                         /* give afni some time    */
+
+    return 1;
 }
 
 
@@ -247,6 +288,7 @@ int ART_send_volume( ART_comm * ac, vol_t * v, int debug )
     /* send one complete volume */
 
     bytes = ac->param->fim_o[v->fs_1].nbytes;
+    xim_last_vsize = bytes*v->nim;  /* track last vol bytes for xim space */
 
     /* note that v->nim will be 1 for siemens mosaic, no matter... */
     for ( slice = 0; slice < v->nim; slice++ )

@@ -168,9 +168,11 @@ void isort_double( int n , double * ar )
 }
 
 #define QS_CUTOFF     20       /* cutoff to switch from qsort to isort */
-#define QS_STACK      1024     /* qsort stack size (way too big) */
 #define QS_SWAP(x,y)  (temp=(x), (x)=(y),(y)=temp )
 #define QS_SWAPI(x,y) (itemp=(x),(x)=(y),(y)=itemp)
+#ifndef QS_STACK
+# define QS_STACK 9999
+#endif
 
 static int stack[QS_STACK] ;   /* stack for qsort "recursion" */
 

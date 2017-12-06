@@ -1,6 +1,5 @@
 #!/bin/tcsh
 
-
 # -----------------------------------------------------------------
 # Multipurpose, driven viewer.  Meant to be used for auto QC in
 # scripts. 
@@ -30,9 +29,42 @@
 #
 #set version   = "2.1";   set rev_dat   = "Feb 27, 2017"
 #     + can have IJK labels -> DWImager
-set version   = "2.2";   set rev_dat   = "Mar 29, 2017"
+#
+#set version   = "2.2";   set rev_dat   = "Mar 29, 2017"
 #     + xvfb-run introduced: should work better/more generally
 #       on biowulf? [thanks D. Godlove for suggesting this fix]
+#set version   = "2.3";   set rev_dat   = "May 3, 2017"
+#     + xvfb-run: new option to set colordepth to 24, so opacity works
+#       in the AFNI commands
+# 
+#set version   = "2.4";   set rev_dat   = "May 20, 2017"
+#     + more unique naming of tempdir; safer for cluster runs
+# 
+#set version   = "2.5";   set rev_dat   = "June 1, 2017"
+#     + back to regular xvfb and Bob's search
+# 
+#set version   = "2.6";   set rev_dat   = "June 1, 2017"
+#     + default interpolation to NN, but add in option to set
+# 
+#set version   = "2.7";   set rev_dat   = "June 20, 2017"
+#     + new opts, for SET_SUBBRICKS
+# 
+#set version   = "2.8";   set rev_dat   = "Aug 17, 2017"
+#     + new opt, allow SET_XYZ
+# 
+#set version   = "2.9";   set rev_dat   = "Sep 04, 2017"
+#     + remove '-outdir ...' and have path set by '-prefix ...',
+#       like most other AFNI programs
+#     + set default zoom to NN, so no smoothing
+#       via -> AFNI_IMAGE_ZOOM_NN
+#
+#set version   = "3.0";   set rev_dat   = "Nov 24, 2017"
+#     + start helpifying
+#
+set version   = "3.1";   set rev_dat   = "Nov 27, 2017"
+#     + improve/correct slice-width selection (thanks, J. Lee!)
+#
+# =====================================================================
 
 # For more info about opts/fields, see:
 #
@@ -49,6 +81,7 @@ setenv AFNI_ENVIRON_WARNINGS  NO
 setenv AFNI_COMPRESSOR        NONE
 setenv AFNI_IMAGE_GLOBALRANGE VOLUME
 setenv AFNI_IMAGE_LABEL_IJK   NO         # thanks, Bob!
+setenv AFNI_IMAGE_ZOOM_NN     YES        # [PT: Sep 04, 2017] 
 # -------------------------------------------------------------------
 
 # ------------------- default/initialized variables -----------------
@@ -80,11 +113,16 @@ set delcor = -1                  # (int) slice space in cor orient
 set USER_COORS = 0               # switch to let user pick IJK
 set coors  = ( 0 0 0 )
 set gapord = ( 0 0 0 )
+set coor_type = "SET_IJK"        # default, can switch to SET_XYZ
 
 # for SET_PBAR_ALL
 set pbar_sign = "-"              # + is pos. only, - is both (switch for both)
 set ncolors   = "99"             # default number of colors
 set topval    = 1                # upper scale value in colorbar
+
+set func_resam = "NN"            # def. no resample; opt: {NN|Li|Cu|Bk}
+
+set subbb = ( -1 -1 -1 )
 
 # for SET_FUNC_ALPHA
 set alpha_par    = "Off"         # 
@@ -94,13 +132,15 @@ set alpha_edgize_no = 0          # =1 -> SETENV AFNI_EDGIZE_OVERLAY NO
 set do_quit = "QUITT"            # quick-quit; not subject to change
 
 # tmp dir, in case under- and overlays are in separate dirs
-set tmp_dir  = "__tmp_ImG_837261"
+set tmp_code = `3dnewid -fun11`    # should be essentially unique hash
+set tmp_dir  = "__tmp_chauf_${tmp_code}"
 set DO_CLEAN = 0
 set read_dir = ""
 set read_ulay = tmp_ulay.nii
 
 set USER_ULAY_RANGE = 0          # def: user doesn't enter ulay range
 set ulay_nz = "-non-zero"
+
 # -------------------------------------------------------------------
 # ----------------------------- ugh ---------------------------------
 
@@ -111,8 +151,6 @@ set listind = (  1   1   2   2   3   3  )
 
 # -------------------------------------------------------------------
 # ------------------- process options, a la rr ----------------------
-
-echo "++ My command: $argv"
 
 if ( $#argv == 0 ) goto SHOW_HELP
 
@@ -140,16 +178,15 @@ while ( $ac <= $#argv )
     else if ( "$argv[$ac]" == "-olay_off" ) then
         set see_olay = "-"
 
+    # [PT, Sep 04, 2017] Change behavior to get output dir from just
+    # the prefix.  Duh.
     else if ( "$argv[$ac]" == "-prefix" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
-        set impref = "$argv[$ac]"
-
-    else if ( "$argv[$ac]" == "-outdir" ) then
-        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-        @ ac += 1
-        set odir = "$argv[$ac]"
-
+        #set impref = "$argv[$ac]"
+        set impref = `basename "$argv[$ac]"`
+        set odir   = `dirname  "$argv[$ac]"`
+        
     else if ( "$argv[$ac]" == "-cbar" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
@@ -170,21 +207,17 @@ while ( $ac <= $#argv )
         @ ac += 1
         set opac = "$argv[$ac]"
         
-    else if ( "$argv[$ac]" == "-del_slice_sag" ) then
+    else if ( "$argv[$ac]" == "-delta_slices" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
-        set delsag = "$argv[$ac]"
-        
-    else if ( "$argv[$ac]" == "-del_slice_axi" ) then
-        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ gapord[1] = "$argv[$ac]"
         @ ac += 1
-        set delaxi = "$argv[$ac]"
-        
-    else if ( "$argv[$ac]" == "-del_slice_cor" ) then
-        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ gapord[2] = "$argv[$ac]"
         @ ac += 1
-        set delcor = "$argv[$ac]"
-        
+        @ gapord[3] = "$argv[$ac]"
+
+        echo "Hi! My gapord is: $gapord"
+
     else if ( "$argv[$ac]" == "-thr_olay" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
@@ -194,7 +227,17 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set thrflag = "$argv[$ac]"
-        
+
+    # [PT: June 20, 2017]:  SET_SUBBRICKS i j k
+    else if ( "$argv[$ac]" == "-set_subbricks" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set subbb[1] = "$argv[$ac]"
+        @ ac += 1
+        set subbb[2] = "$argv[$ac]"
+        @ ac += 1
+        set subbb[3] = "$argv[$ac]"
+
     # refers to olay
     else if ( "$argv[$ac]" == "-func_range" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
@@ -202,6 +245,20 @@ while ( $ac <= $#argv )
         set frange = "$argv[$ac]"
         set USER_FRANGE = 1
         
+    #  SET_FUNC_RESAM [c.]{NN|Li|Cu|Bk}[.{NN|Li|Cu|Bk}]
+    else if ( "$argv[$ac]" == "-func_resam" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set func_resam = "$argv[$ac]"
+        if ( ( "$func_resam" != "NN" ) || \
+            ( "$func_resam" != "Li" ) || \
+            ( "$func_resam" != "Cu" ) || \
+            ( "$func_resam" != "Bk" ) ) then
+                echo "** Error! '-func_resam ...' input"
+                echo "   needs to be one of {NN|Li|Cu|Bk}."
+                goto BAD_EXIT
+        endif
+
     # refers to olay
     else if ( "$argv[$ac]" == "-func_range_perc" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
@@ -244,6 +301,18 @@ while ( $ac <= $#argv )
         set coors[3] = "$argv[$ac]"
         set USER_COORS = 1
 
+    # [PT: Aug 17, 2017] takes 3 numbers!!!
+    else if ( "$argv[$ac]" == "-set_dicom_xyz" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set coor_type = "SET_DICOM_XYZ"
+        set coors[1] = "$argv[$ac]"
+        @ ac += 1
+        set coors[2] = "$argv[$ac]"
+        @ ac += 1
+        set coors[3] = "$argv[$ac]"
+        set USER_COORS = 1
+
     else if ( "$argv[$ac]" == "-montx" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
@@ -267,6 +336,9 @@ while ( $ac <= $#argv )
     else if ( "$argv[$ac]" == "-alpha_edgize_no" ) then
         setenv AFNI_EDGIZE_OVERLAY NO
 
+    else if ( "$argv[$ac]" == "-image_zoom_nn_no" ) then
+        setenv AFNI_IMAGE_ZOOM_NN NO
+        
     else if ( "$argv[$ac]" == "-zerocolor" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
@@ -296,6 +368,12 @@ while ( $ac <= $#argv )
         @ ac += 1
         setenv AFNI_IMAGE_LABEL_SETBACK  "$argv[$ac]"
 
+    # [PT: Aug 17, 2017] probably need quotes...
+    else if ( "$argv[$ac]" == "-label_string" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        setenv AFNI_IMAGE_LABEL_STRING  "$argv[$ac]"
+
     # Feb, 2017: useful when each slice is a from a sep vol, i.e., for
     # @djunct*imager
     else if ( "$argv[$ac]" == "-image_label_ijk" ) then
@@ -318,13 +396,18 @@ while ( $ac <= $#argv )
     else if ( "$argv[$ac]" == "-do_clean" ) then
         set DO_CLEAN = 1
 
-   else
-      echo "** unexpected option #$ac = '$argv[$ac]'"
-      exit 2
+    else
+        echo "** unexpected option #$ac = '$argv[$ac]'"
+        exit 2
 
-   endif
-   @ ac += 1
+    endif
+    @ ac += 1
 end
+
+# -------------------------------------------------------------------
+
+echo "++ My command:"
+echo "   @chauffeur_afni $argv"
 
 # -------------------------------------------------------------------
 # ------------------ check about auxiliary progs --------------------
@@ -571,7 +654,14 @@ echo "++ pfrac = $pfrac"
 # These need to reflect the order of the original.  Ugh, annoying
 # conditions.
 if ( $USER_COORS == 1 ) then
-    echo "++ Will have user's chosen: SET_IJK $coors"
+    if ( "$coor_type" == "SET_IJK" ) then
+        echo "++ Will have user's chosen: $coor_type $coors"
+    else if ( "$coor_type" == "SET_DICOM_XYZ" ) then
+        echo "++ Will have user's chosen: $coor_type $coors"
+    else
+        echo "** ERRROR: unknown coor_type somehow?: $coor_type"
+        goto BAD_EXIT
+    endif
 else
     foreach i ( `seq 1 1 3` )
         set qfrac = `echo "scale=5; ( $pfrac ) " | bc` # frac to center
@@ -586,7 +676,7 @@ else
         set nn        = `echo "scale=0; ( ( $Dim[$i] * $qfrac ) $qsh )" | bc`
         set coors[$i] = `echo $nn | perl -nl -MPOSIX -e 'print floor($_);'`
     end
-    echo "++ Will have: SET_IJK $coors"
+    echo "++ Will have: $coor_type $coors"
 endif
 
 echo "\n------------------- end of optionizing -------------------\n" 
@@ -596,53 +686,55 @@ echo "\n------------------- end of optionizing -------------------\n"
 
 ########## NB: D. Godlove suggests this unnecessary, using instead
 ##########     `xvfb-run -a ...` below for afni command.
-# # start the X virtual frame buffer on display #xdisplay, a la bob
-# 
-# set ranval = `count -dig 1 1 999999 R1`
-# 
-# if( $?xdisplay == 0 )then
-#   set killX     = 1
-#   set ntry      = 1
-#   set Xnotfound = 1
-#   while( $Xnotfound )
-#     set xdisplay = `count -dig 1 3 999 R1`
-#     if( -e /tmp/.X${xdisplay}-lock ) continue
-#     echo " -- trying to start Xvfb :${xdisplay}"
-#     Xvfb :${xdisplay} -screen 0 1024x768x24 &
-#     sleep 1
-#     jobs > zzerm.$ranval.txt
-#     grep -q Xvfb zzerm.$ranval.txt
-#     set Xnotfound = $status
-#     \rm -f zzerm.$ranval.txt
-#     if( $Xnotfound == 0 )break ;
-#     @ ntry++
-#     if( $ntry > 99 )then
-#       echo "** ERROR: can't start Xvfb -- exiting"
-#       goto BAD_EXIT
-#     endif
-#   end
-# endif
-# 
-# setenv DISPLAY :${xdisplay}
+# start the X virtual frame buffer on display #xdisplay, a la bob
+
+set ranval = `count -dig 1 1 999999 R1`
+
+if( $?xdisplay == 0 )then
+  set killX     = 1
+  set ntry      = 1
+  set Xnotfound = 1
+  while( $Xnotfound )
+    set xdisplay = `count -dig 1 3 999 R1`
+    if( -e /tmp/.X${xdisplay}-lock ) continue
+    echo " -- trying to start Xvfb :${xdisplay}"
+    Xvfb :${xdisplay} -screen 0 1024x768x24 &
+    sleep 1
+    jobs > zzerm.$ranval.txt
+    grep -q Xvfb zzerm.$ranval.txt
+    set Xnotfound = $status
+    \rm -f zzerm.$ranval.txt
+    if( $Xnotfound == 0 )break ;
+    @ ntry++
+    if( $ntry > 99 )then
+      echo "** ERROR: can't start Xvfb -- exiting"
+      goto BAD_EXIT
+    endif
+  end
+endif
+
+setenv DISPLAY :${xdisplay}
 set OW = "OPEN_WINDOW"
 
 # -------------------------------------------------------------------
 # ---------------- The actual, driven command! ----------------------
 
-xvfb-run -a                                                         \
-    afni -noplugins -no_detach  -echo_edu                           \
+#xvfb-run -d --server-args="-screen 0 1024x768x24" -w 0  \
+afni -noplugins -no_detach  -echo_edu                           \
      -com "SWITCH_UNDERLAY ${read_ulay}"                            \
      -com "SWITCH_OVERLAY  ${read_olay}"                            \
+     -com "SEE_OVERLAY     ${see_olay}"                             \
      -com "SET_PBAR_ALL    ${pbar_sign}${ncolors} $topval $my_cbar" \
+     -com "SET_SUBBRICKS   ${subbb}"                                \
      -com "SET_FUNC_RANGE  ${frange}"                               \
      -com "SET_THRESHNEW   $thrnew $thrflag"                        \
-     -com "SEE_OVERLAY     ${see_olay}"                             \
      -com "SET_FUNC_ALPHA  $alpha_par $alpha_floor"                 \
+     -com "SET_FUNC_RESAM  ${func_resam}.${func_resam}"             \
      -com "SET_XHAIRS  ${crossh}"                                   \
      -com "$OW sagittalimage opacity=${opac} mont=${mx}x${my}:${gapord[1]}" \
      -com "$OW coronalimage  opacity=${opac} mont=${mx}x${my}:${gapord[2]}" \
      -com "$OW axialimage    opacity=${opac} mont=${mx}x${my}:${gapord[3]}" \
-     -com "SET_IJK $coors"                                                    \
+     -com "$coor_type $coors"                                          \
      -com "SAVE_${ftype} sagittalimage ${odir}/${impref}.sag blowup=${bufac}" \
      -com "SAVE_${ftype} coronalimage  ${odir}/${impref}.cor blowup=${bufac}" \
      -com "SAVE_${ftype} axialimage    ${odir}/${impref}.axi blowup=${bufac}" \
@@ -679,12 +771,246 @@ SHOW_HELP:
 
 cat <<EOF
 
- ++ help file a-comin' (someday).
+This was originally a helper function in processing scripts, to take
+quality control (QC) snapshots automatically.  It wraps around a lot
+(but not all) of the veeery useful "driving AFNI" functionality.  You,
+dear user, can still accomplish all the same with those commands, but
+I just wanted to add in some other calculations, as well, to try to
+make the process of generating montages of images easier.
 
-    minimal usage:  
+The purpose of this function is to generate images easily and quickly
+while processing-- even if on a remote server (because it uses xvfb to
+make a virtual X11 environment)-- to be able to what is happening in
+data processing at useful stages: for example, alignment of two sets
+without having to click any buttons in the AFNI GUI.  This makes it
+easier to review batch processing, discuss processing with one's boss,
+prepare for a presentation or publication, etc. For example, this
+program is used in most all of FATCAT's fat_proc_* scripts, and even
+TORTOISE includes calls to it for auto-QC imaging if the user has AFNI
+installed (and suuuurely they should??).
 
-        $ viewer_afni.tcsh -ulay FILE_ULAY -olay FILE_OLAY
- 
+Each call to this function will make a set of montages in the axial,
+coronal and sagittal planes, of user-specified dimensionality.
+
+This function can be used on both 3D and 4D data sets, but for the
+latter, probably @djunct_4d_imager would be much more simple to use.
+
+A lot of the help descriptions for command line options, below, will
+refer to the variables in the "AFNI Driver" doc:
+https://afni.nimh.nih.gov/pub/dist/doc/program_help/README.driver.html
+or variables in the "AFNI Environment" doc:
+https://afni.nimh.nih.gov/pub/dist/doc/program_help/README.environment.html
+References to these are sometimes noted explicitely with "see DR" or
+"see ENV", respectively, and potentially with the particular variable.
+For example, "(see ENV: SAVE_AGIF)".
+
+++ constructed by PA Taylor (NIMH, NIH, USA).
+
+# =========================================================================
+
+-help, -h          :see helpfile (here!)
+-ver               :see version number
+
+-ulay    UUU       :name of underlay dset (required); can be 3D or 4D
+                    set, depending on the circumstances.  For 4D, 
+                    though, strongly consider using "@djunct_4d_imager".
+
+-olay    OOO       :name of overlay dset (opt).
+
+-olay_off          :explicitly state you are not using olay (opt);
+                    if not used and no olay is given, then the user
+                    just gets prompted to be sure they haven't 
+                    forgotten the olay dset.
+
+-prefix  PPP       :prefix for output files (required).
+
+-cbar    CCC       :specify a new colorbar, where CCC can be any of the
+                    cbars in the standard AFNI list (def: $my_cbar).
+
+-blowup  BB        :enter a "blowup factor", where BB is an integer 
+                    in the interval [1, 8].  Increases spatial resolution
+                    in the output by a factor of BB (see DR).
+
+-set_xhairs XX     :specify type and/or existence of crosshairs in the
+                    image (see DR: SET_XHAIRS).
+
+-opacity   OO      :enter an "opacity factor" for the olay, where OO is 
+                    an integer in the interval [0, 9], with the 9 being
+                    opaque (see DR).
+
+-delta_slices DS DC DA :when montaging, (DS, DC, DA) is the integer
+                     number of slices to use as spacing between views
+                     along the (sag, cor, axi) axes, respectively
+                     (def: automatically calculate to ~evenly fit the
+                     number of selected montage slices along this
+                     axis).  (See DR: "mont=PxQ:R"; basically, each D?
+                     is the 'R' value along the given axis).  Users
+                     can specify a delta_slice value along *some* axis
+                     and leave other(s) to be chosen automatically, by
+                     specifying a D? value >0 for their own value, and
+                     given any other D? value -1.  For example:
+                      -delta_slices 40 -1 -1
+                     would specify every 40th slice along the sag axis, 
+                     while the cor and axi spacing would be automatically 
+                     calculated.
+
+-thr_olay  THR     :threshold the olay dset at THR (def: 0, or 
+                    unthreshold). (See DR: SET_THRESHNEW)
+-thrflag   'fff'   :further control of how the THR value is interpreted 
+                    (def: "*"). (See DR: SET_THRESHNEW)
+
+-set_subbricks i j k :specify subbricks being viewed in the ulay, olay
+                    and threshold dsets (def: "-1 -1 -1", which means
+                    ignore these values). (See DR: SET_SUBBRICKS)
+
+-func_range FR     :specify upper value FR of the olay dset to be
+                    matched to top of colorbar (def: calc 98%ile value
+                    of dset and use that).
+
+-func_range_perc FRP :alternative to "-func_range ..."; specify a
+                    percentile value FRP to use to make the upper
+                    value of the olay dset to be matched to the top of
+                    the colorbar (def: calc 98%ile value of dset and
+                    use that).
+
+-pbar_posonly      :for color range specification, default is to use
+                    both positive and negative values; enter this flag
+                    to use only the positive range. (See DR:
+                    SET_PBAR_ALL)
+
+-func_resam  RES   :set the resampling mode for dsets; valid values
+                    are:   NN  Li  Cu  Bk
+                    (def: NN; hey, voxels are voxels!). 
+                    (See DR: SET_FUNC_RESAM)
+
+-cbar_ncolors NC   :set colorscale mode (def: 99) (See DR:
+                    SET_PBAR_ALL, the 2nd usage case, description
+                    about '99').
+
+-cbar_topval  TOPV :set colorscale mode (def: 1) (See DR:
+                    SET_PBAR_ALL, the 2nd usage case, description
+                    about 'topval').
+
+-save_ftype  FTYPE :type of file as which to save images; key types
+                    are listed in the Driver description (def: PNG)
+                    (See DR: SAVE_ALLJPEG, SAVE_ALLPNG, SAVE_MPEG,
+                    SAVE_AGIF, SAVE_JPEG, SAVE_PNG)
+
+-set_ijk  II JJ KK :Set the controller coordinates to the given
+                    triple, which are integer index selectors along
+                    the three spatial axes.  This essentially
+                    specifies the middle image in the montage (def:
+                    for each coordinate, choose middle slice along
+                    axis).
+-set_dicom_xyz XX YY ZZ :Set the controller coordinates to the given
+                    triple, which are the (x, y, z) coordinates in
+                    AFNI's favorite RAI DICOM notation.  (def: for
+                    each coordinate, choose middle slice along axis).
+
+-montx  MX         :in creating montage, the number of image panels
+                    in a row (def: 3); the total number of panels per 
+                    axis is:  MX*MY   (see below "-monty ...").
+                    (See DR: "mont=PxQ:R"; basically, MX is the 'P' 
+                    value).
+-monty  MY         :in creating montage, the number of image panels
+                    in a column (def: 3); the total number of panels
+                    per axis is:  MX*MY   (see above "-montx ...").
+                    (See DR: "mont=PxQ:R"; basically, MY is the 'Q' 
+                    value).
+
+-alpha_par  ALPHP  :In addition to representing olay values as colors
+                    with a threshold, one also apply opacity
+                    information to 'soften' the effect of
+                    thresholding; see DR: SET_FUNC_ALPHA for a
+                    description of this behavior (def: "Off", which is
+                    just standard thresholding stuff).
+-alpha_floor ALPHF :second parameter for more complicated olay 
+                    thresholding behavior.  Too complicated for simple
+                    me to explain-- see DR: SET_FUNC_ALPHA (def: ""; 
+                    this empty string means use default
+                    value, which at time of writing is 0) 
+-alpha_edgize_no   :even *more* control over fancy alpha-based 
+                    thresholding; for this, see ENV: 
+                    AFNI_EDGIZE_OVERLAY, whose default value is "YES".
+                    Using this option changes that value to 'NO' 
+                    internally.
+
+-image_zoom_nn_no  :the default zoom is set to NN mode, so no smoothing
+                    occurs (see ENV: AFNI_IMAGE_ZOOM_NN).  This option
+                    changes behavior internally to set this variable
+                    to have the value "NO".
+
+-zerocolor ZC      :Change the default 'background' ulay color of zero
+                    values (def: "Black"); ZC can be set to any allowed
+                    AFNI value (see ENV: AFNI_IMAGE_ZEROCOLOR).  This 
+                    option is mainly for G. Chen, who flaunts convention
+                    whenever possible.
+
+-label_mode    LM  :control labels, ON/OFF and location (def: 1);
+                    (see ENV: AFNI_IMAGE_LABEL_MODE)
+-label_size    LS  :control labels, size (def: 3);
+                    (see ENV: AFNI_IMAGE_LABEL_SIZE)
+-label_color   LC  :control labels, color (def: white);
+                    (see ENV: AFNI_IMAGE_LABEL_COLOR)
+-label_setback LB  :control labels, offset from edge (def: 0.01);
+                    (see ENV: AFNI_IMAGE_LABEL_SETBACK)
+-label_string LSTR :control labels, string automatically appended
+                    to the slice (def: "");
+                    (see ENV: AFNI_IMAGE_LABEL_STRING)
+-image_label_ijk LIJK :If this variable is YES, then the image label will
+                    be based on the slice index rather than the
+                    spatial (mm) coordinate (def: NO); thanks, Bob!
+                    (see ENV: AFNI_IMAGE_LABEL_IJK)
+
+-globalrange  GR   :specify how lookup range for matching ulay values
+                    is done (def: VOLUME);
+                    (see ENV: AFNI_IMAGE_GLOBALRANGE)
+-ulay_range UMIN UMAX :specify min and max range values of ulay dset;
+                    if a "%" is on both numbers, then treat the
+                    numerical part of UMIN and UMAX as percentiles
+                    from which to calculate actual values; otherwise,
+                    treat UMIN and UMAX as values directly.
+
+-do_clean          :by default, the temporary directory of copying
+                    files and such is not removed;  using this option
+                    means that that working directory *is* removed.
+
+# ========================================================================
+
+EXAMPLES:
+
+    # 1) Basic vanilla: make a 3x5 montage of just a ulay; there will
+    #    be 15 slices shown, evenly spaced along each axis, with some
+    #    labels on the corners.
+
+    @chauffeur_afni                     \
+        -ulay    MY_ULAY.nii.gz         \
+        -prefix  PRETTY_PICTURE         \
+        -montx 5 -monty 3               \
+        -set_xhairs OFF                 \
+        -label_mode 1 -label_size 3     \
+        -do_clean  
+
+
+    # 2) Make a 3x5 montage of an overlayed data set that has an ROI
+    #    map, so we want it to be colored-by-integer.  Put the images
+    #    into a pre-existing directory, SUBDIR/.
+
+    @chauffeur_afni                       \
+        -ulay  MY_ULAY.nii.gz             \
+        -olay  MY_OLAY.nii.gz             \
+        -pbar_posonly                     \
+        -cbar "ROI_i256"                  \
+        -func_range 256                   \
+        -opacity 4                        \
+        -prefix   SUBDIR/PRETTY_PICTURE2  \
+        -montx 5 -monty 3                 \
+        -set_xhairs OFF                   \
+        -label_mode 1 -label_size 3       \
+        -do_clean 
+
+# -------------------------------------------------------------------
+
 EOF
 
     goto GOOD_EXIT

@@ -1,0 +1,80 @@
+#!/bin/tcsh -f
+#################################################
+## 11/2017 Justin Rajendra
+## launch shiny plot of FATCAT outputs
+
+## find the shiny folder
+set afni_bin = `which afni`
+set afni_dir = `dirname ${afni_bin}`
+set ShinyFolder = "${afni_dir}/shiny/FATCAT_matplot_shiny"
+set InFolder = ""
+
+## get the current program name
+set prog = `basename $0`
+
+## show help
+if ( $#argv < 1 ) then
+    goto SHOW_HELP
+endif
+
+## parse args
+set narg = 1
+@  amax = $#argv - 0
+while ( $narg <= $amax )
+    if ( "$argv[$narg]" == "-help" || "$argv[$narg]" == "-h" ) then
+        goto SHOW_HELP
+    else if ( "$argv[$narg]" == "-ShinyFolder" ) then
+        @ narg ++
+        set ShinyFolder = `echo $argv[$narg]`
+    else
+        set InFolder = `echo $argv[$narg]`
+    endif
+    @ narg ++
+end
+
+## check the inputs
+if ( "$InFolder" == "" ) then
+    goto SHOW_HELP
+endif
+if ( ! -d $InFolder ) then
+    echo ; echo "Error: ${InFolder} does not exist." ; echo
+    exit 1
+endif
+
+## get full path for the input folder
+cd $InFolder
+set corr_dir = `pwd`
+cd -
+
+## launch shiny
+R --slave --no-restore \
+-e "shiny::runApp('${ShinyFolder}', launch.browser=TRUE)" --args $corr_dir &
+exit 0
+
+##########################################################################
+SHOW_HELP:
+cat << EOF
+
+   ----------------------------------------------------------------------------
+   $prog
+      Launch a shiny app to visualize .netcc and/or .grid files.
+      Takes one argument, a path to a folder with said files.
+      That path MUST be the last argument!
+      May need "@afni_R_package_install -shiny -circos" for R libraries.
+
+   -----------------------------------------------------------------------------
+   options:
+      -help        : Show this help.
+      -ShinyFolder : Use a custom shiny folder (for testing purposes).
+
+   -----------------------------------------------------------------------------
+   examples:
+      $prog ~/disco_netcc_folder
+
+   -----------------------------------------------------------------------------
+   Justin Rajendra 11/2017
+
+EOF
+
+exit 0
+

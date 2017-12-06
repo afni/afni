@@ -443,7 +443,7 @@ int SUMA_IcoNums(int depth, byte bin, char what) {
 }
 
 /*!
-   \brief load the environment varaibles first from 
+   \brief load the environment variables first from 
    $HOME/.sumarc and $HOME/.afnirc
    if HOME is not defined then try .afnirc and .sumarc
    Shameless wrapper for AFNI_process_environ
@@ -3473,6 +3473,15 @@ static ENV_SPEC envlist[] = {
       "Negative values mean leave the threshold alone when switching.\n",
       "SUMA_pval_at_switch",
       "-1.0" },
+   {  "If YES, then reduce messages to only errors while driving suma\n"
+      "Choose from YES or NO",
+      "SUMA_DriveSumaQuiet",
+      "NO" },
+   {  "If YES, then show popup message windows in suma\n"
+      "Choose from YES or NO",
+      "SUMA_SHOWPOPUPS",
+      "NO" },
+
    {  NULL, NULL, NULL  }
 };
       

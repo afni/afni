@@ -1,5 +1,10 @@
 /* 
    Description
+
+   [PT: Sept 26, 2014] Add in attribute output for Ntpts pre- and
+   post-censoring.
+
+
 */
 
 
@@ -25,7 +30,8 @@ void Spect_to_RSFC( THD_3dim_dataset *A,
                     int MIN_bp, int MAX_bp, 
                     int MIN_full, int MAX_full,
                     float **ap,
-                    int Npar );
+                    int Npar,
+                    int nt_cen, int nt_orig);
 
 
 void usage_AmpToRSFC(int detail) 
@@ -92,16 +98,16 @@ void usage_AmpToRSFC(int detail)
 "                               (L1 sum).\n"
 "          PREFIX_MALFF+orig   :ALFF divided by the mean value within\n"
 "                               the input/estimated whole brain mask\n"
-"                               (-> 'mean-scaled ALFF').\n"
+"                               (a.k.a. 'mean-scaled ALFF').\n"
 "          PREFIX_FALFF+orig   :ALFF divided by sum of full amplitude\n"
 "                               spectrum (-> 'fractional ALFF').\n"
 "          PREFIX_RSFA+orig    :square-root of summed square of low freq\n"
 "                               fluctuations (L2 sum).\n"
 "          PREFIX_MRSFA+orig   :RSFA divided by the mean value within\n"
 "                               the input/estimated whole brain mask\n"
-"                               (-> 'mean-scaled RSFA').\n"
+"                               (a.k.a. 'mean-scaled RSFA').\n"
 "          PREFIX_FRSFA+orig   :ALFF divided by sum of full amplitude\n"
-"                               spectrum (-> 'fractional RSFA').\n"
+"                               spectrum (a.k.a. 'fractional RSFA').\n"
 "\n"
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "\n"
@@ -135,6 +141,9 @@ int main(int argc, char *argv[]) {
    int NIFTI_OUT=0;
    int DTYPE=0;
 
+   int nt_orig = -1;  // attribute info on Npts before censoring
+   int nt_cen  = -1;  // attribute info on Npts after censoring
+   
    int HAVE_MASK = 0;
    int ***mskd; // define mask of where time series are nonzero
    double temp_sum;
@@ -276,6 +285,25 @@ int main(int argc, char *argv[]) {
          Dim[0] = DSET_NX(insetTIME); Dim[1] = DSET_NY(insetTIME); 
          Dim[2] = DSET_NZ(insetTIME); Dim[3]= DSET_NVALS(insetTIME); 
          delF = DSET_TR(insetTIME);
+
+         // [PT: Sep 20, 2017] Get attribute info: follow Bob's lead!
+         ATR_int *atr;
+         int *attin;
+         atr = THD_find_int_atr( insetTIME->dblk , "N_TS_ORIG" ) ;
+         if( atr == NULL )
+            ERROR_exit("Input pow/amp set has no N_TS_ORIG attribute-- booo.");
+         if( atr->nin != 2 )
+            ERROR_exit("Input pow/amp attribute N_TS_ORIG is too short [%d]!",
+                       atr->nin);
+         attin = atr->in ;
+         nt_orig = attin[0];
+         nt_cen  = attin[1];
+         INFO_message("Original time series:  %d points before censoring, "
+                      "and %d after", nt_orig, nt_cen);
+
+         if( (nt_orig <= 0) || (nt_cen <= 0) )
+            ERROR_exit("Can't have non-positive numbers of original time "
+                       "series points, even *after* censoring!");
    }
 
    if( (fbot<0) || (ftop<0) ) {
@@ -293,8 +321,6 @@ int main(int argc, char *argv[]) {
                        "dimensions.\n");
          exit(1);
       }
-  
-
 	
    // ****************************************************************
    // ****************************************************************
@@ -388,7 +414,8 @@ int main(int argc, char *argv[]) {
                   MIN_bp, MAX_bp, 
                   MIN_full, MAX_full,
                   allPar,
-                  Npar
+                  Npar,
+                  nt_cen, nt_orig
                   );
 
    INFO_message("Done calculating parameters.");
@@ -479,22 +506,25 @@ void Spect_to_RSFC( THD_3dim_dataset *A,
                     int MIN_bp, int MAX_bp, 
                     int MIN_full, int MAX_full,
                     float **ap,
-                    int Npar
+                    int Npar,
+                    int nt_cen, int nt_orig
                     )
 {
    int i,j,k,l;
    int idx=0, ctr=0;
    float L1num=0., L2num=0., L1den=0., L2den=0.;
    float tmp1, mean_alff=0., mean_rsfa=0.;
-   float facN, facNNmin1;
+   //float facN, facNNmin1;
+   float facL, facLMmin1, fac2oL;
 
    INFO_message("Start calculating spectral parameters");
 
    // scaling factors based on 'N'; think this is correct and even
    // accounts for the possible use of ofac!=1 in the lombscargle
    // program -> !! check !!
-   facN = sqrt(Dim[3]);
-   facNNmin1 = facN * sqrt(Dim[3]-1);
+   facL = sqrt(Dim[3]); // essentially sqrt(L)
+   //fac2oL = sqrt(2./Dim[3]); // essentially sqrt(L)
+   facLMmin1 = facL * sqrt(nt_cen-1.); // L*(M-1)
 
    for( k=0 ; k<Dim[2] ; k++ ) 
       for( j=0 ; j<Dim[1] ; j++ ) 
@@ -516,12 +546,13 @@ void Spect_to_RSFC( THD_3dim_dataset *A,
                   }
                }
 
+               // !! Don't need these, because have L=N/2
                // one-sidedness -> full values; each sum is only over
                // half the freqs
-               ap[0][idx]*= 2.;
-               L1den*= 2.;
-               ap[3][idx]*= 2.;
-               L2den*= 2.;
+               //ap[0][idx]*= 2.;
+               //L1den*= 2.;
+               //ap[3][idx]*= 2.;
+               //L2den*= 2.;
 
                // now the rest of the pars
                ap[1][idx] = ap[0][idx];         // -> malff
@@ -541,15 +572,16 @@ void Spect_to_RSFC( THD_3dim_dataset *A,
    mean_rsfa/= ctr;
 
    // loop back again for scaling mALFF and mRSFA
-   idx = 0;
+   idx = 0; 
    for( k=0 ; k<Dim[2] ; k++ ) 
       for( j=0 ; j<Dim[1] ; j++ ) 
          for( i=0 ; i<Dim[0] ; i++ ) {
             if( mskd[i][j][k] ) {
-               ap[0][idx]/= facN;
-               ap[1][idx]/= mean_alff;
-               ap[3][idx]/= facNNmin1;
-               ap[4][idx]/= mean_rsfa;
+               // fALFF and fRSFA need no further scaling.
+               ap[0][idx]/= facLMmin1; //sqrt(nt_cen-1); //  ALFF-- don't need sqrt(2) ! normalize properly, I think
+               ap[1][idx]/= mean_alff;   // mALFF
+               ap[3][idx]/= facLMmin1;   //  RSFA
+               ap[4][idx]/= mean_rsfa;   // mRSFA
             }
             idx++;
          }

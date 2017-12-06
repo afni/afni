@@ -1,15 +1,18 @@
 #!/usr/bin/env python
 
+# python3 status: started
+
 import sys, random, os, math
 import afni_util as UTIL
 import lib_afni1D as LD
 
 gDEF_T_GRAN     = 0.01   # default time granularity, in seconds
                          # (OLD one in mrt.py is just 0.1)
-gDEF_DEC_PLACES = 2      # decimal places when printing time (-1 ==> %g format)
+gDEF_DEC_PLACES = 3      # decimal places when printing time (-1 ==> %g format)
 
 
-g_valid_dist_types = ['decay', 'decay_old', 'uniform_rand', 'uniform_grid',
+g_valid_dist_types = ['decay', 'decay_old', 'decay_fixed',
+                      'uniform_rand', 'uniform_grid',
                       'fixed', 'INSTANT']
 g_fixed_dist_types = ['fixed', 'INSTANT']
 g_valid_param_types= ['dist', 't_gran']
@@ -28,7 +31,10 @@ g_valid_param_types= ['dist', 't_gran']
 #          - t_gran: granularity of time, default 0.01
 class TimingClass:
    def __init__(self, name, min_dur, mean_dur, max_dur, params=[], verb=1):
-      # required from the command line (name value -> set duration)
+      """required from the command line (name value -> set duration)
+
+         note: this just processes the parameters, times are not created here
+      """
       self.name         = name
 
       self.min_dur      = min_dur       # ** required **
@@ -59,11 +65,13 @@ class TimingClass:
 
       # round min and max times to t_gran (actually, truncate towards mean)
       # (but make sure we do not barely miss some t_gran multiple)
-      tg = self.t_gran
+    
+      # force tg to float for python 2 division
+      tg = float(self.t_gran)
       if self.min_dur < tg:
          self.min_dur = 0.0
       else:
-         self.min_dur = tg * math.ceil (self.min_dur / tg - 0.01)
+         self.min_dur = tg * math.ceil(self.min_dur / tg - 0.01)
       if self.max_dur < 0.0:
          self.max_dur = -1.0
       elif self.max_dur < tg:
@@ -71,6 +79,7 @@ class TimingClass:
       else:
          self.max_dur = tg * math.floor(self.max_dur / tg + 0.01)
 
+      if verb > 2: self.show("new timing class, '%s'" % name)
 
    def apply_params(self, params):
       """list of VAR=VAL, verify and apply"""
@@ -81,7 +90,7 @@ class TimingClass:
 
           pv = pp.split('=')
           if len(pv) != 2:
-             print errstr
+             print(errstr)
              return 1
           pvar = pv[0]
           pval = pv[1]
@@ -89,23 +98,23 @@ class TimingClass:
           # now check one type at a time, else fail
           if pvar == 'dist':
              if pval not in g_valid_dist_types:
-                print errstr
-                print '** invalid dist = %s in %s' % (pval, pp)
-                print '   must be one of: %s' % ', '.join(g_valid_dist_types)
+                print(errstr)
+                print('** invalid dist = %s in %s' % (pval, pp))
+                print('   must be one of: %s' % ', '.join(g_valid_dist_types))
                 return 1
              # apply
              self.dist_type = pval
           elif pvar == 't_gran':
              try: t_gran = float(pval)
              except:
-                print errstr
-                print "** bad t_gran = %s in %s" % (pval, pp)
+                print(errstr)
+                print("** bad t_gran = %s in %s" % (pval, pp))
                 return 1
              if t_gran <= 0:
-                print "** invalid t_gran = %s in %s" % (pval, pp)
+                print("** invalid t_gran = %s in %s" % (pval, pp))
                 return 1
              # apply
-             self.t_gran = t_gran
+             self.t_gran = float(t_gran)
           # elif pvar == 'max_consec':
           #    try: mc = int(pval)
           #    except:
@@ -117,10 +126,14 @@ class TimingClass:
           #       return 1
           #    # apply
           #    self.max_consec = mc
+          
+          # rcr - consider adding parameter 'nuniq', to specify the
+          #       number of unique times (which would need to be an
+          #       integral fraction of nreps, when applied)
           else:
-             print "** TimingClass %s, invalid param name %s in '%s'" \
-                   % (self.name, pvar, pp)
-             print '   must be one of: %s' % ', '.join(g_valid_param_types)
+             print("** TimingClass %s, invalid param name %s in '%s'" \
+                   % (self.name, pvar, pp))
+             print('   must be one of: %s' % ', '.join(g_valid_param_types))
              return 1
 
       return 0
@@ -128,38 +141,38 @@ class TimingClass:
    def show(self, mesg='', details=0):
       if mesg: mstr = '(%s) ' % mesg
       else:    mstr = ''
-      print '-- TimingClass %s:' % mstr
-      print '   name         : %s' % self.name
-      print '   min_dur      : %s' % self.min_dur
-      print '   mean_dur     : %s' % self.mean_dur
-      print '   max_dur      : %s' % self.max_dur
-      print '   dist_type    : %s' % self.dist_type
-      print '   t_gran       : %s' % self.t_gran
+      print('-- TimingClass %s:' % mstr)
+      print('   name         : %s' % self.name)
+      print('   min_dur      : %s' % self.min_dur)
+      print('   mean_dur     : %s' % self.mean_dur)
+      print('   max_dur      : %s' % self.max_dur)
+      print('   dist_type    : %s' % self.dist_type)
+      print('   t_gran       : %s' % self.t_gran)
 
       if details:
-         print '   verb         : %s' % self.verb
-         print '   total_time   : %s' % self.total_time
-         print '   params       : %s' % self.params
+         print('   verb         : %s' % self.verb)
+         print('   total_time   : %s' % self.total_time)
+         print('   params       : %s' % self.params)
 
-      print
+      print('')
 
    def show_durlist_stats(self, durlist, mesg='', details=0, sort=0):
       if mesg != '': mstr = '(%s) ' % mesg
       else:          mstr = ''
       nevents = len(durlist)
       total   = sum(durlist)
-      print "=== %sstats for TimingClass %s ===" % (mstr, self.name)
-      print "    (%d events, total time %g)" % (nevents, total)
+      print("=== %sstats for TimingClass %s ===" % (mstr, self.name))
+      print("    (%d events, total time %g)" % (nevents, total))
 
-      print '            min       mean      max      stdev'
-      print '------    -------   -------   -------   -------'
+      print('            min       mean      max      stdev')
+      print('------    -------   -------   -------   -------')
 
-      print 'expected %7.3f   %7.3f   %7.3f     %s' % \
-            (self.min_dur, self.mean_dur, self.max_dur, self.dist_type)
+      print('expected %7.3f   %7.3f   %7.3f     %s' % \
+            (self.min_dur, self.mean_dur, self.max_dur, self.dist_type))
 
       mmin,mmean,mmax,mstdev = UTIL.min_mean_max_stdev(durlist)
-      print 'actual   %7.3f   %7.3f   %7.3f   %7.3f\n' % \
-            (mmin, mmean, mmax, mstdev)
+      print('actual   %7.3f   %7.3f   %7.3f   %7.3f\n' % \
+            (mmin, mmean, mmax, mstdev))
 
       if not details: return
 
@@ -173,9 +186,9 @@ class TimingClass:
          dlist = durlist
          sstr = ''
 
-      print '-- TimingClass %s%s event durations:'  % (self.name,sstr)
+      print('-- TimingClass %s%s event durations:'  % (self.name,sstr))
       dstr = ['%.*f'%(digs, dd) for dd in dlist]
-      print '   %s\n' % ' '.join(dstr)
+      print('   %s\n' % ' '.join(dstr))
 
    def get_one_val(self):
       return random_duration_list(1, self)
@@ -214,7 +227,7 @@ class TimingClass:
          # look for the next 1
          try: posn = elist.index(1, prev+1)
          except:
-            print '** DGDL index failure, n = %d, elist = %s' % (nevents, elist)
+            print('** DGDL index failure, n = %d, elist = %s' % (nevents, elist))
             return durlist
 
          # rest count is number of zeros between prev and posn
@@ -238,7 +251,7 @@ class TimingClass:
       elif maxtype == 1:
          durlist = self.decay_apply_max_limit_old(durlist, nmax)
       else:
-         print '** decay limit, illegal maxtype %d' % maxtype
+         print('** decay limit, illegal maxtype %d' % maxtype)
          durlist = self.decay_apply_max_limit(durlist, nmax)
 
       # and finally, scale by t_gran
@@ -266,8 +279,8 @@ class TimingClass:
       intotal = sum(dlist) * self.t_gran
 
       if self.verb > 3:
-         print '-- decay: dist %d rest events, time=%g, ave time=%g' \
-               % (nevents, intotal, intotal/nevents)
+         print('-- decay: dist %d rest events, time=%g, ave time=%g' \
+               % (nevents, intotal, intotal/nevents))
 
       # give big times new ones in the proper range, and tally lost time
       textra = 0
@@ -286,16 +299,16 @@ class TimingClass:
 
       if self.verb > 4:
          ttotal = textra * self.t_gran
-         print '-- decay: dist %d rest atoms (time=%g)' % (textra, ttotal)
-         print '   nadd=%d, nmaxed=%d, nfixed=%d' % (nadd, nmaxed, nfixed)
+         print('-- decay: dist %d rest atoms (time=%g)' % (textra, ttotal))
+         print('   nadd=%d, nmaxed=%d, nfixed=%d' % (nadd, nmaxed, nfixed))
          ttotal = sum(dlist) * self.t_gran
-         print '   fix %g/%d = %g' % (ttotal,len(dlist),ttotal/len(dlist))
+         print('   fix %g/%d = %g' % (ttotal,len(dlist),ttotal/len(dlist)))
 
       # and add remaining time until we are done until we are done
       while textra > 0:
          # should not occur:
          if nadd == 0:
-            print '** rcr screw-up: nadd = 0'
+            print('** rcr screw-up: nadd = 0')
             sys.exit(1)
 
          # get random index to add to
@@ -329,12 +342,12 @@ class TimingClass:
       outtotal = sum(dlist) * self.t_gran
 
       if self.verb > 3:
-         print '-- final, ave %g/%d = %g' \
-               % (outtotal, len(dlist), outtotal/len(dlist))
+         print('-- final, ave %g/%d = %g' \
+               % (outtotal, len(dlist), outtotal/len(dlist)))
 
       if intotal != outtotal:
-         print '** decay - apply max: intotal %g != outtotal %g' \
-               % (intotal, outtotal)
+         print('** decay - apply max: intotal %g != outtotal %g' \
+               % (intotal, outtotal))
 
       return dlist
 
@@ -398,7 +411,7 @@ class TimingClass:
 
       # can we actually fix this?  (failure should already be prevented)
       if navail < n2move:
-         print '** DAML space availability error for class %s' % self.name
+         print('** DAML space availability error for class %s' % self.name)
          return dlist
 
       # --------------------------------------------------
@@ -414,7 +427,7 @@ class TimingClass:
 
       for sind in range(n2move):
          if nspace == 0:
-            print '** DAML: no more space entries in class %s' % self.name
+            print('** DAML: no more space entries in class %s' % self.name)
             return dlist
          mind = self.rand_uniform_int(nspace)
          sind = spacelist[mind]
@@ -425,6 +438,35 @@ class TimingClass:
             spacelist.remove(sind)
             
       return dlist
+
+   def decay_fixed_get_dur_list(self, nevents, tot_time, max_dur):
+      """return a list of durations, distributed as e^-x on [0, max_dur]
+         with mean tot_time/nevents (durations are still on t_gran)
+
+         - mean time is tot/n, max should be positive
+
+         - get n times via decay_pdf_get_ranged_times()
+         - shuffle
+      """
+
+      import lib_decay_timing as LDT
+
+      if nevents <= 0: return []
+      if nevents == 1: return [tot_time]
+      if tot_time <= 0.0: return [0.0]*nevents
+
+      if max_dur <= 0:
+         print('** decay_fixed_GDL: illegal max_dur %g' % max_dur)
+         return []
+
+      mean = float(tot_time)/nevents
+
+      durlist = LDT.decay_pdf_get_ranged_times(0, max_dur, mean, nevents,
+                                      t_grid=self.t_gran, verb=self.verb)
+
+      UTIL.shuffle(durlist)
+
+      return durlist
 
    def urand_get_dur_list(self, nevents, tot_time):
       """return a list of durations, distributed uniformly in [0,max_dur]
@@ -515,9 +557,9 @@ class StimClass:
       self.rclass       = rclass        # name of rest TimingClass
 
       if not isinstance(sclass, TimingClass):
-         print '** StimClass stim timing is not a TimingClass'
+         print('** StimClass stim timing is not a TimingClass')
       if not isinstance(rclass, TimingClass):
-         print '** StimClass rest timing is not a TimingClass'
+         print('** StimClass rest timing is not a TimingClass')
 
       self.verb         = verb
 
@@ -528,47 +570,53 @@ class StimClass:
    def show(self, mesg='', details=0):
       if mesg: mstr = '(%s) ' % mesg
       else:    mstr = ''
-      print '-- StimClass %s:' % mstr
-      print '   name         : %s' % self.name
-      print '   nreps        : %s' % self.nreps
-      print '   sclass       : %s' % self.sclass.name
-      print '   rclass       : %s' % self.rclass.name
-      print '   max_consec   : %d' % self.max_consec
+      print('-- StimClass %s:' % mstr)
+      print('   name         : %s' % self.name)
+      print('   nreps        : %s' % self.nreps)
+      print('   sclass       : %s' % self.sclass.name)
+      print('   rclass       : %s' % self.rclass.name)
+      print('   max_consec   : %d' % self.max_consec)
 
       if details:
-         print '   verb         : %s' % self.verb
+         print('   verb         : %s' % self.verb)
          self.sclass.show('stim class for %s'%self.name)
          self.rclass.show('rest class for %s'%self.name)
 
-      print
+      print('')
 
    def show_durlist_stats(self, mesg='', details=0):
       tc = self.sclass
       durlist = self.durlist
+      # note number of events in first run
+      if len(durlist) > 0:
+         N = len(durlist[0])
+      else:
+         N = 0
 
       if mesg != '': mstr = '(%s) ' % mesg
       else:          mstr = ''
-      print "=== %sstats for StimClass %s ===" % (mstr, self.name)
+      print("=== %sstats for StimClass %s ===" % (mstr, self.name))
 
-      print 'run         #      min       mean      max      stdev'
-      print '------    -----  -------   -------   -------   -------'
-      print 'expected        %7.3f   %7.3f   %7.3f     %s' % \
-               (tc.min_dur, tc.mean_dur, tc.max_dur, tc.dist_type)
+      print('run         #      min       mean      max      total       stdev')
+      print('------    -----  -------   -------   -------   -------     -------')
+      print('expected        %7.3f   %7.3f   %7.3f   %9.2f    %s' % \
+            (tc.min_dur, tc.mean_dur, tc.max_dur, N*tc.mean_dur, tc.dist_type))
       for rind, durs in enumerate(durlist):
          mmin,mmean,mmax,mstdev = UTIL.min_mean_max_stdev(durs)
-         print '%2d         %3d  %7.3f   %7.3f   %7.3f   %7.3f' % \
-               (rind, len(durs), mmin, mmean, mmax, mstdev)
-      print
+         ttime = sum(durs)
+         print('%2d       %5d  %7.3f   %7.3f   %7.3f   %9.2f    %7.3f' % \
+               (rind, len(durs), mmin, mmean, mmax, ttime, mstdev))
+      print('')
 
       if details:
          digs = gDEF_DEC_PLACES
-         print '-- StimClass %s event durations:'  % self.name
+         print('-- StimClass %s event durations:'  % self.name)
          for rind, durs in enumerate(durlist):
             dstr = ['%.*f'%(digs, dd) for dd in durs]
-            print '   run %02d: %s' % (rind, ' '.join(dstr))
-         print
+            print('   run %02d: %s' % (rind, ' '.join(dstr)))
+         print('')
 
-      print
+      print('')
 
 def create_duration_lists(slist, nruns, across_runs=0, verb=1):
    """for each class, create nreps event times
@@ -579,8 +627,8 @@ def create_duration_lists(slist, nruns, across_runs=0, verb=1):
 
    nsc = len(slist)
    if verb > 1:
-      print '-- creating stim dur lists for %d classes, nruns=%d, across=%d' \
-            % (nsc, nruns, across_runs)
+      print('-- creating stim dur lists for %d classes, nruns=%d, across=%d' \
+            % (nsc, nruns, across_runs))
 
    for sc in slist:
       if across_runs:
@@ -635,21 +683,21 @@ def random_duration_list(nevents, tclass, total_time=-1.0, force_total=0):
    elif tclass.mean_dur == 0:
       ttime = 0.0
    elif tclass.mean_dur > 0:
-      ttime = 1.0 * tclass.mean_dur * nevents
+      ttime = float(tclass.mean_dur * nevents)
 
       if total_time > 0:
          if (ttime - total_time)/total_time < 0.95 or \
             (ttime - total_time)/total_time > 1.05:
-            print '** warning: random_duration_list has conflicting total time'
-            print '   from mean = %s, from param = %s, type = %s' \
-                  % (ttime, total_time, tclass.name)
+            print('** warning: random_duration_list has conflicting total time')
+            print('   from mean = %s, from param = %s, type = %s' \
+                  % (ttime, total_time, tclass.name))
    elif total_time >= 0:
       ttime = total_time
    else:
       # we do not know a mean or a total, try to return minimum
-      print '** RDL: do not know mean or total time, returning min for %s' \
-            % tclass.name
-      min_dur = tclass.t_gran * math.ceil(tclass.min_dur/tclass.t_gran)
+      print('** RDL: do not know mean or total time, returning min for %s' \
+            % tclass.name)
+      min_dur = tclass.t_gran * math.ceil(float(tclass.min_dur)/tclass.t_gran)
       return [min_dur] * nevents
 
    # if total time is zero, we are done
@@ -657,7 +705,7 @@ def random_duration_list(nevents, tclass, total_time=-1.0, force_total=0):
       return [0] * nevents
 
    # truncate ttime to t_gran grid (allow a little leeway)
-   max_dur = ttime * math.floor(ttime/tclass.t_gran + 0.001)
+   max_dur = ttime * math.floor(float(ttime)/tclass.t_gran + 0.001)
 
    # quick check: if only 1 event, return
    if nevents == 1:
@@ -669,7 +717,7 @@ def random_duration_list(nevents, tclass, total_time=-1.0, force_total=0):
    if min_dur <= 0: min_dur = 0
 
    # round min_dur up to nearest t_gran
-   min_dur = tclass.t_gran * math.ceil(min_dur/tclass.t_gran)
+   min_dur = tclass.t_gran * math.ceil(float(min_dur)/tclass.t_gran)
 
    # initialize a list of minimums, and set remain to the remaining time
    remain = ttime - min_dur * nevents
@@ -681,7 +729,7 @@ def random_duration_list(nevents, tclass, total_time=-1.0, force_total=0):
    # get appropriate max remaining time (beyond min_dur)
    if tclass.max_dur > 0:
       # start by taking floor
-      max_dur = tclass.t_gran * math.floor(tclass.max_dur/tclass.t_gran)
+      max_dur = tclass.t_gran * math.floor(float(tclass.max_dur)/tclass.t_gran)
       max_dur = tclass.max_dur - min_dur
       if max_dur <= 0: # just bail (return minimums)
          return [min_dur] * nevents
@@ -696,6 +744,9 @@ def random_duration_list(nevents, tclass, total_time=-1.0, force_total=0):
    # we have some time (remain) to distribute, possibly with a max time
    # ======================================================================
 
+   # min_dur is now 0, max_dur is adjusted by min_dur, and mean is
+   # implied by remain
+
    # ----------------------------------------------------------------------
    # g_valid_dist_types = ['decay', 'uniform_rand', 'uniform_grid', 'INSTANT']
 
@@ -705,15 +756,17 @@ def random_duration_list(nevents, tclass, total_time=-1.0, force_total=0):
       dlist = tclass.decay_get_dur_list(nevents, remain, max_dur, maxtype=0)
    elif dtype == 'decay_old':
       dlist = tclass.decay_get_dur_list(nevents, remain, max_dur, maxtype=1)
+   elif dtype == 'decay_fixed':
+      dlist = tclass.decay_fixed_get_dur_list(nevents, remain, max_dur)
    elif dtype == 'uniform_rand':
       dlist = tclass.urand_get_dur_list(nevents, remain)
    elif dtype == 'uniform_grid':
       dlist = tclass.ugrid_get_dur_list(nevents, remain)
    elif dtype == 'INSTANT' or dtype == 'fixed':
-      print "** RDL: dist_type '%s' should not be processed here" % dtype
+      print("** RDL: dist_type '%s' should not be processed here" % dtype)
       return [0.0] * nevents
    else:
-      print '** RDL: unknown dist type %s, return ave time' % dtype
+      print('** RDL: unknown dist type %s, return ave time' % dtype)
       return [ttime*1.0/nevents] * nevents
 
    # ----------------------------------------------------------------------
@@ -725,6 +778,6 @@ def random_duration_list(nevents, tclass, total_time=-1.0, force_total=0):
    return dlist
 
 if __name__ == '__main__':
-   print '** this is not a main module'
+   print('** this is not a main module')
    sys.exit(1)
 

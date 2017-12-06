@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """
 Script to be called to start a network server.
 

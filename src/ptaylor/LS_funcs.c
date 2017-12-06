@@ -137,7 +137,6 @@ void PR89_suppl_calc_Ns( int N, int NT,
 {
    int Nfreq, Nfreqt;
 
-
    if( NT > 0 ) { // newer
       *Nout = (int) (0.5 * ofac * NT);
       Nfreqt = (int) (ofac * NT * MACC); 
@@ -153,9 +152,7 @@ void PR89_suppl_calc_Ns( int N, int NT,
 
    *Ndim = 2 * Nfreq;
 
-
    //  INFO_message("%d %d %d %d", *Nout, Nfreqt, Nfreq, *Ndim);
-
 }
 
 // here, (Nout, Nwk) are calculated in separate functions, and
@@ -217,7 +214,7 @@ void PR89_fasper( float *x,
       for( j=1 ; j<=N ; j++ ) 
          ywin[j] = y[j] - AVE; // demean
    }
-
+   
    xmin = x[1];
    xmax = xmin;
 
@@ -255,6 +252,8 @@ void PR89_fasper( float *x,
    //INFO_message("mm=%d, FAC=%f, FNDIM=%f",mm,FAC, FNDIM);
    //INFO_message("Ck=%f  Ckk=%f", Ck, Ckk);
 
+   //fprintf(stderr, "\n\n\n TERM COMP ---- \n");
+
    for( j=1 ; j<=Nout ; j++ ) {
       // for imag parts-- different criterion than in PR89, because
       // GSL's RFFT orders freqs differently.
@@ -272,20 +271,21 @@ void PR89_fasper( float *x,
       //    a positive exponential in the forward transform. >>
       // and PR89 use the NR convention (understandably...).
 
-      hypo = sqrt(wk2[K]*wk2[K]+wk2[KK]*wk2[KK])+0.000001; // badness
-                                                           // if == 0.
-                                                           // fixed,
-                                                           // July2016
+      // badness if == 0.  fixed, July2016
+      hypo = sqrt(wk2[K]*wk2[K]+wk2[KK]*wk2[KK])+0.000001; 
+
       hc2wt = 0.5*wk2[K]/hypo;
       hs2wt = -0.5*wk2[KK]/hypo;
       cwt = sqrt(0.5 + hc2wt);
       swt = PR89_SIGN(sqrt(0.5 - hc2wt), hs2wt);
       den = 0.5*N + hc2wt*wk2[K] - hs2wt*wk2[KK];
       cterm = pow((cwt*wk1[K] - swt*wk1[KK]),2)/den;
-      sterm = pow((-cwt*wk1[KK] + swt*wk1[K]),2)/(N-den);
+      sterm = pow((-cwt*wk1[KK] - swt*wk1[K]),2)/(N-den);
+
 
       wk1[j] = j*DF;
       wk2[j] = (cterm + sterm)/(2.);
+      //fprintf(stderr, " %f, ", (float) wk2[j]);
 
       if( DO_NORM )
          wk2[j]/= VAR;
@@ -354,11 +354,13 @@ void PR89_suppl_avevar(float *x, int N, float *AVE, float *VAR)
    *VAR = (float) vari;
 }
 
+// Setup to have matching values with FORTRAN-based counting in
+// original
 void PR89_spread(float y, double *YY, int N, float x, int M)
 {
    // when selecting element of Nfac, use 'M-1' b/c we are in C now,
-   // not Fortran
-   int Nfac[10] = {1,1,2,6,24,120,720,5040,40320,362880}; 
+   // not Fortran --> NOT HERE, NOPE
+   int Nfac[11] = {0,1,1,2,6,24,120,720,5040,40320,362880}; 
    int ilo, ihi, nden;
    float fac;
    int j, ix; 
@@ -374,7 +376,7 @@ void PR89_spread(float y, double *YY, int N, float x, int M)
    else {
       ilo = PR89_min_int(PR89_max_int( (int) (x-0.5*M+1.),1), N-M+1);
       ihi = ilo + M - 1;
-      nden = Nfac[M-1];
+      nden = Nfac[M];
       fac = x - ilo;
       for( j=ilo+1 ; j<=ihi ; j++ )
          fac*= (x-j);
@@ -385,4 +387,3 @@ void PR89_spread(float y, double *YY, int N, float x, int M)
       }
    }
 }
-

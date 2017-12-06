@@ -451,7 +451,7 @@ int main( int argc , char *argv[] )
          ERROR_exit("No argument after '%s' :-(",argv[iarg-1]) ;
 
        for( kk=iarg ; kk < argc && argv[kk][0] != '-' ; kk++ ){ /* to '-' or end */
-         nwclen += strlen(argv[iarg])+4 ;
+         nwclen += strlen(argv[kk])+4 ; /* iarg->kk   27 Jul, 2017 [rickr] */
        }
        if( nwclen <= 0 )
          ERROR_exit("Invalid argument after '%s'",argv[iarg-1]) ;

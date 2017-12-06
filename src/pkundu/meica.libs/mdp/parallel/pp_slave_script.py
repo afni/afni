@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """
 Script to be called on a remote machine for starting a pp network server.
 

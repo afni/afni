@@ -10,6 +10,8 @@
 #define N_DTI_PLUS (4)     // number of allowed additional param files
                            // in NIMLver
 
+#define N_CHAR_PATH (300)  // for possible path length in fnames
+
 // for tracking output
 #define N_DTI_MAX_PARS ( N_DTI_SCAL + N_DTI_PLUS + N_DTI_XTRA ) 
 

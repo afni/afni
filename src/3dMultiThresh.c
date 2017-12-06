@@ -5,15 +5,43 @@ static int verb=1 ;
 
 void mri_apply_mask( MRI_IMAGE *inim , MRI_IMAGE *bim ) ; /* prototype */
 
+/*----------------------------------------------------------------------------*/
+/*! Threshold for upper tail probability of N(0,1) = 1-inverseCDF(pval) */
+
+#if 0
+#undef  PSMALL
+#define PSMALL 1.e-15
+double zthresh( double pval )
+{
+        if( pval <= 0.0 ) pval = PSMALL ;
+   else if( pval >= 1.0 ) pval = 1.0 - PSMALL ;
+   return qginv(pval) ;   /* mri_stats.c */
+}
+#endif
+
+/*! Convert zthresh to pval, given these:
+        zthr_1sid = zthresh(     pthr )
+        zthr_2sid = zthresh( 0.5*pthr )  */
+
+double ztop( double z , int sid )
+{
+   double pp = qg(z) ;
+   if( sid == 2 ) pp *= 2.0 ;
+   return pp ;
+}
+/*----------------------------------------------------------------------------*/
+
 int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *mset=NULL , *iset=NULL ;
    char *prefix = "mthresh.nii" ;
    int nopt , ii , tindex=-1 , ival,nval,nvox ;
-   int nnlev,nnsid,nzthr ; float *zthr=NULL ;
+   int nnlev=0,nnsid=0,nzthr=0 ; float *zthr=NULL ;
    MRI_IMAGE *fim , *bfim ; int nhits=0 , do_nozero=0 ;
-   int do_hpow0=0,do_hpow1=0,do_hpow2=0 , nhpow=0,hpow=0 , hstart ;
+   int do_hpow0=0,do_hpow1=0,do_hpow2=0, nhpow=0,hpow=0, hstart;
+   int do_maskonly=0 , do_pos=-1 ;
    MRI_IMARR *cimar0=NULL , *cimar1=NULL , *cimar2=NULL ;
+   MRI_IMARR *allmask=NULL ; char *prefix_allmask=NULL , *case_allmask=NULL ;
 
    /*----- help, I'm trapped in an instance of vi and can't get out -----*/
 
@@ -28,14 +56,40 @@ int main( int argc , char *argv[] )
       "OPTIONS (in any order)\n"
       "----------------------\n"
       "\n"
-      " -mthresh mmm    = multi-threshold dataset from 3dClustSimX\n"
-      " -input   ddd    = dataset to threshold\n"
-      " -1tindex iii    = index (sub-brick) on which to threshold\n"
+      " -mthresh mmm    = Multi-threshold dataset from 3dXClustSim\n"
+      "                   (usually via running '3dttest++ -ETAC').\n"
+      " -input   ddd    = Dataset to threshold.\n"
+      " -1tindex iii    = Index (sub-brick) on which to threshold.\n"
+      " -signed  +/-    = If the .mthresh.nii file from 3dXClustSim\n"
+      "                   was created using 1-sided thresholding,\n"
+      "                   this option tells which sign to choose when\n"
+      "                   doing voxel-wise thresholding: + or -.\n"
+      "                  ++ If the .mthresh.nii file was created using\n"
+      "                     2-sided thresholding, this option is ignored.\n"
+      " -pos            = Same as '-signed +'\n"
+      " -neg            = Same as '-signed -'\n"
       " -prefix  ppp    = prefix for output dataset\n"
-      "                   ++ Can be 'NULL' to get no output dataset\n"
-      " -nozero         = this option prevents the output of a\n"
+      "                  ++ Can be 'NULL' to get no output dataset\n"
+      " -maskonly       = Instead of outputing a thresholded version\n"
+      "                   of the input dataset, just output a 0/1 mask\n"
+      "                   dataset of voxels that survive the process.\n"
+      " -allmask qqq    = Write out a multi-volume dataset with prefix 'qqq'\n"
+      "                   where each volume is the binary mask of voxels that\n"
+      "                   pass ONE of the tests. This dataset can be used\n"
+      "                   to see which tests mattered where in the brain.\n"
+      "                  ++ To be more clear, there will be one sub-brick for\n"
+      "                     each p-value threshold coded in the '-mthresh'\n"
+      "                     dataset (e.g., p=0.0100 and p=0.0001).\n"
+      "                  ++ In each sub-brick, the value will be between\n"
+      "                     0 and 7, and is the sum of these:\n"
+      "                        1 == hpow=0 was declared 'active'\n"
+      "                        2 == hpow=1 was declared 'active'\n"
+      "                        4 == hpow=2 was declared 'active'\n"
+      "                     Of course, an hpow value will only be tested\n"
+      "                     if it is so encoded in the '-mthresh' dataset.\n"
+      " -nozero         = This option prevents the output of a\n"
       "                   dataset if it would be all zero\n"
-      " -quiet          = turn off progress report messages\n"
+      " -quiet          = Turn off progress report messages\n"
       "\n"
       "The number of surviving voxels will be written to stdout.\n"
       "It can be captured in a csh script by a command such as\n"
@@ -50,10 +104,32 @@ int main( int argc , char *argv[] )
    /*----- scan options -----*/
 
    mainENTRY("3dMultiThresh"); machdep();
+   PRINT_VERSION("3dMultiThresh") ;
 
    nopt = 1 ;
 
    while( nopt < argc && argv[nopt][0] == '-' ){
+
+     if( strcasecmp(argv[nopt],"-signed") == 0 ){  /* 26 Apr 2017 */
+       if( ++nopt >= argc )
+         ERROR_exit("need 1 argument after option '%s'",argv[nopt-1]) ;
+            if( argv[nopt][0] == '+' ) do_pos = 1 ;
+       else if( argv[nopt][0] == '-' ) do_pos = 0 ;
+       else
+         ERROR_exit("option '%s %s' doesn't mean anything :(",argv[nopt-1],argv[nopt]) ;
+       nopt++ ; continue ;
+     }
+
+     if( strncasecmp(argv[nopt],"-pos",4) == 0 ){  /* 26 Apr 2017 */
+       do_pos = 1 ; nopt++ ; continue ;
+     }
+     if( strncasecmp(argv[nopt],"-neg",4) == 0 ){  /* 26 Apr 2017 */
+       do_pos = 0 ; nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-maskonly") == 0 ){
+       do_maskonly = 1 ; nopt++ ; continue ;
+     }
 
      if( strcasecmp(argv[nopt],"-nozero") == 0 ){
        do_nozero = 1 ; nopt++ ; continue ;
@@ -68,8 +144,22 @@ int main( int argc , char *argv[] )
          ERROR_exit("need 1 argument after option '%s'",argv[nopt-1]) ;
        prefix = strdup(argv[nopt]) ;
        if( !THD_filename_ok(prefix) )
-         ERROR_exit("prefix '%s' is illegal (and funny looking)",prefix) ;
+         ERROR_exit("-prefix '%s' is illegal (and funny looking)",prefix) ;
        nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-allmask") == 0 ){
+       if( ++nopt >= argc )
+         ERROR_exit("need 1 argument after option '%s'",argv[nopt-1]) ;
+       prefix_allmask = strdup(argv[nopt]) ;
+       if( !THD_filename_ok(prefix_allmask) )
+         ERROR_exit("-allmask '%s' is illegal (and funny looking)",prefix_allmask) ;
+       nopt++ ;
+       if( nopt < argc && argv[nopt][0] != '-' ){
+         case_allmask = strdup(argv[nopt++]) ;
+         if( strlen(case_allmask) > 9 ) case_allmask[9] = '\0' ;
+       }
+       continue ;
      }
 
      if( strcasecmp(argv[nopt],"-input") == 0 ){
@@ -104,7 +194,9 @@ int main( int argc , char *argv[] )
 
        atr = THD_find_float_atr( mset->dblk , "MULTI_THRESHOLDS" ) ;
        if( atr == NULL )
-         ERROR_exit("-mthresh dataset does not have MULTI_THRESHOLDS attribute :(") ;
+         ERROR_exit("-mthresh dataset does not have any MULTI_THRESHOLDS attribute :(") ;
+       if( atr->nfl < 5 )
+         ERROR_exit("-mthresh dataset MULTI_THRESHOLDS attribute is too short [%d] :(",atr->nfl) ;
        afl = atr->fl ;
 
        nnlev = (int)afl[0] ;
@@ -113,6 +205,11 @@ int main( int argc , char *argv[] )
        hpow  = (int)afl[3] ;
        zthr  = (float *)malloc(sizeof(float)*nzthr) ;
        for( ii=0 ; ii < nzthr ; ii++ ) zthr[ii] = afl[4+ii] ;
+
+       if( atr->nfl > 4+nzthr ){       /* 21 Sep 2017 */
+         int mc = (int)afl[4+nzthr] ;
+         if( mc > 1 ) set_Xmin_clust(mc) ;
+       }
 
        do_hpow0 = (hpow & 1) != 0 ;
        do_hpow1 = (hpow & 2) != 0 ;
@@ -141,12 +238,32 @@ int main( int argc , char *argv[] )
    if( iset == NULL ) ERROR_exit("-input is a mandatory 'option'") ;
    if( mset == NULL ) ERROR_exit("-mthresh is a mandatory 'option'") ;
 
+   /* check sign-age [26 Apr 2017] */
+
+   if( nnsid == 1 ){
+     if( do_pos < 0 ){
+       INFO_message("1-sided thresholding: default is positive") ; do_pos = 1 ;
+     }
+   } else if( do_pos >= 0 ){
+     INFO_message("2-sided thresholding: ignoring %s sign option",
+                   (do_pos) ? "+" : "-" ) ;
+     do_pos = 1 ;
+   }
+
+   /* change signs to threshold on the negative side? */
+
+   if( do_pos == 0 ){
+     for( ival=0 ; ival < nzthr ; ival++ ) zthr[ival] = -zthr[ival] ;
+   }
+
    /*----- do the work (oog) -----*/
 
    /* find the threshold sub-brick, if not forced upon us */
 
    nval = DSET_NVALS(iset) ;
    nvox = DSET_NVOX(iset) ;
+
+   /* if tindex not given, find something appropriate */
 
    if( tindex < 0 || tindex >= nval ){
      for( ival=0 ; ival < nval ; ival++ ){
@@ -158,7 +275,7 @@ int main( int argc , char *argv[] )
        }
      }
      tindex = (ival < nval) ? ival : 0 ;
-     if( verb ) INFO_message("threshold index set to %d",ival) ;
+     if( verb ) INFO_message("threshold default index set to %d",ival) ;
    }
 
 
@@ -167,7 +284,7 @@ int main( int argc , char *argv[] )
    fim = THD_extract_float_brick( tindex , iset ) ;
    if( fim == NULL ) ERROR_exit("Can't get sub-brick %d to threshold",tindex) ;
 
-   /* get the mask of values above the multi-thresholds */
+   /* build the arrays of FOM threshold volumes */
 
    hstart = 0 ;
    if( do_hpow0 ){
@@ -189,16 +306,21 @@ int main( int argc , char *argv[] )
      hstart++ ;
    }
 
+   /* get the mask of values above the multi-thresholds */
+
    mri_multi_threshold_setup() ;
 
    bfim = mri_multi_threshold_Xcluster( fim ,
                                         nzthr , zthr , nnsid , nnlev ,
                                         cimar0 , cimar1 , cimar2 ,
-                                        XTHRESH_OUTPUT_MASK , &nhits ) ;
+                                        XTHRESH_OUTPUT_MASK , &nhits ,
+                                        (prefix_allmask != NULL) ? &allmask : NULL ) ;
 
    mri_multi_threshold_unsetup() ;
 
-   mri_free(fim) ; DSET_unload(mset) ;
+   /* don't need mthresh dataset no more */
+
+   DSET_unload(mset) ;
    FREE_IMARR(cimar0) ; FREE_IMARR(cimar1) ; FREE_IMARR(cimar2) ;
 
    /* nothing survived? */
@@ -209,20 +331,62 @@ int main( int argc , char *argv[] )
 
    if( strcmp(prefix,"NULL") != 0 ){
      THD_3dim_dataset *oset ;
-     if( bfim == NULL )
-       bfim = mri_new_conforming( fim , MRI_byte ) ; /* zero filled */
-     oset = EDIT_full_copy(iset,prefix) ;
+     if( bfim == NULL ){  /* make all-zero mask */
+       bfim = mri_new_conforming( fim , MRI_byte ) ;
+       memset(MRI_BYTE_PTR(bfim),0,sizeof(byte)*bfim->nvox) ;
+     }
+
+     if( !do_maskonly ){  /* output a real dataset */
+       oset = EDIT_full_copy(iset,prefix) ;
+       DSET_unload(iset) ;
+       tross_Copy_History( iset , oset ) ;
+       tross_Make_History( "3dMultiThresh" , argc,argv , oset ) ;
+       THD_copy_datablock_auxdata( iset->dblk , oset->dblk ) ;
+       THD_copy_labeltable_atr(oset->dblk,iset->dblk);
+       for( ival=0 ; ival < nval ; ival++ ){
+         mri_apply_mask( DSET_BRICK(oset,ival) , bfim ) ;
+       }
+       DSET_write(oset) ;
+       if( verb ) WROTE_DSET(oset) ;
+       DSET_delete(oset) ;
+     } else {               /* maskonly output [21 Apr 2017] */
+       DSET_unload(iset) ;
+       oset = EDIT_empty_copy(iset) ;
+       tross_Copy_History( iset , oset ) ;
+       tross_Make_History( "3dMultiThresh" , argc,argv , oset ) ;
+       EDIT_dset_items( oset , ADN_nvals,1 , ADN_prefix,prefix , ADN_none ) ;
+       EDIT_substitute_brick( oset , 0 , MRI_byte , MRI_BYTE_PTR(bfim) ) ;
+       DSET_write(oset) ;
+       if( verb ) WROTE_DSET(oset) ;
+     }
+   }
+
+   /* output allmask = mask for each sub-test (zthr) */
+
+   if( prefix_allmask != NULL && allmask != NULL ){
+     THD_3dim_dataset *oset; int nvv; MRI_IMAGE *qfim; char lab[64];
+     if( bfim != NULL ) mri_free(bfim) ;
+     bfim = mri_new_conforming( fim , MRI_byte ) ;
+     memset(MRI_BYTE_PTR(bfim),0,sizeof(byte)*bfim->nvox) ;
      DSET_unload(iset) ;
-     tross_Copy_History( iset , oset ) ;
-     tross_Make_History( "3dMultiThresh" , argc,argv , oset ) ;
-     THD_copy_datablock_auxdata( iset->dblk , oset->dblk ) ;
-     THD_copy_labeltable_atr(oset->dblk,iset->dblk);
-     for( ival=0 ; ival < nval ; ival++ ){
-       mri_apply_mask( DSET_BRICK(oset,ival) , bfim ) ;
+     oset = EDIT_empty_copy(iset) ;
+     nvv = IMARR_COUNT(allmask) ;
+     EDIT_dset_items( oset ,
+                        ADN_nvals  , nvv            ,
+                        ADN_prefix , prefix_allmask ,
+                      ADN_none ) ;
+     for( ival=0 ; ival < nvv ; ival++ ){
+       qfim = IMARR_SUBIM(allmask,ival) ;
+       if( qfim == NULL ) qfim = bfim ;
+       EDIT_substitute_brick( oset , ival , MRI_byte , MRI_BYTE_PTR(qfim) ) ;
+       if( case_allmask == NULL )
+         sprintf(lab,"p=%.4f", ztop(zthr[ival],nnsid) ) ;
+       else
+         sprintf(lab,"%s:p=%.4f", case_allmask , ztop(zthr[ival],nnsid) ) ;
+       EDIT_BRICK_LABEL(oset,ival,lab) ;
      }
      DSET_write(oset) ;
      if( verb ) WROTE_DSET(oset) ;
-     DSET_delete(oset) ;
    }
 
    mri_free(bfim) ;

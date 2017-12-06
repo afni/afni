@@ -66,6 +66,226 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 29, Sep , 2017 , PT , "@chauffeur_afni" , MINOR , TYPE_MODIFY,
+   "Now has help with list of options.",
+   "Should be useful for users during processing.\n"
+},
+
+{ 29, Nov , 2017 , PT , "@djunct_4d_imager" , MAJOR , TYPE_NEW_PROG,
+   "Helper function to make montages and movies of 4D dsets.",
+   "Useful when proc'ing dsets, make record of them.\n"
+},
+
+{ 26, Oct , 2017 , PT , "fat_proc_connec_vis" , MAJOR , TYPE_NEW_PROG,
+   "Visualize 'white matter connection' volumes output by 3dTrackID.",
+   "Combine separate '-dump_rois ...' output into SUMAble surface maps.\n"
+},
+
+{ 12, Oct , 2017 , PT , "@GradFlipTest" , MINOR , TYPE_MODIFY,
+   "Change output formatting and getting basename of prefix name.",
+   "Easier output and reading in terminal/files.\n"
+},
+
+{ 04, Oct , 2017 , PT , "@GradFlipTest" , MINOR , TYPE_MODIFY,
+   "Change the output directory naming/choosing options.",
+   "Do more with just '-prefix ...', in standard AFNI fashion.\n"
+},
+
+{ 22, Sep , 2017 , PT , "fat_proc_map_to_dti" , MINOR , TYPE_BUG_FIX,
+   "On Macs, when not all types of 'follower' sets were used, this gave err.",
+   "Have changed internal behavior to avoid this 'Mac'errorizing.\n"
+},
+
+{ 20, Sep , 2017 , PT , "1dDW_Grad_o_Mat++" , MINOR , TYPE_NEW_OPT,
+   "New opt to push through tiny, negative diagonal elements in bmatrices.",
+   "Useful-- but use this option cautiously, and look at your data...\n"
+},
+
+{ 20, Sep , 2017 , PT , "@GradFlipTest" , MICRO , TYPE_MODIFY,
+   "Change way text is dumped to screen.",
+   "Should prevent any need for user keypress if terminal is small.\n"
+},
+
+{ 19, Sep , 2017 , PT , "3dLombScargle" , MINOR , TYPE_BUG_FIX,
+   "delF calculated correctly now.",
+   "Had been at N-1 instead of N.  Better Parsevalling now.\n"
+},
+
+{ 14, Sep , 2017 , PT , "3dLombScargle" , MAJOR , TYPE_BUG_FIX,
+   "Finally revisiting this-- fixed up lots of things.",
+   "Good to go for basic functionality now.\n"
+},
+
+{ 11, Sep , 2017 , PT , "plugout_drive" , MICRO , TYPE_GENERAL,
+   "Change level: actually nano.  Fixed Example 1 (missing apostrophe).",
+   "It's the little things in life, though, sometimes.\n"
+},
+
+{ 06, Sep , 2017 , PT , "fat_proc_dwi_to_dt" , MICRO , TYPE_MODIFY,
+   "Quick change: keep FOV same for b0 ulay comparison with anat-edge.",
+   "Minor adjustment for keeping FOV consistent.\n"
+},
+
+{ 06, Sep , 2017 , PT , "fat_proc_dwi_to_dt" , MINOR , TYPE_MODIFY,
+   "Output a couple more types of QC images by default.",
+   "Output b0 ulay with anat-edge olay;  also, some uncert images.\n"
+},
+
+{ 06, Sep , 2017 , PT , "@chauffeur_afni" , MINOR , TYPE_MODIFY,
+   "Now gets output path as part of '-prefix' as opposed to sep '-outdir'.",
+   "Now in line with most of AFNI funcs.\n"
+},
+
+{ 24, Aug , 2017 , PT , "@GradFlipTest" , MINOR , TYPE_MODIFY,
+   "The file storing the flip recommendation will *overwrite* a previous one.",
+   "Previous version of this would *append to*, which seems pointless.\n"
+},
+
+{ 17, Aug , 2017 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
+   "Some new labelling, etc. optioning.",
+   "Make some new labels, locationing based on XYZ and more.\n"
+},
+
+{ 16,  Aug , 2017, PT, "afni", MICRO, TYPE_NEW_OPT,
+   "Added color map (applies to both afni and suma): Reds_and_Blues_Inv",
+   "So, new color opt readily available.\n"
+} ,
+
+{ 11, Aug , 2017 , PT , "fat_proc_align_anat_pair" , MINOR , TYPE_MODIFY,
+   "Change a '>>' to '>' for wider compatability.",
+   "Yup.\n"
+},
+
+{ 11, Aug , 2017 , PT , "fat_proc_map_to_dti" , MINOR , TYPE_MODIFY,
+   "Make range associated with ROI map images =256 for all.",
+   "This provides better consistency in coloration with ROI_i256 cbar.\n"
+},
+
+{ 8, Aug , 2017 , PT , "fat_proc_map_to_dti" , MINOR , TYPE_NEW_OPT,
+   "Can have surfaces, niml.dsets and spec files move along with vols.",
+   "Added capability to mapping volume dsets.\n"
+},
+
+{ 8, Aug , 2017 , PT , "@suma_reprefixize_spec" , MINOR , TYPE_NEW_PROG,
+   "Helper function to copy a spec file whilst renaming files inside.",
+   "Useful when copying a lot of *.gii or other surface files.\n"
+},
+
+{ 8, Aug , 2017 , PT , "3dTrackID" , MICRO , TYPE_BUG_FIX,
+   "More specific glob for 3D vol files *only*; had gotten 1D text in list.",
+   "Getting 1D text files would throw error.  More specific search now.\n"
+},
+
+{ 1, Aug , 2017 , PT , "fat_proc_dwi_to_dt" , MINOR , TYPE_MODIFY,
+   "Turn on reweighting and cumulative weight calc in 3dDWItoDT part.",
+   "More useful fitting+output, hopefully.\n"
+},
+
+{ 1, Aug , 2017 , PT , "3dDWItoDT" , MINOR , TYPE_MODIFY,
+   "Have the '-cumulative_wts' output also get dumped into a 1D file.",
+   "Figured it was nice to not *only* have info in the terminal.\n"
+},
+
+{ 31, Jul , 2017 , PT , "@GradFlipTest" , MICRO , TYPE_MODIFY,
+   "Echo the recommendations into a text file, as well.",
+   "More useful/less lossy if scripting. New '-wdir *' opt, too.\n"
+},
+
+{ 3, Jul , 2017 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
+   "Some new subbrick-setting optioning.",
+   "For utilizing 'SET_SUBBRICKS i j k' functionality in driving afni.\n"
+},
+
+{ 7, Jun , 2017 , PT , "@SUMA_renumber_FS" , MINOR , TYPE_MODIFY,
+   "Added two more FS 'undetermined' regions to the list, ROIs 29 and 61.",
+   "One voxel of one was in one subject once. Joy. Now part of tiss__unkn.\n"
+},
+
+{ 6, Jun , 2017 , PT , "3dROIMaker" , MINOR , TYPE_NEW_OPT,
+   "New inflation opt:  '-skel_stop_strict'.",
+   "Think this might be useful: don't expand at all *into* WM skel.\n"
+},
+
+{ 6, Jun , 2017 , PT , "@GradFlipTest" , MICRO , TYPE_MODIFY,
+   "Internal call to 3dAutomask for DWI file now talks abs value of DWI[0].",
+   "Useful bc TORTOISE now outputs negative DWIs... .\n"
+},
+
+{ 6, Jun , 2017 , PT , "@GradFlipTest" , MICRO , TYPE_GENERAL,
+   "Change output summary dumped to screen: don't prepend './' on paths.",
+   "Should have changed earlier with internal name changes... Easier now.\n"
+},
+
+{ 5, Jun , 2017 , PT , "3dTrackID" , MICRO , TYPE_GENERAL,
+   "Allow longer path names input for some things.",
+   "Paths to dti_in inputs can now be longer (300 chars).\n"
+},
+
+{ 30, May , 2017 , PT , "3dANOVA3" , MICRO , TYPE_GENERAL,
+   "Removed warning/info message for using type 4 or 5.",
+   "Apparently made loooong ago, no longer needed according to GC.\n"
+},
+
+{ 26, May , 2017 , PT , "3dReHo" , MINOR , TYPE_BUG_FIX,
+   "Correct checking for null time series now.",
+   "Earlier, only looked at [0]th point; now sums across all.\n"
+},
+
+{ 26, May , 2017 , PT , "3dNetCorr" , MINOR , TYPE_BUG_FIX,
+   "Correct checking for null time series now.",
+   "Earlier, only looked at [0]th point; now sums across all.\n"
+},
+
+{ 20, May , 2017 , PT , "@chauffeur_afni" , MICRO , TYPE_MODIFY,
+   "Temporary files now have more unique names.",
+   "Helps avoid confusion in parallel computations.\n"
+},
+
+{ 12, May , 2017 , PT , "3dDWItoDT" , MAJOR , TYPE_NEW_OPT,
+   "Added goodness-of-fit measures to '-debug_brik' output.",
+   "Two chi-sqs from Papadakis et al. (2003); thx, J Ipser for idea.\n"
+},
+
+{ 11, May , 2017 , PT , "3dDTtoDWI" , MAJOR , TYPE_BUG_FIX,
+   "Fixed mismatch in multiplying DT and bmatrices.",
+   "Element indices hadn't been sync'ed, now they are.\n"
+},
+
+{ 4, May , 2017 , PT , "3dReHo" , MINOR , TYPE_NEW_OPT,
+   "Allow box-y neighborhoods.",
+   "User can input values for cubic/prism neighborhoods now.\n"
+},
+
+{ 4, May , 2017 , PT , "3dDTtoDWI" , MINOR , TYPE_NEW_OPT,
+   "Added in '-scale_out_1000' option, to match 3dDWItoDT.",
+   "This allows it to be used with scaled tensors from 3dDWItoDT.\n"
+},
+
+{ 3, May , 2017 , PT , "@chauffeur_afni" , MINOR , TYPE_MODIFY,
+   "The opacity in olays wasn't working with xvfb-run-- now it does.",
+   "Pixel depth was not useful by default, I think.\n"
+},
+
+{ 2, May , 2017 , PT , "@GradFlipTest" , MICRO , TYPE_MODIFY,
+   "If 'outdir' doesn't exist yet, create it (don't just exit with error).",
+   "Simplifies some other fat_proc scripting.\n"
+},
+
+{ 27, Apr , 2017 , PT , "3dNetCorr" , MINOR , TYPE_NEW_OPT,
+   "With '-output_mask_nonnull', user can output mask of non-null ts.",
+   "This was made to help those who need to finnd null time series here.\n"
+},
+
+{ 27, Apr , 2017 , PT , "3dNetCorr" , MINOR , TYPE_NEW_OPT,
+   "With '-ts_wb_strlabel', can use ROI string labels in WB output filenames.",
+   "This was made expressly for The Rajendra Who Shall Not Be Named.\n"
+},
+
+{ 27, Apr , 2017 , PT , "3dNetCorr" , MINOR , TYPE_MODIFY,
+   "More watchfulness for null time series from badly masked dsets.",
+   "Count and report null time series, and possibly fail if too many.\n"
+},
+
 { 30, Mar , 2017 , PT , "lib_fat_funcs.py" , MICRO , TYPE_BUG_FIX,
    "An error message in func called by fat_mvm_scripter.py was wrong.",
    "Fixed an indexing mistake which gave wrong ROI list-- thanks, E. Grodin!\n"

@@ -17,6 +17,8 @@
                          EPS_v thing sorted
    + updated, Aug. 2016: wasn't allowing for subbrik selection on input
                          -> now it does
+   + updated, May, 2017: added boxes as a shape for ReHoing
+   + updated, May, 2017: bug fix in checksum to find null time series
 */
 
 
@@ -82,6 +84,7 @@ void usage_ReHo(int detail)
 "    -mask   MASK    :can include a whole brain mask within which to\n"
 "                     calculate ReHo. Otherwise, data should be masked\n"
 "                     already.\n"
+"\n"
 "    -nneigh NUMBER  :number of voxels in neighborhood, inclusive; can be: \n"
 "                     7   (for facewise neighbors, only),\n"
 "                     19  (for face- and edge-wise neighbors),\n"
@@ -111,6 +114,26 @@ void usage_ReHo(int detail)
 "                     which will have approx. V=4*PI*A*B*C/3. The impetus for\n"
 "                     this freedom was for use with data having anisotropic \n" 
 "                     voxel edge lengths.\n"
+"    -box_RAD   BR   :for additional voxelwise neighborhood control, the\n"
+"                     one can make a cubic box centered on a given voxel;\n"
+"                     BR specifies the number of voxels outward in a given\n"
+"                     cardinal direction, so the number of voxels in the\n"
+"                     volume would be as follows:\n"
+"                             BR=1 -> V=27,\n"
+"                             BR=2 -> V=125, \n"
+"                             BR=3 -> V=343, \n"
+"                     etc. In this case, BR should only be integer valued.\n"
+"    -box_X   BA    \n"
+"    -box_Y   BB    :as if that *still* weren't enough freedom, you can have\n"
+"    -box_Z   BC     box volume neighborhoods of arbitrary dimension; these\n"
+"                    values put in get added in the +/- directions of each\n"
+"                    axis, so the volume in terms of number of voxels would\n"
+"                    be calculated:\n"
+"                          if BA = 1, BB = 2 and BC = 4, \n"
+"                          then V = (1+2*1)*(1+2*2)*(1+2*4) = 135.\n"
+"         --> NB: you can't mix-n-match '-box_*' and '-neigh_*' settings.\n"
+"                 Mi dispiace (ma sol'un po).\n"
+"\n"
 "    -in_rois INROIS :can input a set of ROIs, each labelled with distinct\n"
 "                     integers. ReHo will be calculated per ROI. The output\n"
 "                     will be similar to the format of 3dROIstats: one row\n"
@@ -122,6 +145,7 @@ void usage_ReHo(int detail)
 "                     ROI values will be output in an analogously formatted\n"
 "                     file called PREFIX_ROI_reho.chi.\n"
 "                     Voxelwise ReHo will still be calculated and output.\n"
+"\n"
 "  + OUTPUT: \n"
 "         [A] single file with name, e.g., PREFIX+orig.BRIK, which may have\n"
 "              two subbricks (2nd subbrick if `-chi_sq' switch is used):\n"
@@ -194,6 +218,9 @@ int main(int argc, char *argv[]) {
   
   int idx;
   FILE *fout1;
+
+  int DO_SPHERE = 1;
+  double checksum = 0.;
 
   mainENTRY("3dReHo"); machdep(); 
   
@@ -338,6 +365,56 @@ int main(int argc, char *argv[]) {
       iarg++ ; continue ;
     }
 
+    // [PT: May, 2017]
+    if( strcmp(argv[iarg],"-box_RAD") == 0 ){
+      iarg++ ; if( iarg >= argc ) 
+                 ERROR_exit("Need argument after '-nneigh'");
+      
+      //INFO_message("Size of neighborhood is: %s",argv[iarg]);
+      NEIGH_R[0] = (float) atoi(argv[iarg]);
+      NEIGH_R[2] = NEIGH_R[1] = NEIGH_R[0]; // box
+      DO_SPHERE = 0;
+
+      iarg++ ; continue ;
+    }
+    if( strcmp(argv[iarg],"-box_X") == 0 ){
+      iarg++ ; if( iarg >= argc ) 
+                 ERROR_exit("Need argument after '-nneigh'");
+      
+      //INFO_message("Size of neighborhood is: %s",argv[iarg]);
+      NEIGH_R[0] = (float) atoi(argv[iarg]);
+      DO_SPHERE = 0;
+
+      iarg++ ; continue ;
+    }
+
+    if( strcmp(argv[iarg],"-box_Y") == 0 ){
+      iarg++ ; if( iarg >= argc ) 
+                 ERROR_exit("Need argument after '-nneigh'");
+      
+      //INFO_message("Size of neighborhood is: %s",argv[iarg]);
+      NEIGH_R[1] = (float) atoi(argv[iarg]);
+      DO_SPHERE = 0;
+
+      iarg++ ; continue ;
+    }
+
+    if( strcmp(argv[iarg],"-box_Z") == 0 ){
+      iarg++ ; if( iarg >= argc ) 
+                 ERROR_exit("Need argument after '-nneigh'");
+      
+      //INFO_message("Size of neighborhood is: %s",argv[iarg]);
+      NEIGH_R[2] = (float) atoi(argv[iarg]);
+      DO_SPHERE = 0;
+
+      iarg++ ; continue ;
+    }
+
+
+
+
+
+
     ERROR_message("Bad option '%s'\n",argv[iarg]) ;
     suggest_best_prog_option(argv[0], argv[iarg]);
     exit(1);
@@ -380,9 +457,18 @@ int main(int argc, char *argv[]) {
   // ****************************************************************
 
   // getting radius    
-  Vneigh = IntSpherVol(Rdim, NEIGH_R);
-
-  INFO_message("Final vox neighbood: ellipsoid with Nneigh=%d and radii (%.3f,%.3f,%.3f).",Vneigh,NEIGH_R[0],NEIGH_R[1],NEIGH_R[2]);
+  if( DO_SPHERE ) {
+     Vneigh = IntSpherVol(Rdim, NEIGH_R);
+     INFO_message("Final vox neighbood: ellipsoid with Nneigh=%d "
+                  "and radii (%.3f,%.3f,%.3f).",
+                  Vneigh,NEIGH_R[0],NEIGH_R[1],NEIGH_R[2]);
+  }
+  else {
+     Vneigh = IntBoxVol(Rdim, NEIGH_R);
+     INFO_message("Final vox neighbood: box with Nneigh=%d "
+                  "and radii (%.3f,%.3f,%.3f).",
+                  Vneigh, NEIGH_R[0], NEIGH_R[1], NEIGH_R[2]);
+  }
 
   // indices of sphere/ellipsoid
   HOOD_SHAPE = calloc( Vneigh,sizeof(HOOD_SHAPE));  
@@ -420,7 +506,10 @@ int main(int argc, char *argv[]) {
   // *************************************************************
 	
   // make list of indices in spher shape
-  i = IntSpherSha(HOOD_SHAPE, Rdim, NEIGH_R);
+  if( DO_SPHERE ) 
+     i = IntSpherSha(HOOD_SHAPE, Rdim, NEIGH_R);
+  else
+     i = IntBoxSha(HOOD_SHAPE, Rdim, NEIGH_R);
 
   // go through once: define data vox
   idx = 0;
@@ -431,13 +520,14 @@ int main(int argc, char *argv[]) {
           if( THD_get_voxel(MASK,idx,0)>0 )
             mskd[i][j][k] = 1;
         }
-        else
-          if( fabs(THD_get_voxel(insetTIME,idx,0))+
-              fabs(THD_get_voxel(insetTIME,idx,1))+
-              fabs(THD_get_voxel(insetTIME,idx,2))+
-              fabs(THD_get_voxel(insetTIME,idx,3))+
-              fabs(THD_get_voxel(insetTIME,idx,4)) > EPS_V)
-            mskd[i][j][k] = 1;
+        else {
+           checksum = 0.;
+           for( m=0 ; m<Dim[3] ; m++ ) 
+              // [PT: May 27, 2017] fixed index 0 -> m
+              checksum+= fabs(THD_get_voxel(insetTIME,idx,m));
+           if( checksum > EPS_V ) 
+              mskd[i][j][k] = 1;
+        }
         idx+= 1; // skip, and mskd and KW are both still 0 from calloc
       }
 

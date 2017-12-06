@@ -151,9 +151,11 @@ g_history = """
     0.40 Mar 30, 2017:
          - allow subj_dir to affect GUI
          - apply uvar align_opts_aea and tlrc_opts_at
+    0.41 Oct 10, 2017: try to apply ${subj} and ${gname} in data inputs
+         - also, put epi -dsets before tcat opts
 """
 
-g_version = '0.40 (March 30, 2017)'
+g_version = '0.41 (October 10, 2017)'
 
 # ----------------------------------------------------------------------
 # global definition of default processing blocks
@@ -185,6 +187,7 @@ g_ctrl_defs = VO.VarsObject("uber_subject control defaults")
 g_ctrl_defs.subj_dir      = '.'         # destination for scripts and results
 g_ctrl_defs.copy_scripts  = 'yes'       # do we make .orig copies of scripts?
 g_ctrl_defs.verb          = 1           # verbose level
+g_ctrl_defs.use_subj_var  = 'yes'       # apply $subj in data inputs
 
 # ---- resulting values returned after class actions ----
 g_res_defs = VO.VarsObject("uber_subject result variables")
@@ -400,14 +403,14 @@ class AP_Subject(object):
 
       # first assign directories
       self.ap_command  = self.script_init()
-      self.ap_command += self.script_set_dirs()
       self.ap_command += self.script_set_vars()
+      self.ap_command += self.script_set_dirs()
 
       self.ap_command += self.script_ap_init()
       self.ap_command += self.script_ap_blocks()
       self.ap_command += self.script_ap_anat()
-      self.ap_command += self.script_ap_tcat()
       self.ap_command += self.script_ap_epi()
+      self.ap_command += self.script_ap_tcat()
       self.ap_command += self.script_ap_align()
       self.ap_command += self.script_ap_tlrc()
       self.ap_command += self.script_ap_volreg()
@@ -786,27 +789,33 @@ class AP_Subject(object):
       # if wildcard, input files must exist, and expansion must match list
       if self.svars.stim_wildcard == 'yes':
          self.LV.stim_wildform = UTIL.glob_form_from_list(self.LV.short_stim)
+         # possibly create variable-based name
+         varname = self.subj_str_replace(self.LV.stim_wildform)
          if self.check_wildcard_errors('stim', self.svars.stim): return ''
          if self.LV.var_sdir:
-            cstr = '%s/%s' % (self.LV.var_sdir, self.LV.stim_wildform)
-         else: cstr = self.LV.stim_wildform
+            cstr = '%s/%s' % (self.LV.var_sdir, varname)
+         else: cstr = varname
 
          return '%s-regress_stim_times %s \\\n' % (self.LV.istr, cstr)
 
       # no wildcarding, so check for just one stim
       if len(self.svars.stim) == 1:
+         # possibly create variable-based name
+         varname = self.subj_str_replace(self.LV.short_stim[0])
          if self.LV.var_sdir:
-            cstr = '%s/%s' % (self.LV.var_sdir, self.LV.short_stim[0])
-         else: cstr = self.LV.short_stim[0]
+            cstr = '%s/%s' % (self.LV.var_sdir, varname)
+         else: cstr = varname
          return '%s-regress_stim_times %s \\\n' % (self.LV.istr, cstr)
 
       # so we have multiple stim file, use just one per line
       cmd = '%s-regress_stim_times \\\n' % (self.LV.istr)
       istr = self.LV.istr + (' '*4)
       for name in self.LV.short_stim:
+         # possibly create variable-based name
+         varname = self.subj_str_replace(name)
          if self.LV.var_sdir:
-            cmd += ('%s%s/%s \\\n' % (istr, self.LV.var_sdir, name))
-         else: cmd += ('%s%s \\\n' % (istr, name))
+            cmd += ('%s%s/%s \\\n' % (istr, self.LV.var_sdir, varname))
+         else: cmd += ('%s%s \\\n' % (istr, varname))
 
       return cmd
 
@@ -928,26 +937,32 @@ class AP_Subject(object):
       if self.svars.epi_wildcard == 'yes':
          self.LV.epi_wildform=UTIL.glob_form_from_list(self.LV.short_epi)
          if self.check_wildcard_errors('EPI', self.svars.epi): return ''
+         # possibly create variable-based name
+         varname = self.subj_str_replace(self.LV.epi_wildform)
          if self.LV.var_edir:
-            cstr = '%s/%s' % (self.LV.var_edir, self.LV.epi_wildform)
-         else: cstr = self.LV.epi_wildform
+            cstr = '%s/%s' % (self.LV.var_edir, varname)
+         else: cstr = varname
 
          return '%s-dsets %s \\\n' % (self.LV.istr, cstr)
 
       # no wildcarding, so check for just one EPI
       if len(self.svars.epi) == 1:
+         # possibly create variable-based name
+         varname = self.subj_str_replace(self.LV.short_epi[0])
          if self.LV.var_edir:
-            cstr = '%s/%s' % (self.LV.var_edir, self.LV.short_epi[0])
-         else: cstr = self.LV.short_epi[0]
+            cstr = '%s/%s' % (self.LV.var_edir, varname)
+         else: cstr = varname
          return '%s-dsets %s \\\n' % (self.LV.istr, cstr)
 
       # so we have multiple EPI datasets, use just one per line
       cmd = '%s-dsets \\\n' % (self.LV.istr)
       istr = self.LV.istr + (' '*4)
       for name in self.LV.short_epi:
+         # possibly create variable-based name
+         varname = self.subj_str_replace(name)
          if self.LV.var_edir:
-            cmd += ('%s%s/%s \\\n' % (istr, self.LV.var_edir, name))
-         else: cmd += ('%s%s \\\n' % (istr, name))
+            cmd += ('%s%s/%s \\\n' % (istr, self.LV.var_edir, varname))
+         else: cmd += ('%s%s \\\n' % (istr, varname))
 
       return cmd
 
@@ -1002,8 +1017,8 @@ class AP_Subject(object):
 
          # finally, some happy cases, first note file name, then set LV.warp
          
-         if self.LV.var_adir: file = '%s/%s' % (self.LV.var_adir, aset.prefix)
-         else:                file = aset.prefix
+         if self.LV.var_adir: fname = '%s/%s' % (self.LV.var_adir, aset.prefix)
+         else:                fname = aset.prefix
 
          if len(wd) == 30:      self.LV.warp = 'warp'   # @auto_tlrc
          elif len(wd) == 360:   self.LV.warp = 'adwarp' # manual
@@ -1013,12 +1028,15 @@ class AP_Subject(object):
             self.errors.append(err)
             return ''
       else:
-         if self.LV.var_adir: file = '%s/%s' % (self.LV.var_adir, aset.pv())
-         else:                file = aset.pv()
+         if self.LV.var_adir: fname = '%s/%s' % (self.LV.var_adir, aset.pv())
+         else:                fname = aset.pv()
 
-      if self.cvars.verb > 2: print '-- anat dset = %s' % file
+      if self.cvars.verb > 2: print '-- anat dset = %s' % fname
 
-      rstr = '%s-copy_anat %s \\\n' % (self.LV.istr, file)
+      # replace any subj/group names with vars
+      fname = self.subj_str_replace(fname)
+
+      rstr = '%s-copy_anat %s \\\n' % (self.LV.istr, fname)
       if self.svars.val('anat_has_skull') == 'no':
          rstr += '%s-anat_has_skull no \\\n' % self.LV.istr
 
@@ -1088,30 +1106,66 @@ class AP_Subject(object):
          self.warnings.append(warn)
 
       cmd  = '# set subject and group identifiers\n'
-      if self.svars.sid: cmd += 'set subj      = %s\n' % self.svars.sid
-      if self.svars.gid: cmd += 'set group_id  = %s\n' % self.svars.gid
+      if self.svars.sid: cmd += 'set subj  = %s\n' % self.svars.sid
+      if self.svars.gid: cmd += 'set gname = %s\n' % self.svars.gid
       if cmd != '': return cmd + '\n'
       else:         return cmd
 
    def script_set_dirs(self):
+      """set script directory variables
+         if cvars.use_subj_var: replace with subject ID
+      """
       if not self.LV.use_dirs: return ''
 
-      cmd = '# set data directories\n'
+      # list of command, to count length later
+      clist = []
 
       if self.LV.use_tdir:
          # then set var and apply to children
-         cmd += 'set top_dir   = %s\n' % self.LV.top_dir
+         ddir = self.subj_str_replace(self.LV.top_dir)
+         clist.append('set top_dir = %s' % ddir)
          tstr = '$top_dir/'
       else: tstr = ''
 
       if self.LV.var_adir and self.LV.var_adir != '$top_dir':
-         cmd += 'set anat_dir  = %s%s\n' % (tstr, self.LV.short_anat_dir)
+         ddir = self.subj_str_replace(self.LV.short_anat_dir)
+         clist.append('set anat_dir  = %s%s' % (tstr, ddir))
       if self.LV.var_edir and self.LV.var_edir != '$top_dir':
-         cmd += 'set epi_dir   = %s%s\n' % (tstr, self.LV.short_epi_dir)
+         ddir = self.subj_str_replace(self.LV.short_epi_dir)
+         clist.append('set epi_dir   = %s%s' % (tstr, ddir))
       if self.LV.var_sdir and self.LV.var_sdir != '$top_dir':
-         cmd += 'set stim_dir  = %s%s\n' % (tstr, self.LV.short_stim_dir)
+         ddir = self.subj_str_replace(self.LV.short_stim_dir)
+         clist.append('set stim_dir  = %s%s' % (tstr, ddir))
 
-      return cmd + '\n'
+      if len(clist) == 0: return ''
+
+      if len(clist) > 1:
+         comment = '# set data directories\n'
+      else:
+         comment = '# set data directory\n'
+
+      return comment + '\n'.join(clist) + '\n\n'
+
+   def subj_str_replace(self, instr):
+      """if appropraite, replace occuraces of sid with ${subj}
+         otherwise, just return input
+         (and replace gid with ${gname})
+      """
+      # default to 'yes'
+      if self.cvars.val('use_subj_var') == 'no':
+         rstr = instr
+      else:
+         # subject ID
+         if self.svars.is_not_empty('sid'):
+            rstr = instr.replace(self.svars.val('sid'), '${subj}')
+         else:
+            rstr = instr
+
+         # group ID
+         if self.svars.is_not_empty('gid'):
+            rstr = rstr.replace(self.svars.val('gid'), '${gname}')
+
+      return rstr
 
    def script_init(self):
       return '#!/usr/bin/env tcsh\n\n'                          \

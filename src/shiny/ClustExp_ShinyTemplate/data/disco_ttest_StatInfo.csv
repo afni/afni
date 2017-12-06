@@ -1,0 +1,2 @@
+test,p_val,setA,setB,model,paired,MeanBrik,ThreshBrik,master,atlas,StatFile,SubjDSET,SubjTable
+Ttest,0.005,cbtrem,cbtnon,AB,FALSE,0,1,MNI152_T1_1mm_brain.nii.gz,CA_N27_ML,CID_cbtremVcbtnon_cg25_bilateral_05272014.nii.gz,CID_cg25_all.nii.gz,CID_cg25_all.txt

@@ -1,0 +1,17 @@
+
+# RedHat/CentOS 7 Linux setup, 15 Jun, 2017   R Reynolds
+# (this is for a build machine, requring more than for a user)
+
+# vi, tcsh, wget seem to come automatically
+
+# set up access to "Extra Packages for Enterprise Linux"
+sudo yum install epel-release
+
+# install everything needed to build
+sudo yum install gcc motif-devel gsl-devel libXpm-devel
+sudo yum install mesa-libGLw-devel mesa-libGLU-devel libXi-devel glib-devel
+sudo yum install python-devel R-devel
+
+
+# additional packages for users
+sudo yum install PyQt4

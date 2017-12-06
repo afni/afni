@@ -45,8 +45,11 @@ static int linkrbrain_link = -1;
 /* global web browser is used here, not sure where else to put it...      */
 char *GLOBAL_browser = NULL ;   /* 30 Dec 2005, moved 22 Feb 2012 [rickr] */
 
+#ifndef TINY_NUMBER
+/*! A very tiny, infinitessimal number */
+#  define TINY_NUMBER 1E-10
+#endif
 
-#define TINY_NUMBER 1E-10
 /* minimum probability (0.0-1.0) to consider with probabilistic atlases */
 static float wami_min_prob = -1.0;
 
@@ -1158,10 +1161,11 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
 
    /* indent with HTML encoding for web output */
    if(AFNI_wami_output_mode()){
-      sprintf(histart,"<h4><dd>");
-      sprintf(hiend,"</dd></h4>");
-      sprintf(hmarkstart,"<h3><p><b>");
-      sprintf(hmarkend, "</h3></b>");
+      sprintf(histart,"      <h5>");
+      sprintf(hiend,"<br>");
+      /* these strings go around the html fields for focus point and atlas lines */
+      sprintf(hmarkstart,"     <h4><b>");
+      sprintf(hmarkend, "</b><br>");
   }
    else{
       histart[0] = '\0';
@@ -1235,8 +1239,8 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
 
       sprintf(ylab[i],"%s mm [%c]",y_fstr,(acl[i].y<0.0)?'A':'P') ;
       sprintf(zlab[i],"%s mm [%c]",z_fstr,(acl[i].z<0.0)?'I':'S') ;
-      if((strcmp(acl[i].space_name,"MNI")==0) && (show_neurosynth_link() ||
-         show_sumsdb_link() )) {
+      if((strcmp(acl[i].space_name,"MNI")==0) && AFNI_wami_output_mode() &&
+         (show_neurosynth_link() || show_sumsdb_link() )) {
           /* make sure there's a blank string to start */
           sumsdb_link_str[0] = '\0';
           neurosynth_link_str[0] = '\0';
@@ -1545,10 +1549,11 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
    } else {
       /*- HTML -*/
       rbuf =  THD_zzprintf(rbuf,"<head>\n"
-               "<center><title>AFNI whereami</title></center>\n"
+               "<h3><center><title>AFNI whereami</title></center>\n"
                "</head>\n"
                "<body>\n"
-               "<hr><p>\n");
+               "<hr><p>\n"
+               );
 #if 0
                "<a name=\"top\"></a>\n"
                "<center><h3>whereami report\n"
@@ -1660,17 +1665,18 @@ neurosynth_coords_link(float x, float y, float z)
    return(neurosynthpage);
 }
 
-/* show links out to neurosynth.org */
+/* show links out to sumsdb at washu */
+/* unfortunately, they stopped this service in 2016 at some point DRG - 08 Nov 2017 */
 int
 show_sumsdb_link()
 {
   if(sumsdb_link >=0)
      return(sumsdb_link);
 
-  if (AFNI_noenv("AFNI_SUMSDB"))
-     sumsdb_link = 0;
-  else
+  if (AFNI_yesenv("AFNI_SUMSDB"))
      sumsdb_link = 1;
+  else
+     sumsdb_link = 0;
   return(sumsdb_link);
 }
 
@@ -1707,15 +1713,17 @@ char * get_linkrbrain_site(void)
 /*--------------------------------------------------------------------*/
 
 /* show links out to linkrbrain */
+/* linkrbrain server has been down for quite a while. 
+ * Default to not try - DRG 08 Nov 2017 */
 int
 show_linkrbrain_link()
 {
   if(linkrbrain_link >=0)
      return(linkrbrain_link);
-  if( AFNI_noenv("AFNI_LINKRBRAIN") )  /* 01 Oct 2015 */
-     linkrbrain_link = 0;
-  else
+  if( AFNI_yesenv("AFNI_LINKRBRAIN") )  /* 01 Oct 2015 */
      linkrbrain_link = 1;
+  else
+     linkrbrain_link = 0;
   return(linkrbrain_link);
 }
 
@@ -4232,7 +4240,7 @@ char *approx_string_diff_info(APPROX_STR_DIFF *D, APPROX_STR_DIFF_WEIGHTS *Dwi)
 {
    static char res[10][512];
    static int icall=-1;
-   char sbuf[32];
+   char sbuf[40];
    int i;
 
    if (!Dwi) Dwi = init_str_diff_weights(Dwi);

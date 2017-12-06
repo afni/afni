@@ -49,6 +49,337 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  4, Dec, 2017, RCR, "3dDeconvolve", MICRO, TYPE_BUG_FIX,
+   "fix gtmax in case of global times and only 1 input dset",
+   "This just lead to an inappropriate warning."
+   "Thanks to P Bedard for noting the problem."
+ } ,
+
+ { 30, Nov, 2017, RCR, "afni_base.py", MICRO, TYPE_BUG_FIX,
+   "fix problems with relative path to root directory",
+   "This affected afni_proc.py, for example, adding '/' in path names.\n"
+   "Thanks to D Nielson for noting the problem."
+ } ,
+
+ { 27, Nov, 2017, RCR, "afni", MICRO, TYPE_BUG_FIX,
+   "fix imseq.c: driven SAVE_MPEG offset by 1",
+   NULL
+ } ,
+
+ { 27, Nov, 2017, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
+   "warn user for python version != 2.7 (3+ in particular)",
+   NULL
+ } ,
+
+ { 21, Nov, 2017, RCR, "make_random_timing.py", MINOR, TYPE_ENHANCE,
+   "add options -not_first and -not_last, to block tasks at run boundaries",
+   "For C Smith."
+ } ,
+
+ { 15, Nov, 2017, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "-despike_mask had been tested with wrong option name",
+   "Fix submitted by D Plunkett."
+ } ,
+
+ {  9, Nov, 2017, RCR, "make_random_timing.py", MINOR, TYPE_ENHANCE,
+   "python3 compatible as of version 3.0",
+   NULL
+ } ,
+
+ {  9, Nov, 2017, RCR, "timing_tool.py", MINOR, TYPE_ENHANCE,
+   "python3 compatible as of version 3.00",
+   NULL
+ } ,
+
+ {  7, Nov, 2017, RCR, "afni_proc.py", MAJOR, TYPE_ENHANCE,
+   "python3 compatible as of version 6.00",
+   NULL
+ } ,
+
+ {  7, Nov, 2017, RCR, "1d_tool.py", MINOR, TYPE_ENHANCE,
+   "python3 compatible as of version 2.00",
+   NULL
+ } ,
+
+ {  7, Nov, 2017, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "python3 compatible as of version 1.00",
+   NULL
+ } ,
+
+ {  6, Nov, 2017, RCR, "afni-general", MAJOR, TYPE_ENHANCE,
+   "first stab at making python program p2/p3 compatible",
+   "Based on 2to3 and dglen mods, and tested in p2 and p3 environments."
+ } ,
+
+ {  1, Nov, 2017, RCR, "make_random_timing.py", MAJOR, TYPE_NEW_OPT,
+   "implement the decay_fixed distribution type",
+   "See make_random_timing.py -help_decay_fixed for details."
+ } ,
+
+ { 23, Oct, 2017, RCR, "3dDeconvolve", MICRO, TYPE_GENERAL,
+   "add warnings if TR or run length is 0.0",
+   NULL
+ } ,
+
+ { 20, Sep, 2017, RCR, "3dAutoTcorrelate", MICRO, TYPE_ENHANCE,
+   "add help example",
+   NULL
+ } ,
+
+ { 12, Sep, 2017, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
+   "add -multi_timing_3col_tsv and -write_multi_timing",
+   "Also, add -multi_show_duration_stats for married timing files.\n"
+   "This is to process 3 column TSV (tab separated value) formatted timing\n"
+   "files, as might be found in the OpenFMRI data."
+ } ,
+
+ { 12, Sep, 2017, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "modify main examples to use the lpc+ZZ cost function",
+   NULL
+ } ,
+
+ { 11, Sep, 2017, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "if no regress block, omit gen_ss_review_scripts.py",
+   NULL
+ } ,
+
+ { 6, Sep, 2017, RCR, "Dimon", MINOR, TYPE_BUG_FIX,
+   "re-apply cleaner xim use, so end of run signal has full image size",
+   "Short end of run was hanging afni, but was not noticed since the\n"
+   "communication was immediately terminated.  Fixes multi-run use."
+ } ,
+
+ { 6, Sep, 2017, RCR, "plug_realtime", MINOR, TYPE_MODIFY,
+   "allow user control of registration and plots with multi-chan/echo data",
+   "This previously required channel merging or registering.\n"
+   "For W Luh."
+ } ,
+
+ { 30, Aug, 2017, RCR, "model_conv_PRF", MICRO, TYPE_BUG_FIX,
+   "determine NT restriction based on reorg",
+   "Was limited to NT.  Applies to PRF, PRF_6, PRF_DOG\n"
+   "Thanks to E Silson for noting the problem."
+ } ,
+
+ { 30, Aug, 2017, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
+   "add -fsl_timing_files and -write_as_married",
+   "This is for converting FSL timing files to AFNI format."
+ } ,
+
+ { 22, Aug, 2017, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
+   "add -apply_end_times_as_durations and -show_duration_stats",
+   "For B Benson and P Vidal-Ribas."
+ } ,
+
+ { 18, Aug, 2017, RCR, "3dTto1D", MICRO, TYPE_MODIFY,
+   "modify help",
+   NULL
+ } ,
+
+ { 17, Aug, 2017, RCR, "3dcalc", MICRO, TYPE_MODIFY,
+   "fix typos in help for minabove, maxbelow, acfwxm",
+   "Thanks to A Wong for noting the minabove and maxbelow typos."
+ } ,
+
+ { 15, Aug, 2017, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
+   "test 3dClustSim as well, to check for OpenMP library linking",
+   NULL
+ } ,
+
+ { 27, Jul, 2017, RCR, "3dNwarpApply", MICRO, TYPE_BUG_FIX,
+   "fix memory alloc for warp file names",
+   "Thanks to L Lebois (and others on MB) for noting the problem."
+ } ,
+
+ { 24, Jul, 2017, RCR, "nifti_tool", MINOR, TYPE_MODIFY,
+   "treat ANALYZE more as NIFTI-1; apply more PRId64 macros for I/O",
+   NULL
+ } ,
+
+ { 21, Jul, 2017, RCR, "@update.afni.binaries", MICRO, TYPE_MODIFY,
+   "relative -bindir test needs quotes to block eval",
+   NULL
+ } ,
+
+ { 19, Jul, 2017, RCR, "3dTto1D", MAJOR, TYPE_NEW_PROG,
+   "time series to 1D : e.g. compute enorm, DVARS(RMS), SRMS",
+   "Given time series data such as EPI or motion parameters, compute\n"
+   "things like Euclidean norm and RMS (a.k.a. DVARS)."
+ } ,
+
+ { 19, Jul, 2017, RCR, "3dDeconvolve", MICRO, TYPE_BUG_FIX,
+   "adjust looking for good stim times to handle global timing",
+   "Max time was previously that of the longest run.  For global timing,\n"
+   "accumulate across runs.\n"
+   "Thanks to B Callaghan, Michael, ace327 and Jeff for noting the problem."
+ } ,
+
+ { 12, Jul, 2017, RCR, "afni_system_check.py", MICRO, TYPE_MODIFY,
+   "ignore /opt/X11/lib/libXt.dylib check",
+   "Undo Xt.7 and /opt/X11/lib/libXt.6.dylib checks."
+ } ,
+
+ { 11, Jul, 2017, RCR, "afni_system_check.py", MICRO, TYPE_MODIFY,
+   "check if /opt/X11/lib/libXt.dylib points to Xt.6",
+   "This is useless, pulling it out."
+ } ,
+
+ { 10, Jul, 2017, RCR, "@update.afni.binaries", MICRO, TYPE_MODIFY,
+   "if -bindir is relative, require -no_recur",
+   NULL
+ } ,
+
+ {  5, Jul, 2017, RCR, "3dAllineate", MICRO, TYPE_MODIFY,
+   "make quieter: only report sub-brick messages if verbose",
+   "Applied to 3dAllinate and 3dmerge."
+ } ,
+
+ { 28, Jun, 2017, RCR, "afni-general", MINOR, TYPE_GENERAL,
+   "add afni_src/other_builds files for Fedora 25 (Makefile, OS_notes)",
+   NULL
+ } ,
+
+ { 23, Jun, 2017, RCR, "@update.afni.binaries", MICRO, TYPE_MODIFY,
+   "unalias grep; update cur_afni only when not abin",
+   NULL
+ } ,
+
+ { 19, Jun, 2017, RCR, "Dimon", MICRO, TYPE_NEW_OPT,
+   "add -assume_dicom_mosaic to handle Siemens 3D format",
+   "Done for A. Jahn."
+ } ,
+
+ { 16, Jun, 2017, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
+   "check for libXt.7.dylib without flat_namespace",
+   NULL
+ } ,
+
+ { 16, Jun, 2017, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "add Makefile.linux_centos_7_64",
+   "CentOS 7 and Ubuntu 16 will be new distribution build systems."
+ } ,
+
+ { 15, Jun, 2017, RCR, "uber_subject.py", MICRO, TYPE_BUG_FIX,
+   "handle empty subj_dir",
+   NULL
+ } ,
+
+ { 15, Jun, 2017, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "add OS_notes.linux_centos_7.txt",
+   NULL
+ } ,
+
+ { 15, Jun, 2017, RCR, "@SUMA_Make_Spec_FS", MICRO, TYPE_ENHANCE,
+   "remove -f from top tcsh command; fix some bad tab indenting",
+   NULL
+ } ,
+
+ { 5, Jun, 2017, RCR, "RetroTS.py", MINOR, TYPE_BUG_FIX,
+   "peak_finder(): fix lengths of r['t'] and r['tR']",
+   "Be more cautious with ratios that are very close to integers."
+ } ,
+
+ { 5, Jun, 2017, RCR, "RetroTS.py", MINOR, TYPE_BUG_FIX,
+   "merge phase_base() fix by D Nielson",
+   "range() is closed in matlab but half-open in python."
+ } ,
+
+ {  2, Jun, 2017, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "add Makefile.linux_ubuntu_16_64 and OS_notes.linux_ubuntu_16_64",
+   "This is for setting up an Ubuntu 16 build machine."
+ } ,
+
+ { 30,  May, 2017, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_ENHANCE,
+   "add volreg params to enorm/outlier plot",
+   NULL
+ } ,
+
+ { 30,  May, 2017, RCR, "SUMA_IsoSurface", MICRO, TYPE_GENERAL,
+   "remove non-ASCII characters in paper reference; remove tabs",
+   NULL
+ } ,
+
+ { 26,  May, 2017, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "add initial AFNI_digest_history.txt",
+   NULL
+ } ,
+
+ { 25,  May, 2017, RCR, "make_random_timing.py", MINOR, TYPE_ENHANCE,
+   "can now apply -save_3dd_cmd and -make_3dd_contrasts in advanced case",
+   "Advanced usage can generate 3dDeconvolve command scripts, with contrasts."
+ } ,
+
+ { 23,  May, 2017, RCR, "timing_tool.py", MICRO, TYPE_MODIFY,
+   "only warn 'ISI error: stimuli overlap' if olap > 0.0001",
+   "Overlap could come from float->ascii->float conversion."
+ } ,
+
+ { 23,  May, 2017, RCR, "suma", MICRO, TYPE_GENERAL,
+   "warn on NULL glwDrawingAreaWidgetClass",
+   NULL
+ } ,
+
+ { 17,  May, 2017, RCR, "RetroTS.py", MICRO, TYPE_BUG_FIX,
+   "D Nielson's fix in PeakFinder.py dealing with non-integer subscripts",
+   "Required by latest version of numpy."
+ } ,
+
+ { 16,  May, 2017, RCR, "meica.py", MICRO, TYPE_GENERAL,
+   "cast floor/ceil functions to int when used as subscripts",
+   "Required by latest version of numpy."
+ } ,
+
+ { 16,  May, 2017, RCR, "meica.py", MINOR, TYPE_ENHANCE,
+   "sync with https://bitbucket.org/prantikk/me-ica/src",
+   "Update from version 2.5 beta9 to 2.5 beta11."
+ } ,
+
+ { 10,  May, 2017, RCR, "model_conv_PRF_DOG", MINOR, TYPE_NEW_PROG,
+   "new model: same as PRF, but Difference of Gaussians",
+   "For E Silson and C Baker."
+ } ,
+
+ {  9,  May, 2017, RCR, "Dimon", MICRO, TYPE_BUG_FIX,
+   "if to3d_prefix is NIFTI, clear write_as_nifti",
+   "Thanks to A Nugent for noting the problem."
+ } ,
+
+ {  9,  May, 2017, RCR, "make_random_timing.py", MINOR, TYPE_NEW_OPT,
+   "apply -offset for advanced case (remove from todo list)",
+   NULL
+ } ,
+
+ {  2,  May, 2017, RCR, "GIFTI", MINOR, TYPE_BUG_FIX,
+   "properly handle column major order",
+   "Convert to row major order on read; can control with gifti_tool.\n"
+   "Thanks to JH Lee for noting the problem."
+ } ,
+
+ {  1,  May, 2017, RCR, "@diff.files", MINOR, TYPE_NEW_OPT,
+   "add option -diff_prog, to use something besides xxdiff",
+   NULL
+ } ,
+
+ { 25,  Apr, 2017, RCR, "GIFTI", MINOR, TYPE_MODIFY,
+   "no COL_MAJOR changes for gifti_DA_rows_cols, write_*_file",
+   "Also, init gifti_globs_t struct with verb=1."
+ } ,
+
+ { 25,  Apr, 2017, RCR, "suma", MICRO, TYPE_MODIFY,
+   "SUMA_input.c: 'r'ecord with oversamle - use tcsh -c to delete files",
+   "To be explicit about shell in system(), sending errors to /dev/null."
+ } ,
+
+ { 25,  Apr, 2017, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "fix follower warps for gzipped NL-WARP datasets",
+   "Thanks to C Connely for noting the problem."
+ } ,
+
+ { 25,  Apr, 2017, RCR, "dcm2niix_afni", MICRO, TYPE_ENHANCE,
+   "added to source for build testing",
+   NULL
+ } ,
+
  { 17,  Apr, 2017, RCR, "1d_tool.py", MICRO, TYPE_MODIFY,
    "clarify source in -show_censored_trs (if Xmat, use header info)",
    NULL
@@ -191,7 +522,7 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
- {  1,  Feb, 2017, RCR, "afni_system_check", MINOR, TYPE_ENHANCE,
+ {  1,  Feb, 2017, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
    "updates for fink and homebrew",
    NULL
  } ,
@@ -365,9 +696,11 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
- { 12,  Oct, 2016, RCR, "RetroTS.py", MICRO, TYPE_MODIFY,
-   "updated Makefile.INCLUDE to distribute this",
-   NULL
+ { 12,  Oct, 2016, RCR, "RetroTS.py", MAJOR, TYPE_NEW_PROG,
+   "distribute RetroTS.py (RetroTS.m converted to python)",
+   "This should behave almost exactly as the MATLAB version.\n"
+   "See 'RetroTS.py -help' for details.\n"
+   "Much thanks to J Zosky for this contribution!"
  } ,
 
  { 11,  Oct, 2016, RCR, "RetroTS.py", MICRO, TYPE_MODIFY,
@@ -465,7 +798,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 15,  Aug, 2016, RCR, "afni_proc.py", MAJOR, TYPE_ENHANCE,
-   "default clustsim method is now ACF",
+   "default clustsim method is now mixed model ACF",
    "This marks afni_proc.py version 5.00.\n"
    "  o run 3dFWHMx with -ACF\n"
    "  o ACF and ClustSim files go into sub-directories, files_ACF/ClustSim\n"

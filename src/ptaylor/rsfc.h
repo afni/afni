@@ -37,6 +37,9 @@ int CalcAveRTS(int *LIST, double *RAT, THD_3dim_dataset *T,
 */
 int IntSpherVol(int *RD, float *NR);
 int IntSpherSha(int **HS,int *RD, float *NR);
+// [PT: May, 2017]: for cubic 'box' neighborhoods
+int IntBoxVol(int *RD, float *NR);
+int IntBoxSha(int **HS,int *RD, float *NR);
 
 
 /*
@@ -62,6 +65,8 @@ int WB_netw_corr(int Do_r,
                  int *Dim,
                  double ***ROI_AVE_TS,
                  int **ROI_LABELS_REF,
+                 char ***ROI_STR_LABELS,
+                 int DO_STRLABEL,
                  THD_3dim_dataset *insetTIME,
                  byte *mskd2,
                  int Nmask,

@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# python3 status: started
+
 # all about options (so may merge with afni_base)
 
 # do we want all of the 
@@ -11,7 +13,7 @@ import afni_util as UTIL
 # whine about execution as a main program
 if __name__ == '__main__':
    import sys
-   print '** %s: not a main program' % sys.argv[0].split('/')[-1]
+   print('** %s: not a main program' % sys.argv[0].split('/')[-1])
    sys.exit(1)
 
 # ---------------------------------------------------------------------------
@@ -82,8 +84,8 @@ class OptionList:
         self.olist.sort(cmp=compare_comopts)
 
     def show(self, mesg = '', verb = 0, show_count=-1):
-        if verb or mesg != '': print "%sOptionList: %s (len %d)" % \
-                                      (mesg, self.label, len(self.olist))
+        if verb or mesg != '': print("%sOptionList: %s (len %d)" % \
+                                      (mesg, self.label, len(self.olist)))
         # allow override of class
         if show_count < 0: show_count = self.show_count
         for index in range(len(self.olist)):
@@ -95,9 +97,9 @@ class OptionList:
             else :
                 hs = ''
             if show_count:
-               print "opt %02d: %-24s%s" % (index, self.olist[index].name, hs)
+               print("opt %02d: %-24s%s" % (index, self.olist[index].name, hs))
             else: 
-               print "    %-24s%s" % (self.olist[index].name, hs)
+               print("    %-24s%s" % (self.olist[index].name, hs))
 
     def find_opt(self, name, nth=1):    # find nth occurance of option name
         """return nth comopt where name=name, else None"""
@@ -185,8 +187,8 @@ class OptionList:
         if not opt or not opt.parlist: return default, 0
         if not opt_name: opt_name = opt.name
         if len(opt.parlist) != 1:
-            print "** expecting 1 parmeter for option '%s', have: %s" % \
-                  (opt_name, opt.parlist)
+            print("** expecting 1 parmeter for option '%s', have: %s" % \
+                  (opt_name, opt.parlist))
             return default, 1
         return opt.parlist[0], 0
 
@@ -223,12 +225,12 @@ class OptionList:
         if not opt or not opt.parlist: return default, 0
         if not opt_name: opt_name = opt.name
         if len(opt.parlist) != 1:
-            print "** expectin 1 parameter for option '%s', have: %s" % \
-                  (opt_name, opt.parlist)
+            print("** expectin 1 parameter for option '%s', have: %s" % \
+                  (opt_name, opt.parlist))
             return default, 1
         try: val = otype(opt.parlist[0])
         except:
-            print "** cannot convert '%s' to %s" % (opt.parlist[0], otype)
+            print("** cannot convert '%s' to %s" % (opt.parlist[0], otype))
             return default, 1
 
         return val, 0
@@ -257,19 +259,19 @@ class OptionList:
         olen = len(opt.parlist)
         if length > 0 and olen != 1 and olen != length:
             if verb: 
-               print '** %s takes 1 or %s (%d) values, have %d: %s' % \
-                  (opt_name, len_name, length, olen, ', '.join(opt.parlist))
+               print('** %s takes 1 or %s (%d) values, have %d: %s' % \
+                  (opt_name, len_name, length, olen, ', '.join(opt.parlist)))
             return None, 1
         try:
-            tlist = map(otype,opt.parlist)
+            tlist = list(map(otype,opt.parlist))
         except:
-            if verb: print "** %s takes only %ss, have: %s"  \
-                           % (opt_name,otype,opt.parlist)
+            if verb: print("** %s takes only %ss, have: %s"  \
+                           % (opt_name,otype,opt.parlist))
             return None, 1
         if length > 0 and olen != length:     # expand the list
             tlist = [tlist[0] for i in range(length)]
-            if verb > 1: print '++ expanding %s to list %s' % (opt_name, tlist)
-        elif verb > 1: print '-- have %s list %s' % (opt_name, tlist)
+            if verb > 1: print('++ expanding %s to list %s' % (opt_name, tlist))
+        elif verb > 1: print('-- have %s list %s' % (opt_name, tlist))
 
         return tlist, 0        # return the list
 
@@ -325,12 +327,12 @@ class OptionList:
             ind = argv.index('-optlist_verbose')
             self.verb = 4
             argv[ind:ind+1] = []
-            print '++ optlist: setting verb to %d' % self.verb
+            print('++ optlist: setting verb to %d' % self.verb)
         if '-optlist_no_show_count' in argv:
             ind = argv.index('-optlist_no_show_count')
             self.show_count = 0
             argv[ind:ind+1] = []
-            if self.verb>1: print '++ optlist: clearing show_count'
+            if self.verb>1: print('++ optlist: clearing show_count')
 
         # terminal options (all end in exit)
         if '-all_opts' in argv:
@@ -345,11 +347,11 @@ class OptionList:
             ind = argv.index(oname)
             prog = os.path.basename(argv[0])
             if ind == alen-1:
-               print '** global opt %s needs %s option as parameter' \
-                     % (oname, prog)
+               print('** global opt %s needs %s option as parameter' \
+                     % (oname, prog))
                sys.exit(1)
             cmd = 'apsearch -phelp %s -word %s' % (prog, argv[ind+1])
-            if self.verb>1: print '++ optlist: applying %s via: %s'%(oname,cmd)
+            if self.verb>1: print('++ optlist: applying %s via: %s'%(oname,cmd))
             BASE.simple_shell_exec(cmd)
             sys.exit(0)
 
@@ -358,7 +360,7 @@ class OptionList:
             ind = argv.index(oname)
             prog = os.path.basename(argv[0])
             cmd = 'apsearch -view_prog_help %s' % prog
-            if self.verb>1: print '++ optlist: applying %s via: %s'%(oname,cmd)
+            if self.verb>1: print('++ optlist: applying %s via: %s'%(oname,cmd))
             BASE.simple_shell_exec(cmd)
             sys.exit(0)
 
@@ -367,12 +369,12 @@ class OptionList:
             ind = argv.index(oname)
             prog = os.path.basename(argv[0])
             cmd = 'apsearch -view_prog_help %s' % prog
-            if self.verb>1: print '++ optlist: applying %s via: %s'%(oname,cmd)
+            if self.verb>1: print('++ optlist: applying %s via: %s'%(oname,cmd))
             BASE.simple_shell_exec(cmd)
             sys.exit(0)
 
         if self.verb > 1:
-            print '-- argv: orig len %d, new len %d' % (alen,len(argv))
+            print('-- argv: orig len %d, new len %d' % (alen,len(argv)))
 
 
 # ---------------------------------------------------------------------------
@@ -400,9 +402,9 @@ def read_options(argv, oplist, verb = -1):
     namelist = {}
     for co in oplist.olist:
         if co.name in namelist:   # complain if input list contains repeats
-            print "** RO warning: option '%s' appears more than once"%co.name
+            print("** RO warning: option '%s' appears more than once"%co.name)
         namelist[co.name] = 0
-    if verb > 1 : print "-d namelist: ", namelist
+    if verb > 1 : print("-d namelist: ", namelist)
 
     # parse the input arguments:
     #   for each arg, verify arg is option, then process params
@@ -411,15 +413,15 @@ def read_options(argv, oplist, verb = -1):
     while ac < alen:
         # -optlist_* : global options to be ignored
         if argv[ac] in [ '-optlist_verbose', '-optlist_no_show_count' ]:
-            if oplist.verb > 1: print "-- found optlist opt '%s'" % argv[ac]
+            if oplist.verb > 1: print("-- found optlist opt '%s'" % argv[ac])
             ac += 1
             continue
 
         com = oplist.find_opt(argv[ac])
         if com:
             namelist[argv[ac]] += 1     # increment dictionary count
-            if verb > 2: print "+d found option '%s'" % com.name
-            if verb > 3: print "-d remaining args: %s" % argv[ac:-1]
+            if verb > 2: print("+d found option '%s'" % com.name)
+            if verb > 3: print("-d remaining args: %s" % argv[ac:-1])
 
             # create new return option
             newopt = BASE.comopt(com.name, com.n_exp, com.deflist)
@@ -431,14 +433,14 @@ def read_options(argv, oplist, verb = -1):
             # create parlist of potential parameters
             if newopt.n_exp > 0:    # try to insert that number of args
                 if newopt.n_exp <= alen - ac:
-                    if verb > 2: print "+d adding %d params" % newopt.n_exp
+                    if verb > 2: print("+d adding %d params" % newopt.n_exp)
                     parlist = argv[ac:ac+newopt.n_exp]
                 else:   # too few args
-                    print "** error: arg #%d (%s) requires %d params" % \
-                          (ac-1, newopt.name, newopt.n_exp)
+                    print("** error: arg #%d (%s) requires %d params" % \
+                          (ac-1, newopt.name, newopt.n_exp))
                     return None
             elif newopt.n_exp < 0:  # grab everything, and truncate later
-                if verb > 2: print "+d start with all %d params" % (alen-ac)
+                if verb > 2: print("+d start with all %d params" % (alen-ac))
                 parlist = argv[ac:]
             else: parlist = []      # n_exp == 0
 
@@ -446,8 +448,8 @@ def read_options(argv, oplist, verb = -1):
             for pc in range(len(parlist)):
                 if parlist[pc] in namelist: # then we have pc 'good' params
                     parlist = parlist[:pc]
-                    if verb > 1: print "-d truncate %s after %d of %d" % \
-                                       (newopt.name, pc, len(parlist))
+                    if verb > 1: print("-d truncate %s after %d of %d" % \
+                                       (newopt.name, pc, len(parlist)))
                     break;
 
             # now check parlist against acceptlist
@@ -459,16 +461,16 @@ def read_options(argv, oplist, verb = -1):
                     for accpar in newopt.acceptlist:
                         if par == str(accpar): found = 1
                     if not found:  # panic into error!  aaas yoooou wiiiiish...
-                        print "** option %s: param '%s' is not in: %s" % \
-                              (newopt.name, par, newopt.acceptlist)
+                        print("** option %s: param '%s' is not in: %s" % \
+                              (newopt.name, par, newopt.acceptlist))
                         return None  # what else can we do?
 
             # so do we still have enough parameters?
             if newopt.n_exp < 0: nreq = abs(newopt.n_exp)
             else:                nreq = newopt.n_exp
             if len(parlist) < nreq:
-                print "** error: arg #%d (%s) requires %d params, found %d" % \
-                      (ac-1, newopt.name, nreq, len(parlist))
+                print("** error: arg #%d (%s) requires %d params, found %d" % \
+                      (ac-1, newopt.name, nreq, len(parlist)))
                 return None
 
             # we have a full parlist, possibly check for dashes now
@@ -476,9 +478,9 @@ def read_options(argv, oplist, verb = -1):
                for par in parlist:
                   if not par: continue  # check for empty param?  too anal?
                   if par[0] == '-':
-                     print '** option %s has illegal dashed parameter: %s' \
-                           % (newopt.name, par)
-                     print '   --> maybe parameter is a mis-typed option?'
+                     print('** option %s has illegal dashed parameter: %s' \
+                           % (newopt.name, par))
+                     print('   --> maybe parameter is a mis-typed option?')
                      return None
 
             # success!  insert the remaining list
@@ -489,19 +491,19 @@ def read_options(argv, oplist, verb = -1):
             # there should not be any options in this final list
             for arg in argv[ac:]:
                 if arg in namelist:
-                    print "** error: option %s follows unknown arg #%d (%s)" % \
-                          (arg, ac, argv[ac])
+                    print("** error: option %s follows unknown arg #%d (%s)" % \
+                          (arg, ac, argv[ac]))
                     return None
 
             if not oplist.trailers :   # then trailers are not allowed
-                print "** error: unknown trailing arguments : %s" % argv[ac:]
+                print("** error: unknown trailing arguments : %s" % argv[ac:])
                 return None
 
             # insert remaining args as trailers
             newopt = BASE.comopt('trailers', -1, [])
             newopt.n_found = alen - ac
             newopt.parlist = argv[ac:]
-            if verb > 2: print "-- found trailing args: %s" % newopt.parlist
+            if verb > 2: print("-- found trailing args: %s" % newopt.parlist)
 
         OL.olist.append(newopt) # insert newopt into our return list
         ac += newopt.n_found    # and increment the argument counter
@@ -512,18 +514,18 @@ def read_options(argv, oplist, verb = -1):
     for co in oplist.olist:
         if namelist[co.name] == 0:  # may still be okay
             if co.required: 
-                print "** error: missing option %s" % co.name
+                print("** error: missing option %s" % co.name)
                 return None
             elif len(co.deflist) > 0:  # use it
                 newopt = BASE.comopt(co.name, len(co.deflist), co.deflist)
                 newopt.parlist = newopt.deflist
                 # leave n_found at -1, so calling function knows
                 OL.olist.append(newopt) # insert newopt into our return list
-                if verb > 2: print "++ applying default opt '%s', args: %s" % \
-                                   (co.name, newopt.deflist)
+                if verb > 2: print("++ applying default opt '%s', args: %s" % \
+                                   (co.name, newopt.deflist))
 
     if verb > 1 : OL.show("-d all found options: ")
-    if verb > 3 : print "-d final optlist with counts: ", namelist
+    if verb > 3 : print("-d final optlist with counts: ", namelist)
 
     return OL
 
@@ -580,7 +582,7 @@ def test_comopts():
     okopts = OptionList('for_input')
     okopts.add_opt('-a',      1, ['4'       ]               )
     okopts.add_opt('-dsets', -1, [          ]               )
-    okopts.add_opt('-debug',  1, ['0'       ],     range(4) )
+    okopts.add_opt('-debug',  1, ['0'       ],     list(range(4)) )
     okopts.add_opt('-c',      2, ['21', '24']               )
     okopts.add_opt('-d',     -1, [          ]               )
     okopts.add_opt('-e',     -2, ['21', '24', '265']        )

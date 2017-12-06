@@ -120,6 +120,11 @@ extern AFD_dicom_header **MRILIB_dicom_header ;
 #  define WAY_BIG 1.e+10
 #endif
 
+#ifndef TINY_NUMBER
+/*! A tiny, infinitessimal number */
+#  define TINY_NUMBER 1.e-10
+#endif
+
 #ifndef FLDIF
 /*! Are 2 floats significantly different? */
 #  define FLDIF(x,y) ( fabs(x-y) > 1.e-4 * (fabs(x)+fabs(y)) )
@@ -194,6 +199,9 @@ static char * MRI_TYPE_name[9] =
 #define IS_REAL_TYPE(zkq) ((zkq)==MRI_byte || (zkq)==MRI_short || (zkq)==MRI_float)
 
 #define MRI_type_name MRI_TYPE_name  /* because I forget */
+
+#define MRI_type_string(iq) \
+  ( ((iq) < 0 || (iq) > LAST_MRI_TYPE ) ? "unknown" : MRI_TYPE_name[iq] )
 
 #define MRI_TYPE_NAME(iimm) MRI_TYPE_name[(iimm)->kind]  /* 26 Apr 2005 */
 
@@ -765,6 +773,8 @@ extern void binarize_mask( int , byte * ) ;
 #define NSTAT_HIST        41
 #define NSTAT_FILLED      42
 #define NSTAT_UNFILLED    43
+#define NSTAT_MASKED      44
+#define NSTAT_MASKED2     45
 
 #define NSTAT_FWHMx      63   /*these should be after all other NSTAT_* values */
 #define NSTAT_FWHMy      64
@@ -818,7 +828,7 @@ extern int  csfft_nextup(int) ;
 extern int csfft_nextup_one35(int) ;
 extern int csfft_nextup_even(int) ;
 extern void csfft_scale_inverse(int) ;
-extern void csfft_use_fftw( int ) ;     /* 20 Oct 2000 */
+extern void csfft_force_fftn(int) ; /* 08 Oct 2017 */
 
 extern void mri_fftshift( MRI_IMAGE *, float,float,float, int ) ; /* 13 May 2003 */
 
@@ -1132,6 +1142,7 @@ extern void qsort_float( int , float * ) ;
 extern void qsort_float_rev( int , float * ) ;
 extern void qsort_pair( int , float * , int * ) ;
 extern void qsort_int( int , int * ) ;
+extern void qsort_int_mostly( int , int * , int ) ; /* 12 Sep 2017 */
 
 extern void isort_short( int , short * ) ;
 extern void isort_float( int , float * ) ;
@@ -1180,6 +1191,7 @@ extern MRI_IMAGE * mri_cat2D( int,int,int,void *,MRI_IMARR *) ;
 extern MRI_IMARR * mri_uncat2D( int , int , MRI_IMAGE * im ) ; /* 09 May 2000 */
 
 extern MRI_IMAGE * mri_catvol_1D( MRI_IMARR *imar , int dir ); /* 08 Dec 2010 */
+extern MRI_IMAGE * mri_catvol_1D_ab( MRI_IMARR *imar , int dir, int na,int nb );
 
 extern MRI_IMAGE * mri_shift_1D( MRI_IMAGE * im , float shift ) ;
 
@@ -1399,12 +1411,14 @@ typedef struct { int nar ; double *ar , dx,x0 ; } doublevec ;
   do{ (fv) = (floatvec *)malloc(sizeof(floatvec)) ;     \
       (fv)->nar = (n) ; (fv)->dx=1.0f; (fv)->x0=0.0f;   \
       (fv)->ar  = (float *)calloc(sizeof(float),(n)) ;  \
+      if( (fv)->ar == NULL ) fprintf(stderr,"** ERROR: MAKE_floatvec malloc fails\n"); \
   } while(0)
 
 #define MAKE_doublevec(dv,n)                              \
   do{ (dv) = (doublevec *)malloc(sizeof(doublevec)) ;     \
       (dv)->nar = (n) ; (dv)->dx=1.0; (dv)->x0=0.0;       \
       (dv)->ar  = (double *)calloc(sizeof(double),(n)) ;  \
+      if( (dv)->ar == NULL ) fprintf(stderr,"** ERROR: MAKE_doublevec malloc fails\n"); \
   } while(0)
 
 #define COPY_floatvec(ev,fv)                          \
@@ -1417,6 +1431,7 @@ typedef struct { int nar ; double *ar , dx,x0 ; } doublevec ;
   do{ if( (fv)->nar != (m) ){                                     \
         (fv)->nar = (m) ;                                         \
         (fv)->ar  = (float *)realloc((fv)->ar,sizeof(float)*(m)); \
+        if( (fv)->ar == NULL ) fprintf(stderr,"** ERROR: RESIZE_floatvec malloc fails\n"); \
   }} while(0)
 
 extern float  interp_floatvec ( floatvec  *fv , float  x ) ;
@@ -1442,12 +1457,14 @@ typedef struct { int nvec ; intvec *ivar ; } intvecvec ;
   do{ (iv) = (intvec *)malloc(sizeof(intvec)) ;     \
       (iv)->nar = (n) ;                             \
       (iv)->ar  = (int *)calloc(sizeof(int),(n)) ;  \
+      if( (iv)->ar == NULL ) fprintf(stderr,"** ERROR: MAKE_intvec malloc fails\n"); \
   } while(0)
 
 #define RESIZE_intvec(iv,m)                                   \
   do{ if( (iv)->nar != (m) ){                                 \
         (iv)->nar = (m) ;                                     \
         (iv)->ar  = (int *)realloc((iv)->ar,sizeof(int)*(m)); \
+        if( (iv)->ar == NULL ) fprintf(stderr,"** ERROR: RESIZE_intvec malloc fails\n"); \
   }} while(0)
 
 #define APPEND_intvec(iv,jv)                                   \
@@ -1470,6 +1487,7 @@ typedef struct { int nar ; int64_t *ar ; } int64vec ;
   do{ (iv) = (int64vec *)malloc(sizeof(int64vec)) ;        \
       (iv)->nar = (n) ;                                    \
       (iv)->ar  = (int64_t *)calloc(sizeof(int64_t),(n)) ; \
+      if( (iv)->ar == NULL ) fprintf(stderr,"** ERROR: MAKE_int64vec malloc fails\n"); \
   } while(0)
 
 /*----------*/
@@ -1485,12 +1503,14 @@ typedef struct { int nar ; short *ar ; } shortvec ;
   do{ (iv) = (shortvec *)malloc(sizeof(shortvec)) ;   \
       (iv)->nar = (n) ;                                \
       (iv)->ar  = (short *)calloc(sizeof(short),(n)) ;  \
+      if( (iv)->ar == NULL ) fprintf(stderr,"** ERROR: MAKE_shortvec malloc fails\n"); \
   } while(0)
 
 #define RESIZE_shortvec(iv,m)                                  \
   do{ if( (iv)->nar != (m) ){                                   \
         (iv)->nar = (m) ;                                        \
         (iv)->ar  = (short *)realloc((iv)->ar,sizeof(short)*(m)); \
+        if( (iv)->ar == NULL ) fprintf(stderr,"** ERROR: RESIZE_shortvec malloc fails\n"); \
   }} while(0)
 
 /*----------*/
@@ -1507,12 +1527,14 @@ typedef struct { int nar ; byte *ar ; } bytevec ;
   do{ (iv) = (bytevec *)malloc(sizeof(bytevec)) ;   \
       (iv)->nar = (n) ;                              \
       (iv)->ar  = (byte *)calloc(sizeof(byte),(n)) ;  \
+      if( (iv)->ar == NULL ) fprintf(stderr,"** ERROR: MAKE_bytevec malloc fails\n"); \
   } while(0)
 
 #define RESIZE_bytevec(iv,m)                                 \
   do{ if( (iv)->nar != (m) ){                                 \
         (iv)->nar = (m) ;                                      \
         (iv)->ar  = (byte *)realloc((iv)->ar,sizeof(byte)*(m)); \
+        if( (iv)->ar == NULL ) fprintf(stderr,"** ERROR: RESIZE_bytevec malloc fails\n"); \
   }} while(0)
 
 /*----------*/
@@ -1720,7 +1742,14 @@ extern float mri_scaled_diff( MRI_IMAGE *bim, MRI_IMAGE *nim, MRI_IMAGE *msk ) ;
  } while(0)
 
 #undef  PRINT_COMPILE_DATE
-#define PRINT_COMPILE_DATE printf("\n++ Compile date = " __DATE__ "\n\n")
+#if defined(AFNI_VERSION_LABEL) && defined(AFNI_VERSION_PLATFORM)
+# define PRINT_COMPILE_DATE                     \
+         printf("\n++ Compile date = " __DATE__ \
+                " {%s:%s}\n\n",AFNI_VERSION_LABEL,AFNI_VERSION_PLATFORM)
+#else
+# define PRINT_COMPILE_DATE  \
+         printf("\n++ Compile date = " __DATE__ "\n\n")
+#endif
 
 #undef  AUTHOR
 #define AUTHOR(aa) \
@@ -1735,6 +1764,11 @@ extern float mri_scaled_diff( MRI_IMAGE *bim, MRI_IMAGE *nim, MRI_IMAGE *msk ) ;
 #define WROTE_DSET(dd)                                                  \
   do{ if( !machdep_be_quiet() && THD_is_file(DSET_BRIKNAME(dd)) )       \
         INFO_message("Output dataset %s",DSET_BRIKNAME(dd)); } while(0)
+
+#undef  WROTE_DSETI
+#define WROTE_DSETI(dd)                                                  \
+  do{ if( !machdep_be_quiet() && THD_is_file(DSET_BRIKNAME(dd)) )        \
+        ININFO_message("Output dataset %s",DSET_BRIKNAME(dd)); } while(0)
 
 #undef  CHECK_OPEN_ERROR
 #define CHECK_OPEN_ERROR(dd,nn) \

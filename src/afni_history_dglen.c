@@ -50,6 +50,36 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 9, NOV, 2017, DRG, "whereami report changes",
+	MICRO, TYPE_MODIFY,
+	"linkrbrain, sumsdb no longer working, so turned off",
+	"Also reduced line spacing in whereami html reports, default in GUI\n"
+	"and coordinates showing up as -0.0 instead of 0.0 (for Justin)."
+},
+{ 31, OCT, 2017, DRG, "SUMA popups disabled",
+	MICRO, TYPE_NEW_ENV,
+	"SUMA popups are disabled by default, SUMA_SHOWPOPUPS",
+	"Popups in SUMA that required clicking are now off\n"
+	"by default. Bracket (hemisphere) hiding and small surface\n"
+	"warnings only go to terminal. Other messages can be shown\n"
+	"in popup messages with env. variable."
+},
+{ 11, JUL, 2017 , DRG , "DriveSuma quiet variable" , 
+    MICRO , TYPE_NEW_OPT, 
+    "SUMA_DriveSumaQuiet",
+    "Make suma a little quieter with DriveSuma"
+},
+{ 19, APR, 2017 , DRG , "3dMean min, max options" , 
+    MINOR , TYPE_NEW_OPT, 
+    "3dMean computes min and max voxelwise across datasets",
+    "Options -min, -max give min and max values. This can be\n"
+    "combined with -non-zero to restrict to non-zero min and max."
+},
+{ 19, APR, 2017 , DRG , "3dLocalstat has_mask, has_mask2 options" , 
+    MINOR , TYPE_NEW_OPT, 
+    "3dLocalstat can report if neighborhood intersects specified values",
+    "Options -has_mask and -has_mask2 allow flagging with unfillvalue"
+},
 { 5, APR, 2017 , DRG , "3dVol2Surf nzoptions" , 
     MINOR , TYPE_NEW_OPT, 
     "3dVol2Surf nonzero min, nonzero max, nonzero ave",

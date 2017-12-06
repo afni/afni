@@ -53,8 +53,8 @@
  * readAllocateAfniModel is using the version number to read in model
  * parameters correctly */
 
-#define VERSION_3DSVM "V1.28"
-#define VERSION_DATE_3DSVM "10/26/15"
+#define VERSION_3DSVM "V1.30"
+#define VERSION_DATE_3DSVM "11/21/17"
 #define CLASS_MAX 300
 #define SCALE 4000000
 #define MAX_FILE_NAME_LENGTH 500
@@ -109,6 +109,7 @@ typedef struct ASLoptions{
                                    or ranking */
   int  outModelNoMask;	        /* flag signifying that no mask
                                    should be applied to output model */
+  int  noModelOut;   	        /* JL Oct. 2017: flag: don't write model file */
   int  noPredDetrend;	        /* flag signifying that no detrending
                                    should be applied to output predictions
                                    in test mode */
@@ -264,7 +265,6 @@ typedef struct rt_svm_vars {
 
  } RT_SVM_VARS; 
 
-
 /* --- advanced user command line help-string --- */
 static char advanced_helpstring[] = "\n"
 "3dsvm Advanced Usage:\n"
@@ -285,14 +285,10 @@ static char advanced_helpstring[] = "\n"
 "                                     -mask mask+orig \\ \n"
 "                                     -doconly doc_run1 \n"
 "\n"
-"  -nopredscale          For direct comparison with SVM-light. Leave labels in {-1,+1}\n"
-"                        (Do not scale predictions to {0,1})\n"
-"                        using this flag with -nodetrend and -nopredcensored\n"
+"  -nopredscale          Do not scale predictions. Using this flag \n"
+"                        with -nodetrend and -nopredcensored\n"
 "                        will give results that are most closely comparable with \n"
 "                        SVM-light predictions \n"
-"\n"
-"  -nopredcensored       Do not write predictions for censored time-points to\n"
-"                        prediction file\n"
 "\n"
 "  -getenv               Will specify ALL command line options using the current environment\n"
 "                        e.g. 3dsvm -getenv\n"
@@ -544,6 +540,10 @@ static char cl_helpstring[] = "\n"
 "                                 -model model_run1+orig  \\ \n"
 "                                 -predictions pred2_model1\n"
 "\n"
+"-nomodelfile           Flag to enable the omission of a model file. This is \n"
+"                       required if '-model' is not used during training. \n"
+"                       ** Be careful, you might not be able to perform testing!\n"
+"\n"
 "------------------- TESTING OPTIONS --------------------------------------------\n"
 "-testvol tstname       A 3D or 3D+t AFNI brik dataset to be used for testing. \n"
 "                       A major assumption is that the training and testing  \n"
@@ -569,10 +569,18 @@ static char cl_helpstring[] = "\n"
 "                       valued, corresponding to class category decisions.\n"
 "\n"
 "-nopredcensored        Do not write predicted values for censored time-points\n"
-"                       to prediction file\n"
+"                       to predictions file.\n"
 "\n"
-"-nodetrend             Flag to specify that pname files should not be \n"
-"                       linearly de-trended (detrend is the current default).\n"
+"-nodetrend             Flag to specify that pname files should NOT be \n"
+"                       linearly detrended (detrending is performed by default).\n"
+"                       ** Set this options if you are using GLM beta maps as\n"
+"                          input for example. Temporal detrending only \n"
+"                          makes sense if you are using time-dependent\n"
+"                          data (chronological order!) as input.\n"
+"\n"
+"-nopredscale           Do not scale predictions. If used, values below 0.0 \n"
+"                       correspond to (class A) and values above 0.0 to\n"
+"                       (class B).\n"
 "\n"
 "-testlabels tlname     tlname = filename of 'true' class category .1D labels \n" 
 "                       for the test dataset. It is used to calculate the \n"
@@ -599,6 +607,7 @@ static char cl_helpstring[] = "\n"
 "-version               print version history including rough description\n"
 "                       of changes\n"
 "\n\n";
+
 
 /* --- plugin helpstring --- */
 /* this string is currently at its maximum length */
@@ -903,6 +912,14 @@ static char contribution_string [] =
 
 /*----- String that briefly describes changes -------------------*/
 static char change_string[] = "\n"
+"V1.30 (11/21/17)\n"
+"  1) Write prediction and alpha output files using four significant digits,\n"
+"     since Lagrange multipliers (alphas) are currently written/read using\n"
+"     single precision.\n"
+"\n"
+"V1.29 (10/31/17)\n"
+"  1) Added flag: -nomodelfile.\n"
+"\n"
 "V1.28 (10/25/15)\n"
 "  1) Bugfix: Flag -nopredcensored was not working for multi-class.\n"
 "\n"

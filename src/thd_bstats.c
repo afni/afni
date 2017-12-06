@@ -327,36 +327,56 @@ void THD_update_one_bstat( THD_3dim_dataset *dset , int iv )
 int THD_dset_scale(THD_3dim_dataset *aset, float fac)
 {
    int ii, jj, err=0;
-   float fac0 = 1.0, *fv=NULL;
+   float fac0 = 1.0f, *fv=NULL;
 
-   ENTRY("THD_dset_scale");
+ENTRY("THD_dset_scale");
+
+   if( !ISVALID_DSET(aset) ){
+     ERROR_message("THD_dset_scale: invalid dataset input :(") ;
+     RETURN(666) ;
+   }
+   if( fac == 0.0f ){
+     ERROR_message("THD_dset_scale: can't scale by 0 :(") ;
+     RETURN(DSET_NVALS(aset)) ;
+   }
+
+   DSET_load(aset) ;
+   if( !DSET_LOADED(aset) ){
+     ERROR_message("THD_dset_scale: can't load dataset :(") ;
+     RETURN(DSET_NVALS(aset)) ;
+   }
 
    for (ii=0; ii<DSET_NVALS(aset); ++ii) {
       switch (DSET_BRICK_TYPE(aset,ii)) {
          case MRI_short:
          case MRI_byte:
             fac0 = DSET_BRICK_FACTOR(aset,ii);
-            if (fac0 == 0.0) fac0 = 1.0;
+            if (fac0 == 0.0f) fac0 = 1.0f ;
             EDIT_BRICK_FACTOR( aset,ii,fac0*fac ) ;
             break;
          case MRI_float:
             fv = (float *)DSET_ARRAY(aset,ii);
-            for (jj=0; jj<DSET_NVOX(aset); ++jj) {
-               fv[jj] *= fac;
+            if( fv == NULL ){
+              ERROR_message("THD_dset_scale: bad float array at ii=%d",ii) ;
+              err++ ;
+            } else {
+              for (jj=0; jj<DSET_NVOX(aset); ++jj) {
+                fv[jj] *= fac;
+              }
             }
             break;
          default:
-            if (!err) {
-               ERROR_message( "Function THD_dset_scale not ready for type %d\n"
-                           "Sub-bricks of such types are untouched.\n",
-                           DSET_BRICK_TYPE(aset,ii));
-            }
+            if(!err)
+               ERROR_message("THD_dset_scale: not ready for data type %d [%s]\n"
+                             "   --> Sub-bricks of such types are untouched :(",
+                             DSET_BRICK_TYPE(aset,ii) ,
+                             MRI_type_string(DSET_BRICK_TYPE(aset,ii)) );
             ++err;
       }
    }
    DSET_KILL_STATS(aset); THD_load_statistics(aset);
-   if (err > 1) {
-      ERROR_message( "A total of %d sub-bricks were not scaled", err);
+   if (err > 0) {
+      ERROR_message("THD_dset_scale: A total of %d sub-bricks were not scaled", err);
    }
 
    RETURN(err);

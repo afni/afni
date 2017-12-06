@@ -1,0 +1,230 @@
+#!/bin/tcsh
+
+# !! A highly experimental function !!
+
+
+# written by PA Taylor (NIMH, NIH, USA)
+# started March, 2017
+
+# --------------------- revision history -------------------------
+
+set version   = "1.0";  set rev_dat   = "Aug 8, 2017"
+#   + let the games begin
+
+# ---------------------------------------------------------------
+
+set this_prog = "@suma_reprefixize_spec"
+set tpname    = "${this_prog:gas/@//}"
+set here      = $PWD
+
+# ----------------------- set defaults --------------------------
+
+set ifile        = ""  # input spec file
+
+set opref        = ""  # output prefix, for spec + inner files
+set odir         = ""  # output dir of spec file
+set ofile        = ""  # output spec file
+
+set tfile        = "ttt.spec" # name of temp spec file in $wdir
+
+set wdir         = "__WORKING_$tpname"
+set WDIR_EX      = "1"        # put opref on wdir (unless user names)
+set DO_CLEAN     = "1"
+
+# ------------------- process options, a la rr ----------------------
+
+if ( $#argv == 0 ) goto SHOW_HELP
+
+set ac = 1
+while ( $ac <= $#argv )
+    # terminal options
+    if ( ("$argv[$ac]" == "-h" ) || ("$argv[$ac]" == "-help" )) then
+        goto SHOW_HELP
+    endif
+    if ( "$argv[$ac]" == "-ver" ) then
+        goto SHOW_VERSION
+    endif
+
+    # --------------- input(s) ----------------
+
+    if ( "$argv[$ac]" == "-input" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set ifile = "$argv[$ac]"
+
+    # should be just the pre-prefix, really
+    else if ( "$argv[$ac]" == "-preprefix" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set opref = "$argv[$ac]"
+
+    # should be just the pre-prefix, really
+    else if ( "$argv[$ac]" == "-odir" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set odir = "$argv[$ac]"
+
+    # ------------------- other opts ---------------
+
+    else if ( "$argv[$ac]" == "-no_clean" ) then
+        set DO_CLEAN = "0"
+
+    else if ( "$argv[$ac]" == "-workdir" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set wdir = "$argv[$ac]"
+        set WDIR_EX  = "0"
+
+
+    # --------------------------------------------------------------
+
+    else
+        echo "** unexpected option #$ac = '$argv[$ac]'"
+        goto BAD_EXIT
+
+    endif
+    @ ac += 1
+end
+
+# =======================================================================
+# ============================ ** SETUP ** ==============================
+# =======================================================================
+
+# ============================ input files ==============================
+
+echo "++ Start script version: $version"
+
+# NEED these two inputs
+if ( "$ifile" == "" ) then
+    echo "** ERROR: no spec file input?!"
+    goto BAD_EXIT
+else if ( "$odir" == "" ) then
+    echo "** ERROR: no output location input?!"
+    goto BAD_EXIT
+else if ( "$opref" == "" ) then
+    echo "** ERROR: no new prefix input?!"
+    goto BAD_EXIT
+endif
+
+# default output dir, if nothing input.
+if ( ! -e "$odir" ) then
+    echo "+* Output directory didn't exist.  Trying to make it now."
+    mkdir "$odir"
+endif
+
+# and put working directory as subdirectory.
+if ( "$WDIR_EX" == "1" ) then
+    set wdir = $odir/${wdir}_$opref
+else
+    set wdir = $odir/$wdir
+endif
+
+# make the working directory
+if ( ! -e $wdir ) then
+    echo "++ Making working directory: $wdir"
+    mkdir $wdir
+else
+    echo "+* WARNING: Somehow found a premade working directory (?):"
+    echo "      $wdir"
+
+    # don't clean preexisting directories-- could be user mistake.
+    echo "   NB: will *not* clean it afterwards."
+    set DO_CLEAN = "0"
+endif
+
+# ========================= output fnames ==========================
+
+set itail = "$ifile:t"
+
+set ofile = "$odir/${opref}_$itail"
+set wfile = "$wdir/$tfile"
+
+# =======================================================================
+# =========================== ** PROCESS ** =============================
+# =======================================================================
+
+echo "\n-----> STARTING $this_prog ---->"
+
+# ---------------------------- CMD ---------------------------------
+
+echo "\n\nThis command:"
+echo "$this_prog $argv\n\n"
+
+# --------------------- start proc ---------------------------
+
+# All the things to grep, having format: X = 'something'.  How we deal
+# with this *depends* on having the arg as 3rd thing in the line
+set greppers = ( "LabelDset" "SurfaceName" )
+
+set list_ifiles = ( )
+foreach gg ( $greppers ) 
+
+    set aa  = `grep $gg $ifile`
+    set Naa = $#aa
+
+    # Take every third, because of style: X = 'something'.  we just
+    # replace the tail of the name (i.e., filename with no path part).
+    foreach i ( `seq 3 3 $Naa` )
+        set list_ifiles = ( $list_ifiles $aa[$i]:t )
+    end
+end
+
+\cp $ifile $wfile
+
+foreach ff ( $list_ifiles ) 
+
+    sed -i -e "s/${ff}/${opref}_${ff}/g" $wfile
+
+end
+
+echo "### ARTIFICIAL SPEC FILE" > $ofile
+echo "### Made via:"            >> $ofile
+echo "###   $this_prog $argv\n\n" >> $ofile
+
+more $wfile >> $ofile
+
+# clean, by default
+if ( "$DO_CLEAN" == "1" ) then
+    echo "\n++ Cleaning working directory!\n"
+    \rm -rf $wdir
+else
+    echo "\n++ NOT removing working directory '$wdir'.\n"
+endif
+
+goto GOOD_EXIT
+
+# ========================================================================
+# ========================================================================
+
+SHOW_HELP:
+cat << EOF
+# -----------------------------------------------------------------------
+
+Input opts:
+
+-input      III
+-preprefix  PPP
+-odir       OOO
+-workdir    WWW
+-no_clean
+
+# -----------------------------------------------------------------------
+
+EOF
+
+    goto GOOD_EXIT
+
+SHOW_VERSION:
+    echo "version  $version (${rev_dat})"
+    goto GOOD_EXIT
+
+FAIL_MISSING_ARG:
+    echo "** ERROR! Missing an argument after option flag: '$argv[$ac]'"
+    goto BAD_EXIT
+
+BAD_EXIT:
+    exit 1
+
+# send everyone here, in case there is any cleanup to do
+GOOD_EXIT:
+    exit 0

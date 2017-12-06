@@ -24,14 +24,14 @@ int list_for_DTI( char *dti_listname,
 
    NameVEC = calloc( N_DTI_VECT, sizeof(NameVEC));  
    for(i=0 ; i<N_DTI_VECT ; i++) 
-      NameVEC[i] = calloc( 100, sizeof(char)); 
+      NameVEC[i] = calloc( N_CHAR_PATH, sizeof(char)); 
    NameSCAL = calloc( N_DTI_SCAL, sizeof(NameSCAL));  
    for(i=0 ; i<N_DTI_SCAL ; i++) 
-      NameSCAL[i] = calloc( 100, sizeof(char)); 
+      NameSCAL[i] = calloc( N_CHAR_PATH, sizeof(char)); 
    NamePLUS = calloc( N_DTI_PLUS, sizeof(NamePLUS));  
    for(i=0 ; i<N_DTI_PLUS ; i++) 
-      NamePLUS[i] = calloc( 100, sizeof(char)); 
-   NameXF = (char *)calloc(100, sizeof(char)); 
+      NamePLUS[i] = calloc( N_CHAR_PATH, sizeof(char)); 
+   NameXF = (char *)calloc(N_CHAR_PATH, sizeof(char)); 
    
    if( (NameVEC == NULL) || (NameSCAL == NULL) ||
        (NameXF == NULL) || (NamePLUS == NULL)  ) {
@@ -492,7 +492,7 @@ int glob_for_DTI_trac( char *infix,
          snprintf(temp_name,31,"%s", 
                   wsort[ii]+hardi_pref_len+pref_offset);
 
-         if( !foundahome) // a known scalar
+         if( !foundahome ) // a known scalar
             for( i=0 ; i<N_DTI_SCAL ; i++ ) {
                if ( !strcmp(DTI_SCAL_LABS[i], temp_name) ) {
                   foundahome = 1;
@@ -529,7 +529,10 @@ int glob_for_DTI_trac( char *infix,
             DSET_load(insetPARS[pii0 + pii]); 
             CHECK_LOAD_ERROR(insetPARS[pii0 + pii]);
             // only keep scalar sets
-            if( DSET_NVALS(insetPARS[pii0+pii]) != 1 ) {
+            // OLD: if( (DSET_NVALS(insetPARS[pii0+pii]) != 1) ) 
+            // [PT: Aug 8, 2017] change next IF b/c 1D text files
+            // weren't being ignored.
+            if( (DSET_IS_3D(insetPARS[pii0+pii]) != 1) ) {
                fprintf( stderr, " not:'%s' ", temp_name);
                DSET_delete(insetPARS[pii0+pii]); // not scal: remove
                insetPARS[pii0 + pii] = NULL;

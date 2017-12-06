@@ -30,6 +30,8 @@ int main( int argc , char *argv[] )
 
    /*-- help me if you can --*/
 
+WARNING_message("This program (3dAFNItoANALYZE) is old, not maintained, and probably useless!") ;
+
    if( argc < 3 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dAFNItoANALYZE [-4D] [-orient code] aname dset\n"
              "Writes AFNI dataset 'dset' to 1 or more ANALYZE 7.5 format\n"

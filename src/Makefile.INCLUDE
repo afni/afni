@@ -44,7 +44,8 @@ SOMEAFOBJS = parser_int.o afni_warp.o afni_slice_byte.o afni_slice_short.o \
 T3OBJS  = to3d.o
 
 MISC    = AFNI_atlas_spaces.niml AFNI.Xdefaults AFNI.afnirc AFNI.sumarc \
-          3d*.lib gmovie* afni_papers.txt AFNI_version_base.txt
+          3d*.lib gmovie* afni_papers.txt AFNI_version_base.txt		\
+	  AFNI_digest_history.txt
 
 ## The following programs are "extras" not really part of the
 ## AFNI package, but included because they are useful.  Some of
@@ -100,7 +101,8 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dToyProg 3dRankizer nifti1_tool gifti_tool cifti_tool images_equal  \
            uniq_images tokens 3dLocalACF 3dXClustSim 3dtoXdataset 3dMultiThresh \
            3dLFCD 3dDegreeCentrality 3dECM 3dMSE 3dsvm_linpredict 3dTfilter     \
-           3dTsplit4D 3dSharpen 3dExtractGroupInCorr \
+           3dTsplit4D 3dSharpen 3dExtractGroupInCorr dcm2niix_afni 3dTto1D      \
+           3dBrainSync                                                          \
            $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
@@ -139,6 +141,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
                   3dToyProg nifti1_tool gifti_tool cifti_tool images_equal          \
                   uniq_images stimband 1dNLfit tokens 3dLocalACF                    \
                   3dDegreeCentrality 3dECM 3dLFCD 3dMSE 3dsvm_linpredict            \
+                  3dTto1D \
                   $(EXTRAS)
 
 # For CYGWIN (look for "exe" to find various places below)
@@ -197,6 +200,9 @@ PY_SCRIPTS = 1d_tool.py afni_proc.py afni_restproc.py afni_system_check.py   \
 	     parse_fs_lt_log.py RetroTS.py
 
 R_DIR = R_scripts
+
+DISCO_DIR = discoraj
+SHINY_DIR = shiny
 
 LIBHEADERS = mrilib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h            \
              editvol.h cs.h eispack.h killer.h vecmat.h machdep.h tagset.h    \
@@ -576,6 +582,14 @@ dsetdup:dsetdup.o
 3dTcat:3dTcat.o
 	$(RM) $@
 	$(CC) -o 3dTcat 3dTcat.o $(LFLAGS) $(LLIBS)
+
+3dBrainSync.o:3dBrainSync.c
+	$(RM) $@
+	$(CCFAST) -c 3dBrainSync.c $(INFLAGS)
+
+3dBrainSync:3dBrainSync.o
+	$(RM) $@
+	$(CC) -o 3dBrainSync 3dBrainSync.o $(LFLAGS) $(LLIBS)
 
 3dToyProg:3dToyProg.o
 	$(RM) $@
@@ -1326,7 +1340,7 @@ AlphaSim:AlphaSim.o
 	$(RM) $@
 	$(CCOMP) -o 3dClustSim 3dClustSim.o $(LFLAGS) $(LLIBS)
 
-3dXClustSim.o:3dXClustSim.c mri_threshX.c
+3dXClustSim.o:3dXClustSim.c mri_threshX.c thd_Xdataset.c
 	$(RM) $@
 	$(CCOMP) -c 3dXClustSim.c $(INFLAGS)
 
@@ -1944,8 +1958,8 @@ afni_src.tgz:
 	$(MKDIR) afni_src
 	$(CP) -p *.c *.f *.inc *.h *.hhh Makefile.* *.xbm $(MINDOCS) $(MISC)     ./afni_src
 	$(CP) -pr coxplot volpack moveup moveAFNI* eispack                       ./afni_src
-	$(CP) -pr avovk ptaylor pkundu jzosky				         ./afni_src
-	$(CP) -pr $(SCRIPTS_DIR) $(SCRIPTS_SRC) $(PY_DIR) $(R_DIR)               ./afni_src
+	$(CP) -pr avovk ptaylor pkundu jzosky crorden discoraj                   ./afni_src
+	$(CP) -pr $(SCRIPTS_DIR) $(SCRIPTS_SRC) $(PY_DIR) $(R_DIR) $(SHINY_DIR)  ./afni_src
 	$(CP) -pr gifsicledir qhulldir f2cdir mpeg_encodedir                     ./afni_src
 	$(CP) -pr 3DEdge netcdf-3.5.0 jpeg-6b niml Makefile_* nifti dlcompat     ./afni_src
 	$(CP) -pr SUMA svm matlab rickr faces poems gifti ni_test_? README.*     ./afni_src
@@ -1983,6 +1997,8 @@ install: $(INSTALLDIR) $(INSTALL_PREREQ) install_devs
 	$(CP) $(SCRIPTS_DIR)/* $(INSTALLDIR)
 	$(MV) $(PROGRAMS) $(INSTALLDIR)
 	$(CP) $(PY_DIR)/*.py  $(R_DIR)/*.R $(INSTALLDIR)
+	$(CP) -r $(SHINY_DIR) $(INSTALLDIR)
+	$(CP) $(DISCO_DIR)/*/@* $(DISCO_DIR)/*/*.py $(INSTALLDIR)
 	$(CP) html/??*.* $(EXTRA_INSTALL_FILES) $(INSTALLDIR)
 	if [ -f README.environment ]; then $(CP) README.*    $(INSTALLDIR); fi;
 	if [ -f AFNI.afnirc        ]; then $(CP) AFNI.afnirc $(INSTALLDIR); fi;
@@ -1997,6 +2013,7 @@ install_noplug: $(INSTALLDIR)
 	$(MV) $(PROGRAMS_NOPLUG) $(INSTALLDIR)
 	$(CP) $(SCRIPTS_DIR)/* $(INSTALLDIR)
 	$(CP) $(PY_DIR)/*.py $(R_DIR)/*.R $(INSTALLDIR)
+	$(CP) -r $(SHINY_DIR) $(INSTALLDIR)
 
 install_lib: $(LIBDIR)
 	$(CP) libmri.a libmrix.a libf2c.a libcoxplot.a libvolpack.a $(LIBHEADERS) $(LIBDIR)
@@ -2009,6 +2026,7 @@ install_exe: $(INSTALLDIR)
           done )
 	$(CP) $(SCRIPTS_DIR)/* $(INSTALLDIR)
 	$(CP) $(PY_DIR)/*.py $(R_DIR)/*.R $(INSTALLDIR)
+	$(CP) -r $(SHINY_DIR) $(INSTALLDIR)
 
 ###################################################################
 # some dependencies (not complete)
@@ -2160,6 +2178,10 @@ thd_correlate.o:thd_correlate.c
 	$(RM) $@
 	$(CCFAST) -c thd_correlate.c $(INFLAGS)
 
+thd_notes.o:thd_notes.c
+	$(RM) $@
+	$(CC) -c thd_notes.c $(INFLAGS) $(SHOWOFF)
+
 thd_incorrelate.o:thd_incorrelate.c
 	$(RM) $@
 	$(CCFAST) -c thd_incorrelate.c $(INFLAGS)
@@ -2290,7 +2312,8 @@ THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_bandpass.o thd_instacorr.o thd_svdblur.o thd_satcheck.o    \
            thd_dumdset.o ktaub.o bilinear_warp3D.o thd_table.o            \
            thd_atlas.o thd_warp_tables.o thd_lasso.o thd_mean_dset.o      \
-           thd_despike_L1.o thd_Tcorr1D.o thd_openimage.o
+           thd_despike_L1.o thd_Tcorr1D.o thd_openimage.o                 \
+           thd_remove_allzero.o
 
 # these are now included in NIML
 
@@ -2431,7 +2454,7 @@ models: model_constant.$(SO) model_linear.$(SO) model_quadratic.$(SO)  \
         model_zero.$(SO) model_demri_3.$(SO) model_expr2.$(SO)         \
         model_conv_diffgamma.$(SO) model_expMEMRI.$(SO)                \
         model_expMEMRI3.$(SO) model_conv_cosine4.$(SO)                 \
-        model_conv_PRF.$(SO) model_conv_PRF_6.$(SO)
+        model_conv_PRF.$(SO) model_conv_PRF_6.$(SO) model_conv_PRF_DOG.$(SO)
 
 # Contributed plugins go last, since they might not compile well
 
@@ -2646,6 +2669,15 @@ r_misc.o: rickr/r_misc.c rickr/r_misc.h
 	$(CC) -o 3dTsplit4D 3dTsplit4D.o $(LFLAGS) $(LLIBS)
 
 #######
+# make Chris Rorden's dcm2niix, but rename it with _afni to avoid conflicts
+
+dcm2niix_afni:
+	( cd crorden/dcm2niix_console ;		\
+	  make ;				\
+	  $(MV) dcm2niix ../../dcm2niix_afni ; 	\
+	  cd ../../ ; )
+
+#######
 # rickr programs
 
 3dmaxima: 3dmaxima.o maxima.o libmri.a
@@ -2719,6 +2751,11 @@ tokens: rickr/tokens.c
 	$(MAKE) tokens 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(ISFLAGS)'      	\
 			'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' ;           \
 	$(MV) tokens .. ; )
+
+3dTto1D: 3dTto1D.o libmri.a
+	$(RM) $@
+	$(CC) -o 3dTto1D 3dTto1D.o $(LFLAGS) $(LLIBS)
+
 
 
 selenium_test: selenium_test.o
@@ -3640,7 +3677,7 @@ R_io.so:R_io.c libmri.a
 	( if which R >/dev/null ; then \
 	echo PKG_CPPFLAGS = $(INFLAGS)  > Makevars ;\
 	echo PKG_LIBS =  $(LFLAGS) $(LLIBS) >> Makevars ;\
-	R CMD SHLIB R_io.c ; \
+	R CMD SHLIB -o R_io.so R_io.c ; \
 	else echo WARNING: Cannot build R_io.so because R is not installed;\
 	fi ; )
 

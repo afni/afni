@@ -759,6 +759,7 @@ ENTRY("mri_genalign_scalar_setup") ;
    /** copy new images into setup struct **/
 
    if( basim != NULL ){
+STATUS("copy basim") ;
      need_pts = 1 ;              /* will need to extract match points */
      if( stup->bsim != NULL ) mri_free(stup->bsim) ;
      if( mverb > 1 ) ININFO_message("- copying base image") ;
@@ -784,6 +785,7 @@ ENTRY("mri_genalign_scalar_setup") ;
    nx = stup->bsim->nx; ny = stup->bsim->ny; nz = stup->bsim->nz; nxy = nx*ny;
 
    if( targim != NULL ){
+STATUS("copy targim") ;
      if( stup->ajim != NULL ) mri_free(stup->ajim) ;
      if( mverb > 1 ) ININFO_message("- copying source image") ;
      stup->ajim = mri_to_float(targim) ;
@@ -858,6 +860,7 @@ ENTRY("mri_genalign_scalar_setup") ;
      mri_unpurge(stup->ajim) ; /* 20 Dec 2006 */
    }
    if( do_smooth_base ){
+STATUS("smooth base") ;
      if( stup->bsims != NULL ) mri_free(stup->bsims);
      if( mverb > 1 )
        ININFO_message("- Smoothing base; radius=%.2f",stup->smooth_radius_base);
@@ -866,6 +869,7 @@ ENTRY("mri_genalign_scalar_setup") ;
      if( stup->usetemp ) mri_purge( stup->bsim ) ;  /* 20 Dec 2006 */
    }
    if( do_smooth_targ ){
+STATUS("smooth targ") ;
      if( stup->ajims != NULL ) mri_free(stup->ajims);
      if( mverb > 1 )
        ININFO_message("- Smoothing source; radius=%.2f",stup->smooth_radius_targ);
@@ -894,6 +898,7 @@ ENTRY("mri_genalign_scalar_setup") ;
 
    /* get min and max values in base and target images */
 
+STATUS("get min/max") ;
    if( stup->ajims == NULL ){
      stup->ajbot = (float)mri_min(stup->ajim) ;
      stup->ajtop = (float)mri_max(stup->ajim) ;
@@ -923,6 +928,7 @@ ENTRY("mri_genalign_scalar_setup") ;
    if( wghtim != NULL ){              /*---- have new weight to load ----*/
      MRI_IMAGE *qim ; float *bar , bfac ;
 
+STATUS("load weight and mask") ;
      need_pts = 1 ;
      if( wghtim->nvox != stup->bsim->nvox )
        ERREX("basim and wghtim grids differ!?!") ;
@@ -992,6 +998,8 @@ ENTRY("mri_genalign_scalar_setup") ;
 
      if( use_all == 1 ){         /*------------- all points, no mask -----------*/
 
+STATUS("need_pts: use_all==1") ;
+
        if( stup->im != NULL ){
          KILL_floatvec(stup->im) ;
          KILL_floatvec(stup->jm) ;
@@ -1002,6 +1010,8 @@ ENTRY("mri_genalign_scalar_setup") ;
      } else if( use_all == 2 ){  /*------------- all points in mask ------------*/
 
        int nvox , pp ; byte *mask=stup->bmask ;
+
+STATUS("need_pts: use_all==2") ;
 
        if( stup->im != NULL ){
          KILL_floatvec(stup->im) ;
@@ -1024,8 +1034,11 @@ ENTRY("mri_genalign_scalar_setup") ;
 
        int nvox,pp,dm , *qm ; byte *mask = stup->bmask ;
 
+STATUS("need_pts: subset") ;
+
        nvox = stup->bsim->nvox ;
        dm   = GA_find_relprime_fixed(nvox) ;
+STATUSi("  :: relprime dm",dm) ;
        if( stup->im != NULL ){
          KILL_floatvec(stup->im) ;
          KILL_floatvec(stup->jm) ;
@@ -1036,11 +1049,21 @@ ENTRY("mri_genalign_scalar_setup") ;
        MAKE_floatvec(stup->km,stup->npt_match) ;
 
        qm = (int *)calloc(sizeof(int),stup->npt_match) ;
+       if( qm == NULL ) ERREX("qm malloc fails") ;
        mm = (nx/2) + (ny/2)*nx + (nz/2)*nxy ;
        for( pp=0 ; pp < stup->npt_match ; mm=(mm+dm)%nvox )
          if( GOOD(mm) ) qm[pp++] = mm ;
+#if 0
+STATUS("  :: sort qm") ;
        qsort_int( stup->npt_match , qm ) ;
+#else
+       { int cut = (int)(0.5f*sqrtf((float)stup->npt_match)) ;
+STATUSi("  :: mostly sort qm; cut",cut) ;
+         qsort_int_mostly( stup->npt_match , qm , cut ) ;
+       }
+#endif
 
+STATUS("  :: load index arrays") ;
        for( pp=0 ; pp < stup->npt_match ; pp++ ){
          mm = qm[pp] ;
          ii = mm % nx; kk = mm / nxy; jj = (mm-kk*nxy) / nx;
@@ -1050,6 +1073,8 @@ ENTRY("mri_genalign_scalar_setup") ;
      }
 
      /*------------- extract values from base image for matching -------------*/
+
+STATUS("extract from base") ;
 
      KILL_floatvec(stup->bvm) ; KILL_floatvec(stup->wvm) ;
      bim = (stup->bsims != NULL ) ? stup->bsims : stup->bsim ;

@@ -809,7 +809,7 @@ MRI_IMAGE * mri_watershedize( MRI_IMAGE *sim , float prefac )
    short *sar , *tar ;
    shortvox *svox ;
    int *isvox , *bcount,*bname ;
-   int nb,vb,mb,m,mu,mq,mz , bp[6] , hpf ;
+   int nb,vb,mb,m,mu,mq,mz , bp[6]={0,0,0,0,0,0} , hpf ;
 
    basin **baslist ;
    int nball , nbtop ;

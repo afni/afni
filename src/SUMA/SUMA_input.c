@@ -234,6 +234,8 @@ int SUMA_bracketleft_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    /* do the work */
    switch (k) {
       case XK_bracketleft:
+         /* getting rid of some warnings that happen with normal use */
+         Nwarn_bracket = 1; /* warning always in terminal, no message to window */
          /* toggle showing left hemispheres */
          sv->ShowLeft = !sv->ShowLeft;
          /* do the axis setup */
@@ -253,7 +255,7 @@ int SUMA_bracketleft_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                strcmp(callmode, "interactive") == 0) { 
             SUMA_SLP_Note("%s",stmp); 
          } else { SUMA_S_Note("%s",stmp); } 
-         ++Nwarn_bracket;
+/*         ++Nwarn_bracket;*/
          break;
       default:
          SUMA_S_Err("Il ne faut pas etre la");
@@ -279,6 +281,8 @@ int SUMA_bracketright_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    /* do the work */
    switch (k) {
       case XK_bracketright:
+         /* getting rid of some warnings that happen with normal use */
+         Nwarn_bracket = 1; /* warning always in terminal, no message to window */
          /* toggle showing left hemispheres */
          sv->ShowRight = !sv->ShowRight;
          /* do the axis setup */
@@ -298,7 +302,7 @@ int SUMA_bracketright_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                strcmp(callmode, "interactive") == 0) { 
             SUMA_SLP_Note("%s",stmp); 
          } else { SUMA_S_Note("%s",stmp); } 
-         ++Nwarn_bracket;
+/*         ++Nwarn_bracket;*/
          break;
       default:
          SUMA_S_Err("Il ne faut pas etre la");
@@ -2623,9 +2627,10 @@ int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                                 -(SUMAg_CF->SUMA_SnapshotOverSampling * 
                                   SUMAg_CF->SUMA_SnapshotOverSampling),
                                 0);
-               system(  "rm -f HighRes_Suma_tmp* >& /dev/null ; "
-                        "imcat -prefix HighRes_Suma_tmp HighRes_Photo___tmp* ;"
-                        "rm -f HighRes_Photo___tmp* >& /dev/null");
+               /* use explicit tcsh to avoid sh syntax  25 Apr 2017 [rickr] */
+               system(  "tcsh -c 'rm -f HighRes_Suma_tmp* >& /dev/null' ; "
+                        "imcat -prefix HighRes_Suma_tmp HighRes_Photo___tmp* ; "
+                        "rm -f HighRes_Photo___tmp*");
             }
          }
          break;

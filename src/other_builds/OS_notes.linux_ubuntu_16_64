@@ -1,0 +1,14 @@
+# for building a compile machine on Ubuntu 16
+#
+# see afni_src/Makefile.linux_ubuntu_16_64
+
+sudo apt-get update ; sudo apt-get upgrade
+
+sudo apt-get install -y tcsh vi
+sudo apt-get install -y libxmu-dev libxt-dev libmotif-dev
+sudo apt-get install -y libxpm-dev libxi-dev libxmhtml-dev
+sudo apt-get install -y libglw1-mesa-dev libglu1-mesa-dev
+sudo apt-get install -y libglib2.0-dev libgsl-dev
+sudo apt-get install -y r-base m4
+sudo apt-get install -y python-qt4
+

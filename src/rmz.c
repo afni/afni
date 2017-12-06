@@ -9,7 +9,8 @@ static unsigned char buf[NBUF] ;
 
 int main( int argc , char * argv[] )
 {
-   int iarg , ii,ll,jj , verb=1 , ibot , irep,nrep=NREP , ng=0 , keep=0 ;
+   int iarg , ii , verb=1 , ibot , irep,nrep=NREP , ng=0 , keep=0 ;
+   long long ll , jj ;
    FILE * fp ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
@@ -51,7 +52,8 @@ int main( int argc , char * argv[] )
 
       if( irep < nrep || nrep == 0 ){
         for( ii=0 ; ii < NBUF ; ii++ ){
-          buf[ii] = ((3+2*irep)*ii+jj) % 255 ; if( ii%257==256 ) jj += lrand48() % 7 ;
+          buf[ii] = ((3+2*irep)*ii+jj) % 255 ;
+          if( ii%257==256 ) jj += lrand48() % 7 ;
         }
       } else {
         for( ii=0 ; ii < NBUF ; ii++ ) buf[ii] = 0 ;  /* final loop ==> zero */

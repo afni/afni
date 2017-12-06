@@ -21,6 +21,18 @@ void BBOX_set_wtype( char *wt ){ wtype = wt ; }
 static Widget old_wpar=NULL ; /* Apr 2013 -- for Allison */
 static int old_xx=-666,old_yy=-666;
 
+/* macro to relocate popup w.r.t. parent [12 Oct 2017] */
+
+#undef  RELOCATE
+#define RELOCATE(wwpar,wwpop,dd)                                 \
+ do{ int www=0 , hhh=0 ; Position qx=0,qy=0 ;                    \
+     MCW_widget_geom( wwpar , &www , &hhh , NULL,NULL ) ;        \
+     www /= dd ; if( www < 19 ) www = 19 ;                       \
+     hhh /= dd ; if( hhh < 10 ) hhh = 10 ;                       \
+     XtTranslateCoords( wwpar , www,hhh , &qx , &qy ) ;          \
+     XtVaSetValues( wwpop, XmNx,(int)qx, XmNy,(int)qy, NULL ) ;  \
+ } while(0) ;
+
 /*------------------------------------------------------------------------*/
 /*
    This function was meant to find the top parent of a widget and later
@@ -985,7 +997,7 @@ STATUS("creating menu window") ;
    XtSetArg( args[nargs] , XmNlabelString , xstr ) ; nargs++ ;
 
 STATUS("creating option menu") ;
-   av->wrowcol = XmCreateOptionMenu( parent , DIALOG , args , nargs ) ;
+   av->wrowcol = XmCreateOptionMenu( parent , MENU , args , nargs ) ;
    XmStringFree(xstr) ;
    XtVaSetValues( av->wrowcol ,
                      XmNmarginWidth  , 0 ,
@@ -1049,7 +1061,7 @@ STATUS("creating option menu") ;
       xstr = XmStringCreateLtoR( blab , XmFONTLIST_DEFAULT_TAG ) ;
 
       wbut = XtVaCreateManagedWidget(
-                DIALOG , xmPushButtonWidgetClass , wmenu ,
+                MENU , xmPushButtonWidgetClass , wmenu ,
                   XmNlabelString  , xstr ,
                   XmNmarginWidth  , 0 ,
                   XmNmarginHeight , 0 ,
@@ -1174,7 +1186,7 @@ rcparent = XtVaCreateWidget ("rowcolumn",
 
    xstr = XmStringCreateLtoR( "" , XmFONTLIST_DEFAULT_TAG ) ;
    XtSetArg( args[nargs] , XmNlabelString , xstr ) ; nargs++ ;
-   av->wrowcol = XmCreateOptionMenu( rcholder , DIALOG , args , nargs ) ;
+   av->wrowcol = XmCreateOptionMenu( rcholder , MENU , args , nargs ) ;
    XmStringFree(xstr) ;
    XtVaSetValues( av->wrowcol ,
                      XmNmarginWidth  , 0 ,
@@ -1268,7 +1280,7 @@ rcparent = XtVaCreateWidget ("rowcolumn",
       xstr = XmStringCreateLtoR( blab , XmFONTLIST_DEFAULT_TAG ) ;
 
       wbut = XtVaCreateManagedWidget(
-                DIALOG , xmPushButtonWidgetClass , wmenu ,
+                MENU , xmPushButtonWidgetClass , wmenu ,
                   XmNlabelString  , xstr ,
                   XmNmarginWidth  , 0 ,
                   XmNmarginHeight , 0 ,
@@ -1450,7 +1462,7 @@ ENTRY("refit_MCW_optmenu") ;
       } else {
          STATUS("setting up new button") ;
          wbut = XtVaCreateManagedWidget(
-                   DIALOG , xmPushButtonWidgetClass , wmenu ,
+                   MENU , xmPushButtonWidgetClass , wmenu ,
                      XmNlabelString  , xstr ,
                      XmNmarginWidth  , 0 ,
                      XmNmarginHeight , 0 ,
@@ -2400,8 +2412,7 @@ ENTRY("MCW_choose_ovcolor") ;
 
    (void) MCW_action_area( wrc , OVC_act , NUM_OVC_ACT ) ;
 
-   XtTranslateCoords( wpar , 15,15 , &xx , &yy ) ;
-   XtVaSetValues( wpop , XmNx , (int) xx , XmNy , (int) yy , NULL ) ;
+   RELOCATE(wpar,wpop,5) ; /* 12 Oct 2017 */
 
    XtManageChild( wrc ) ;
    XtPopup( wpop , XtGrabNone ) ; RWC_sleep(1);
@@ -2541,8 +2552,7 @@ ENTRY("MCW_choose_vector") ;
 
    (void) MCW_action_area( wrc , OVC_act , NUM_OVC_ACT ) ;
 
-   XtTranslateCoords( wpar , 15,15 , &xx , &yy ) ;
-   XtVaSetValues( wpop , XmNx , (int) xx , XmNy , (int) yy , NULL ) ;
+   RELOCATE(wpar,wpop,5) ; /* 12 Oct 2017 */
 
    XtManageChild( wrc ) ;
    XtPopup( wpop , XtGrabNone ) ; RWC_sleep(1);
@@ -2667,8 +2677,7 @@ ENTRY("MCW_choose_integer") ;
 
    (void) MCW_action_area( wrc , OVC_act , NUM_OVC_ACT ) ;
 
-   XtTranslateCoords( wpar , 15,15 , &xx , &yy ) ;
-   XtVaSetValues( wpop , XmNx , (int) xx , XmNy , (int) yy , NULL ) ;
+   RELOCATE(wpar,wpop,5) ; /* 12 Oct 2017 */
 
    XtManageChild( wrc ) ;
    XtPopup( wpop , XtGrabNone ) ; RWC_sleep(1);
@@ -3012,8 +3021,7 @@ ENTRY("MCW_choose_string") ;
 
    (void) MCW_action_area( wrc , OVC_act , NUM_CLR_ACT ) ;
 
-   XtTranslateCoords( wpar , 15,15 , &xx , &yy ) ;
-   XtVaSetValues( wpop , XmNx , (int) xx , XmNy , (int) yy , NULL ) ;
+   RELOCATE(wpar,wpop,5) ; /* 12 Oct 2017 */
 
    XtManageChild( wrc ) ;
    XtPopup( wpop , XtGrabNone ) ; RWC_sleep(1);
@@ -3347,8 +3355,7 @@ ENTRY("MCW_choose_multi_strlist") ;
    }
 
    if( old_xx < 0 || old_yy < 0 || old_wpar != wpar ){
-     XtTranslateCoords( wpar , 15,15 , &xx , &yy ) ;
-     XtVaSetValues( wpop , XmNx , (int)xx , XmNy , (int)yy , NULL ) ;
+     RELOCATE(wpar,wpop,2) ; /* 12 Oct 2017 */
    } else {
 #ifdef DARWIN
 # define YDEL 20
@@ -3626,8 +3633,7 @@ if(PRINT_TRACING){
 
    (void) MCW_action_area( wrc , TSC_act , NUM_TSC_ACT ) ;
 
-   XtTranslateCoords( wpar , 15,15 , &xx , &yy ) ;
-   XtVaSetValues( wpop , XmNx , (int) xx , XmNy , (int) yy , NULL ) ;
+   RELOCATE(wpar,wpop,5) ; /* 12 Oct 2017 */
 
    XtManageChild( wrc ) ;
    XtPopup( wpop , XtGrabNone ) ; RWC_sleep(1);
@@ -3926,8 +3932,7 @@ ENTRY("MCW_choose_multi_editable_strlist") ;
 
    /* make it appear, like magic! */
 
-   XtTranslateCoords( wpar , 15,15 , &xx , &yy ) ;
-   XtVaSetValues( wpop , XmNx , (int) xx , XmNy , (int) yy , NULL ) ;
+   RELOCATE(wpar,wpop,5) ; /* 12 Oct 2017 */
 
    XtManageChild( wrc ) ;
    XtPopup( wpop , XtGrabNone ) ; RWC_sleep(1);
@@ -4350,7 +4355,8 @@ printf("MCW_choose_CB: plotting selected timeseries\n") ;
 /*----------------------------------------------------------------------------*/
 /*----------------------------------------------------------------------------*/
 
-#define MSTUF_tofree(ic) ( (ic) == MSTUF_INT || (ic) == MSTUF_STRLIST )
+#define MSTUF_tofree(ic) \
+   ( (ic) == MSTUF_INT || (ic) == MSTUF_STRLIST || (ic) == MSTUF_YESNO )
 
 static int     CS_nsav = 0 ;
 static void ** CS_sav  = NULL ;
@@ -4406,6 +4412,11 @@ ENTRY("MCW_stuff_CB") ;
          MCW_arrowval *av = (MCW_arrowval *)CS_sav[iss] ;
          outval[iss] = (void *)(av->sval) ;
        }
+
+       case MSTUF_YESNO:{
+         MCW_arrowval *av = (MCW_arrowval *)CS_sav[iss] ;
+         outval[iss] = (void *)(av->sval) ;
+       }
        break ;
      }
    }
@@ -4430,6 +4441,7 @@ ENTRY("MCW_stuff_CB") ;
       MSTUF_INT    , label , bot , top , init
       MSTUF_STRING , label
       MSTUF_STRLIST, label, nstring , init_index , string_array
+      MSTUF_YESNO  , label  [like STRLIST with {"No","Yes"} as input array]
 
    The call_func is called like so
 
@@ -4460,7 +4472,7 @@ ENTRY("MCW_choose_stuff") ;
    }
 
    if( ! XtIsRealized(wpar) ){  /* illegal call */
-     fprintf(stderr,"\n*** illegal call to MCW_choose_integer: %s\n",XtName(wpar)) ;
+     fprintf(stderr,"\n*** illegal call to MCW_choose_stuff: %s\n",XtName(wpar)) ;
      EXRETURN ;
    }
 
@@ -4492,11 +4504,11 @@ ENTRY("MCW_choose_stuff") ;
    if( MCW_isitmwm(CS_wpar) ){
       XtVaSetValues( CS_wpop ,
                         XmNmwmDecorations , MWM_DECOR_BORDER ,
-                        XmNmwmFunctions   ,  MWM_FUNC_MOVE ,
+                        XmNmwmFunctions   , MWM_FUNC_MOVE ,
                      NULL ) ;
    }
 
-   XtAddCallback( CS_wpop , XmNdestroyCallback , MCW_destroy_chooser_CB , &CS_wpop ) ;
+   XtAddCallback( CS_wpop, XmNdestroyCallback, MCW_destroy_chooser_CB, &CS_wpop ) ;
 
    XmAddWMProtocolCallback(
         CS_wpop ,
@@ -4620,6 +4632,25 @@ ENTRY("MCW_choose_stuff") ;
          CS_nsav++ ;
        }
        break ;
+
+       case MSTUF_YESNO:{  /* label */
+         static char *strlist[2] = { "No" , "Yes" } ;
+         char *lab ; MCW_arrowval *av ;
+         lab = va_arg( vararg_ptr , char *  ) ; if( lab == NULL ) break ;
+
+         av = new_MCW_optmenu( wrc , lab ,
+                                0 , 1 , 0 , 0 ,
+                                NULL , NULL ,
+                                MCW_av_substring_CB , strlist ) ;
+
+         CS_sav = (void **)realloc( CS_sav , sizeof(void *)*(CS_nsav+1) ) ;
+         CS_sav[CS_nsav] = (void *)av ;
+         CS_scod = (int *)realloc( CS_scod , sizeof(int)*(CS_nsav+1) ) ;
+         CS_scod[CS_nsav] = scode ;
+         CS_nsav++ ;
+       }
+       break ;
+
      }
    }while(1) ;
    va_end( vararg_ptr ) ;
@@ -4627,8 +4658,7 @@ ENTRY("MCW_choose_stuff") ;
    for( iss=0 ; iss < NUM_CSO_ACT ; iss++ ) CSO_act[iss].data = NULL ;
    (void) MCW_action_area( wrc , CSO_act , NUM_CSO_ACT ) ;
 
-   XtTranslateCoords( CS_wpar , 15,15 , &xx , &yy ) ;
-   XtVaSetValues( CS_wpop , XmNx , (int)xx , XmNy , (int)yy , NULL ) ;
+   RELOCATE(CS_wpar,CS_wpop,2) ; /* 12 Oct 2017 */
    XtManageChild( wrc ) ;
    XtPopup( CS_wpop , XtGrabNone ) ; RWC_sleep(1);
    RWC_visibilize_widget( CS_wpop ) ;

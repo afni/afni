@@ -51,15 +51,38 @@
 afni_history_struct discoraj_history[] = {
 
  /* can copy to and change one of the examples here */
+ { 25 , OCT , 2017 , JKR , "@afni_R_package_install" , SUPER , TYPE_NEW_PROG ,
+   "add new program @afni_R_package_install" ,
+   "Will install R libraries to run shiny apps"
+ } ,
+ { 11 , OCT , 2017 , JKR , "@FATCAT_heatmap_shiny" , SUPER , TYPE_NEW_PROG ,
+   "add new program @FATCAT_heatmap_shiny" ,
+   "Run a shiny app to view .netcc or .grid files"
+ } ,
+ { 11 , OCT , 2017 , JKR , "@ClustExp_CatLab" , SUPER , TYPE_NEW_PROG ,
+   "add new program @ClustExp_CatLab" ,
+   "Part of cluster explorer. Concatenates and labels input datasets"
+ } ,
+ { 11 , OCT , 2017 , JKR , "ClustExp_HistTable.py" , SUPER , TYPE_NEW_PROG ,
+   "add new program ClustExp_HistTable.py" ,
+   "Part of cluster explorer. Extract data tables from the history of datasets"
+ } ,
+ { 11 , OCT , 2017 , JKR , "ClustExp_StatParse.py" , SUPER , TYPE_NEW_PROG ,
+   "add new program ClustExp_StatParse.py" ,
+   "Part of cluster explorer. Extract subject level data from clusters and\n"
+   "output tables and a shiny app"
+ } ,
+ { 11 , OCT , 2017 , JKR , "@ClustExp_run_shiny" , SUPER , TYPE_NEW_PROG ,
+   "add new program @ClustExp_run_shiny" ,
+   "Part of cluster explorer. Run the shiny app output from ClustExp_StatParse.py"
+ } ,
  { 10 , APR , 2017 , JKR , "3dTstat" , MINOR , TYPE_GENERAL ,
    "add -tsnr" ,
    "same as -cvarinvNOD"
  } ,
-
- { 29 , MAR , 2017 , JKR , "prompt_popup" , MINOR , TYPE_GENERAL ,
+ { 29 , MAR , 2017 , JKR , "prompt_popup" , MINOR , TYPE_NEW_PROG ,
    "add new program prompt_popup" ,
    "Similar to prompt_user, but adds label customization and up to 3 buttons"
  } ,
-
  { 99,99,99, NULL,NULL, 99,99, NULL,NULL}  /** the end (do not delete) **/
 } ;
