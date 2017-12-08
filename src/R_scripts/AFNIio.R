@@ -158,7 +158,8 @@ set_R_io <- function() {
    ll <- find.in.path('R_io.so')
    if (!is.null(ll)) {
       dd <- try(dyn.load(ll), silent=TRUE)
-      if (dd[[1]]!="R_io") {
+      # newer versions might be R_io.so   8 Dec 2017 [rickr]
+      if (dd[[1]]!="R_io" && dd[[1]]!="R_io.so") {
          warn.AFNI(paste("Failed to load R_io.so with this error message:\n"));
          dyn.load(ll)
       } else {
