@@ -330,8 +330,8 @@ examples:
    Example 19a. Convert TSV formatted timing files to AFNI timing format.
 
       A tab separated value file contains events for all classes for a single
-      run.  Convert a single run to multiple AFNI timing files (or convert
-      multiple runs).
+      run.  Such files might exist in a BIDS dataset.  Convert a single run
+      to multiple AFNI timing files (or convert multiple runs).
 
          timing_tool.py -multi_timing_3col_tsv sing_weather.run*.tsv \\
                         -write_multi_timing AFNI_timing.weather
