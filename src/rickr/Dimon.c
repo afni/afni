@@ -150,10 +150,11 @@ static char * g_history[] =
     " 4.20 Jun 19, 2017 [rickr]: add -assume_dicom_mosaic\n"
     " 4.21 Sep  6, 2017 [rickr]:\n"
     "      - apply xim in realtime.c, so not sending short end of run\n"
+    " 4.22 Dec 10, 2017 [rickr]: apply -gert_to3d_prefix for GEMS\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 4.21 (Sepember 6, 2017)"
+#define DIMON_VERSION "version 4.22 (December 10, 2017)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
@@ -6355,7 +6356,7 @@ static int clear_float_zeros( char * str )
 static int create_gert_reco( stats_t * s, opts_t * opts )
 {
     FILE * fp;
-    char * spat;                        /* slice acquisition pattern */
+    char * spat;                        /* slice acquisition pattern  */
     char   cdir[4], csuff[IFM_SUFFIX_LEN];
     int    num_valid, c;
     char   command[64];                 /* for system command */
@@ -6391,11 +6392,13 @@ static int create_gert_reco( stats_t * s, opts_t * opts )
              "# Please modify the following options for your own evil uses.\n"
              "\n"
              "set OutlierCheck = '-oc'         # use '' to skip outlier check\n"
-             "set OutPrefix    = 'OutBrick'    # prefix for datasets\n"
+             "set OutPrefix    = '%s'    # prefix for datasets\n"
              "set OutputDir    = '-od %s'    # where to put output datasets\n"
              "\n"
              "\n",
              IFM_PROG_NAME,
+             /* allow user to specify an output prefix  10 Dec 2017 */
+             opts->gert_prefix ? opts->gert_prefix : "OutBrick",
              opts->gert_outdir ? opts->gert_outdir : "afni"
            );
 
