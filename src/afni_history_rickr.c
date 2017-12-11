@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11, Dec, 2017, RCR, "3dmask_tool", MICRO, TYPE_BUG_FIX,
+   "in dilate, if pad but not convert, inset == dnew, so do not delete",
+   "Thanks to nwlee (AFNI message board) for noting the problem."
+ } ,
+
  { 10, Dec, 2017, RCR, "Dimon", MICRO, TYPE_ENHANCE,
    "apply -gert_to3d_prefix for GEMS I-files",
    "Done for M Kerich."
