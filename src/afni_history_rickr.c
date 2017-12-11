@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11, Dec, 2017, RCR, "3dmask_tool", MICRO, TYPE_BUG_FIX,
+   "in dilate, if pad but not convert, inset == dnew, so do not delete",
+   "Thanks to nwlee (AFNI message board) for noting the problem."
+ } ,
+
  {  4, Dec, 2017, RCR, "3dDeconvolve", MICRO, TYPE_BUG_FIX,
    "fix gtmax in case of global times and only 1 input dset",
    "This just lead to an inappropriate warning."
