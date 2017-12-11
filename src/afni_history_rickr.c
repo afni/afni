@@ -54,6 +54,11 @@ afni_history_struct rickr_history[] = {
    "Thanks to nwlee (AFNI message board) for noting the problem."
  } ,
 
+ { 10, Dec, 2017, RCR, "Dimon", MICRO, TYPE_ENHANCE,
+   "apply -gert_to3d_prefix for GEMS I-files",
+   "Done for M Kerich."
+ } ,
+
  {  4, Dec, 2017, RCR, "3dDeconvolve", MICRO, TYPE_BUG_FIX,
    "fix gtmax in case of global times and only 1 input dset",
    "This just lead to an inappropriate warning."
