@@ -56,7 +56,7 @@ afni_history_struct rickr_history[] = {
 
  {  4, Dec, 2017, RCR, "3dDeconvolve", MICRO, TYPE_BUG_FIX,
    "fix gtmax in case of global times and only 1 input dset",
-   "This just lead to an inappropriate warning."
+   "This just lead to an inappropriate warning.\n"
    "Thanks to P Bedard for noting the problem."
  } ,
 
