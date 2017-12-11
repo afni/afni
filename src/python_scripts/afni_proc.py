@@ -29,7 +29,7 @@ g_history = """
     1.3  Dec 22, 2006 : change help to assumme ED's stim_times files exist
     1.4  Dec 25, 2006 : initial -ask_me
     1.5  Dec 27, 2006 : ask_me help
-    1.6  Dec 28, 2006 : -gylsym examples, min(a,b) in scale block
+    1.6  Dec 28, 2006 : -gltsym examples, min(a,b) in scale block
     1.7  Jan 03, 2007 : help updates, no blank '\\' line from -gltsym
     1.8  Jan 08, 2007 :
          - changed default script name to proc.SUBJ_ID, and removed -script
