@@ -7141,23 +7141,25 @@ g_help_string = """
            On top of that, complete the processing in standard space by running
            @auto_tlrc on the anat (via the 'tlrc' block) and applying the same
            transformation to the EPI via -volreg_tlrc_warp.  Again, the EPI
-           transformation is applied along with the motion alignment.
+           transformation is applied along with the motion alignment, using
+           the volume with the minimum outlier fraction as the alignment base
+           (option '-volreg_align_to MIN_OUTLIER').
 
-           So add the 2 processing blocks and 2 extra volreg warps to #3 via
-           '-do_block align tlrc', '-volreg_align_e2a', '-volreg_tlrc_warp'.
+           So use the given -blocks option, plus 2 extra volreg warps to #3 via
+           '-volreg_align_e2a', '-volreg_tlrc_warp'.
 
            As an added bonus, censor TR pairs where the Euclidean Norm of the
-           motion derivative exceeds 1.0.  Also, regress motion parameters
+           motion derivative exceeds 0.3.  Also, regress motion parameters
            separately for each run.
 
                 afni_proc.py -subj_id sb23.e6.align                        \\
-                        -dsets sb23/epi_r??+orig.HEAD                      \\
-                        -do_block align tlrc                               \\
                         -copy_anat sb23/sb23_mpra+orig                     \\
+                        -dsets sb23/epi_r??+orig.HEAD                      \\
+                        -blocks tshift align tlrc volreg blur mask regress \\
                         -tcat_remove_first_trs 3                           \\
                         -align_opts_aea -cost lpc+ZZ                       \\
                         -tlrc_base MNI152_T1_2009c+tlrc                    \\
-                        -volreg_align_to last                              \\
+                        -volreg_align_to MIN_OUTLIER                       \\
                         -volreg_align_e2a                                  \\
                         -volreg_tlrc_warp                                  \\
                         -regress_stim_times sb23/stim_files/blk_times.*.1D \\
@@ -7176,9 +7178,6 @@ g_help_string = """
            To process in orig space, remove -volreg_tlrc_warp.
            To apply manual tlrc transformation, use -volreg_tlrc_adwarp.
            To process as anat aligned to EPI, remove -volreg_align_e2a.
-
-         * Also, consider '-volreg_align_to MIN_OUTLIER', to use the volume
-           with the minimum outlier fraction as the registration base.
 
          * Also, one can use ANATICOR with task (-regress_anaticor_fast, say)
            in the case of -reml_exec.
@@ -7230,7 +7229,7 @@ g_help_string = """
 
                 afni_proc.py -subj_id sb23.e7.esoteric                     \\
                         -dsets sb23/epi_r??+orig.HEAD                      \\
-                        -do_block align tlrc                               \\
+                        -blocks tshift align tlrc volreg blur mask regress \\
                         -copy_anat sb23/sb23_mpra+orig                     \\
                         -tcat_remove_first_trs 3                           \\
                         -align_opts_aea -cost lpc+ZZ                       \\
@@ -7683,7 +7682,7 @@ g_help_string = """
          NOTE: Data from external sites should be heavily scrutinized,
                including any from well known public repositories.
 
-    3. Consider regular software updates, even as new subjects are acquired.
+    4. Consider regular software updates, even as new subjects are acquired.
        This ends up requiring a full re-analysis at the end.
 
        If it will take a while (one year or more?) to collect data, update the
@@ -7700,6 +7699,113 @@ g_help_string = """
             the entire thing with the current software
           - keep a snapshot of the software package used for the analysis
           - report the software version in any publication
+
+    5. Here is a sample (tcsh) script that might run a basic analysis on
+       one or more subjects:
+
+       ======================================================================
+       sample analysis script 
+       ======================================================================
+
+       #!/bin/tcsh
+  
+       # --------------------------------------------------
+       # note fixed top-level directories
+       set data_root = /main/location/of/all/data
+  
+       set input_root = $data_root/scanner_data
+       set output_root = $data_root/subject_analysis
+  
+       # --------------------------------------------------
+       # get a list of subjects, or just use one (consider $argv)
+       cd $input root
+       set subjects = ( subj* )
+       cd -
+  
+       # or perhaps just process one subject?
+       set subjects = ( subj_017 )
+  
+  
+       # --------------------------------------------------
+       # process all subjects
+       foreach subj_id ( $subjects )
+  
+          # --------------------------------------------------
+          # note input and output directories
+          set subj_indir = $input_root/$subj_id
+          set subj_outdir = $output_root/$subj_id
+  
+          # --------------------------------------------------
+          # if output dir exists, this subject has already been processed
+          if ( -d $subj_outdir ) then
+             echo "** results dir already exists, skipping subject $subj_id"
+             continue
+          endif
+  
+          # --------------------------------------------------
+          # otherwise create the output directory, write an afni_proc.py 
+          # command to it, and fire it up
+  
+          mkdir -p $subj_outdir
+          cd $subj_outdir
+  
+          # create a run.afni_proc script in this directory
+          cat > run.afni_proc << EOF
+  
+          # notes:
+          #   - consider different named inputs (rather than OutBrick)
+          #   - verify how many time points to remove at start (using 5)
+          #   - note which template space is preferable (using MNI)
+          #   - consider non-linear alignment via -tlrc_NL_warp
+          #   - choose blur size (using FWHM = 4 mm)
+          #   - choose basis function (using BLOCK(2,1), for example)
+          #   - assuming 4 CPUs for linear regression
+          #   - afni_proc.py will actually run the proc script (-execute)
+  
+  
+          afni_proc.py -subj_id $subj_id                          \\
+              -blocks tshift align tlrc volreg blur mask regress  \\
+              -copy_anat $subj_indir/anat+orig                    \\
+              -dsets                                              \\
+                  $subj_indir/epi_r1+orig                         \\
+                  $subj_indir/epi_r2+orig                         \\
+                  $subj_indir/epi_r3+orig                         \\
+              -tcat_remove_first_trs 5                            \\
+              -align_opts_aea -cost lpc+ZZ                        \\
+              -tlrc_base MNI152_T1_2009c+tlrc                     \\
+              -tlrc_NL_warp                                       \\
+              -volreg_align_to MIN_OUTLIER                        \\
+              -volreg_align_e2a                                   \\
+              -volreg_tlrc_warp                                   \\
+              -blur_size 4.0                                      \\
+              -regress_motion_per_run                             \\
+              -regress_censor_motion 0.3                          \\
+              -regress_reml_exec -regress_3dD_stop                \\
+              -regress_stim_times                                 \\
+                  $stim_dir/houses.txt                            \\
+                  $stim_dir/faces.txt                             \\
+                  $stim_dir/doughnuts.txt                         \\
+                  $stim_dir/pizza.txt                             \\
+              -regress_stim_labels                                \\
+                  house face nuts za                              \\
+              -regress_basis 'BLOCK(2,1)'                         \\
+              -regress_opts_3dD                                   \\
+                  -jobs 4                                         \\
+                  -gltsym 'SYM: house -face' -glt_label 1 H-F     \\
+                  -gltsym 'SYM: nuts -za'    -glt_label 2 N-Z     \\
+              -regress_est_blur_errts                             \\
+              -execute
+  
+          EOF
+          # EOF denotes the end of the run.afni_proc command
+  
+          # now run the analysis (generate proc and execute)
+          tcsh run.afni_proc
+  
+       # end loop over subjects
+       end
+
+       ======================================================================
 
     --------------------------------------------------
     QUALITY CONTROL NOTE:

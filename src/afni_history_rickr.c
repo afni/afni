@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12, Dec, 2017, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "added 'sample analysis script' to help (in GENERAL ANALYSIS NOTE)",
+   NULL
+ } ,
+
  { 11, Dec, 2017, RCR, "3dmask_tool", MICRO, TYPE_BUG_FIX,
    "in dilate, if pad but not convert, inset == dnew, so do not delete",
    "Thanks to nwlee (AFNI message board) for noting the problem."
