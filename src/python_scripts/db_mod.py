@@ -7102,8 +7102,9 @@ g_help_string = """
            regress frequencies within the regression model, where censoring
            is simple.
 
-           Note: bandpassing in the face of RETROICOR processing is questionable.
-                 To skip bandpassing, remove the -regress_bandpass option line.
+           Note: band passing in the face of RETROICOR is questionable.  It may
+                 be questionable in general.  To skip bandpassing, remove the
+                 -regress_bandpass option line.
 
            Also, align EPI to anat and warp to standard space.
 
