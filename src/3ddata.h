@@ -3574,10 +3574,22 @@ extern int    THD_deconflict_prefix( THD_3dim_dataset * ) ;          /* 23 Mar 2
 
     Will be -1 if this sub-brick is not tagged as being an SPM.
 */
+#if 1  /* 18 Dec 2017 */
+
+#define DSET_BRICK_STATCODE(ds,iv)                                         \
+   ( ((ds)->dblk->brick_statcode != NULL)                                  \
+      ? (ds)->dblk->brick_statcode[iv]                                     \
+      : (ISFUNC(ds) && (iv)==FUNC_ival_thr[(ds)->func_type])               \
+        ? (ds)->func_type : -1                               )
+
+#else  /* Ye Olde Waye */
+
 #define DSET_BRICK_STATCODE(ds,iv)                                         \
    ( ISBUCKET((ds)) ? DBLK_BRICK_STATCODE((ds)->dblk,(iv))                 \
                     : (ISFUNC(ds) && (iv)==FUNC_ival_thr[(ds)->func_type]) \
                       ? (ds)->func_type : -1 )
+
+#endif
 
 #define DBLK_BRICK_STATAUX(db,iv)  \
  ( ((db)->brick_stataux != NULL) ? (db)->brick_stataux[iv] : NULL )
@@ -3588,20 +3600,45 @@ extern int    THD_deconflict_prefix( THD_3dim_dataset * ) ;          /* 23 Mar 2
     otherwise the number of parameters is given by FUNC_need_stat_aux[code],
     where code = DSET_BRICK_STATCODE(ds,iv).
 */
+
+#if 1
+
+#define DSET_BRICK_STATAUX(ds,iv)                                          \
+  ( ((ds)->dblk->brick_stataux != NULL)                                    \
+     ? (ds)->dblk->brick_stataux[iv]                                       \
+     : (ISFUNC(ds) && (iv)==FUNC_ival_thr[(ds)->func_type])                \
+       ? (ds)->stat_aux : NULL                             )
+
+# else /* Ye Olde Waye */
+
 #define DSET_BRICK_STATAUX(ds,iv)                                          \
    ( ISBUCKET((ds)) ? DBLK_BRICK_STATAUX((ds)->dblk,(iv))                  \
                     : (ISFUNC(ds) && (iv)==FUNC_ival_thr[(ds)->func_type]) \
                       ? (ds)->stat_aux : NULL )
+
+#endif
 
 #define DBLK_BRICK_STATPAR(db,iv,jj) \
  ( ((db)->brick_stataux != NULL) ? (db)->brick_stataux[iv][jj] : 0.0 )
 
 /*! Return the jj-th statistical parameter for the iv-th volume of dataset ds. */
 
+#if 1 /* 18 Dec 2017 */
+
+#define DSET_BRICK_STATPAR(ds,iv,jj)                                       \
+  ( ((ds)->dblk->brick_stataux != NULL)                                    \
+     ? (ds)->dblk->brick_stataux[iv][jj]                                   \
+     : (ISFUNC(ds) && (iv)==FUNC_ival_thr[(ds)->func_type])                \
+       ? (ds)->stat_aux[jj] : 0.0                          )
+
+#else /* Ye Olde Waye */
+
 #define DSET_BRICK_STATPAR(ds,iv,jj)                                       \
    ( ISBUCKET((ds)) ? DBLK_BRICK_STATPAR((ds)->dblk,(iv),(jj))             \
                     : (ISFUNC(ds) && (iv)==FUNC_ival_thr[(ds)->func_type]) \
                       ? (ds)->stat_aux[jj] : 0.0 )
+
+#endif
 
 #define DBLK_BRICK_KEYWORDS(db,iv) \
   ( ((db)->brick_keywords != NULL) ? ((db)->brick_keywords[iv]) : NULL )

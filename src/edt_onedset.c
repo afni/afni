@@ -936,7 +936,7 @@ fprintf(stderr," -1zscore: converting\n") ;
         EDIT_zscore_vol( nxyz , fim_type , fimfac , vfim ,
                          kv , DSET_BRICK_STATAUX(dset,iv_fim) ) ;
 
-        if( ISBUCKET(dset) ){
+        if( ISBUCKET(dset) || dset->dblk->brick_statcode != NULL ){
 
 #if 0
 fprintf(stderr," -1zscore: bucketing\n") ;
