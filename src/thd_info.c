@@ -568,11 +568,15 @@ ENTRY("THD_dataset_info") ;
 
       STATUS("nsl done") ;
 
-      if( verbose > 0 && dset->taxis->nsl > 0 && dset->taxis->toff_sl != NULL ){
+      if( verbose > 0 && dset->taxis->nsl > 0 ){
          outbuf = THD_zzprintf(outbuf,"Time-offsets per slice:") ;
-         for( ival=0 ; ival < dset->taxis->nsl ; ival++ )
-           outbuf = THD_zzprintf(outbuf, " %.3f" , dset->taxis->toff_sl[ival] ) ;
-         outbuf = THD_zzprintf(outbuf,"\n") ;
+         if( dset->taxis->toff_sl != NULL ){
+           for( ival=0 ; ival < dset->taxis->nsl ; ival++ )
+             outbuf = THD_zzprintf(outbuf, " %.3f" , dset->taxis->toff_sl[ival] ) ;
+           outbuf = THD_zzprintf(outbuf,"\n") ;
+         } else {
+             outbuf = THD_zzprintf(outbuf,"NOT AVAILABLE\n") ;
+         }
       }
    } else {
       outbuf = THD_zzprintf(outbuf,
