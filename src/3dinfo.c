@@ -12,7 +12,7 @@ int Syntax(TFORM targ, int detail)
 "Prints out sort-of-useful information from a 3D dataset's header\n"
 "Usage: 3dinfo [-verb OR -short] dataset [dataset ...]\n"
 "  -verb means to print out lots of stuff\n"
-"  -VERB means even more stuff\n"
+"  -VERB means even more stuff [including slice time offsets]\n"
 "  -short means to print out less stuff [now the default]\n"
 "%s"
 "\n"
