@@ -29,6 +29,8 @@ void Syntax(int detail)
    printf(
 "Usage: 3drefit [options] dataset ...\n"
 "where the options are\n"
+"  -quiet          Turn off the verbose progress messages\n"
+"\n"
 "  -orient code    Sets the orientation of the 3D volume(s) in the .BRIK.\n"
 "                  The code must be 3 letters, one each from the\n"
 "                  pairs {R,L} {A,P} {I,S}.  The first letter gives\n"
@@ -318,17 +320,17 @@ void Syntax(int detail)
     "                 ** Strings in the 'xx' file are separated by\n"
     "                    whitespace (blanks, tabs, new lines).\n"
     "\n" ) ;
-   
+
    printf(
     "  -relabel_all_str 'lab0 lab1 ... lab_p': Just like -relabel_all\n"
     "                   but with labels all present in one string\n"
     "\n" ) ;
-   
+
    printf(
     "  -sublabel_prefix PP: Prefix each sub-brick's label with PP\n"
-    "  -sublabel_suffix SS: Suffix each sub-brick's label with SS\n" 
+    "  -sublabel_suffix SS: Suffix each sub-brick's label with SS\n"
     "\n" ) ;
-    
+
    printf(
     "The options below allow you to attach auxiliary data to sub-bricks\n"
     "in the dataset.  Each option may be used more than once so that\n"
@@ -464,7 +466,7 @@ int main( int argc , char *argv[] )
    byte *FDRmask = NULL ;            /* 27 Mar 2009 [RWcox] */
    int  nFDRmask = 0 ;
    int   ndone=0 ;                   /* 18 Jul 2006 */
-   int   verb =0 ;
+   int   verb =1 ;
    int   did_something ;             /* 30 Mar 2010 */
    int cmap = -1;                    /* colormap handling */
    NI_str_array *sar_relab=NULL ;    /* 18 Apr 2011 */
@@ -827,27 +829,27 @@ int main( int argc , char *argv[] )
         new_stuff++ ; iarg++ ; continue ;
       }
 
-      
+
       /*----- -sublabel_prefix -----*/
-      
+
       if( strcmp(argv[iarg],"-sublabel_prefix") == 0 ){   /* 15 Aug 2012 */
         char *str ;
         if( ++iarg >= argc ) SynErr("Need argument after -sublabel_prefix") ;
         subpref = argv[iarg];
-        
+
         new_stuff++ ; iarg++ ; continue ;
       }
-      
+
       /*----- -sublabel_suffix -----*/
-      
+
       if( strcmp(argv[iarg],"-sublabel_suffix") == 0 ){   /* 15 Aug 2012 */
         char *str ;
         if( ++iarg >= argc ) SynErr("Need argument after -sublabel_suffix") ;
         subsuff = argv[iarg] ;
-        
+
         new_stuff++ ; iarg++ ; continue ;
       }
-      
+
       /*----- -sublabel option -----*/
 
       if( strncmp(argv[iarg],"-sublabel",7) == 0 ){
@@ -958,7 +960,7 @@ int main( int argc , char *argv[] )
             if( *cpt != '\0' ) break ;
             substatpar[nsubstatpar].par[ii++] = val ;
             iarg++ ;
-         } while( iarg < argc ) ;
+         } while( iarg < argc && ii-2 < MAX_STAT_AUX ) ;
 
          nsubstatpar++ ; new_stuff++ ; continue ;  /* go to next arg */
       }
@@ -1168,6 +1170,9 @@ int main( int argc , char *argv[] )
 
       if( strcmp(argv[iarg],"-verb") == 0 ){
          verb++ ; iarg++ ; continue ;
+      }
+      if( strcmp(argv[iarg],"-quiet") == 0 ){ /* 18 Dec 2017 */
+         verb = 0 ; iarg++ ; continue ;
       }
 
       if( strncmp(argv[iarg],"-xyzscale",8) == 0 ){ /* 17 Jul 2006 */
@@ -1920,7 +1925,7 @@ int main( int argc , char *argv[] )
             dset->func_type = ftype ;
 
             if( ISBUCKET(dset) && dset->taxis != NULL ){   /* 29 April 1998 */
-              WARNING_message("changing 3D+time dataset to bucket\n") ;
+              WARNING_message("changing 3D+time dataset to bucket [no time axis]\n") ;
               EDIT_dset_items( dset , ADN_ntt , 0 , ADN_none ) ;
             }
 
@@ -2080,7 +2085,7 @@ int main( int argc , char *argv[] )
          }
          VINFO("sublabel_suffix") ;
       }
-      
+
       /* add prefix to labels? */
       if (subpref) {
          char *olab=NULL, *sss=NULL;
@@ -2094,7 +2099,7 @@ int main( int argc , char *argv[] )
          }
          VINFO("sublabel_prefix") ;
       }
-      
+
       if( nsubkeyword > 0 ){
          int code ;
          for( ii=0 ; ii < nsubkeyword ; ii++ ){
@@ -2150,7 +2155,8 @@ int main( int argc , char *argv[] )
                                ADN_brick_stataux_one + iv , substatpar[ii].par ,
                              ADN_none ) ;
             did_something++ ; /* 30 Mar 2010 */
-            VINFO("edit stataux") ;
+            if( verb )
+              INFO_message("changed statcode[%d] to %d",iv,(int)substatpar[ii].par[0]) ;
           }
         }
       }
