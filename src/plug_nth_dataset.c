@@ -95,11 +95,14 @@ static char *ez[2] = { "Extend" , "Zero" } ;
 
 static PLUGIN_interface *plint=NULL ;
 
+int DSETN_driver_func( char *cmd ) ; /* 19 Dec 2018 */
+
 /*------ this function is called when the item is chosen from a menu ------*/
 
 static void DSETN_func_init(void)   /* 21 Jul 2003 */
 {
    PLUG_startup_plugin_CB( NULL , (XtPointer)plint , NULL ) ;
+   return ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -134,7 +137,7 @@ ENTRY("PLUGIN_init:Dataset#N") ;
    /** INFO_message("AFNI_DATASETN_NMAX = %s",getenv("AFNI_DATASETN_NMAX")) ; **/
    if( nmax < 9 ) nmax = 9 ; else if( nmax > NMAX ) nmax = NMAX ;
 
-   for( id=0 ; id < nmax ; id++ ){
+   for( id=0 ; id < nmax ; id++ ){ /* create widgets for dataset choice */
      sprintf(lab,"Input#%02d",id+1) ;
      PLUTO_add_option( plint , lab , "Input" , FALSE ) ;
      PLUTO_add_dataset(plint , "Dataset" ,
@@ -154,9 +157,14 @@ ENTRY("PLUGIN_init:Dataset#N") ;
 #endif
 
    /* init the global lists */
-   for ( id=0 ; id < nmax ; id++ ){
+   for ( id=0 ; id < NMAX ; id++ ){
       dset[id] = NULL; ZERO_IDCODE(g_id[id]);
    }
+
+   /* 19 Dec 2018: access from afni_driver.c */
+
+   AFNI_driver_register( "DATASET#N" , DSETN_driver_func ) ;
+/* INFO_message("Registered 'DSETN_driver_func'") ; */
 
    RETURN( plint ) ;
 }
@@ -178,7 +186,7 @@ ENTRY( "DSETN_main" ) ;
              "DSETN_main:  NULL input\n"
              "***********************") ;
 
-   for( id=0 ; id < nmax ; id++ ){   /* 18 Mar 2004: renullification */
+   for( id=0 ; id < NMAX ; id++ ){   /* 18 Mar 2004: renullification */
      dset[id] = NULL ; ZERO_IDCODE(g_id[id]);
    }
 
@@ -197,7 +205,7 @@ ENTRY( "DSETN_main" ) ;
                 "DSETN_main:  bad input dataset\n"
                 "******************************") ;
 
-g_id[id] = *idc ;
+        g_id[id] = *idc ; /* copy the dataset idcode */
         ovc [id] = PLUTO_get_overlaycolor(plint) ;
         id++ ; continue ;
       }
@@ -244,7 +252,7 @@ g_id[id] = *idc ;
 
 void DSETN_dset_recv( int why, int np, int * ijk, void * aux )
 {
-    PLUGIN_interface * plint = (PLUGIN_interface *)aux;
+    PLUGIN_interface *plint = (PLUGIN_interface *)aux;
 
 ENTRY( "DSETN_dset_recv" );
 
@@ -262,24 +270,31 @@ ENTRY( "DSETN_dset_recv" );
        /* start by noting the number of valid data sets */
          int num_valid = set_global_dsets_from_ids( );
 
-         if ( g_valid_data != 1 || num_valid <= 0 )
+         if ( g_valid_data != 1 || num_valid <= 0 ) /* dinna find nuthin!? */
          {
           /* shut the plugin down - "he's only _mostly_ dead" */
 
           g_valid_data = 0;
 
-          AFNI_receive_control( plint->im3d, g_dset_recv,
-                          EVERYTHING_SHUTDOWN, NULL );
+          if( plint != NULL ){
+            AFNI_receive_control( plint->im3d, g_dset_recv,
+                                  EVERYTHING_SHUTDOWN, NULL );
+            if( ++ncall == 1 )
+              PLUTO_popup_worker( plint,
+                "Warning: plugin 'Dataset#N'\n"
+                "has lost its dataset links.\n"
+                "To plot 1-D overlays, please\n"
+                "re-run the plugin :(",
+               MCW_USER_KILL | MCW_TIMER_KILL ) ;
+          } else {
+            AFNI_receive_control( AFNI_find_open_controller() ,
+                                  g_dset_recv ,
+                                  EVERYTHING_SHUTDOWN , NULL ) ;
+            ERROR_message("plugin 'Dataset#N has lost its dataset links :(") ;
+          }
           g_dset_recv = -1;
-      if( ++ncall == 1 )
-           PLUTO_popup_worker( plint,
-               "Warning: plugin 'Dataset#N'\n"
-               "has lost its dataset links.\n"
-               "To plot 1-D overlays, please\n"
-               "re-run the plugin.",
-             MCW_USER_KILL | MCW_TIMER_KILL ) ;
-         }
-     }
+        }
+      }
     }
 
     EXRETURN;
@@ -354,7 +369,7 @@ static int set_global_dsets_from_ids( void )
 
 ENTRY( "set_global_dsets_from_ids" );
 
-    for ( idcount = 0; idcount < nmax; idcount++ )
+    for ( idcount = 0; idcount < NMAX; idcount++ )
     {
      if ( ! ISZERO_IDCODE( g_id[idcount] ) )
      {
@@ -374,4 +389,78 @@ ENTRY( "set_global_dsets_from_ids" );
     }
 
     RETURN( num_valid );
+}
+
+/*------------------------------------------------------------------------*/
+
+int DSETN_driver_func( char *cmd )
+{
+   THD_slist_find slf ;
+   char *dname , *cname ;
+   NI_str_array *sar ;
+   Three_D_View *im3d ;
+   int dd , vtype , nfound , icol ;
+   THD_3dim_dataset *dss ;
+
+ENTRY("DSETN_driver_func") ;
+
+   if( cmd == NULL || cmd[0] == '\0' )        RETURN(-1) ; /* bad */
+
+   sar = NI_decode_string_list(cmd,";") ;
+   if( sar == NULL || sar->num < 1 )          RETURN(-1) ; /* bad */
+
+   im3d = AFNI_find_open_controller() ;
+   if( !ISVALID_IM3D(im3d) )                  RETURN(-1) ; /* bad */
+   vtype = im3d->vinfo->view_type ;
+
+#if 0
+   DSETN_func_init() ;
+#endif
+
+INFO_message("DSETN_driver_func: cmd='%s' [%d] vtype=%d",cmd,sar->num,vtype) ;
+
+   for( nfound=dd=0 ; dd < sar->num ; dd++ ){
+
+     dname = sar->str[dd] ; if( *dname == '\0' ) continue ; /* bad */
+
+ININFO_message(" parsing %s",dname) ;
+
+                         cname = strstr(dname,"::") ;
+     if( cname == NULL ) cname = strstr(dname,"==") ;
+     if( cname == dname )                       continue ; /* bad */
+     if( cname != NULL ){
+       cname[0] = cname[1] = '\0' ; cname += 2 ;
+       if( *cname == '\0' ) cname = NULL ;
+if( cname != NULL )
+ININFO_message(" cname = %s",cname) ;
+     }
+
+     slf = PLUTO_dset_finder( dname ) ;
+     dss = NULL ;
+     if( slf.sess_index >= 0 && slf.dset_index >= 0 ){
+       dss = GET_SESSION_DSET(GLOBAL_library.sslist->ssar[slf.sess_index],
+                              slf.dset_index,vtype) ;
+     }
+     if( dss == NULL )                          continue ; /* bad */
+
+     icol = 0 ;
+     if( cname != NULL ) icol = DC_find_overlay_color(im3d->dc,cname) ;
+     if( icol <= 0 )     icol = nfound+1 ;
+     ovc[nfound]  = icol ;
+     dset[nfound] = dss ;
+     g_id[nfound] = dss->idcode ;
+ININFO_message(" set dset=%s icol=%d",dss->idcode.str,icol) ;
+     nfound++ ;
+   }
+
+   if( nfound <= 0 )                          RETURN(-1) ; /* bad */
+
+   g_valid_data = 1 ;
+   if( g_dset_recv < 0 )
+     g_dset_recv = AFNI_receive_init( im3d, RECEIVE_DSETCHANGE_MASK,
+                                      DSETN_dset_recv, plint ,
+                                      "DSETN_dset_recv" ) ;
+   PLUTO_force_redisplay() ;
+
+   RETURN(0) ;
 }

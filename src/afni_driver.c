@@ -2161,6 +2161,8 @@ ENTRY("AFNI_drive_set_pbar_all") ;
 
    pbar = im3d->vwid->func->inten_pbar ;
 
+   for( ii=0 ; ii <= NPANE_MAX ; ii++ ) pval[ii] = 0.0f ; /* 19 Dec 2018 */
+
    if( npan <= NPANE_MAX ){ /* discrete panes: get value=colorname array */
 
      for( ii=0 ; ii < npan ; ii++ ){
@@ -3716,6 +3718,7 @@ static int AFNI_drive_snap_cont( char *cmd )
 }
 
 /*--------------------------------------------------------------------*/
+/* See README.driver for details */
 
 void AFNI_driver_register( char *cmd , int (*cbfun)(char *) )
 {
