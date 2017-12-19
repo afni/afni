@@ -9994,6 +9994,17 @@ g_help_string = """
             Please see "3dSkullStrip -help" for more information.
             Please see "3dAutomask -help" for more information.
 
+        -align_unifize_epi yes/no: run uniformity correction on EPI base volume
+
+                e.g. -align_unifize_epi yes
+                default: no
+
+            Use this option to run "3dUnifize -T2" on the vr_base dataset
+            for the purpose of alignment to the anat.
+
+            The uniformity corrected volume is only used for anatomical
+            alignment.
+
         -volreg_align_e2a       : align EPI to anatomy at volreg step
 
             This option is used to align the EPI data to match the anatomy.

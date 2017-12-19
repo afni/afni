@@ -49,7 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
- { 19, Dec, 2017, RCR, "afni_util.py", MICRO, TYPE_ENHANCE,
+ { 19, Dec, 2017, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "add -help for align_unifize_epi",
+   NULL
+ } ,
+
+ { 19, Dec, 2017, RCR, "afni_util.py", MINOR, TYPE_ENHANCE,
    "uniq_list_as_dsets: (def) no restriction to prefix; dmUBLOCK known basis",
    NULL
  } ,
