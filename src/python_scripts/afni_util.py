@@ -11,8 +11,10 @@ import glob
 import pdb
 
 # global lists for basis functions
-basis_known_resp_l = ['GAM', 'BLOCK', 'dmBLOCK', 'SPMG1', 'WAV', 'MION']
-basis_one_regr_l   = ['GAM', 'BLOCK', 'dmBLOCK', 'SPMG1', 'WAV', 'EXPR', 'MION']
+basis_known_resp_l = ['GAM', 'BLOCK', 'dmBLOCK', 'dmUBLOCK', 'SPMG1',
+                      'WAV', 'MION']
+basis_one_regr_l   = basis_known_resp_l[:]
+basis_one_regr_l.append('MION')
 stim_types_one_reg = ['file', 'AM1', 'times']
 
 # this file contains various afni utilities   17 Nov 2006 [rickr]
@@ -578,7 +580,7 @@ def get_unique_sublist(inlist, keep_order=1):
 
     return newlist
 
-def uniq_list_as_dsets(dsets, whine=0):
+def uniq_list_as_dsets(dsets, byprefix=0, whine=0):
     """given a list of text elements, create a list of afni_name elements,
        and check for unique prefixes"""
 
@@ -592,7 +594,10 @@ def uniq_list_as_dsets(dsets, whine=0):
        print('** ULAD: invalid type for dset list, have value %s' % dsets[0])
        return 0
 
-    plist = [an.prefix for an in anlist]
+    if byprefix:
+       plist = [an.prefix for an in anlist]
+    else:
+       plist = dsets[:]
     plist.sort()
 
     # iterate over dsets, searching for matches
@@ -603,7 +608,7 @@ def uniq_list_as_dsets(dsets, whine=0):
           break
 
     if not uniq and whine:
-        print("-----------------------------------------------------------\n"   \
+      print("-----------------------------------------------------------\n" \
           "** dataset names are not unique\n\n"                             \
           "   (#%d == #%d, '%s' == '%s')\n\n"                               \
           "   note: if using a wildcard, please specify a suffix,\n"        \
@@ -682,7 +687,7 @@ def basis_has_one_reg(basis, st='times'):
     """
     if not basis: return 0
 
-    # only 'times' or 'AM1' are acceptable
+    # only 'times', 'file' and 'AM1' are acceptable
     if not st in stim_types_one_reg: return 0
 
     if starts_with_any_str(basis, basis_one_regr_l): return 1
