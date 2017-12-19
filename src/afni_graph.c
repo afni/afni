@@ -43,6 +43,8 @@ extern MRI_IMAGE * FD_brick_to_series( int , FD_brick * br ) ;
 
 static int fade_color = 19 ;
 
+static char *startup_1D_transform = NULL ;
+
 /*------------------------------------------------------------*/
 /*! Macro to call the getser function with correct prototype. */
 
@@ -903,6 +905,9 @@ ENTRY("new_MCW_grapher") ;
         MCW_reghint_children( grapher->opt_dplot_bbox->wrowcol ,
                               "How to show 'Double Plot' curves" ) ;
       }
+
+      if( startup_1D_transform != NULL )  /* 19 Dec 2018 */
+        GRA_set_1D_transform( grapher , startup_1D_transform ) ;
 
    } else {
       grapher->transform1D_av = NULL ;
@@ -6772,3 +6777,53 @@ void GRA_timer_stop( MCW_grapher *grapher )
      XtRemoveTimeOut(grapher->timer_id); grapher->timer_id = 0;
    }
 }
+
+/*--------------------------------------------------------------------------*/
+/* externally set 1D transformation [19 Dec 2018] */
+
+int GRA_find_1D_transform( MCW_grapher *grapher , char *nam )
+{
+   int ii ;
+
+   if( nam == NULL || *nam == '\0' ) return -1 ;
+   if( grapher == NULL || grapher->status->transforms1D == NULL ) return -1 ;
+
+   for( ii=0 ; ii < grapher->status->transforms1D->num ; ii++ ){
+     if( strcmp( grapher->status->transforms1D->labels[ii] , nam ) == 0 )
+       return ii ;
+   }
+
+   return -1 ;
+}
+
+void GRA_startup_1D_transform( char *nam )
+{
+   if( startup_1D_transform != NULL ){
+     free(startup_1D_transform) ;
+     startup_1D_transform = NULL ;
+   }
+   if( nam != NULL && *nam != '\0' )
+     startup_1D_transform = strdup(nam) ;
+   return ;
+}
+
+void GRA_set_1D_transform( MCW_grapher *grapher , char *nam )
+{
+   int tt ;
+
+   tt = GRA_find_1D_transform( grapher , nam ) ; if( tt < 0 ) return ;
+
+   AV_assign_ival( grapher->transform1D_av , tt+1 ) ;
+
+   grapher->transform1D_func  = grapher->status->transforms1D->funcs[tt];
+   grapher->transform1D_index = tt+1 ;
+   grapher->transform1D_flags = grapher->status->transforms1D->flags[tt];
+
+   if( (grapher->transform1D_flags & SET_DPLOT_OVERLAY) && !DATA_BOXED(grapher) )
+     MCW_set_bbox( grapher->opt_dplot_bbox , DPLOT_OVERLAY ) ;
+
+   redraw_graph( grapher , 0 ) ;
+   return ;
+}
+
+/*--------------------------------------------------------------------------*/
