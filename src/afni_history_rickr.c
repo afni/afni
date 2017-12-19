@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19, Dec, 2017, RCR, "afni_util.py", MICRO, TYPE_ENHANCE,
+   "uniq_list_as_dsets: (def) no restriction to prefix; dmUBLOCK known basis",
+   NULL
+ } ,
+
  { 12, Dec, 2017, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
    "added 'sample analysis script' to help (in GENERAL ANALYSIS NOTE)",
    NULL
