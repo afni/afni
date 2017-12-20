@@ -906,9 +906,6 @@ ENTRY("new_MCW_grapher") ;
                               "How to show 'Double Plot' curves" ) ;
       }
 
-      if( startup_1D_transform != NULL )  /* 19 Dec 2018 */
-        GRA_set_1D_transform( grapher , startup_1D_transform ) ;
-
    } else {
       grapher->transform1D_av = NULL ;
       grapher->opt_dplot_bbox = NULL ;
@@ -2163,6 +2160,10 @@ ENTRY("plot_graphs") ;
 
      static int first=1 ;
 
+#if 0
+ININFO_message("  initialize graph for DPLOT") ;
+#endif
+
      if( DATA_BOXED(grapher) ){
        MCW_set_bbox( grapher->opt_dplot_bbox , DPLOT_OFF ) ;
        if( first ){
@@ -2249,7 +2250,14 @@ STATUS("about to perform 0D transformation") ;
          if( grapher->transform1D_func != NULL ){
             MRI_IMAGE *qim ;                /* image to be transformed */
 
+#if 0
+ININFO_message("  execute transform1D_func") ;
+#endif
+
             if( dplot ){                      /* copy and save original */
+#if 0
+ININFO_message("   - copy original data") ;
+#endif
               qim = mri_to_float(tsim) ;       /* if double plot is on */
               ADDTO_IMARR(dplot_imar,qim) ;
             }
@@ -2268,6 +2276,9 @@ STATUS("about to perform 1D transformation") ;
                              id.ijk[0]
                             +id.ijk[1] * br->nxyz.ijk[0]
                             +id.ijk[2] * br->nxyz.ijk[0] * br->nxyz.ijk[1] , 0 ) ;
+#if 0
+ININFO_message("   - store dset index") ;
+#endif
 #else
                AFNI_store_dset_index(-1,0) ;
 #endif
@@ -2280,6 +2291,9 @@ STATUS("about to perform 1D transformation") ;
                  grapher->transform1D_func( qim->nx , qim->xo , qim->dx ,
                                             MRI_FLOAT_PTR(qim) ) ;
 #else
+#if 0
+ININFO_message("   - old call 1D_function - no str") ;
+#endif
                  AFNI_CALL_1D_function( grapher->transform1D_func ,
                                         qim->nx , qim->xo , qim->dx ,
                                         MRI_FLOAT_PTR(qim) ) ;
@@ -2290,6 +2304,9 @@ STATUS("about to perform 1D transformation") ;
                  grapher->transform1D_func( qim->nx , qim->xo , qim->dx ,
                                             MRI_FLOAT_PTR(qim) , &quser ) ;
 #else
+#if 0
+ININFO_message("   - old call 1D_function - yes str") ;
+#endif
                  AFNI_CALL_1D_funcstr( grapher->transform1D_func ,
                                        qim->nx , qim->xo , qim->dx ,
                                        MRI_FLOAT_PTR(qim) , quser ) ;
@@ -2303,6 +2320,9 @@ STATUS("about to perform 1D transformation") ;
 #if 0
                  grapher->transform1D_func( qim ) ;
 #else
+#if 0
+ININFO_message("   - new call 1D_function - no str") ;
+#endif
                  AFNI_CALL_1D_funcmrim( grapher->transform1D_func , qim ) ;
 #endif
               } else {
@@ -2310,6 +2330,9 @@ STATUS("about to perform 1D transformation") ;
 #if 0
                  grapher->transform1D_func( qim , &quser ) ;
 #else
+#if 0
+ININFO_message("   - new call 1D_function - yes str") ;
+#endif
                  AFNI_CALL_1D_funcmrimstr( grapher->transform1D_func , qim,quser ) ;
 #endif
                  if( quser != NULL )
@@ -2321,6 +2344,9 @@ STATUS("about to perform 1D transformation") ;
 
             if( dplot && mri_equal(tsim,qim) ){
               mri_free(qim) ;
+#if 0
+ININFO_message("   - discard duplicate transformed data") ;
+#endif
               IMARR_SUBIM( dplot_imar , IMARR_COUNT(dplot_imar)-1 ) = NULL ;
             }
 
@@ -5183,6 +5209,9 @@ STATUS("replacing ort timeseries") ;
             GRA_fix_optmenus( grapher ) ;
 #endif
             NI_sleep(1) ;  /* 08 Mar 2002: for good luck */
+
+           if( startup_1D_transform != NULL )  /* 19 Dec 2018 */
+             GRA_set_1D_transform( grapher , startup_1D_transform ) ;
          }
          RETURN( True ) ;
       }
@@ -6785,8 +6814,8 @@ int GRA_find_1D_transform( MCW_grapher *grapher , char *nam )
 {
    int ii ;
 
-   if( nam == NULL || *nam == '\0' ) return -1 ;
    if( grapher == NULL || grapher->status->transforms1D == NULL ) return -1 ;
+   if( nam == NULL || *nam == '\0' ) return -1 ;
 
    for( ii=0 ; ii < grapher->status->transforms1D->num ; ii++ ){
      if( strcmp( grapher->status->transforms1D->labels[ii] , nam ) == 0 )
@@ -6811,18 +6840,26 @@ void GRA_set_1D_transform( MCW_grapher *grapher , char *nam )
 {
    int tt ;
 
+   if( grapher == NULL ) return ;
    tt = GRA_find_1D_transform( grapher , nam ) ; if( tt < 0 ) return ;
 
+#if 0
+ININFO_message("  found transform1D index to %d",tt) ;
+#endif
    AV_assign_ival( grapher->transform1D_av , tt+1 ) ;
 
    grapher->transform1D_func  = grapher->status->transforms1D->funcs[tt];
    grapher->transform1D_index = tt+1 ;
    grapher->transform1D_flags = grapher->status->transforms1D->flags[tt];
 
-   if( (grapher->transform1D_flags & SET_DPLOT_OVERLAY) && !DATA_BOXED(grapher) )
+   if( (grapher->transform1D_flags & SET_DPLOT_OVERLAY) && !DATA_BOXED(grapher) ){
+#if 0
+ININFO_message("   - set DPLOT_OVERLAY") ;
+#endif
      MCW_set_bbox( grapher->opt_dplot_bbox , DPLOT_OVERLAY ) ;
+   }
 
-   redraw_graph( grapher , 0 ) ;
+   /** redraw_graph( grapher , 0 ) ; **/
    return ;
 }
 

@@ -97,6 +97,11 @@ static PLUGIN_interface *plint=NULL ;
 
 int DSETN_driver_func( char *cmd ) ; /* 19 Dec 2018 */
 
+/* default colors */
+
+#define NCTAB 5
+   static int ctab[NCTAB] = { 6 , 7 , 14 , 16 , 10 } ;
+
 /*------ this function is called when the item is chosen from a menu ------*/
 
 static void DSETN_func_init(void)   /* 21 Jul 2003 */
@@ -112,8 +117,6 @@ DEFINE_PLUGIN_PROTOTYPE
 PLUGIN_interface * PLUGIN_init( int ncall )
 {
    int id , ic ;
-#define NCTAB 5
-   static int ctab[NCTAB] = { 6 , 7 , 14 , 16 , 10 } ;
    char lab[32] ;
 
 ENTRY("PLUGIN_init:Dataset#N") ;
@@ -398,7 +401,7 @@ int DSETN_driver_func( char *cmd )
    THD_slist_find slf ;
    char *dname , *cname ;
    NI_str_array *sar ;
-   Three_D_View *im3d ;
+   Three_D_View *im3d ; static Three_D_View *old_im3d=NULL ;
    int dd , vtype , nfound , icol ;
    THD_3dim_dataset *dss ;
 
@@ -417,13 +420,24 @@ ENTRY("DSETN_driver_func") ;
    DSETN_func_init() ;
 #endif
 
+#if 0
 INFO_message("DSETN_driver_func: cmd='%s' [%d] vtype=%d",cmd,sar->num,vtype) ;
+#endif
+
+   /* turn Dataset#N transform on in the graph viewers */
+
+   if( old_im3d == NULL ){
+     GRA_startup_1D_transform( "Dataset#N" ) ;
+     old_im3d = im3d ;
+   }
 
    for( nfound=dd=0 ; dd < sar->num ; dd++ ){
 
      dname = sar->str[dd] ; if( *dname == '\0' ) continue ; /* bad */
 
+#if 0
 ININFO_message(" parsing %s",dname) ;
+#endif
 
                          cname = strstr(dname,"::") ;
      if( cname == NULL ) cname = strstr(dname,"==") ;
@@ -431,8 +445,9 @@ ININFO_message(" parsing %s",dname) ;
      if( cname != NULL ){
        cname[0] = cname[1] = '\0' ; cname += 2 ;
        if( *cname == '\0' ) cname = NULL ;
-if( cname != NULL )
-ININFO_message(" cname = %s",cname) ;
+#if 0
+if( cname != NULL ) ININFO_message(" cname = %s",cname) ;
+#endif
      }
 
      slf = PLUTO_dset_finder( dname ) ;
@@ -445,22 +460,43 @@ ININFO_message(" cname = %s",cname) ;
 
      icol = 0 ;
      if( cname != NULL ) icol = DC_find_overlay_color(im3d->dc,cname) ;
-     if( icol <= 0 )     icol = nfound+1 ;
+     if( icol <= 0 )     icol = ctab[nfound%NCTAB] ;
      ovc[nfound]  = icol ;
      dset[nfound] = dss ;
      g_id[nfound] = dss->idcode ;
+#if 0
 ININFO_message(" set dset=%s icol=%d",dss->idcode.str,icol) ;
+#endif
      nfound++ ;
    }
 
    if( nfound <= 0 )                          RETURN(-1) ; /* bad */
 
    g_valid_data = 1 ;
-   if( g_dset_recv < 0 )
+   if( g_dset_recv < 0 ){
+#if 0
+ININFO_message("call AFNI_receive_init") ;
+#endif
      g_dset_recv = AFNI_receive_init( im3d, RECEIVE_DSETCHANGE_MASK,
                                       DSETN_dset_recv, plint ,
                                       "DSETN_dset_recv" ) ;
-   PLUTO_force_redisplay() ;
+   }
+
+#if 0
+ININFO_message("try to redraw graphs") ;
+#endif
+   if( im3d->g123 != NULL ){
+     GRA_set_1D_transform( im3d->g123 , "Dataset#N" ) ;
+     redraw_graph( im3d->g123 , 0 ) ;
+   }
+   if( im3d->g231 != NULL ){
+     GRA_set_1D_transform( im3d->g231 , "Dataset#N" ) ;
+     redraw_graph( im3d->g231 , 0 ) ;
+   }
+   if( im3d->g312 != NULL ){
+     GRA_set_1D_transform( im3d->g312 , "Dataset#N" ) ;
+     redraw_graph( im3d->g312 , 0 ) ;
+   }
 
    RETURN(0) ;
 }
