@@ -44,6 +44,28 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 20 , DEC , 2017 , RWC , "afni GUI" , MINOR , TYPE_ENHANCE ,
+   "Add driver command DATASET#N" ,
+   "To let the user drive the graph viewer plugin from outside. A little\n"
+   "trickier than I thought, since to do this well requires mucking with the\n"
+   "menu settings inside afni_graph.c as well as registering a new driver\n"
+   "function in plug_nth_dataset.c." } ,
+
+ { 20 , DEC , 2017 , RWC , "afni GUI" , MINOR , TYPE_ENHANCE ,
+   "Increase the maximum dimension of an image Montage (for PT)" ,
+   NULL } ,
+
+ { 20 , DEC , 2017 , RWC , "3drefit" , MINOR , TYPE_NEW_OPT ,
+   "-Tslices lets user replace slice time offsets" ,
+   "I don't know why this didn't exist before. So now the user can attach\n"
+   "slice time offsets to a dataset if they weren't correct before (e.g., in\n"
+   "NIFTI files)." } ,
+
+ { 20 , DEC , 2017 , RWC , "3drefit" , MINOR , TYPE_BUG_FIX ,
+   "Make -substatpar option work better" ,
+   "It didn't work on some datasets, as they weren't labeled as 'bucket'.\n"
+   "That oversight was fixed." } ,
+
  { 2 , NOV , 2017 , RWC , "aiv" , MICRO , TYPE_NEW_OPT ,
    "-pad option makes all images the same size for viewing" ,
    NULL } ,
