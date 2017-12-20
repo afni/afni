@@ -342,6 +342,19 @@ SAVE_JPEG [c.]windowname filename
      variable AFNI_IMAGE_SAVESQUARE to YES (cf. SETENV below).
      This comment applies to all image SAVE_* commands below, except
      for SAVE_RAW* (where AFNI_IMAGE_SAVESQUARE has no effect).
+  ++ For reasons I do not understand, if you OPEN (or ALTER) a window's
+     size with 'geom=PxQ', then do SAVE_JPEG on the window, using the
+     '-com' option on the AFNI command line, the image will still be
+     saved at the window's original size. The workaround for this
+     is to force the save with plugout_drive instead, after AFNI starts.
+     A sample script is below:
+       afni -com 'SWITCH_UNDERLAY run1_time'                      \
+            -com 'DATASET#N run2_time::blue run3_time::red'       \
+            -com 'OPEN_WINDOW axialgraph keypress=I geom=900x600' \
+            -yesplugouts                                          \
+            ~/data/verbal
+       sleep 1
+       plugout_drive -quit -com 'SAVE_JPEG axialgraph ag.jpg' -com 'QUITT'
 
 SAVE_PNG [c.]windowname filename
   Like SAVE_JPEG, but saves to the lossless PNG format.
