@@ -326,6 +326,10 @@ DATASET#N dataset ...
     DATASET#N Fred.nii::red Elvis::blue
   This driver command was added at the request of AFNI bootcamp students
   in Guangzhou (Dec 2017).
+  ++ See the note about resizing the window with 'geom=PxQ' in the SAVE_JPEG
+     command, described below. It seems to be necessary to save the image
+     of a graph viewer separately from the resizing command, probably because
+     the timing of these two operations can end of happening out of order.
 
 SAVE_JPEG [c.]windowname filename
   Save a JPEG dump of the given window to 'filename' (using the cjpeg filter,
@@ -351,8 +355,7 @@ SAVE_JPEG [c.]windowname filename
        afni -com 'SWITCH_UNDERLAY run1_time'                      \
             -com 'DATASET#N run2_time::blue run3_time::red'       \
             -com 'OPEN_WINDOW axialgraph keypress=I geom=900x600' \
-            -yesplugouts                                          \
-            ~/data/verbal
+            -yesplugouts
        sleep 1
        plugout_drive -quit -com 'SAVE_JPEG axialgraph ag.jpg' -com 'QUITT'
 
