@@ -868,13 +868,17 @@ ENTRY("AFNI_drive_open_window") ;
    /*--- opened an image viewer: maybe modify it ---*/
 
    if( isq != NULL ){
+      int ms = 0 ;
 
       /* geometry */
 
-      if( gxx >= 0 && gyy >= 0 )
-        XtVaSetValues( isq->wtop, XmNx, gxx, XmNy, gyy, NULL ) ;
-      if( gww > 0 && ghh > 0 )
-        XtVaSetValues( isq->wtop, XmNwidth, gww, XmNheight, ghh, NULL ) ;
+      if( gxx >= 0 && gyy >= 0 ){
+        XtVaSetValues( isq->wtop, XmNx, gxx, XmNy, gyy, NULL ) ; ms += 400 ;
+      }
+      if( gww > 0 && ghh > 0 ){
+        XtVaSetValues( isq->wtop, XmNwidth, gww, XmNheight, ghh, NULL ) ; ms += 400 ;
+      }
+      if( ms > 0 ){ NI_sleep(ms) ; ms = 0 ; }
 
       /* image fraction */
 
@@ -884,6 +888,7 @@ ENTRY("AFNI_drive_open_window") ;
         float ifrac = strtod( cpt+6 , NULL ) ;
         if( ifrac >= FRAC_MIN && ifrac <= 1.0 )
           drive_MCW_imseq( isq, isqDR_setifrac, (XtPointer)(&ifrac) ) ;
+        ms += 100 ;
       }
 
       /* montage */
@@ -902,6 +907,7 @@ ENTRY("AFNI_drive_open_window") ;
           mp[4] = DC_find_overlay_color(im3d->dc,mcol);
           drive_MCW_imseq( isq , isqDR_setmontage , (XtPointer)mp ) ;
         }
+        ms += mww*mhh ;
       }
 
       /* iconify [06 Aug 2002] */
@@ -921,6 +927,7 @@ ENTRY("AFNI_drive_open_window") ;
         int opaval = -1 ;
         sscanf( cpt+8 , "%d" , &opaval ) ;
         drive_MCW_imseq( isq , isqDR_setopacity , (XtPointer)ITOP(opaval) ) ;
+        ms += 100 ;
       }
 
       /* crop [03 May 2007] */
@@ -934,6 +941,7 @@ ENTRY("AFNI_drive_open_window") ;
                iar+0 , &s1 , iar+1 , &s2 , iar+2 , &s3 , iar+3 ) ;
         if( iar[0] >= 0 && iar[1] >= iar[0] && iar[2] >= 0 && iar[3] >= iar[2] )
           drive_MCW_imseq( isq , isqDR_set_crop , (XtPointer)iar ) ;
+        ms += 100 ;
       }
 
       /* range [15 Oct 2012] */
@@ -945,6 +953,7 @@ ENTRY("AFNI_drive_open_window") ;
         sscanf( cpt+6 , "%f%c%f" , rrr+0 , &s1 , rrr+1 ) ;
         if( rrr[0] >= rrr[1] ) rrr[0] = rrr[1] = 0.0f ;
         drive_MCW_imseq( isq , isqDR_setrange , (XtPointer)rrr ) ;
+        ms += 100 ;
       }
 
       /* overlay_label [19 May 2017] */
@@ -963,6 +972,7 @@ ENTRY("AFNI_drive_open_window") ;
           ISQ_overlay_label_CB( NULL , (XtPointer)isq , &cbs ) ;
           free(cbs.cval) ;
         }
+        ms += 100 ;
       }
 
       /* keypress [18 Feb 2005] */
@@ -1000,18 +1010,25 @@ ENTRY("AFNI_drive_open_window") ;
           break ;  /* break out of this while(1) loop */
         }
         ccc = cpt+1 ;  /* scan from here for the next keypress= option */
+        ms += 100 ;
       } ;
+
+      if( ms > 0 ){ NI_sleep(ms) ; ms = 0 ; }
 
    /*--- opened a graph viewer: maybe modify it ---*/
 
    } else if( gra != NULL ){
+      int ms = 0 ;
 
       /* geometry */
 
-      if( gxx >= 0 && gyy >= 0 )
-        XtVaSetValues( gra->fdw_graph, XmNx, gxx, XmNy, gyy, NULL ) ;
-      if( gww > 0 && ghh > 0 )
-        XtVaSetValues( gra->fdw_graph, XmNwidth, gww, XmNheight, ghh, NULL ) ;
+      if( gxx >= 0 && gyy >= 0 ){
+        XtVaSetValues( gra->fdw_graph, XmNx, gxx, XmNy, gyy, NULL ) ; ms += 400 ;
+      }
+      if( gww > 0 && ghh > 0 ){
+        XtVaSetValues( gra->fdw_graph, XmNwidth, gww, XmNheight, ghh, NULL ) ; ms += 400 ;
+      }
+      if( ms > 0 ){ NI_sleep(ms) ; ms = 0 ; }
 
       /* matrix */
 
@@ -1021,6 +1038,7 @@ ENTRY("AFNI_drive_open_window") ;
         int mat = (int) strtod( cpt+7 , NULL ) ;
         if( mat > 0 )
           drive_MCW_grapher( gra , graDR_setmatrix , (XtPointer)ITOP(mat) ) ;
+        ms += 100 ;
       }
 
       /* pinnum OR pintop */
@@ -1033,6 +1051,7 @@ ENTRY("AFNI_drive_open_window") ;
         int pn = (int) strtod( cpt+7 , NULL ) ;
         if( pn >= MIN_PIN )
           drive_MCW_grapher( gra, graDR_setpinnum, (XtPointer)ITOP(pn) ) ;
+        ms += 100 ;
       }
 
       /* pinbot [19 Mar 2004] */
@@ -1043,6 +1062,7 @@ ENTRY("AFNI_drive_open_window") ;
         int pn = (int) strtod( cpt+7 , NULL ) ;
         if( pn > 0 )
           drive_MCW_grapher( gra, graDR_setpinbot, (XtPointer)ITOP(pn) ) ;
+        ms += 100 ;
       }
 
       /* iconify [06 Aug 2002] */
@@ -1073,20 +1093,26 @@ ENTRY("AFNI_drive_open_window") ;
           buf[1] = '\0' ;
           GRA_timer_stop( gra ) ;
           GRA_handle_keypress( gra , buf , NULL ) ;
+          ms += 50 ;
         } else {
           break ;  /* break out of this while(1) loop */
         }
         ccc = cpt+1 ;  /* scan from here for the next keypress= option */
       } ;
 
+      if( ms > 0 ){ NI_sleep(ms) ; ms = 0 ; }
+
    /*--- opened the controller itself: maybe move it ---*/
 
    } else {
+      int ms = 0 ;
 
       /* geometry */
 
-      if( gxx >= 0 && gyy >= 0 )
+      if( gxx >= 0 && gyy >= 0 ){
         XtVaSetValues( im3d->vwid->top_shell, XmNx, gxx, XmNy, gyy, NULL ) ;
+        ms += 400 ;
+      }
 
       /* iconify [06 Aug 2002] */
 
@@ -1097,10 +1123,13 @@ ENTRY("AFNI_drive_open_window") ;
                          im3d->dc->screen_num   ) ;
       }
 
+      if( ms > 0 ){ NI_sleep(ms) ; ms = 0 ; }
+
    }
 
    /*-- finito --*/
 
+   NI_sleep(16) ;
    XmUpdateDisplay( im3d->vwid->top_shell ) ;
    RETURN(0) ;
 }
@@ -2160,6 +2189,8 @@ ENTRY("AFNI_drive_set_pbar_all") ;
    dadd += nn ;
 
    pbar = im3d->vwid->func->inten_pbar ;
+
+   for( ii=0 ; ii <= NPANE_MAX ; ii++ ) pval[ii] = 0.0f ; /* 19 Dec 2018 */
 
    if( npan <= NPANE_MAX ){ /* discrete panes: get value=colorname array */
 
@@ -3716,6 +3747,7 @@ static int AFNI_drive_snap_cont( char *cmd )
 }
 
 /*--------------------------------------------------------------------*/
+/* See README.driver for details */
 
 void AFNI_driver_register( char *cmd , int (*cbfun)(char *) )
 {

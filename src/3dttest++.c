@@ -5673,6 +5673,8 @@ lab4:
       temp   = fabs(term) ;
       if(temp <= ACU && temp <= ACU*betain) goto lab5 ;
 
+      /* it is possible for this to hang, consider a counter limit [rickr] */
+
       ai = ai+ONE ;
       ns = ns-1 ;
       if(ns >= 0) goto lab3 ;

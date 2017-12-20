@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 20, Dec , 2017 , PT , "fat_proc_connec_vis" , MINOR , TYPE_MODIFY,
+   "Changing the way that outputting is specified.",
+   "Make making a separate directory the default output; new opt for files.\n"
+},
+
 { 29, Sep , 2017 , PT , "@chauffeur_afni" , MINOR , TYPE_MODIFY,
    "Now has help with list of options.",
    "Should be useful for users during processing.\n"

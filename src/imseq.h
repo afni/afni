@@ -317,7 +317,7 @@ typedef struct {
 /*------------------------------*/
 
 #ifndef MONT_NMAX
-#define MONT_NMAX 13
+#define MONT_NMAX 199  /* up from 13 [18 Nov 2017] */
 #endif
 
 #ifndef MONT_SMAX
