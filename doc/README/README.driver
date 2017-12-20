@@ -318,6 +318,15 @@ CLOSE_WINDOW [c.]windowname
   Closes a window from controller 'c'.  You can only close graph and image
   viewer windows this way, not plugin windows.
 
+DATASET#N dataset ...
+  Drives the Dataset#N plugin for graph viewer windows. Each 'dataset'
+  is a dataset prefix name (without directory!). You can also add a
+  color name label (taken from the color menus) separated by '::'.
+  For example, to put 2 extra graphs on top of the underlay graph:
+    DATASET#N Fred.nii::red Elvis::blue
+  This driver command was added at the request of AFNI bootcamp students
+  in Guangzhou (Dec 2017).
+
 SAVE_JPEG [c.]windowname filename
   Save a JPEG dump of the given window to 'filename' (using the cjpeg filter,
   which must be in the path).  The windowname can be one of 'axialimage',
