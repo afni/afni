@@ -29,6 +29,8 @@ void Syntax(int detail)
    printf(
 "Usage: 3drefit [options] dataset ...\n"
 "where the options are\n"
+"  -quiet          Turn off the verbose progress messages\n"
+"\n"
 "  -orient code    Sets the orientation of the 3D volume(s) in the .BRIK.\n"
 "                  The code must be 3 letters, one each from the\n"
 "                  pairs {R,L} {A,P} {I,S}.  The first letter gives\n"
@@ -87,12 +89,55 @@ void Syntax(int detail)
 "  -TR time        Changes the TR time to a new value (see 'to3d -help').\n"
 "               ** You can also put the name of a dataset in for 'time', in\n"
 "                  which case the TR for that dataset will be used.\n"
+"               ** N.B.: If the dataset has slice time offsets, these will\n"
+"                  be scaled by the factor newTR/oldTR. This scaling does not\n"
+"                  apply if you use '-Tslices' in the same 3drefit run.\n"
 "  -notoff         Removes the slice-dependent time-offsets.\n"
 "  -Torg ttt       Set the time origin of the dataset to value 'ttt'.\n"
 "                  (Time origins are set to 0 in to3d.)\n"
 "               ** WARNING: These 3 options apply only to 3D+time datasets.\n"
 "                   **N.B.: Using '-TR' on a dataset without a time axis\n"
 "                           will add a time axis to the dataset.\n"
+"\n"
+"  -Tslices a b c d ...\n"
+"                  Reset the slice time offsets to be 'a', 'b', 'c', ...\n"
+"                  (in seconds). The number of values following '-Tslices'\n"
+"                  should be the same as the number of slices in the dataset,\n"
+"                  but 3drefit does NOT check that this is true.\n"
+"               ** If any offset time is < 0 or >= TR, a warning will be\n"
+"                  printed (to stderr), but this is not illegal even though\n"
+"                  it is a bad idea.\n"
+"               ** If the dataset does not have a TR set, then '-Tslices'\n"
+"                  will fail. You can use '-TR' to set the inter-volume time\n"
+"                  spacing in the same 3drefit command.\n"
+"               ** If you have the slices times stored (e.g., from DICOM) in\n"
+"                  some other units, you can scale them to be in seconds by\n"
+"                  putting a scale factor after the '-Tslices' option as follows:\n"
+"                    -Tslices '*0.001' 300 600 900 ...\n"
+"                  which would be used to scale from milliseconds to seconds.\n"
+"                  The format is to start the scale factor with a '*' to tell\n"
+"                  3drefit that this number is not a slice offset but is to be\n"
+"                  used a a scale factor for the rest of the following values.\n"
+"                  Since '*' is a filename wildcard, it needs to be in quotes!\n"
+"               ** The program stops looking for number values after '-Tslices'\n"
+"                  when it runs into something that does not look like a number.\n"
+"                  Here, 'look like a number' means a character string that:\n"
+"                    * starts with a digit 0..9\n"
+"                    * starts with a decimal point '.' followed by a digit\n"
+"                    * starts with a minus sign '-' followed by a digit\n"
+"                    * starts with '-.' followed by a digit\n"
+"                  So if the input dataset name starts with a digit, and the\n"
+"                  last command line option '-Tslices', 3drefit will think\n"
+"                  the filename is actually a number for a slice offset time.\n"
+"                  To avoid this problem, you can do one of these things:\n"
+"                    * Put in an option that is just the single character '-'\n"
+"                    * Don't use '-Tslices' as the last option\n"
+"                    * Put a directory name before the dataset name, as in\n"
+"                      './Galacticon.nii'\n"
+"                ** If you have the slice time offsets stored in a text file\n"
+"                   as a list of values, then you can input these values on\n"
+"                   the command line using the Unix backquote operator, as in\n"
+"                     -Tslices `cat SliceTimes.1D`\n"
 "\n"
 "  -newid          Changes the ID code of this dataset as well.\n"
 "\n"
@@ -318,17 +363,17 @@ void Syntax(int detail)
     "                 ** Strings in the 'xx' file are separated by\n"
     "                    whitespace (blanks, tabs, new lines).\n"
     "\n" ) ;
-   
+
    printf(
     "  -relabel_all_str 'lab0 lab1 ... lab_p': Just like -relabel_all\n"
     "                   but with labels all present in one string\n"
     "\n" ) ;
-   
+
    printf(
     "  -sublabel_prefix PP: Prefix each sub-brick's label with PP\n"
-    "  -sublabel_suffix SS: Suffix each sub-brick's label with SS\n" 
+    "  -sublabel_suffix SS: Suffix each sub-brick's label with SS\n"
     "\n" ) ;
-    
+
    printf(
     "The options below allow you to attach auxiliary data to sub-bricks\n"
     "in the dataset.  Each option may be used more than once so that\n"
@@ -432,6 +477,7 @@ int main( int argc , char *argv[] )
    int new_ydel   = 0 ; float ydel = 0.0;
    int new_zdel   = 0 ; float zdel = 0.0;
    int new_TR     = 0 ; float TR = 0.0;
+   int new_Tslices= 0 ; float *Tslices = NULL ; /* 18 Dec 2018 */
    int new_Torg   = 0 ; float Torg = 0.0; /* 29 Jan 2003 */
    int new_tunits = 0 ; int tunits = 0;
    int new_idcode = 0 ;
@@ -464,14 +510,14 @@ int main( int argc , char *argv[] )
    byte *FDRmask = NULL ;            /* 27 Mar 2009 [RWcox] */
    int  nFDRmask = 0 ;
    int   ndone=0 ;                   /* 18 Jul 2006 */
-   int   verb =0 ;
+   int   verb =1 ;
    int   did_something ;             /* 30 Mar 2010 */
    int cmap = -1;                    /* colormap handling */
    NI_str_array *sar_relab=NULL ;    /* 18 Apr 2011 */
    int geom_change = 0;              /* 04 Nov 2011 [drg] */
    int do_checkaxes = 0 ;            /* 27 Jun 2014 [RWCox] */
 
-#define VINFO(x) if(verb)ININFO_message(x)
+#define VINFO(x) do{ if(verb)ININFO_message(x) ; } while(0)
 
    char str[256] ;
    int  iarg , ii ;
@@ -523,6 +569,8 @@ int main( int argc , char *argv[] )
       if(strcmp(argv[iarg],"-h") == 0 ||
          strncmp(argv[iarg],"-help",4) == 0 )
          Syntax(strlen(argv[iarg]) > 3 ? 2:1) ;
+
+      if( strcmp(argv[iarg],"-") == 0 ){ iarg++ ; continue ; } /* 18 Dec 2018 */
 
       /*----- -checkaxes [27 Jun 2014] -----*/
 
@@ -827,27 +875,27 @@ int main( int argc , char *argv[] )
         new_stuff++ ; iarg++ ; continue ;
       }
 
-      
+
       /*----- -sublabel_prefix -----*/
-      
+
       if( strcmp(argv[iarg],"-sublabel_prefix") == 0 ){   /* 15 Aug 2012 */
         char *str ;
         if( ++iarg >= argc ) SynErr("Need argument after -sublabel_prefix") ;
         subpref = argv[iarg];
-        
+
         new_stuff++ ; iarg++ ; continue ;
       }
-      
+
       /*----- -sublabel_suffix -----*/
-      
+
       if( strcmp(argv[iarg],"-sublabel_suffix") == 0 ){   /* 15 Aug 2012 */
         char *str ;
         if( ++iarg >= argc ) SynErr("Need argument after -sublabel_suffix") ;
         subsuff = argv[iarg] ;
-        
+
         new_stuff++ ; iarg++ ; continue ;
       }
-      
+
       /*----- -sublabel option -----*/
 
       if( strncmp(argv[iarg],"-sublabel",7) == 0 ){
@@ -958,7 +1006,7 @@ int main( int argc , char *argv[] )
             if( *cpt != '\0' ) break ;
             substatpar[nsubstatpar].par[ii++] = val ;
             iarg++ ;
-         } while( iarg < argc ) ;
+         } while( iarg < argc && ii-2 < MAX_STAT_AUX ) ;
 
          nsubstatpar++ ; new_stuff++ ; continue ;  /* go to next arg */
       }
@@ -1169,6 +1217,9 @@ int main( int argc , char *argv[] )
       if( strcmp(argv[iarg],"-verb") == 0 ){
          verb++ ; iarg++ ; continue ;
       }
+      if( strcmp(argv[iarg],"-quiet") == 0 ){ /* 18 Dec 2017 */
+         verb = 0 ; iarg++ ; continue ;
+      }
 
       if( strncmp(argv[iarg],"-xyzscale",8) == 0 ){ /* 17 Jul 2006 */
          if( iarg+1 >= argc ) SynErr("need an argument after -xyzscale!");
@@ -1207,7 +1258,7 @@ int main( int argc , char *argv[] )
 
          if( strcmp(eptr,"ms")==0 || strcmp(eptr,"msec")==0 ){
             new_tunits = 1 ; tunits = UNITS_MSEC_TYPE ;
-            WARNING_message("TR expressed in milliseconds is deprecated.") ;
+            ERROR_exit("TR expressed in milliseconds is no longer allowed.") ;
          } else if( strcmp(eptr,"s")==0 || strcmp(eptr,"sec")==0 ){
             new_tunits = 1 ; tunits = UNITS_SEC_TYPE ;
          } else if( strcmp(eptr,"Hz")==0 || strcmp(eptr,"Hertz")==0 ){
@@ -1218,9 +1269,58 @@ int main( int argc , char *argv[] )
          iarg++ ; continue ;  /* go to next arg */
       }
 
+      /** -Tslices [18 Dec 2018] **/
+
+#define IS_NUMERIC(sss)                                           \
+ ( (                                       isdigit((sss)[0]) ) || \
+   ( (sss)[0] == '.'                    && isdigit((sss)[1]) ) || \
+   ( (sss)[0] == '-'                    && isdigit((sss)[1]) ) || \
+   ( (sss)[0] == '-' && (sss)[1] == '.' && isdigit((sss)[2]) )   )
+
+      if( strcasecmp(argv[iarg],"-Tslices") == 0 ){
+        int ival ; float val , fac=1.0f ; char *cpt , *thisopt=argv[iarg];
+         if( new_toff_sl > 0 )
+           ERROR_exit("You cannot use -notoff and -Tslices in the same 3drefit command!") ;
+        if( new_Tslices > 0 )
+          ERROR_exit("You cannot uses option '%s' twice!",argv[iarg]) ;
+        if( ++iarg >= argc )
+          ERROR_exit("Option '%s' cannot be the last value on command line!",thisopt) ;
+        if( argv[iarg][0] == '*' && IS_NUMERIC(argv[iarg]+1) ){
+          fac = (float)strtod(argv[iarg]+1,&cpt ) ;
+          if( fac <= 0.0f )
+            ERROR_exit("Factor '%s' after option '%s' is illegal :(",argv[iarg],thisopt) ;
+          iarg++ ;
+#if 0
+INFO_message("Set %s factor to %g",thisopt,fac) ;
+#endif
+        }
+        for( ival=0 ; iarg+ival < argc && IS_NUMERIC(argv[iarg+ival]) ; ival++ ){
+          val = (float)strtod(argv[iarg+ival], &cpt ) ;
+          if( cpt == argv[iarg+ival] ) break ;  /* something bad */
+          Tslices = (float *)realloc( Tslices , sizeof(float)*(ival+1) ) ;
+          Tslices[ival] = fac * val ;
+          if( val < 0.0f )
+            WARNING_message("Value '%s' (#%d after option '%s') is negative :(",
+                            argv[iarg+ival] , iarg+1 , thisopt ) ;
+        }
+        new_Tslices = ival ;
+        if( new_Tslices == 0 )
+          ERROR_exit("No number values found after option '%s' :(",thisopt) ;
+        else if( new_Tslices == 1 )
+          ERROR_exit("Only one number value found after option '%s' :(",thisopt) ;
+#if 0
+{ int qq ; fprintf(stderr,"%s values:",thisopt) ;
+for( qq=0 ; qq < new_Tslices ; qq++ ) fprintf(stderr," %g",Tslices[qq]) ;
+fprintf(stderr,"\n") ; }
+#endif
+        iarg += ival ; new_stuff++ ;continue ;
+      }
+
       /** -notoff (12 Feb 2001) **/
 
       if( strncmp(argv[iarg],"-notoff",7) == 0 ){
+         if( new_Tslices > 0 )
+           ERROR_exit("You cannot use -notoff and -Tslices in the same 3drefit command!") ;
          new_toff_sl = 1 ; new_stuff++ ;
          iarg++ ; continue ;  /* go to next arg */
       }
@@ -1866,9 +1966,36 @@ int main( int argc , char *argv[] )
          } else if( dset->taxis->nsl <= 0 ){
             WARNING_message("-notoff: dataset has no time-offsets to clear!\n") ;
          } else {
-            VINFO("clearing time-offsets") ;
+            VINFO("clearing slice time offsets") ;
             EDIT_dset_items( dset , ADN_nsl,0 , ADN_none ) ;
             did_something++ ; /* 30 Mar 2010 */
+         }
+      }
+
+      if( new_Tslices > 0 ){          /* 18 Dec 2018 */
+         if( dset->taxis == NULL ){
+           WARNING_message("-Tslices: dataset has no time axis to add slice offset to!") ;
+         } else {
+           int qq ; float dt=DSET_TR(dset) ;
+           if( dset->taxis->nsl > 0 )
+             WARNING_message("-Tslices: altering existing slice offsets!") ;
+           else
+             VINFO("setting slice time offsets") ;
+           EDIT_dset_items( dset ,
+                              ADN_nsl     , new_Tslices ,
+                              ADN_toff_sl , Tslices     ,
+                            ADN_none ) ;
+           if( new_Tslices != dset->daxes->nzz )
+             WARNING_message("-Tslices count %d is different than number of slices %d",
+                             new_Tslices , dset->daxes->nzz ) ;
+           for( qq=0 ; qq < new_Tslices ; qq++ ){
+             if( Tslices[qq] >= dt )
+               WARNING_message("-Tslices value %g (#%d) is %s TR=%g",
+                               Tslices[qq] , qq+1 ,
+                               (Tslices[qq] == dt) ? "equal to" : "greater than" ,
+                               dt ) ;
+           }
+           did_something++ ;
          }
       }
 
@@ -1920,7 +2047,7 @@ int main( int argc , char *argv[] )
             dset->func_type = ftype ;
 
             if( ISBUCKET(dset) && dset->taxis != NULL ){   /* 29 April 1998 */
-              WARNING_message("changing 3D+time dataset to bucket\n") ;
+              WARNING_message("changing 3D+time dataset to bucket [no time axis]\n") ;
               EDIT_dset_items( dset , ADN_ntt , 0 , ADN_none ) ;
             }
 
@@ -2080,7 +2207,7 @@ int main( int argc , char *argv[] )
          }
          VINFO("sublabel_suffix") ;
       }
-      
+
       /* add prefix to labels? */
       if (subpref) {
          char *olab=NULL, *sss=NULL;
@@ -2094,7 +2221,7 @@ int main( int argc , char *argv[] )
          }
          VINFO("sublabel_prefix") ;
       }
-      
+
       if( nsubkeyword > 0 ){
          int code ;
          for( ii=0 ; ii < nsubkeyword ; ii++ ){
@@ -2150,7 +2277,8 @@ int main( int argc , char *argv[] )
                                ADN_brick_stataux_one + iv , substatpar[ii].par ,
                              ADN_none ) ;
             did_something++ ; /* 30 Mar 2010 */
-            VINFO("edit stataux") ;
+            if( verb )
+              INFO_message("changed statcode[%d] to %d",iv,(int)substatpar[ii].par[0]) ;
           }
         }
       }
