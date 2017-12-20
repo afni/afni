@@ -28,12 +28,14 @@ one::
     # for variable simplicity, just go to the dir with the ROI maps
     cd $path_P_ss/dwi_05
 
+    set gm_netw = sel_indt_aparc+aseg_REN_gm_GMI.nii.gz
+
     3dTrackID                             \
         -mode PROB                        \
-        -dti_in  dt                       \
-        -netrois sel_indt_aparc+aseg_REN_gm_GMI.nii.gz \
-        -uncert  dt_UNC.nii.gz            \
-        -prefix  o.pr00                   \
+        -dti_in   dt                      \
+        -netrois  $gm_netw                \
+        -uncert   dt_UNC.nii.gz           \
+        -prefix   o.pr00                  \
         -nifti                            \
         -no_indipair_out                  \
         -dump_rois AFNI                   \
