@@ -3034,7 +3034,8 @@ class AfniData(object):
 
       return 1
 
-   def make_single_row_string(self, row=-1, nplaces=3, flag_empty=0, simple=1):
+   def make_single_row_string(self, row=-1, nplaces=3, mplaces=-1,
+                              flag_empty=0, simple=1):
       """return a string of row data, to the given number of decimal places
          if row is non-negative, return a string for the given row
 
@@ -3049,10 +3050,9 @@ class AfniData(object):
       rstr = ''
       if self.verb > 2 and not flag_empty: rstr += 'run %02d : ' % (row+1)
 
-      # rcr - fix?
       # if flagging an empty run, use '*' characters
+      # (little gain in trying to usually put one '*')
       if len(data) == 0 and flag_empty: rstr += '* *'
-      # little gain in trying to usually put one '*'
 
       for val in data:
          if simple:
@@ -3060,14 +3060,14 @@ class AfniData(object):
             else:            rstr += '%g ' % (val[0])
          else:
             if self.mtype & MTYPE_AMP and len(val[1]) > 0:
-               if nplaces >= 0: alist = ['*%.*f'%(nplaces, a) for a in val[1]]
+               if mplaces >= 0: alist = ['*%.*f'%(nplaces, a) for a in val[1]]
                else:            alist = ['*%g'%a for a in val[1]]
                astr = ''.join(alist)
             else: astr = ''
 
             # if married and want durations, include them
             if self.write_dm and (self.mtype & MTYPE_DUR):
-               if nplaces >= 0: dstr = ':%.*f' % (nplaces, val[2])
+               if mplaces >= 0: dstr = ':%.*f' % (nplaces, val[2])
                else:            dstr = ':%g' % val[2]
             else: dstr = ''
 
@@ -3076,13 +3076,14 @@ class AfniData(object):
 
       return rstr + '\n'
 
-   def make_data_string(self, row=-1, nplaces=3, flag_empty=0, check_simple=1,
-                        mesg=''):
+   def make_data_string(self, row=-1, nplaces=3, mplaces=-1,
+                        flag_empty=0, check_simple=1, mesg=''):
       """return a string of row data, to the given number of decimal places
          if row is non-negative, return a string for the given row, else
          return a string of all rows
             row          : make a string for just the single row
             nplaces      : number of decimal places to show
+            mplaces      : number of decimal places to show in married fields
             flag_empty   : if empty row, use the '*' format
             check_simple : if set and dur_len=0, use timing format
             mesg         : display the message before data
@@ -3102,12 +3103,13 @@ class AfniData(object):
                   self.dur_len))
 
       if row >=0:
-         return rstr+self.make_single_row_string(row, nplaces, flag_empty,
-                                                 simple)
+         return rstr+self.make_single_row_string(row, nplaces=nplaces,
+                    mplaces=mplaces, flag_empty=flag_empty, simple=simple)
 
       # make it for all rows
       for ind in range(self.nrows):
-         rstr += self.make_single_row_string(ind, nplaces, flag_empty, simple)
+         rstr += self.make_single_row_string(ind, nplaces=nplaces,
+                    mplaces=mplaces, flag_empty=flag_empty, simple=simple)
 
       return rstr
 
@@ -3138,7 +3140,7 @@ class AfniData(object):
 
       return rv, cdur
 
-   def write_as_timing(self, fname='', nplaces=-1, check_simple=1):
+   def write_as_timing(self, fname='', nplaces=-1, mplaces=-1, check_simple=1):
       """write the current M timing out, with nplaces right of the decimal"""
       if not self.ready:
          print('** M Timing: not ready to write')
@@ -3157,8 +3159,8 @@ class AfniData(object):
       if self.verb > 1:
          print("++ writing %d MTiming rows to %s" % (self.nrows, fname))
 
-      fp.write(self.make_data_string(nplaces=nplaces, flag_empty=1,
-                                     check_simple=check_simple))
+      fp.write(self.make_data_string(nplaces=nplaces, mplaces=mplaces,
+                                     flag_empty=1, check_simple=check_simple))
 
       if fp != sys.stdout:
          fp.close()
