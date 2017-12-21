@@ -3867,9 +3867,14 @@ class AfniData(object):
 
       # --------------------------------------------------
       # self.data and orig_list must be consistent
-      if not UTIL.vals_are_unique(orig_list) or \
-             max(orig_list) > nruns or min(orig_list) < 1:
-         print("** pad_into_runs, bad orig_list %s" % orig_list)
+      # (but allow zeros, and therefore a non-unique list)
+      # (a run index of zero would translate to an empty run)
+      if not UTIL.vals_are_unique(orig_list):
+         print("** warning: pad_into_runs: orig_list vals are not unique")
+
+      if max(orig_list) > nruns or min(orig_list) < 0:
+         print("** pad_into_runs, bad orig_list limits in: %s" % orig_list)
+         return 1
 
       if self.data != None:
          if len(self.data) != norig:

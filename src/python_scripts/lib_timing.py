@@ -475,7 +475,7 @@ class AfniTiming(LD.AfniData):
 
       return 0
 
-   def write_times(self, fname='', nplaces=-1, force_married=0):
+   def write_times(self, fname='', nplaces=-1, mplaces=-1, force_married=0):
       """write the current M timing out, with nplaces right of the decimal
 
          if force_married, force to married timing, if appropriate
@@ -486,7 +486,8 @@ class AfniTiming(LD.AfniData):
       if force_married:
          self.write_dm = 1
          simple = 0
-      self.write_as_timing(fname, nplaces, check_simple=simple)
+      self.write_as_timing(fname, nplaces=nplaces, mplaces=mplaces,
+                                  check_simple=simple)
 
       return 0
 
