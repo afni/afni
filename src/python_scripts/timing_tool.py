@@ -1459,6 +1459,9 @@ class ATInterface:
       self.valid_opts.add_opt('-part_init', 1, [], 
                          helpstr='initial index for event list part (def=0)')
 
+      self.valid_opts.add_opt('-pad_into_runs', -1, [],
+                         helpstr='specify new_nruns and index of each old run')
+
       self.valid_opts.add_opt('-round_times', 1, [], 
                          helpstr='round times up if past FRAC of TR')
 
@@ -1802,6 +1805,14 @@ class ATInterface:
             val, err = uopts.get_type_opt(float, opt=opt)
             if val != None and err: return 1
             if self.timing.shift_to_offset(val): return 1
+
+         elif opt.name == '-pad_into_runs':
+            if not self.timing:
+               print("** '%s' requires -timing" % opt.name)
+               return 1
+            val, err = uopts.get_type_list(int, opt=opt)
+            if val != None and err: return 1
+            if self.timing.pad_into_runs(val[0], val[1:]): return 1
 
          elif opt.name == '-round_times':
             if not self.timing:
