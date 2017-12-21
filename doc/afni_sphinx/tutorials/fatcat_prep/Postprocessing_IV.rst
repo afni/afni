@@ -90,8 +90,23 @@ since all volume files occupy the same space/grid...
           :width: 100%   
           :align: center
 
+Visualizing matrices of structural properties and **fat_proc_connec_vis**
+------------------------------------------------------
 
+**under construction**
 
+**Proc:** This is an example of viewing several WMCs together in one
+image that can be viewed in SUMA.  Each WMC is surfaceized and colored
+individually.  In this case all AND-logic WMCs that were found through
+the "Right-Thalamus-Proper" target are viewed::
+
+    fat_proc_connec_vis                                            \
+        -in_rois o.pr00/NET_000_ROI_*Right-Thalamus-Proper*nii.gz  \
+        -prefix  o.pr00_Right-Thalamus-Proper                      \
+        -trackid_no_or     
+
+-> produces output in the same directory 'data_proc/SUBJ_001/dwi_05/',
+since all volume files occupy the same space/grid...
 
 
 .. 
