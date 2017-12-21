@@ -951,6 +951,60 @@ general options:
 
             Consider '-show_timing' and '-write_timing'.
 
+   -mplaces NPLACES             : specify # places used for married fields
+
+        e.g. -mplaces 1
+
+        Akin to -nplaces, this option controls the number of places to the 
+        right of the decimal that are used when printing stimulus event
+        modulators (amplitude and duration modulators).
+        The default is -1, which uses the minimum needed for accuracy.
+
+            Consider '-nplaces', '-show_timing' and '-write_timing'.
+
+   -pad_into_runs NRUNS r1 r2 ...: expand timing file to include empty runs
+
+
+        rcr - This is weak.  Change the usage...
+
+         ### redo - parameters are the runs from the original timing file
+         #          that should go into the new one (a zero means empty)
+         #
+         #          So the list length is the new number of runs, and the
+         #          the parameters are bounded by [0,N_OLD_RUNS].  This is
+         #          easier to understand and more versatile.
+
+
+
+
+        example a: Convert a single run into the second of 4 runs.
+                     -pad_into_runs 4 2
+        example b: Convert 3 runs into positions 4, 5 and 2 of 5 runs.
+                     -pad_into_runs 5 4 5 2
+        example c: Reverse the order of a 4 run timing file.
+                     -pad_into_runs 4 4 3 2 1
+        example d: Convert a 4 run timing file in to a 4 run file where the
+                   first original run is cleared, runs 2 and 3 are reversed,
+                   and the last run is also cleared (so no events in runs 1,4).
+                     -pad_into_runs 4 0 3 2 0
+        example e:
+                     -pad_into_runs 2 0 0 1 2 0
+
+        Use the option to insert possibly multiple empty runs into the timing
+        list, and possibly rearranging the order of the runs.  If a run goes
+        to new index zero, it is essentially removed.
+
+        The first parameter is the new number of runs.
+
+        The subsequent parameters specify the run numbers that the old runs
+        should be assigned to.  This index list should be the same length as
+        the original number of runs.
+
+        To add empty runs (examples a and b):
+           NRUNS should be greater than the subsequent run list, 
+
+            Consider '-nplaces', '-show_timing' and '-write_timing'.
+
    -per_run                     : perform relevant operations per run
 
         e.g. -per_run
@@ -1190,6 +1244,7 @@ class ATInterface:
 
       # user options
       self.nplaces         = -1         # num decimal places for writing
+      self.mplaces         = -1         # decimal places for married info
       self.run_len         = [0]        # time per run (for single/multi)
       self.verb            = verb
 
@@ -1400,7 +1455,7 @@ class ATInterface:
          print('** no timing to write')
          return 1
       return self.timing.write_times(fname, nplaces=self.nplaces,
-                                            force_married=self.write_married)
+                mplaces=self.mplaces, force_married=self.write_married)
 
    def write_multi_timing(self, prefix=''):
       """write the multi timing files out using the given prefix,
@@ -1417,7 +1472,7 @@ class ATInterface:
          elif timing.name:  fname = prefix+timing.name+'.txt'
          else:              fname = '%sclass_%02d' % (pp, tind)
          timing.write_times(fname, nplaces=self.nplaces,
-                                   force_married=self.write_married)
+                    mplaces=self.mplaces, force_married=self.write_married)
 
    def init_options(self):
       self.valid_opts = OL.OptionList('valid opts')
@@ -1541,6 +1596,8 @@ class ATInterface:
                          helpstr='min tr fraction (in [0,1.0])')
       self.valid_opts.add_opt('-nplaces', 1, [], 
                          helpstr='set number of decimal places for printing')
+      self.valid_opts.add_opt('-mplaces', 1, [], 
+                         helpstr='number of decimal places for married info')
       self.valid_opts.add_opt('-per_run', 0, [], 
                          helpstr='perform operations per run')
       self.valid_opts.add_opt('-per_run_file', 0, [], 
@@ -1626,6 +1683,13 @@ class ATInterface:
          val, err = uopts.get_type_opt(int, '-nplaces')
          if val and not err:
             self.nplaces = val
+         uopts.olist.pop(oind)
+
+      oind = uopts.find_opt_index('-mplaces')
+      if oind >= 0:
+         val, err = uopts.get_type_opt(int, '-mplaces')
+         if val and not err:
+            self.mplaces = val
          uopts.olist.pop(oind)
 
       oind = uopts.find_opt_index('-part_init')
