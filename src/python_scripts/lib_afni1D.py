@@ -3849,66 +3849,59 @@ class AfniData(object):
       if errs: return 0
       return 1
 
-   def pad_into_runs(self, nruns, orig_list):
-      """pad out the data so that the current set fits into nruns
-         as orig_list
+   def pad_into_runs(self, rlist):
+      """modify the timing element where the new one is based off the
+         listed runs of the old one
 
-         That is to say that len(orig_list) should match the current
-         number of runs, and that other runs should be filled as empty.
+         Elements of rlist are 1-based run indices from the old timing,
+         itemizing the runs of the new timing.  A run index of zero means
+         to make it empty.
+
+         So rlist should contain integers in {0..old_num_runs}.
 
          return 0 on success
       """
 
-      norig = len(orig_list)
+      nnew = len(rlist)
 
       if not self.ready:
          print("** pad_into_runs: not ready")
          return 1
 
-      # --------------------------------------------------
-      # self.data and orig_list must be consistent
-      # (but allow zeros, and therefore a non-unique list)
-      # (a run index of zero would translate to an empty run)
-      if not UTIL.vals_are_unique(orig_list):
-         print("** warning: pad_into_runs: orig_list vals are not unique")
-
-      if max(orig_list) > nruns or min(orig_list) < 0:
-         print("** pad_into_runs, bad orig_list limits in: %s" % orig_list)
+      if nnew < 1:
+         print("** pad_into_runs: missing run inputs (use 0 for empty)")
          return 1
 
+      # --------------------------------------------------
+      # limit rlist elements to [0, nold]
+      # (but allow an index of zero to mean an empty run)
+
+      # note the limit on rlist entries
+      nold = 0
       if self.data != None:
-         if len(self.data) != norig:
-            print("** pad_into_runs: orig run list len (%d) != nruns (%d)" \
-                  % (norig, len(self.data)))
-            return 1
-      else:
-         if norig != 0:
-            print("** pad_into_runs, no data for orig run list len %d" % norig)
-            return 1
-         self.data = []
+         nold = len(self.data)
+
+      if max(rlist) > nold or min(rlist) < 0:
+         print("** pad_into_runs, bad rlist limits in: %s" % rlist)
+         return 1
 
       # update number of runs to match new list
-      self.nruns = nruns
-      self.nrows = nruns
+      self.nruns = nnew
+      self.nrows = nnew
 
       # --------------------------------------------------
       # then just perform the same operation on every list
       # (base variable should appear at top and bottom)
-      # (might adjust what is appended for an empty run)
 
       # self.data
       lorig = self.data
       if lorig != None:
          d = []
          if self.verb > 3: print("++ padding data")
-         # 1-based counting over runs
-         for rind in range(1, nruns+1):
-            # if in orig_list, append index into original data
-            if rind in orig_list:
-               oind = orig_list.index(rind)
-               d.append(lorig[oind])
-            else:
-               d.append([])
+         for rind in rlist:
+            # if > 0, get a full copy of an old run, else use an empty one
+            if rind > 0: d.append(lorig[rind-1][:])
+            else:        d.append([])
          # and replace
          self.data = d
 
@@ -3916,17 +3909,14 @@ class AfniData(object):
       lorig = self.mdata
       if lorig != None:
          # if length mis-match, skip (probably empty)
-         if len(lorig) == norig:
+         if len(lorig) == nold:
             if self.verb > 3: print("++ padding mdata")
             d = []
             # 1-based counting over runs
-            for rind in range(1, nruns+1):
-               # if in orig_list, append index into original data
-               if rind in orig_list:
-                  oind = orig_list.index(rind)
-                  d.append(lorig[oind])
-               else:
-                  d.append([])
+            for rind in rlist:
+               # if > 0, get a full copy of an old run, else use an empty one
+               if rind > 0: d.append(lorig[rind-1][:])
+               else:        d.append([])
             # and replace
             self.mdata = d
 
@@ -3934,17 +3924,14 @@ class AfniData(object):
       lorig = self.alist
       if lorig != None:
          # if length mis-match, skip (probably empty)
-         if len(lorig) == norig:
+         if len(lorig) == nold:
             if self.verb > 3: print("++ padding alist")
             d = []
             # 1-based counting over runs
-            for rind in range(1, nruns+1):
-               # if in orig_list, append index into original data
-               if rind in orig_list:
-                  oind = orig_list.index(rind)
-                  d.append(lorig[oind])
-               else:
-                  d.append(2) # for an empty run
+            for rind in rlist:
+               # if > 0, get a full copy of an old run, else use an empty one
+               if rind > 0: d.append(lorig[rind-1])
+               else:        d.append(2) # 2 '*' for empty run
             # and replace
             self.alist = d
 
@@ -3952,17 +3939,14 @@ class AfniData(object):
       lorig = self.run_lens
       if lorig != None:
          # if length mis-match, skip (probably empty)
-         if len(lorig) == norig:
+         if len(lorig) == nold:
             if self.verb > 3: print("++ padding run_lens")
             d = []
             # 1-based counting over runs
-            for rind in range(1, nruns+1):
-               # if in orig_list, append index into original data
-               if rind in orig_list:
-                  oind = orig_list.index(rind)
-                  d.append(lorig[oind])
-               else:
-                  d.append(0) # for an empty run
+            for rind in rlist:
+               # if > 0, get a full copy of an old run, else use an empty one
+               if rind > 0: d.append(lorig[rind-1])
+               else:        d.append(0) # empty run
             # and replace
             self.run_lens = d
 
