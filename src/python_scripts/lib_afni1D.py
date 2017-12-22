@@ -2664,8 +2664,6 @@ class AfniData(object):
       elif len(fsl_flist) > 0:
          if self.init_from_fsl_flist(fsl_flist): return None
 
-   
-
    # some accessor functions to match Afni1D
    def set_nruns(nruns):
       self.nruns = nruns
@@ -3849,7 +3847,7 @@ class AfniData(object):
       if errs: return 0
       return 1
 
-   def pad_into_runs(self, rlist):
+   def select_runs(self, rlist):
       """modify the timing element where the new one is based off the
          listed runs of the old one
 
@@ -3857,7 +3855,7 @@ class AfniData(object):
          itemizing the runs of the new timing.  A run index of zero means
          to make it empty.
 
-         So rlist should contain integers in {0..old_num_runs}.
+         So rlist should contain integers in [0, old_num_runs].
 
          return 0 on success
       """
@@ -3865,11 +3863,11 @@ class AfniData(object):
       nnew = len(rlist)
 
       if not self.ready:
-         print("** pad_into_runs: not ready")
+         print("** select_runs: not ready")
          return 1
 
       if nnew < 1:
-         print("** pad_into_runs: missing run inputs (use 0 for empty)")
+         print("** select_runs: missing run inputs (use 0 for empty)")
          return 1
 
       # --------------------------------------------------
@@ -3882,7 +3880,7 @@ class AfniData(object):
          nold = len(self.data)
 
       if max(rlist) > nold or min(rlist) < 0:
-         print("** pad_into_runs, bad rlist limits in: %s" % rlist)
+         print("** select_runs, bad rlist limits in: %s" % rlist)
          return 1
 
       # update number of runs to match new list
@@ -3892,6 +3890,7 @@ class AfniData(object):
       # --------------------------------------------------
       # then just perform the same operation on every list
       # (base variable should appear at top and bottom)
+      # (else:append() value will depend on the list)
 
       # self.data
       lorig = self.data
@@ -3950,7 +3949,7 @@ class AfniData(object):
             # and replace
             self.run_lens = d
 
-      if self.verb > 3: self.show("pad_into_runs")
+      if self.verb > 3: self.show("select_runs")
 
       return 0
 
