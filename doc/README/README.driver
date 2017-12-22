@@ -46,6 +46,12 @@ ready for user interaction after the image file was saved.
 N.B.: If you are adroit, you could use the virtual X11 server program Xvfb
 to create images as indicated above with no need for an actual X11 display.
 A sample script is given later -- search forward to find the string 'Xvfb'.
+Also see the script @snapshot_volreg for a practical example.
+
+N.B.: The 'Render Dataset' plugin can be partially controlled by a script,
+but not by the Driver functionality described here. Instead, see the
+README.render_scripts file and the Help button in that plugin for more
+information.
 
 ==============================================================================
 Advanced AFNI Programming: Extending the AFNI Driver Functionality
