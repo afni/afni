@@ -309,23 +309,39 @@ examples:
 
          timing_tool.py -timing stimes.txt -show_duration_stats
 
-   Example 18. Convert FSL formatted timing files to AFNI timing format.
+   Example 18a. Convert FSL formatted timing files to AFNI timing format.
 
       A set of FSL timing files (for a single class), one file per run,
       can be read using -fsl_timing_files (rather than -timing, say).  At
-      that point, 
-      If the files have varying durations, the result will
-      be in AFNI duration modulation format.  If the files have amplitudes
-      that are not constant 0 or constant 1, the result will have amplitude
-      modulators.
+      that point, it internally becomes like a normal timing element.
+
+      If the files have varying durations, the result will be in AFNI
+      duration modulation format.  If the files have amplitudes that are not
+      constant 0 or constant 1, the result will have amplitude modulators.
 
          timing_tool.py -fsl_timing_files fsl_r1.txt fsl_r2.txt fsl_r3.txt \\
                         -write_timing combined.txt
 
-      And possibly force to married format, via -write_as_married.
+   Example 18b. Force to married format, via -write_as_married.
 
          timing_tool.py -fsl_timing_files fsl_r1.txt fsl_r2.txt fsl_r3.txt \\
                         -write_timing combined.txt -write_as_married
+
+   Example 18c. Apply one FSL run as run 3 of a 4-run timing file.
+
+         timing_tool.py -fsl_timing_files fsl_r1.txt \\
+                        -select_runs 0 0 1 0 -write_timing NEW.txt
+
+   Example 18d. Apply two FSL runs as run 3 and 4 of a 5-run timing file.
+
+      The original runs can be duplicated, put into a new order or omitted.
+      Also, truncate the event times to 1 place after the decimal (-nplaces),
+      and similarly truncate the married terms (durations and/or amplitudes)
+      to 1 place after the decimal (-mplaces).
+
+         timing_tool.py -fsl_timing_files fsl_r1.txt fsl_r2.txt \\
+                        -nplaces 1 -mplaces 1 -write_as_married \\
+                        -select_runs 0 0 1 2 0 -write_timing NEW.txt
 
    Example 19a. Convert TSV formatted timing files to AFNI timing format.
 
@@ -962,46 +978,41 @@ general options:
 
             Consider '-nplaces', '-show_timing' and '-write_timing'.
 
-   -pad_into_runs NRUNS r1 r2 ...: expand timing file to include empty runs
-
-
-        rcr - This is weak.  Change the usage...
-
-         ### redo - parameters are the runs from the original timing file
-         #          that should go into the new one (a zero means empty)
-         #
-         #          So the list length is the new number of runs, and the
-         #          the parameters are bounded by [0,N_OLD_RUNS].  This is
-         #          easier to understand and more versatile.
-
-
-
+   -select_runs OLD1 OLD2 ... : make new timing from runs of an old one
 
         example a: Convert a single run into the second of 4 runs.
-                     -pad_into_runs 4 2
-        example b: Convert 3 runs into positions 4, 5 and 2 of 5 runs.
-                     -pad_into_runs 5 4 5 2
+
+           -select_runs 0 1 0 0
+
+        example b: Get the last 2 runs out of a 4-run timing file.
+
+           -select_runs 3 4
+
         example c: Reverse the order of a 4 run timing file.
-                     -pad_into_runs 4 4 3 2 1
-        example d: Convert a 4 run timing file in to a 4 run file where the
-                   first original run is cleared, runs 2 and 3 are reversed,
-                   and the last run is also cleared (so no events in runs 1,4).
-                     -pad_into_runs 4 0 3 2 0
-        example e:
-                     -pad_into_runs 2 0 0 1 2 0
 
-        Use the option to insert possibly multiple empty runs into the timing
-        list, and possibly rearranging the order of the runs.  If a run goes
-        to new index zero, it is essentially removed.
+           -select_runs 4 3 2 1
 
-        The first parameter is the new number of runs.
+        example d: Make a 6 run timing file, where they are all the same
+                   as the original run 2, except the new run 4 is empty.
 
-        The subsequent parameters specify the run numbers that the old runs
-        should be assigned to.  This index list should be the same length as
-        the original number of runs.
+           -select_runs 2 2 2 0 2 2
 
-        To add empty runs (examples a and b):
-           NRUNS should be greater than the subsequent run list, 
+        example e: Convert 3 runs into positions 4, 5 and 2 of 5 runs.
+                   So 1 -> posn 4, 2 -> posn 5, and 3 -> posn 2.
+                   The other 2 runs are empty.
+
+           -select_runs 0 3 0 1 2
+
+
+        Use this option to create a new timing element by selecting runs of an
+        old one.  Runs are 1-based (from 1 to #runs), and 0 means to use an
+        empty run (no events).  For example, if the original timing element has
+        5 runs, then use 1..5 to select them, and 0 to select an empty run.
+
+        Original runs can be any number of times, and in any order.
+
+        The number of runs in the result is equal to the number of runs
+        listed as parameters to this option.
 
             Consider '-nplaces', '-show_timing' and '-write_timing'.
 
@@ -1514,14 +1525,14 @@ class ATInterface:
       self.valid_opts.add_opt('-part_init', 1, [], 
                          helpstr='initial index for event list part (def=0)')
 
-      self.valid_opts.add_opt('-pad_into_runs', -1, [],
-                         helpstr='specify list of old runs make new timing')
-
       self.valid_opts.add_opt('-round_times', 1, [], 
                          helpstr='round times up if past FRAC of TR')
 
       self.valid_opts.add_opt('-scale_data', 1, [], 
                          helpstr='multiply all data by the given value')
+
+      self.valid_opts.add_opt('-select_runs', -1, [],
+                         helpstr='copy old runs to go into new timing')
 
       self.valid_opts.add_opt('-shift_to_run_offset', 1, [], 
                          helpstr='shift each run to start at time OFFSET')
@@ -1870,13 +1881,13 @@ class ATInterface:
             if val != None and err: return 1
             if self.timing.shift_to_offset(val): return 1
 
-         elif opt.name == '-pad_into_runs':
+         elif opt.name == '-select_runs':
             if not self.timing:
                print("** '%s' requires -timing" % opt.name)
                return 1
             val, err = uopts.get_type_list(int, opt=opt)
             if val != None and err: return 1
-            if self.timing.pad_into_runs(val): return 1
+            if self.timing.select_runs(val): return 1
 
          elif opt.name == '-round_times':
             if not self.timing:
