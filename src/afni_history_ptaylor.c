@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 22, Dec , 2017 , PT , "fat_proc_connec_vis" , MINOR , TYPE_NEW_OPT,
+   "Can output the intermediate tstat or tcat files of ROI maps.",
+   "Might be useful in subsequent volumetric analyses.\n"
+},
+
 { 20, Dec , 2017 , PT , "fat_proc_connec_vis" , MINOR , TYPE_MODIFY,
    "Changing the way that outputting is specified.",
    "Make making a separate directory the default output; new opt for files.\n"
