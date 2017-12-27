@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# python3 status: compatible
+
 # system libraries
 import sys, os
 
@@ -639,29 +641,29 @@ class CmdInterface:
       self.init_options()
 
    def show(self):
-      print "---------------------------- setup -----------------------------"
-      print "command          : %s" % self.command
-      print "test type        : %s" % self.ttype
-      print "prefix           : %s" % self.prefix
-      print "write_script     : %s" % self.write_script
-      print "beta sub-bricks  : %s" % self.betasubs
-      print "tstat sub-bricks : %s" % self.tstatsubs
-      print "label list       : %s" % self.lablist
-      print "subject prefix   : %s" % self.subj_prefix
-      print "subject suffix   : %s" % self.subj_suffix
-      print "dirent prefix    : %s" % self.dent_pre
-      print "verb             : %s" % self.verb
+      print("---------------------------- setup -----------------------------")
+      print("command          : %s" % self.command)
+      print("test type        : %s" % self.ttype)
+      print("prefix           : %s" % self.prefix)
+      print("write_script     : %s" % self.write_script)
+      print("beta sub-bricks  : %s" % self.betasubs)
+      print("tstat sub-bricks : %s" % self.tstatsubs)
+      print("label list       : %s" % self.lablist)
+      print("subject prefix   : %s" % self.subj_prefix)
+      print("subject suffix   : %s" % self.subj_suffix)
+      print("dirent prefix    : %s" % self.dent_pre)
+      print("verb             : %s" % self.verb)
 
-      print "options          : %s" % self.options
-      print "subject list(s)  : %s" % self.slist
-      print "index0_list      : %s" % self.index0_list
-      print "index1_list      : %s" % self.index1_list
-      print "datasets         : %s" % self.dsets        # last
+      print("options          : %s" % self.options)
+      print("subject list(s)  : %s" % self.slist)
+      print("index0_list      : %s" % self.index0_list)
+      print("index1_list      : %s" % self.index1_list)
+      print("datasets         : %s" % self.dsets)        # last
 
       if self.verb > 3:
-         print "status           : %s" % self.status
+         print("status           : %s" % self.status)
          self.user_opts.show(mesg="user options     : ")
-      print "----------------------------------------------------------------"
+      print("----------------------------------------------------------------")
 
    def init_options(self):
       self.valid_opts = OL.OptionList('valid opts')
@@ -728,11 +730,11 @@ class CmdInterface:
 
       # if no arguments are given, apply -help
       if len(argv) <= 1 or '-help' in argv:
-         print g_help_string
+         print(g_help_string)
          return 0
 
       if '-hist' in argv:
-         print g_history
+         print(g_history)
          return 0
 
       if '-show_valid_opts' in argv:
@@ -740,7 +742,7 @@ class CmdInterface:
          return 0
 
       if '-ver' in argv:
-         print g_version
+         print(g_version)
          return 0
 
       # ============================================================
@@ -862,7 +864,7 @@ class CmdInterface:
          # general options
 
          # an unhandled option
-         print '** option %s not yet supported' % opt.name
+         print('** option %s not yet supported' % opt.name)
          return 1
 
       if self.verb > 2: self.show()
@@ -887,7 +889,7 @@ class CmdInterface:
 
       # both option types is an error
       if len(self.index0_list) > 0 and len(self.index1_list) > 0:
-         print '** cannot use both %s and %s' % (oname0, oname1)
+         print('** cannot use both %s and %s' % (oname0, oname1))
          return 1
 
       otype = 0
@@ -903,8 +905,8 @@ class CmdInterface:
 
       # require one -dset_index option per -dsets option
       if nopt != len(self.dsets):
-         print '** num -dset_indexX_list opts must match num -dsets opts' \
-               ' (%d != %d)' % (nopt, len(self.dsets))
+         print('** num -dset_indexX_list opts must match num -dsets opts' \
+               ' (%d != %d)' % (nopt, len(self.dsets)))
          return 1
 
       new_dsets = []
@@ -912,7 +914,7 @@ class CmdInterface:
          status, newlist = UTIL.restrict_by_index_lists(dlist, olist[dind],
                                         otype, nonempty=1, verb=self.verb)
          if status:
-            print '** bad use of %s' % oname
+            print('** bad use of %s' % oname)
             return 1
          new_dsets.append(newlist)
 
@@ -923,9 +925,9 @@ class CmdInterface:
       if not self.ready_for_action(): return 1
 
       if self.verb > 1:
-         print '-- make %s command with %d set(s) of dsets of length(s): %s' \
+         print('-- make %s command with %d set(s) of dsets of length(s): %s' \
                % (self.command, len(self.dsets), 
-                  ', '.join([str(len(dlist)) for dlist in self.dsets]) )
+                  ', '.join([str(len(dlist)) for dlist in self.dsets]) ))
 
       # might deal with subject IDs and attributes later
       for ind, dlist in enumerate(self.dsets):
@@ -934,7 +936,7 @@ class CmdInterface:
          if slist.set_ids_from_dsets(prefix=self.subj_prefix,
                                      suffix=self.subj_suffix,
                                      dpre=self.dent_pre):
-            print '** cannot set subject IDs from datasets'
+            print('** cannot set subject IDs from datasets')
             return 1
          self.slist.append(slist)
          if self.verb > 2: slist.show("slist %d" % ind)
@@ -951,29 +953,29 @@ class CmdInterface:
       elif self.command:
          cmd = self.get_generic_command()
       else:
-         print '** command not implemented: %s' % self.command
+         print('** command not implemented: %s' % self.command)
 
       # bail on failure, else wrap command
       if cmd == None:
-         print '** failed making %s command' % self.command
+         print('** failed making %s command' % self.command)
          return 1
       cmd = UTIL.add_line_wrappers(cmd)
 
       # either write to file or print
       if self.write_script:
          if UTIL.write_text_to_file(self.write_script, cmd):
-            print "** failed to write command to file '%s'" % self.write_script
+            print("** failed to write command to file '%s'" % self.write_script)
             return 1
          if self.verb > 0:
-            print '++ command written to file %s' % self.write_script
-      else: print cmd
+            print('++ command written to file %s' % self.write_script)
+      else: print(cmd)
 
    def get_mema_command(self):
       if len(self.slist) > 1: s2 = self.slist[1]
       else:                   s2 = None
       if (self.betasubs != None and self.tstatsubs == None) or \
          (self.betasubs == None and self.tstatsubs != None):
-         print '** MEMA: -subs_betas and -subs_tstats must be used together'
+         print('** MEMA: -subs_betas and -subs_tstats must be used together')
          return None
       return self.slist[0].make_mema_command(set_labs=self.lablist,
                      bsubs=self.betasubs, tsubs=self.tstatsubs, subjlist2=s2,
@@ -998,7 +1000,7 @@ class CmdInterface:
                 type 2: requires one group and one list of betas
       """
       if self.betasubs == None:
-         print '** missing required -subs_betas option for sub-brick list'
+         print('** missing required -subs_betas option for sub-brick list')
          return None
 
       return self.slist[0].make_anova2_command( bsubs=self.betasubs,
@@ -1066,11 +1068,11 @@ class CmdInterface:
       ready = 1
 
       if self.command == '':
-         if self.verb > 0: print '** missing execution command'
+         if self.verb > 0: print('** missing execution command')
          ready = 0
 
       if len(self.dsets) < 1:
-         if self.verb > 0: print '** missing datasets for command'
+         if self.verb > 0: print('** missing datasets for command')
          ready = 0
 
       return ready
@@ -1081,10 +1083,10 @@ class CmdInterface:
       self.status = 1 # init to failure
       adata = L1D.Afni1D(fname, name='1d_tool data', verb=self.verb)
       if not adata.ready:
-         print "** failed to read 1D data from '%s'" % fname
+         print("** failed to read 1D data from '%s'" % fname)
          return 1
 
-      if self.verb > 1: print "++ read 1D data from file '%s'" % fname
+      if self.verb > 1: print("++ read 1D data from file '%s'" % fname)
 
       self.ad = adata
       self.status = 0
@@ -1092,15 +1094,15 @@ class CmdInterface:
       return 0
 
    def test(self, verb=3):
-      print '------------------------ initial tests -----------------------'
+      print('------------------------ initial tests -----------------------')
       self.verb = verb
       # first try AFNI_data4, then regression data
 
-      print '------------------------ reset files -----------------------'
+      print('------------------------ reset files -----------------------')
 
-      print '------------------------ should fail -----------------------'
+      print('------------------------ should fail -----------------------')
 
-      print '------------------------ more tests ------------------------'
+      print('------------------------ more tests ------------------------')
 
       return None
 
