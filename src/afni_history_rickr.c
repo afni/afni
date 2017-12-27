@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, Dec, 2017, RCR, "gen_group_command.py", MINOR, TYPE_ENHANCE,
+   "python3 compatible as of version 1.00",
+   NULL
+ } ,
+
  { 27, Dec, 2017, RCR, "RetroTS.py", MICRO, TYPE_BUG_FIX,
    "prevent slice_order = 'Cutsom' case from wiping out passed order",
    "Thanks to J. Ho for noting the problem in the Matlab version."
