@@ -46,6 +46,12 @@ ready for user interaction after the image file was saved.
 N.B.: If you are adroit, you could use the virtual X11 server program Xvfb
 to create images as indicated above with no need for an actual X11 display.
 A sample script is given later -- search forward to find the string 'Xvfb'.
+Also see the script @snapshot_volreg for a practical example.
+
+N.B.: The 'Render Dataset' plugin can be partially controlled by a script,
+but not by the Driver functionality described here. Instead, see the
+README.render_scripts file and the Help button in that plugin for more
+information.
 
 ==============================================================================
 Advanced AFNI Programming: Extending the AFNI Driver Functionality
@@ -76,9 +82,13 @@ with some identifier; for example, a hypothetical diffusion tensor analysis
 plugin could give command names starting with "DTI_".  Or perhaps use your
 institution's name or your initials as a prefix, as in "NIMH_" or "RWC_".
 
+For the most part, driving AFNI is implemented in source code file
+afni_driver.c, if you want to see how it works. (So far, no one outside
+the AFNI team has looked at this, as far as I know.)
+
 =============================================================================
-AFNI COMMANDS (in no coherent order)
-------------------------------------
+AFNI DRIVING COMMANDS (in no coherent order)
+--------------------------------------------
 
 ADD_OVERLAY_COLOR colordef colorlab
   Adds the color defined by the string "colordef" to the list of overlay
@@ -94,7 +104,8 @@ SET_THRESHOLD [c.]val [dec]
   will set the '**' (decimal) level of the slider to 2 and the slider value to
   30 (=0.3000*100).
   ++ You can also use "SET_FUNC_THRESH" for the command name.
-  ++ The newer SET_THRESHNEW command is probably better for your needs.
+  ++ The newer SET_THRESHNEW command is probably better for your needs;
+     this older command is left here for historical compatibility reasons.
 
 SET_THRESHNEW [c] val [flags]
   Sets the threshold slider for controller index 'c' (default='A') to the
@@ -146,9 +157,12 @@ SET_PBAR_ALL [c.]{+|-}99 topval colorscale_name [options]
 PBAR_ROTATE [c.]{+|-}
   Rotates the color pbar in the positive ('+') or negative ('-') direction:
     PBAR_ROTATE A.+
+  ++ You could use this to make fun movies, but otherwise it is hard to
+     see what value this command has.
 
 DEFINE_COLORSCALE name number=color number=color ...
-or DEFINE_COLORSCALE name color color color
+ or
+DEFINE_COLORSCALE name color color color
   Defines a new colorscale with the given name.  The format of the following
   arguments is either like "1.0=#ffff00" or like "#ff00ff" (all must be in the
   same format).  See https://afni.nimh.nih.gov/afni/afni_colorscale.html for
@@ -227,7 +241,7 @@ SET_SESSION [c.]directoryname
 SET_VIEW [c.]view
   Switches controller 'c' to the named "view", which can be one of
   'orig', 'acpc' or 'tlrc'.  The underlay dataset must have an
-  appropriate transformation.
+  appropriate transformation, or appropriate version.
 
 SET_ANATOMY [c.]prefix [i]
   Switches controller 'c' to be looking at the anatomical dataset with
@@ -237,6 +251,8 @@ SET_ANATOMY [c.]prefix [i]
      prefix, this is the sub-brick index to view.
   ++ You can also use "SWITCH_ANATOMY" or "SWITCH_UNDERLAY" for the command.
   ++ The 'prefix' can also be the dataset IDcode string, if you insist.
+  ++ The 'prefix' does NOT include the directory name; if you try to do
+     that, the driving operation will fail.
 
 SET_FUNCTION [c.]prefix [j [k]]
   Same, but for the functional dataset in controller 'c'.
@@ -318,6 +334,25 @@ CLOSE_WINDOW [c.]windowname
   Closes a window from controller 'c'.  You can only close graph and image
   viewer windows this way, not plugin windows.
 
+DATASET#N dataset ...
+  Drives the Dataset#N plugin for graph viewer windows. Each 'dataset'
+  is a dataset prefix name (without directory!). You can also add a
+  color name label (taken from the color menus) separated by '::'.
+  For example, to put 2 extra graphs on top of the underlay graph:
+    DATASET#N Fred.nii::red Elvis::blue
+  This driver command was added at the request of AFNI bootcamp students
+  in Guangzhou (Dec 2017).
+  ++ See the note about resizing the window with 'geom=PxQ' in the SAVE_JPEG
+     command, described below. It seems to be necessary to save the image
+     of a graph viewer separately from the resizing command, probably because
+     the timing of these two operations can end of happening out of order.
+  ++ Also, note that driving the plugin will NOT change the visible controls
+     if you open the plugin controller. The chosen datasets (and colors) are
+     saved, but these choices will not show up in the graphical interface for
+     this plugin.
+  ++ At this time [Dec 2017], this command is the only one that can drive the
+     internal operation of an AFNI plugin.
+
 SAVE_JPEG [c.]windowname filename
   Save a JPEG dump of the given window to 'filename' (using the cjpeg filter,
   which must be in the path).  The windowname can be one of 'axialimage',
@@ -333,6 +368,18 @@ SAVE_JPEG [c.]windowname filename
      variable AFNI_IMAGE_SAVESQUARE to YES (cf. SETENV below).
      This comment applies to all image SAVE_* commands below, except
      for SAVE_RAW* (where AFNI_IMAGE_SAVESQUARE has no effect).
+  ++ For reasons I do not understand, if you OPEN (or ALTER) a window's
+     size with 'geom=PxQ', then do SAVE_JPEG on the window, using the
+     '-com' option on the AFNI command line, the image will still be
+     saved at the window's original size. The workaround for this
+     is to force the save with plugout_drive instead, after AFNI starts.
+     A sample script is below:
+       afni -com 'SWITCH_UNDERLAY run1_time'                      \
+            -com 'DATASET#N run2_time::blue run3_time::red'       \
+            -com 'OPEN_WINDOW axialgraph keypress=I geom=900x600' \
+            -yesplugouts
+       sleep 1
+       plugout_drive -quit -com 'SAVE_JPEG axialgraph ag.jpg' -com 'QUITT'
 
 SAVE_PNG [c.]windowname filename
   Like SAVE_JPEG, but saves to the lossless PNG format.
@@ -772,5 +819,4 @@ WRITE_CONT_SPX_HELP filename
 
 SNAP_CONT image.jpg
    Take a snapshot of the main controller and save into image.jpg
-
 

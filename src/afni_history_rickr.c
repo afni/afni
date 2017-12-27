@@ -49,9 +49,39 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22, Dec, 2017, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
+   "add -select_runs and -mplaces",
+   "For B Benson and A Harrewijn, see Example 18d."
+ } ,
+
+ { 19, Dec, 2017, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "add -help for align_unifize_epi",
+   NULL
+ } ,
+
+ { 19, Dec, 2017, RCR, "afni_util.py", MINOR, TYPE_ENHANCE,
+   "uniq_list_as_dsets: (def) no restriction to prefix; dmUBLOCK known basis",
+   NULL
+ } ,
+
+ { 12, Dec, 2017, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "added 'sample analysis script' to help (in GENERAL ANALYSIS NOTE)",
+   NULL
+ } ,
+
+ { 11, Dec, 2017, RCR, "3dmask_tool", MICRO, TYPE_BUG_FIX,
+   "in dilate, if pad but not convert, inset == dnew, so do not delete",
+   "Thanks to nwlee (AFNI message board) for noting the problem."
+ } ,
+
+ { 10, Dec, 2017, RCR, "Dimon", MICRO, TYPE_ENHANCE,
+   "apply -gert_to3d_prefix for GEMS I-files",
+   "Done for M Kerich."
+ } ,
+
  {  4, Dec, 2017, RCR, "3dDeconvolve", MICRO, TYPE_BUG_FIX,
    "fix gtmax in case of global times and only 1 input dset",
-   "This just lead to an inappropriate warning."
+   "This just lead to an inappropriate warning.\n"
    "Thanks to P Bedard for noting the problem."
  } ,
 

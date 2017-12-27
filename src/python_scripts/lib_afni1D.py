@@ -2648,7 +2648,7 @@ class AfniData(object):
       self.nruns     = 0        # non-zero, if known
       self.run_lens  = []       # run lengths, in seconds or TRs
       self.verb      = verb
-      self.hist      = g_AfniData_hist
+      # self.hist    = g_AfniData_hist (why did I do this?)
       self.write_dm  = 1        # if found include durations when printing
 
       # computed variables
@@ -3032,7 +3032,8 @@ class AfniData(object):
 
       return 1
 
-   def make_single_row_string(self, row=-1, nplaces=3, flag_empty=0, simple=1):
+   def make_single_row_string(self, row=-1, nplaces=3, mplaces=-1,
+                              flag_empty=0, simple=1):
       """return a string of row data, to the given number of decimal places
          if row is non-negative, return a string for the given row
 
@@ -3047,10 +3048,9 @@ class AfniData(object):
       rstr = ''
       if self.verb > 2 and not flag_empty: rstr += 'run %02d : ' % (row+1)
 
-      # rcr - fix?
       # if flagging an empty run, use '*' characters
+      # (little gain in trying to usually put one '*')
       if len(data) == 0 and flag_empty: rstr += '* *'
-      # little gain in trying to usually put one '*'
 
       for val in data:
          if simple:
@@ -3058,13 +3058,15 @@ class AfniData(object):
             else:            rstr += '%g ' % (val[0])
          else:
             if self.mtype & MTYPE_AMP and len(val[1]) > 0:
-               alist = ['*%g'%a for a in val[1]]
+               if mplaces >= 0: alist = ['*%.*f'%(nplaces, a) for a in val[1]]
+               else:            alist = ['*%g'%a for a in val[1]]
                astr = ''.join(alist)
             else: astr = ''
 
             # if married and want durations, include them
             if self.write_dm and (self.mtype & MTYPE_DUR):
-               dstr = ':%g' % val[2]
+               if mplaces >= 0: dstr = ':%.*f' % (nplaces, val[2])
+               else:            dstr = ':%g' % val[2]
             else: dstr = ''
 
             if nplaces >= 0: rstr += '%.*f%s%s ' % (nplaces, val[0], astr, dstr)
@@ -3072,13 +3074,14 @@ class AfniData(object):
 
       return rstr + '\n'
 
-   def make_data_string(self, row=-1, nplaces=3, flag_empty=0, check_simple=1,
-                        mesg=''):
+   def make_data_string(self, row=-1, nplaces=3, mplaces=-1,
+                        flag_empty=0, check_simple=1, mesg=''):
       """return a string of row data, to the given number of decimal places
          if row is non-negative, return a string for the given row, else
          return a string of all rows
             row          : make a string for just the single row
             nplaces      : number of decimal places to show
+            mplaces      : number of decimal places to show in married fields
             flag_empty   : if empty row, use the '*' format
             check_simple : if set and dur_len=0, use timing format
             mesg         : display the message before data
@@ -3098,12 +3101,13 @@ class AfniData(object):
                   self.dur_len))
 
       if row >=0:
-         return rstr+self.make_single_row_string(row, nplaces, flag_empty,
-                                                 simple)
+         return rstr+self.make_single_row_string(row, nplaces=nplaces,
+                    mplaces=mplaces, flag_empty=flag_empty, simple=simple)
 
       # make it for all rows
       for ind in range(self.nrows):
-         rstr += self.make_single_row_string(ind, nplaces, flag_empty, simple)
+         rstr += self.make_single_row_string(ind, nplaces=nplaces,
+                    mplaces=mplaces, flag_empty=flag_empty, simple=simple)
 
       return rstr
 
@@ -3134,7 +3138,7 @@ class AfniData(object):
 
       return rv, cdur
 
-   def write_as_timing(self, fname='', nplaces=-1, check_simple=1):
+   def write_as_timing(self, fname='', nplaces=-1, mplaces=-1, check_simple=1):
       """write the current M timing out, with nplaces right of the decimal"""
       if not self.ready:
          print('** M Timing: not ready to write')
@@ -3153,8 +3157,8 @@ class AfniData(object):
       if self.verb > 1:
          print("++ writing %d MTiming rows to %s" % (self.nrows, fname))
 
-      fp.write(self.make_data_string(nplaces=nplaces, flag_empty=1,
-                                     check_simple=check_simple))
+      fp.write(self.make_data_string(nplaces=nplaces, mplaces=mplaces,
+                                     flag_empty=1, check_simple=check_simple))
 
       if fp != sys.stdout:
          fp.close()
@@ -3843,6 +3847,112 @@ class AfniData(object):
       if errs: return 0
       return 1
 
+   def select_runs(self, rlist):
+      """modify the timing element where the new one is based off the
+         listed runs of the old one
+
+         Elements of rlist are 1-based run indices from the old timing,
+         itemizing the runs of the new timing.  A run index of zero means
+         to make it empty.
+
+         So rlist should contain integers in [0, old_num_runs].
+
+         return 0 on success
+      """
+
+      nnew = len(rlist)
+
+      if not self.ready:
+         print("** select_runs: not ready")
+         return 1
+
+      if nnew < 1:
+         print("** select_runs: missing run inputs (use 0 for empty)")
+         return 1
+
+      # --------------------------------------------------
+      # limit rlist elements to [0, nold]
+      # (but allow an index of zero to mean an empty run)
+
+      # note the limit on rlist entries
+      nold = 0
+      if self.data != None:
+         nold = len(self.data)
+
+      if max(rlist) > nold or min(rlist) < 0:
+         print("** select_runs, bad rlist limits in: %s" % rlist)
+         return 1
+
+      # update number of runs to match new list
+      self.nruns = nnew
+      self.nrows = nnew
+
+      # --------------------------------------------------
+      # then just perform the same operation on every list
+      # (base variable should appear at top and bottom)
+      # (else:append() value will depend on the list)
+
+      # self.data
+      lorig = self.data
+      if lorig != None:
+         d = []
+         if self.verb > 3: print("++ padding data")
+         for rind in rlist:
+            # if > 0, get a full copy of an old run, else use an empty one
+            if rind > 0: d.append(lorig[rind-1][:])
+            else:        d.append([])
+         # and replace
+         self.data = d
+
+      # self.mdata
+      lorig = self.mdata
+      if lorig != None:
+         # if length mis-match, skip (probably empty)
+         if len(lorig) == nold:
+            if self.verb > 3: print("++ padding mdata")
+            d = []
+            # 1-based counting over runs
+            for rind in rlist:
+               # if > 0, get a full copy of an old run, else use an empty one
+               if rind > 0: d.append(lorig[rind-1][:])
+               else:        d.append([])
+            # and replace
+            self.mdata = d
+
+      # self.alist
+      lorig = self.alist
+      if lorig != None:
+         # if length mis-match, skip (probably empty)
+         if len(lorig) == nold:
+            if self.verb > 3: print("++ padding alist")
+            d = []
+            # 1-based counting over runs
+            for rind in rlist:
+               # if > 0, get a full copy of an old run, else use an empty one
+               if rind > 0: d.append(lorig[rind-1])
+               else:        d.append(2) # 2 '*' for empty run
+            # and replace
+            self.alist = d
+
+      # self.run_lens
+      lorig = self.run_lens
+      if lorig != None:
+         # if length mis-match, skip (probably empty)
+         if len(lorig) == nold:
+            if self.verb > 3: print("++ padding run_lens")
+            d = []
+            # 1-based counting over runs
+            for rind in rlist:
+               # if > 0, get a full copy of an old run, else use an empty one
+               if rind > 0: d.append(lorig[rind-1])
+               else:        d.append(0) # empty run
+            # and replace
+            self.run_lens = d
+
+      if self.verb > 3: self.show("select_runs")
+
+      return 0
+
    def show_duration_stats(self, per_run=0):
       """show min, mean, max, stdev for each column (unless col specified)"""
 
@@ -3856,7 +3966,7 @@ class AfniData(object):
       for rind, run in enumerate(self.mdata):
          if per_run:
             mmms = form % UTIL.min_mean_max_stdev([event[2] for event in run])
-            print((('run %d : ' % rind) + mmms))
+            print(('run %d : ' % rind) + mmms)
          else:
             dlist.extend([event[2] for event in run])
 
@@ -3871,30 +3981,43 @@ class AfniData(object):
       print(self.make_show_str(mesg=mesg))
 
    def make_show_str(self, mesg=''):
-      if self.ready: rstr = 'ready'
-      else:          rstr = 'not ready'
-
-      rect = self.is_rect()
-
       if mesg: mstr = '%s : ' % mesg
       else:    mstr = ''
 
+      # report data elements via their top-level lengths
+      ldata = -1
+      if self.data != None:
+         ldata = len(self.data)
+      lmdata = -1
+      if self.mdata != None:
+         lmdata = len(self.mdata)
+      lclines = -1
+      if self.clines != None:
+         lclines = len(self.clines)
+      lalist = -1
+      if self.alist != None:
+         lalist = len(self.alist)
+
       mstr = "--- %sAfniData element ---\n" \
-             "   name     : %s (%s)\n"      \
-             "   fname    : %s\n" \
-             "   nrows    : %d\n" \
-             "   ncols    : %d\n" \
-             "   rect     : %d\n" \
-             "   row_lens : %s\n" \
-             "   binary   : %d\n" \
-             "   tr       : %g\n" \
-             "   nruns    : %d\n" \
-             "   married  : %d\n" \
-             "   mtype    : %d\n" \
-             "   verb     : %d\n" \
-             % ( mstr, self.name, rstr, self.fname,
-                self.nrows, self.ncols, rect, self.row_lens,
-                self.binary, self.tr, self.nruns, self.married, self.mtype,
+             "   name (ready?)                   : %s (%d)\n"      \
+             "   fname                           : %s\n" \
+             "   len(data, mdata, clines, alist) : %d, %d, %d, %d\n" \
+             "   nrows, ncols, is_rect()         : %d, %d, %d\n" \
+             "   row_lens                        : %s\n" \
+             "   binary, empty                   : %d, %d\n" \
+             "   married, mtype                  : %d, %d\n" \
+             "   minlen, maxlen, dur_len         : %d, %d, %g\n" \
+             "   tr, nruns                       : %g, %d\n" \
+             "   run_lens                        : %s\n" \
+             "   write_dm, cormat_ready          : %d, %d\n" \
+             "   verb                            : %d\n" \
+             % ( mstr, self.name, self.ready, self.fname,
+                ldata, lmdata, lclines, lalist,
+                self.nrows, self.ncols, self.is_rect(), self.row_lens,
+                self.binary, self.empty, self.married, self.mtype,
+                self.minlen, self.maxlen, self.dur_len,
+                self.tr, self.nruns, self.run_lens,
+                self.write_dm, self.cormat_ready,
                 self.verb)
 
       return mstr

@@ -38,9 +38,11 @@ static char * g_history[] =
   "       So re-wrote the troubling part.\n"
   "0.5  22 Oct 2014: if zeropadding for dilations, reset ijk_to_dicom_real\n",
   "       to preserve any oblique matrix\n"
+  "0.6  11 Dec 2017: fix result-dilation bug, noted by mwlee on MB\n",
+  "     - if pad but not convert, inset == dnew, so do not delete\n"
 };
 
-static char g_version[] = "3dmask_tool version 0.5, 1 October 2014";
+static char g_version[] = "3dmask_tool version 0.6, 11 December 2017";
 
 #include "mrilib.h"
 
@@ -263,7 +265,8 @@ THD_3dim_dataset * apply_dilations(THD_3dim_dataset * dset, int_list * D,
 
    /* undo any zeropadding (delete original and temporary datasets) */
    if( pad ) {
-      DSET_delete(inset);
+      /* if pad and not convert, dnew == inset    11 Dec 2017 [rickr] */
+      if( dnew != inset ) DSET_delete(inset);
       inset = THD_zeropad(dnew, -pad, -pad, -pad, -pad, -pad, -pad, "pad", 0);
       DSET_delete(dnew);
       dnew = inset;

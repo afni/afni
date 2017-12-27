@@ -11,9 +11,17 @@
 # + helpifying
 # + seems to be stable...
 # 
-set version   = "1.21";  set rev_dat   = "Oct 25, 2017"
+#set version   = "1.21";  set rev_dat   = "Oct 25, 2017"
 # + more helpifying
 # 
+#set version   = "1.22";  set rev_dat   = "Dec 20, 2017"
+# + make output prefix a dir, because there might be a loooot of files
+# + take old "-prefix ..." functionality and move it to an option
+#   flag name "-prefix_files"
+#
+set version   = "1.23";  set rev_dat   = "Dec 22, 2017"
+# + new opt to output the 3dTcatted or 3dTstatted summation files
+#
 # ---------------------------------------------------------------
 
 set this_prog = "fat_proc_connec_vis"
@@ -38,20 +46,25 @@ endif
 
 set here = $PWD
 
-set fNN      = ()         # to be list of int ROI maps
-set opref    = ""
+set fNN       = ()         # to be list of int ROI maps
+set odir      = ""
+set opref     = "wmc"
 set merge_lab = ""
 
 #set tmp_code = `3dnewid -fun11`    # should be essentially unique hash
 set wdir = ""
 set DO_CLEAN = 1
-set cmd_file = ""               # def: same name as viewer
+set cmd_file = ""                 # def: same name as viewer
+set run_file = ""                 # def: same name as viewer
 set output_cmd  = 1               # def: output copy of this command
 
 set NO_OR     = 0
 set tsmoo_kpb = 0.01
 set tsmoo_nit = 6
 set iso_choice = "isorois+dsets"
+
+set DO_OUT_TCAT  = "0"            # [PT: Dec 22, 2017] new opt output
+set DO_OUT_TSTAT = "0"            # [PT: Dec 22, 2017] new opt output
 
 # ------------------- process options, a la rr ----------------------
 
@@ -103,10 +116,21 @@ while ( $ac <= $#argv )
 
     # --------------------------------------------------------------
 
+    # [PT: Dec 20, 2017] makes a new dir (if not preexisting)
+    # specified by the user, and then splashes everything into that
+    # dir; opref is specified by default name
     else if ( "$argv[$ac]" == "-prefix" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
-        set opref = "$argv[$ac]"
+        set odir   = "$argv[$ac]"
+
+    # [PT: Dec 20, 2017] this splashes everything into a preexisting
+    # dir
+    else if ( "$argv[$ac]" == "-prefix_file" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set odir  = `dirname  "$argv[$ac]"`
+        set opref = `basename "$argv[$ac]"`
 
     else if ( "$argv[$ac]" == "-tsmoo_kpb" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
@@ -130,6 +154,12 @@ while ( $ac <= $#argv )
         @ ac += 1
         set wdir = "$argv[$ac]"
 
+    else if ( "$argv[$ac]" == "-output_tcat" ) then
+        set DO_OUT_TCAT = 1
+
+    else if ( "$argv[$ac]" == "-output_tstat" ) then
+        set DO_OUT_TSTAT = 1
+
     # recognize naming convention of 3dTrackID output, and ignore
     # "or"-logic ROIs
     else if ( "$argv[$ac]" == "-trackid_no_or" ) then
@@ -150,23 +180,11 @@ end
 
 # ========================= output dir ==========================
 
-if ( "$opref" == "" ) then
-    echo "** ERROR: need '-prefix ...' option provided!"
+if ( "$odir" == "" ) then
+    echo "** ERROR: need to use either '-prefix ...' or '-prefix_file ...':"
     echo "   See the helpfile for more information."
     goto BAD_EXIT
-else
-    set odir  = `dirname "$opref"`
-    set opref = `basename "$opref"`
-    set wdir  = "__WDIR_${tpname}_${opref}"
-    echo ""
-    echo "++ Based on prefix, the output directory will be:"
-    echo "     $odir"
-    echo "++ Based on prefix, the output prefix will be:"
-    echo "     $opref"
-    echo ""
-endif
-
-# check output directory, use input one if nothing given
+endif 
 
 # default output dir, if nothing input.
 if ( ! -e "$odir" ) then
@@ -174,11 +192,13 @@ if ( ! -e "$odir" ) then
     mkdir "$odir"
 endif
 
-# -------- wdir ----------
-
-set wdir = "$odir/$wdir"
+echo ""
+echo "++ The output directory/prefix will be:"
+echo "     $odir/$opref"
+echo ""
 
 # make the working directory
+set wdir  = "$odir/__WDIR_${tpname}_${opref}"
 if ( ! -e $wdir ) then
     echo "++ Making working directory: $wdir"
     mkdir $wdir
@@ -193,6 +213,7 @@ else
 endif
 
 set ocmd   = "${opref}_cmd.txt"      # name for output command
+set orun   = "${opref}_runsuma.tcsh" # basic suma view command
 
 # ----> here, only need wdir if outputting imgs but no vol; see below
 
@@ -209,6 +230,9 @@ echo "$this_prog $argv\n\n"
 
 if ( "$cmd_file" == "" ) then
     set cmd_file = "$odir/$ocmd"
+endif
+if ( "$run_file" == "" ) then
+    set run_file = "$odir/$orun"
 endif
 
 # copy original command:
@@ -330,6 +354,14 @@ set fout = $wdir/vv_${iidx}_tcat.nii
     $fin $ilist
 @ idx += 1
 
+if ( "$DO_OUT_TCAT" == "1" ) then
+    set ooo = $odir/${opref}_tcat.nii.gz
+    echo "++ Output tcat-ed (multibrick) file:"
+    echo "      $ooo"
+    
+    3dcopy $fout $ooo
+endif
+
 # now get int labels
 set iidx = `printf "%02d" $idx`
 set fin  = $fout
@@ -340,6 +372,14 @@ set fout = $wdir/vv_${iidx}_tstat.nii
     -prefix $fout               \
     $fin
 @ idx += 1
+
+if ( "$DO_OUT_TSTAT" == "1" ) then
+    set ooo = $odir/${opref}_tstat.nii.gz
+    echo "++ Output ttat-ed (single-brick) file:"
+    echo "      $ooo"
+    
+    3dcopy $fout $ooo
+endif
 
 if ( "$iso_choice" == "mergerois" ) then
     set merge_lab = "$odir/$opref"
@@ -358,6 +398,13 @@ IsoSurface                            \
 echo "++ View with: "
 echo "       suma -onestate -i ${fout}*.gii\n"
 echo "   ... and possibly add something like '-vol dt_FA.nii.gz'?\n"
+
+#echo   "#\!/bin/tcsh\n"                      > $run_file
+#printf "suma -onestate -i ${opref}*.gii "   >> $run_file
+
+#set runf = `ls $run_file`
+#echo "++ Basic SUMA command saved in: "
+#echo "       $runf\n"
 
 if ( "$DO_CLEAN" == "1" ) then
     cd $here
@@ -396,11 +443,14 @@ cat << EOF
   $this_prog  \
     -in_rois       NETROIS       \
     -prefix        PPP           \
+   {-prefix_file   FFF}          \
    {-tsmoo_kpb     KPB}          \
    {-tsmoo_niter   NITER}        \
    {-iso_opt       ISO_OPT}      \
-   {-wdir          WWW}          \
    {-trackid_no_or}              \
+   {-output_tcat}                \
+   {-output_tstat}               \
+   {-wdir          WWW}          \
    {-no_clean}
 
 
@@ -409,8 +459,20 @@ cat << EOF
     -in_rois NETROIS   :list of separate files, each with single ROI
                         volume mask; can include wildcards, etc. to specify
                         the list
-    -prefix      PPP   :output prefix for the outputs: *cmd.txt and surface
-                        files such as *.gii and *.niml.dset
+
+    -prefix      PPP   :directory to contain the output files: *cmd.txt and 
+                        surface files such as *.gii and *.niml.dset; the
+                        namebase of files within this directory will be the 
+                        default for the program, "$opref".  The value PPP
+                        can contain parts of a path in it. 
+         or
+    -prefix_file FFF   :prefix for the output files: *cmd.txt and surface
+                        files such as *.gii and *.niml.dset; can include
+                        path steps; and can make one level of a new directory.
+                        For example, if FFF were "A/B", then the program
+                        could make a new directory called "A" if it didn't
+                        exist already and populate it with individual files
+                        having the same prefix "B".
 
     -tsmoo_kpb   KPB   :"KPB" parameter in IsoSurface program;  default
                         value is ${tsmoo_kpb}.
@@ -428,6 +490,16 @@ cat << EOF
                         the OR-logic ROIs, including only the AND-logic (AKA
                         pairwise) connections.  This is mainly useful when 
                         wildcard expressions are using for '-in_rois NETROIS'.
+
+    -output_tcat       :flag to output the multibrick file of concatenated
+                        ROI masks; note that the [0]th brick will be all
+                        zeros (it is just a place holder).  So, if there are
+                        N ROI maps concatenated, there will be N+1 bricks
+                        in the output dset, which has name PPP_tcat.nii.gz.
+    -output_tstat      :flag to output the single brick file from the 3dTstat
+                        operation on the tcat dset.  If there were N ROI maps
+                        concatenated, then the largest value should be N.
+                        The output file's name will be PPP_tstat.nii.gz.
 
     -wdir    WWW       :"__WDIR_${tpname}_PPP", where PPP is the input 
                         prefix.

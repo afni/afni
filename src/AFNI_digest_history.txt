@@ -1,5 +1,98 @@
 ========================================================================
 
+AFNI Digest, week of 2017/12/23.
+
+00) Notes on temporal autocorrelation modelling in major FMRI packages.
+Some new and interesting methods work comparing different programs, by
+Olszowy et al.  https://arxiv.org/abs/1711.09877 From the abstract:
+    "Though temporal autocorrelation modelling in AFNI was not
+    perfect, its performance was much higher than the performance of
+    temporal autocorrelation modelling in FSL and SPM. FSL and SPM
+    could improve their autocorrelation modelling approaches for
+    example adopting a noise model similar to the one used by AFNI."
+AFNI models the temporal autocorrelation using an ARMA(1,1) model. The
+feature that makes AFNI most distinct from FSL and SPM in this area is
+that the autocorrelation model parameters are estimated separately for
+each voxel time series (program 3dREMLfit), rather than globally (SPM)
+or over regions (FSL).
+
+01) A new option "-Tslices" in 3drefit.
+This option allows a user to add slice time offsets directly to a
+dataset. The purpose of this is to let a user (or script) set the
+slice timing when the dataset creation process did not do so
+correctly. AFNI allows arbitrary slice timing to be added to NIFTI
+files, using the AFNI extension to the NIFTI header. These slice times
+will be used by the "tshift" processing block in afni_proc.py. Details
+of how to specify slice time offsets are described in the output of
+3drefit -help.
+
+02) Fixed "-substatpar" in 3drefit.
+The -substatpar option in 3drefit did not always work properly for
+some types of datasets. This problem has (hopefully) been fixed, so
+that the statistical type and parameters associated with a dataset
+sub-brick can now be changed. The main application for this is when
+(say) 3dcalc is used to process a dataset: the statistical information
+is usually removed from the output dataset, since 3dcalc cannot "know"
+if the calculations affected the statistical distribution. Option
+-substatpar would usually be combined with option -sublabel to change
+the label of the same sub-brick, to match the new statistical type
+(e.g., "Correlation"). Details of how to set statistical parameters
+and type for a sub-brick are described in 3drefit -help.
+
+03) A new AFNI driver command is now available.
+The new command "DATASET#N" drives the Dataset#N "transformation" used
+in graph viewers to overlay time series plots from more than one
+dataset. This change allows a script to drive the creation of such
+overlaid time series graphs and then save them to image files. The
+details are described in the updated README.driver file. At this time,
+this is the only AFNI plugin that can be controlled by driving.
+
+04) Larger montages for AFNI viewer.
+The maximum array size for an image viewer Montage has been increased,
+significantly. This change is principally for driving the AFNI GUI to
+produce image snapshots with lots of slices.
+
+05) New recommended options in afni_proc.py.
+Some of the more recent afni_proc.py option recommendations include:
+      -volreg_align_to MIN_OUTLIER
+      -tlrc_base MNI152_T1_2009c+tlrc (assuming one wants MNI space)
+      -regress_motion_per_run
+Please see "afni_proc.py -help" for details.
+
+06) A note on python2 and python3 "fun".
+We are in the process of enhancing python programs to work with both
+python2 and python3. Programs that should already be python3
+compatible include afni_proc.py, afni_system_check.py, 1d_tool.py,
+make_random_timing.py and timing_tool.py.
+
+07) Enhancements in make_random_timing.py.
+The program can now handle more complicated designs. One can define
+stimulus and rest timing classes with their own probability
+distributions, including limits. See "Advanced Usage" in the -help
+output for details.
+
+08) Intraclass Correlation (ICC) can improve your life.
+Well, at least it might improve some of your analysis and results
+interpretation, as described by G. Chen et al. in a new paper in HBM:
+http://onlinelibrary.wiley.com/doi/10.1002/hbm.23909/full
+
+-----------------------------
+Updates 01-03 were suggested by our interactions with students during
+our recent Bootcamps in Shenzhen and Guangzhou (China). Thanks go to
+them for excellent hosting and such fruitful discussions!
+
+---------------------------------------------------------------------
++ This Digest is not a comprehensive list of code updates.
++ Please direct comments or questions to the AFNI Message Board:
+  https://afni.nimh.nih.gov/afni/community/board/list.php?1
++ To unsubscribe or otherwise manage your Digest settings, click here:
+  https://list.nih.gov/cgi-bin/wa.exe?SUBED1=afni_digest&A=1
+---------------------------------------------------------------------
+# ======================================================================== #
+
+
+========================================================================
+
 AFNI Digest, week of 2017/11/22.
 
 00) Job Opening in the AFNI group.
