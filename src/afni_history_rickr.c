@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, Dec, 2017, RCR, "RetroTS.py", MICRO, TYPE_BUG_FIX,
+   "prevent slice_order = 'Cutsom' case from wiping out passed order",
+   "Thanks to J. Ho for noting the problem in the Matlab version."
+ } ,
+
  { 22, Dec, 2017, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
    "add -select_runs and -mplaces",
    "For B Benson and A Harrewijn, see Example 18d."
