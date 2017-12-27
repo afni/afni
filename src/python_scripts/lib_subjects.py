@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# python3 status: compatible
+
 import sys, os
 import copy, glob
 import afni_util as UTIL
@@ -19,7 +21,7 @@ def comment_section_string(comment, length=70, cchar='-'):
    """
    clen = len(comment)
     
-   ndash = (length - clen - 4) / 2      # one '#' and 3 spaces
+   ndash = (length - clen - 4) // 2     # one '#' and 3 spaces
 
    # if no space for multiple dashes, don't use any
    if ndash < 2: return '# %s' % comment
@@ -50,9 +52,9 @@ def subj_compare(subj0, subj1):
    cval = 0
    key = subj0._sort_key
    if key != None:
-      if subj0.atrs.has_key(key): v0 = subj0.atrs[key]
+      if key in subj0.atrs: v0 = subj0.atrs[key]
       else: v0 = None
-      if subj1.atrs.has_key(key): v1 = subj1.atrs[key]
+      if key in subj1.atrs: v1 = subj1.atrs[key]
       else: v1 = None
       cval = cmp(v0, v1)
 
@@ -75,18 +77,18 @@ def set_var_str_from_def(obj, name, vlist, vobj, defs,
    """
 
    if not defs.valid(name):
-      print '** invalid %s variable: %s' % (obj, name)
+      print('** invalid %s variable: %s' % (obj, name))
       return -1
 
    dtype = type(defs.val(name))
    if dtype not in g_valid_atomic_types:
-      print '** SVSFD: unknown %s variable type for %s' % (obj, name)
+      print('** SVSFD: unknown %s variable type for %s' % (obj, name))
       return -1
 
    # if simple type but have list, fail
    if dtype != list and len(vlist) > 1:
-      print "** SVSFD: simple variable '%s' %s\n" \
-            "          but have list value: %s" % (name, dtype, vlist)
+      print("** SVSFD: simple variable '%s' %s\n" \
+            "          but have list value: %s" % (name, dtype, vlist))
       return -1
 
    # ----------------------------------------
@@ -100,19 +102,19 @@ def set_var_str_from_def(obj, name, vlist, vobj, defs,
       val = vlist[0]
       try: vv = dtype(val)
       except:
-         print '** SVSFD %s.%s, cannot convert value %s to %s' \
-               % (obj, name, val, dtype)
+         print('** SVSFD %s.%s, cannot convert value %s to %s' \
+               % (obj, name, val, dtype))
          return -1
    elif dtype == list: val = vlist
    else: 
-      print '** SVSFD: invalid type %s for %s'%(dtype,name)
+      print('** SVSFD: invalid type %s for %s'%(dtype,name))
       return -1
 
    # actually set the value
    rv = vobj.set_var(name, val)
    if verb > 1:
-      if rv: print '++ %s: updating %s to %s %s' % (obj, name, val, type(val))
-      else:  print '++ %s: no update for %s to %s' % (obj, name, val)
+      if rv: print('++ %s: updating %s to %s %s' % (obj, name, val, type(val)))
+      else:  print('++ %s: no update for %s to %s' % (obj, name, val))
 
    # if no update, we're outta here
    if rv == 0: return rv
@@ -141,13 +143,13 @@ def goto_proc_dir(dname):
    if not os.path.isdir(dname):
       try: os.makedirs(dname)
       except:
-         print '** failed makedirs(%s)' % dname
+         print('** failed makedirs(%s)' % dname)
          return ''
 
    # now try to go there
    try: os.chdir(dname)
    except:
-      print '** failed to go to process dir, %s' % dname
+      print('** failed to go to process dir, %s' % dname)
       return ''
 
    return retdir   # only returned on success
@@ -162,7 +164,7 @@ def ret_from_proc_dir(rname):
 
    try: os.chdir(rname)
    except:
-      print '** failed to return to %s from process dir' % rname
+      print('** failed to return to %s from process dir' % rname)
 
    return ''
 
@@ -212,7 +214,7 @@ def get_def_tool_path(prog_name, top_dir='tool_results', prefix='tool',
    # abuse '.': make a list of integers from field 1 when split over '.'
    try: ilist = [int(name.split('.')[1]) for name in tlist]
    except:
-      print '** found non-int VAL in %s/%s.VAL.*' % (tdir, prefix)
+      print('** found non-int VAL in %s/%s.VAL.*' % (tdir, prefix))
       return form % 999
 
    ilist.sort()
@@ -303,10 +305,10 @@ class SubjectList(object):
          elif llen != len(ilist): errs += 1     # ... test
 
       if errs > 0:
-         print '** SubjectList init requires equal lengths (or None)'
-         print '   sid_l  = %s' % sid_l
-         print '   dset_l = %s' % dset_l
-         print '   atr_l  = %s' % atr_l
+         print('** SubjectList init requires equal lengths (or None)')
+         print('   sid_l  = %s' % sid_l)
+         print('   dset_l = %s' % dset_l)
+         print('   atr_l  = %s' % atr_l)
          self.status = 1
          return
 
@@ -339,7 +341,7 @@ class SubjectList(object):
             if subj.sid in sid_l: skeep.append(subj)
             else                : snuke.append(subj)
          if self.verb > 2:
-            print '++ SL copy: nuking %d subjs not in sid list' % len(snuke)
+            print('++ SL copy: nuking %d subjs not in sid list' % len(snuke))
          for subj in snuke: del(subj)
          newSL.subjects = skeep
       if atr != '':
@@ -348,12 +350,12 @@ class SubjectList(object):
          for subj in self.subjects:
             if subj.atrs.val(atr) == atrval: skeep.append(subj)
             else:                            snuke.append(subj)
-         if self.verb>2: print '++ SL copy: nuking %d subjs with atr[%s] != %s'\
-                               % (atr, atrval)
+         if self.verb>2: print('++ SL copy: nuking %d subjs with atr[%s] != %s'\
+                               % (atr, atrval))
          for subj in snuke: del(subj)
          newSL.subjects = skeep
-      if self.verb > 1: print '++ SL copy: keeping %d of %d subjects' \
-                              % (len(newSL.subjects), olen)
+      if self.verb > 1: print('++ SL copy: keeping %d of %d subjects' \
+                              % (len(newSL.subjects), olen))
       return newSL
 
    def show(self, mesg=''):
@@ -391,7 +393,7 @@ class SubjectList(object):
          self.common_dir   = cdir
          self.common_dname = cname
          if self.verb > 1:
-            print '++ setting common dir, %s = %s' % (cname, cdir)
+            print('++ setting common dir, %s = %s' % (cname, cdir))
 
    def set_ids_from_dsets(self, prefix='', suffix='', hpad=0, tpad=0, dpre=0):
       """use the varying part of the dataset names for subject IDs
@@ -403,14 +405,14 @@ class SubjectList(object):
       """
 
       if hpad < 0 or tpad < 0:
-         print '** set_ids_from_dsets: will not apply negative padding'
+         print('** set_ids_from_dsets: will not apply negative padding')
          return 1
 
       # try filenames without paths, first
       dlist = [s.dset.split('/')[-1] for s in self.subjects]
       if UTIL.vals_are_constant(dlist):
-         print '** constant dataset names (%s)' % dlist[0]
-         print '   trying directories...'
+         print('** constant dataset names (%s)' % dlist[0])
+         print('   trying directories...')
          dlist = [s.dset for s in self.subjects]
 
       slist = UTIL.list_minus_glob_form(dlist, hpad, tpad, keep_dent_pre=dpre)
@@ -422,19 +424,19 @@ class SubjectList(object):
             posn = slist[index].rfind('/')
             slist[index] = slist[index][posn+1:]
             if len(slist[index]) < 1:
-               print '** failed to extract subject IDs from directory list'
-               print '   (directories do not vary at single level)'
+               print('** failed to extract subject IDs from directory list')
+               print('   (directories do not vary at single level)')
                return 1
 
       if len(slist) != len(self.subjects):
-         print '** failed to set SIDs from dset names\n'        \
+         print('** failed to set SIDs from dset names\n'        \
                '   dsets = %s\n'                                \
-               '   slist = %s' % (dlist, slist)
+               '   slist = %s' % (dlist, slist))
          return 1
 
       if not UTIL.vals_are_unique(slist):
-         print '** cannot set IDs from dsets, labels not unique: %s' % slist
-         print '-- labels come from dsets: %s' % dlist
+         print('** cannot set IDs from dsets, labels not unique: %s' % slist)
+         print('-- labels come from dsets: %s' % dlist)
          return 1
 
       for ind, subj in enumerate(self.subjects):
@@ -465,14 +467,14 @@ class SubjectList(object):
       """
 
       if prefix == '' or prefix == None: prefix = 'anova2_result'
-      if verb > 1: print '-- make_anova2_command: have prefix %s' % prefix
+      if verb > 1: print('-- make_anova2_command: have prefix %s' % prefix)
 
       if bsubs == None:
-         print '** missing sub-brick selection list'
+         print('** missing sub-brick selection list')
          return None
       if len(bsubs) < 2:
-         print '** anova2_command: need at least 2 sub-bricks (have %d)' \
-               % len(bsubs)
+         print('** anova2_command: need at least 2 sub-bricks (have %d)' \
+               % len(bsubs))
          return None
 
       indent = 9  # minimum indent: spaces to following -set option
@@ -497,7 +499,7 @@ class SubjectList(object):
       else:     # add some basic option
          opt = '-amean 1 amean1'
          cmd += '%*s%s \\\n' % (indent, '', opt)
-         print '++ no contrast options given, adding simple: %s' % opt
+         print('++ no contrast options given, adding simple: %s' % opt)
 
       if prefix.find('/') >= 0: pp = prefix
       else:                     pp = './%s' % prefix
@@ -532,14 +534,14 @@ class SubjectList(object):
       """
 
       if prefix == '' or prefix == None: prefix = 'anova3_result'
-      if verb > 1: print '-- make_anova2_command: have prefix %s' % prefix
+      if verb > 1: print('-- make_anova2_command: have prefix %s' % prefix)
 
       if bsubs == None:
-         print '** missing sub-brick selection list'
+         print('** missing sub-brick selection list')
          return None
       if len(bsubs) < 2:
-         print '** anova3_command: need at least 2 sub-bricks (have %d)' \
-               % len(bsubs)
+         print('** anova3_command: need at least 2 sub-bricks (have %d)' \
+               % len(bsubs))
          return None
 
       ncond = len(factors)
@@ -551,26 +553,26 @@ class SubjectList(object):
 
       if atype == 4:
          if ngroups != 1:
-            print '** anova3_cmd: -type 4 requires only 1 dset group'
+            print('** anova3_cmd: -type 4 requires only 1 dset group')
             return None
          if ncond != 2:
-            print '** anova3_cmd: -type 4 requires 2 factor lengths'
-            print '               (product should be length -subs_betas)'
+            print('** anova3_cmd: -type 4 requires 2 factor lengths')
+            print('               (product should be length -subs_betas)')
             return None
          if factors[0]*factors[1] != len(bsubs):
-            print '** anova3_cmd: -type 4 factor mismatch'
-            print '               (%d x %d design requires %d betas, have %d' \
-                  % (factors[0], factors[1], factors[0]*factors[1], len(bsubs))
+            print('** anova3_cmd: -type 4 factor mismatch')
+            print('               (%d x %d design requires %d betas, have %d' \
+                  % (factors[0], factors[1], factors[0]*factors[1], len(bsubs)))
             return None
       elif atype == 5:
          if ngroups < 2:
-            print '** anova3_cmd: -type 5 requires >= 2 subject lists'
+            print('** anova3_cmd: -type 5 requires >= 2 subject lists')
             return None
          if ncond > 1:
-            print '** anova3_cmd: -type 5 should not have sets of factors'
+            print('** anova3_cmd: -type 5 should not have sets of factors')
             return None
       else:
-         print '** anova3_cmd: cannot detect -type 4 or -type 5, seek -help!'
+         print('** anova3_cmd: cannot detect -type 4 or -type 5, seek -help!')
          return None
 
       indent = 4  # indent after main command
@@ -612,7 +614,7 @@ class SubjectList(object):
          opt = '-amean 1 amean1 -bmean 1 bmean1'
          cmd += '%*s-amean 1 amean1 \\\n' \
                 '%*s-bmean 1 bmean1 \\\n' % (indent, '', indent, '')
-         print '++ no contrast options given, adding simple: %s' % opt
+         print('++ no contrast options given, adding simple: %s' % opt)
 
       if prefix.find('/') >= 0: pp = prefix
       else:                     pp = './%s' % prefix
@@ -651,8 +653,8 @@ class SubjectList(object):
 
       # ready for work, maybe note status
       if self.verb > 1:
-         print '-- make_generic_command: %s -prefix %s' % (command, prefix)
-         print '                         s2 = %d, bsubs = %s'%(s2!=None,bsubs)
+         print('-- make_generic_command: %s -prefix %s' % (command, prefix))
+         print('                         s2 = %d, bsubs = %s'%(s2!=None,bsubs))
 
       # initialize directories and variables
       rv, cmd = self.set_data_dirs(subjlist2=s2)
@@ -752,13 +754,13 @@ class SubjectList(object):
       """
 
       if prefix == '' or prefix == None: prefix = 'ttest++_result'
-      if verb > 1: print '-- make_ttest++_command: have prefix %s' % prefix
+      if verb > 1: print('-- make_ttest++_command: have prefix %s' % prefix)
       s2 = subjlist2    # sooooo much typing...
 
       if set_labs == None:
          if s2 == None: set_labs = ['setA']
          else:                 set_labs = ['setA', 'setB']
-         if verb > 2: print '-- tt++_cmd: adding default set labels'
+         if verb > 2: print('-- tt++_cmd: adding default set labels')
       if bsubs == None: bsubs, tsubs = ['0'], ['1']
 
       indent = 10  # minimum indent: spaces to following -set option
@@ -800,29 +802,29 @@ class SubjectList(object):
 
       # maybe add second set of subject files
       if len(set_labs) > 1:
-         if verb > 2: print '-- tt++_cmd: have labels for second subject set'
+         if verb > 2: print('-- tt++_cmd: have labels for second subject set')
 
          # separate tests for bad test types
          if comp_dir == None:
-            print '** make_tt++_cmd: missing test type, should be in %s' \
-                  % g_ttpp_tests
+            print('** make_tt++_cmd: missing test type, should be in %s' \
+                  % g_ttpp_tests)
             return      # failure
          if comp_dir not in g_ttpp_tests:
-            print '** make_tt++_cmd: comp_dir (%s) must be in the list %s' \
-                  % (comp_dir, g_ttpp_tests)
+            print('** make_tt++_cmd: comp_dir (%s) must be in the list %s' \
+                  % (comp_dir, g_ttpp_tests))
             return      # failure
 
          # note subject list and sub-brick labels
          if s2 != None:
             S = s2
-            if verb > 2: print '-- second subject list was passed'
+            if verb > 2: print('-- second subject list was passed')
          else:
             S = self
-            if verb > 2: print '-- no second subject list, using same list'
+            if verb > 2: print('-- no second subject list, using same list')
          if len(bsubs) > 1: b = bsubs[1]
          else:
             if S != s2:
-               print '** make_tt++_cmd: same subject list in comparison'
+               print('** make_tt++_cmd: same subject list in comparison')
             b = bsubs[0]
          cmd += '%*s-setB %s \\\n%s' % \
                 (indent, ' ', set_labs[1], S.make_ttpp_set_list(b, indent+3))
@@ -868,13 +870,13 @@ class SubjectList(object):
       """
 
       if prefix == '' or prefix == None: prefix = 'mema_result'
-      if verb > 1: print '++ make_mema_cmd: have prefix %s' % prefix
+      if verb > 1: print('++ make_mema_cmd: have prefix %s' % prefix)
       s2 = subjlist2    # sooooo much typing...
 
       if set_labs == None:
          if s2 == None: set_labs = ['setA']
          else:                 set_labs = ['setA', 'setB']
-         if verb > 2: print '++ mema_cmd: adding default set labels'
+         if verb > 2: print('++ mema_cmd: adding default set labels')
       if bsubs == None: bsubs, tsubs = ['0'], ['1']
 
       # maybe we will use directory variables
@@ -909,29 +911,29 @@ class SubjectList(object):
 
       # maybe add second set of subject files
       if len(set_labs) > 1:
-         if verb > 2: print '-- mema_cmd: have labels for second subject set'
+         if verb > 2: print('-- mema_cmd: have labels for second subject set')
          # note subject list and sub-brick labels
          if s2 != None:
             S = s2
-            if verb > 2: print '-- second subject list was passed'
+            if verb > 2: print('-- second subject list was passed')
          else:
             S = self
-            if verb > 2: print '-- no second subject list, using same list'
+            if verb > 2: print('-- no second subject list, using same list')
          if len(bsubs) > 1: b, t = bsubs[1], tsubs[1]
          else:
             if S != s2:
-               print '** make_mema_cmd: same subject list in comparison'
+               print('** make_mema_cmd: same subject list in comparison')
             b, t = bsubs[0], tsubs[0]
          cmd += '%7s-set %s \\\n%s' % \
                 (' ', set_labs[1], S.make_mema_set_list(b, t, 10))
 
          # either 2-sample or paired
          if ttype not in g_mema_tests:
-            print "** invalid 3dMEMA test %s, not in %s" % (ttype,g_mema_tests)
+            print("** invalid 3dMEMA test %s, not in %s" % (ttype,g_mema_tests))
             return None
          if ttype == 'paired':
-            print '** 3dMEMA -type paired: no longer valid\n' \
-                  '   (input contrast and t-stat from original regression)'
+            print('** 3dMEMA -type paired: no longer valid\n' \
+                  '   (input contrast and t-stat from original regression)')
             return None
          else: opt = '-groups'
          cmd += '%7s%s %s %s \\\n' % ('', opt, set_labs[0], set_labs[1])
@@ -1076,14 +1078,14 @@ class SubjectList(object):
       errs  = 0
 
       if len(subjlists) != 1:
-         print '** MAt4SL: bad subject list count = %d' % len(subjlists)
+         print('** MAt4SL: bad subject list count = %d' % len(subjlists))
          return None
 
       nA = factors[0]
       nB = factors[1]
       slist = subjlists[0]
       if nA*nB != len(bsub):
-         print '** MAt4SL: bad factor count: %d, %d, %d' % (nA, nB, len(bsub))
+         print('** MAt4SL: bad factor count: %d, %d, %d' % (nA, nB, len(bsub)))
          return None
 
       sstr = ''
@@ -1130,8 +1132,8 @@ class SubjectList(object):
       errs  = 0
       for ilist, slist in enumerate(subjlists):
          if len(slist.subjects) != slen0:
-            print '** subject list %d length differs from SL 1 (%d != %d)\n'\
-                  % (ilist+1, len(slist.subjects), slen0)
+            print('** subject list %d length differs from SL 1 (%d != %d)\n'\
+                  % (ilist+1, len(slist.subjects), slen0))
             errs += 1
          sdir = slist.common_dname
 
@@ -1152,5 +1154,5 @@ class SubjectList(object):
       return sstr
 
 if __name__ == '__main__':
-   print '** this is not a main program'
+   print('** this is not a main program')
 
