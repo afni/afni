@@ -110,7 +110,11 @@ def retro_ts(respiration_file, cardiac_file, phys_fs, number_of_slices,
     #  and main_info['number_of_slices'].
     tt = 0.0  # Default float value to start iterations
     dtt = float(main_info['volume_tr']) / float(main_info['number_of_slices'])  # Increments for iteration
-    main_info['slice_offset'] = [0] * main_info['number_of_slices']  # Initial value for main_info['slice_offset']
+    # init slice_offsets, unless Custom order
+    # (noted by Jogi Ho on board   27 Dec 2017 [rickr])
+    if main_info['slice_order'] != 'Custom' or \
+          len(main_info['slice_offset']) != main_info['number_of_slices']:
+       main_info['slice_offset'] = [0] * main_info['number_of_slices']  # Initial value for main_info['slice_offset']
     slice_file_list = []    # List for using external file for main_info['slice_offset'] values/
                             # Indicates if using external file in last loop
     if main_info['slice_order'][0:3] == 'alt':  # Alternating?
