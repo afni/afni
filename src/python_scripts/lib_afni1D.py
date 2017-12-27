@@ -1526,7 +1526,7 @@ class Afni1D:
             if dp > 0:    ps = "%.*f%s" % (dp, val, ss)
             elif dp == 0: ps = "%g%s" % (val, ss)
             else:         ps = "%f%s" % (val, ss)
-            print(ps, end=' ')
+            print(ps, end='')
          print("")
 
    def make_cormat_warnings_string(self, cutoff=0.4, name=''):
@@ -1961,7 +1961,7 @@ class Afni1D:
          mesg: if set print before output
          verb: if 0, no text"""
 
-      if mesg:     print('%s' % mesg, end=' ')
+      if mesg:     print('%s' % mesg, end='')
       if verb > 0: print('rows = %d, cols = %d' % (self.nt, self.nvec))
       else:        print('%d %d' % (self.nt, self.nvec))
 
@@ -2204,7 +2204,7 @@ class Afni1D:
          mind += 1 # becomes a count to zero
          
          if verb: print("    col %d: response length = %d" % (cind, mind))
-         else:    print("%d" % mind, end=' ')
+         else:    print("%d" % mind, end='')
       print('')
 
    def slice_order_to_times(self, verb=1):
