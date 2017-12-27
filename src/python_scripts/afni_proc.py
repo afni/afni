@@ -4,6 +4,7 @@
 
 # note: in the script, runs are 1-based (probably expected)
 
+# for end='' parameter to print()
 from __future__ import print_function
 
 import string, sys, os
@@ -871,14 +872,14 @@ class SubjProcSream:
         if self.verb > 3:
             for block in self.blocks:
                 block.show('    Block %d: ' % self.blocks.index(block))
-        print('    Dsets : ', end=' ')
+        print('    Dsets : ', end='')
         if len(self.dsets) < 1: print('not yet set')
         else:
             if self.verb > 2:
                 print()
                 for dset in self.dsets: dset.show()
             else:
-                for dset in self.dsets: print(dset.rel_input(), end=' ')
+                for dset in self.dsets: print(dset.rel_input(), end='')
                 print()
         if self.verb > 3: self.valid_opts.show('valid_opts: ')
         if self.verb > 1: self.user_opts.show('user_opts: ')
@@ -2165,7 +2166,7 @@ class SubjProcSream:
         bind1 = self.find_block_index(name1)
         if bind0 < 0 or bind1 < 0: # something is missing
             if must_exist:
-                print('** warning: missing block', end=' ')
+                print('** warning: missing block', end='')
                 if bind0 < 0: print("'%s' (to preceed '%s')" % (name0,name1))
                 if bind1 < 0: print("'%s' (to follow '%s')" % (name1,name0))
             return 1
