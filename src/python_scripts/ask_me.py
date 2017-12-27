@@ -141,7 +141,7 @@ def get_stim_labels(proc, type):
         nremain = nlabs
         labels = []
         while nremain > 0 :
-            print('++ (%d remain) please enter label(s): ' % nremain, end=' ')
+            print('++ (%d remain) please enter label(s): ' % nremain, end='')
             llist = string.split(sys.stdin.readline())
             if not llist or len(llist) <= 0: continue
 
@@ -177,7 +177,7 @@ def get_stim_files(proc, type):
         nremain = nfiles
         files = []
         while nremain > 0 :
-            print('++ (%d remain) please enter file name(s): ' % nremain, end=' ')
+            print('++ (%d remain) please enter file name(s): ' % nremain,end='')
             flist = read_one_glob_file_list()
             if not flist or len(flist) <= 0: continue
 
@@ -211,7 +211,8 @@ def get_datasets(proc):
         dsets = []
         errs = 0
         while nremain > 0 and errs == 0:
-            print('++ (%d remain) please enter dataset name(s): ' % nremain, end=' ')
+            print('++ (%d remain) please enter dataset name(s): ' \
+                  % nremain, end='')
             words = string.split(sys.stdin.readline())
             print() # for separation
             new_dsets = afni_util.list_to_datasets(words, whine=1)
@@ -277,7 +278,7 @@ def read_one_glob_file_list():
 #       - try until success
 def read_one_word(prompt, valid_list=None):
     while 1:
-        print(prompt, end=' ')
+        print(prompt, end='')
         words = string.split(sys.stdin.readline())
         print() # for separation
         if len(words) <= 0: continue
@@ -290,7 +291,7 @@ def read_one_word(prompt, valid_list=None):
 #       - pos -> integer must be positive
 def read_one_int(prompt, pos=0, nonneg=0):
     while 1:
-        print(prompt, end=' ')
+        print(prompt, end='')
         words = string.split(sys.stdin.readline())
         print() # for separation
         if len(words) < 1: continue

@@ -3142,7 +3142,7 @@ class RandTiming:
            print('== eind, emax: %d, %d' % (eind, emax))
            print('== CLS clist: %s' % clist)
         for ind in range(1, len(clist)):
-            if self.verb > 5: print('  %02d  %s  ' % (ind, clist[ind]), end=' ')
+            if self.verb > 5: print('  %02d  %s  ' % (ind, clist[ind]), end='')
             # if next is eind, can go up to max
             ncur = clist[ind][1] # note number of current entries
             if clist[ind][0] == eind:
