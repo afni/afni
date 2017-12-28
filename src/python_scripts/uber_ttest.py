@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# python3 status: compatible
+
 # basically, a GUI to write an afni_proc.py command
 
 import sys, os, copy, math
@@ -118,7 +120,7 @@ class MainInterface(object):
 
       # add user and control vars directly
       for dict in [LTT.g_cvar_dict, LTT.g_uvar_dict]:
-         keys = dict.keys()
+         keys = list(dict.keys())
          keys.sort()
          for name in keys:
             if name == 'verb': continue # already included
@@ -143,19 +145,19 @@ class MainInterface(object):
       # ------------------------------------------------------------
       # check for terminal options before processing the rest
       if '-help' in argv:
-         print g_command_help
+         print(g_command_help)
          return 1
 
       if '-help_gui' in argv:
-         print LTT.helpstr_gui
+         print(LTT.helpstr_gui)
          return 1
 
       if '-help_todo' in argv:
-         print LTT.helpstr_todo
+         print(LTT.helpstr_todo)
          return 1
 
       if '-hist' in argv:
-         print LTT.g_history
+         print(LTT.g_history)
          return 1
 
       if '-show_default_vars' in argv:
@@ -168,22 +170,22 @@ class MainInterface(object):
 
       if '-show_cvar_dict' in sys.argv:
          dict = LTT.g_cvar_dict
-         keys = dict.keys()
+         keys = list(dict.keys())
          keys.sort()
          for key in keys:
-            print '   %-20s : %s' % (key, dict[key])
+            print('   %-20s : %s' % (key, dict[key]))
          return 1
 
       if '-show_uvar_dict' in sys.argv:
          dict = LTT.g_uvar_dict
-         keys = dict.keys()
+         keys = list(dict.keys())
          keys.sort()
          for key in keys:
-            print '   %-20s : %s' % (key, dict[key])
+            print('   %-20s : %s' % (key, dict[key]))
          return 1
 
       if '-ver' in argv:
-         print 'uber_ttest.py: version %s' % LTT.g_version
+         print('uber_ttest.py: version %s' % LTT.g_version)
          return 1
 
       # ------------------------------------------------------------
@@ -206,8 +208,8 @@ class MainInterface(object):
                                  defs=LTT.g_ctrl_defs)
 
       use_gui = 1 # assume GUI unless we hear otherwise
-      cvar_keys = LTT.g_cvar_dict.keys()
-      uvar_keys = LTT.g_uvar_dict.keys()
+      cvar_keys = list(LTT.g_cvar_dict.keys())
+      uvar_keys = list(LTT.g_uvar_dict.keys())
 
       # we already processed terminal options
       term_opts = ['-help', '-help_gui', '-help_todo',
@@ -288,7 +290,7 @@ class MainInterface(object):
                continue
 
          else:
-            print '** invalid option: %s' % opt.name
+            print('** invalid option: %s' % opt.name)
             errs += 1
             continue
 
@@ -313,14 +315,14 @@ class MainInterface(object):
       """create alignment script and print to terminal"""
 
       atest, cmd = self.get_script()
-      print cmd
+      print(cmd)
 
    def save_script(self, fname):
       atest, cmd = self.get_script()
       if cmd == '': return
 
       if atest.write_script(fname):
-         print '** failed to write afni_proc.py command to disk'
+         print('** failed to write afni_proc.py command to disk')
 
    def get_script(self):
       """return the TTest object and script
@@ -332,10 +334,10 @@ class MainInterface(object):
       status, mesg = atest.get_script()
 
       if status:        # only show errors
-         print '%s\nERRORS:\n\n%s\n' % (75*'*', mesg)
+         print('%s\nERRORS:\n\n%s\n' % (75*'*', mesg))
          cmd = ''
       else:
-         if wstr: print '%s\n**** Warnings:\n\n%s\n%s\n' % (75*'-',wstr,75*'-')
+         if wstr: print('%s\n**** Warnings:\n\n%s\n%s\n' % (75*'-',wstr,75*'-'))
          cmd = '### alignment test script:\n\n%s\n' % mesg
 
       return atest, cmd
@@ -344,9 +346,9 @@ class MainInterface(object):
    def run_gui(self):
       try: from PyQt4 import QtGui
       except:
-         print '\n**** failed to import PyQt4.QtGui ****\n\n'                \
+         print('\n**** failed to import PyQt4.QtGui ****\n\n'                \
                '   PyQt4 must be installed to run the uber_subject.py GUI\n' \
-               '   --> see the output of: uber_subject.py -help_install\n'
+               '   --> see the output of: uber_subject.py -help_install\n')
          return 1
 
       # if the above worked, let any GUI import errors show normally

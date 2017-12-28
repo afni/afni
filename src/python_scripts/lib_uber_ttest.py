@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# python3 status: compatible
+
 # general functions for use by uber_tool*.py
 
 import sys, os
@@ -26,9 +28,10 @@ g_history = """
          - both -print_script or -save_script imply -no_gui
          - added help
     1.1  18 Oct, 2012: minor updates to match library changes
+    2.0  28 Dec, 2017: python3 compatible
 """
 
-g_version = '1.1 (October 18, 2012)'
+g_version = '2.0 (December 28, 2017)'
 
 # ----------------------------------------------------------------------
 # global definitions
@@ -210,9 +213,9 @@ class TTest(object):
          UTIL.common_parent_dirs(all_files)
 
       if self.cvars.verb > 2:
-         print '== top_dir = %s\n   parent_dirs = %s\n   short_dirs = %s\n' \
+         print('== top_dir = %s\n   parent_dirs = %s\n   short_dirs = %s\n' \
                '   short_names = %s' \
-               %(top_dir, parent_dirs, short_dirs, short_names)
+               %(top_dir, parent_dirs, short_dirs, short_names))
 
       # and store it
       self.LV.top_dir     = top_dir
@@ -223,7 +226,7 @@ class TTest(object):
       # if top_dir isn't long enough, do not bother with it
       if self.LV.top_dir.count('/') < 2:
          self.LV.top_dir = ''
-         if self.cvars.verb > 2: print '   (top_dir not worth using...)'
+         if self.cvars.verb > 2: print('   (top_dir not worth using...)')
 
    def create_script(self):
       """attempt to generate a processing script
@@ -327,7 +330,7 @@ class TTest(object):
       if choice == 'A':   short_name_ind = 0
       elif choice == 'B': short_name_ind = 1
       else:
-         print '** MTS: bad choice %s' % choice
+         print('** MTS: bad choice %s' % choice)
          return ''
 
       # init dsets based on the choice, and to see if there is anything to do
@@ -361,7 +364,7 @@ class TTest(object):
       if choice == 'A':   short_name_ind = 0
       elif choice == 'B': short_name_ind = 1
       else:
-         print '** MMS: bad choice %s' % choice
+         print('** MMS: bad choice %s' % choice)
          return ''
 
       # init dsets based on the choice, and to see if there is anything to do
@@ -411,7 +414,7 @@ class TTest(object):
       elif type(indent) == int:
          istr = ' '*indent
       else:
-         print '** MDL: unexpected indent %s' % type(indent)
+         print('** MDL: unexpected indent %s' % type(indent))
          return ''
 
       dstr = dirstr
@@ -427,7 +430,7 @@ class TTest(object):
             return ''
       else:
          if nsids != ndsets:
-            print '** MDL, have %d dsets but %d sids' % (ndsets, nsids)
+            print('** MDL, have %d dsets but %d sids' % (ndsets, nsids))
             return ''
 
       cstr = ''
@@ -555,7 +558,7 @@ class TTest(object):
       self.LV.retdir = SUBJ.goto_proc_dir(self.cvars.proc_dir)
 
       if os.path.isdir(self.cvars.results_dir):
-         print '-- nuking old results: %s' % self.cvars.results_dir
+         print('-- nuking old results: %s' % self.cvars.results_dir)
          os.system('rm -fr %s' % self.cvars.results_dir)
 
       self.LV.retdir = SUBJ.ret_from_proc_dir(self.LV.retdir)
@@ -571,9 +574,9 @@ class TTest(object):
       self.LV.retdir = SUBJ.goto_proc_dir(self.cvars.proc_dir)
       if os.path.isfile(pfile):
          cmd = 'cp -f %s .orig.%s' % (pfile, pfile)
-         if self.cvars.verb > 1: print '++ exec: %s' % cmd
+         if self.cvars.verb > 1: print('++ exec: %s' % cmd)
          os.system(cmd)
-      elif self.cvars.verb > 1: print "** no proc '%s' to copy" % pfile
+      elif self.cvars.verb > 1: print("** no proc '%s' to copy" % pfile)
       self.LV.retdir = SUBJ.ret_from_proc_dir(self.LV.retdir)
       # ------------------------- done -------------------------
 
@@ -584,7 +587,7 @@ class TTest(object):
       """
 
       if not self.script:
-         print '** no script to write out'
+         print('** no script to write out')
          return 1
       if fname: name = fname
       else: name = 'script.ttest'
@@ -593,7 +596,7 @@ class TTest(object):
       self.rvars.file_proc = name # store which file we have written to
       self.rvars.output_proc = 'output.%s' % name # file for command output
 
-      if self.cvars.verb > 0: print '++ writing script to %s' % name
+      if self.cvars.verb > 0: print('++ writing script to %s' % name)
 
       # if requested, make an original copy
       self.LV.retdir = SUBJ.goto_proc_dir(self.cvars.proc_dir)
@@ -617,6 +620,7 @@ helpstr_todo = """
 
 - maybe add options for covariates
 - add test-specific options (there are many in 3dMEMA)
+- python3: modify TcshCommandWindow to properly format text output
 ---------------------------------------------------------------------------
 """
 
