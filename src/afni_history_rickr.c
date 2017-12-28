@@ -49,8 +49,13 @@
 
 afni_history_struct rickr_history[] = {
 
- { 27, Dec, 2017, RCR, "gen_group_command.py", MINOR, TYPE_ENHANCE,
-   "python3 compatible as of version 1.00",
+ { 28, Dec, 2017, RCR, "gen_ss_review_table.py", MINOR, TYPE_ENHANCE,
+   "python3 compatible as of version 1.0",
+   NULL
+ } ,
+
+ { 27, Dec, 2017, RCR, "gen_group_command.py", MICRO, TYPE_ENHANCE,
+   "python3 compatible as of version 1.0",
    NULL
  } ,
 

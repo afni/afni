@@ -599,7 +599,7 @@ g_history = """
    0.11 Apr 24, 2015 - tiny help update (example)
    0.12 Aug 12, 2015 - allow generic (unknown) commands (via -command)
    0.13 Mar 29, 2016 - 3dMEMA now requires paired test to be via input contrast
-   1.00 Dec 27, 2017 - python 3compatible
+   1.0  Dec 27, 2017 - python3 compatible
 """
 
 g_version = "gen_group_command.py version 1.00, December 27, 2017"
