@@ -81,7 +81,9 @@ class OptionList:
 
     def sort(self):
         """sort command option list by name"""
-        self.olist.sort(cmp=compare_comopts)
+        # cmp keywork has been removed in python3, use key instead
+        # self.olist.sort(cmp=compare_comopts)
+        self.olist.sort(key=comopts_key)
 
     def show(self, mesg = '', verb = 0, show_count=-1):
         if verb or mesg != '': print("%sOptionList: %s (len %d)" % \
@@ -568,6 +570,14 @@ def opt_is_val(opt, optval):
     except: pass
 
     return rv
+
+def comopts_key(copt):
+    """function to be called on each comopts struct for use
+       in sort(key=), since the cmp parameter is gone in python3
+
+       return name field, as that is comparable for sort()
+    """
+    return copt.name
 
 def compare_comopts(c1, c2):
     """comparison function for use in sort()

@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# python3 status: compatible
+
 # system libraries
 import sys, os, glob
 
@@ -122,13 +124,14 @@ g_history = """
    0.6  Aug 19, 2015   - added -show_missing, to display missing keys
    0.7  Oct 28, 2015   - make 'a/E mask Dice coef' parent of 'mask correlation'
    0.8  Aug 17, 2016   - 'blur estimates (FWHM)' is parent of 'blur estimates'
+   1.0  Dec 28, 2017   - python3 compatible
 """
 
-g_version = "gen_ss_review_table.py version 0.8, August 17, 2016"
+g_version = "gen_ss_review_table.py version 1.0, December 28, 2017"
 
 
 class MyInterface:
-   """interface class for MyLibrary (whatever that is)
+   """main interface class
      
       This uses lib_1D.py as an example."""
    def __init__(self, verb=1):
@@ -203,11 +206,11 @@ class MyInterface:
 
       # if no arguments are given, do default processing
       if '-help' in argv or len(argv) < 2:
-         print g_help_string
+         print(g_help_string)
          return 1
 
       if '-hist' in argv:
-         print g_history
+         print(g_history)
          return 1
 
       if '-show_valid_opts' in argv:
@@ -215,7 +218,7 @@ class MyInterface:
          return 1
 
       if '-ver' in argv:
-         print g_version
+         print(g_version)
          return 1
 
       # ============================================================
@@ -240,7 +243,7 @@ class MyInterface:
          elif opt.name == '-infiles':
             self.infiles, err = uopts.get_string_list('', opt=opt)
             if self.infiles == None or err:
-               print '** failed to read -infiles list'
+               print('** failed to read -infiles list')
                errs +=1
 
             self.parse_infile_names()
@@ -251,7 +254,7 @@ class MyInterface:
          elif opt.name == '-separator':
             self.separator, err = uopts.get_string_opt('', opt=opt)
             if self.separator == None or err:
-               print "** bad -tablefile option"
+               print("** bad -tablefile option")
                errs += 1
             if   self.separator == 'tab': self.separator = '\t'
             elif self.separator == 'whitespace': self.separator = 'ws'
@@ -266,12 +269,12 @@ class MyInterface:
          elif opt.name == '-tablefile':
             self.tablefile, err = uopts.get_string_opt('', opt=opt)
             if self.tablefile == None or err:
-               print "** bad -tablefile option"
+               print("** bad -tablefile option")
                errs +=1
 
          else:
             oind = self.user_opts.olist.index(opt)
-            print '** unknown option # %d: %s' % (oind+1, opt.name)
+            print('** unknown option # %d: %s' % (oind+1, opt.name))
             errs += 1
             break
 
@@ -282,7 +285,7 @@ class MyInterface:
       # apply any trailing logic
 
       if len(self.infiles) < 1:
-         print '** missing -infiles option'
+         print('** missing -infiles option')
          errs += 1
 
       if errs: return -1
@@ -306,27 +309,27 @@ class MyInterface:
       for ifile in self.infiles:
          if ifile in ['-', 'stdin']: pass
          elif not os.path.isfile(ifile):
-            print '** input file not found: %s' % ifile
+            print('** input file not found: %s' % ifile)
             errs += 1
       if errs: return 1
          
       # check for existence separately
       for ifile in self.infiles:
-         if self.verb > 2: print '++ processing %s ...' % ifile
+         if self.verb > 2: print('++ processing %s ...' % ifile)
 
          # open, read, close
          if ifile in ['-', 'stdin']: fp = sys.stdin
          else:
             try: fp = open(ifile)
             except:
-               print "** failed to open input file %s" % ifile
+               print("** failed to open input file %s" % ifile)
                return 1
          ilines = fp.readlines()
          if ifile != sys.stdin: fp.close()
 
          # empty should be a terminal failure
          if len(ilines) < 1:
-            print '** empty input for file %s' % ifile
+            print('** empty input for file %s' % ifile)
             return 1
 
          if len(self.labels) == 0:
@@ -358,14 +361,14 @@ class MyInterface:
 
          # label = self.find_parent_label(label)
 
-         if self.verb > 2: print '++ label: %s, %d val(s)' % (label, nvals)
+         if self.verb > 2: print('++ label: %s, %d val(s)' % (label, nvals))
 
          llist.append(label)
          self.maxcounts[label] = nvals
          self.subjcounts[label] = 0
 
       if not UTIL.vals_are_unique(llist):
-         print '** warning: labels are not unique, will use only last values'
+         print('** warning: labels are not unique, will use only last values')
          llist = UTIL.get_unique_sublist(llist)
 
       return 0, llist
@@ -408,7 +411,7 @@ class MyInterface:
 
          # label = self.find_parent_label(label)
 
-         if self.verb > 3: print '++ dict[%s] = %s' % (label, vals)
+         if self.verb > 3: print('++ dict[%s] = %s' % (label, vals))
 
          # if new label, try parent, else add
          if label not in self.labels:
@@ -416,7 +419,7 @@ class MyInterface:
             if parent in self.parents:
                ll = self.labels[self.parents.index(parent)]
                if self.verb > 3:
-                  print '-- converting label %s to %s' % (label, ll)
+                  print('-- converting label %s to %s' % (label, ll))
                label = ll
             else: self.insert_new_label(label, lind, nvals)
 
@@ -451,15 +454,15 @@ class MyInterface:
          vals = line[cind+self.seplen:].split()
 
       if self.verb > 4:
-         print '-- GLV: label %s, vals %s' % (label, vals)
+         print('-- GLV: label %s, vals %s' % (label, vals))
 
       return 1, label, vals
 
    def update_max_counts(self, label, nvals):
       """update maxcounts and subjcounts"""
-      if not self.maxcounts.has_key(label):
+      if label not in self.maxcounts:
          if self.verb > 1:
-            print '** found new label key: %s' % label
+            print('** found new label key: %s' % label)
          self.maxcounts[label] = nvals
 
       else: # rcr - safe as one line?  will it be parsed?
@@ -490,22 +493,22 @@ class MyInterface:
       rv, slist = UTIL.list_minus_pref_suf(self.infiles,'out.ss_review.','.txt')
       if rv < 0: return
       if rv > 0:
-         if self.verb > 1: print '++ trying to get SID from glob form'
+         if self.verb > 1: print('++ trying to get SID from glob form')
          slist = UTIL.list_minus_glob_form(self.infiles, strip='dir')
       else:
-         if self.verb > 1: print "++ have SIDs from 'out.ss_reiview' form"
+         if self.verb > 1: print("++ have SIDs from 'out.ss_reiview' form")
 
       if len(slist) == 0:
-         if self.verb > 1: print "-- empty SID list"
+         if self.verb > 1: print("-- empty SID list")
          return
 
       # make sure names are unique and not empty
       if not UTIL.vals_are_unique(slist):
-         if self.verb > 1: print '-- SIDs not detected: not unique'
+         if self.verb > 1: print('-- SIDs not detected: not unique')
          return
       minlen = min([len(ss) for ss in slist])
       if minlen < 1:
-         if self.verb > 1: print '-- SIDs not detected: some would be empty'
+         if self.verb > 1: print('-- SIDs not detected: some would be empty')
          return
 
       # we have a subject list
@@ -516,7 +519,7 @@ class MyInterface:
                         enumerate(self.infiles)]
 
       if UTIL.vals_are_constant(newfiles):
-         print '-- no groups detected from filenames'
+         print('-- no groups detected from filenames')
          return
 
       # okay, try to make a group list
@@ -525,15 +528,15 @@ class MyInterface:
       # cannot have dirs in result
       for gid in glist:
          if gid.find('/') >= 0:
-            if self.verb>1: print '-- no GIDs, dirs vary in multiple places'
+            if self.verb>1: print('-- no GIDs, dirs vary in multiple places')
             return
 
       minlen = min([len(ss) for ss in glist])
       if minlen < 1:
-         if self.verb > 1: print '-- GIDs not detected: some would be empty'
+         if self.verb > 1: print('-- GIDs not detected: some would be empty')
          return
 
-      if self.verb > 1: print "++ have GIDs from infiles"
+      if self.verb > 1: print("++ have GIDs from infiles")
       self.gnames = glist
 
    def display_labels(self):
@@ -541,7 +544,7 @@ class MyInterface:
 
       nsubj = len(self.infiles)
 
-      print '-- final label table (length %d):' % len(self.labels)
+      print('-- final label table (length %d):' % len(self.labels))
       for label in self.labels:
          nv = self.maxcounts[label]
          if nv == 1: cstr = '%3d val' % nv
@@ -552,33 +555,33 @@ class MyInterface:
 
          if nv < nsubj: short = '  (short)'
          else:          short = ''
-         print '%-30s : %-10s : %-10s%s' % (label, cstr, sstr, short)
+         print('%-30s : %-10s : %-10s%s' % (label, cstr, sstr, short))
 
    def write_table(self):
 
       if not self.tablefile:
-         if self.verb: print '-- no tablefile to write'
+         if self.verb: print('-- no tablefile to write')
          return 0
 
       if len(self.labels) < 1:
-         print '** no labels for output table'
+         print('** no labels for output table')
          return 1
 
       if len(self.ldict) < 1:
-         print '** no label dictionaries'
+         print('** no label dictionaries')
          return 1
 
       # open output file
       if self.tablefile in ['-', 'stdout']:
          fp = sys.stdout
       elif os.path.exists(self.tablefile) and not self.overwrite:
-         print '** output table file %s exists, and no overwrite given' \
-               % self.tablefile
+         print('** output table file %s exists, and no overwrite given' \
+               % self.tablefile)
          return 1
       else:
          try: fp = open(self.tablefile, 'w')
          except:
-            print "** failed to open table '%s' for writing" % self.tablefile
+            print("** failed to open table '%s' for writing" % self.tablefile)
             return 1
 
       if self.write_header_lines(fp): return 1
@@ -656,7 +659,7 @@ class MyInterface:
             nf = self.maxcounts[label]
             try: vals = self.ldict[ind][label]
             except:
-               if self.verb>2:print '** infile %s missing key %s'%(infile,label)
+               if self.verb>2:print('** infile %s missing key %s'%(infile,label))
                vals = []
             nv = len(vals)
             if nv > 0: fp.write('\t'+'\t'.join(vals))
@@ -677,7 +680,7 @@ class MyInterface:
       for ind, infile in enumerate(self.infiles):
          missing = []
          for label in self.labels:
-            if not self.ldict[ind].has_key(label):
+            if label not in self.ldict[ind]:
                missing.append(label)
             if not label in allmissing: allmissing.append(label)
          if len(missing) > 0:
@@ -692,7 +695,7 @@ class MyInterface:
       # --- set oneline, based on max missing labels and max label length ---
 
       # note maximum number of missing labels (over files)
-      lens = [len(mm[1]) for lab in mlist]
+      lens = [len(mm[1]) for mm in mlist]
       maxmissing = max(lens)
 
       # note longest (missing) label
@@ -707,11 +710,11 @@ class MyInterface:
          infile = mm[0]
          missing = mm[1]
          if oneline:
-            print 'missing keys in %-*s : %s' \
-                  % (maxflen, infile, ', '.join(missing))
+            print('missing keys in %-*s : %s' \
+                  % (maxflen, infile, ', '.join(missing)))
          else:
             for lab in missing:
-               print 'missing key in %-*s : %s' % (maxflen, infile, lab)
+               print('missing key in %-*s : %s' % (maxflen, infile, lab))
 
 def main():
    me = MyInterface()
@@ -720,7 +723,7 @@ def main():
    rv = me.process_options()
    if rv > 0: return 0  # valid and exit
    if rv < 0: # error and exit
-      print '** failed to process options...'
+      print('** failed to process options...')
       return 1
 
    if me.parse_infiles():
