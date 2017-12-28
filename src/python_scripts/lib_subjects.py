@@ -13,6 +13,7 @@ g_ttpp_tests = ['-AminusB', '-BminusA']
 # atomic (type within nested list) and simple types for VarsObject
 g_valid_atomic_types = [int, float, str, list]
 g_simple_types = [int, float, str]
+g_subject_sort_key = None
 
 def comment_section_string(comment, length=70, cchar='-'):
    """return a string of the form:
@@ -43,6 +44,25 @@ def make_message_list_string(mlist, title):
 # begin Subject stuff  (class should be rewritten to use VarsObject types)
 # ===========================================================================
 
+def subj_compare_key(subj):
+   """subj_compare() will no longer be valid in python3, as sort() will
+      lose the cmp= attribute.  Generate a key that would be equivalent,
+      and just use reverse() after the fact, if desired.
+
+      The key is now stored in g_subject_sort_key.
+
+      Return a [key, sid] pair (or sid, if key==None).
+   """
+   if g_subject_sort_key == None:
+      return subj.sid
+
+   if g_subject_sort_key in subj.atrs:
+      val = subj.atrs[g_subject_sort_key]
+   else:
+      val = None
+
+   return [val, subj.sid]
+   
 def subj_compare(subj0, subj1):
    """compare 2 Subject objects:        used for sorting a list of subjects
          if _sort_key is set, compare by key, then by sid
@@ -58,8 +78,9 @@ def subj_compare(subj0, subj1):
       else: v1 = None
       cval = cmp(v0, v1)
 
-   if cval != 0: return subj0._order*cval
-   return subj0._order*cmp(subj0.sid, subj1.sid)
+   # remove subj0._order, as compare must be replaced by key
+   if cval != 0: return cval
+   return cmp(subj0.sid, subj1.sid)
 
 def set_var_str_from_def(obj, name, vlist, vobj, defs,
                          verb=1, csort=1, spec=None):
@@ -446,9 +467,14 @@ class SubjectList(object):
 
    def sort(self, key=None, order=1):
       if len(self.subjects) == 0: return
-      Subject._sort_key = key     # None or otherwise
-      Subject._order = order      # 1 for small first, -1 for reverse
-      self.subjects.sort(cmp=subj_compare)
+      # sort() has no cmp keyword in python3, use key method
+      # Subject._sort_key = key     # None or otherwise
+      # Subject._order = order      # 1 for small first, -1 for reverse
+      # self.subjects.sort(cmp=subj_compare)
+
+      g_subject_sort_key = key
+      self.subjects.sort(key=subj_compare_key)
+      if order < 0: self.subjects.reverse()
 
    def make_anova2_command(self, bsubs=None, prefix=None, options=None, verb=1):
       """create a basic 3dANOVA2 -type 3 command
