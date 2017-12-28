@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+# python3 status: compatible
+# (need to modify TcshCommandWindow to wrap text output from process)
+
 import sys, os
 from PyQt4 import QtCore, QtGui
 import copy, glob
@@ -139,15 +142,15 @@ class TextWindow(QtGui.QMainWindow):
 
     def readfile(self):
         if self.filename == '':
-           print '** readfile: no filename set'
+           print('** readfile: no filename set')
            return False
         fp = None
         ret = True
         try:
             fp = QtCore.QFile(self.filename)
             if not fp.open(QtCore.QIODevice.ReadOnly):
-                raise IOError, unicode(fp.errorString())
-        except (IOError, OSError), e:
+                raise IOError(str(fp.errorString()))
+        except (IOError, OSError) as e:
            QtGui.QMessageBox.warning(self, "Text Editor: Load Error",
                     "Failed to load %s: %s" % (self.filename, e))
            ret = False
@@ -177,7 +180,7 @@ class TextWindow(QtGui.QMainWindow):
         return False
 
     def save(self):
-        print '++ TW save: "%s"' % self.filename
+        print('++ TW save: "%s"' % self.filename)
         if self.filename == '':
            guiWarning("Error", "** no file set for 'Save'", self)
            return False
@@ -187,16 +190,16 @@ class TextWindow(QtGui.QMainWindow):
         if self.filename == '':
            guiWarning("Error", "** no file set for 'Write'", self)
            return False
-        print '++ writing as file %s ...' % self.filename
+        print('++ writing as file %s ...' % self.filename)
         fp = None
         try:
             fp = QtCore.QFile(self.filename)
             if not fp.open(QtCore.QIODevice.WriteOnly):
-                raise IOError, unicode(fp.errorString())
+                raise IOError(str(fp.errorString()))
             stream = QtCore.QTextStream(fp)
             stream << self.editor.toPlainText()
             self.editor.document().setModified(False)
-        except (IOError, OSError), e:
+        except (IOError, OSError) as e:
             QtGui.QMessageBox.warning(self, "File Save Error",
                 "Error saving text file %s : %s" % (self.filename, e))
         finally:
@@ -212,7 +215,7 @@ def static_TextWindow(fname='', text='', title='', parent=None):
    stitle = '(static) %s' % title
    win = TextWindow(text=text, title=stitle, fname=fname, parent=parent)
    if win.status:
-      print '** failure creating TextWindow'
+      print('** failure creating TextWindow')
       del(win)
       return None
    else:
@@ -239,8 +242,8 @@ def create_button_list_widget(labels, tips=None, cb=None, dir=0, hstr=0,
 
    if tips != None:
       if len(tips) != len(labels):
-         print '** CBLW: %d labels does not match %d tips, discarding...' \
-               % (len(labels), len(tips))
+         print('** CBLW: %d labels does not match %d tips, discarding...' \
+               % (len(labels), len(tips)))
          tips = None
 
    if dir: layout  = QtGui.QVBoxLayout()
@@ -330,8 +333,8 @@ def create_button_grid(labels, tips=None, cb=None, rlen=4):
 
    if tips != None:
       if len(tips) != len(labels):
-         print '** CBG: %d labels does not match %d tips, discarding...' \
-               % (len(labels), len(tips))
+         print('** CBG: %d labels does not match %d tips, discarding...' \
+               % (len(labels), len(tips)))
          tips = None
 
    layout = QtGui.QGridLayout()
@@ -382,8 +385,8 @@ def create_label_line_grid(labels, tips=None, cb=None, rlen=2):
 
    if tips:
       if len(tips) != len(labels):
-         print '** CLLG: %d labels does not match %d tips, discarding...' \
-               % (len(labels), len(tips))
+         print('** CLLG: %d labels does not match %d tips, discarding...' \
+               % (len(labels), len(tips)))
          tips = None
 
    layout = QtGui.QGridLayout()
@@ -416,9 +419,9 @@ def _set_button_style(button):
    return
 
 def print_icon_names():
-   print '=== Icon keys: '
-   for key in QtGui.QStyle.__dict__.keys():
-      if key[0:3] == 'SP_': print 'key = %s' % key
+   print('=== Icon keys: ')
+   for key in list(QtGui.QStyle.__dict__.keys()):
+      if key[0:3] == 'SP_': print('key = %s' % key)
 
 def create_menu_button(parent, name, menu_list, call_back=None):
    """with a menu button, the call_back is applied to the menu action
@@ -800,7 +803,7 @@ class StringTable(QtGui.QTableWidget):
       ncols = len(headers)
       self.setColumnCount(ncols)
       self.setHorizontalHeaderLabels(headers)
-      if self.lvars.verb > 2: print '++ ST set headers: %s' % headers
+      if self.lvars.verb > 2: print('++ ST set headers: %s' % headers)
       return 0
 
    def set_stretch_cols(self, stretch_cols):
@@ -850,8 +853,8 @@ class StringTable(QtGui.QTableWidget):
             self.setItem(row, col, QtGui.QTableWidgetItem(val))
 
       if self.lvars.verb > 2:
-         print '-- table populated: %d x %d table with %d x %d data' \
-               % (self.rowCount(), self.columnCount(), nrows, ncols)
+         print('-- table populated: %d x %d table with %d x %d data' \
+               % (self.rowCount(), self.columnCount(), nrows, ncols))
 
       self.resize_table()
 
@@ -873,8 +876,8 @@ class StringTable(QtGui.QTableWidget):
    def show_size(self, mesg = ''):
       # rcr - maybe remove all such calls?
       if self.lvars.verb > 2:
-         print '-- table size %s: %d x %d' \
-               % (mesg, self.rowCount(), self.columnCount())
+         print('-- table size %s: %d x %d' \
+               % (mesg, self.rowCount(), self.columnCount()))
 
    def resize_table(self):
       """resize row heights and column widths
@@ -891,7 +894,7 @@ class StringTable(QtGui.QTableWidget):
       else:         rheight = 0
 
       if lv.verb > 2:
-         print '-- resize table (%s) to row height %d' % (lv.name, rheight)
+         print('-- resize table (%s) to row height %d' % (lv.name, rheight))
 
       self.setAlternatingRowColors(True)
       self.setFixedHeight(self.max_size(nrows, rheight=rheight))
@@ -1032,7 +1035,7 @@ class DatasetTableWidget(QtGui.QWidget):
       self.lvars.set_var(cname, col)
       if self.lvars.verb > 2:
          val = self.lvars.val(cname)
-         print '++ set %s to %s %s' % (cname, val, type(val))
+         print('++ set %s to %s %s' % (cname, val, type(val)))
 
    def get_generic_col(self, name, default=0):
       ncols = self.gvars.table.columnCount()
@@ -1040,12 +1043,12 @@ class DatasetTableWidget(QtGui.QWidget):
       val = self.lvars.val(cname)
       if val < 0 or (val >= ncols and ncols > 0):
          if default < 0: default = 0
-         print '** GDC: bad %s = %d (ncols = %d), resetting to %d...' \
-               % (cname, val, ncols, default)
+         print('** GDC: bad %s = %d (ncols = %d), resetting to %d...' \
+               % (cname, val, ncols, default))
          self.lvars.set_var(cname, default)
          val = default
       if self.lvars.verb > 2:
-         print '++ get %s as %s %s' % (cname, val, type(val))
+         print('++ get %s as %s %s' % (cname, val, type(val)))
       return val
 
    def set_dset_col(self, col):
@@ -1069,7 +1072,7 @@ class DatasetTableWidget(QtGui.QWidget):
       common_dir = str(self.gvars.Label_common_dir.text())
 
       if self.lvars.verb > 2:
-         print '-- GD: return col %d from %dx%d table' % (dcol, nrows, ncols)
+         print('-- GD: return col %d from %dx%d table' % (dcol, nrows, ncols))
 
       dlist = []
       for row in range(nrows):
@@ -1094,7 +1097,7 @@ class DatasetTableWidget(QtGui.QWidget):
       common_dir = str(self.gvars.Label_common_dir.text())
 
       if self.lvars.verb > 2:
-         print '-- GDList: return col %d from %dx%d table'%(dcol, nrows, ncols)
+         print('-- GDList: return col %d from %dx%d table'%(dcol, nrows, ncols))
 
       dlist = []
       for row in range(nrows):
@@ -1114,7 +1117,7 @@ class DatasetTableWidget(QtGui.QWidget):
       dcol = self.get_dset_col()
 
       if self.lvars.verb > 2:
-         print '-- GSDList: return col %d from %dx%d table'%(dcol, nrows, ncols)
+         print('-- GSDList: return col %d from %dx%d table'%(dcol, nrows, ncols))
 
       dlist = []
       for row in range(nrows):
@@ -1132,9 +1135,9 @@ class DatasetTableWidget(QtGui.QWidget):
       if nrows == 0: return
 
       if self.lvars.verb > 2:
-         print '++ update table column %d with %d elements' % (col,len(darray))
+         print('++ update table column %d with %d elements' % (col,len(darray)))
          if self.lvars.verb > 3:
-            print '   nrows %d, elements: %s' % (nrows, darray)
+            print('   nrows %d, elements: %s' % (nrows, darray))
 
       for row in range(nrows):
          item = table.item(row, col)
@@ -1170,8 +1173,8 @@ class DatasetTableWidget(QtGui.QWidget):
          nc = 0
          if nr > 0: nc = len(data[0])
          t = self.gvars.table
-         print '++ populate %d x %d table with %d x %d data, dc=%d, sc=%d' \
-               % (t.rowCount(), t.columnCount(), nr, nc, dset_col, sid_col)
+         print('++ populate %d x %d table with %d x %d data, dc=%d, sc=%d' \
+               % (t.rowCount(), t.columnCount(), nr, nc, dset_col, sid_col))
          
       self.gvars.table.populate(data, col_headers)
 
@@ -1196,7 +1199,7 @@ class DatasetTableWidget(QtGui.QWidget):
          # if there is something to sort by, exptect to
          if not UTIL.vals_are_constant(sids, ''): self.set_sort_col(scol)
 
-      if self.lvars.verb>1: print '-- populated, scol %d, dcol %d'%(scol, dcol)
+      if self.lvars.verb>1: print('-- populated, scol %d, dcol %d'%(scol, dcol))
 
 # end DatasetTableWidget class
 # ---------------------------------------------------------------------------
@@ -1299,7 +1302,7 @@ class DsetChooser(QtGui.QDialog):
 
    def cb_okay(self):
       if not self.lvars.pop_cb:
-         print '** no callback for datasets'
+         print('** no callback for datasets')
          return
       dlist = self.gvars.table_widget.get_dset_list()
       self.lvars.pop_cb(dlist)
@@ -1327,7 +1330,7 @@ class DsetChooser(QtGui.QDialog):
          sender = self.sender()
          text = str(sender.text())
       except:
-         print '** DsetChooser:cb_pushb: no sender text'
+         print('** DsetChooser:cb_pushb: no sender text')
          return
 
       if text == 'delete selected entries':
@@ -1354,7 +1357,7 @@ class DsetChooser(QtGui.QDialog):
       elif text == 'apply pattern':
          self.apply_pattern()
 
-      else: print "** DC:cb_pushb: unexpected button text '%s'" % text
+      else: print("** DC:cb_pushb: unexpected button text '%s'" % text)
 
 # end DsetChooser class
 # ---------------------------------------------------------------------------
@@ -1437,7 +1440,7 @@ class button_list_widget(object):
 
         if no button is found, return 'NO_SUCH_BUTTON'"""
 
-      keys = self.bdict.keys()
+      keys = list(self.bdict.keys())
       for key in keys:
          if self.bdict[key] == button:
             return button.text().toAscii().data()
@@ -1598,8 +1601,8 @@ class TcshCommandWindow(QtGui.QMainWindow):
       self.readstderr()
       self.readstdout()
       status = self.process.exitStatus()
-      print '-- processed finished, state = %d, status = %d' \
-            % (self.process.state(), status)
+      print('-- processed finished, state = %d, status = %d' \
+            % (self.process.state(), status))
       
       if status: self.update_status('process finished: FAILURE')
       else:      self.update_status('process finished: SUCCESS')
@@ -1625,29 +1628,29 @@ class TcshCommandWindow(QtGui.QMainWindow):
    def cb_start(self, cmd=''):
       if cmd == '' or cmd == False: cmd = self.command
       if cmd == '' or cmd == False:
-         print '** SPW: no command to execute'
+         print('** SPW: no command to execute')
          return
 
       # note directory
       if self.dir != '':
-         print '-- setting working dir to %s' % self.dir
+         print('-- setting working dir to %s' % self.dir)
          self.process.setWorkingDirectory(self.dir)
 
-      print 'starting command: %s\n' % cmd
+      print('starting command: %s\n' % cmd)
       args = ['-c', cmd]
 
       self.process.start('tcsh', args)
       if self.process.waitForStarted():
-         print '++ process is started, pid = %d' % self.process.pid()
+         print('++ process is started, pid = %d' % self.process.pid())
          self.update_status('process running, pid = %d' % self.process.pid())
          self.status = 0
       else:
-         print '** failed to start'
+         print('** failed to start')
          self.update_status('** error: failed to start')
          self.status = -1
 
    def cb_stop(self):
-      print 'stopping command %s ...' % self.command
+      print('stopping command %s ...' % self.command)
       self.process.kill()
 
 # end TcshCommandWindow class
@@ -1760,8 +1763,8 @@ class ProcessWindow(QtGui.QMainWindow):
    def finished(self):
       self.readstderr()
       self.readstdout()
-      print '-- processed finished, state = %d, status = %d' \
-            % (self.process.state(), self.process.exitStatus())
+      print('-- processed finished, state = %d, status = %d' \
+            % (self.process.state(), self.process.exitStatus()))
 
    def readstdout(self):
       text = str(self.process.readAllStandardOutput())
@@ -1786,13 +1789,13 @@ class ProcessWindow(QtGui.QMainWindow):
       if cmd == '': return
 
       pstate = self.process.state()
-      print '-- trying command %d' % len(self.commandlist)
+      print('-- trying command %d' % len(self.commandlist))
       if pstate == QtCore.QProcess.NotRunning:
          return self.cb_start()
       else:
          return
-         print '** will not run new command until old one is finished'
-         print '== state is %s\n' % pstate
+         print('** will not run new command until old one is finished')
+         print('== state is %s\n' % pstate)
 
    def cb_start(self, cmd=''):
       if cmd == '' or cmd == False:
@@ -1804,24 +1807,24 @@ class ProcessWindow(QtGui.QMainWindow):
 
       # note directory
       if self.dir != '':
-         print '-- setting working dir to %s' % self.dir
+         print('-- setting working dir to %s' % self.dir)
          self.process.setWorkingDirectory(self.dir)
 
-      print 'starting command: %s\n' % str(cmd)
+      print('starting command: %s\n' % str(cmd))
       self.commandlist.append(cmd)
       self.Edit_hist.append(cmd)
       self.lineedit.clear()
 
       self.process.start('tcsh', args)
       if self.process.waitForStarted():
-         print '++ process is started, pid = %d' % self.process.pid()
+         print('++ process is started, pid = %d' % self.process.pid())
          self.status = 0
       else:
-         print '** failed to start'
+         print('** failed to start')
          self.status = -1
 
    def cb_stop(self):
-      print 'stopping'
+      print('stopping')
       self.process.kill()
 
 # end ProcessWindow class
@@ -2003,7 +2006,7 @@ helpstr_dset_chooser = """
 
 if __name__ == '__main__':
    if '-help' in sys.argv:
-      print 'this is not helpful'
+      print('this is not helpful')
       sys.exit(0)
    sys.exit(0)
    app = QtGui.QApplication(sys.argv)

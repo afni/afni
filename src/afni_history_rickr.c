@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28, Dec, 2017, RCR, "uber_ttest.py", MINOR, TYPE_ENHANCE,
+   "python3 compatible as of version 2.0",
+   NULL
+ } ,
+
  { 28, Dec, 2017, RCR, "gen_ss_review_table.py", MINOR, TYPE_ENHANCE,
    "python3 compatible as of version 1.0",
    NULL
