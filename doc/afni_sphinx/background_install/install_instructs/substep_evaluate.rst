@@ -1,14 +1,15 @@
 
-a. Check your whole setup!  Display diagnostics in the terminal
-   (**read the "Please Fix" section at the end of the output for
-   copy/pasteable suggestions**)::
-    
+a. Copy+paste the following, **and** read the displayed "Please Fix"
+   section at the end of the output (**try** the suggestions there!)::
+
        afni_system_check.py -check_all
 
-   Output all results to a text file, and send it to your local AFNI
-   Guru for advice::
+   \.\.\. and, for extra help, copy+paste this::
     
        afni_system_check.py -check_all > out.afni_system_check.txt
+
+   and email the file "out.afni_system_check.txt" to your local AFNI
+   Guru for advice.
 
 #. Open up the AFNI and SUMA GUIs, juuuust to make sure all is well::
    
@@ -16,9 +17,6 @@ a. Check your whole setup!  Display diagnostics in the terminal
      suma
 
    Report any crashes!
-
-   (*If* you did the optional PyQt4 installation, then you can also
-   run ``uber_subject.py`` in a terminal.)
 
 #. **If the "system check" gives any errors,** please:
 

@@ -1,29 +1,18 @@
 
-The following are some suggestions for improving your terminal
-experience (and greatly so, in the opinion of some).
+To improve your life when using the terminal, copy+paste these::
 
-* *For* ``tcsh`` *users*:
+  echo 'set filec'    >> ~/.cshrc
+  echo 'set autolist' >> ~/.cshrc
+  echo 'set nobeep'   >> ~/.cshrc
+  
+  echo 'alias ls ls --color=auto' >> ~/.cshrc
+  echo 'alias ll ls --color -l'   >> ~/.cshrc
+  echo 'alias ls="ls --color"'    >> ~/.bashrc
+  echo 'alias ll="ls --color -l"' >> ~/.bashrc
 
-    The following help with using ``tab`` for autocompletion::
-
-      echo 'set filec' >> ~/.cshrc
-      echo 'set autolist' >> ~/.cshrc
-      echo 'set nobeep' >> ~/.cshrc
-
-    The following aliases have the terminal differentiate different
-    types of files ("normal" files, zipped files, executables, et al.)
-    and directories using colors/boldness::
-
-      echo 'alias ls ls --color=auto' >> ~/.cshrc
-      echo 'alias ll ls --color -l' >> ~/.cshrc
-
-* *For* ``bash`` *users*:
-
-    (Autocompletion features should be nice already.)
-
-    The following aliases have the terminal differentiate different
-    types of files ("normal" files, zipped files, executables, et al.)
-    and directories using colors/boldness::
-
-      echo 'alias ls="ls --color"' >> ~/.bashrc
-      echo 'alias ll="ls --color -l"' >> ~/.bashrc
+**Purpose:** The first commands set up ``tab`` autocompletion for
+``tcsh`` (which should already be enabled for ``bash`` users by
+default). The second set of commands make aliases so that different
+types of files ("normal" files, zipped files, executables, et al.)
+and directories are shown using different colors and boldness.  It
+makes it *much* easier to navigate on a terminal, IMHO.

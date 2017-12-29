@@ -1,5 +1,5 @@
 
-This step is **required** if you are about to attend a Bootcamp::
+Copy+paste the following::
 
   curl -O https://afni.nimh.nih.gov/pub/dist/edu/data/CD.tgz
   tar xvzf CD.tgz
@@ -7,11 +7,11 @@ This step is **required** if you are about to attend a Bootcamp::
   tcsh s2.cp.files . ~
   cd ..
 
-In order, these commands: get the tarred+zipped directory that
-contains the class data (and is hence named "CD"), downloading it to
-the current location in the terminal; untar/unzip it (=opens it up);
-go into the newly opened directory; execute a script to copy the files
-to ``$HOME/CD/``; and finally exit the directory.
+**Purpose:** In order, these commands: get the tarred+zipped directory
+that contains the class data (and is hence named "CD"), downloading it
+to the current location in the terminal; untar/unzip it (=opens it
+up); go into the newly opened directory; execute a script to copy the
+files to ``$HOME/CD/``; and finally exit the directory.
 
 At this point, if there have been no errors, you can delete/remove
 the tarred/zipped package, using "``rm CD.tgz``".  If you are
