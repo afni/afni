@@ -81,7 +81,7 @@ shell, and path updates.
 
 Install R
 ---------
-
+ 
 a. Copy+paste the following:
 
    * *for* ``tcsh``::
@@ -92,28 +92,26 @@ a. Copy+paste the following:
        curl -O https://afni.nimh.nih.gov/pub/dist/src/scripts_src/@add_rcran_ubuntu.tcsh
        sudo tcsh @add_rcran_ubuntu.tcsh
 
-    * *for* ``bash``::
+   * *for* ``bash``::
    
-        export R_LIBS=$HOME/R
-        mkdir $R_LIBS
-        echo 'export R_LIBS=$HOME/R' >> ~/.bashrc
-        curl -O https://afni.nimh.nih.gov/pub/dist/src/scripts_src/@add_rcran_ubuntu.tcsh
-        sudo tcsh @add_rcran_ubuntu.tcsh
+       export R_LIBS=$HOME/R
+       mkdir $R_LIBS
+       echo 'export R_LIBS=$HOME/R' >> ~/.bashrc
+       curl -O https://afni.nimh.nih.gov/pub/dist/src/scripts_src/@add_rcran_ubuntu.tcsh
+       sudo tcsh @add_rcran_ubuntu.tcsh
 
-    **Purpose:** Setup modern R from scratch. This relies on the
-    environment variable ``$R_LIBS``, which refers to a directory that
-    will contain the R packages.  That variable should always be set,
-    both to specify where to install the packages and where to read
-    them from later (when running R programs).  The file obtained
-    using ``curl`` contains instructions to add a more uptodate set of
-    R libraries to the source list.
+   **Purpose:** Setup modern R from scratch. This relies on the
+   environment variable ``$R_LIBS``, which specifies where to install
+   the packages and where to read them from later (when R programs
+   run).  The file obtained using ``curl`` contains instructions to
+   add a more uptodate set of R libraries to the source list.
 
 #. Copy+paste the following::
      
      rPkgsInstall -pkgs ALL
-   
-   **Purpose:** Get specific R packages needed for AFNI programs.
 
+   **Purpose:** Get specific R packages needed for AFNI programs.
+   
 .. ---------- HERE/BELOW: copy for all installs --------------
 
 Make AFNI/SUMA profiles
