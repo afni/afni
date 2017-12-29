@@ -17,7 +17,7 @@ A. copying+pasting commands (from the green fields) into the terminal, or
 
 #. clicking on a link to download a package.
 
-Some steps depend on the Mac OS version. 
+Some steps depend on the OS version. 
 
 We assume the user has admin privileges (can run ``sudo ...``), and
 some steps require an internet connection.
@@ -31,6 +31,9 @@ If you want to know what shell you are using (e.g., ``bash`` or
           instructions, please see* :ref:`HERE
           <install_steps_mac_app>`.
 
+**IMPORTANT:** Please do all steps.  Be sure to run
+``afni_system_check.py`` in the "Evaluate" stage, *and* to follow its
+recommendations in the output "Please Fix" section.
 
 Setup terminal
 --------------
@@ -117,8 +120,7 @@ a. | Click on this link: https://cran.r-project.org/bin/macosx
 
      sudo rPkgsInstall -pkgs ALL
 
-   **Purpose:** This installs specific R packages needed by AFNI.
-
+   **Purpose:** Get specific R packages needed for AFNI programs.
 
 .. ---------- HERE/BELOW: copy for all installs --------------
 
@@ -151,44 +153,38 @@ Keep up-to-date (remember!)
 Install PyQt4, via JDK and fink (optional)
 ------------------------------------------
 
-*NB: no longer necessary for the Bootcamp!*
+a. | Click on this link: http://www.oracle.com/technetwork/java/javase/downloads
+   | and then click on the ``Java`` icon.
 
-a. To download and install the Java SE (standard edition) JDK, go
-   to http://www.oracle.com/technetwork/java/javase/downloads and
-   click on the ``Java`` icon.
+   **Purpose:** Install Java SE (standard edition) JDK.
 
-#. To install the package manager ``fink``, execute the following,
-   which gets an install script and executes it.  This takes
-   perhaps 30 minutes and the user gets asked many questions
-   (sorry, no way around it).  One can simply keep hitting the
-   ``ENTER`` key to accept the useful defaults (**note:** you can
-   respond with 'n' for the Xcode installation prompt if
-   prompted otherwise, as you should have it from an earlier
-   step).
+#. Copy+paste the following::
+   
+     curl -O https://afni.nimh.nih.gov/pub/dist/bin/misc/save/install.fink.bash
+     bash install.fink.bash
 
-   Run the commands::
+   **Purpose:** This runs an install script to download+install the
+   package manager ``fink``.  
 
-       curl -O https://afni.nimh.nih.gov/pub/dist/bin/misc/save/install.fink.bash
-       bash install.fink.bash
+   This takes perhaps 30 minutes to finish **and** the user gets asked
+   many questions (sorry, no way around it).  One can simply keep
+   hitting the ``ENTER`` key to accept the useful defaults (**note:**
+   you can respond with 'n' for the Xcode installation prompt if
+   prompted otherwise, as you should have it from an earlier step).
 
-#. Install PyQt4.
+#. Do each of the following (installs PyQt4):
 
-   First, open a new terminal window (or ``source ~/.cshrc`` or
-   ``source ~/.bashrc``) to make sure that ``fink`` has been added
-   to the ``$PATH``.
+   i. Open a new terminal window.
 
-   * In a new window, verify that fink is ready::
+   #. Copy+paste::
 
-       fink --version
+        fink --version
 
-   * Run the following to install PyQt4::
+   #. If no errors, copy+paste::
 
        sudo fink install pyqt4-mac-py27
        sudo ln -s /sw/bin/python2.7 /sw/bin/python
        echo 'setenv PYTHONPATH /sw/lib/qt4-mac/lib/python2.7/site-packages' >> ~/.cshrc
-
-     (You likely won't get a 'success' message here, but you can
-     use the **Evaluate** step below to verify the installation.)
 
 #. Test your PyQt4.
 
