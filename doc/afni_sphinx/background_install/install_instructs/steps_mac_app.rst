@@ -23,7 +23,7 @@ This app will download and install the recommended versions of the following:
 
 If a package is already installed, you may be asked if you want to reinstall it.
 But you can skip it if you like.
-This script will also setup your .cshrc, .bashrc, and .bash_profile.
+This script will also setup your ~/.cshrc, ~/.bashrc, and ~/.bash_profile.
 It will add the appropriate entries to your paths specified there.
 After completion, you should restart your computer just in case.
 
@@ -85,7 +85,7 @@ Prepare for Bootcamp (semi-optional)
 
 .. include:: substep_bootcamp.rst
 
-Evaluate setup/system (important!)
+Evaluate setup/system (**important!**)
 ----------------------------------
 
 .. include:: substep_evaluate.rst

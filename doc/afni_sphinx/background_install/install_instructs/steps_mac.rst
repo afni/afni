@@ -11,11 +11,12 @@ What to do?
 -----------
 
 Here we describe a complete AFNI installation and system setup for
-clean/empty Mac OS versions **10.9+**.  Each step involves either:
+clean/empty Mac OS versions **10.9+**.
 
-A. copying+pasting commands (from the green fields) into the terminal, or
-
-#. clicking on a link to download a package.
+Each step involves either:
+ A. copying+pasting commands (from the green fields) into the
+    terminal, or
+ #. clicking on a link to download a package.
 
 Some steps depend on the OS version. 
 
@@ -31,9 +32,11 @@ If you want to know what shell you are using (e.g., ``bash`` or
           instructions, please see* :ref:`HERE
           <install_steps_mac_app>`.
 
-**IMPORTANT:** Please do all steps.  Be sure to run
-``afni_system_check.py`` in the "Evaluate" stage, *and* to follow its
-recommendations in the output "Please Fix" section.
+**IMPORTANT:** Please:
+ i. Do all steps.
+ #. Run ``afni_system_check.py -check_all`` in the "Evaluate" stage.
+ #. *And* follow the system check recommendations in the output
+    "Please Fix" section.
 
 Setup terminal
 --------------

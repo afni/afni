@@ -14,10 +14,9 @@ systems, as well.  For earlier versions of Ubuntu, please see the
 relevant :ref:`instructions here <install_steps_linux_ubuntu>`.
 
 Each step involves either:
-
-A. copying+pasting commands (from the green fields) into the terminal, or
-
-#. clicking on a link to download a package.
+ A. copying+pasting commands (from the green fields) into the
+    terminal, or
+ #. clicking on a link to download a package.
 
 Some steps depend on the OS version. 
 
@@ -29,10 +28,11 @@ If you want to know what shell you are using (e.g., ``bash`` or
 
   echo $0
 
-**IMPORTANT:** Please do all steps.  Be sure to run
-``afni_system_check.py`` in the "Evaluate" stage, *and* to follow its
-recommendations in the output "Please Fix" section.
-
+**IMPORTANT:** Please:
+ i. Do all steps.
+ #. Run ``afni_system_check.py -check_all`` in the "Evaluate" stage.
+ #. *And* follow the system check recommendations in the output
+    "Please Fix" section.
 
 Install prerequisite packages
 -----------------------------
