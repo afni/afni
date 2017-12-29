@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# python3 status: compatible
+
 # general functions for use by uber*.py
 
 import sys, os
@@ -153,9 +155,10 @@ g_history = """
          - apply uvar align_opts_aea and tlrc_opts_at
     0.41 Oct 10, 2017: try to apply ${subj} and ${gname} in data inputs
          - also, put epi -dsets before tcat opts
+    1.0  Dec 29, 2017: python3 compatible
 """
 
-g_version = '0.41 (October 10, 2017)'
+g_version = '1.0 (December 29, 2017)'
 
 # ----------------------------------------------------------------------
 # global definition of default processing blocks
@@ -430,7 +433,7 @@ class AP_Subject(object):
       """if fname is set, use it, else generate"""
 
       if not self.ap_command:
-         print '** no afni_proc.py command to write out'
+         print('** no afni_proc.py command to write out')
          return 1
       if fname: name = fname
       else:
@@ -443,7 +446,7 @@ class AP_Subject(object):
       if UTIL.is_trivial_dir(self.cvars.subj_dir): pstr = ''
       else: pstr = '%s/' % self.cvars.subj_dir
       if self.cvars.verb>0:
-         print '++ writing afni_proc.py command to %s%s' % (pstr, name)
+         print('++ writing afni_proc.py command to %s%s' % (pstr, name))
 
       # if requested, make an original copy
       self.LV.retdir = SUBJ.goto_proc_dir(self.cvars.subj_dir)
@@ -475,7 +478,7 @@ class AP_Subject(object):
       # ---------- do the work ----------
       self.LV.retdir = SUBJ.goto_proc_dir(self.cvars.subj_dir)
 
-      if self.cvars.verb > 0: print "++ executing: %s" % cstr
+      if self.cvars.verb > 0: print("++ executing: %s" % cstr)
 
       cmd = BASE.shell_com('tcsh -c "%s"' % cstr, capture=1)
       cmd.run()
@@ -518,7 +521,7 @@ class AP_Subject(object):
       self.LV.retdir = SUBJ.goto_proc_dir(self.cvars.subj_dir)
 
       # execute script
-      print '++ executing: %s' % cstr
+      print('++ executing: %s' % cstr)
 
       capture = 0       # init as output to terminal
       cstr = 'tcsh -c "%s"' % cstr
@@ -543,7 +546,7 @@ class AP_Subject(object):
       self.LV.retdir = SUBJ.goto_proc_dir(self.cvars.subj_dir)
       
       if os.path.isdir(self.rvars.results_dir):
-         print '-- nuking old results: %s' % self.rvars.results_dir
+         print('-- nuking old results: %s' % self.rvars.results_dir)
          os.system('rm -fr %s' % self.rvars.results_dir)
 
       self.LV.retdir = SUBJ.ret_from_proc_dir(self.LV.retdir)
@@ -559,9 +562,9 @@ class AP_Subject(object):
       self.LV.retdir = SUBJ.goto_proc_dir(self.cvars.subj_dir)
       if os.path.isfile(pfile):
          cmd = 'cp -f %s .orig.%s' % (pfile, pfile)
-         if self.cvars.verb > 1: print '++ exec: %s' % cmd
+         if self.cvars.verb > 1: print('++ exec: %s' % cmd)
          os.system(cmd)
-      elif self.cvars.verb > 1: print "** no proc '%s' to copy" % pfile
+      elif self.cvars.verb > 1: print("** no proc '%s' to copy" % pfile)
       self.LV.retdir = SUBJ.ret_from_proc_dir(self.LV.retdir)
       # ------------------------- done -------------------------
 
@@ -1031,7 +1034,7 @@ class AP_Subject(object):
          if self.LV.var_adir: fname = '%s/%s' % (self.LV.var_adir, aset.pv())
          else:                fname = aset.pv()
 
-      if self.cvars.verb > 2: print '-- anat dset = %s' % fname
+      if self.cvars.verb > 2: print('-- anat dset = %s' % fname)
 
       # replace any subj/group names with vars
       fname = self.subj_str_replace(fname)
@@ -1274,9 +1277,9 @@ class AP_Subject(object):
       else: self.LV.use_dirs = 0
 
       if self.cvars.verb > 3:
-         print ("++ APS.top_dir = %s\n   adir = %s\n   edir = %s\n   sdir = %s"\
+         print(("++ APS.top_dir = %s\n   adir = %s\n   edir = %s\n   sdir = %s"\
                 % (self.LV.top_dir, self.LV.anat_dir,
-                   self.LV.epi_dir, self.LV.stim_dir))
+                   self.LV.epi_dir, self.LV.stim_dir)))
 
    def set_short_names(self):
       """set short_anat, _epi, _stim from respective directories
@@ -1532,7 +1535,7 @@ def set_vstr_from_def(oname, vname, vlist, vobj, verb=1, spec=0, csort=1):
       defs = g_ctrl_defs
       sfunc = update_cvars_from_special
    else:
-      print '** set_vstr_from_def: invalid obj name: %s' % oname
+      print('** set_vstr_from_def: invalid obj name: %s' % oname)
       return -1
 
    return SUBJ.set_var_str_from_def(oname, vname, vlist, vobj, defs=defs,
