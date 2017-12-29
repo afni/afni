@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# python3 status: compatible
+
 # basically, a GUI to write an afni_proc.py command
 
 import sys, os, math
@@ -64,8 +66,8 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       if ctrl_vars and set_sdir:
           if ctrl_vars.is_not_empty('subj_dir'):
               if self.verb:
-                 print '++ have passed subj_dir %s, keeping it' \
-                       % ctrl_vars.val('subj_dir')
+                 print('++ have passed subj_dir %s, keeping it' \
+                       % ctrl_vars.val('subj_dir'))
               set_sdir = 0
               self.set_sdir = 0
 
@@ -114,7 +116,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       # (meaning user must have first generated (and viewed) the command)
       self.gvars.ap_status = 0
 
-      if self.verb > 1: print '-- finished Single Subject Dialog setup'
+      if self.verb > 1: print('-- finished Single Subject Dialog setup')
 
    def reset_vars(self, svars=None, cvars=None, set_sdir=0, verb=-1):
       """replace old svars/cvars with new"""
@@ -452,7 +454,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
                             "tlrc_base '%s' not in %s\n\n" \
                             % (text, ', '.join(USUBJ.g_tlrc_base_list)), obj)
 
-      else: print '** CB_line_text: unknown sender'
+      else: print('** CB_line_text: unknown sender')
 
    def set_blocks(self, bstring):
       blist = bstring.split()
@@ -1237,7 +1239,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
               'display help for this section' ]
       bwidget = QLIB.create_button_list_widget(labels, cb=self.CB_gbox_PushB,
                                          tips=tips, hind=2, style=self.style())
-      for key in bwidget.bdict.keys():  # copy additional keys
+      for key in list(bwidget.bdict.keys()):  # copy additional keys
          gbox.bdict[key] = bwidget.bdict[key]
       mainlayout.addWidget(bwidget)
 
@@ -1337,7 +1339,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       if len(labs) != nrows:
          labs = ['' for glt in sym]
 
-      if self.verb > 2: print "== gltsym table, nGLT = %d" % (nrows)
+      if self.verb > 2: print("== gltsym table, nGLT = %d" % (nrows))
 
       # ------------------------------------------------------------
       # now fill table with label and GLTs
@@ -1364,11 +1366,20 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       # and fill in Label_stim_ndsets, stim_dir, and stim_wildcard (form)
       self.gvars.Label_gltsym_len.setText('%d' % nrows)
 
-   def make_file_dialog(self, title, dir, filter):
+   def make_file_dialog(self, title, dirname, filtname):
       fileD = QtGui.QFileDialog(self)
-      fileD.setWindowTitle(QtCore.QString(title))
-      fileD.setFilter(QtCore.QString(filter))
-      fileD.setDirectory(QtCore.QString(dir))
+      # QString no longer exists in python3
+      try:
+         tstr = QtCore.QString(title)
+         fstr = QtCore.QString(filtname)
+         dstr = QtCore.QString(dirname)
+      except:
+         tstr = title
+         fstr = filtname
+         dstr = dirname
+      fileD.setWindowTitle(tstr)
+      fileD.setFilter(fstr)
+      fileD.setDirectory(dstr)
       return fileD
 
    def make_epi_table(self, parent=None):
@@ -1432,9 +1443,9 @@ class SingleSubjectWindow(QtGui.QMainWindow):
          digits = UTIL.ndigits_lod(maxind)
 
       if self.verb > 2:
-         print "== epi table, ndsets = %d, dir = %s" % (nrows, epi_dir)
-         print "   wildcard string = %s" % globstr
-         print "   indlist  = %s" % indlist
+         print("== epi table, ndsets = %d, dir = %s" % (nrows, epi_dir))
+         print("   wildcard string = %s" % globstr)
+         print("   indlist  = %s" % indlist)
 
       # ------------------------------------------------------------
       # now fill table with indlist and epi (short_names)
@@ -1540,16 +1551,16 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       else: lablist = self.svars.stim_label
 
       if self.verb > 2:
-         print "== stim table, ndsets = %d, dir = %s" % (nrows, stim_dir)
-         print "   wildcard string = %s" % globstr
-         print "   stim_table: %s" % stim_table
+         print("== stim table, ndsets = %d, dir = %s" % (nrows, stim_dir))
+         print("   wildcard string = %s" % globstr)
+         print("   stim_table: %s" % stim_table)
 
       haveinds = 1
       for ind, val in enumerate(indlist):
          if val < 0:
             if self.verb > 1:
-               print '-- bad stim_table index %d = %d, skipping indices' \
-                     % (ind, val)
+               print('-- bad stim_table index %d = %d, skipping indices' \
+                     % (ind, val))
             haveinds = 0
             break
 
@@ -1676,7 +1687,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       elif obj == self.gvars.gbox_tlrc.checkBox_tlrc_ok_maxite:
          if obj.isChecked(): self.set_svar('tlrc_ok_maxite', 'yes')
          else:               self.set_svar('tlrc_ok_maxite', 'no')
-      else: print "** CB_checkbox: unknown sender"
+      else: print("** CB_checkbox: unknown sender")
 
    def update_textLine_check(self, obj, text, attr, button_name, check_func):
       """check text against check_func(text, bname, 1, self, 1)
@@ -1696,7 +1707,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       if check_func(rtext, button_name, 1, self, 1):
          self.set_svar(attr, rtext)
          if type(obj) == g_LineEdittype: obj.setText(text)
-         else: print '** update_textLine_check: not a LineEdit type'
+         else: print('** update_textLine_check: not a LineEdit type')
          return 1
       else:
          # error, reset to previous attribute
@@ -1706,7 +1717,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
          return 0
 
    def cb_command_window(self, cmd):
-      print '++ python exec command: %s' % cmd
+      print('++ python exec command: %s' % cmd)
       exec(cmd)
 
    def cb_show_py_command_window(self):
@@ -1734,7 +1745,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       pbobj = self.gvars.val('PushB_%s' % vname)
       if pbobj == None: return 0
 
-      for key in pbobj.act_dict.keys():
+      for key in list(pbobj.act_dict.keys()):
          act = pbobj.act_dict[key]
          if sender == act:      # found!
             if key == 'CANCEL': return -1
@@ -1752,7 +1763,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
          sender = self.sender()
          text = str(sender.text())
       except:
-         print '** CB_gbox_PushB: no text'
+         print('** CB_gbox_PushB: no text')
          return
 
       # analysis init: help and APPLY
@@ -1874,13 +1885,13 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       elif text[0:10] == 'template: ':
          self.update_tlrc_base(text[10:])
 
-      else: print "** unexpected button text: %s" % text
+      else: print("** unexpected button text: %s" % text)
 
    def resize_table(self, table, countLabel=None):
       nrows = table.rowCount()
       if nrows > 0: rheight = table.rowHeight(0)
       else        : rheight = 0
-      if self.verb > 2: print '-- resize_table: using row height %d' % rheight
+      if self.verb > 2: print('-- resize_table: using row height %d' % rheight)
       table.setAlternatingRowColors(True)
       table.setFixedHeight(self.max_table_size(nrows, rheight=rheight))
       table.resizeRowsToContents()
@@ -1935,13 +1946,13 @@ class SingleSubjectWindow(QtGui.QMainWindow):
          elif len(epi) > 0:  return os.path.dirname(epi[0])
          elif anat != '':    return os.path.dirname(anat)
       else:
-         print '** pick_base_dir: bad dtype = %s' % dtype
+         print('** pick_base_dir: bad dtype = %s' % dtype)
 
       return ''
 
    def update_align_cost(self, cost):
       if len(cost) == 0: return
-      if self.verb > 1: print '++ applying cost function %s' % cost
+      if self.verb > 1: print('++ applying cost function %s' % cost)
       self.gvars.Line_align_cost.setText(cost)
 
       if self.svars.val('align_cost') != cost:  # update on change
@@ -1949,7 +1960,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 
    def update_tlrc_base(self, base):
       if len(base) == 0: return
-      if self.verb > 1: print '++ applying tlrc_base %s' % base
+      if self.verb > 1: print('++ applying tlrc_base %s' % base)
       self.gvars.Line_tlrc_base.setText(base)
 
       if self.svars.val('tlrc_base') != base:  # update on change
@@ -1958,7 +1969,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
    def update_basis_function(self, basis):
       if len(basis) > 0 and not self.basis_func_is_current(basis):
          self.update_stim_from_table() # apply any updates to variables
-         if self.verb > 1: print '++ applying basis function %s' % basis
+         if self.verb > 1: print('++ applying basis function %s' % basis)
          self.gvars.Line_apply_basis.setText(basis)
          nstim = len(self.svars.stim)
          self.set_svar('stim_basis',[basis for i in range(nstim)])
@@ -1988,7 +1999,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
    def update_stim_type(self, stype):
       if len(stype) > 0 and not self.stim_type_is_current(stype):
          self.update_stim_from_table() # apply any updates to variables
-         if self.verb > 1: print '++ applying stim_type %s' % stype
+         if self.verb > 1: print('++ applying stim_type %s' % stype)
          self.gvars.Line_apply_stype.setText(stype)
          nstim = len(self.svars.stim)
          self.set_svar('stim_type',[stype for i in range(nstim)])
@@ -2236,9 +2247,9 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       try: 
          import webbrowser
          self.gvars.browser = webbrowser
-         if self.verb > 1: print '++ have browser'
+         if self.verb > 1: print('++ have browser')
       except:
-         if self.verb > 1: print '-- NO browser'
+         if self.verb > 1: print('-- NO browser')
 
    def open_web_site(self, site):
       if self.gvars.browser == None:
@@ -2296,7 +2307,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
    def update_help_window(self, text, title=''):
       # if no permanent window, make a new one each time
       if self.gvars.Text_help == None:
-         if self.verb > 2: print '++ opening new TextWindow'
+         if self.verb > 2: print('++ opening new TextWindow')
          win = QLIB.TextWindow(text=text, title=title, parent=self)
          win.setAttribute(QtCore.Qt.WA_DeleteOnClose)
          win.show()
@@ -2334,7 +2345,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       elif obj == self.gvars.act_browse_D2004_glt:
          self.open_web_site('https://afni.nimh.nih.gov/pub/dist/doc'     \
                             '/misc/Decon/DeconSummer2004.html')
-      else: print '** cb_help_browse: invalid sender'
+      else: print('** cb_help_browse: invalid sender')
 
    def update_svars_from_gui(self, warn=0):
       """set what we can, if warn, report error
@@ -2354,7 +2365,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
          # subj dir should read: subject_results/group.gA/subj.SUBJ
          sdir =  USUBJ.get_def_subj_path(gid=self.svars.gid, sid=self.svars.sid)
          if sdir != self.cvars.val('subj_dir'):
-            if self.verb: print '-- setting subj_dir to %s' % sdir
+            if self.verb: print('-- setting subj_dir to %s' % sdir)
             self.set_cvar('subj_dir', sdir)
 
       return 0
@@ -2536,9 +2547,9 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 
          st, so, se = UTIL.limited_shell_exec(cstr)
          if self.verb > 1:
-            print "++ GLTsymtest command (stat %d):\n   %s" % (st, cstr)
+            print("++ GLTsymtest command (stat %d):\n   %s" % (st, cstr))
          if len(so) > 0 and self.verb > 2:
-            print "\n%s" % ('   ' + '\n   '.join(so))
+            print("\n%s" % ('   ' + '\n   '.join(so)))
 
          # if no errors, continue on
          if st == 0: continue
@@ -2552,7 +2563,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 
       if len(elist) > 0:
          emesg = "valid GLT labels are: %s\n\n%s" % (lstr, '\n'.join(elist))
-         if self.verb > 3: print 'failure emesg: %s' % emesg
+         if self.verb > 3: print('failure emesg: %s' % emesg)
       else:
          emesg = ''
 
@@ -2619,7 +2630,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
          return
 
       if self.gvars.ap_status == 1:
-         print '===== ++++ ===== re-running ap_command....'
+         print('===== ++++ ===== re-running ap_command....')
          # execute afni_proc.py command, return on failure
          if self.exec_ap_command(): return
 
@@ -2730,7 +2741,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
          elif type(val) == list:
             cmd += (prefix + '%s %s' % (atr, ' '.join(val)))
          else:
-            print '** make_uber_command: bad attr %s' % atr
+            print('** make_uber_command: bad attr %s' % atr)
 
       # then subject vars
       prefix = ' \\\n    -svar '     # append before next command
@@ -2754,7 +2765,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
          elif type(val) == list:
             cmd += (prefix + '%s %s' % (atr, ' '.join(val)))
          else:
-            print '** make_uber_command: bad attr %s' % atr
+            print('** make_uber_command: bad attr %s' % atr)
 
       return UTIL.add_line_wrappers(cmd + '\n')
 
@@ -2782,18 +2793,18 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       try:
          sender = self.sender()
          text = str(sender.text())
-         print '-- cb_setSyle: text = %s' % text
+         print('-- cb_setSyle: text = %s' % text)
          if text == 'Default': text = g_styles[g_style_index_def]
       except:
-         print '** cb_setSyle: cannot get text'
+         print('** cb_setSyle: cannot get text')
          return
 
       if text in g_styles:
          try:
             self.gvars.style = text
             QtGui.QApplication.setStyle(QtGui.QStyleFactory.create(text))
-         except: print "** failed to set style '%s'" % text
-      else: print "** style '%s' not in style list" % text
+         except: print("** failed to set style '%s'" % text)
+      else: print("** style '%s' not in style list" % text)
 
    def set_cvar(self, name, newval):
       """if the value has changed (or is not a simple type), update it
@@ -2803,7 +2814,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 
       # so the value has changed...
 
-      if self.verb > 3 : print "++ set_cvar: update [%s] to '%s'"%(name,newval)
+      if self.verb > 3 : print("++ set_cvar: update [%s] to '%s'"%(name,newval))
 
    def set_svar(self, name, newval):
       """if the value has changed (or is not a simple type), update it
@@ -2813,7 +2824,7 @@ class SingleSubjectWindow(QtGui.QMainWindow):
 
       # so the value has changed...
 
-      if self.verb > 3 : print "++ set_svar: update [%s] to '%s'"%(name,newval)
+      if self.verb > 3 : print("++ set_svar: update [%s] to '%s'"%(name,newval))
 
       self.gvars.ap_status = 0  # no longer ready for execution
       self.gvars.act_exec_ap.setEnabled(False)
@@ -2825,10 +2836,10 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       btext = self.svars.val(vname)
 
       if not pb:
-         print '** invalid PushB %s for text %s' % (vname, text)
+         print('** invalid PushB %s for text %s' % (vname, text))
          return
       if not btext:
-         print '** invalid svar %s for PushB' % vname
+         print('** invalid svar %s for PushB' % vname)
          return
       
       pb.setText(btext)
@@ -2944,10 +2955,10 @@ class SingleSubjectWindow(QtGui.QMainWindow):
                           obj.checkBox_tlrc_ok_maxite.setChecked(var=='yes')
 
       else:
-         if self.verb > 1: print '** apply_svar_in_gui: unhandled %s' % svar
+         if self.verb > 1: print('** apply_svar_in_gui: unhandled %s' % svar)
          rv = 0
 
-      if rv and self.verb > 2: print '++ apply_svar_in_gui: process %s' % svar
+      if rv and self.verb > 2: print('++ apply_svar_in_gui: process %s' % svar)
 
       return rv
 
@@ -2976,10 +2987,10 @@ class SingleSubjectWindow(QtGui.QMainWindow):
       rv = 1
       if   cvar == 'uber_dir':             rv = 0       # todo
       else:
-         if self.verb > 1: print '** apply_cvar_in_gui: unhandled %s' % cvar
+         if self.verb > 1: print('** apply_cvar_in_gui: unhandled %s' % cvar)
          rv = 0
 
-      if rv and self.verb > 2: print '++ apply_cvar_in_gui: process %s' % cvar
+      if rv and self.verb > 2: print('++ apply_cvar_in_gui: process %s' % cvar)
 
       return rv
 
@@ -3264,7 +3275,7 @@ g_help_eg = """
 
 def main():
 
-   print '** this is not a main program'
+   print('** this is not a main program')
    return 1
 
 if __name__ == '__main__':
