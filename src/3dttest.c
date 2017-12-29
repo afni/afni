@@ -386,6 +386,21 @@ void TT_syntax(char * msg)
 
    printf(
     "Gosset (Student) t-test sets of 3D datasets\n"
+    "\n"
+    "   * Also see the newer program 3dttest++, which lets you *\n"
+    "  ** include covariates to be regressed out of the data.  **\n"
+    " *** For most purposes, 3dttest++ is to be preferred over ***\n"
+    "**** this program -- 3dttest will no longer be upgraded.  ****\n"
+    "****------------------------------------------------------****\n"
+    " *** Also consider program 3dMEMA, which can carry out a  ***\n"
+    "  ** more sophisticated type of 't-test' that also takes  **\n"
+    "   * into account the variance map of each input dataset. *\n"
+    "\n"
+    "-----------------------------------------------------------\n"
+    "*********** In short: DO NOT USE THIS PROGRAM! ************\n"
+    "-----------------------------------------------------------\n"
+    "\n"
+
     "Usage 1: 3dttest [options] -set1 datasets ... -set2 datasets ...\n"
     "   for comparing the means of 2 sets of datasets (voxel by voxel).\n"
     "\n"
@@ -394,16 +409,6 @@ void TT_syntax(char * msg)
     "\n"
     "   ** or use -base1_dset\n"
     "\n"
-
-    "   * Also see the newer program 3dttest++, which lets you *\n"
-    "  ** include covariates to be regressed out of the data.  **\n"
-    " *** For most purposes, 3dttest++ is to be preferred over ***\n"
-    "**** this program -- 3dttest will no longer be upgraded.  ****\n"
-    " *** Also consider program 3dMEMA, which can carry out a  ***\n"
-    "  ** more sophisticated type of 't-test' that also takes  **\n"
-    "   * into account the variance map of each input dataset. *\n"
-    "\n"
-
     "OUTPUTS:\n"
     " A single dataset is created that is the voxel-by-voxel difference\n"
     " of the mean of set2 minus the mean of set1 (or minus 'bval').\n"
