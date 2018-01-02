@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# python3 status: compatible
+
 # ----------------------------------------------------------------------
 # This module holds:
 # 
@@ -9,6 +11,8 @@
 # SerialInterface: interface for writing to a serial port.
 # ----------------------------------------------------------------------
 
+
+from __future__ import print_function
 
 import sys, os
 
@@ -79,33 +83,33 @@ class RTInterface:
    def open_incoming_socket(self):
       """create a server port to listen for connections from AFNI"""
 
-      if self.verb>2: print '-- make server socket, port %d...'%self.server_port
-      elif self.verb>0: print 'waiting for connection...'
+      if self.verb>2: print('-- make server socket, port %d...'%self.server_port)
+      elif self.verb>0: print('waiting for connection...')
 
       errs = 0
 
       try: self.server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
       except(socket.error, socket.herror, socket.gaierror, socket.timeout):
          self.server_sock = None
-         print '** failed to create incoming socket'
+         print('** failed to create incoming socket')
          errs = 1
       if errs: return 1         # let's not return from within 'except'
 
-      if self.verb > 2: print '-- bind()...'
+      if self.verb > 2: print('-- bind()...')
       try: self.server_sock.bind(('', self.server_port))
       except(socket.error, socket.herror, socket.gaierror, socket.timeout):
-         print '** failed to bind incoming socket to port', self.server_port
+         print('** failed to bind incoming socket to port', self.server_port)
          errs = 1
       if errs: return 1
 
-      if self.verb > 2: print '-- listen()...'
+      if self.verb > 2: print('-- listen()...')
       try: self.server_sock.listen(2)
       except(socket.error, socket.herror, socket.gaierror, socket.timeout):
-         print '** failed to listen at incoming socket'
+         print('** failed to listen at incoming socket')
          errs = 1
       if errs: return 1
 
-      if self.verb>1: print '== server socket is open at port',self.server_port
+      if self.verb>1: print('== server socket is open at port',self.server_port)
 
       return 0
 
@@ -117,23 +121,31 @@ class RTInterface:
       # otherwise it would catch a ctrl-c and continue after sys.exit().
       try: data = self.data_sock.recv(nbytes, flag)
       except(socket.error, socket.herror, socket.gaierror, socket.timeout):
-         if self.verb > 0: print '** recv() exception on data socket'
+         if self.verb > 0: print('** recv() exception on data socket')
          errs = 1
+
       if errs: return None
       if not data:
          if self.verb > 0:
-            print '** failed recv() of %d bytes from data socket' % nbytes
+            print('** failed recv() of %d bytes from data socket' % nbytes)
          return None
 
       if self.verb > 4:
-         print "++ read %d bytes from socket: %s" \
-               % (nbytes, UTIL.data_to_hex_str([ord(v) for v in data]))
+         print("++ read %d bytes from socket: %s" \
+               % (nbytes, UTIL.data_to_hex_str(self.bytes_to_ord(data))))
 
       if len(data) != nbytes:
-         print '** read only %d of %d bytes from data socket'%(len(data),nbytes)
+         print('** read only %d of %d bytes from data socket'%(len(data),nbytes))
          return None
 
       return data
+
+
+   def bytes_to_ord(self, data):
+      """Try calling ord().  If not appropriate (python3), pass."""
+      try: dnew = [ord(v) for v in data]
+      except: dnew = data
+      return dnew
 
    def read_ints_from_socket(self, nvals):
       """try to read nvals (4-byte) integers from data socket,
@@ -145,7 +157,7 @@ class RTInterface:
 
       data = self.read_nbytes_from_data_socket(nvals*4)  # read all bytes
       if not data:
-         if self.verb > 0: print "** failed to read %d int(s)" % nvals
+         if self.verb > 0: print("** failed to read %d int(s)" % nvals)
          return None
 
       # swap one value at a time
@@ -155,7 +167,7 @@ class RTInterface:
       vals = list(struct.unpack('i'*nvals,data))
       del(data)
 
-      if self.verb > 3: print "++ read %d ints: %s" % (nvals, vals)
+      if self.verb > 3: print("++ read %d ints: %s" % (nvals, vals))
 
       return vals
 
@@ -169,7 +181,7 @@ class RTInterface:
 
       data = self.read_nbytes_from_data_socket(nvals*4)  # read all bytes
       if not data:
-         if self.verb > 0: print "** failed to read %d floats(s)" % nvals
+         if self.verb > 0: print("** failed to read %d floats(s)" % nvals)
          return None
 
       # swap one value at a time
@@ -186,7 +198,7 @@ class RTInterface:
 
       vals = list(struct.unpack('f'*nvals,data))
 
-      if self.verb > 3: print "++ read %d floats: %s" % (nvals, vals)
+      if self.verb > 3: print("++ read %d floats: %s" % (nvals, vals))
 
       return vals
 
@@ -194,12 +206,12 @@ class RTInterface:
       """peek at and print out the next nbytes of data"""
       data = self.read_nbytes_from_data_socket(nbytes,flag=socket.MSG_PEEK)
       if not data:
-         print '** failed to peek ahead'
+         print('** failed to peek ahead')
          return
 
       if show or self.verb > 4:
-         odata = [ord(v) for v in data]
-         print '== peek ahead data: %s' % UTIL.data_to_hex_str(odata)
+         odata = self.bytes_to_ord(data)
+         print('== peek ahead data: %s' % UTIL.data_to_hex_str(odata))
 
       return data
 
@@ -213,21 +225,21 @@ class RTInterface:
       data = self.read_nbytes_from_data_socket(g_magic_len)
       if not data: return 1
 
-      odata = [ord(v) for v in data]
+      odata = self.bytes_to_ord(data)
       if self.verb > 2:
-         print '++ recieved as magic_hi: %s' % UTIL.data_to_hex_str(odata)
+         print('++ recieved as magic_hi: %s' % UTIL.data_to_hex_str(odata))
 
       # test whether we have magic, start by ignoring the last byte
       for ind in range(g_magic_len-1):
          if odata[ind] != g_magic_hi[ind]:
-            print '** HELLO string is not magic, want %s but have %s' \
-               % (UTIL.data_to_hex_str(g_magic_hi),UTIL.data_to_hex_str(odata))
+            print('** HELLO string is not magic, want %s but have %s' \
+               % (UTIL.data_to_hex_str(g_magic_hi),UTIL.data_to_hex_str(odata)))
             return 1
 
       # now check the last byte for HELLO and version
       self.version = odata[g_magic_len-1] - g_magic_hi[g_magic_len-1]
       if self.verb > 2:
-         print '-- hello version is %d' % self.version
+         print('-- hello version is %d' % self.version)
 
       # and deal with the version number
 
@@ -243,18 +255,18 @@ class RTInterface:
          ilist = self.read_ints_from_socket(1)
          if ilist == None: return 1
 
-         if ilist[0] < 0: print '** received invalid num_extra = %d' % ilist[0]
+         if ilist[0] < 0: print('** received invalid num_extra = %d' % ilist[0])
          elif self.version == 1:
             self.nextra = ilist[0]
          else: # version = 2
             self.nextra = ilist[0] * 8
 
          if self.verb > 2:
-            print '-- num extra = %d' % self.nextra
+            print('-- num extra = %d' % self.nextra)
 
       else:     # bad, naughty version!
-         print '** HELLO string trailer is not magic, want %s but have %s' \
-            % (UTIL.data_to_hex_str(g_magic_hi),UTIL.data_to_hex_str(odata))
+         print('** HELLO string trailer is not magic, want %s but have %s' \
+            % (UTIL.data_to_hex_str(g_magic_hi),UTIL.data_to_hex_str(odata)))
          return 1
 
       # todo - show_time()
@@ -270,21 +282,21 @@ class RTInterface:
       self.data_sock, self.data_address = self.server_sock.accept()
 
       if self.data_sock == None:
-         print '** failed accept(), closing and restarting...'
+         print('** failed accept(), closing and restarting...')
          return 1
 
       if self.verb > 0:
          hinfo = list(self.data_address)
-         print 'connection established from host %s on port %d' \
-               % (hinfo[0], hinfo[1])
+         print('connection established from host %s on port %d' \
+               % (hinfo[0], hinfo[1]))
 
       if self.read_magic_hi():
-         print '** failed read magic_hi, closing and restarting...'
+         print('** failed read magic_hi, closing and restarting...')
          return 1
 
       self.nconnects += 1       # we have a connection
 
-      if self.verb>2: print '-- valid socket for run %d' % self.nconnects
+      if self.verb>2: print('-- valid socket for run %d' % self.nconnects)
       g_start_time = time.time()        # call this the beginning of run
 
       return 0
@@ -297,7 +309,7 @@ class RTInterface:
       offtime = time.time() - g_start_time
       tstr = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
 
-      print '-- comm time for TR %d @ %s (offset %.3f)' % (tr, tstr, offtime)
+      print('-- comm time for TR %d @ %s (offset %.3f)' % (tr, tstr, offtime))
 
    def display_TR_data(self, tr=-1):
       """display motion and any extras for the given TR (last if not set)"""
@@ -305,47 +317,47 @@ class RTInterface:
       if tr < 0: tr = len(self.motion[0])-1
 
       if self.verb > 3:
-         print '-- displaying data for TR %d' % tr
+         print('-- displaying data for TR %d' % tr)
 
       mprefix = "++ recv motion:     "
       if self.version==1:   eprefix = "++ recv %d extras:   "%self.nextra
       elif self.version==2: eprefix = "++ recv %dx8 extras: "%(self.nextra//8)
 
-      print UTIL.float_list_string([self.motion[i][tr] for i in range(6)],
-                           nchar=9, ndec=5, nspaces=2, mesg=mprefix, left=1)
+      print(UTIL.float_list_string([self.motion[i][tr] for i in range(6)],
+                           nchar=9, ndec=5, nspaces=2, mesg=mprefix, left=1))
       
       # version 1, all on one line
       if self.version == 1 and self.nextra > 0:
-         print UTIL.gen_float_list_string([self.extras[i][tr] for i in
-                           range(self.nextra)], mesg=eprefix, nchar=10, left=1)
+         print(UTIL.gen_float_list_string([self.extras[i][tr] for i in
+                           range(self.nextra)], mesg=eprefix, nchar=10, left=1))
       # version 2, each voxel on one line
       elif self.version == 2 and self.nextra > 0:
-         print eprefix,
+         print(eprefix, end=' ')
          elen = len(eprefix)+1
-         print UTIL.gen_float_list_string([self.extras[i][tr]
-                   for i in range(8)], mesg='', nchar=10, left=1)
+         print(UTIL.gen_float_list_string([self.extras[i][tr]
+                   for i in range(8)], mesg='', nchar=10, left=1))
          for off in range(self.nextra//8 - 1):
-            print UTIL.gen_float_list_string([self.extras[8*off+8+i][tr]
-                  for i in range(8)], mesg=' '*elen, nchar=10, left=1)
+            print(UTIL.gen_float_list_string([self.extras[8*off+8+i][tr]
+                  for i in range(8)], mesg=' '*elen, nchar=10, left=1))
 
    def socket_has_closed(self):
       """peek ahead for close message"""
 
       data = self.peek_at_next_bytes(g_magic_len)
       if not data:
-         if self.verb > 0: print '** socket has gone dead, restarting...'
+         if self.verb > 0: print('** socket has gone dead, restarting...')
          return 1
 
-      odata = [ord(v) for v in data]
+      odata = self.bytes_to_ord(data)
       if self.verb > 3:
-         print '++ testing as magic_bye: %s' % UTIL.data_to_hex_str(odata)
+         print('++ testing as magic_bye: %s' % UTIL.data_to_hex_str(odata))
 
       # if not magic bye, return a negative
       for ind in range(g_magic_len-1):
          if odata[ind] != g_magic_bye[ind]: return 0
 
-      if self.verb > 0: print '++ found close request for run %d, TRs = %d' \
-                              % (self.nconnects, self.nread)
+      if self.verb > 0: print('++ found close request for run %d, TRs = %d' \
+                              % (self.nconnects, self.nread))
 
       return 1
 
@@ -357,20 +369,20 @@ class RTInterface:
       # read and append motion values
       values = self.read_floats_from_socket(6)
       if not values:
-         print '** read socket error, abrupt close: run %d, TRs %d' \
-               % (self.nconnects, self.nread)
+         print('** read socket error, abrupt close: run %d, TRs %d' \
+               % (self.nconnects, self.nread))
          return 1
       for ind in range(6):
          self.motion[ind].append(values[ind])
 
-      if self.verb > 4: print '%% current motion[0]: %s' % self.motion[0]
+      if self.verb > 4: print('%% current motion[0]: %s' % self.motion[0])
 
       # read and append extra values
       if self.nextra > 0:
          values = self.read_floats_from_socket(self.nextra)
          if not values:
-            print '** failed to read %d extras for TR %d' \
-                  % (self.nextra, self.nread+1)
+            print('** failed to read %d extras for TR %d' \
+                  % (self.nextra, self.nread+1))
             return 1
          for ind in range(self.nextra): self.extras[ind].append(values[ind])
 
@@ -395,17 +407,17 @@ class RTInterface:
          pass                           # PROCESS DATA HERE
 
       if self.verb > 1:
-         print '-- processed %d TRs of data' % self.nread ,
-         if rv > 0: print '(terminating on success)'
-         else:      print '(terminating on error)'
-      if self.verb > 0: print '-'*60
+         print('-- processed %d TRs of data' % self.nread, end=' ')
+         if rv > 0: print('(terminating on success)')
+         else:      print('(terminating on error)')
+      if self.verb > 0: print('-'*60)
 
       if rv > 0: return 0               # success for one run
       else:      return 1               # some error
 
    def wait_for_new_run(self):
 
-      if self.verb>1: print '++ waiting for run %d...' % (self.nconnects+1)
+      if self.verb>1: print('++ waiting for run %d...' % (self.nconnects+1))
 
       # reset variables that vary per run
       self.clear_run_vals()
@@ -427,7 +439,7 @@ class RTInterface:
             pass
          self.data_sock = None
 
-      if self.verb > 3: print '-- socket has been closed'
+      if self.verb > 3: print('-- socket has been closed')
 
       return
 
@@ -448,14 +460,14 @@ class SerialInterface:
       self.data_port    = None          # serial data port
       self.swap         = 0             # whether to swap serial bytes
 
-      if self.verb > 1: print '++ initializing serial interface %s...' % sport
+      if self.verb > 1: print('++ initializing serial interface %s...' % sport)
 
    def open_data_port(self):
       if not self.port_file:
-         print '** no file to open as serial port'
+         print('** no file to open as serial port')
          return 1
 
-      if self.verb > 3: print '-- opening serial port', self.port_file
+      if self.verb > 3: print('-- opening serial port', self.port_file)
 
       # open port_file at baud 9600, 8 bit N parity, 1 stop bit
       errs = 0
@@ -468,20 +480,20 @@ class SerialInterface:
          port.setStopbits(g_SER.STOPBITS_ONE)
          port.setXonXoff(0)             # enable software flow control
       except(socket.error, socket.herror, socket.gaierror, socket.timeout):
-         print sys.exc_info()[1]
-         print '** failed to initialize serial port', self.port_file
+         print(sys.exc_info()[1])
+         print('** failed to initialize serial port', self.port_file)
          errs = 1
 
       if errs == 0:
          try: port.open()
          except(socket.error, socket.herror, socket.gaierror, socket.timeout):
-            print sys.exc_info()[1]
-            print '** failed to open serial port', self.port_file
+            print(sys.exc_info()[1])
+            print('** failed to open serial port', self.port_file)
             errs = 1
 
       if errs == 0:
          self.data_port = port
-         if self.verb > 2: print '++ serial port %s is open' % self.port_file
+         if self.verb > 2: print('++ serial port %s is open' % self.port_file)
 
       return errs
 
@@ -493,7 +505,7 @@ class SerialInterface:
             pass
          self.data_port = None
 
-      if self.verb > 2: print '-- serial port has been closed'
+      if self.verb > 2: print('-- serial port has been closed')
 
       return 0
 
@@ -503,13 +515,13 @@ class SerialInterface:
       if not self.data_port: return
       if not self.data_port.isOpen(): return
 
-      if self.verb > 4: print '++ writing data to serial port:', data
+      if self.verb > 4: print('++ writing data to serial port:', data)
 
       dstring = struct.pack('f'*len(data), *data)
       if self.swap: UTIL.swap4(dstring)
 
-      if self.verb > 5: print '++ hex data to serial port:',    \
-                        UTIL.data_to_hex_str([ord(v) for v in dstring])
+      if self.verb > 5: print('++ hex data to serial port:',
+            UTIL.data_to_hex_str(self.bytes_to_ord(dstring)))
 
       self.data_port.write(dstring)
 
@@ -518,6 +530,6 @@ class SerialInterface:
       return 0
 
 if __name__ == '__main__':
-   print '** main is not supported in this library'
+   print('** main is not supported in this library')
 
 
