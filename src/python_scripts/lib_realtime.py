@@ -467,7 +467,7 @@ class SerialInterface:
          print('** no file to open as serial port')
          return 1
 
-      if self.verb > 3: print('-- opening serial port', self.port_file)
+      if self.verb > 3: print('-- opening serial port %s' % self.port_file)
 
       # open port_file at baud 9600, 8 bit N parity, 1 stop bit
       errs = 0
@@ -526,6 +526,73 @@ class SerialInterface:
       self.data_port.write(dstring)
 
       del(dstring)
+
+      return 0
+
+
+# ----------------------------------------------------------------------
+class TextFileInterface:
+   """interface class to deal with serial port information"""
+   def __init__(self, fname='-', append=1, verb=1):
+      # main variables
+      self.fname        = fname         # text file name
+      self.fp           = None          # file object
+      self.append       = append        # whether to append (or overwrite)
+      self.sep          = '\t'          # tab separation is default
+      self.verb         = verb          # verbose level
+
+      if self.verb > 2: print('++ initializing text interface for %s' % fname)
+
+   def open_text_file(self):
+      if not self.fname:
+         print('** no text file to open')
+         return 1
+
+      if self.append: mode = 'a'
+      else:           mode = 'w'
+      if self.verb > 0:
+         print("-- will write data to file %s, mode '%s'" % (self.fname, mode))
+
+      if self.fname == '-' or self.fname == 'stdout':
+         self.fp = sys.stdout
+      elif self.fname == 'stderr':
+         self.fp = sys.stderr
+      else:
+         if self.append: mode = 'a'
+         else:           mode = 'w'
+         try: self.fp = open(self.fname, mode)
+         except:
+            print("** failed to open file %s, mode '%s'" % (self.fname, mode))
+            return 1
+      
+      if self.verb > 3: print('++ text file is open')
+
+      return 0
+
+   def close_text_file(self):
+
+      if self.fp != None:
+         if self.fp != sys.stdout and self.fp != sys.stderr:
+            self.fp.close()
+         self.fp = None
+
+      if self.verb > 2: print('-- text file has been closed')
+
+      return 0
+
+   def write_data_line(self, data):
+      """write all floats/ints to the text file"""
+
+      if not self.fp: return
+
+      if self.verb > 4: print('++ writing data to text file: %s' % data)
+
+      # convert list of values to text
+      textary = ['%s' % val for val in data]
+      self.fp.write('%s\n' % self.sep.join(textary))
+      self.fp.flush()
+
+      del(textary)
 
       return 0
 

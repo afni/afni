@@ -35,9 +35,19 @@ realtime_receiver.py - program to receive and display real-time plugin data
 
    Examples:
 
-     1. Run in test mode to just display data on the terminal window.
+     1a. Run in test mode to display verbose data on the terminal window.
 
-        realtime_receiver.py -show_data
+        realtime_receiver.py -show_data yes
+
+     1b. Run in test mode to just display motion to the terminal.
+
+        realtime_receiver.py -write_text_data stdout
+
+     1c. Write all 'extra' parameters to file my_data.txt, one set
+         per line.
+
+        realtime_receiver.py -write_text_data my_data.txt \\
+                             -data_choice all_extras
 
      2. Provide a serial port, sending the Euclidean norm of the motion params.
 
@@ -177,6 +187,7 @@ realtime_receiver.py - program to receive and display real-time plugin data
       -swap                     : swap bytes incoming data
       -tcp_port PORT            : specify TCP port for incoming connections
       -verb LEVEL               : set the verbosity level
+      -write_text_data FNAME    : write data to text file 'FNAME'
 
 -----------------------------------------------------------------------------
 R Reynolds    July 2009
@@ -192,7 +203,7 @@ g_history = """
    0.4  Jul 26, 2012 : added -show_comm_times
    0.5  Jan 16, 2013 : added -dc_params
    0.6  Sep 16, 2016 : proceed even if requested GUI fails to load
-   1.0  Jan 01, 2018 : python3 compatible
+   1.0  Jan 01, 2018 : python3 compatible, added -write_text_data
 """
 
 g_version = "realtime_receiver.py version 1.0, January 1, 2018"
@@ -218,6 +229,7 @@ class ReceiverInterface:
       # lib_realtime.py class instances
       self.RTI             = None          # real-time interface RTInterface
       self.SER             = None          # serial port interface Serial
+      self.TEXT            = None          # text file interface
 
       # data choice parameters
       self.dc_params       = []
@@ -259,6 +271,8 @@ class ReceiverInterface:
                       helpstr='whether to display received data in terminal')
       valid_opts.add_opt('-show_comm_times', 0, [],
                       helpstr='display communication times')
+      valid_opts.add_opt('-write_text_data', 1, [],
+                      helpstr='write data to text file')
 
       # demo options
       valid_opts.add_opt('-show_demo_data', 1, [],
@@ -359,6 +373,15 @@ class ReceiverInterface:
       if val != None and not err: self.RTI.server_port = val
 
       # ==================================================
+      # --- text file writing options ---
+
+      # open text file
+      val, err = uopts.get_string_opt('-write_text_data')
+      if val != None and not err:
+         self.TEXT = RT.TextFileInterface(val, verb=self.verb)
+         if not self.TEXT: return 1
+
+      # ==================================================
       # --- demo options ---
 
       val, err = uopts.get_string_opt('-show_demo_data')
@@ -414,8 +437,9 @@ class ReceiverInterface:
    def close_data_ports(self):
       """close TCP and socket ports, except for server port"""
 
-      if self.RTI: self.RTI.close_data_ports()
-      if self.SER: self.SER.close_data_ports()
+      if self.RTI:  self.RTI.close_data_ports()
+      if self.SER:  self.SER.close_data_ports()
+      if self.TEXT: self.TEXT.close_text_file()
 
    def process_demo_data(self):
 
@@ -446,6 +470,7 @@ class ReceiverInterface:
       self.TR_data.append(data)
 
       if self.SER: self.SER.write_4byte_data(data)
+      if self.TEXT: self.TEXT.write_data_line(data)
       if self.show_demo_data or self.demo_frame: self.process_demo_data()
 
       return rv
@@ -466,6 +491,10 @@ class ReceiverInterface:
       # possibly open a serial port
       if self.SER:
          if self.SER.open_data_port(): return 1
+
+      # possibly open a text file
+      if self.TEXT:
+         if self.TEXT.open_text_file(): return 1
 
       # process one TR at a time until 
       if self.verb > 1:
