@@ -49,9 +49,9 @@
 
 afni_history_struct rickr_history[] = {
 
- {  1, Jan, 2018, RCR, "realtime_receiver.py", MINOR, TYPE_ENHANCE,
+ {  2, Jan, 2018, RCR, "realtime_receiver.py", MINOR, TYPE_ENHANCE,
    "python3 compatible as of version 1.0",
-   NULL
+   "Also, add -write_text_data for L Morris and D Huynh."
  } ,
 
  { 29, Dec, 2017, RCR, "uber_subject.py", MINOR, TYPE_ENHANCE,
