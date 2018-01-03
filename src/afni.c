@@ -3628,6 +3628,139 @@ void AFNI_vcheck_flasher( Three_D_View *im3d )
    return ;
 }
 
+/*----------------------------------------------------------------------*/
+
+#undef  NTIP
+#define NTIP (sizeof(tip)/sizeof(char *))
+static char *tip[] = {
+   "If you are doing complicated twisted things with AFNI programs\n"
+   "ASK US (on the message board). Often, there is an easier way\n"
+   "to do a task that has already been programmed."
+ ,
+   "Program 3drefit can be used to change parameters in a dataset\n"
+   "header (e.g., slice timing). Program 3dinfo can be used to\n"
+   "display information from a dataset header."
+ ,
+   "Script @SSwarper can be used to Skull Strip and warp a human\n"
+   "T1-weighted dataset to the MNI template. The outputs can be\n"
+   "re-used in afni_proc.py."
+ ,
+   "If you set environment variable AFNI_GLOBAL_SESSION to the name\n"
+   "of a directory with datasets, then those datasets will be visible\n"
+   "in the UnderLay and OverLay choosers. For example, copy the MNI\n"
+   "template MNI152_2009_template.nii.gz to this directory, and then\n"
+   "you'll always be able to use it as an underlay dataset."
+ ,
+   "If the aspect ratio (width/height) of an image viewer window looks\n"
+   "bad, you can fix it by typing the 'a' key into the image, or by\n"
+   "clicking the left mouse button in the intensity grayscale bar at\n"
+   "the right of the image."
+ ,
+   "The right-click popup menu on the intensity grayscale bar to the right\n"
+   "of an image viewer has several useful controls, including:\n"
+   "  choosing the numerical Display Range for the underlay\n"
+   "  drawing a coordinate Label over the image\n"
+   "  applying an Automask to the overlay"
+ ,
+   "If you crop an image, you can move the crop window around by pressing\n"
+   "the Shift key plus one of the keyboard arrow keys."
+ ,
+   "The 'Disp' button in an image viewer pops up a control panel with many\n"
+   "useful buttons, including:\n"
+   "  Project = combine multiple slices into one underlay\n"
+   "  Tran 0D = transform values of the underlay pixelwise\n"
+   "  Tran 2D = transform underlay image globally (e.g., blurring)\n"
+   "  Rowgraphs = graph the underlay numerical values in 1-9 pixel rows"
+ ,
+   "The 'BHelp' button lets you click on some other button in the GUI\n"
+   "to get more information about what that button does."
+ ,
+   "The right-click popup menu on the coordinate display in the AFNI\n"
+   "controller has several useful functions, including:\n"
+   "  controlling the coordinate display order\n"
+   "  jumping to x,y,z (mm) or i,j,k (voxel index) coordinates"
+ ,
+   "The right-click popup menu on the label above the threshold slider\n"
+   "lets you control the threshold in various ways:\n"
+   "  pin the Threshold sub-brick to equal the OLay or OLay+1 sub-brick\n"
+   "  set the threshold slider to have a given voxelwise p-value\n"
+   "  control Alpha fading for colorization of sub-threshold voxels"
+ ,
+   "The right-click popup menu on the label above the color overlay bar\n"
+   "lets you control colorization from the OLay sub-brick in several ways:\n"
+   "  you can jump crosshairs to the largest OLay value above threshold\n"
+   "  you can write the current color palette out to a file for editing,\n"
+   "    or to an image for use in a figure\n"
+   "  you can apply pixelwise or 2D spatial transformations to the\n"
+   "    OLay values before they are turned into colors"
+ ,
+   "You can run InstaCorr on several subjects at the same time, using\n"
+   "multiple AFNI controllers opened with the 'New' button."
+ ,
+   "REMEMBER: afni_proc.py is your friend when doing time series analyses!"
+ ,
+   "The 'New' button (lower left corner of AFNI controller) lets you open\n"
+   "another AFNI controller. The UnderLay and OverLay datasets will be\n"
+   "listed in the controller window title bar."
+ ,
+   "Image viewer keypress: q = close window" ,
+   "Image viewer keypress: S = save image"   ,
+   "Image viewer keypress: o = turn OLay color on or off" ,
+   "Image viewer keypress: u = make underlay image from the OLay dataset" ,
+   "Image viewer keypress: 4 or 5 or 6 = meld ULay and OLay images" ,
+   "Image viewer keypress: z/Z = zoom out or in" ,
+   "Graph viewer keypress: < or > = move focus time down or up 1 TR" ,
+   "Graph viewer keypress: 1 or L = move focus time to first or last TR" ,
+   "Graph viewer keypress: v/V = video the focus time up or down"
+ ,
+   "The image viewer 'Mont' button (along bottom) will let you make a montage\n"
+   "from multiple slices, which can be Saved to a .jpg or .png file."
+ ,
+   "If the image editing program 'gimp' is in your path, then the image viewer\n"
+   "Save control panel will include an option to start gimp on your image, so\n"
+   "you can further edit it immediately."
+ ,
+   "The graph viewer 'Tran 1D' function Dataset#N (from the 'Opt' main menu) lets\n"
+   "you plot extra dataset time series on top of the UnderLay dataset's time\n"
+   "series graphs."
+ ,
+   "You can change the way the graph viewer shows it plots using the 'Colors, Etc.'\n"
+   "sub-menu from the main 'Opt' menu (lower right corner)."
+ ,
+   "The graph viewer 'Opt' menu item 'Detrend' lets you choose a polynomial degree\n"
+   "for detrending the graph data. This can help you visualize the features of the\n"
+   "data you want to see without be distracted by long term trends up or down."
+ ,
+   "Right-clicking in a graph viewer plot will popup a window with some statistics\n"
+   "about the data being shown."
+ ,
+   "The README.environment text file lists many Unix 'environment' variables that\n"
+   "can be used to control the way AFNI appears and operates."
+ ,
+   "The Define Datamode control panel lets you control how the OLay dataset is\n"
+   "resampled to fit the ULay dataset (that defines the basis for the pixel grid\n"
+   "on which the images are displayed).\n"
+ ,
+   "Define Datamode -> Lock lets you turn the xyz coordinate lock between AFNI\n"
+   "controllers off, if you want. Or, you can turn on 'Time Lock', so that the\n"
+   "TR index is locked between controllers, as well as the crosshair location."
+ ,
+   "When you Save from an image viewer, you can choose a 'Blowup' factor,\n"
+   "to scale the image size upward: factors from 2 to 8 are available."
+
+} ;
+
+void AFNI_print_startup_tip(void) /* 03 Jan 2018 */
+{
+   int nn = (lrand48()>>3) % NTIP ;
+
+   if( tip[nn] != NULL )
+     fprintf( stderr , "\n\n----- AFNI Startup Tip (%d/%d)-----\n%s\n"
+                           "-----------------------------------\n"    ,
+              nn+1 , (int)NTIP , tip[nn] ) ;
+   return ;
+}
+
 /*----------------------------------------------------------------------
   This function is called about 1 s after AFNI startup is completed.
   It's original purpose was to make sure that the help window was
@@ -3882,13 +4015,19 @@ INFO_message("AFNI controller xroot=%d yroot=%d",(int)xroot,(int)yroot) ;
    /*--- splash window down -- moved here 29 May 2013 ---*/
 
 #ifndef NO_FRIVOLITIES
-   if( lrand48()%7 == 3 )
+   if( lrand48()%17 == 3 )
      INFO_message("Want your picture in the AFNI splash screen? Email us a square JPEG!") ;
 #endif
 
    AFNI_splashdown(); STATUS("splashed down");
 
-   /* this is for me only! */
+   /* Startup tip message [03 Jan 2018] */
+
+   if( !ALLOW_realtime                        &&
+       !AFNI_yesenv("AFNI_NEVER_SAY_GOODBYE") &&
+        MAIN_im3d->type == AFNI_3DDATA_VIEW     ) AFNI_print_startup_tip() ;
+
+   /* this is for me, myself, and I only! */
 
    { char *eee = getenv("USER") ;
      set_program_name("afni") ;
