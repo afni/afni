@@ -3747,6 +3747,40 @@ static char *tip[] = {
  ,
    "When you Save from an image viewer, you can choose a 'Blowup' factor,\n"
    "to scale the image size upward: factors from 2 to 8 are available."
+ ,
+   "The InstaCalc function (from the InstaCorr drop-down menu) lets you\n"
+   "calculate the overlay dataset on the fly, from multiple inputs,\n"
+   "using the same expression syntax as 3dcalc, 1deval, etc."
+ ,
+   "You can right-click on the label to the left of a drop-down menu\n"
+   "(e.g., 'ULay') to get a chooser panel that lets you control the\n"
+   "menu choice in a different way."
+ ,
+   "The 'Rota' arrows (in Define Datamode) lets you rotate the color bar,\n"
+   " one color step per click -- if you use Shift+click, it takes 5\n"
+   " color steps per click.\n"
+   "The 'F' button to the right will flip the color bar top-to-bottom."
+ ,
+   "The image viewer right-click popup menu has several useful functions:\n"
+   "  Jumpback        = take crosshairs to their previous location\n"
+   "  Where Am I?     = show atlas information about the current location\n"
+   "  Image Display   = hide GUI controls\n"
+   "  Draw ROI Plugin = activate the Drawing plugin"
+ ,
+   "Right-click on the 'Disp' button (lower left) of an image viewer will\n"
+   " raise the corresponding AFNI controller to the top.\n"
+   "Right-click on the AFNI logo (lower left) of a graph viewer does the same.\n"
+   "These functions are here in case you lose the controller somewhere on\n"
+   "the screen, and want to get it back."
+ ,
+   "Right-click on the 'Save' button in an image viewer will popup the list\n"
+   "of possible image save formats."
+ ,
+   "Left-click in the square right of 'Etc->' in an AFNI controller will\n"
+   " popup a copy of the splash screen again. Another left-click there will\n"
+   " pop the splash window down again.\n"
+   "Right-click in that square will give a menu with some fun choices.\n"
+   "Middle-click in that square will popup a random insult.\n"
 
 } ;
 
