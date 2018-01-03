@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 3 , JAN , 2018 , RWC , "AFNI GUI" , MICRO , TYPE_ENHANCE ,
+   "Add startup tips (to stderr) to AFNI" ,
+   "Source is in afni.c. Search for TIP string." } ,
+
  { 20 , DEC , 2017 , RWC , "afni GUI" , MINOR , TYPE_ENHANCE ,
    "Add driver command DATASET#N" ,
    "To let the user drive the graph viewer plugin from outside. A little\n"
