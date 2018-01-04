@@ -3667,9 +3667,9 @@ static char *tip[] = {
  ,
    "The 'Disp' button in an image viewer pops up a control panel with many\n"
    "useful buttons, including:\n"
-   "  Project = combine multiple slices into one underlay\n"
-   "  Tran 0D = transform values of the underlay pixelwise\n"
-   "  Tran 2D = transform underlay image globally (e.g., blurring)\n"
+   "  Project   = combine multiple slices into one underlay\n"
+   "  Tran 0D   = transform values of the underlay pixelwise\n"
+   "  Tran 2D   = transform underlay image globally (e.g., blurring)\n"
    "  Rowgraphs = graph the underlay numerical values in 1-9 pixel rows"
  ,
    "The 'BHelp' button lets you click on some other button in the GUI\n"
@@ -3779,8 +3779,73 @@ static char *tip[] = {
    "Left-click in the square right of 'Etc->' in an AFNI controller will\n"
    " popup a copy of the splash screen again. Another left-click there will\n"
    " pop the splash window down again.\n"
+   " Clicking in the reincarnated splash screen may give funny results.\n"
    "Right-click in that square will give a menu with some fun choices.\n"
    "Middle-click in that square will popup a random insult.\n"
+ ,
+   "Set environment variable AFNI_DATASET_BROWSE to YES and then when you\n"
+   "click on a dataset name in the OverLay or UnderLay popup chooser, AFNI\n"
+   "will switch to viewing that dataset immediately (rather than waiting for\n"
+   "you to press 'Set'). You can also browse through datasets in these\n"
+   "choosers using the keyboard up/down arrows."
+ ,
+   "You can adjust the brightness and contrast of the underlay (grayscale)\n"
+   " image by using the 'b' and 'c' arrows at the right of an image viewer.\n"
+   "A more interactive method is to press and hold down the left mouse button,\n"
+   " then drag the cursor around up/down (brightness) or left/right (contrast).\n"
+   " With this method, you just wiggle the mouse around while left-click is\n"
+   " down, and you can adjust the image grayscale until it looks good."
+ ,
+   "Set environment variable AFNI_CREEPTO to YES, and then the 'Jump to' button\n"
+   "will move the crosshairs to the chosen location incrementally, rather than\n"
+   "in one big jump.  The reasons for using this feature are (a) to help\n"
+   "get a feel for the transit, and (b) just plain fun."
+ ,
+   "Right-click on the color bar in Define Overlay, and you can change the color\n"
+   " scale that is used.\n"
+   "You can switch the color bar to a discrete set of solid colors by using the\n"
+   " menu labeled '#' just beneath the color bar.\n"
+   "You can save an image of the color bar by right-clicking on the label above\n"
+   " it, and choosing 'Save to PPM' from the popup menu."
+ ,
+   "You can crop an image by left-clicking the 'crop' button in an image viewer.\n"
+   "You can Montage cropped images (all will be cropped the same way).\n"
+   "Right-clicking on 'crop' will give a chooser where you can specify the\n"
+   " cropping region size exactly."
+ ,
+   "You can use keyboard shortcuts to precisely adjust the threshold slider.\n"
+   "Put the mouse over the slider, and then\n"
+   " down/up arrows    for tiny adjustments \n"
+   " page up/page down for larger adjustments"
+ ,
+   "In a graph viewer, you can restrict the plotting to a subset of the time\n"
+   "points by using the Opt -> Grid -> Index Pin menu item."
+ ,
+   "In a graph viewer, the default plotting method has the bottom of each graph\n"
+   "using a separate value (the minimum in that voxel). You can also make them\n"
+   "have a common baseline (minimum among all voxels in the graph window) or\n"
+   "a global baseline (set by you) by using the Opt -> Baseline menu items."
+ ,
+   "At the bottom of a graph viewer is a bunch of text showing various information\n"
+   "about what is being shown."
+ ,
+   "When looking at FMRI data graphs with a regular stimulus timing, it is\n"
+   "helpful to set the graph grid lines to match the stimulus timing spacing.\n"
+   "You can do this from the Opt -> Grid -> Choose menu item."
+ ,
+   "You can have graphs drawn as box plots rather than as connected line segments,\n"
+   "by using the Opt -> Colors, Etc. -> Boxes menu item, or by pressing the 'B'\n"
+   "key when the mouse cursor is over the graph viewer window."
+ ,
+   "In the graph viewer Opt and FIM menus, items that have keyboard shortcuts have\n"
+   "the key inside square brackets, as in Opt -> Scale -> Down [-], meaning the '-'\n"
+   "key will cause the graph to scaled down (vertically)."
+ ,
+   "Advanced graphing: you can change the x-axis values from being 0,1,2,... to be\n"
+   "anything you want, chosen from a 1D text file (applies to all voxels) or from\n"
+   "a 3D dataset (per voxel x-coordinates). The x-axis for the central sub-plot will\n"
+   "be displayed as a vertical graph at the left of the graph viewer window. See\n"
+   "the Opt -> X-axis menu items to do strange things."
 
 } ;
 
@@ -3789,8 +3854,10 @@ void AFNI_print_startup_tip(void) /* 03 Jan 2018 */
    int nn = (lrand48()>>3) % NTIP ;
 
    if( tip[nn] != NULL )
-     fprintf( stderr , "\n\n----- AFNI Startup Tip (%d/%d)-----\n%s\n"
-                           "-----------------------------------\n"    ,
+     fprintf( stderr , "\n\n"
+              "------------------------- AFNI Startup Tip (%d/%d)---------------------------\n"
+              "%s\n"
+              "-----------------------------------------------------------------------------\n" ,
               nn+1 , (int)NTIP , tip[nn] ) ;
    return ;
 }
