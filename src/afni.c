@@ -3644,9 +3644,8 @@ void AFNI_vcheck_flasher( Three_D_View *im3d )
 #undef  NTIP
 #define NTIP (sizeof(tip)/sizeof(char *))
 static char *tip[] = {
-   "If you are doing complicated twisted things with AFNI programs\n"
-   "ASK US (on the message board). Often, there is an easier way\n"
-   "to do a task that has already been programmed."
+   "If you are doing complicated twisted things with AFNI programs, ASK US\n"
+   "(on the message board). Often, there is an easier way to do a task!"
  ,
    "Program 3drefit can be used to change parameters in a dataset\n"
    "header (e.g., slice timing). Program 3dinfo can be used to\n"
@@ -3716,16 +3715,26 @@ static char *tip[] = {
    "another AFNI controller. The UnderLay and OverLay datasets will be\n"
    "listed in the controller window title bar."
  ,
-   "Image viewer keypress: q = close window" ,
-   "Image viewer keypress: S = save image (works in graph viewer too)" ,
-   "Image viewer keypress: o = turn OLay color on or off" ,
-   "Image viewer keypress: u = make underlay image from the OLay dataset" ,
-   "Image viewer keypress: 4 or 5 or 6 = meld ULay and OLay images" ,
-   "Image viewer keypress: z/Z = zoom out or in" ,
-   "Graph viewer keypress: < or > = move focus time down or up 1 TR" ,
-   "Graph viewer keypress: 1 or L = move focus time to first or last TR" ,
-   "Graph viewer keypress: v/V = video the focus time up or down" ,
-   "Graph viewer keypress: m/M = decrease/increase matrix size of graphs" ,
+   "Image viewer keypress: q = close window"
+ ,
+   "Image viewer keypress: S = save image (works in graph viewer too)"
+ ,
+   "Image viewer keypress: o = turn OLay color on or off"
+ ,
+   "Image viewer keypress: u = make underlay image from the OLay dataset"
+ ,
+   "Image viewer keypress: 4 or 5 or 6 = meld ULay and OLay images"
+ ,
+   "Image viewer keypress: z/Z = zoom out or in"
+ ,
+   "Graph viewer keypress: < or > = move focus time down or up 1 TR"
+ ,
+   "Graph viewer keypress: 1 or L = move focus time to first or last TR"
+ ,
+   "Graph viewer keypress: v/V = video the focus time up or down"
+ ,
+   "Graph viewer keypress: m/M = decrease/increase matrix size of graphs"
+ ,
    "Graph viewer keypress: w = write time series from central sub-graph to a file"
  ,
    "The image viewer 'Mont' button (along bottom) will let you make a montage\n"
