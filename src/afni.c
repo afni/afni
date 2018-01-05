@@ -3890,7 +3890,7 @@ static char *tip[] = {
    "When saving an image (or a montage), you might want to turn the crosshairs off.\n"
    " You can do this from the 'Xhairs' menu in the AFNI controller.\n"
    "If you want all the sub-images in a montage to have crosshairs (instead of\n"
-   " just the central image), turn the 'X+' button on.\n"
+   " just the central image), turn the 'X+' button on."
  ,
    "When saving from the image viewer, the saved image is on the matrix of the\n"
    "dataset. It is NOT a screen capture; that is, the image saved will not depend\n"
@@ -3903,7 +3903,16 @@ static char *tip[] = {
    "Keypress 'I' increases the ignore count by 1, 'i' decreases by 1.\n"
    "Ignored points are plotted with little blue circles which take the value of\n"
    "the first non-ignored point."
-
+ ,
+   "If you have a complicated AFNI window layout you want to save, you can use\n"
+   "Define Datamode -> Misc -> Save Layout to save a startup script that will\n"
+   "be used when you re-start AFNI in the same directory to restore the AFNI\n"
+   "windows to (approximately) the same state they had before."
+ ,
+   "Questions about AFNI? Try our Message Board at\n"
+   "  https://afni.nimh.nih.gov/afni/community/board/\n"
+   "Please be specific and focused, as generic questions without\n"
+   "details are hard to answer well on a Web forum."
 } ;
 
 void AFNI_print_startup_tip(void) /* 03 Jan 2018 */
