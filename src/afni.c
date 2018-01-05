@@ -126,6 +126,8 @@
 #define USE_SIDES  /* 01 Dec 1999: replace "left is xxx" */
                    /* labels with "sides" labels.        */
 
+void AFNI_print_startup_tip(void) ;
+
 /*-----------------------------------------------------------------------
    Fallback resources for AFNI.  May be overridden by the user's
    .Xdefaults file, or other resource sources.  AFNI does not come
@@ -707,6 +709,7 @@ void AFNI_syntax(void)
      "   -goodbye [n] Print a 'goodbye' message and exit (just for fun).\n"
      "                If an integer is supplied afterwards, will print that\n"
      "                many (random) goodbye messages.\n"
+     "   -startup [n] Similar to '-goodbye', but for startup tips.\n"
      "   -ver         Print the current AFNI version and exit.\n"
      "\n"
      "N.B.: Many of these options, as well as the initial color set up,\n"
@@ -2588,9 +2591,17 @@ int main( int argc , char *argv[] )
    /*--- help the pitiful user? ---*/
 
    if( argc > 1 && strcasecmp(argv[1],"-help")    == 0 ) AFNI_syntax() ;
+
    if( argc > 1 && strcasecmp(argv[1],"-goodbye") == 0 ){
      ii = (argc > 2 ) ? abs((int)rintf((strtod(argv[2],NULL)))) : 0 ;
      AFNI_sigfunc_alrm(-ii) ;
+   }
+
+   if( argc > 1 && strcasecmp(argv[1],"-startup") == 0 ){ /* 05 Jan 2018 */
+     int jj ;
+     ii = (argc > 2 ) ? abs((int)rintf((strtod(argv[2],NULL)))) : 1 ;
+     for( jj=0 ; jj < ii ; jj++ ) AFNI_print_startup_tip() ;
+     exit(0) ;
    }
 
    /** Check for -version [15 Aug 2003] **/
@@ -3685,7 +3696,7 @@ static char *tip[] = {
    "lets you control the threshold in various ways:\n"
    "  pin the Threshold sub-brick to equal the OLay or OLay+1 sub-brick\n"
    "  set the threshold slider to have a given voxelwise p-value\n"
-   "  control Alpha fading for colorization of sub-threshold voxels"
+   "  control Alpha fading for colorization of sub-threshold voxels\n"
    "  see only Positive or Negative values (with respect to the threshold)\n"
  ,
    "The right-click popup menu on the label above the color overlay bar\n"
@@ -3713,7 +3724,7 @@ static char *tip[] = {
    "Image viewer keypress: z/Z = zoom out or in" ,
    "Graph viewer keypress: < or > = move focus time down or up 1 TR" ,
    "Graph viewer keypress: 1 or L = move focus time to first or last TR" ,
-   "Graph viewer keypress: v/V = video the focus time up or down"
+   "Graph viewer keypress: v/V = video the focus time up or down" ,
    "Graph viewer keypress: m/M = decrease/increase matrix size of graphs" ,
    "Graph viewer keypress: w = write time series from central sub-graph to a file"
  ,
