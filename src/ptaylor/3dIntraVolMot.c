@@ -68,14 +68,17 @@ int main(int argc, char *argv[]) {
    THD_3dim_dataset *insetA = NULL;
    THD_3dim_dataset *MASK=NULL;
    char *prefix="PREFIX" ;
+   char tprefixx[THD_MAX_PREFIX];
+   char tprefixy[THD_MAX_PREFIX];
+   
    // char in_name[300];
 
-   // FILE *fout0, *fout1;
+   FILE *fout0, *fout1;
 
    int Nvox=-1;   // tot number vox
    int *Dim=NULL;
    byte ***mskd=NULL; // define mask of where time series are nonzero
-   byte *mskd2=NULL; // not great, but another format of mask
+   int *mskd2=NULL;   // another format of mask: hold sli num, and dilate
 
    int TEST_OK = 0;
    double checksum = 0.;
@@ -83,7 +86,10 @@ int main(int argc, char *argv[]) {
    int *Nmk=NULL;                            // num of vox in slice mask
    int MIN_NMK = -1;                         // calc how many vox/sli
                                              // are needed for calc
-   int maxk = -1, upk = -1, delsli = -1;     // some loop pars
+   int mink = -1, maxk = -1, upk = -1, delsli = -1;     // some loop pars
+   
+   float **slipar=NULL;      // per sli, per vol par
+   int **slinvox=NULL;       // per sli, per vol count
    
    float **diffarr=NULL;
    THD_3dim_dataset *diffdset=NULL;          // output dset of diffs
@@ -99,7 +105,7 @@ int main(int argc, char *argv[]) {
    // ****************************************************************
    // ****************************************************************
 
-   INFO_message("version: 2018_01_05");
+   INFO_message("version: 2018_01_06");
 	
    /** scan args **/
    if (argc == 1) { usage_IntraVolMot(1); exit(0); }
@@ -203,7 +209,8 @@ int main(int argc, char *argv[]) {
 
    // Store number of voxels in axial slice mask
    Nmk = (int *)calloc(Dim[2], sizeof(int)); 
-   mskd2 = (byte *)calloc(Nvox,sizeof(byte)); 
+   mskd2 = (int *)calloc(Nvox, sizeof(int)); // dilated form
+
 
    if( (mskd == NULL) || (Nmk == NULL) || (mskd2 == NULL) ) { 
       fprintf(stderr, "\n\n MemAlloc failure (masks).\n\n");
@@ -220,7 +227,15 @@ int main(int argc, char *argv[]) {
    for(i=0 ; i<Dim[3] ; i++) 
       diffarr[i] = calloc( Nvox, sizeof(float) ); 
 
-   if( (diffarr == NULL) ) { 
+   // summary pars and count for slices
+   slipar = calloc( Dim[3], sizeof(slipar) );
+   for(i=0 ; i<Dim[3] ; i++) 
+      slipar[i] = calloc( Dim[2], sizeof(float) );
+   slinvox = calloc( Dim[3], sizeof(slinvox) );
+   for(i=0 ; i<Dim[3] ; i++) 
+      slinvox[i] = calloc( Dim[2], sizeof(int) ); 
+   
+   if( (diffarr == NULL) || (slipar == NULL) || (slinvox == NULL) ) { 
       fprintf(stderr, "\n\n MemAlloc failure (arrs).\n\n");
       exit(13);
    }
@@ -263,7 +278,7 @@ int main(int argc, char *argv[]) {
             if( MASK ) {
                if( THD_get_voxel(MASK,idx,0)>0 ) {
                   mskd[i][j][k] = 1;
-                  mskd2[idx] = 1;
+                  //mskd2[idx] = k+1;  // !! just do later now in values used!
                   Nmk[k]+=1;
                }
             }
@@ -273,7 +288,7 @@ int main(int argc, char *argv[]) {
                   checksum+= fabs(THD_get_voxel(insetA,idx,m)); 
                if( checksum > EPS_V ) {
                   mskd[i][j][k] = 1;
-                  mskd2[idx] = 1;
+                  //mskd2[idx] = k+1;  // !! just do later now in values used!
                   Nmk[k]+=1;
                }
             }
@@ -295,29 +310,53 @@ int main(int argc, char *argv[]) {
 
    INFO_message("Start processing.");
    
-   // Calc (scaled) diff values with single pass through.  We don't
-   // use the Nmk[k] check initially, because we want idx to still get
-   // bigger.
+   // ---------------- Calc (scaled) diff values ------------------
+
+   // Single pass through.  We don't use the Nmk[k] check initially,
+   // because we want idx to still get bigger.
    idx = 0;
    delsli = Dim[0]*Dim[1];
    maxk = Dim[2] - 1;
    for( k=0 ; k<maxk ; k++ ) 
       for( j=0 ; j<Dim[1] ; j++ ) 
          for( i=0 ; i<Dim[0] ; i++ ) {
-            if( mskd2[idx] && Nmk[k] ) {
+            if( mskd[i][j][k] && Nmk[k] ) {
                if( mskd[i][j][k+1] ) {
                   upk = idx + delsli; // index one slice up
+                  mskd2[idx] = k+1;   // record sli as k+1 bc of zeros.
                   for( m=0 ; m<Dim[3] ; m++ ) {
                      diffarr[m][idx] = 0.5*(THD_get_voxel(insetA, idx, m) -
                                             THD_get_voxel(insetA, upk, m) );
                      diffarr[m][idx]/= fabs(THD_get_voxel(insetA, idx, m)) +
                         fabs(THD_get_voxel(insetA, upk, m)) +
-                        0.0000001;
+                        0.0000001; // guard against double-zero val badness
                   }
                }
             }
             idx+=1;
          }
+
+   
+   // ---------------- sum of slice vals ------------------
+
+   // Count 'em
+   for( idx=0 ; idx<Nvox ; idx++)
+      if( mskd2[idx] ) {
+         for( m=0 ; m<Dim[3] ; m++ ) {
+            slinvox[m][ mskd2[idx]-1 ] +=1;  // count this
+            if( diffarr[m][idx] > 0 )
+               slipar[m][ mskd2[idx]-1 ] +=1;
+         }
+      }
+
+   // Calc fraction per slice of uppers
+   for( k=0 ; k<maxk ; k++)
+      for( m=0 ; m<Dim[3] ; m++ ) 
+         if( slinvox[m][k] ) {
+            slipar[m][k]/= slinvox[m][k];
+            slipar[m][k]-= 0.5; // center around 0
+         }
+
    
    // **************************************************************
    // **************************************************************
@@ -325,6 +364,35 @@ int main(int argc, char *argv[]) {
    // **************************************************************
    // **************************************************************
 
+   if ( 1 ) {
+
+      sprintf(tprefixx,"%s_sli.1D", prefix);
+      sprintf(tprefixy,"%s_val.1D", prefix);
+      
+      if( (fout0 = fopen(tprefixx, "w")) == NULL) {
+         fprintf(stderr, "Error opening file %s.", tprefixx);
+         exit(19);
+      }
+      if( (fout1 = fopen(tprefixy, "w")) == NULL) {
+         fprintf(stderr, "Error opening file %s.", tprefixy);
+         exit(19);
+      }
+      
+      for( k=0 ; k<maxk ; k++) {
+         if (Nmk[k]) {
+            fprintf(fout0, " %5d\n", k);
+            for( m=0 ; m<Dim[3] ; m++) {
+               fprintf(fout1, " %8.5f ", slipar[m][k]);
+            }
+            fprintf(fout1, "\n");
+         }
+      }
+      fclose(fout0);
+      fclose(fout1);
+      INFO_message("Wrote text file: %s", tprefixx);
+      INFO_message("Wrote text file: %s", tprefixy);
+   }
+      
    if ( 1 ) {
       INFO_message("Preparing output of diffs.");
       
@@ -393,7 +461,15 @@ int main(int argc, char *argv[]) {
    }
 
    free(Nmk);
+   
+   for( i=0 ; i<Dim[3] ; i++) {
+      free(slipar[i]);
+      free(slinvox[i]);
+   }
+   free(slipar);
+   free(slinvox);
 
+      
    if(prefix)
       free(prefix);
 
