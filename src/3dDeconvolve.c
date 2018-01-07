@@ -1255,6 +1255,16 @@ void display_help_menu(int detail)
     "                       are specified at time to peak 'K' and full      \n"
     "                       width at half max (FWHM) 'W'. You can also      \n"
     "                       add a third argument as the duration.           \n"
+    "                     ** Note that if you give weird values for K and W,\n"
+    "                        weird things will happen: (tcsh syntax)        \n"
+    "                         set pp = `ccalc 'gamp(2,8)'                   \n"
+    "                         set qq = `ccalc 'gamq(2,8)'                   \n"
+    "                         1deval -p=$pp -q=$qq -num 200 -del 0.1  \\    \n"
+    "                                -expr '(t/p/q)^p*exp(p-t/q)'   | \\    \n"
+    "                                1dplot -stdin -del 0.1                 \n"
+    "                        Here, K is significantly smaller than W,       \n"
+    "                        so a gamma variate that fits peak=2 width=8    \n"
+    "                        must be weirdly shaped.                        \n"
     "\n"
     "     'TWOGAM(p1,q1,r,p2,q2)'                                           \n"
     "                   = 1 parameter (amplitude) model:                    \n"
@@ -1271,6 +1281,10 @@ void display_help_menu(int detail)
     "                       second (subtracted) function is intended        \n"
     "                       to model the 'undershoot'. You can also         \n"
     "                       add a sixth argument as the duration.           \n"
+    "                     ** Example (no duration given):                   \n"
+    "        3dDeconvolve -num_stimts 1 -polort -1 -nodata 81 0.5         \\\n"
+    "                     -stim_times 1 '1D: 0' 'TWOGAMpw(3,6,0.2,10,12)' \\\n"
+    "                     -x1D stdout: | 1dplot -stdin -THICK -del 0.5      \n"
     "\n"
     "     'SPMG1'       = 1 parameter SPM gamma variate basis function      \n"
     "                         exp(-t)*(A1*t^P1-A2*t^P2) where               \n"
@@ -10517,11 +10531,21 @@ static float basis_twogam( float x , float b , float c , float top , void *q )
 static float_pair gam_peak_fwhm_convert( float peak , float fwhm )
 {
    float_pair result = {0.0f,0.0f} ;
+   double_pair pq ;
    float p , q ;
 
    if( peak <= 0.0f || fwhm <= 0.0f ) return result ;
-   
+
+#if 1
+   pq = gam_find_pq( (double)peak , (double)fwhm ) ; /* cs_gamfit.c */
+   p = pq.a ; q = pq.b ;
+#else
    p = (2.3f*peak/fwhm) ; p = p*p ; q = peak/p ;
+#endif
+
+   INFO_message("GAM convert: peak=%g fwhm=%g -> p=%g q=%g",peak,fwhm,p,q) ;
+   if( p <= 0.0f || q <= 0.0f )
+     ERROR_exit("GAM conversion from peak+fwhm to p,q parameters fails :(") ;
    result.a = p ; result.b = q ; return result ;
 }
 
@@ -11273,7 +11297,7 @@ ENTRY("basis_parser") ;
        if( dur < 0.0f ){   /* the olden way: no duration given */
          be->bfunc[0].a = bot ;    /* t_peak = bot*top */
          be->bfunc[0].b = top ;    /* FWHM   = 2.3*sqrt(bot)*top */
-         be->bfunc[0].c = bot*top + 5.0f*sqrtf(bot)*top ;  /* long enough */
+         be->bfunc[0].c = bot*top + 9.9f*sqrtf(bot)*top ;  /* long enough */
          be->bfunc[0].f = basis_gam ;
          be->tbot = 0.0f ; be->ttop = be->bfunc[0].c ;
        } else {            /* duration given ==> integrate it */
@@ -11325,8 +11349,8 @@ ENTRY("basis_parser") ;
      fq = (float *)malloc(sizeof(float)*7) ;
      fq[0] = p1 ; fq[1] = q1 ; fq[2] = rr ;
      fq[3] = p2 ; fq[4] = q2 ; fq[5] = dur ;
-     b1 = p1*q1+5.0f*sqrtf(p1)*q1 ;
-     b2 = p2*q2+5.0f*sqrtf(p2)*q2 ; fq[6] = MAX(b1,b2) ;
+     b1 = p1*q1+9.9f*sqrtf(p1)*q1 ;
+     b2 = p2*q2+9.9f*sqrtf(p2)*q2 ; fq[6] = MAX(b1,b2) ;
      if( dur == 0.0f ){
        float mx=0.0f , tt,vv ;
        be->bfunc[0].a = 1.0f ;        /* scale factor */

@@ -17,6 +17,11 @@
 
 #include "mcw_malloc.h"
 
+#ifndef TYPEDEF_double_pair
+#define TYPEDEF_double_pair
+typedef struct { double a,b ; } double_pair ;
+#endif
+
 #ifdef  __cplusplus
 extern "C" {
 #endif
@@ -148,6 +153,8 @@ extern int strcmp_aboot( char * , char * ) ;        /* 12 Mar 2007 */
 
 extern char * afni_fgets( char *buf , int nbuf , FILE *fp ) ; /* 20 Dec 2011 */
 extern void   afni_fgets_setskip(int) ;
+
+extern double_pair gam_find_pq( double peak , double fwhm ) ; /* 07 Jan 2018 */
 
 #ifndef DEBLANK
 #define DEBLANK(cc) do{ if( (cc) != NULL ){                   \
