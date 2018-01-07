@@ -1182,7 +1182,7 @@ void display_help_menu(int detail)
     "        not all functions are (or can be) convolved in this way:       \n"
     "        * ALWAYS convolved:      BLOCK  dmBLOCK  MION  MIONN           \n"
     "        * NEVER convolved:       TENT   CSPLIN   POLY  SIN   EXPR      \n"
-    "        * OPTIONALLY convolved:  GAM    SPMGx    WAV                   \n"
+    "        * OPTIONALLY convolved:  GAM    TWOGAM   SPMGx WAV             \n"
     "                                                                       \n"
     "     'BLOCK(d,p)'  = 1 parameter block stimulus of duration 'd'        \n"
     "                    ** There are 2 variants of BLOCK:                  \n"
@@ -1211,6 +1211,7 @@ void display_help_menu(int detail)
     "                       amplitude goes to 1 as the duration gets large. \n"
     "                       If p > 0, 'UBLOCK(d,p)' and 'BLOCK(d,p)' are    \n"
     "                       identical.                                      \n"
+    "\n"
     "     'TENT(b,c,n)' = n parameter tent function expansion from times    \n"
     "                       b..c after stimulus time [piecewise linear]     \n"
     "                       [n must be at least 2; time step is (c-b)/(n-1)]\n"
@@ -1239,6 +1240,7 @@ void display_help_menu(int detail)
     "                        be continuous, since they will now be unable   \n"
     "                        to suddenly rise up from 0 at t=b and/or drop  \n"
     "                        down to 0 at t=c.                              \n"
+    "\n"
     "     'GAM(p,q)'    = 1 parameter gamma variate                         \n"
     "                         (t/(p*q))^p * exp(p-t/q)                      \n"
     "                       Defaults: p=8.6 q=0.547 if only 'GAM' is used   \n"
@@ -1249,6 +1251,27 @@ void display_help_menu(int detail)
     "                        duration 'd' seconds; for example:             \n"
     "                          'GAM(8.6,.547,17)'                           \n"
     "                        for a 17 second stimulus.  [09 Aug 2010]       \n"
+    "     'GAMpw(K,W)'  = Same as 'GAM(p,q)' but where the shape parameters \n"
+    "                       are specified at time to peak 'K' and full      \n"
+    "                       width at half max (FWHM) 'W'. You can also      \n"
+    "                       add a third argument as the duration.           \n"
+    "\n"
+    "     'TWOGAM(p1,q1,r,p2,q2)'                                           \n"
+    "                   = 1 parameter (amplitude) model:                    \n"
+    "                   = A combination of two 'GAM' functions:             \n"
+    "                         GAM(p1,q1) - r*GAM(p2,q2)                     \n"
+    "                       This model is intended to let you use a HRF     \n"
+    "                       similar to BrainVoyager (e.g.). You can         \n"
+    "                       add a sixth argument as the duration.           \n"
+    "     'TWOGAMpw(K1,W1,r,K2,W2)'                                         \n"
+    "                   = Same as above, but where the peaks and widths     \n"
+    "                       of the 2 component gamma variates are given     \n"
+    "                       instead of the less intuitive p and q.          \n"
+    "                       For FMRI work, K2 > K1 is usual, as the         \n"
+    "                       second (subtracted) function is intended        \n"
+    "                       to model the 'undershoot'. You can also         \n"
+    "                       add a sixth argument as the duration.           \n"
+    "\n"
     "     'SPMG1'       = 1 parameter SPM gamma variate basis function      \n"
     "                         exp(-t)*(A1*t^P1-A2*t^P2) where               \n"
     "                       A1 = 0.0083333333  P1 = 5  (main positive lobe) \n"
@@ -1267,12 +1290,15 @@ void display_help_menu(int detail)
     "                     ** Note that 'SPMG1(0)' will produce the usual    \n"
     "                        'SPMG1' wavefunction shape, but normalized to  \n"
     "                        have peak value = 1 (for example).             \n"
+    "\n"
     "     'POLY(b,c,n)' = n parameter Legendre polynomial expansion         \n"
     "                       from times b..c after stimulus time             \n"
     "                       [n can range from 1 (constant) to 20]           \n"
+    "\n"
     "     'SIN(b,c,n)'  = n parameter sine series expansion                 \n"
     "                       from times b..c after stimulus time             \n"
     "                       [n must be at least 1]                          \n"
+    "\n"
     "     'WAV(d)'      = 1 parameter block stimulus of duration 'd'.       \n"
     "                      * This is the '-WAV' function from program waver!\n"
     "                      * If you wish to set the shape parameters of the \n"
@@ -1290,6 +1316,7 @@ void display_help_menu(int detail)
     "                      * If d > 0, the WAV(0) function is convolved with\n"
     "                        a square wave of duration d to make the HRF,   \n"
     "                        and the amplitude is scaled back down to 1.    \n"
+    "\n"
     "     'EXPR(b,c) exp1 ... expn'                                         \n"
     "                   = n parameter; arbitrary expressions from times     \n"
     "                     b..c after stimulus time                          \n"
@@ -1310,6 +1337,7 @@ void display_help_menu(int detail)
     "                        sure of what your response model is, you should\n"
     "                        plot the relevant columns from the matrix      \n"
     "                        .xmat.1D output file.                          \n"
+    "\n"
     "     'MION(d)'     = 1 parameter block stimulus of duration 'd',       \n"
     "                     intended to model the response of MION.           \n"
     "                     The zero-duration impulse response 'MION(0)' is   \n"
@@ -1353,7 +1381,7 @@ void display_help_menu(int detail)
     "                                                                       \n"
     " * If you want LINEAR regression with allowance for non-white noise,   \n"
     "   use program 3dREMLfit, after using 3dDeconvolve to set up the       \n"
-    "   regression model.                                                   \n"
+    "   regression model (in the form of a matrix file).                    \n"
     "                                                                       \n"
     "** When in any doubt about the shape of the response model you are   **\n"
     "*  asking for, you should plot the relevant columns from the X matrix *\n"
@@ -10471,6 +10499,32 @@ static float basis_gam( float x, float b, float c, float top, void *q )
    return (float)(pow(x/(b*c),b)*exp(b-x/c)) ;
 }
 
+/*---------- TWOGAM function; c is ignored [06 Jan 2018] ----------*/
+
+static float basis_twogam( float x , float b , float c , float top , void *q )
+{
+   float *fq = (float *)q ;
+   float p1,p2 , rr , q1,q2 , g1,g2 ;
+   if( x <= 0.0f || x > top || q == NULL ) return 0.0f ;
+   p1 = fq[0] ; q1=fq[1] ; rr = fq[2] ; p2 = fq[3] ; q2 = fq[4] ;
+   g1 = basis_gam( x , p1,q1 , top , NULL ) ;
+   g2 = basis_gam( x , p2,q2 , top , NULL ) ;
+   return b*(g1-rr*g2) ;  /* b is scale factor */
+}
+
+/*---------- convert peak and width to p and q for GAM [06 Jan 2018] ----------*/
+
+static float_pair gam_peak_fwhm_convert( float peak , float fwhm )
+{
+   float_pair result = {0.0f,0.0f} ;
+   float p , q ;
+
+   if( peak <= 0.0f || fwhm <= 0.0f ) return result ;
+   
+   p = (2.3f*peak/fwhm) ; p = p*p ; q = peak/p ;
+   result.a = p ; result.b = q ; return result ;
+}
+
 /*--------------------------------------------------------------------------*/
 /* MION basis function [12 Jul 2010] */
 
@@ -10551,6 +10605,12 @@ static float waveform_MIONN( float t ){ return basis_mionn(t,0.0f,0.0f,0.0f,NULL
 
 static float GAM_p , GAM_q , GAM_top ;
 static float waveform_GAM( float t ){ return basis_gam(t,GAM_p,GAM_q,GAM_top,NULL); }
+
+static float TWOGAM_parm[6] , TWOGAM_top ;
+static float waveform_TWOGAM( float t )
+{
+  return basis_twogam( t , 1.0f , 0.0f , TWOGAM_top , TWOGAM_parm ) ;
+}
 
 /*--------------------------------------------------------------------------*/
 /*  f(t,T) = int( h(t-s) , s=0..min(t,T) )
@@ -10943,6 +11003,8 @@ static float waveform_WAV( float t )
 #define WTYPE_WAV   9
 #define WTYPE_MIONN 10
 
+#define WTYPE_TWOGAM 17
+
 typedef struct {
   int wtype , nfun ;
   float dur , parm[9] ;
@@ -11051,6 +11113,18 @@ ENTRY("setup_WFUN_function") ;
        ws.parm[1] = GAM_q = parm[1] ;
        GAM_top = GAM_p*GAM_q + 5.0f*sqrtf(GAM_p)*GAM_q ;
        sprintf(msg,"waveform setup: GAM(p=%g,q=%g,dur=%g)",GAM_p,GAM_q,dur) ;
+     break ;
+
+     case WTYPE_TWOGAM:          /* 06 Jan 2018 */
+       wavfun = waveform_TWOGAM  ;
+       ws.parm[0] = TWOGAM_parm[0] = parm[0] ;
+       ws.parm[1] = TWOGAM_parm[1] = parm[1] ;
+       ws.parm[2] = TWOGAM_parm[2] = parm[2] ;
+       ws.parm[3] = TWOGAM_parm[3] = parm[3] ;
+       ws.parm[4] = TWOGAM_parm[4] = parm[4] ;
+       ws.parm[5] = TWOGAM_parm[5] = parm[5] ;
+       ws.parm[6] = TWOGAM_top     = parm[6] ;
+       sprintf(msg,"waveform setup: TWOGAM()") ;
      break ;
    }
 
@@ -11167,7 +11241,9 @@ ENTRY("basis_parser") ;
 
    /*--- GAM(b,c) ---*/
 
-   if( strcmp(scp,"GAM") == 0 ){
+   if( strcmp(scp,"GAM") == 0 || strcmp(scp,"GAMpw") == 0 ){
+
+     int do_pq = (strcmp(scp,"GAMpw") == 0) ;
 
      be->nfunc = 1 ;
      be->bfunc = (basis_func *)calloc(sizeof(basis_func),be->nfunc) ;
@@ -11185,6 +11261,14 @@ ENTRY("basis_parser") ;
          ERROR_message(
            " Correct format: 'GAM(b,c)' with b > 0 and c > 0.");
          free((void *)be->bfunc); free((void *)be); free(scp); RETURN(NULL);
+       }
+       if( do_pq ){  /* 06 Jan 2018 */
+         float_pair pq = gam_peak_fwhm_convert(bot,top) ;
+         if( pq.a <= 0.0f || pq.b <= 0.0f ){
+           ERROR_message("'GAMpw(%s' is illegal",cpt) ;
+           free((void *)be->bfunc); free((void *)be); free(scp); RETURN(NULL);
+         }
+         bot = pq.a ; top = pq.b ;
        }
        if( dur < 0.0f ){   /* the olden way: no duration given */
          be->bfunc[0].a = bot ;    /* t_peak = bot*top */
@@ -11209,6 +11293,66 @@ ENTRY("basis_parser") ;
          be->bfunc[0].b = 0.0f ;
          be->bfunc[0].c = 0.0f ;
        }
+     }
+
+   /*--- TWOGAM(p1,q1,r,p2,q2[,dur]) [06 Jan 2018] ---*/
+
+   } else if( strcmp(scp,"TWOGAM") == 0 || strcmp(scp,"TWOGAMpw") == 0 ){
+     float dur=0.0f,p1=0.0f,q1=0.0f,rr=0.0f,p2=0.0f,q2=0.0f , b1,b2 ;
+     float *fq=NULL ;
+     int do_pq = (strcmp(scp,"TWOGAMpw") == 0) ;
+
+     be->nfunc = 1 ;
+     be->bfunc = (basis_func *)calloc(sizeof(basis_func),be->nfunc) ;
+     if( cpt == NULL ){
+       ERROR_message("TWOGAM format is incorrect") ;
+       free((void *)be->bfunc); free((void *)be); free(scp); RETURN(NULL);
+     }
+     sscanf(cpt,"%f,%f,%f,%f,%f,%f",&p1,&q1,&rr,&p2,&q2,&dur) ;
+     if( p1 <= 0.0f || q1 <= 0.0f || p2 <= 0.0f || q2 <= 0.0f || dur < 0.0f || fabsf(rr) > 1.0f ){
+       ERROR_message("'TWOGAM(%s' is illegal",cpt) ;
+       free((void *)be->bfunc); free((void *)be); free(scp); RETURN(NULL);
+     }
+     if( do_pq ){
+       float_pair pq1 = gam_peak_fwhm_convert(p1,q1) ;
+       float_pair pq2 = gam_peak_fwhm_convert(p2,q2) ;
+       if( pq1.a <= 0.0f || pq1.b <= 0.0f || pq2.a <= 0.0f || pq2.b <= 0.0f ){
+         ERROR_message("'TWOGAMpw(%s' is illegal",cpt) ;
+         free((void *)be->bfunc); free((void *)be); free(scp); RETURN(NULL);
+       }
+       p1 = pq1.a ; q1 = pq1.b ; p2 = pq2.a ; q2 = pq2.b ;
+     }
+     fq = (float *)malloc(sizeof(float)*7) ;
+     fq[0] = p1 ; fq[1] = q1 ; fq[2] = rr ;
+     fq[3] = p2 ; fq[4] = q2 ; fq[5] = dur ;
+     b1 = p1*q1+5.0f*sqrtf(p1)*q1 ;
+     b2 = p2*q2+5.0f*sqrtf(p2)*q2 ; fq[6] = MAX(b1,b2) ;
+     if( dur == 0.0f ){
+       float mx=0.0f , tt,vv ;
+       be->bfunc[0].a = 1.0f ;        /* scale factor */
+       be->bfunc[0].b = 0.0f ;        /* ignored */
+       be->bfunc[0].c = fq[6] ;       /* impulse duration */
+       be->bfunc[0].f = basis_twogam ;
+       be->bfunc[0].q = (void *)fq ;  /* all params */
+       be->tbot = 0.0f ; be->ttop = be->bfunc[0].c ;
+       /* find max value, to get scale factor */
+       for( tt=WFUNDT ; tt < be->ttop ; tt+=WFUNDT ){
+         vv = basis_twogam( tt , 1.0f , 0.0f , be->ttop , (void *)fq ) ;
+         vv = fabsf(vv) ; if( mx < vv ) mx = vv ;
+       }
+       be->bfunc[0].a = 1.0f / mx ;
+     } else {            /* duration given ==> integrate it */
+       int iwav ;
+       iwav = setup_WFUN_function( WTYPE_TWOGAM , dur , fq ) ;
+       if( iwav < 0 ){
+         ERROR_message("Can't setup TWOGAM(%s for some reason?!",cpt) ;
+         free((void *)be); free(scp); RETURN(NULL);
+       }
+       be->tbot = 0.0f ; be->ttop = WFUNDT * WFUNS[iwav].nfun ;
+       be->bfunc[0].f = basis_WFUN ;
+       be->bfunc[0].a = (float)iwav ;
+       be->bfunc[0].b = 0.0f ;
+       be->bfunc[0].c = 0.0f ;
      }
 
    /*--- TENT(bot,top,order) ---*/  /*-- add TENTzero 23 Jul 2010 --*/
