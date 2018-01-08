@@ -9980,13 +9980,14 @@ g_help_string = """
 
         -align_epi_strip_method METHOD : specify EPI skull strip method in AEA
 
-                e.g. -align_epi_strip_method 3dAutomask
+                e.g. -align_epi_strip_method 3dSkullStrip
                 default: 3dAutomask (changed from 3dSkullStrip, 20 Aug, 2013)
 
             When align_epi_anat.py is used to align the EPI and anatomy, it
             uses 3dSkullStrip to remove non-brain tissue from the EPI dataset.
-            This option can be used to specify which method to use, one of
-            3dSkullStrip, 3dAutomask or None.
+            However afni_proc.py changes that to 3dAutomask by default (as of
+            August 20, 2013).  This option can be used to specify which method
+            to use, one of 3dSkullStrip, 3dAutomask or None.
 
             This option assumes the 'align' processing block is used.
 
