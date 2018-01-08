@@ -810,6 +810,22 @@ doublereal acfwxm_( doublereal *apar , doublereal *bpar , doublereal *cpar , dou
    return 2.0*rhalf ;
 }
 
+/*-----------------------------------------------------------------------*/
+
+doublereal gamp_( doublereal *peak , doublereal *fwhm )
+{
+   double_pair result ;
+   result = gam_find_pq( *peak , *fwhm ) ;
+   return result.a ;
+}
+
+doublereal gamq_( doublereal *peak , doublereal *fwhm )
+{
+   double_pair result ;
+   result = gam_find_pq( *peak , *fwhm ) ;
+   return result.b ;
+}
+
 /*===========================================================================*/
 /* Stuff for fitting an expression to a time series: PARSER_fitter().        */
 /*---------------------------------------------------------------------------*/
