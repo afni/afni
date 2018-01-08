@@ -1183,7 +1183,7 @@ void display_help_menu(int detail)
     "        * ALWAYS convolved:      BLOCK  dmBLOCK  MION  MIONN           \n"
     "        * OPTIONALLY convolved:  GAM    TWOGAM   SPMGx WAV             \n"
     "        * NEVER convolved:       TENT   CSPLIN   POLY  SIN   EXPR      \n"
-    "        Convolution is specified by providing the duration paramter    \n"
+    "        Convolution is specified by providing the duration parameter   \n"
     "        as described below for each particular model function.         \n"
     "                                                                       \n"
     "     'BLOCK(d,p)'  = 1 parameter block stimulus of duration 'd'        \n"
