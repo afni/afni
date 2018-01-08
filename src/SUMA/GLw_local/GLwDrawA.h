@@ -1,3 +1,9 @@
+// [PT: Sep 11, 2017]
+// + Editing to put in 'extern' before any "GLAPI WidegetClass ... line.
+//   For example: 
+//    ->  extern GLAPI WidgetClass glwMDrawingAreaWidgetClass;
+
+
 /*
  * (c) Copyright 1993, Silicon Graphics, Inc.
  * ALL RIGHTS RESERVED 
@@ -136,7 +142,7 @@
 typedef struct _GLwMDrawingAreaClassRec	*GLwMDrawingAreaWidgetClass;
 typedef struct _GLwMDrawingAreaRec	*GLwMDrawingAreaWidget;
 
-extern WidgetClass glwMDrawingAreaWidgetClass;
+extern GLAPI WidgetClass glwMDrawingAreaWidgetClass;
 
 
 #else 
@@ -144,7 +150,7 @@ extern WidgetClass glwMDrawingAreaWidgetClass;
 typedef struct _GLwDrawingAreaClassRec	*GLwDrawingAreaWidgetClass;
 typedef struct _GLwDrawingAreaRec	*GLwDrawingAreaWidget;
 
-extern WidgetClass glwDrawingAreaWidgetClass;
+extern GLAPI WidgetClass glwDrawingAreaWidgetClass;
 
 
 #endif
@@ -177,16 +183,14 @@ extern "C" {
 #endif
 
 /* front ends to glXMakeCurrent and glXSwapBuffers */
-extern void GLwDrawingAreaMakeCurrent(Widget w,GLXContext ctx);
-extern void GLwDrawingAreaSwapBuffers(Widget w);
+GLAPI void GLwDrawingAreaMakeCurrent(Widget w,GLXContext ctx);
+GLAPI void GLwDrawingAreaSwapBuffers(Widget w);
 
 #ifdef __GLX_MOTIF
 #ifdef _NO_PROTO
-GLAPI extern Widget GLwCreateMDrawingArea();
+extern GLAPI Widget GLwCreateMDrawingArea();
 #else
-/* ZSS Aug 08 Duplicate extern error 
-GLAPI extern Widget GLwCreateMDrawingArea(Widget parent,char *name,ArgList arglist,Cardinal argcount);
-*/
+extern GLAPI Widget GLwCreateMDrawingArea(Widget parent,char *name,ArgList arglist,Cardinal argcount);
 #endif
 #endif 
 
