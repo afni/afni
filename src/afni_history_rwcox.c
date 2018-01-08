@@ -45,7 +45,7 @@ afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
  { 6 , JAN , 2018 , RWC , "3dDeconvolve" , MINOR , TYPE_ENHANCE ,
-   "Add TWOGAM basis function"
+   "Add TWOGAM basis function" ,
    "Arbitrary difference of two GAM functions." } ,
 
  { 3 , JAN , 2018 , RWC , "AFNI GUI" , MICRO , TYPE_ENHANCE ,
