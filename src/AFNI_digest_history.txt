@@ -1,5 +1,49 @@
 ========================================================================
 
+AFNI Digest, week of 2018/01/05.
+
+00)  The AFNI Bootcamp cometh!
+What better way to shake away the cold than to think about freshly
+baked FMRI data, hot out of the afni_proc.py pipeline?  Registration
+for the next AFNI Bootcamp, to be held at NIH in March (2018!) is now
+open.  Please see the "Registration" link, as well other useful
+information, here:
+https://afni.nimh.nih.gov/bootcamp/
+
+01)  ROI-based group analysis using Bayesian hierarchical modeling
+The current practice of handling multiple testing through controlling
+the overall FPR in neuroimaging under the null hypothesis significance
+testing (NHST) paradigm excessively penalizes the statistical power
+with inflated type II errors (“false negatives” or “low power”). An
+ROI-based approach has been proposed to handling neuroimaging group
+analysis using Bayesian hierarchical modeling (BHM) to achieve two
+goals: 1) improving modeling efficiency via one integrative (instead
+of many separate) model and dissolving the multiple testing issue, and
+2) turning the focus of conventional NHST on FPR into quality control
+by calibrating type S errors while maintaining a reasonable level of
+inference efficiency. See more details here:
+https://doi.org/10.1101/238998
+
+02)  Startup tips in AFNI
+The latest edition of the AFNI program now prints out a usage tip (to
+the terminal window) when it finishes starting up. An example:
+
+   ------------------------- AFNI Startup Tip (13/54)------------------
+   You can run InstaCorr on several subjects at the same time, using
+   multiple AFNI controllers opened with the 'New' button.
+   --------------------------------------------------------------------
+
+---------------------------------------------------------------------
++ This Digest is not a comprehensive list of code updates.
++ Please direct comments or questions to the AFNI Message Board:
+ https://afni.nimh.nih.gov/afni/community/board/list.php?1
++ To unsubscribe or otherwise manage your Digest settings, click here:
+ https://list.nih.gov/cgi-bin/wa.exe?SUBED1=afni_digest&A=1
+---------------------------------------------------------------------
+========================================================================
+
+========================================================================
+
 AFNI Digest, week of 2017/12/23.
 
 00) Notes on temporal autocorrelation modelling in major FMRI packages.
@@ -88,7 +132,7 @@ them for excellent hosting and such fruitful discussions!
 + To unsubscribe or otherwise manage your Digest settings, click here:
   https://list.nih.gov/cgi-bin/wa.exe?SUBED1=afni_digest&A=1
 ---------------------------------------------------------------------
-# ======================================================================== #
+========================================================================
 
 
 ========================================================================
@@ -122,7 +166,7 @@ Thanksgiving Day." -- I. Kupcinet
 + To unsubscribe or otherwise manage your Digest settings, click here:
   https://list.nih.gov/cgi-bin/wa.exe?SUBED1=afni_digest&A=1
 ---------------------------------------------------------------------
-# ======================================================================== #
+========================================================================
 
 
 ========================================================================
