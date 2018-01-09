@@ -1238,9 +1238,10 @@ g_history = """
         - added -multi_timing_3col_tsv, -write_multi_timing and
           -multi_show_duration_stats for TSV files
    3.00 Nov  9, 2017 - python3 compatible
+   3.01 Dec 22, 2017 - added -select_runs and -mplaces
 """
 
-g_version = "timing_tool.py version 3.00, November 9, 2017"
+g_version = "timing_tool.py version 3.01, December 22, 2017"
 
 
 
