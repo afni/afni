@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10, Jan, 2018, RCR, "@update.afni.binaries", MICRO, TYPE_ENHANCE,
+   "also set PATH in .bash_profile, if it exists",
+   NULL
+ } ,
+
  {  2, Jan, 2018, RCR, "realtime_receiver.py", MINOR, TYPE_ENHANCE,
    "python3 compatible as of version 1.0",
    "Also, add -write_text_data for L Morris and D Huynh."
