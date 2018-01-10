@@ -46,6 +46,11 @@ def make_out_name(A):
         return out
 
 def wrapify_string(x, endchar = -1):
+    if x.__contains__('"'):
+        print("")
+        print("** ERROR! there is a double-quote char present!:")
+        print("   -> "+x)
+        sys.exit(3)
     return "\" "+x[:endchar]+"\\n\"\n"
 
 # ========================================================================
