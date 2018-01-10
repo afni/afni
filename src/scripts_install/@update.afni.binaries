@@ -1072,6 +1072,20 @@ if ( $do_dotfiles && -d $abin && $?USER ) then
          echo 'export PATH=$PATH:'$abin >> $brcfile
       endif
 
+      # ---------------------------
+      # and .bash_profile, but only if it exists
+      set brcfile = ~/.bash_profile
+      if ( -f $brcfile ) then
+         \grep $abin:t $brcfile >& /dev/null
+         if ( $status ) then
+            # not found, so append to file
+            echo "++ adding $abin to PATH in $brcfile ..."
+            echo 'export PATH=$PATH:'$abin >> $brcfile
+         endif
+      endif
+
+      # so... what about .profile?
+
    endif
 endif
 
