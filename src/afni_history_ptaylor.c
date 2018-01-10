@@ -66,7 +66,7 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
-{ 08, Jan , 2018 , PT , "fat_proc_filter_dwis" , MINOR , TYPE_NEW_OPT,
+{ 8, Jan , 2018 , PT , "fat_proc_filter_dwis" , MINOR , TYPE_NEW_OPT,
    "Can input a selector string via a text file now.",
    "See the -select_file option.\n"
 },
