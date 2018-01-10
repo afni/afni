@@ -60,7 +60,7 @@ void usage_ZipperZapper(int detail)
 " Therefore, this program will look through axial slices of a data set\n"
 " for brightness fluctuations and/or dropout slices.  It will build a\n"
 " list of volumes indices that it identifies as bad, and the user can\n"
-" then use something like the "fat_proc_filter_dwis" program after to\n"
+" then use something like the 'fat_proc_filter_dwis' program after to\n"
 " apply the filtration to the volumetric dset *as well as* to any\n"
 " accompanying b-value, gradient vector, b-matrix, etc., text files.\n"
 " \n"
@@ -75,7 +75,7 @@ void usage_ZipperZapper(int detail)
 " sure to check results carefully in the latter cases (well, *always*\n"
 " check your data carefully!).\n"
 " \n"
-" Note that there is also "fat_proc_select_vols" program for\n"
+" Note that there is also 'fat_proc_select_vols' program for\n"
 " interactively selecting out bad volumes, by looking at a sheet of\n"
 " sagittal images from the DWI set.  That might be useful for amending\n"
 " or altering the output from this program, if necessary.\n"
@@ -104,6 +104,8 @@ void usage_ZipperZapper(int detail)
 " \n"
 " \n"
 " # ------------------------------------------------------------------\n"
+" \n"
+" # ------------------------------------------------------------------------\n"
           );
 	return;
 }
