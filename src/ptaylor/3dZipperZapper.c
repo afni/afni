@@ -41,39 +41,69 @@ int do_calc_entrop( float **diffarr,
 */
 
 
-void usage_IntraVolMot(int detail) 
+void usage_ZipperZapper(int detail) 
 {
    printf(
-"\n"
-"  *** \n"
-"  *** \n"
-"\n"
-"* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
+" # ------------------------------------------------------------------------\n"
+" \n"
+" This is a basic program to help highlight problematic volumes in data\n"
+" sets, specifically in EPI/DWI data sets with interleaved acquisition.\n"
+" \n"
+" Intra-volume subject motion can be quite problematic, potentially\n"
+" bad-ifying the data values in the volume so much that it is basically\n"
+" useless for analysis.  In FMRI analysis, outlier counts might be\n"
+" useful to find ensuing badness (e.g., via 3dToutcount). However, with\n"
+" DWI data, we might want to find it without aligning the volumes\n"
+" (esp. due to the necessarily differing contrasts) and without tensor\n"
+" fitting.\n"
+" \n"
+" Therefore, this program will look through axial slices of a data set\n"
+" for brightness fluctuations and/or dropout slices.  It will build a\n"
+" list of volumes indices that it identifies as bad, and the user can\n"
+" then use something like the "fat_proc_filter_dwis" program after to\n"
+" apply the filtration to the volumetric dset *as well as* to any\n"
+" accompanying b-value, gradient vector, b-matrix, etc., text files.\n"
+" \n"
+" The program works by looking for alternating brightness patterns in\n"
+" the data (again, specifically in axial slices, so if your data was\n"
+" acquired differently, this program ain't for you! (weeellll, some\n"
+" tricks with changing header info miiiight be able to work then)).  It\n"
+" should be run *before* any processing, particularly alignments or\n"
+" unwarping things, because those could change the slice locations.\n"
+" Additionally, it has mainly been tested on 3T data of humans; it is\n"
+" possible that it will work equally well on 7T or non-humans, but be\n"
+" sure to check results carefully in the latter cases (well, *always*\n"
+" check your data carefully!).\n"
+" \n"
+" Note that there is also "fat_proc_select_vols" program for\n"
+" interactively selecting out bad volumes, by looking at a sheet of\n"
+" sagittal images from the DWI set.  That might be useful for amending\n"
+" or altering the output from this program, if necessary.\n"
+" \n"
+" written by PA Taylor (started Jan, 2018)\n"
+" \n"
+" * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
+" \n"
+" USAGE:\n"
+" \n"
+"     Input: + a 3D+time data set of DWI or EPI volumes,\n"
+"            + a mask of the brain-ish region.\n"
+"    \n"
+"    Output: + a map of potentially bad slices across the input dset,\n"
+"            + a list of the bad volumes,\n"
+"            + a 1D file of the per-volume parameters used to detect\n"
+"              badness,\n"
+"            + a text file with the selector string of *good* volumes\n"
+"              in the dset (for easy use with fat_proc_filter_dwis, \n"
+"              for example).\n"
+" \n"
+" * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
+" \n"
+" RUNNING: \n"
 "  \n"
-"  + USAGE: ***\n"
-"\n"
-"* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
-"\n"
-"  + COMMAND:  *** \n"
-"\n"
-"* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
-"\n"
-"  + RUNNING, need to provide:\n"
-"  *** \n"
-"\n"
-"* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
-"  + OUTPUT: \n"
-"  *** \n"
-"\n"
-"* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
-"\n"
-"  + EXAMPLE:\n"
-"  *** \n"
-"\n"
-"* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
-"\n"
-" reference *** \n"
-"____________________________________________________________________________\n"
+" \n"
+" \n"
+" # ------------------------------------------------------------------\n"
           );
 	return;
 }
@@ -130,7 +160,7 @@ int main(int argc, char *argv[]) {
 	char dset_or[4] = "RAI";
 	THD_3dim_dataset *dsetn=NULL;
 
-   mainENTRY("3dIntraVolMot"); machdep(); 
+   mainENTRY("3dZipperZapper"); machdep(); 
   
    // ****************************************************************
    // ****************************************************************
@@ -141,12 +171,12 @@ int main(int argc, char *argv[]) {
    INFO_message("version: 2018_01_06");
 	
    /** scan args **/
-   if (argc == 1) { usage_IntraVolMot(1); exit(0); }
+   if (argc == 1) { usage_ZipperZapper(1); exit(0); }
    iarg = 1; 
    while( iarg < argc && argv[iarg][0] == '-' ){
       if( strcmp(argv[iarg],"-help") == 0 || 
           strcmp(argv[iarg],"-h") == 0 ) {
-         usage_IntraVolMot(strlen(argv[iarg])>3 ? 2:1);
+         usage_ZipperZapper(strlen(argv[iarg])>3 ? 2:1);
          exit(0);
       }
 		
@@ -491,7 +521,7 @@ int main(int argc, char *argv[]) {
 
       THD_load_statistics( diffdset );
       tross_Copy_History( insetA, diffdset );
-      tross_Make_History( "3dIntraVolMot", argc, argv, diffdset );
+      tross_Make_History( "3dZipperZapper", argc, argv, diffdset );
       if( !THD_ok_overwrite() && 
           THD_is_ondisk(DSET_HEADNAME(diffdset)) )
          ERROR_exit("Can't overwrite existing dataset '%s'",
@@ -548,7 +578,7 @@ int main(int argc, char *argv[]) {
 
       THD_load_statistics( baddset );
       tross_Copy_History( insetA, baddset );
-      tross_Make_History( "3dIntraVolMot", argc, argv, baddset );
+      tross_Make_History( "3dZipperZapper", argc, argv, baddset );
       if( !THD_ok_overwrite() && 
           THD_is_ondisk(DSET_HEADNAME(baddset)) )
          ERROR_exit("Can't overwrite existing dataset '%s'",
