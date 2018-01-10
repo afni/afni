@@ -32,6 +32,12 @@ int find_bad_slices_drop( float **slipar,
                           float MIN_DROP_DIFF,
                           float MIN_DROP_FRAC );
 
+int make_goodstring_from_badlist( char *goodstring,
+                                  int *volbad,
+                                  int Nvolgood,
+                                  int *Dim
+                                  );
+
 /* maybe come back to later...
 int do_calc_entrop( float **diffarr,
                     int *Nmskd2,
@@ -89,19 +95,61 @@ void usage_ZipperZapper(int detail)
 "     Input: + a 3D+time data set of DWI or EPI volumes,\n"
 "            + a mask of the brain-ish region.\n"
 "    \n"
-"    Output: + a map of potentially bad slices across the input dset,\n"
-"            + a list of the bad volumes,\n"
+"    Output: + a mask of potentially bad slices across the input dset,\n"
+"            + a 1D (text) file containing a list of the bad volumes,\n"
 "            + a 1D file of the per-volume parameters used to detect\n"
 "              badness,\n"
+"            + a 1D file of the slices within which calculations were made,\n"
 "            + a text file with the selector string of *good* volumes\n"
 "              in the dset (for easy use with fat_proc_filter_dwis, \n"
 "              for example).\n"
 " \n"
 " * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 " \n"
-" RUNNING: \n"
+" COMMAND: \n"
 "  \n"
+"  3dZipperZapper                                            \\\n"
+"      -input FFF  {-mask MMM}                               \\\n"
+"      -prefix PPP                                           \\\n"
+"      {-do_out_slice_param}                                 \\\n"
+"      {-no_out_bad_mask}                                    \\\n"
+"      {-no_out_text_vals}                                   \\\n"
 " \n"
+"    where:\n"
+" \n"
+"    -input FFF   :input the 3D+time file of DWIs or EPIs.\n"
+"    -mask MMM    :optional input of a single volume mask file, which \n"
+"                  gets applied to the each volume in FFF.  Otherwise,\n"
+"                  the dataset is assumed to be masked already.\n"
+" \n"
+"    -prefix PPP  :prefix for output file name.  Any volumetric file\n"
+"                  extension included here (e.g., '.nii.gz') is\n"
+"                  propagated to any output volumetric dsets.\n"
+" \n"
+"    -do_out_slice_param\n"
+"                 :output the map of slice parameters (not done by\n"
+"                  default).  Might be of interest for investigating\n"
+"                  data.  Output file name base will be: PPP_param.\n"
+"    -no_out_bad_mask\n"
+"                 :do *not* output the mask of 'bad' slices that shows\n"
+"                  which volumes are considered bad (is output by\n"
+"                  default). Output file name base will be: PPP_badmask.\n"
+"    -no_out_text_vals\n"
+"                 :do *not* output the 1D files of the slice parameter\n"
+"                  values (are output by default). The list of slices\n"
+"                  in the mask (file name: PPP_sli.1D) and the list of\n"
+"                  values per slice per volume (file name: PPP_param.1D)\n"
+"                  are output.\n"
+" \n"
+" * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
+" \n"
+" EXAMPLE:\n"
+" \n"
+"     3dZipperZapper                                    \\n"
+"         -input AP.nii.gz                              \\n"
+"         -mask  AP_mask.nii.gz                         \\n"
+"         -prefix ZZZ.nii.gz                            \\n"
+"         -do_out_slice_par\n"
 " \n"
 " # ------------------------------------------------------------------\n"
 " \n"
@@ -117,11 +165,16 @@ int main(int argc, char *argv[]) {
 
    THD_3dim_dataset *insetA = NULL;
    THD_3dim_dataset *MASK=NULL;
-   char *prefix="PREFIX" ;
+   char *iprefix="PREFIX" ;
+   char prefix[THD_MAX_PREFIX];
    char tprefixx[THD_MAX_PREFIX];
    char tprefixy[THD_MAX_PREFIX];
    char bprefix[THD_MAX_PREFIX];
    char lprefix[THD_MAX_PREFIX];
+   char sprefix[THD_MAX_PREFIX];
+   char gprefix[THD_MAX_PREFIX];
+   char *ext=NULL, nullch; 
+   char goodstring[3000];
 
    // char in_name[300];
 
@@ -134,7 +187,6 @@ int main(int argc, char *argv[]) {
 
    int TEST_OK = 0;
    double checksum = 0.;
-
 
    int *Nmskd=NULL;                            // num of vox in slice inp mask
    int *Nmskd2=NULL;                           // num of vox in slice dil mask
@@ -150,6 +202,7 @@ int main(int argc, char *argv[]) {
 
    int **slibad=NULL;        // per sli, badness marker
    int *volbad=NULL;         // per vol, badness marker
+   int Nvolbad=0, Nvolgood=-1;
    int   MIN_STREAK_LEN  = 4;           // alternating streak
    float MIN_STREAK_WARN = 0.3;    // seq of diffs of this mag -> BAD
    float MIN_DROP_DIFF   = 0.7;    // any diff of this mag -> BAD 
@@ -162,6 +215,12 @@ int main(int argc, char *argv[]) {
 	char dset_or[4] = "RAI";
 	THD_3dim_dataset *dsetn=NULL;
 
+   int DO_OUT_SLIPAR=0;                   // output slice param map
+   int DO_OUT_BADMASK=1;                  // output slice mask 
+   int DO_OUT_TEXTVALS=1;                // output text files 
+
+
+
    mainENTRY("3dZipperZapper"); machdep(); 
   
    // ****************************************************************
@@ -170,7 +229,7 @@ int main(int argc, char *argv[]) {
    // ****************************************************************
    // ****************************************************************
 
-   INFO_message("version: 2018_01_06");
+   INFO_message("version: 2018_01_10");
 	
    /** scan args **/
    if (argc == 1) { usage_ZipperZapper(1); exit(0); }
@@ -182,31 +241,49 @@ int main(int argc, char *argv[]) {
          exit(0);
       }
 		
+      /*
       // NO ARG:
       if( strcmp(argv[iarg],"-TESTING") == 0) {
          TEST_OK=1;
          iarg++ ; continue ;
       }
+      */
 
       if( strcmp(argv[iarg],"-prefix") == 0 ){
          iarg++ ; if( iarg >= argc ) 
                      ERROR_exit("Need argument after '-prefix'");
-         prefix = strdup(argv[iarg]) ;
+         // use 'iprefix' for output file, in case user specified
+         // NIFTI, 3D, Niml, Analyze, ...
+         iprefix = strdup(argv[iarg]) ;
+         sprintf(prefix,"%s",iprefix);
+         if(has_known_non_afni_extension(iprefix)){   
+            ext = find_filename_extension(iprefix);
+            // use 'prefix' as basic text file prefix, by removing
+            // exit
+            prefix[strlen(iprefix) - strlen(ext)] = '\0';  
+         }
+         else {
+            nullch = '\0';
+            ext = &nullch;
+         }
+
+         INFO_message("%s %s", prefix, iprefix);
+
          if( !THD_filename_ok(prefix) ) 
             ERROR_exit("Illegal name after '-prefix'");
          iarg++ ; continue ;
       }
 	 
-      if( strcmp(argv[iarg],"-insetA") == 0 ){
+      if( strcmp(argv[iarg],"-input") == 0 ){
          iarg++ ; if( iarg >= argc ) 
-                     ERROR_exit("Need argument after '-insetA'");
+                     ERROR_exit("Need argument after '-input'");
 
          insetA = THD_open_dataset(argv[iarg]);
          if( (insetA == NULL ))
             ERROR_exit("Can't open time series dataset '%s'.",
                        argv[iarg]);
 
-         Dim = (int *)calloc(4,sizeof(int));
+         Dim = (int *)calloc(4, sizeof(int));
          DSET_load(insetA); CHECK_LOAD_ERROR(insetA);
          Nvox = DSET_NVOX(insetA) ;
          Dim[0] = DSET_NX(insetA); Dim[1] = DSET_NY(insetA); 
@@ -229,31 +306,42 @@ int main(int argc, char *argv[]) {
          iarg++ ; continue ;
       }
 
-      //  EXAMPLE: option with numerical input: ATOF
-      /*if( strcmp(argv[iarg],"-neigh_Y") == 0 ){
-        iarg++ ; if( iarg >= argc ) 
-        ERROR_exit("Need argument after '-nneigh'");
-      
-        NEIGH_R[1] = atof(argv[iarg]);
+      // ---------------- control output ---------------------
 
-        iarg++ ; continue ;
-        }*/
+      if( strcmp(argv[iarg],"-do_out_slice_par") == 0) {
+         DO_OUT_SLIPAR=1;
+         iarg++ ; continue ;
+      }
+
+      if( strcmp(argv[iarg],"-no_out_bad_mask") == 0) {
+         DO_OUT_BADMASK=0;
+         iarg++ ; continue ;
+      }
+
+      if( strcmp(argv[iarg],"-no_out_text_vals") == 0) {
+         DO_OUT_TEXTVALS=0;
+         iarg++ ; continue ;
+      }
+
+      // ----------------- finish up -----------------
 
       ERROR_message("Bad option '%s'\n",argv[iarg]) ;
       suggest_best_prog_option(argv[0], argv[iarg]);
       exit(1);
    }
 	
+   // ===============================================================
+
    // TEST BASIC INPUT PROPERTIES
    if (iarg < 3) {
       ERROR_message("Too few options. Try -help for details.\n");
       exit(1);
    }
 	
-   if( !TEST_OK ) {
-      ERROR_message("HEY! Just testing/building mode right now!\n");
-      exit(5);
-   }
+   //   if( !TEST_OK ) {
+   // ERROR_message("HEY! Just testing/building mode right now!\n");
+   // exit(5);
+   //}
 
    // ****************************************************************
    // ****************************************************************
@@ -462,10 +550,16 @@ int main(int argc, char *argv[]) {
                              MIN_DROP_FRAC );
    
    // keep track of badness
-   for( m=0 ; m<Dim[3] ; m++ )
-      for( k=0 ; k<maxk ; k++)
-         if( slibad[m][k] )
+   for( m=0 ; m<Dim[3] ; m++ ) {
+      for( k=0 ; k<maxk ; k++) 
+         if( slibad[m][k] ) 
             volbad[m]+= slibad[m][k];
+      if( volbad[m] )
+         Nvolbad++;
+   }
+   Nvolgood = Dim[3]-Nvolbad;
+   INFO_message("Nvolgood:   %5d", Nvolgood);
+   INFO_message("Nvolbad :   %5d", Nvolbad);
 
    // **************************************************************
    // **************************************************************
@@ -473,10 +567,13 @@ int main(int argc, char *argv[]) {
    // **************************************************************
    // **************************************************************
 
-   if ( 1 ) {
+   INFO_message("Calcs done: to the writing cave!");
+
+
+   if ( DO_OUT_TEXTVALS ) {
 
       sprintf(tprefixx,"%s_sli.1D", prefix);
-      sprintf(tprefixy,"%s_val.1D", prefix);
+      sprintf(tprefixy,"%s_param.1D", prefix);
       
       if( (fout0 = fopen(tprefixx, "w")) == NULL) {
          fprintf(stderr, "Error opening file %s.", tprefixx);
@@ -491,8 +588,8 @@ int main(int argc, char *argv[]) {
          if (Nmskd[k]) {
             fprintf(fout0, " %5d\n", k);
             for( m=0 ; m<Dim[3] ; m++) {
-               fprintf(fout1, " %8.5f ", fabs(slipar[m][k]-slipar[m][k+1]));
-               //fprintf(fout1, " %8.5f ", slipar[m][k]); // ORIG!
+               //fprintf(fout1, " %8.5f ", fabs(slipar[m][k]-slipar[m][k+1]));
+               fprintf(fout1, " %8.5f ", slipar[m][k]); // ORIG!
             }
             fprintf(fout1, "\n");
          }
@@ -503,13 +600,14 @@ int main(int argc, char *argv[]) {
       INFO_message("Wrote text file: %s", tprefixy);
    }
 
-   if ( 1 ) {
+   if ( DO_OUT_SLIPAR ) {
       INFO_message("Preparing output of diffs.");
       
       diffdset = EDIT_empty_copy( insetA );
+      sprintf(sprefix,"%s_param%s", prefix,ext);
 
       EDIT_dset_items( diffdset,
-                       ADN_prefix    , prefix,
+                       ADN_prefix    , sprefix,
                        ADN_datum_all , MRI_float,
                        ADN_brick_fac , NULL,
                        ADN_nvals     , Dim[3],
@@ -536,15 +634,15 @@ int main(int argc, char *argv[]) {
    // !!! maybe just temp:  output map of badness
    if ( 1 ) {
       
-      float **badarr=NULL;
+      byte **badarr=NULL;
 
       // array for diffs; later, maybe just do one by one!
       badarr = calloc( Dim[3], sizeof(badarr) );
       for(i=0 ; i<Dim[3] ; i++) 
-         badarr[i] = calloc( Nvox, sizeof(float) ); 
+         badarr[i] = calloc( Nvox, sizeof(byte) ); 
       
       if( (badarr == NULL) ) { 
-         fprintf(stderr, "\n\n MemAlloc failure (arrs).\n\n");
+         fprintf(stderr, "\n\n MemAlloc failure (bad-list array).\n\n");
          exit(13);
       }
 
@@ -556,24 +654,24 @@ int main(int argc, char *argv[]) {
                if( mskd[i][j][k] && Nmskd[k] ) 
                   for( m=0 ; m<Dim[3] ; m++ ) 
                      if( slibad[m][k] ) 
-                        badarr[m][idx] = slibad[m][k];
+                        badarr[m][idx] = 1; //slibad[m][k];
                idx++;
             }
       
       INFO_message("Preparing map of bad slices.");
       
-      sprintf(bprefix,"%s_badmask", prefix);
+      sprintf(bprefix,"%s_badmask%s", prefix, ext);
       baddset = EDIT_empty_copy( insetA );
 
       EDIT_dset_items( baddset,
                        ADN_prefix    , bprefix,
-                       ADN_datum_all , MRI_float,
+                       ADN_datum_all , MRI_byte,
                        ADN_brick_fac , NULL,
                        ADN_nvals     , Dim[3],
                        ADN_none );
 
       for( m=0 ; m<Dim[3] ; m++) {
-         EDIT_substitute_brick(baddset, m, MRI_float, badarr[m]);
+         EDIT_substitute_brick(baddset, m, MRI_byte, badarr[m]);
          badarr[m]=NULL; // to not get into trouble...
          free(badarr[m]);
       }
@@ -594,20 +692,49 @@ int main(int argc, char *argv[]) {
          free(badarr);
       }
       
+      if( Nvolgood > 0 ) {
+         i = make_goodstring_from_badlist( goodstring,
+                                           volbad,
+                                           Nvolgood,
+                                           Dim
+                                           );
 
-      // ------- write out list of bads, single col file
+         // ------- write out good string, single row file --------------
+
+         sprintf(gprefix,"%s_goodstri.txt", prefix);
+         if( (fout0 = fopen(gprefix, "w")) == NULL) {
+            fprintf(stderr, "Error opening file %s.", gprefix);
+            exit(19);
+         }
+
+         fprintf(fout0, "%s", goodstring);
+         fclose(fout0);
+
+         fprintf(stderr, "++ String selector for %d good vols:\n",
+                 Nvolgood);
+         fprintf(stderr, "   %s\n", goodstring);
+         INFO_message("Good vol string selector output to: %s", gprefix);
+      }
+      else if( !Nvolgood )
+         WARNING_message("Hey, *no* uncorrupted vols were found??");
+      else
+         ERROR_message("Hey, a *negative* number of good vols were found???");
+
+      // ------- write out list of bads, single col file --------------
+
       sprintf(lprefix,"%s_badlist.txt", prefix);
       if( (fout0 = fopen(lprefix, "w")) == NULL) {
          fprintf(stderr, "Error opening file %s.", lprefix);
          exit(19);
       }
 
-      fprintf(stderr, "++ The following were identified as bad volumes:\n");
-      fprintf(stderr, "%15s %15s\n", "Vol index", "N bad slices");
+      fprintf(stderr, "++ The following %d vols were identified as bad:\n",
+              Nvolbad);
+      fprintf(stderr, "%15s %15s\n", "Bad vols", "N bad slices");
 
       for( m=0 ; m<Dim[3] ; m++) {
          if( volbad[m] ) {
-            fprintf(fout0, " %8d %8d\n", m, volbad[m]);
+            fprintf(fout0, "%8d\n", m);
             fprintf(stderr, "%15d %15d\n", m, volbad[m]);
          }
       }
@@ -667,8 +794,8 @@ int main(int argc, char *argv[]) {
 
    free(volbad);
       
-   if(prefix)
-      free(prefix);
+   if(iprefix)
+      free(iprefix);
 
    if(Dim)
       free(Dim);
@@ -723,9 +850,6 @@ int find_bad_slices_streak( float **slipar,
             if( IS_BAD ) 
                for( i=0 ; i<MIN_STREAK_LEN ; i++ ) {
                   slibad[m][k+i]+=1;
-                  INFO_message("Hey! %f:  %f -%f",
-                               fabs(slipar[m][k+i]-slipar[m][k+i+1]),slipar[m][k+i],
-                               slipar[m][k+i+1] );
                }
          }
       }
@@ -736,11 +860,11 @@ int find_bad_slices_streak( float **slipar,
 // -------------------------------------------------------
 
 int find_bad_slices_drop( float **slipar, // shape: Dim[3] x Dim[2]
-                        int *Nmskd,
-                        int **slibad,
-                        int *Dim,
-                        float MIN_DROP_DIFF,
-                        float MIN_DROP_FRAC)
+                          int *Nmskd,
+                          int **slibad,
+                          int *Dim,
+                          float MIN_DROP_DIFF,
+                          float MIN_DROP_FRAC)
 {
    int k,m,i;
    float BOUND = 0.5 - MIN_DROP_FRAC;
@@ -760,6 +884,34 @@ int find_bad_slices_drop( float **slipar, // shape: Dim[3] x Dim[2]
   
    return 0;
 }
+
+// ------------------------------------------------------------------
+
+int make_goodstring_from_badlist( char *goodstring,
+                                  int *volbad,
+                                  int Nvolgood,
+                                  int *Dim
+                                  )
+{
+   int i,jj;
+   NI_int_array iar;
+   char *code=NULL;
+
+   iar.num = Nvolgood; 
+   iar.ar = (int *)calloc(Nvolgood, sizeof(int));
+   i = 0;
+   for( jj=0 ; jj<Dim[3] ; jj++ ) 
+      if( !volbad[jj] ) {
+         iar.ar[i] = jj;
+         i++;
+      }
+   code = NI_encode_int_list( &iar , NULL ) ;
+   strcpy(goodstring, code);
+
+   //NI_delete_int_array(iar);
+   return 0;
+}
+
 
 // ---------------------------------------------------------
 /*
