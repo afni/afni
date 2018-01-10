@@ -49,6 +49,10 @@ set version = "3.1"; set rev_dat = "Sep 04, 2017"
 #   + work with new @chauffeur*, -prefix only
 #   + update help file format for more autoprompting of opts
 #
+set version = "3.2"; set rev_dat = "Jan 09, 2019"
+#   + new -select_file option
+#   + whine if *no* selection string entered
+#
 # ----------------------------------------------------------------
  
 set this_prog = "fat_proc_filter_dwis" 
@@ -81,6 +85,7 @@ set do_unit_mag = ""
 set opref    = ""
 set odir     = ""
 set KEEP     = "" 
+set KEEPfile = "" 
 set KEEP3    = ""
 set ll2       = "{"               # for column selection (def guess)
 set rr2       = "}"               # for column selection (def guess)
@@ -119,7 +124,12 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set KEEP = "$argv[$ac]"
-        echo $KEEP
+
+    # [PT: Jan 09, 2018] well, just take in a file directly
+    else if ( "$argv[$ac]" == "-select_file" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set KEEPfile = "$argv[$ac]"
 
     # ------------- input vecmat and bval --------------
     else if ( "$argv[$ac]" == "-in_col_matA" ) then
@@ -259,6 +269,25 @@ endif
 endif
 
 # -------------------------------
+
+if ( ( "$KEEP" == "" ) && ( "$KEEPfile" == "" ) ) then
+    echo "** ERROR: need SOME selection string!"
+    echo "          Use either '-select ...' or '-select_file ...'"
+    goto BAD_EXIT
+else if ( ( "$KEEP" != "" ) && ( "$KEEPfile" != "" ) ) then
+    echo "** ERROR: Too many selection types used!"
+    echo "          Use *either* '-select ...' *or* '-select_file ...'"
+    goto BAD_EXIT
+endif
+
+if ( "$KEEPfile" != "" ) then
+    echo "++ Have the selection string from ${KEEPfile}:"
+    set KEEP = `cat "$KEEPfile"`
+    echo "   $KEEP"
+else
+    echo "++ Have the selection string from the command line:"
+    echo "   $KEEP"
+endif
 
 # ========================= output/working dir ==========================
 
@@ -455,6 +484,7 @@ cat << EOF
     $this_prog  \
         -in_dwi    DDD                     \
         -select   'SSS'                    \
+        {-select_file SF}                  \
         -prefix   PPP                      \
         {-in_col_matA|-in_col_matT|        \
          -in_col_vec|-in_row_vec} FFF      \
@@ -492,6 +522,12 @@ cat << EOF
                      here!
                      NB2: Always use the single quotes around the
                      selector expression. 
+       or
+  -select_file SF   :where SF is a file name whose only contents are a nice 
+                     string of indices and index ranges for selecting which
+                     volumes/grads/bvals to *keep*.  Like, literally just
+                        0..3,5,7..\$
+                     sitting alone in a file-- no apostrophes needed/wanted.
 
   -prefix    PPP    :output prefix for all the volumes and text files.
                      Required.
@@ -519,13 +555,26 @@ cat << EOF
 
 # -----------------------------------------------------------------------
 
-  EXAMPLE (again, note the single apostrophes around the selector!):
+  EXAMPLES:
 
-    $this_prog  \
-        -in_dwi       UNFILT_AP/AP.nii.gz       \
-        -in_col_matT  UNFILT_AP/AP_bmatT.dat    \
-        -select       '0..5,8,20..\$'           \
-        -prefix       FILT_AP/AP 
+    1) ... with selector via the command line (again, note the single
+       apostrophes around the selector!):
+
+        $this_prog  \
+            -in_dwi       UNFILT_AP/AP.nii.gz       \
+            -in_col_matT  UNFILT_AP/AP_bmatT.dat    \
+            -select       '0..5,8,20..\$'           \
+            -prefix       FILT_AP/AP 
+
+    
+    2) ... with selector via file contents (where there would *not* be
+       apostrophes in the string sitting in the file):
+
+        $this_prog  \
+            -in_dwi       UNFILT_AP/AP.nii.gz           \
+            -in_col_matT  UNFILT_AP/AP_bmatT.dat        \
+            -select_file  UNFILT_AP/dwi_sel_goods.txt   \
+            -prefix       FILT_AP/AP 
 
 # -----------------------------------------------------------------------
 

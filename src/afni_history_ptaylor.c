@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 08, Jan , 2018 , PT , "fat_proc_filter_dwis" , MINOR , TYPE_NEW_OPT,
+   "Can input a selector string via a text file now.",
+   "See the -select_file option.\n"
+},
+
 { 22, Dec , 2017 , PT , "fat_proc_connec_vis" , MINOR , TYPE_NEW_OPT,
    "Can output the intermediate tstat or tcat files of ROI maps.",
    "Might be useful in subsequent volumetric analyses.\n"
