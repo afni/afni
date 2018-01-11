@@ -483,14 +483,14 @@ void mri_multi_threshold_setup(void)
        }
      }
    }
-#if 0
+#if 1
    switch( cth_mode ){
      default:
-       INFO_message("MultiThresh cluster FOM threshold method set to MEAN") ; break ;
+       INFO_message("MultiThresh cluster FOM threshold method = MEAN"); break;
      case 1:
-       INFO_message("MultiThresh cluster FOM threshold method set to MEDIAN") ; break ;
+       INFO_message("MultiThresh cluster FOM threshold method = MEDIAN"); break;
      case 2:
-       INFO_message("MultiThresh cluster FOM threshold method set to cdf %.1f%%",cth_perc) ; break ;
+       INFO_message("MultiThresh cluster FOM threshold method = cdf %.1f%%",cth_perc); break;
    }
 #endif
    return ;
