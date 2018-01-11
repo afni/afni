@@ -296,7 +296,7 @@ afni_history_struct rickr_history[] = {
 
  {  5, Jul, 2017, RCR, "3dAllineate", MICRO, TYPE_MODIFY,
    "make quieter: only report sub-brick messages if verbose",
-   "Applied to 3dAllinate and 3dmerge."
+   "Applied to 3dAllineate and 3dmerge."
  } ,
 
  { 28, Jun, 2017, RCR, "afni-general", MINOR, TYPE_GENERAL,
@@ -431,7 +431,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 25,  Apr, 2017, RCR, "suma", MICRO, TYPE_MODIFY,
-   "SUMA_input.c: 'r'ecord with oversamle - use tcsh -c to delete files",
+   "SUMA_input.c: 'r'ecord with oversample - use tcsh -c to delete files",
    "To be explicit about shell in system(), sending errors to /dev/null."
  } ,
 
@@ -699,8 +699,8 @@ afni_history_struct rickr_history[] = {
 
  { 30,  Nov, 2016, RCR, "afni-general", MAJOR, TYPE_ENHANCE,
    "<> range selector can now take a comma-delimited list of integers",
-   "So for a dataset with interger values from 0 to 8, these commands\n"
-   "should produce identical resutls:\n"
+   "So for a dataset with integer values from 0 to 8, these commands\n"
+   "should produce identical results:\n"
    "   3dcalc -a DSET+tlrc -expr 'a*amongst(a,3,4,5)' -prefix JELLO\n"
    "   3dbucket 'DSET+tlrc<4,3,5>'                    -prefix JELLO\n"
    "   3dbucket 'DSET+tlrc<3..5>'                     -prefix JELLO\n"
@@ -744,7 +744,7 @@ afni_history_struct rickr_history[] = {
  {  1,  Nov, 2016, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "add PPI preparation options",
    "Add -regress_skip_censor to omit 3dD -censor option.\n"
-   "Add -write_ppi_3dD_scripts with corressponding options\n"
+   "Add -write_ppi_3dD_scripts with corresponding options\n"
    "    -regress_ppi_stim_files and -regress_ppi_stim_labels.\n"
    "These make PPI pre and post regression scripts, along with\n"
    "    the main analysis script.\n"
@@ -847,7 +847,7 @@ afni_history_struct rickr_history[] = {
 
  { 22,  Aug, 2016, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "save all '3dAllineate -allcostX' anat/EPI costs to out.allcostX.txt",
-   "This is another quailty control measure."
+   "This is another quality control measure."
  } ,
 
  { 19,  Aug, 2016, RCR, "slow_surf_clustsim.py", MINOR, TYPE_ENHANCE,
@@ -952,7 +952,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 23,  Jun, 2016, RCR, "plug_realtime", MICRO, TYPE_ENHANCE,
-   "show pop-up if user selects Mask Vals without 3D RT registrasion",
+   "show pop-up if user selects Mask Vals without 3D RT registration",
    "Clarify this in the plugin Help.  For L Li and V Roopchansingh."
  } ,
 
@@ -1102,7 +1102,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 18,  Apr, 2016, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
-   "THD_open_tcat: fix wilcard input lacking sub-brick selectors",
+   "THD_open_tcat: fix wildcard input lacking sub-brick selectors",
    "Forgot to regenerate catenated list, dlocal."
  } ,
 
@@ -1299,7 +1299,7 @@ afni_history_struct rickr_history[] = {
  {  4,  Jan, 2016, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
    "add boundardy checks in get_1dcat_intlist and get_count_intlist",
    "Without the checks, using count or 1dcat as sub-brick selector method\n"
-   "would lead to confusing crashes (if values exceedded #vols).\n"
+   "would lead to confusing crashes (if values exceeded #vols).\n"
    "Thanks to W Graves for reporting the problem."
  } ,
 
@@ -1497,8 +1497,8 @@ afni_history_struct rickr_history[] = {
 
  { 25,  Aug, 2015, RCR, "@update.afni.binaries", MICRO, TYPE_ENHANCE,
    "if initial install, update .cshrc",
-   "If initial install (afni not in PATH) and PATH not set in .csrhc,\n"
-   "update path (PATH) and do 'apsearch -afni_help_dir' update in .csrhc."
+   "If initial install (afni not in PATH) and PATH not set in .cshrc,\n"
+   "update path (PATH) and do 'apsearch -afni_help_dir' update in .cshrc."
  } ,
 
  { 21,  Aug, 2015, RCR, "Makefile.INCLUDE", MICRO, TYPE_ENHANCE,
@@ -1604,7 +1604,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 31,  Jul, 2015, RCR, "@FindAfniDsetPath", MICRO, TYPE_ENHANCE,
-   "allow full paths to succeeed ; no args gives help",
+   "allow full paths to succeed ; no args gives help",
    NULL
  } ,
 
@@ -1613,7 +1613,7 @@ afni_history_struct rickr_history[] = {
    "Was failing with -init_xform."
  } ,
 
- { 29,  Jul, 2015, RCR, "gen_ss_reivew_scripts.py", MICRO, TYPE_MODIFY,
+ { 29,  Jul, 2015, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_MODIFY,
    "block any _REMLvar stats dset (was _REMLvar+)",
    "Might get stats*_REMLvar_nods, for example, via 3dREMLfit -dsort_nods."
  } ,
@@ -1650,7 +1650,7 @@ afni_history_struct rickr_history[] = {
 
  { 17,  Jul, 2015, RCR, "plug_realtime", MINOR, TYPE_ENHANCE,
    "Dimon->afni: small TCP buffers cause volumes to be passed slowly",
-   "In iochan_recvall, increase nap time only if packets < 4K are recieved."
+   "In iochan_recvall, increase nap time only if packets < 4K are received."
  } ,
 
  { 13,  Jul, 2015, RCR, "nifti_tool", MAJOR, TYPE_ENHANCE,
@@ -1687,7 +1687,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 24,  Jun, 2015, RCR, "afni_xml_tool", MINOR, TYPE_NEW_OPT,
-   "afni_xml udpates, and start to afni_xml_tool",
+   "afni_xml updates, and start to afni_xml_tool",
    NULL
  } ,
 
@@ -1790,7 +1790,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 19,  May, 2015, RCR, "3dClustSim", MICRO, TYPE_MODIFY,
-   "do not allow -pthr to preceed -both or -niml",
+   "do not allow -pthr to precede -both or -niml",
    "Otherwise -pthr values would be lost."
  } ,
 
@@ -1987,7 +1987,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 18,  Mar, 2015, RCR, "3dBandpass", MICRO, TYPE_ENHANCE,
-   "let user know details of demensionality reduction",
+   "let user know details of dimensionality reduction",
    NULL
  } ,
 
@@ -2033,7 +2033,7 @@ afni_history_struct rickr_history[] = {
 
  {  3,  Mar, 2015, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
    "added MIN_OUTLER as an option to -volreg_align_to",
-   "Also, udpated requirement data from Feb 9 to Nov 9."
+   "Also, updated requirement data from Feb 9 to Nov 9."
  } ,
 
  {  2,  Mar, 2015, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
@@ -2072,7 +2072,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 12,  Feb, 2015, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
-   "added -regrss_anaticor_fast/-regrss_anaticor_fwhm",
+   "added -regress_anaticor_fast/-regress_anaticor_fwhm",
    "This implements the 'fast' ANATICOR method, computing the WMeLocal\n"
    "voxel-wise regressors via an FWHM Gaussian sum of WMe voxels, rather\n"
    "than a uniform sum within a radius."
@@ -2099,7 +2099,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  {  3,  Feb, 2015, RCR, "model_conv_PRF", MINOR, TYPE_ENHANCE,
-   "consolodate blur and reorg into one function, to reduce max memory usage",
+   "consolidate blur and reorg into one function, to reduce max memory usage",
    "This allows the program to run on weaker systems, cutting the max RAM\n"
    "usage by one half.  A prior step was to allocate main RAM early so that\n"
    "free() would release to the OS (Linux), but that is now moot.\n"
@@ -2122,7 +2122,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 20,  Jan, 2015, RCR, "timing_tool.py", MICRO, TYPE_ENHANCE,
-   "allow ',' as married timinig separator (along with '*')",
+   "allow ',' as married timing separator (along with '*')",
    NULL
  } ,
 
