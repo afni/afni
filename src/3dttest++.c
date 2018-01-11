@@ -191,6 +191,7 @@ typedef struct {
   float *pthr ;
   float farp_goal ;
   char name[32] ;
+  char mode[32] ; /* 10 Jan 2018 */
 } Xclu_opt ;
 
 /* lines directly below copied from 3dXClustSim.c:
@@ -2394,12 +2395,12 @@ int main( int argc , char *argv[] )
        opx->pthr      = NULL ;
        opx->farp_goal = 5.0f ;
        opx->do_hpow0  = 0 ; opx->do_hpow1 = 0 ; opx->do_hpow2 = 0 ;
+       opx->mode[0]   = '\0' ; /* 10 Jan 2018 */
        sprintf(opx->name,"Case%d",nnopt_Xclu+1) ;
 
        acp = strdup(argv[nopt]) ;  /* change colons to blanks */
        for( cpt=acp ; *cpt != '\0' ; cpt++ ){
-              if( *cpt == ':' ) *cpt = ' ' ;
-         else if( *cpt == '%' ) *cpt = ' ' ;
+         if( *cpt == ':' ) *cpt = ' ' ;
        }
 
        cpt = strcasestr(acp,"NN1") ; if( cpt != NULL ) opx->nnlev = 1 ;
@@ -2480,6 +2481,17 @@ int main( int argc , char *argv[] )
            ERROR_message("Illegal string after name= in '%s %s'",thisopt,argv[nopt]); nbad++ ;
          } else {
            MCW_strncpy(opx->name,nam,32) ;
+         }
+       }
+
+       cpt = strcasestr(acp,"mode=") ;      /* 10 Jan 2018 */
+       if( cpt != NULL && cpt[5] != '\0' ){
+         char mode[128] ; mode[0] = '\0' ;
+         sscanf(cpt+5," %s",mode) ;
+         if( strlen(mode) == 0 || strlen(mode) > 31 || !THD_filename_pure(mode) ){
+           ERROR_message("Illegal string after name= in '%s %s'",thisopt,argv[nopt]); nbad++ ;
+         } else {
+           MCW_strncpy(opx->mode,mode,32) ;
          }
        }
 
@@ -4843,7 +4855,7 @@ LABELS_ARE_DONE:  /* target for goto above */
      if( do_Xclustsim ){ /*----- ETAC -----*/
 
        int ixx , nxx=MAX(nnopt_Xclu,1) ; Xclu_opt *opx ;
-       int nnlev, sid, npthr ; float *pthr ; char *nam ;
+       int nnlev, sid, npthr ; float *pthr ; char *nam , *mod=NULL ;
        int do_hpow0, do_hpow1, do_hpow2 ; float fgoal ;
        int numfarp=1 ; float *flist=NULL ;
 
@@ -4855,6 +4867,7 @@ LABELS_ARE_DONE:  /* target for goto above */
            npthr = opx->npthr ;      /* number of threshold */
             pthr = opx->pthr ;       /* threshold array */
            nam   = opx->name ;       /* code name for output */
+           mod   = opx->mode ;       /* 10 Jan 2018 */
            fgoal = opx->farp_goal ;
            do_hpow0 = opx->do_hpow0 ;
            do_hpow1 = opx->do_hpow1 ;
@@ -4862,11 +4875,21 @@ LABELS_ARE_DONE:  /* target for goto above */
          } else {
            nnlev = sid = npthr = 0 ; pthr = NULL ; nam="default" ;
            do_hpow0 = 0 ; do_hpow1 = 0 ; do_hpow2 = 1 ;
-           fgoal = 5.0f ;
+           fgoal = 5.0f ; mod = "\0" ;
          }
 
-         sprintf( cmd , "3dXClustSim -DAFNI_DONT_LOGFILE=YES"
-                        " -prefix %s.%s.ETAC.nii" , prefix_clustsim , nam ) ;
+         /* initialize the 3dXClustSim command with some environment settings */
+
+         sprintf( cmd , "3dXClustSim -DAFNI_DONT_LOGFILE=YES -DAFNI_AUTOGZIP=NO" ) ;
+
+         if( mod != NULL && *mod != '\0' ){  /* 10 Jan 2018 */
+           sprintf( cmd+strlen(cmd) , " -DAFNI_MTHRESH_MODE=%s" , mod ) ;
+         }
+
+         sprintf( cmd+strlen(cmd) , " \\\n   ") ;
+
+         sprintf( cmd+strlen(cmd) , 
+                 " -prefix %s.%s.ETAC.nii" , prefix_clustsim , nam ) ;
 
          if( fgoal > 0.0f ){
            sprintf( cmd+strlen(cmd) , " -FPR %.1f" , fgoal ) ;
@@ -5046,6 +5069,7 @@ LABELS_ARE_DONE:  /* target for goto above */
    /*--- e finito [3dttest++ is done] ---------------------------------------*/
    /*------------------------------------------------------------------------*/
 
+   INFO_message("----- 3dttest++ says so long, farewell, and happy trails to you :) -----") ;
    exit(0) ;
 
 } /*********** end of main program ********************************************/
