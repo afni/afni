@@ -706,7 +706,7 @@ class SysInfo:
             vf = self.get_python_ver_float()
             mesg = ''
             if vf >= 3.0:
-               mesg = 'have python version %s, should use 2.7.x' % vstr
+               mesg = 'have python version %s, some programs need 2.7.x' % vstr
             elif vf < 2.7:
                mesg = 'have python version %s, consider using 2.7.x' % vstr
             if mesg != '':
