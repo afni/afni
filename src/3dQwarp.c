@@ -2562,10 +2562,23 @@ STATUS("load datasets") ; /*--------------------------------------------------*/
                 pad_ym > 0 || pad_yp > 0 || pad_zm > 0 || pad_zp > 0) ;
 
      if( zeropad ){  /*----- print a report and actually do it -----*/
-       if( Hverb )
+
+       int do_warn , wx,wy,wz ;  /* excess padding? [11 Jan 2018] */
+       wx = bim->nx/2; wy = bim->ny/2; wz = bim->nz/2;
+       do_warn = (pad_xm > wx) || (pad_xp > wx) ||
+                 (pad_ym > wy) || (pad_yp > wy) ||
+                 ( wz > 1 && ((pad_zm >= wz) || (pad_zp >= wz)) ) ;
+
+       if( Hverb || do_warn )
          INFO_message("Dataset zero-pad:"
                       " xbot=%d xtop=%d  ybot=%d ytop=%d  zbot=%d ztop=%d voxels",
                        pad_xm,pad_xp , pad_ym,pad_yp , pad_zm,pad_zp ) ;
+       if( do_warn ){
+         WARNING_message(
+           "At least one padding is more than 50%% of dataset grid size!" ) ;
+         WARNING_message(
+           "Computation time might be tremendously long :(") ;
+       }
 
        /*-- replace base image --*/
 
