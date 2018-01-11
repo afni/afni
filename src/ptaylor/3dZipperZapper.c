@@ -18,6 +18,8 @@
 int check_make_rai( THD_3dim_dataset *A, 
                     char *dset_or );
 
+int check_orient_to_resam( THD_3dim_dataset *A);
+
 int find_bad_slices_streak( float **slipar,
                             int *Nmskd,
                             int **slibad,
@@ -402,7 +404,8 @@ int main(int argc, char *argv[]) {
    // ===================== resamp, if nec =======================
 
    // !!! lazy way-- make function different later...
-   
+
+   /*
    if (check_make_rai( insetA, dset_or ) ) {
       dsetn = r_new_resam_dset( insetA, NULL, 0.0, 0.0, 0.0,
                                 dset_or, RESAM_NN_TYPE, NULL, 1, 0);
@@ -418,7 +421,32 @@ int main(int argc, char *argv[]) {
          DSET_delete(MASK); 
          MASK=dsetn;
          dsetn=NULL;
+         }*/
+
+   char ostr[4];
+   THD_fill_orient_str_3(insetA->daxes, ostr);
+   INFO_message("%s",ostr );
+
+   if (check_orient_to_resam( insetA ) ) {
+      dsetn = r_new_resam_dset( insetA, NULL, 0.0, 0.0, 0.0,
+                                dset_or, RESAM_NN_TYPE, NULL, 1, 0);
+      DSET_delete(insetA); 
+      insetA=dsetn;
+      dsetn=NULL;
+   }
+
+   if( MASK )
+      if (check_orient_to_resam( MASK ) ) {
+         dsetn = r_new_resam_dset( MASK, NULL, 0.0, 0.0, 0.0,
+                                   dset_or, RESAM_NN_TYPE, NULL, 1, 0);
+         DSET_delete(MASK); 
+         MASK=dsetn;
+         dsetn=NULL;
       }
+
+
+
+   
    
    // *************************************************************
    // *************************************************************
@@ -815,9 +843,32 @@ int check_make_rai( THD_3dim_dataset *A,
    if( ORIENT_typestr[A->daxes->zzorient][0] != dset_or[2] )
       return 1;
 
-   INFO_message("No need to resample.");
+    INFO_message("No need to resample.");
    return 0;
 }
+
+int check_orient_to_resam( THD_3dim_dataset *A )
+{
+   int i;
+   char ro[2][4] = { "RPI", "LAS" };
+   char ostr[4];
+
+   THD_fill_orient_str_3(A->daxes, ostr);
+
+   for( i=0 ; i<3 ; i++ ) {
+      INFO_message("!! %s %s %s", &ostr[i] , &ro[0][i], &ro[1][i]);
+      if( ostr[i] != ro[0][i] && ostr[i] != ro[1][i] ){
+         INFO_message("Do internal resample %s.", ostr);
+
+         return 1;
+      }
+   }
+         
+   INFO_message("No need to resample %s.", ostr);
+
+   return 0;
+}
+
 
 // ---------------------------------------------------------
 int find_bad_slices_streak( float **slipar,
