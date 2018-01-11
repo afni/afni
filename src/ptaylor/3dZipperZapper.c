@@ -114,6 +114,7 @@ void usage_ZipperZapper(int detail)
 "      -input FFF  {-mask MMM}                               \\\n"
 "      -prefix PPP                                           \\\n"
 "      {-min_slice_nvox N}                                   \\\n"
+"      {-min_streak_len L}                                   \\\n"
 "      {-do_out_slice_param}                                 \\\n"
 "      {-no_out_bad_mask}                                    \\\n"
 "      {-no_out_text_vals}                                   \\\n"
@@ -134,6 +135,14 @@ void usage_ZipperZapper(int detail)
 "                  for a given slice to be included in the calcs. \n"
 "                  N must be >0 (and likely much more so, to be useful).\n"
 "                  Default: use 10 percent of the axial slice's size.\n"
+"    -min_streak_len L\n"
+"                 :set the minimum number of slices in a row to look for\n"
+"                  fluctuations within (def: L=4).  That is, if 'large\n"
+"                  enough' fluctuations are found in L consecutive slices,\n"
+"                  then the volume is flagged for motion.  A larger L means\n"
+"                  that more slices need to vary for a volume to be flagged\n"
+"                  for 'brightness fluctuations'.  NB: this does parameter\n"
+"                  setting does not affect the search for dropout slices.\n"
 " \n"
 "    -do_out_slice_param\n"
 "                 :output the map of slice parameters (not done by\n"
@@ -174,7 +183,7 @@ void usage_ZipperZapper(int detail)
 " # ------------------------------------------------------------------\n"
 " \n"
 " # ------------------------------------------------------------------------\n"
-          );
+);
 	return;
 }
 
@@ -249,7 +258,7 @@ int main(int argc, char *argv[]) {
    // ****************************************************************
    // ****************************************************************
 
-   INFO_message("version: 2018_01_10");
+   INFO_message("version: 2018_01_11");
 	
    /** scan args **/
    if (argc == 1) { usage_ZipperZapper(1); exit(0); }
@@ -279,7 +288,7 @@ int main(int argc, char *argv[]) {
          if(has_known_non_afni_extension(iprefix)){   
             ext = find_filename_extension(iprefix);
             // use 'prefix' as basic text file prefix, by removing
-            // exit
+            // ext
             prefix[strlen(iprefix) - strlen(ext)] = '\0';  
          }
          else {
@@ -329,12 +338,23 @@ int main(int argc, char *argv[]) {
       
         MIN_NMSKD = atoi(argv[iarg]);
 
-        if( MIN_NMSKD < 0)
-           ERROR_exit("Need a *positive* value after '-min_slice_nvox'");
+        if( MIN_NMSKD < 1 )
+           ERROR_exit("Need a positive integer after '-min_slice_nvox'");
 
         iarg++ ; continue ;
         }
 
+      // Nvox per slice to include in mask; default: 10 of axi sli
+      if( strcmp(argv[iarg],"-min_streak_len") == 0 ){
+        iarg++ ; if( iarg >= argc ) 
+        ERROR_exit("Need argument after '-min_streak_len'");
+      
+        MIN_STREAK_LEN = atoi(argv[iarg]);
+        if( MIN_STREAK_LEN < 1)
+           ERROR_exit("Need a positive integer after '-min_streak_len'");
+
+        iarg++ ; continue ;
+        }
       // ---------------- control output ---------------------
 
       if( strcmp(argv[iarg],"-do_out_slice_par") == 0) {
