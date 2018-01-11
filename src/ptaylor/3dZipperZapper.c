@@ -168,7 +168,7 @@ void usage_ZipperZapper(int detail)
 "         -input AP.nii.gz                              \\\n"
 "         -mask  AP_mask.nii.gz                         \\\n"
 "         -prefix ZZZ.nii.gz                            \\\n"
-"         -do_out_slice_par\n"
+"         -do_out_slice_param\n"
 " \n"
 "     2) No volumetric outputs (only if speed/write time is super\n"
 "        important?):\n"
@@ -357,7 +357,7 @@ int main(int argc, char *argv[]) {
         }
       // ---------------- control output ---------------------
 
-      if( strcmp(argv[iarg],"-do_out_slice_par") == 0) {
+      if( strcmp(argv[iarg],"-do_out_slice_param") == 0) {
          DO_OUT_SLIPAR=1;
          iarg++ ; continue ;
       }
