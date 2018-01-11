@@ -14,11 +14,11 @@
 //#include <gsl/gsl_rng.h>
 #include "DoTrackit.h"
 
+ 
+int check_orient_match( THD_3dim_dataset *A, 
+                        char *dset_or );
 
-int check_make_rai( THD_3dim_dataset *A, 
-                    char *dset_or );
-
-int check_orient_to_resam( THD_3dim_dataset *A);
+int check_orient_xyz( THD_3dim_dataset *A);
 
 int find_bad_slices_streak( float **slipar,
                             int *Nmskd,
@@ -65,7 +65,7 @@ void usage_ZipperZapper(int detail)
 " (esp. due to the necessarily differing contrasts) and without tensor\n"
 " fitting.\n"
 " \n"
-" Therefore, this program will look through axial slices of a data set\n"
+" *Therefore*, this program will look through axial slices of a data set\n"
 " for brightness fluctuations and/or dropout slices.  It will build a\n"
 " list of volumes indices that it identifies as bad, and the user can\n"
 " then use something like the 'fat_proc_filter_dwis' program after to\n"
@@ -113,6 +113,7 @@ void usage_ZipperZapper(int detail)
 "  3dZipperZapper                                            \\\n"
 "      -input FFF  {-mask MMM}                               \\\n"
 "      -prefix PPP                                           \\\n"
+"      {-min_slice_nvox N}                                   \\\n"
 "      {-do_out_slice_param}                                 \\\n"
 "      {-no_out_bad_mask}                                    \\\n"
 "      {-no_out_text_vals}                                   \\\n"
@@ -127,6 +128,12 @@ void usage_ZipperZapper(int detail)
 "    -prefix PPP  :prefix for output file name.  Any volumetric file\n"
 "                  extension included here (e.g., '.nii.gz') is\n"
 "                  propagated to any output volumetric dsets.\n"
+" \n"
+"    -min_slice_nvox N\n"
+"                 :set the minimum number of voxels to be in the mask\n"
+"                  for a given slice to be included in the calcs. \n"
+"                  N must be >0 (and likely much more so, to be useful).\n"
+"                  Default: use 10 percent of the axial slice's size.\n"
 " \n"
 "    -do_out_slice_param\n"
 "                 :output the map of slice parameters (not done by\n"
@@ -147,11 +154,22 @@ void usage_ZipperZapper(int detail)
 " \n"
 " EXAMPLE:\n"
 " \n"
-"     3dZipperZapper                                    \\n"
-"         -input AP.nii.gz                              \\n"
-"         -mask  AP_mask.nii.gz                         \\n"
-"         -prefix ZZZ.nii.gz                            \\n"
+"     1) All types of outputs:\n"
+"     3dZipperZapper                                    \\\n"
+"         -input AP.nii.gz                              \\\n"
+"         -mask  AP_mask.nii.gz                         \\\n"
+"         -prefix ZZZ.nii.gz                            \\\n"
 "         -do_out_slice_par\n"
+" \n"
+"     2) No volumetric outputs (only if speed/write time is super\n"
+"        important?):\n"
+"     3dZipperZapper                                    \\\n"
+"         -input AP.nii.gz                              \\\n"
+"         -mask  AP_mask.nii.gz                         \\\n"
+"         -prefix ZZZ.nii.gz                            \\\n"
+"         -no_out_bad_mask\n"
+" \n"
+" \n"
 " \n"
 " # ------------------------------------------------------------------\n"
 " \n"
@@ -221,7 +239,7 @@ int main(int argc, char *argv[]) {
    int DO_OUT_BADMASK=1;                  // output slice mask 
    int DO_OUT_TEXTVALS=1;                // output text files 
 
-
+   char A_ori[4], A_ori2[4];
 
    mainENTRY("3dZipperZapper"); machdep(); 
   
@@ -269,7 +287,7 @@ int main(int argc, char *argv[]) {
             ext = &nullch;
          }
 
-         INFO_message("%s %s", prefix, iprefix);
+         //INFO_message("%s %s", prefix, iprefix);
 
          if( !THD_filename_ok(prefix) ) 
             ERROR_exit("Illegal name after '-prefix'");
@@ -285,11 +303,7 @@ int main(int argc, char *argv[]) {
             ERROR_exit("Can't open time series dataset '%s'.",
                        argv[iarg]);
 
-         Dim = (int *)calloc(4, sizeof(int));
          DSET_load(insetA); CHECK_LOAD_ERROR(insetA);
-         Nvox = DSET_NVOX(insetA) ;
-         Dim[0] = DSET_NX(insetA); Dim[1] = DSET_NY(insetA); 
-         Dim[2] = DSET_NZ(insetA); Dim[3] = DSET_NVALS(insetA); 
 
          iarg++ ; continue ;
       }
@@ -307,6 +321,19 @@ int main(int argc, char *argv[]) {
 			
          iarg++ ; continue ;
       }
+
+      // Nvox per slice to include in mask; default: 10 of axi sli
+      if( strcmp(argv[iarg],"-min_slice_nvox") == 0 ){
+        iarg++ ; if( iarg >= argc ) 
+        ERROR_exit("Need argument after '-min_slice_nvox'");
+      
+        MIN_NMSKD = atoi(argv[iarg]);
+
+        if( MIN_NMSKD < 0)
+           ERROR_exit("Need a *positive* value after '-min_slice_nvox'");
+
+        iarg++ ; continue ;
+        }
 
       // ---------------- control output ---------------------
 
@@ -340,11 +367,44 @@ int main(int argc, char *argv[]) {
       exit(1);
    }
 	
-   //   if( !TEST_OK ) {
-   // ERROR_message("HEY! Just testing/building mode right now!\n");
-   // exit(5);
-   //}
+   // ===================== resamp, if nec =======================
 
+   // What is initial orientation of dset?  save for outputs, too.
+   THD_fill_orient_str_3(insetA->daxes, A_ori);
+   //INFO_message("%s", A_ori );
+
+   // Make sure insetA is xyz-like; resample if not.
+   if (check_orient_xyz( insetA )) {
+      dsetn = r_new_resam_dset( insetA, NULL, 0.0, 0.0, 0.0,
+                                dset_or, RESAM_NN_TYPE, NULL, 1, 0);
+      DSET_delete(insetA); 
+      insetA=dsetn;
+      dsetn=NULL;
+   }
+
+   // In any case, make sure mask orient *matches* insetA; insetA's
+   // orientation might have changed.
+   THD_fill_orient_str_3(insetA->daxes, A_ori2);
+   if( MASK )
+      if (check_orient_match( MASK, A_ori2 )) {
+         dsetn = r_new_resam_dset( MASK, NULL, 0.0, 0.0, 0.0,
+                                   A_ori2, RESAM_NN_TYPE, NULL, 1, 0);
+         DSET_delete(MASK); 
+         MASK=dsetn;
+         dsetn=NULL;
+      }
+
+   // Now, collect this info!
+   Dim = (int *)calloc(4, sizeof(int));
+   if( (Dim == NULL) ) { 
+      fprintf(stderr, "\n\n MemAlloc failure (small array!).\n\n");
+      exit(12);
+   }
+
+   Nvox = DSET_NVOX(insetA) ;
+   Dim[0] = DSET_NX(insetA); Dim[1] = DSET_NY(insetA); 
+   Dim[2] = DSET_NZ(insetA); Dim[3] = DSET_NVALS(insetA); 
+   
    // ****************************************************************
    // ****************************************************************
    //                    pre-stuff, make storage
@@ -370,10 +430,13 @@ int main(int argc, char *argv[]) {
       exit(12);
    }
 
-   MIN_NMSKD = (int) (0.1 * Dim[0]*Dim[1]); // min num of vox in mask per sli
-   if( MIN_NMSKD <= 0 )
-      ERROR_exit("Min num of vox per slice was somehow %d?? No thanks!", 
-                 MIN_NMSKD);
+   // if user doesn't enter one, use default 10%
+   if ( MIN_NMSKD < 0 ){ // min num of vox in mask per sli
+      MIN_NMSKD = (int) (0.1 * Dim[0]*Dim[1]); 
+      if( MIN_NMSKD <= 0 )
+         ERROR_exit("Min num of vox per slice was somehow %d?? No thanks!", 
+                    MIN_NMSKD);
+   }
 
    // array for diffs; later, maybe just do one by one!
    diffarr = calloc( Dim[3], sizeof(diffarr) );
@@ -400,53 +463,6 @@ int main(int argc, char *argv[]) {
       fprintf(stderr, "\n\n MemAlloc failure (arrs).\n\n");
       exit(13);
    }
-
-   // ===================== resamp, if nec =======================
-
-   // !!! lazy way-- make function different later...
-
-   /*
-   if (check_make_rai( insetA, dset_or ) ) {
-      dsetn = r_new_resam_dset( insetA, NULL, 0.0, 0.0, 0.0,
-                                dset_or, RESAM_NN_TYPE, NULL, 1, 0);
-      DSET_delete(insetA); 
-      insetA=dsetn;
-      dsetn=NULL;
-   }
-
-   if( MASK )
-      if (check_make_rai( MASK, dset_or ) ) {
-         dsetn = r_new_resam_dset( MASK, NULL, 0.0, 0.0, 0.0,
-                                   dset_or, RESAM_NN_TYPE, NULL, 1, 0);
-         DSET_delete(MASK); 
-         MASK=dsetn;
-         dsetn=NULL;
-         }*/
-
-   char ostr[4];
-   THD_fill_orient_str_3(insetA->daxes, ostr);
-   INFO_message("%s",ostr );
-
-   if (check_orient_to_resam( insetA ) ) {
-      dsetn = r_new_resam_dset( insetA, NULL, 0.0, 0.0, 0.0,
-                                dset_or, RESAM_NN_TYPE, NULL, 1, 0);
-      DSET_delete(insetA); 
-      insetA=dsetn;
-      dsetn=NULL;
-   }
-
-   if( MASK )
-      if (check_orient_to_resam( MASK ) ) {
-         dsetn = r_new_resam_dset( MASK, NULL, 0.0, 0.0, 0.0,
-                                   dset_or, RESAM_NN_TYPE, NULL, 1, 0);
-         DSET_delete(MASK); 
-         MASK=dsetn;
-         dsetn=NULL;
-      }
-
-
-
-   
    
    // *************************************************************
    // *************************************************************
@@ -624,12 +640,11 @@ int main(int argc, char *argv[]) {
       }
       fclose(fout0);
       fclose(fout1);
-      INFO_message("Wrote text file: %s", tprefixx);
-      INFO_message("Wrote text file: %s", tprefixy);
+      INFO_message("!Wrote text file:    %s", tprefixx);
+      INFO_message("!Wrote text file:    %s", tprefixy);
    }
 
    if ( DO_OUT_SLIPAR ) {
-      INFO_message("Preparing output of diffs.");
       
       diffdset = EDIT_empty_copy( insetA );
       sprintf(sprefix,"%s_param%s", prefix,ext);
@@ -650,17 +665,30 @@ int main(int argc, char *argv[]) {
       THD_load_statistics( diffdset );
       tross_Copy_History( insetA, diffdset );
       tross_Make_History( "3dZipperZapper", argc, argv, diffdset );
+
+      // make sure the output has same orientation as input
+      if (check_orient_match( diffdset, A_ori )) {
+         dsetn = r_new_resam_dset( diffdset, NULL, 0.0, 0.0, 0.0,
+                                   A_ori, RESAM_NN_TYPE, NULL, 1, 0);
+         DSET_delete(diffdset); 
+         diffdset=dsetn;
+         dsetn=NULL;
+      }
+      EDIT_dset_items( diffdset ,
+                       ADN_prefix      , sprefix,
+                       ADN_none ) ;
+
       if( !THD_ok_overwrite() && 
           THD_is_ondisk(DSET_HEADNAME(diffdset)) )
          ERROR_exit("Can't overwrite existing dataset '%s'",
                     DSET_HEADNAME(diffdset));
       THD_write_3dim_dataset(NULL, NULL, diffdset, True);
-      INFO_message("Wrote dataset: %s\n", DSET_BRIKNAME(diffdset));
+      INFO_message("!Wrote dataset:    %s\n", DSET_BRIKNAME(diffdset));
    }
 
 
    // !!! maybe just temp:  output map of badness
-   if ( 1 ) {
+   if ( DO_OUT_BADMASK ) {
       
       byte **badarr=NULL;
 
@@ -685,9 +713,7 @@ int main(int argc, char *argv[]) {
                         badarr[m][idx] = 1; //slibad[m][k];
                idx++;
             }
-      
-      INFO_message("Preparing map of bad slices.");
-      
+            
       sprintf(bprefix,"%s_badmask%s", prefix, ext);
       baddset = EDIT_empty_copy( insetA );
 
@@ -707,69 +733,86 @@ int main(int argc, char *argv[]) {
       THD_load_statistics( baddset );
       tross_Copy_History( insetA, baddset );
       tross_Make_History( "3dZipperZapper", argc, argv, baddset );
+
+      // make sure the output has same orientation as input
+      if (check_orient_match( baddset, A_ori )) {
+         INFO_message("Resample baddset to %s", A_ori);
+         dsetn = r_new_resam_dset( baddset, NULL, 0.0, 0.0, 0.0,
+                                   A_ori, RESAM_NN_TYPE, NULL, 1, 0);
+         DSET_delete(baddset); 
+         baddset=dsetn;
+         dsetn=NULL;
+      }
+      EDIT_dset_items( baddset ,
+                       ADN_prefix      , bprefix,
+                       ADN_none ) ;
+
       if( !THD_ok_overwrite() && 
           THD_is_ondisk(DSET_HEADNAME(baddset)) )
          ERROR_exit("Can't overwrite existing dataset '%s'",
                     DSET_HEADNAME(baddset));
       THD_write_3dim_dataset(NULL, NULL, baddset, True);
-      INFO_message("Wrote dataset: %s\n", DSET_BRIKNAME(baddset));
+      INFO_message("!Wrote dataset:    %s\n", DSET_BRIKNAME(baddset));
       
       if(badarr) {
          for( i=0 ; i<Dim[3] ; i++) 
             free(badarr[i]);
          free(badarr);
       }
+   }      
+
+
+   if( Nvolgood > 0 ) {
+      i = make_goodstring_from_badlist( goodstring,
+                                        volbad,
+                                        Nvolgood,
+                                        Dim
+                                        );
       
-      if( Nvolgood > 0 ) {
-         i = make_goodstring_from_badlist( goodstring,
-                                           volbad,
-                                           Nvolgood,
-                                           Dim
-                                           );
-
-         // ------- write out good string, single row file --------------
-
-         sprintf(gprefix,"%s_goodstri.txt", prefix);
-         if( (fout0 = fopen(gprefix, "w")) == NULL) {
-            fprintf(stderr, "Error opening file %s.", gprefix);
-            exit(19);
-         }
-
-         fprintf(fout0, "%s", goodstring);
-         fclose(fout0);
-
-         fprintf(stderr, "++ String selector for %d good vols:\n",
-                 Nvolgood);
-         fprintf(stderr, "   %s\n", goodstring);
-         INFO_message("Good vol string selector output to: %s", gprefix);
-      }
-      else if( !Nvolgood )
-         WARNING_message("Hey, *no* uncorrupted vols were found??");
-      else
-         ERROR_message("Hey, a *negative* number of good vols were found???");
-
-      // ------- write out list of bads, single col file --------------
-
-      sprintf(lprefix,"%s_badlist.txt", prefix);
-      if( (fout0 = fopen(lprefix, "w")) == NULL) {
-         fprintf(stderr, "Error opening file %s.", lprefix);
+      // ------- write out good string, single row file --------------
+      
+      sprintf(gprefix,"%s_goodstri.txt", prefix);
+      if( (fout0 = fopen(gprefix, "w")) == NULL) {
+         fprintf(stderr, "Error opening file %s.", gprefix);
          exit(19);
       }
 
-      fprintf(stderr, "++ The following %d vols were identified as bad:\n",
-              Nvolbad);
-      fprintf(stderr, "%15s %15s\n", "Bad vols", "N bad slices");
-
-      for( m=0 ; m<Dim[3] ; m++) {
-         if( volbad[m] ) {
-            fprintf(fout0, "%8d\n", m);
-            fprintf(stderr, "%15d %15d\n", m, volbad[m]);
-         }
-      }
+      fprintf(fout0, "%s", goodstring);
       fclose(fout0);
 
-      INFO_message("Wrote text file listing bads:  %s", lprefix);
+      fprintf(stderr, "++ String selector for %d good vols:\n",
+              Nvolgood);
+      fprintf(stderr, "   %s\n", goodstring);
+      INFO_message("Wrote text file of good vol string selector:    %s", 
+                   gprefix);
    }
+   else if( !Nvolgood )
+      WARNING_message("Hey, *no* uncorrupted vols were found??");
+   else
+      ERROR_message("Hey, a *negative* number of good vols were found???");
+
+   // ------- write out list of bads, single col file --------------
+
+   sprintf(lprefix,"%s_badlist.txt", prefix);
+   if( (fout0 = fopen(lprefix, "w")) == NULL) {
+      fprintf(stderr, "Error opening file %s.", lprefix);
+      exit(19);
+   }
+
+   fprintf(stderr, "++ The following %d vols were identified as bad:\n",
+           Nvolbad);
+   fprintf(stderr, "%15s %15s\n", "Bad vols", "N bad slices");
+
+   for( m=0 ; m<Dim[3] ; m++) {
+      if( volbad[m] ) {
+         fprintf(fout0, "%8d\n", m);
+         fprintf(stderr, "%15d %15d\n", m, volbad[m]);
+      }
+   }
+   fclose(fout0);
+
+   INFO_message("Wrote text file listing bads:    %s", lprefix);
+
 
    // ************************************************************
    // ************************************************************
@@ -777,6 +820,8 @@ int main(int argc, char *argv[]) {
    // ************************************************************
    // ************************************************************
 	
+   INFO_message("Done with calcs, just cleaning up.");
+
    if(insetA){
       DSET_delete(insetA);
       free(insetA);
@@ -833,33 +878,31 @@ int main(int argc, char *argv[]) {
 
 // ---------------------------------------------------------
 
-int check_make_rai( THD_3dim_dataset *A, 
-                    char *dset_or )
-{
-   if( ORIENT_typestr[A->daxes->xxorient][0] != dset_or[0] )
-      return 1;
-   if( ORIENT_typestr[A->daxes->yyorient][0] != dset_or[1] )
-      return 1;
-   if( ORIENT_typestr[A->daxes->zzorient][0] != dset_or[2] )
-      return 1;
-
-    INFO_message("No need to resample.");
-   return 0;
-}
-
-int check_orient_to_resam( THD_3dim_dataset *A )
+int check_orient_match( THD_3dim_dataset *A, 
+                        char *dset_or )
 {
    int i;
-   char ro[2][4] = { "RPI", "LAS" };
+   char ostr[4];
+   THD_fill_orient_str_3(A->daxes, ostr);
+   //INFO_message("strcmp: %s %s --> %d", 
+   //             dset_or, ostr, strcmp(dset_or, ostr));
+   return strcmp(dset_or, ostr);
+}
+
+// ---------------------------------------------------------
+
+int check_orient_xyz( THD_3dim_dataset *A )
+{
+   int i;
+   char ro[2][4] = { "RAI", "LPS" }; // just need to 'xyz'-like coor
+                                     // order
    char ostr[4];
 
    THD_fill_orient_str_3(A->daxes, ostr);
 
    for( i=0 ; i<3 ; i++ ) {
-      INFO_message("!! %s %s %s", &ostr[i] , &ro[0][i], &ro[1][i]);
       if( ostr[i] != ro[0][i] && ostr[i] != ro[1][i] ){
-         INFO_message("Do internal resample %s.", ostr);
-
+         INFO_message("[%d] Do internal of resample %s.", i, ostr);
          return 1;
       }
    }
@@ -868,7 +911,6 @@ int check_orient_to_resam( THD_3dim_dataset *A )
 
    return 0;
 }
-
 
 // ---------------------------------------------------------
 int find_bad_slices_streak( float **slipar,
