@@ -355,6 +355,19 @@ int main(int argc, char *argv[]) {
 
         iarg++ ; continue ;
         }
+
+      if( strcmp(argv[iarg],"-min_streak_val") == 0 ){
+        iarg++ ; if( iarg >= argc ) 
+        ERROR_exit("Need argument after '-min_streak_val'");
+      
+        MIN_STREAK_WARN = atof(argv[iarg]);
+        if( MIN_STREAK_WARN < 0)
+           ERROR_exit("Need a positive float after '-min_streak_val'");
+
+        iarg++ ; continue ;
+        }
+
+
       // ---------------- control output ---------------------
 
       if( strcmp(argv[iarg],"-do_out_slice_param") == 0) {
@@ -652,8 +665,8 @@ int main(int argc, char *argv[]) {
          if (Nmskd[k]) {
             fprintf(fout0, " %5d\n", k);
             for( m=0 ; m<Dim[3] ; m++) {
-               //fprintf(fout1, " %8.5f ", fabs(slipar[m][k]-slipar[m][k+1]));
-               fprintf(fout1, " %8.5f ", slipar[m][k]); // ORIG!
+               fprintf(fout1, " %8.5f ", fabs(slipar[m][k]-slipar[m][k+1]));
+               //fprintf(fout1, " %8.5f ", slipar[m][k]); // ORIG!
             }
             fprintf(fout1, "\n");
          }
