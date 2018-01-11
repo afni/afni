@@ -51,6 +51,14 @@ def wrapify_string(x, endchar = -1):
         print("** ERROR! there is a double-quote char present!:")
         print("   -> "+x)
         sys.exit(3)
+    if x.__contains__('%'):
+        print("")
+        print("** ERROR! there is a percent symbol char present!:")
+        print("   -> "+x)
+        sys.exit(3)
+    #x.replace("\\", "\\\\")
+    #if x.__contains__("\\"):
+    #    print x[:endchar]
     return "\" "+x[:endchar]+"\\n\"\n"
 
 # ========================================================================
@@ -84,3 +92,4 @@ if __name__=="__main__":
     f.close()
     print "++ Done!"
     print "   more", fout
+    print "   emacs", fout
