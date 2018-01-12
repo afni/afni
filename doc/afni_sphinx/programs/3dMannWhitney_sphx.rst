@@ -1,0 +1,44 @@
+.. contents:: 
+    :depth: 4 
+
+*************
+3dMannWhitney
+*************
+
+.. code-block:: none
+
+    This program performs nonparametric Mann-Whitney two-sample test. 
+    
+    Usage: 
+    3dMannWhitney 
+    -dset 1 filename               data set for X observations          
+     . . .                           . . .                              
+    -dset 1 filename               data set for X observations          
+    -dset 2 filename               data set for Y observations          
+     . . .                           . . .                              
+    -dset 2 filename               data set for Y observations          
+                                                                        
+    [-workmem mega]                number of megabytes of RAM to use    
+                                     for statistical workspace          
+    [-voxel num]                   screen output for voxel # num        
+    -out prefixname                estimated population delta and       
+                                     Wilcoxon-Mann-Whitney statistics   
+                                     written to file prefixname         
+    
+    
+    N.B.: For this program, the user must specify 1 and only 1 sub-brick  
+          with each -dset command. That is, if an input dataset contains  
+          more than 1 sub-brick, a sub-brick selector must be used, e.g.: 
+          -dset 2 'fred+orig[3]'                                          
+    
+    INPUT DATASET NAMES
+    -------------------
+    This program accepts datasets that are modified on input according to the
+    following schemes:
+      'r1+orig[3..5]'                                    {sub-brick selector}
+      'r1+orig<100..200>'                                {sub-range selector}
+      'r1+orig[3..5]<100..200>'                          {both selectors}
+      '3dcalc( -a r1+orig -b r2+orig -expr 0.5*(a+b) )'  {calculation}
+    For the gruesome details, see the output of 'afni -help'.
+    
+    ++ Compile date = Nov  9 2017 {AFNI_17.3.03:macosx_10.7_local}

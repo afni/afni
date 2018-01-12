@@ -1,0 +1,29 @@
+.. contents:: 
+    :depth: 4 
+
+**********
+1dgrayplot
+**********
+
+.. code-block:: none
+
+    Usage: 1dgrayplot [options] tsfile
+    Graphs the columns of a *.1D type time series file to the screen,
+    sort of like 1dplot, but in grayscale.
+    
+    Options:
+     -install   = Install a new X11 colormap (for X11 PseudoColor)
+     -ignore nn = Skip first 'nn' rows in the input file
+                    [default = 0]
+     -flip      = Plot x and y axes interchanged.
+                    [default: data columns plotted DOWN the screen]
+     -sep       = Separate scales for each column.
+     -use mm    = Plot 'mm' points
+                    [default: all of them]
+     -ps        = Don't draw plot in a window; instead, write it
+                  to stdout in PostScript format.
+                  N.B.: If you view this result in 'gv', you should
+                        turn 'anti-alias' off, and switch to
+                        landscape mode.
+    
+    ++ Compile date = Nov  9 2017 {AFNI_17.3.03:macosx_10.7_local}
