@@ -8,7 +8,6 @@
 #include "thd_Tcorr1D.c"
 #endif
 
-
 int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *xset=NULL , *cset ;
@@ -17,6 +16,7 @@ int main( int argc , char *argv[] )
    char *prefix = "Tcorr1D", *smethod="pearson";
    char *xnam=NULL , *ynam=NULL ;
    byte *mask=NULL ; int mask_nx,mask_ny,mask_nz , nmask=0 ;
+   int do_atanh = 0 ; /* 12 Jan 2018 */
 
    /*----*/
 
@@ -37,6 +37,10 @@ int main( int argc , char *argv[] )
              "  -ktaub    = Correlation is Kendall's tau_b coefficient.\n"
              "              ++ For 'continuous' or finely-discretized data, tau_b and\n"
              "                 rank correlation are nearly equivalent (but not equal).\n"
+             "  -Fisher   = Apply the 'Fisher' (inverse hyperbolic tangent) transformation\n"
+             "                to the results. Does not make sense to use this with\n"
+             "                '-ktaub', but if you want to do it, the program will not\n"
+             "                stop you.\n"
              "\n"
              "  -prefix p = Save output into dataset with prefix 'p'\n"
              "               [default prefix is 'Tcorr1D'].\n"
@@ -114,6 +118,10 @@ int main( int argc , char *argv[] )
         smethod = "ktaub" ; nopt++ ; continue ;
       }
 
+      if( strcasecmp(argv[nopt],"-fisher") == 0 ){ /* 12 Jan 2018 */
+        do_atanh = 1 ; nopt++ ; continue ;
+      }
+
       if( strcmp(argv[nopt],"-prefix") == 0 ){
         prefix = argv[++nopt] ;
         if( !THD_filename_ok(prefix) ) ERROR_exit("Illegal value after -prefix!") ;
@@ -172,7 +180,8 @@ int main( int argc , char *argv[] )
      INFO_message("1D file %s has %d columns: correlating with ALL of them!",
                    ynam,ysim->ny) ;
 
-   cset = THD_Tcorr1D(xset, mask, nmask, ysim, smethod, prefix, (datum==MRI_short) );
+   cset = THD_Tcorr1D( xset, mask, nmask, ysim, smethod,
+                       prefix, (datum==MRI_short) , do_atanh );
    tross_Make_History( "3dTcorr1D" , argc,argv , cset ) ;
 
    DSET_unload(xset) ;  /* no longer needful */

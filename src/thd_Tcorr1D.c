@@ -10,13 +10,17 @@
 #define KTAUB    4
 
 
+#undef  MYatanh
+#define MYatanh(x) ( ((x)<-0.999329f) ? -4.0f                \
+                    :((x)>+0.999329f) ? +4.0f : atanhf(x) )
+
 THD_3dim_dataset *THD_Tcorr1D(THD_3dim_dataset *xset, byte *mask, int nmask,
                               MRI_IMAGE *ysim,
-                              char *smethod, char *prefix, int do_short )
+                              char *smethod, char *prefix, int do_short , int do_atanh )
 {
    THD_3dim_dataset *cset = NULL;
    int method=PEARSON ;
-   int ny, kk, datum=MRI_float ; char str[32], fmt[32] ; float cfac=0.0f ;
+   int ny, kk, datum=MRI_float ; char str[32], fmt[32] ; float cfac=0.0f,sfac=0.0f ;
    float (*corfun)(int,float *,float *) = NULL ;  /* ptr to corr function */
    int nvox , nvals , ii;
    int nconst=0 ;
@@ -94,7 +98,10 @@ ENTRY("THD_Tcorr1D");
      case QUADRANT: sprintf(fmt,"QuadCorr#%%0%dd",kk) ; break ;
      case KTAUB:    sprintf(fmt,"TaubCorr#%%0%dd",kk) ; break ;
    }
-   if( datum == MRI_short ) cfac = 0.0001f ;  /* scale factor for -short */
+   if( datum == MRI_short ){
+      cfac = (do_atanh) ? 0.000125f : 0.0001f ;  /* scale factor for -short */
+      sfac = 1.0f/cfac + 0.111f ;
+   }
 
    /* for each sub-brick in output file */
 
@@ -158,8 +165,9 @@ ENTRY("THD_Tcorr1D");
        for( jj=0 ; jj < nvals ; jj++ ) ydar[jj] = ysar[jj] ; /* 1D data */
 
        val = corfun( nvals , xsar , ydar ) ;         /* !! correlate !! */
+       if( do_atanh ) val = MYatanh(val) ;
 
-       if( datum == MRI_short ) scar[ii] = (short)(10000.4f*val) ;
+       if( datum == MRI_short ) scar[ii] = (short)(sfac*val) ;
        else                     fcar[ii] = val ;
 
      } /* end of loop over voxels */
