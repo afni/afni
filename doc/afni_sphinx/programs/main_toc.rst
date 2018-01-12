@@ -7,7 +7,7 @@ Help Us All
 ############
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    1dAstrip_sphx
    1dBandpass_sphx
