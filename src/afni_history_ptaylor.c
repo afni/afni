@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 12, Jan , 2018 , PT , "3dRSFC" , MICRO , TYPE_GENERAL,
+   "Deal with change elsewhere to definition of a function.",
+   "New option added to function, just need another arg; shd be no change.\n"
+},
+
 { 12, Jan , 2018 , PT , "fat_proc_align_anat_pair" , MICRO , TYPE_BUG_FIX,
    "Output 3dAllineate's weight vol to working dir, not present dir.",
    "Minor change, does not affect alignment/output.\n"
