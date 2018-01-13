@@ -66,9 +66,9 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
-{ 8, Jan , 2018 , PT , "fat_proc_filter_dwis" , MINOR , TYPE_NEW_OPT,
-   "Can input a selector string via a text file now.",
-   "See the -select_file option.\n"
+{ 12, Jan , 2018 , PT , "fat_proc_align_anat_pair" , MICRO , TYPE_BUG_FIX,
+   "Output 3dAllineate's weight vol to working dir, not present dir.",
+   "Minor change, does not affect alignment/output.\n"
 },
 
 { 22, Dec , 2017 , PT , "fat_proc_connec_vis" , MINOR , TYPE_NEW_OPT,

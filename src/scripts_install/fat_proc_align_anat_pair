@@ -34,8 +34,11 @@
 #set version   = "1.7";    set rev_dat   = "Aug 11, 2017"
 #   + switch a ">>" to ">" for general system compatability
 #
-set version   = "1.8";    set rev_dat   = "Sep 04, 2017"
+#set version   = "1.8";    set rev_dat   = "Sep 04, 2017"
 #   + update to work with newer @chauffeur*, -prefix only
+#
+set version   = "1.9";    set rev_dat   = "Jan 12, 2018"
+#   + wt vol into working dir
 #
 # ---------------------------------------------------------------
 
@@ -365,7 +368,7 @@ if ( "$imtrx" == "" ) then
         -cmass                            \
         $warp_opt                         \
         $it2w_mask                        \
-        -wtprefix      WWW.nii.gz         \
+        -wtprefix      $wdir/wtvol.nii.gz \
         -autoweight                       \
         -final wsinc5                     \
         -overwrite
