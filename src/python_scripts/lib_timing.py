@@ -1041,7 +1041,7 @@ def read_multi_3col_tsv(flist, verb=1):
    elist = []   # temporary variable, events for 1 run at a time
    for rind, fname in enumerate(flist):
       rv, header, elist = parse_3col_tsv(fname)
-      if rv: return rv, header, tlist
+      if rv: return rv, tlist
 
       # store original header, else check for consistency
       if not h0:
