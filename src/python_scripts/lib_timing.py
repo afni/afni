@@ -1030,6 +1030,11 @@ def read_multi_3col_tsv(flist, verb=1):
       A 3 column tsv file should have an optional header line,
       followed by rows of VAL VAL LABEL, separated by tabs.
 
+      Allow 4+ column files that include trailing amplitudes.
+      For now, there might be other event labels included,
+         so go after trailing floats, until a more robust way
+         can be defined.
+
       Use the labels to set name and possibly fname fields.
    """
 
@@ -1040,12 +1045,13 @@ def read_multi_3col_tsv(flist, verb=1):
                 #   - array of event lists, per run
    elist = []   # temporary variable, events for 1 run at a time
    for rind, fname in enumerate(flist):
-      rv, header, elist = parse_3col_tsv(fname)
-      if rv: return rv, tlist
+      nvals, header, elist = parse_Ncol_tsv(fname)
+      if nvals <= 0: return 1, tlist
 
       # store original header, else check for consistency
       if not h0:
          h0 = header
+         if verb > 1: print('-- RM3CT: header = %s' % header)
       elif h0 != header:
          print('** inconsistent column headers in 3 column tsv file %s' % fname)
          print('   orig:    %s' % ' '.join(h0))
@@ -1061,10 +1067,13 @@ def read_multi_3col_tsv(flist, verb=1):
                print('++ RM3CT: init cdict[%s] with %s' % (cname, cdict[cname]))
 
       # partition elist per known class (should be complete, as all class
-      # names were added to dict)
+      # names were added to dict) - okay if empty
       for cname in cdict.keys():
-         # okay if empty
-         cevents = [[e[0], [], e[1]] for e in elist if e[2] == cname]
+         # there might be an amplitude
+         if nvals > 3:
+             cevents = [[e[0], e[3], e[1]] for e in elist if e[2] == cname]
+         else:
+             cevents = [[e[0], [], e[1]] for e in elist if e[2] == cname]
          cdict[cname].append(cevents)
          if verb > 4:
             print('++ RM3CT: append cdict[%s] with %s' % (cname, cevents))
@@ -1080,6 +1089,93 @@ def read_multi_3col_tsv(flist, verb=1):
       if verb > 3: timing.show(mesg=('have timing for %s'%cname))
 
    return 0, tlist
+
+def parse_Ncol_tsv(fname, verb=1):
+   """Read one N column tsv (tab separated value) file, and return:
+        - ncol: -1 on error, else >= 0
+        - header list (length ncol)
+        - list of onset, duration, label values, amplitudes?
+
+      An N column tsv file should have an optional header line,
+      followed by rows of VAL VAL LABEL, separated by tabs.
+   """
+   lines = UTIL.read_text_file(fname, lines=1)
+   if len(lines) < 1:
+      print("** failed parse_3col_tsv for '%s'" % fname)
+      return -1, [], []
+
+   # pare lines down to useful ones
+   newlines = []
+   norig = 0
+   for lind, line in enumerate(lines):
+      vv = line.split('\t')
+      vlen = len(vv)
+      if len == 0:
+         if verb > 2: print('** skipping empty line %d of 3col tsv file %s' \
+                            % (lind, fname))
+         continue
+
+      # possibly initialize norig
+      if norig == 0: norig = vlen
+
+      # require consistency
+      if vlen != norig:
+         print('** line %d ncol=%d, mismatch with orig ncol %d' % \
+               (lind, vlen, norig))
+         print('** skipping bad line: %s' % line)
+         continue
+
+      newlines.append(vv)
+
+   lines = newlines
+
+   if len(lines) < 1:
+      print("** parse_Ncol_tsv for '%s' is empty" % fname)
+      return -1, [], []
+   if norig < 3:
+      print("** parse_Ncol_tsv: bad ncols = %d" % norig)
+      return -1, [], []
+
+   # set header list, if a header exists
+   header = []
+   l0 = lines[0]
+   try:
+      onset = float(l0[0])
+      dur   = float(l0[1])
+      lab   = l0[2].replace(' ', '_')   # and convert spaces to underscores
+   except:
+      header = lines.pop(0)
+
+   # decide whether there are amplitudes
+   ainds = []
+   if len(lines) > 0 and norig > 3:
+      line = lines[0]
+      # find all columns that look like floats
+      for ind in range(3, len(line)):
+         try:
+            amp = float(line[ind])
+            ainds.append(ind)
+         except: pass
+
+   # now lines should be all: onset, duration, label and possibly amplitudes
+   slist = []
+   for line in lines:
+      try:
+         onset = float(line[0])
+         dur   = float(line[1])
+         lab   = line[2].replace(' ', '_')   # convert spaces to underscores
+         if len(ainds) > 0:
+             amps = [float(line[aind]) for aind in ainds]
+      except:
+         print('** bad line Ncol tsv file %s: %s' % (fname, ' '.join(line)))
+         return -1, [], []
+      if len(ainds) > 0: slist.append([onset, dur, lab, amps])
+      else:              slist.append([onset, dur, lab])
+
+   if len(ainds) > 0: nuse = 4
+   else:              nuse = 3
+
+   return nuse, header, slist
 
 def parse_3col_tsv(fname, verb=1):
    """Read one 3 column tsv (tab separated value) file, and return:
