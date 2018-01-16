@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ****************************
 @SurfSmooth.HEAT_07.examples
 ****************************
+
+.. _@SurfSmooth.HEAT_07.examples:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

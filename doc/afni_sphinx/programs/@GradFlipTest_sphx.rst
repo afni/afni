@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *************
 @GradFlipTest
 *************
+
+.. _@GradFlipTest:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

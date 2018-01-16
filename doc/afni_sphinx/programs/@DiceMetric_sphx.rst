@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***********
 @DiceMetric
 ***********
+
+.. _@DiceMetric:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

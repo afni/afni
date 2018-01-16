@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ******************
 3dDegreeCentrality
 ******************
+
+.. _3dDegreeCentrality:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *************
 3dProbTrackID
 *************
+
+.. _3dProbTrackID:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

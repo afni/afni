@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **********
 InstaTract
 **********
+
+.. _InstaTract:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *******
 Vecwarp
 *******
+
+.. _Vecwarp:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

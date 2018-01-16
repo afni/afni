@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **************
 ConvertSurface
 **************
+
+.. _ConvertSurface:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

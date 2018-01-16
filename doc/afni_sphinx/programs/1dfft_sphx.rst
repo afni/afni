@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *****
 1dfft
 *****
+
+.. _1dfft:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

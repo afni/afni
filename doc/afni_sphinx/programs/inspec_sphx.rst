@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ******
 inspec
 ******
+
+.. _inspec:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

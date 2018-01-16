@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ****************
 @3dMVM_validator
 ****************
+
+.. _@3dMVM_validator:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

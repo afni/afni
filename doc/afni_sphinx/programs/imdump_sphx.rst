@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ******
 imdump
 ******
+
+.. _imdump:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

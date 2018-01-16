@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ******************
 fat_proc_dwi_to_dt
 ******************
+
+.. _fat_proc_dwi_to_dt:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *****
 djpeg
 *****
+
+.. _djpeg:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

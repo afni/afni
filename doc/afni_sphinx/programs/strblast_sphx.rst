@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ********
 strblast
 ********
+
+.. _strblast:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

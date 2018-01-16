@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **********
 3dSurfMask
 **********
+
+.. _3dSurfMask:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ************
 @GetAfniDims
 ************
+
+.. _@GetAfniDims:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

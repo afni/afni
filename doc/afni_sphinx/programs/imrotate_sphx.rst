@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ********
 imrotate
 ********
+
+.. _imrotate:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

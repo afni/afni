@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *********
 3dDespike
 *********
+
+.. _3dDespike:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

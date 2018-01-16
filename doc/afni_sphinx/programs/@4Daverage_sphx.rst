@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **********
 @4Daverage
 **********
+
+.. _@4Daverage:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

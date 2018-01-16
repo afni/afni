@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *************
 @fix_FSsphere
 *************
+
+.. _@fix_FSsphere:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

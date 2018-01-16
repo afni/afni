@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **********
 3dAutomask
 **********
+
+.. _3dAutomask:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

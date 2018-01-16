@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***********
 3dmask_tool
 ***********
+
+.. _3dmask_tool:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

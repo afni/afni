@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ******
 Xphace
 ******
+
+.. _Xphace:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ********
 3dRegAna
 ********
+
+.. _3dRegAna:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

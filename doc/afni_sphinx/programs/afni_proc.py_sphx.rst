@@ -1,9 +1,13 @@
-.. contents:: 
-    :depth: 4 
-
 ************
 afni_proc.py
 ************
+
+.. _afni_proc.py:
+
+.. contents:: 
+    :depth: 4 
+
+| 
 
     
         afni_proc.py        - generate a tcsh script for an AFNI process stream

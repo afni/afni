@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *******
 3dttest
 *******
+
+.. _3dttest:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

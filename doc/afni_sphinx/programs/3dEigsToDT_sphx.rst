@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **********
 3dEigsToDT
 **********
+
+.. _3dEigsToDT:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

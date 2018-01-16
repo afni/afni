@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***********
 3dRowFillin
 ***********
+
+.. _3dRowFillin:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

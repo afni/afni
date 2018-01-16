@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***************
 @clean_help_dir
 ***************
+
+.. _@clean_help_dir:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

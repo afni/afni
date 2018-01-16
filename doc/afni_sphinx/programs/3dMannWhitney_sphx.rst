@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *************
 3dMannWhitney
 *************
+
+.. _3dMannWhitney:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

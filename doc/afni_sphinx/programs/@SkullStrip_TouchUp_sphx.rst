@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *******************
 @SkullStrip_TouchUp
 *******************
+
+.. _@SkullStrip_TouchUp:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

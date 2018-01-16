@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *********
 3dDetrend
 *********
+
+.. _3dDetrend:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

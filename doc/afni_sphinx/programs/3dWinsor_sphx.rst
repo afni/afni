@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ********
 3dWinsor
 ********
+
+.. _3dWinsor:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

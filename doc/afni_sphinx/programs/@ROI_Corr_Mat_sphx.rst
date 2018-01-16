@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *************
 @ROI_Corr_Mat
 *************
+
+.. _@ROI_Corr_Mat:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

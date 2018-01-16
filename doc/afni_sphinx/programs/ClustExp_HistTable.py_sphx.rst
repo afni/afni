@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *********************
 ClustExp_HistTable.py
 *********************
+
+.. _ClustExp_HistTable.py:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

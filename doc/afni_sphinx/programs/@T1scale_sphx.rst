@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ********
 @T1scale
 ********
+
+.. _@T1scale:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

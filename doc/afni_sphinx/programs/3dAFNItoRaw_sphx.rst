@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***********
 3dAFNItoRaw
 ***********
+
+.. _3dAFNItoRaw:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

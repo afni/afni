@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *********
 afni_open
 *********
+
+.. _afni_open:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

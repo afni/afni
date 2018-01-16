@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *****************
 @CheckForAfniDset
 *****************
+
+.. _@CheckForAfniDset:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *************
 3dAFNItoNIFTI
 *************
+
+.. _3dAFNItoNIFTI:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

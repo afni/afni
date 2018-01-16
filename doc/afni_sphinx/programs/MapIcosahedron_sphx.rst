@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **************
 MapIcosahedron
 **************
+
+.. _MapIcosahedron:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

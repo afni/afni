@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *****
 4swap
 *****
+
+.. _4swap:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

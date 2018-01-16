@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **********
 @auto_tlrc
 **********
+
+.. _@auto_tlrc:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ************
 mayo_analyze
 ************
+
+.. _mayo_analyze:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

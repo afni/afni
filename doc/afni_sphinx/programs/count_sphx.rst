@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *****
 count
 *****
+
+.. _count:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

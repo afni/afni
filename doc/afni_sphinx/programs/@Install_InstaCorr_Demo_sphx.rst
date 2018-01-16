@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***********************
 @Install_InstaCorr_Demo
 ***********************
+
+.. _@Install_InstaCorr_Demo:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

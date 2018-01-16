@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *********
 ge_header
 *********
+
+.. _ge_header:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

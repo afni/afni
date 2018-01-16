@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ************
 uber_proc.py
 ************
+
+.. _uber_proc.py:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

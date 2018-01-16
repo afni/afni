@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *****
 1dcat
 *****
+
+.. _1dcat:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

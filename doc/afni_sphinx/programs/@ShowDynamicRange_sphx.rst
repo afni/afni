@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *****************
 @ShowDynamicRange
 *****************
+
+.. _@ShowDynamicRange:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

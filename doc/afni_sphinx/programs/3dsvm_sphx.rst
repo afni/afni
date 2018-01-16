@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *****
 3dsvm
 *****
+
+.. _3dsvm:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ********
 @AfniEnv
 ********
+
+.. _@AfniEnv:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

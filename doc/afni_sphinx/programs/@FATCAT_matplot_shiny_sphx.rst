@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *********************
 @FATCAT_matplot_shiny
 *********************
+
+.. _@FATCAT_matplot_shiny:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

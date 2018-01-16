@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *******
 3dnvals
 *******
+
+.. _3dnvals:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

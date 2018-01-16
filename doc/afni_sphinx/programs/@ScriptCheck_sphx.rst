@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ************
 @ScriptCheck
 ************
+
+.. _@ScriptCheck:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

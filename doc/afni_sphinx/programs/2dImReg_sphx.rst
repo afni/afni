@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *******
 2dImReg
 *******
+
+.. _2dImReg:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

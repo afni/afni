@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ****************
 @NoisySkullStrip
 ****************
+
+.. _@NoisySkullStrip:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

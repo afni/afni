@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***********
 3dBrickStat
 ***********
+
+.. _3dBrickStat:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

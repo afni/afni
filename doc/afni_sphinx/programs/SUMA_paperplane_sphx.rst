@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***************
 SUMA_paperplane
 ***************
+
+.. _SUMA_paperplane:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

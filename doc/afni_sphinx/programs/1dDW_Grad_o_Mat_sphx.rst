@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***************
 1dDW_Grad_o_Mat
 ***************
+
+.. _1dDW_Grad_o_Mat:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ************
 3dConformist
 ************
+
+.. _3dConformist:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

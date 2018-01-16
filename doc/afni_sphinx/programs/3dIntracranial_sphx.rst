@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **************
 3dIntracranial
 **************
+
+.. _3dIntracranial:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

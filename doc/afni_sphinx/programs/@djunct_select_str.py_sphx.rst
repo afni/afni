@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *********************
 @djunct_select_str.py
 *********************
+
+.. _@djunct_select_str.py:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

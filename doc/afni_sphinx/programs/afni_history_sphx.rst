@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ************
 afni_history
 ************
+
+.. _afni_history:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

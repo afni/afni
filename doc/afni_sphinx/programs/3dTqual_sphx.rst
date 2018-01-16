@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *******
 3dTqual
 *******
+
+.. _3dTqual:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

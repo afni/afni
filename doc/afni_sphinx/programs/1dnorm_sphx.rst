@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ******
 1dnorm
 ******
+
+.. _1dnorm:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

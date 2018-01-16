@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *************
 3dMaskToASCII
 *************
+
+.. _3dMaskToASCII:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

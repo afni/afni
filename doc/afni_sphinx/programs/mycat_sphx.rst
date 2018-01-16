@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *****
 mycat
 *****
+
+.. _mycat:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

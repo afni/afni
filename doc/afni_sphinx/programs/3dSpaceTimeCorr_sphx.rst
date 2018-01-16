@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***************
 3dSpaceTimeCorr
 ***************
+
+.. _3dSpaceTimeCorr:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **************
 siemens_vision
 **************
+
+.. _siemens_vision:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

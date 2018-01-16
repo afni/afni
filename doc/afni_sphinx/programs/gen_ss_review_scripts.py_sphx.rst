@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ************************
 gen_ss_review_scripts.py
 ************************
+
+.. _gen_ss_review_scripts.py:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

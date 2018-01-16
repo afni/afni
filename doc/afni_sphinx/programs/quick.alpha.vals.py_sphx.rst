@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *******************
 quick.alpha.vals.py
 *******************
+
+.. _quick.alpha.vals.py:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

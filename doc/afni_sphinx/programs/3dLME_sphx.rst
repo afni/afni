@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *****
 3dLME
 *****
+
+.. _3dLME:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

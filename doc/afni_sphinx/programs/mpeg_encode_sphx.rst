@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***********
 mpeg_encode
 ***********
+
+.. _mpeg_encode:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

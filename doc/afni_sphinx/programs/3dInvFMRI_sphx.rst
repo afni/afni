@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *********
 3dInvFMRI
 *********
+
+.. _3dInvFMRI:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

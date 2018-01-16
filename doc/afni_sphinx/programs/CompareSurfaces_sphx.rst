@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***************
 CompareSurfaces
 ***************
+
+.. _CompareSurfaces:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

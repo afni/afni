@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ************
 @GetAfniView
 ************
+
+.. _@GetAfniView:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***********
 dicom_hinfo
 ***********
+
+.. _dicom_hinfo:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

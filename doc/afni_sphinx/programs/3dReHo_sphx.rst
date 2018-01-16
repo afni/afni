@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ******
 3dReHo
 ******
+
+.. _3dReHo:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

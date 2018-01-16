@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ************************
 @Install_TSrestMovieDemo
 ************************
+
+.. _@Install_TSrestMovieDemo:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

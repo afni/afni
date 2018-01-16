@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *************
 3dPAR2AFNI.pl
 *************
+
+.. _3dPAR2AFNI.pl:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

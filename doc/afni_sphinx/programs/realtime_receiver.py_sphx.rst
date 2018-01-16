@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ********************
 realtime_receiver.py
 ********************
+
+.. _realtime_receiver.py:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

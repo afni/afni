@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ******
 3dLFCD
 ******
+
+.. _3dLFCD:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

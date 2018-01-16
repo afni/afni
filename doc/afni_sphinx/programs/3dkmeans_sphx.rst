@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ********
 3dkmeans
 ********
+
+.. _3dkmeans:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

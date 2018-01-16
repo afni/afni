@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *********************************
 @Install_RSFMRI_Motion_Group_Demo
 *********************************
+
+.. _@Install_RSFMRI_Motion_Group_Demo:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

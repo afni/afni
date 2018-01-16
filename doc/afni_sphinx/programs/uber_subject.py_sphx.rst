@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***************
 uber_subject.py
 ***************
+
+.. _uber_subject.py:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

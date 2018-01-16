@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *****************
 eg_main_chrono.py
 *****************
+
+.. _eg_main_chrono.py:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

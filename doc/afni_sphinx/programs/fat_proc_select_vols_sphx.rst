@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ********************
 fat_proc_select_vols
 ********************
+
+.. _fat_proc_select_vols:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

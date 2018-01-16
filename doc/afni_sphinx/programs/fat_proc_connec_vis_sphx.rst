@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *******************
 fat_proc_connec_vis
 *******************
+
+.. _fat_proc_connec_vis:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

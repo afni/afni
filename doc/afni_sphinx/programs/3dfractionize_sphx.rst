@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *************
 3dfractionize
 *************
+
+.. _3dfractionize:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

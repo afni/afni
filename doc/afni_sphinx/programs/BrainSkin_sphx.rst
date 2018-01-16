@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *********
 BrainSkin
 *********
+
+.. _BrainSkin:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

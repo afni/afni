@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ****
 suma
 ****
+
+.. _suma:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

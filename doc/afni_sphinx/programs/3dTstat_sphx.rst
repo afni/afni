@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *******
 3dTstat
 *******
+
+.. _3dTstat:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

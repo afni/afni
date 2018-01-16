@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ********
 3dLRflip
 ********
+
+.. _3dLRflip:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ************
 SurfDsetInfo
 ************
+
+.. _SurfDsetInfo:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

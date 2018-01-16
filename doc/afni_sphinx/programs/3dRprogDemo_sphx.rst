@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***********
 3dRprogDemo
 ***********
+
+.. _3dRprogDemo:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

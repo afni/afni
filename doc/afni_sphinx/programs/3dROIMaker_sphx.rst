@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **********
 3dROIMaker
 **********
+
+.. _3dROIMaker:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

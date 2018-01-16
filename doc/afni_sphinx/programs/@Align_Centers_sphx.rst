@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **************
 @Align_Centers
 **************
+
+.. _@Align_Centers:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *********
 3dExtrema
 *********
+
+.. _3dExtrema:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

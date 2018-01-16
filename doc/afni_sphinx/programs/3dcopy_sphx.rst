@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ******
 3dcopy
 ******
+
+.. _3dcopy:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

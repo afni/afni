@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ********
 SurfQual
 ********
+
+.. _SurfQual:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

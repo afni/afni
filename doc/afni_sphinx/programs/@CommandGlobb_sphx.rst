@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *************
 @CommandGlobb
 *************
+
+.. _@CommandGlobb:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

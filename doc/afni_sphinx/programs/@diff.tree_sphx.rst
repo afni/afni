@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **********
 @diff.tree
 **********
+
+.. _@diff.tree:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *********
 3dTfitter
 *********
+
+.. _3dTfitter:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

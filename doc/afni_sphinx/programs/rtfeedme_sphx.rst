@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ********
 rtfeedme
 ********
+
+.. _rtfeedme:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ******************
 uber_align_test.py
 ******************
+
+.. _uber_align_test.py:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ****
 sfim
 ****
+
+.. _sfim:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

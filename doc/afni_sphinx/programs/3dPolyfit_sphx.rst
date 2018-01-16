@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *********
 3dPolyfit
 *********
+
+.. _3dPolyfit:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

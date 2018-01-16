@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***********
 nifti1_test
 ***********
+
+.. _nifti1_test:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

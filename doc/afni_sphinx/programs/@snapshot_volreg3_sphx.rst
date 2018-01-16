@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *****************
 @snapshot_volreg3
 *****************
+
+.. _@snapshot_volreg3:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

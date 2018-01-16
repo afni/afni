@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *********************
 ClustExp_StatParse.py
 *********************
+
+.. _ClustExp_StatParse.py:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

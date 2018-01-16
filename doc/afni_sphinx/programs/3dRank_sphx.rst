@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ******
 3dRank
 ******
+
+.. _3dRank:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

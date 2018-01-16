@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **************
 fat_mat_sel.py
 **************
+
+.. _fat_mat_sel.py:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

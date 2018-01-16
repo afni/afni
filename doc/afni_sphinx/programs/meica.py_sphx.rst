@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ********
 meica.py
 ********
+
+.. _meica.py:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

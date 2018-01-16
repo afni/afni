@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *************************
 fat_proc_convert_dcm_anat
 *************************
+
+.. _fat_proc_convert_dcm_anat:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***********
 3dStatClust
 ***********
+
+.. _3dStatClust:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

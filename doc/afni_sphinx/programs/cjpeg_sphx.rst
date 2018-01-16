@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *****
 cjpeg
 *****
+
+.. _cjpeg:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

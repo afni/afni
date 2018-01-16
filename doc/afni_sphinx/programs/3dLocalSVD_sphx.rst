@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **********
 3dLocalSVD
 **********
+
+.. _3dLocalSVD:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

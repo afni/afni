@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***********
 @UpdateAfni
 ***********
+
+.. _@UpdateAfni:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ************
 3dNwarpFuncs
 ************
+
+.. _3dNwarpFuncs:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

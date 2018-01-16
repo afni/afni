@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ********
 @Reorder
 ********
+
+.. _@Reorder:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

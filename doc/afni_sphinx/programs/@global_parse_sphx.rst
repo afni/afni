@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *************
 @global_parse
 *************
+
+.. _@global_parse:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *************
 serial_helper
 *************
+
+.. _serial_helper:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

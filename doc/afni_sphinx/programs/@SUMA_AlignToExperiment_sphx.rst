@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***********************
 @SUMA_AlignToExperiment
 ***********************
+
+.. _@SUMA_AlignToExperiment:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

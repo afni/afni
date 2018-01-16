@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***
 cdf
 ***
+
+.. _cdf:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

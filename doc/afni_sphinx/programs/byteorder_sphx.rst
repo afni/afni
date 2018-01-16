@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *********
 byteorder
 *********
+
+.. _byteorder:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

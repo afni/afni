@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***********
 ROI2dataset
 ***********
+
+.. _ROI2dataset:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **********
 3dVol2Surf
 **********
+
+.. _3dVol2Surf:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

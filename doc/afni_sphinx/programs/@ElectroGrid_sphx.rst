@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ************
 @ElectroGrid
 ************
+
+.. _@ElectroGrid:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

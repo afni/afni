@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***************
 @make_plug_diff
 ***************
+
+.. _@make_plug_diff:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

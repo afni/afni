@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **********
 ScaleToMap
 **********
+
+.. _ScaleToMap:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

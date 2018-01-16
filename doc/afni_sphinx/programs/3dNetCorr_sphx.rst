@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *********
 3dNetCorr
 *********
+
+.. _3dNetCorr:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

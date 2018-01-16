@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *************
 3dRetinoPhase
 *************
+
+.. _3dRetinoPhase:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

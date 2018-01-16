@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *******
 3dNotes
 *******
+
+.. _3dNotes:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

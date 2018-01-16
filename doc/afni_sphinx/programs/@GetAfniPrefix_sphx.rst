@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **************
 @GetAfniPrefix
 **************
+
+.. _@GetAfniPrefix:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

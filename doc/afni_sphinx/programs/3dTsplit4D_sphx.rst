@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **********
 3dTsplit4D
 **********
+
+.. _3dTsplit4D:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

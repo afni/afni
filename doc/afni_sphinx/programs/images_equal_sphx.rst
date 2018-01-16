@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ************
 images_equal
 ************
+
+.. _images_equal:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

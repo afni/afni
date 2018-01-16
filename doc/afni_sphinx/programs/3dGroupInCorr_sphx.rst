@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *************
 3dGroupInCorr
 *************
+
+.. _3dGroupInCorr:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

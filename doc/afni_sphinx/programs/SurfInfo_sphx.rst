@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ********
 SurfInfo
 ********
+
+.. _SurfInfo:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

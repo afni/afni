@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *********
 1dmatcalc
 *********
+
+.. _1dmatcalc:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

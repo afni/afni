@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **********
 3dNwarpCat
 **********
+
+.. _3dNwarpCat:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **********
 @VolCenter
 **********
+
+.. _@VolCenter:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

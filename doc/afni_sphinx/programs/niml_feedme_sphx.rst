@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***********
 niml_feedme
 ***********
+
+.. _niml_feedme:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

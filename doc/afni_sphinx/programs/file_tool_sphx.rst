@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *********
 file_tool
 *********
+
+.. _file_tool:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

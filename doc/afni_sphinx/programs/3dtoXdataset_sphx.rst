@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ************
 3dtoXdataset
 ************
+
+.. _3dtoXdataset:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

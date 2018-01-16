@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *********
 3dTcorr1D
 *********
+
+.. _3dTcorr1D:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

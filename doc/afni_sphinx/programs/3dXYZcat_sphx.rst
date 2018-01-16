@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ********
 3dXYZcat
 ********
+
+.. _3dXYZcat:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

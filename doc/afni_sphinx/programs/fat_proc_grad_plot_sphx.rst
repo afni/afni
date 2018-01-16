@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ******************
 fat_proc_grad_plot
 ******************
+
+.. _fat_proc_grad_plot:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

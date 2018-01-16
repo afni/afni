@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *********
 3dSharpen
 *********
+
+.. _3dSharpen:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

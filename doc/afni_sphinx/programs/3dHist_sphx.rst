@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ******
 3dHist
 ******
+
+.. _3dHist:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

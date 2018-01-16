@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ******
 from3d
 ******
+
+.. _from3d:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

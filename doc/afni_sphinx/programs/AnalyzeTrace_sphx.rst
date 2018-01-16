@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ************
 AnalyzeTrace
 ************
+
+.. _AnalyzeTrace:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

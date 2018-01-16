@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *********
 @FullPath
 *********
+
+.. _@FullPath:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

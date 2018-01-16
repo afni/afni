@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***********
 3dXClustSim
 ***********
+
+.. _3dXClustSim:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

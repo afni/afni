@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **************
 3dDTtoNoisyDWI
 **************
+
+.. _3dDTtoNoisyDWI:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

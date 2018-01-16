@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***********
 @auto_align
 ***********
+
+.. _@auto_align:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

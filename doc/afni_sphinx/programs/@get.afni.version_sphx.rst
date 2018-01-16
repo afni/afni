@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *****************
 @get.afni.version
 *****************
+
+.. _@get.afni.version:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

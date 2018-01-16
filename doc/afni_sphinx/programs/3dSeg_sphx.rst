@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *****
 3dSeg
 *****
+
+.. _3dSeg:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ******
 imcalc
 ******
+
+.. _imcalc:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

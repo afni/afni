@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *****************
 @radial_correlate
 *****************
+
+.. _@radial_correlate:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

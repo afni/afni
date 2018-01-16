@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***************
 @make_stim_file
 ***************
+
+.. _@make_stim_file:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

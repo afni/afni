@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ********
 3dANOVA2
 ********
+
+.. _3dANOVA2:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

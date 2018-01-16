@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **********
 3dmaskdump
 **********
+
+.. _3dmaskdump:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

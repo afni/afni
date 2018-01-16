@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ******
 3dZcat
 ******
+
+.. _3dZcat:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

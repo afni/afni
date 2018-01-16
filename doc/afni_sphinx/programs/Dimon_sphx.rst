@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *****
 Dimon
 *****
+
+.. _Dimon:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

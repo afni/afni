@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***************
 3dKruskalWallis
 ***************
+
+.. _3dKruskalWallis:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

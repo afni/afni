@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *******
 3dDTeig
 *******
+
+.. _3dDTeig:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ******
 rotcom
 ******
+
+.. _rotcom:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

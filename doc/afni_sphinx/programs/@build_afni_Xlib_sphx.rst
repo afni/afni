@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ****************
 @build_afni_Xlib
 ****************
+
+.. _@build_afni_Xlib:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

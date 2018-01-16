@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *********************
 slow_surf_clustsim.py
 *********************
+
+.. _slow_surf_clustsim.py:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

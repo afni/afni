@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *****
 1dSEM
 *****
+
+.. _1dSEM:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***********
 prompt_user
 ***********
+
+.. _prompt_user:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

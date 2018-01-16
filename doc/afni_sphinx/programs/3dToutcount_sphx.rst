@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***********
 3dToutcount
 ***********
+
+.. _3dToutcount:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **********
 3dUpsample
 **********
+
+.. _3dUpsample:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

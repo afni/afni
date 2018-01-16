@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***********
 @diff.files
 ***********
+
+.. _@diff.files:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

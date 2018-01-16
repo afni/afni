@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ****************
 @Install_DBSproc
 ****************
+
+.. _@Install_DBSproc:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

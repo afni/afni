@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *********
 HalloSuma
 *********
+
+.. _HalloSuma:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

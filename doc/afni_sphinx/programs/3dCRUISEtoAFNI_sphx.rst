@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **************
 3dCRUISEtoAFNI
 **************
+
+.. _3dCRUISEtoAFNI:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

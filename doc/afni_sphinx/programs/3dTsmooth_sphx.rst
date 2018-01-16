@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *********
 3dTsmooth
 *********
+
+.. _3dTsmooth:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

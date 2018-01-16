@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *********
 DriveSuma
 *********
+
+.. _DriveSuma:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

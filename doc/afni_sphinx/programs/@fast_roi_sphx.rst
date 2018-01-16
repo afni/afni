@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *********
 @fast_roi
 *********
+
+.. _@fast_roi:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

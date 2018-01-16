@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *******
 quotize
 *******
+
+.. _quotize:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

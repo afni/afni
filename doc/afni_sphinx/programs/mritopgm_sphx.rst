@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ********
 mritopgm
 ********
+
+.. _mritopgm:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

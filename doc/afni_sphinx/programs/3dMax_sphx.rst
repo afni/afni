@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *****
 3dMax
 *****
+
+.. _3dMax:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

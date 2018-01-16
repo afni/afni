@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **********************
 @suma_reprefixize_spec
 **********************
+
+.. _@suma_reprefixize_spec:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

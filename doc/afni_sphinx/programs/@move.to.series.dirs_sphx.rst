@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ********************
 @move.to.series.dirs
 ********************
+
+.. _@move.to.series.dirs:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

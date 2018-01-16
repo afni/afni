@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **********
 column_cat
 **********
+
+.. _column_cat:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

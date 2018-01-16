@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *********
 @SSwarper
 *********
+
+.. _@SSwarper:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

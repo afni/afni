@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *******************
 @Install_MEICA_Demo
 *******************
+
+.. _@Install_MEICA_Demo:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

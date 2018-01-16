@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *****
 3dECM
 *****
+
+.. _3dECM:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

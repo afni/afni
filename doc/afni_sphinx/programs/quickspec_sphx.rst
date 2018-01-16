@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *********
 quickspec
 *********
+
+.. _quickspec:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

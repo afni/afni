@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ******************
 make_stim_times.py
 ******************
+
+.. _make_stim_times.py:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

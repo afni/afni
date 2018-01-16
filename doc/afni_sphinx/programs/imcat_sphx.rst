@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *****
 imcat
 *****
+
+.. _imcat:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

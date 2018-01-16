@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *******
 3dAcost
 *******
+
+.. _3dAcost:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

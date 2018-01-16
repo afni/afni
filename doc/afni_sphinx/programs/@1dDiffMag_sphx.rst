@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **********
 @1dDiffMag
 **********
+
+.. _@1dDiffMag:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

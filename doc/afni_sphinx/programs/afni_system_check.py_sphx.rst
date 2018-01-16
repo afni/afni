@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ********************
 afni_system_check.py
 ********************
+
+.. _afni_system_check.py:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

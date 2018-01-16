@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *******
 3dTto1D
 *******
+
+.. _3dTto1D:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

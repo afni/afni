@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *****
 3ddot
 *****
+
+.. _3ddot:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

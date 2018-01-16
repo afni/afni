@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *************
 plugout_drive
 *************
+
+.. _plugout_drive:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

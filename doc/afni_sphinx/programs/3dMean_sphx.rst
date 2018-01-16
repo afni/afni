@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ******
 3dMean
 ******
+
+.. _3dMean:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

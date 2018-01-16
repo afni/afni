@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***************
 3dVecRGB_to_HSL
 ***************
+
+.. _3dVecRGB_to_HSL:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

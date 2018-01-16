@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *********
 3dUnifize
 *********
+
+.. _3dUnifize:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

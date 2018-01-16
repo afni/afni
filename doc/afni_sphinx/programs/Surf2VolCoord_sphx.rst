@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *************
 Surf2VolCoord
 *************
+
+.. _Surf2VolCoord:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

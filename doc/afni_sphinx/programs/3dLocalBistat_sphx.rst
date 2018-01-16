@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *************
 3dLocalBistat
 *************
+
+.. _3dLocalBistat:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

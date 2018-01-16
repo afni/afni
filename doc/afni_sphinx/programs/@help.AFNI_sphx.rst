@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **********
 @help.AFNI
 **********
+
+.. _@help.AFNI:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 
