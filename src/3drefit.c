@@ -14,7 +14,7 @@ void Syntax(int detail)
    int ii ;
 
    printf(
-"Changes some of the information inside a 3D dataset's header.\n"
+"Changes some of the information inside a 3D dataset's header. ~1~\n"
         "Note that this program does NOT change the .BRIK file at all;\n"
         "the main purpose of 3drefit is to fix up errors made when\n"
         "using to3d.\n"
@@ -27,7 +27,7 @@ void Syntax(int detail)
          ) ;
 
    printf(
-"Usage: 3drefit [options] dataset ...\n"
+"Usage: 3drefit [options] dataset ... ~1~\n"
 "where the options are\n"
 "  -quiet          Turn off the verbose progress messages\n"
 "\n"
@@ -375,8 +375,8 @@ void Syntax(int detail)
     "\n" ) ;
 
    printf(
-    "The options below allow you to attach auxiliary data to sub-bricks\n"
-    "in the dataset.  Each option may be used more than once so that\n"
+    "The options below attach auxiliary data to sub-bricks in the dataset. ~1~\n"
+    "Each option may be used more than once so that\n"
     "multiple sub-bricks can be modified in a single run of 3drefit.\n"
     "\n"
     "  -sublabel  n ll  Attach to sub-brick #n the label string 'll'.\n"
@@ -389,7 +389,8 @@ void Syntax(int detail)
     "                  the auxiliary parameters given by values 'v ...',\n"
     "                  where 'type' is one of the following:\n"
    ) ;
-   printf("         type  Description  PARAMETERS\n"
+   printf("         Stat Types: ~2~\n"
+          "         type  Description  PARAMETERS\n"
           "         ----  -----------  ----------------------------------------\n" ) ;
    for( ii=FIRST_FUNC_TYPE ; ii <= LAST_FUNC_TYPE ; ii++ ){
      if( FUNC_IS_STAT(ii) )
@@ -408,7 +409,7 @@ void Syntax(int detail)
 
    printf(
     "\n"
-    "The following options allow you to modify VOLREG fields:\n"
+    "The following options allow you to modify VOLREG fields: ~1~\n"
     "  -vr_mat val1 ... val12  Use these twelve values for VOLREG_MATVEC_index.\n"
     "  -vr_mat_ind index       Index of VOLREG_MATVEC_index field to be modified.\n"
     "                          Optional, default index is 0.\n"
@@ -420,7 +421,7 @@ void Syntax(int detail)
 
    printf(
     "\n"
-    "The following options let you modify the FDR curves stored in the header:\n"
+    "The following options let you modify the FDR curves stored in the header: ~1~\n"
     "\n"
     " -addFDR = For each sub-brick marked with a statistical code, (re)compute\n"
     "           the FDR curve of z(q) vs. statistic, and store in the dataset header\n"
