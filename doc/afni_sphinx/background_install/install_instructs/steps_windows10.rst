@@ -99,10 +99,6 @@ the following setup instructions through "Make AFNI/SUMA profiles":
 * Include the optional ``gnome-terminal`` installation in the first
   set of steps.
 
-* Then, copy+paste the following into the terminal::
-
-    sudo sed -i 's/<listen>.*<\/listen>/<listen>tcp:host=localhost,port=0<\/listen>/' /etc/dbus-1/session.conf
-
 
 Useful setup tips (optional, but recommended)
 ---------------------------------------------
