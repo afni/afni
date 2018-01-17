@@ -8,7 +8,8 @@
 
 Here we describe Linux installation and system setup for the **"Fall
 Creators Update"** (FCU) version of Windows 10, known as the Windows
-Subsystem for Linux (WSL).
+Subsystem for Linux (WSL).  This FCU was released in Windows version
+1709 around October, 2017.
 
 More technical/background description of updates since the earlier
 beta version of WSL can be found `HERE on their "What's New" page
@@ -151,8 +152,8 @@ Make AFNI/SUMA profiles
 
 .. include:: substep_profiles.rst
 
-Prepare for Bootcamp (semi-optional)
-------------------------------------
+Prepare for Bootcamp
+--------------------
 
 .. include:: substep_bootcamp.rst
 

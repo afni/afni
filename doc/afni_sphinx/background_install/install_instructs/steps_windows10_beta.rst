@@ -11,7 +11,8 @@ Important notice
 
 Here we describe installation and system setup for the **(now out of
 date) beta** "Creators Update" version of "Bash on Ubuntu" (BoUoW) for
-Windows 10, known as the Windows Subsystem for Linux (WSL).
+Windows 10.  This version of Windows 10 is known officially as
+version 1703, released around April, 2017.
 
 **For instructions about installing the more up-to-date and supported
 "Fall Creators Update" version of WSL, please see** :ref:`the
@@ -178,8 +179,8 @@ Make AFNI/SUMA profiles
 
 .. include:: substep_profiles.rst
 
-Prepare for Bootcamp (semi-optional)
-------------------------------------
+Prepare for Bootcamp
+--------------------
 
 .. include:: substep_bootcamp.rst
 

@@ -119,8 +119,8 @@ Make AFNI/SUMA profiles
 
 .. include:: substep_profiles.rst
 
-Prepare for Bootcamp (semi-optional)
-------------------------------------
+Prepare for Bootcamp
+--------------------
 
 .. include:: substep_bootcamp.rst
 
