@@ -23,7 +23,7 @@ int main( int argc , char *argv[] )
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 || strcmp(argv[1],"-h") == 0){
       printf(
-       "Usage 1: 3dcopy [-verb] [-denote] old_prefix new_prefix\n"
+       "Usage 1: 3dcopy [-verb] [-denote] old_prefix new_prefix ~1~\n"
        "  Will copy all datasets using the old_prefix to use the new_prefix;\n"
        "\n"
        "    3dcopy fred ethel\n"
@@ -33,15 +33,15 @@ int main( int argc , char *argv[] )
        "              fred+tlrc.HEAD    to ethel+tlrc.HEAD\n"
        "              fred+tlrc.BRIK.gz to ethel+tlrc.BRIK.gz\n"
        "\n"
-       "Usage 2: 3dcopy old_prefix+view new_prefix\n"
+       "Usage 2: 3dcopy old_prefix+view new_prefix ~1~\n"
        "  Will copy only the dataset with the given view (orig, acpc, tlrc).\n"
        "\n"
-       "Usage 3: 3dcopy old_dataset new_prefix\n"
+       "Usage 3: 3dcopy old_dataset new_prefix ~1~\n"
        "  Will copy the non-AFNI formatted dataset (e.g., MINC, ANALYZE, CTF)\n"
        "  to the AFNI formatted dataset with the given new prefix.\n"
        "\n"
        "\n"
-       "Notes:\n"
+       "Notes: ~1~\n"
        "* This is to copy entire datasets, possibly with multiple views.\n"
        "  So sub-brick selection is not allowed.  Please use 3dbucket or\n"
        "  3dTcat for that purpose.\n"
@@ -79,7 +79,7 @@ int main( int argc , char *argv[] )
    mainENTRY("3dcopy") ; machdep() ; AFNI_logger("3dcopy",argc,argv) ;
    PRINT_VERSION("3dcopy") ;
    set_obliquity_report(0); /* silence obliquity */
-   
+
    /* input arguments */
 
    while( nopt < argc && argv[nopt][0] == '-' ){
@@ -90,9 +90,9 @@ int main( int argc , char *argv[] )
             if (jj != nopt) {
                fprintf(stdout,"%s ", argv[jj]);
             }
-         } 
+         }
          fprintf(stdout,"\n+++\n");
-         nopt++; continue; 
+         nopt++; continue;
      }
      if( strcmp(argv[nopt],"-verb")   == 0 ){ verb   = 1; nopt++; continue; }
      if( strcmp(argv[nopt],"-denote") == 0 ){ denote = 1; nopt++; continue; }
@@ -100,26 +100,26 @@ int main( int argc , char *argv[] )
    }
    if( nopt+1 >= argc )
      ERROR_exit("3dcopy needs input AND output filenames!\n") ;
-     
-   if (nopt+2 < argc) 
+
+   if (nopt+2 < argc)
       ERROR_exit(
    "3dcopy only takes one input AND one output filename after options.\n"
    "Have at least one too many parameters: \n %s \n %s \n %s\n"
          , argv[nopt], argv[nopt+1], argv[nopt+2]);
-         
+
    old_name = argv[nopt++] ; old_len = strlen(old_name) ;
    new_name = argv[nopt++] ; new_len = strlen(new_name) ;
 
    if( old_len < 1 || old_len > THD_MAX_PREFIX || !THD_filename_ok(old_name) )
      ERROR_exit("Illegal old dataset name! - EXIT\n"
                 "(note: sub-brick selection is not allowed in this context)") ;
-     
+
    if( !strcmp(new_name,".") ){        /* turn . to ./ ZSS Oct 2010*/
-     char *str = malloc(new_len+16) ;  
-     strcpy(str,"./") ; 
+     char *str = malloc(new_len+16) ;
+     strcpy(str,"./") ;
      new_name = str ;
    }
-   
+
    if( strstr(new_name,"/") == NULL ){        /* put cwd on new name, if no */
      char *str = malloc(new_len+16) ;         /* directory present at all   */
      strcpy(str,"./") ; strcat(str,new_name) ;
@@ -129,7 +129,7 @@ int main( int argc , char *argv[] )
    if( new_len < 1 || new_len > THD_MAX_PREFIX || !THD_filename_ok(new_name) )
      ERROR_exit("Illegal new dataset name! - EXIT\n") ;
 
-   
+
    /* check old_name for a +view suffix somewhere */
 
    MCW_strncpy(old_prefix,old_name,THD_MAX_PREFIX) ;
@@ -191,7 +191,7 @@ int main( int argc , char *argv[] )
        if( verb ) INFO_message("Opened dataset %s\n",old_prefix) ;
        /* make sure prefix is not just a path     ZSS Oct 2010 */
        if (new_prefix[strlen(new_prefix)-1] == '/') {
-          strncat(new_prefix, DSET_PREFIX(qset), 
+          strncat(new_prefix, DSET_PREFIX(qset),
                   THD_MAX_PREFIX-strlen(new_prefix)-1);
        }
        cset = EDIT_empty_copy( qset ) ;
@@ -200,11 +200,11 @@ int main( int argc , char *argv[] )
                           ADN_prefix    , new_prefix ,
                           ADN_view_type , new_view   ,
                         ADN_none ) ;
-       if (!THD_copy_labeltable_atr( cset->dblk,  qset->dblk)) {           
+       if (!THD_copy_labeltable_atr( cset->dblk,  qset->dblk)) {
           WARNING_message("Failed trying to preserve labeltables");
        }
        tross_Make_History( "3dcopy" , argc,argv , cset ) ;
-       
+
        DSET_mallocize(qset); DSET_load(qset); CHECK_LOAD_ERROR(qset);
        for( ii=0 ; ii < DSET_NVALS(qset) ; ii++ )
          EDIT_substitute_brick( cset , ii ,
@@ -319,7 +319,7 @@ int main( int argc , char *argv[] )
       }
    }
 
-   if( nfound == 0 ) 
+   if( nfound == 0 )
       ERROR_exit("no datasets found!"); /* ZSS, changed from ERROR_message */
 
    /*-- get to here means all datasets are ready to be
@@ -354,11 +354,11 @@ int main( int argc , char *argv[] )
          old_bname = COMPRESS_filename( old_brikname ) ;
          if( old_bname == NULL )  /* should not happen */
            ERROR_exit("COMPRESS_filename() fails! - EXIT\n");
-         if (!strstr(new_prefix,DSET_HEADNAME(dset[ii]))) { 
-            /* this would happen in old cases of 3dcopy Joe+tlrc ./ 
+         if (!strstr(new_prefix,DSET_HEADNAME(dset[ii]))) {
+            /* this would happen in old cases of 3dcopy Joe+tlrc ./
                                                          ZSS Oct 2010*/
             snprintf( new_brikname , THD_MAX_NAME, "%s/%s+%s.%s" ,
-               DSET_DIRNAME(dset[ii]), DSET_PREFIX(dset[ii]), 
+               DSET_DIRNAME(dset[ii]), DSET_PREFIX(dset[ii]),
                      VIEW_codestr[ii] , DATASET_BRICK_SUFFIX) ;
          } else { /* the old way, for minimal changes*/
             sprintf( new_brikname , "%s+%s.%s" ,
