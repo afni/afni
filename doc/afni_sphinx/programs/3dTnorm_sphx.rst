@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *******
 3dTnorm
 *******
+
+.. _3dTnorm:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

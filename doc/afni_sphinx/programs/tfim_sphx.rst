@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ****
 tfim
 ****
+
+.. _tfim:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

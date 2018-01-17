@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **********
 3dFriedman
 **********
+
+.. _3dFriedman:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

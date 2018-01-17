@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***********
 1dgenARMA11
 ***********
+
+.. _1dgenARMA11:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *******
 3drefit
 *******
+
+.. _3drefit:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

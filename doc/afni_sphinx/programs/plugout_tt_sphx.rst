@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **********
 plugout_tt
 **********
+
+.. _plugout_tt:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

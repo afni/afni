@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *************
 3dLombScargle
 *************
+
+.. _3dLombScargle:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

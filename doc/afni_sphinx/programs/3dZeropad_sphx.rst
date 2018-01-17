@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *********
 3dZeropad
 *********
+
+.. _3dZeropad:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

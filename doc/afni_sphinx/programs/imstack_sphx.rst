@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *******
 imstack
 *******
+
+.. _imstack:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *****************
 @SUMA_FSvolToBRIK
 *****************
+
+.. _@SUMA_FSvolToBRIK:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

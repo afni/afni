@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **********
 3dDWUncert
 **********
+
+.. _3dDWUncert:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

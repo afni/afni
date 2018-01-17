@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *********
 SurfPatch
 *********
+
+.. _SurfPatch:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

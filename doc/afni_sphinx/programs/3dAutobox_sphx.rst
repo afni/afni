@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *********
 3dAutobox
 *********
+
+.. _3dAutobox:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

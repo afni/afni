@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *************
 3danisosmooth
 *************
+
+.. _3danisosmooth:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

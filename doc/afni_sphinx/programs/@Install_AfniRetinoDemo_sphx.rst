@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***********************
 @Install_AfniRetinoDemo
 ***********************
+
+.. _@Install_AfniRetinoDemo:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

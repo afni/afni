@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **********
 1dgrayplot
 **********
+
+.. _1dgrayplot:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

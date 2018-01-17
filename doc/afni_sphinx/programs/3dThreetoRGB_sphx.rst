@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ************
 3dThreetoRGB
 ************
+
+.. _3dThreetoRGB:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

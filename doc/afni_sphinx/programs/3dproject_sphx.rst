@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *********
 3dproject
 *********
+
+.. _3dproject:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

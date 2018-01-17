@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***********
 3dAmpToRSFC
 ***********
+
+.. _3dAmpToRSFC:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

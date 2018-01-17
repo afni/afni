@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ******
 tokens
 ******
+
+.. _tokens:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

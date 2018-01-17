@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **********
 @isOblique
 **********
+
+.. _@isOblique:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

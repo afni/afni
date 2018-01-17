@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *****
 imreg
 *****
+
+.. _imreg:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **********
 float_scan
 **********
+
+.. _float_scan:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

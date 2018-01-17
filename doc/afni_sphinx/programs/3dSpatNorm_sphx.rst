@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **********
 3dSpatNorm
 **********
+
+.. _3dSpatNorm:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

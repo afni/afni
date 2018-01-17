@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ************
 SurfMeasures
 ************
+
+.. _SurfMeasures:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ************
 lpc_align.py
 ************
+
+.. _lpc_align.py:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

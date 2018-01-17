@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ************
 @DO.examples
 ************
+
+.. _@DO.examples:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

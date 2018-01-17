@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ****************
 @simulate_motion
 ****************
+
+.. _@simulate_motion:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

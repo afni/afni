@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **************
 3dMedianFilter
 **************
+
+.. _3dMedianFilter:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

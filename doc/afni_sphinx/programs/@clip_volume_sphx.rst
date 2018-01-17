@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ************
 @clip_volume
 ************
+
+.. _@clip_volume:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

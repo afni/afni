@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **********
 gifti_tool
 **********
+
+.. _gifti_tool:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

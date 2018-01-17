@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ********************
 3dExtractGroupInCorr
 ********************
+
+.. _3dExtractGroupInCorr:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

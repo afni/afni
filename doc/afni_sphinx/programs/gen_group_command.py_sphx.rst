@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ********************
 gen_group_command.py
 ********************
+
+.. _gen_group_command.py:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

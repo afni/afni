@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *****************
 gen_epi_review.py
 *****************
+
+.. _gen_epi_review.py:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **********
 cat_matvec
 **********
+
+.. _cat_matvec:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

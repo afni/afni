@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***************
 @2dwarper.Allin
 ***************
+
+.. _@2dwarper.Allin:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

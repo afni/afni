@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *******
 ROIgrow
 *******
+
+.. _ROIgrow:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

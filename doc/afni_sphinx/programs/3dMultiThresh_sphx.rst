@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *************
 3dMultiThresh
 *************
+
+.. _3dMultiThresh:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

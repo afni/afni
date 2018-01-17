@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **********
 ConvexHull
 **********
+
+.. _ConvexHull:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

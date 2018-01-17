@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *************
 @FS_roi_label
 *************
+
+.. _@FS_roi_label:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

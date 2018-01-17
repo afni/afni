@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ********
 3dmaxima
 ********
+
+.. _3dmaxima:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

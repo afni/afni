@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *****
 3dFDR
 *****
+
+.. _3dFDR:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

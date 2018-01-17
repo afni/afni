@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *******
 3dFWHMx
 *******
+
+.. _3dFWHMx:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

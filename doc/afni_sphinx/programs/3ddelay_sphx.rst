@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *******
 3ddelay
 *******
+
+.. _3ddelay:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

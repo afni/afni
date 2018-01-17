@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **********
 3daxialize
 **********
+
+.. _3daxialize:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

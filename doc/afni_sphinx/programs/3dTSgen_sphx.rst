@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *******
 3dTSgen
 *******
+
+.. _3dTSgen:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

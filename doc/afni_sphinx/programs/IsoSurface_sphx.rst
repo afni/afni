@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **********
 IsoSurface
 **********
+
+.. _IsoSurface:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

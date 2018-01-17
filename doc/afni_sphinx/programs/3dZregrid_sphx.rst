@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *********
 3dZregrid
 *********
+
+.. _3dZregrid:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

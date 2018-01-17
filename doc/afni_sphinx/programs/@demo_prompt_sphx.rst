@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ************
 @demo_prompt
 ************
+
+.. _@demo_prompt:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

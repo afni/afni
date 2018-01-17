@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *************
 3dCountSpikes
 *************
+
+.. _3dCountSpikes:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

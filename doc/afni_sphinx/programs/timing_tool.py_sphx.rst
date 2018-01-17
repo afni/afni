@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **************
 timing_tool.py
 **************
+
+.. _timing_tool.py:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

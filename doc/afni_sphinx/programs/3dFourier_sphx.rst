@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *********
 3dFourier
 *********
+
+.. _3dFourier:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

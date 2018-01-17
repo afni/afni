@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ************
 afni_util.py
 ************
+
+.. _afni_util.py:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

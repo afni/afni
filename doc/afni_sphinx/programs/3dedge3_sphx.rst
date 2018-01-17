@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *******
 3dedge3
 *******
+
+.. _3dedge3:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ****************
 @ClustExp_CatLab
 ****************
+
+.. _@ClustExp_CatLab:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

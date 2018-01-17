@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ************
 3dMINCtoAFNI
 ************
+
+.. _3dMINCtoAFNI:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***********
 3dAnatNudge
 ***********
+
+.. _3dAnatNudge:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

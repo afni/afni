@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ************
 @statauxcode
 ************
+
+.. _@statauxcode:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ****************
 suma_change_spec
 ****************
+
+.. _suma_change_spec:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

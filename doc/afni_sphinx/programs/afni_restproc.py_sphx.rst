@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ****************
 afni_restproc.py
 ****************
+
+.. _afni_restproc.py:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

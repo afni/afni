@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *********
 3dREMLfit
 *********
+
+.. _3dREMLfit:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

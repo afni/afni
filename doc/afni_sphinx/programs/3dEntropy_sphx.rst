@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *********
 3dEntropy
 *********
+
+.. _3dEntropy:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

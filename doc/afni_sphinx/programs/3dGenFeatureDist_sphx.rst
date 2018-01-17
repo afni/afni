@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ****************
 3dGenFeatureDist
 ****************
+
+.. _3dGenFeatureDist:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

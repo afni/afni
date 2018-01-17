@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **********
 3dWilcoxon
 **********
+
+.. _3dWilcoxon:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *********************
 @Install_NIH_Marmoset
 *********************
+
+.. _@Install_NIH_Marmoset:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

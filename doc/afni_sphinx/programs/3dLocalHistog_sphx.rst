@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *************
 3dLocalHistog
 *************
+
+.. _3dLocalHistog:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

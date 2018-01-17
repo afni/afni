@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ******
 immask
 ******
+
+.. _immask:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

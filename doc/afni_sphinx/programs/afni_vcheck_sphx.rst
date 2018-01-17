@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***********
 afni_vcheck
 ***********
+
+.. _afni_vcheck:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

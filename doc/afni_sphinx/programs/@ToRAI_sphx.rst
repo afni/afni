@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ******
 @ToRAI
 ******
+
+.. _@ToRAI:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

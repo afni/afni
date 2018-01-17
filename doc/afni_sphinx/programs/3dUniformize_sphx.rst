@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ************
 3dUniformize
 ************
+
+.. _3dUniformize:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

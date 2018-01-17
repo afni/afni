@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ********
 AlphaSim
 ********
+
+.. _AlphaSim:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

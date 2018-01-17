@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***********************
 @afni_R_package_install
 ***********************
+
+.. _@afni_R_package_install:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

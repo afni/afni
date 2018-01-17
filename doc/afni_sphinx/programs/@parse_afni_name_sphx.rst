@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ****************
 @parse_afni_name
 ****************
+
+.. _@parse_afni_name:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

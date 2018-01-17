@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***************
 fat_mvm_prep.py
 ***************
+
+.. _fat_mvm_prep.py:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

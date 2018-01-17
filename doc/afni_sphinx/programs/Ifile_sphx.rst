@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *****
 Ifile
 *****
+
+.. _Ifile:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

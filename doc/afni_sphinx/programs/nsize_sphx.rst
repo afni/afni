@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *****
 nsize
 *****
+
+.. _nsize:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

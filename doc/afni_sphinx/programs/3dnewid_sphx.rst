@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *******
 3dnewid
 *******
+
+.. _3dnewid:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **********
 3dROIstats
 **********
+
+.. _3dROIstats:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

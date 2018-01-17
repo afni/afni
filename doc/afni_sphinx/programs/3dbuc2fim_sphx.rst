@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *********
 3dbuc2fim
 *********
+
+.. _3dbuc2fim:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

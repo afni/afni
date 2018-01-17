@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *******
 im2niml
 *******
+
+.. _im2niml:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

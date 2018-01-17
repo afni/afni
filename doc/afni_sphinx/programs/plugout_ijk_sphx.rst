@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***********
 plugout_ijk
 ***********
+
+.. _plugout_ijk:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

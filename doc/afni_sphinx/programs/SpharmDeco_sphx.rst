@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **********
 SpharmDeco
 **********
+
+.. _SpharmDeco:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

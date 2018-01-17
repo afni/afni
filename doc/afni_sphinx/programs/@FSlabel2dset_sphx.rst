@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *************
 @FSlabel2dset
 *************
+
+.. _@FSlabel2dset:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

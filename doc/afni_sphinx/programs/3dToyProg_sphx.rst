@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *********
 3dToyProg
 *********
+
+.. _3dToyProg:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

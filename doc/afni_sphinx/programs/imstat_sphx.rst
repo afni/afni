@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ******
 imstat
 ******
+
+.. _imstat:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

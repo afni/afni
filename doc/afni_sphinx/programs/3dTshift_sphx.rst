@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ********
 3dTshift
 ********
+
+.. _3dTshift:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

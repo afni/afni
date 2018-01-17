@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **********
 GLTsymtest
 **********
+
+.. _GLTsymtest:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

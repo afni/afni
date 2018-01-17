@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ************
 rPkgsInstall
 ************
+
+.. _rPkgsInstall:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

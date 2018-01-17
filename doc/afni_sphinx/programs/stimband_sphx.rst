@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ********
 stimband
 ********
+
+.. _stimband:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ************
 prompt_popup
 ************
+
+.. _prompt_popup:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

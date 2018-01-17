@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ********
 SurfFWHM
 ********
+
+.. _SurfFWHM:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

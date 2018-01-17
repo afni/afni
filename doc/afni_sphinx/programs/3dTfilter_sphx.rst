@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *********
 3dTfilter
 *********
+
+.. _3dTfilter:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ******
 3dcalc
 ******
+
+.. _3dcalc:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

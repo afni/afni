@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **************
 @GetAfniOrient
 **************
+
+.. _@GetAfniOrient:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *********************
 @update.afni.binaries
 *********************
+
+.. _@update.afni.binaries:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

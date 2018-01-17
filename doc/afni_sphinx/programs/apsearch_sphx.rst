@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ********
 apsearch
 ********
+
+.. _apsearch:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

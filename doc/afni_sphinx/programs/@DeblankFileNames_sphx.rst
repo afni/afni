@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *****************
 @DeblankFileNames
 *****************
+
+.. _@DeblankFileNames:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

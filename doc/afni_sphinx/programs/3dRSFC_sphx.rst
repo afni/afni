@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ******
 3dRSFC
 ******
+
+.. _3dRSFC:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

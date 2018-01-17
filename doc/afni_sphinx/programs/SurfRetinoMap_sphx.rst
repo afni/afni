@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *************
 SurfRetinoMap
 *************
+
+.. _SurfRetinoMap:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

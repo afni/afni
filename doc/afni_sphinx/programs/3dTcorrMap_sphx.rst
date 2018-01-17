@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **********
 3dTcorrMap
 **********
+
+.. _3dTcorrMap:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

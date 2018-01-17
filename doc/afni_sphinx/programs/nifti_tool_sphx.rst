@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **********
 nifti_tool
 **********
+
+.. _nifti_tool:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

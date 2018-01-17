@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **************
 3dTwotoComplex
 **************
+
+.. _3dTwotoComplex:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

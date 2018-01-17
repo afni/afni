@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **********
 @Purify_1D
 **********
+
+.. _@Purify_1D:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

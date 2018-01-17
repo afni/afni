@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ********
 3drotate
 ********
+
+.. _3drotate:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *******
 imupsam
 *******
+
+.. _imupsam:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

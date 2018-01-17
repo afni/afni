@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *******
 1dRplot
 *******
+
+.. _1dRplot:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

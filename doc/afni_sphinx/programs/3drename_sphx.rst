@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ********
 3drename
 ********
+
+.. _3drename:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *****
 3dPFM
 *****
+
+.. _3dPFM:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

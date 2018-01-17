@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **********
 3dNwarpXYZ
 **********
+
+.. _3dNwarpXYZ:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

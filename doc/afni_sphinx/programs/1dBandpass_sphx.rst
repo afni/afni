@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **********
 1dBandpass
 **********
+
+.. _1dBandpass:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ******************
 @AfniOrient2RAImap
 ******************
+
+.. _@AfniOrient2RAImap:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

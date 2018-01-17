@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ********
 3dhistog
 ********
+
+.. _3dhistog:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

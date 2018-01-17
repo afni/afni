@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *******************
 @fat_tract_colorize
 *******************
+
+.. _@fat_tract_colorize:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

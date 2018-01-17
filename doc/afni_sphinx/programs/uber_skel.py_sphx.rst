@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ************
 uber_skel.py
 ************
+
+.. _uber_skel.py:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

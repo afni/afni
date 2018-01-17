@@ -1,15 +1,17 @@
-.. contents:: 
-    :depth: 4 
-
 ************
 @DoPerRoi.py
 ************
+
+.. _@DoPerRoi.py:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 
     Error: Option -dsets needs at least 1 parameters
     Parameter list has 0 parameters.
-    {'basename': <afni_base.comopt object at 0x101ea7990>, '-dsets': <afni_base.comopt object at 0x101ea78d0>, '-areas_2': <afni_base.comopt object at 0x101ea7710>, '-areas': <afni_base.comopt object at 0x101ea76d0>}
+    {'basename': <afni_base.comopt object at 0x1058c5990>, '-dsets': <afni_base.comopt object at 0x1058c58d0>, '-areas_2': <afni_base.comopt object at 0x1058c5710>, '-areas': <afni_base.comopt object at 0x1058c56d0>}
     Option Name: basename
            Found: -1
            User Parameter List: None

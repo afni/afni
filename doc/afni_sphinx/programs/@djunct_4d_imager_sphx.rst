@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *****************
 @djunct_4d_imager
 *****************
+
+.. _@djunct_4d_imager:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

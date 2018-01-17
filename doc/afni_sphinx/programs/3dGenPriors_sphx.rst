@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***********
 3dGenPriors
 ***********
+
+.. _3dGenPriors:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

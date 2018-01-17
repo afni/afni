@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***************
 fat_proc_decmap
 ***************
+
+.. _fat_proc_decmap:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

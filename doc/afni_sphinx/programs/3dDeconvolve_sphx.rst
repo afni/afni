@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ************
 3dDeconvolve
 ************
+
+.. _3dDeconvolve:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

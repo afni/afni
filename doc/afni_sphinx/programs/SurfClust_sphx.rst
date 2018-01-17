@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *********
 SurfClust
 *********
+
+.. _SurfClust:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

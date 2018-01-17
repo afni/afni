@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ********
 3dAnhist
 ********
+
+.. _3dAnhist:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

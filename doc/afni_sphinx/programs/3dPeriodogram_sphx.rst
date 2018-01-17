@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *************
 3dPeriodogram
 *************
+
+.. _3dPeriodogram:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

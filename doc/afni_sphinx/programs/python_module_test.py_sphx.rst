@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *********************
 python_module_test.py
 *********************
+
+.. _python_module_test.py:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

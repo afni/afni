@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***********
 ConvertDset
 ***********
+
+.. _ConvertDset:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ********
 SurfDist
 ********
+
+.. _SurfDist:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

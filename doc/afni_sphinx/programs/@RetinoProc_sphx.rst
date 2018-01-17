@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***********
 @RetinoProc
 ***********
+
+.. _@RetinoProc:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

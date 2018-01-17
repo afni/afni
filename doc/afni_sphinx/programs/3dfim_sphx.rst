@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *****
 3dfim
 *****
+
+.. _3dfim:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ************
 SUMA_glxdino
 ************
+
+.. _SUMA_glxdino:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

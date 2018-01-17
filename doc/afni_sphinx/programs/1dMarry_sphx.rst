@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *******
 1dMarry
 *******
+
+.. _1dMarry:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

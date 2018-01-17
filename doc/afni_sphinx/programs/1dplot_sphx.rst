@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ******
 1dplot
 ******
+
+.. _1dplot:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

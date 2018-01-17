@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *********
 ParseName
 *********
+
+.. _ParseName:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ******************
 @SUMA_Make_Spec_SF
 ******************
+
+.. _@SUMA_Make_Spec_SF:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

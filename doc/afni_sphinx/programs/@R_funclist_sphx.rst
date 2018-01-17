@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***********
 @R_funclist
 ***********
+
+.. _@R_funclist:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ********
 SampBias
 ********
+
+.. _SampBias:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **********************
 @align_partial_oblique
 **********************
+
+.. _@align_partial_oblique:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

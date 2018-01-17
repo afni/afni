@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***********************
 @Install_ClustScat_Demo
 ***********************
+
+.. _@Install_ClustScat_Demo:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

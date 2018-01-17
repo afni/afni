@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ********
 3dbucket
 ********
+
+.. _3dbucket:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

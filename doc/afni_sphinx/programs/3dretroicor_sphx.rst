@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***********
 3dretroicor
 ***********
+
+.. _3dretroicor:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

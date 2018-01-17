@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 12, Jan , 2018 , PT , "@djunct_select_str.py" , MINOR , TYPE_BUG_FIX,
+   "Would return an error when *no* bad vols were selected.",
+   "Now updated to work fine with that; just an intermed program.\n"
+},
+
 { 12, Jan , 2018 , PT , "3dRSFC" , MICRO , TYPE_GENERAL,
    "Deal with change elsewhere to definition of a function.",
    "New option added to function, just need another arg; shd be no change.\n"

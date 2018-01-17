@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *******
 imcutup
 *******
+
+.. _imcutup:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

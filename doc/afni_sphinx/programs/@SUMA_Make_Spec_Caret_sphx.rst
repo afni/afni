@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *********************
 @SUMA_Make_Spec_Caret
 *********************
+
+.. _@SUMA_Make_Spec_Caret:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

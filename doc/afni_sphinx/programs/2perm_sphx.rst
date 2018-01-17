@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *****
 2perm
 *****
+
+.. _2perm:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

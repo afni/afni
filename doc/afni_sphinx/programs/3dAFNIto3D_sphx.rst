@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **********
 3dAFNIto3D
 **********
+
+.. _3dAFNIto3D:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

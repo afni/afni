@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *************
 @compute_gcor
 *************
+
+.. _@compute_gcor:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

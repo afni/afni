@@ -152,8 +152,25 @@ html_theme_options = {
     "defaultcollapsed": "false",
     "roottarget": "index",
     "min_height": "12in",
-    "max_width": "12in"
-}
+    "max_width": "12in",
+    "lighter_header_decor": "true",
+    "linkcolor": "#009ACD",
+    "bgcolor": "#F5F5F5",
+    "bodyfont": "Arial",
+    "bodylineheight": "1.3em",
+    "codevarfont":  "Menlo,  monospace",
+    "codeblockfont": "Menlo, monospace",
+    "codetrimcolor": "#00C957",
+    "codebgcolor": "#E0EEE0",
+    "highlightcolor": "#FFEC8B",
+    "headtextcolor": "#8B0000",
+    "headlinkcolor": "#8B0000",
+    "rubricbgcolor": "#8B0000",
+    "headtextcolor": "#8B0000",
+    "headlinkcolor": "#8B0000"
+} 
+#    "borderless_decor": "true", 
+#    "linkcolor": "#009ACD",
 
 # Add any paths that contain custom themes here, relative to this directory.
 #html_theme_path = []

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ************
 FSread_annot
 ************
+
+.. _FSread_annot:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

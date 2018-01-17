@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *****
 1dsum
 *****
+
+.. _1dsum:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

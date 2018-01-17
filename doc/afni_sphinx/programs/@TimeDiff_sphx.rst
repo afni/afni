@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *********
 @TimeDiff
 *********
+
+.. _@TimeDiff:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

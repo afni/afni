@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *****
 nicat
 *****
+
+.. _nicat:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

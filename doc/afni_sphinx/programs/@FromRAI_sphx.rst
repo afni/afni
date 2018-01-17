@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ********
 @FromRAI
 ********
+
+.. _@FromRAI:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

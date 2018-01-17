@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***********
 help_format
 ***********
+
+.. _help_format:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

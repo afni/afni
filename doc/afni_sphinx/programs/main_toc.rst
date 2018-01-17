@@ -6,570 +6,193 @@
 Help Us All
 ############
 
-.. toctree::
-   :maxdepth: 1
+.. csv-table::
 
-   1dAstrip_sphx
-   1dBandpass_sphx
-   1dBport_sphx
-   1dCorrelate_sphx
-   1dDW_Grad_o_Mat_sphx
-   1dDW_Grad_o_Mat++_sphx
-   1dFlagMotion_sphx
-   1dMarry_sphx
-   1dNLfit_sphx
-   1dRplot_sphx
-   1dSEM_sphx
-   1dTsort_sphx
-   1dUpsample_sphx
-   1d_tool.py_sphx
-   1dcat_sphx
-   1ddot_sphx
-   1deval_sphx
-   1dfft_sphx
-   1dgenARMA11_sphx
-   1dgrayplot_sphx
-   1dmatcalc_sphx
-   1dnorm_sphx
-   1dplot_sphx
-   1dsum_sphx
-   1dsvd_sphx
-   1dtranspose_sphx
-   24swap_sphx
-   2dImReg_sphx
-   2perm_sphx
-   2swap_sphx
-   3dABoverlap_sphx
-   3dAFNIto3D_sphx
-   3dAFNItoANALYZE_sphx
-   3dAFNItoMINC_sphx
-   3dAFNItoNIFTI_sphx
-   3dAFNItoNIML_sphx
-   3dAFNItoRaw_sphx
-   3dANALYZEtoAFNI_sphx
-   3dANOVA_sphx
-   3dANOVA2_sphx
-   3dANOVA3_sphx
-   3dAcost_sphx
-   3dAllineate_sphx
-   3dAmpToRSFC_sphx
-   3dAnatNudge_sphx
-   3dAnhist_sphx
-   3dAttribute_sphx
-   3dAutoTcorrelate_sphx
-   3dAutobox_sphx
-   3dAutomask_sphx
-   3dBRAIN_VOYAGERtoAFNI_sphx
-   3dBandpass_sphx
-   3dBlurInMask_sphx
-   3dBlurToFWHM_sphx
-   3dBrainSync_sphx
-   3dBrickStat_sphx
-   3dCM_sphx
-   3dCRUISEtoAFNI_sphx
-   3dClipLevel_sphx
-   3dClustCount_sphx
-   3dClustSim_sphx
-   3dConformist_sphx
-   3dConvolve_sphx
-   3dCountSpikes_sphx
-   3dDFT_sphx
-   3dDTeig_sphx
-   3dDTtoDWI_sphx
-   3dDTtoNoisyDWI_sphx
-   3dDWItoDT_sphx
-   3dDWUncert_sphx
-   3dDeconvolve_sphx
-   3dDeconvolve_f_sphx
-   3dDegreeCentrality_sphx
-   3dDespike_sphx
-   3dDetrend_sphx
-   3dECM_sphx
-   3dEigsToDT_sphx
-   3dEmpty_sphx
-   3dEntropy_sphx
-   3dErrtsCormat_sphx
-   3dExtractGroupInCorr_sphx
-   3dExtrema_sphx
-   3dFDR_sphx
-   3dFFT_sphx
-   3dFWHM_sphx
-   3dFWHMx_sphx
-   3dFourier_sphx
-   3dFriedman_sphx
-   3dGenFeatureDist_sphx
-   3dGenPriors_sphx
-   3dGetrow_sphx
-   3dGroupInCorr_sphx
-   3dHist_sphx
-   3dIntracranial_sphx
-   3dInvFMRI_sphx
-   3dKruskalWallis_sphx
-   3dLFCD_sphx
-   3dLME_sphx
-   3dLRflip_sphx
-   3dLSS_sphx
-   3dLocalACF_sphx
-   3dLocalBistat_sphx
-   3dLocalHistog_sphx
-   3dLocalPV_sphx
-   3dLocalSVD_sphx
-   3dLocalstat_sphx
-   3dLombScargle_sphx
-   3dMEMA_sphx
-   3dMINCtoAFNI_sphx
-   3dMSE_sphx
-   3dMVM_sphx
-   3dMannWhitney_sphx
-   3dMaskToASCII_sphx
-   3dMatch_sphx
-   3dMax_sphx
-   3dMean_sphx
-   3dMedianFilter_sphx
-   3dMultiThresh_sphx
-   3dNLfim_sphx
-   3dNetCorr_sphx
-   3dNormalityTest_sphx
-   3dNotes_sphx
-   3dNwarpAdjust_sphx
-   3dNwarpApply_sphx
-   3dNwarpCalc_sphx
-   3dNwarpCat_sphx
-   3dNwarpFuncs_sphx
-   3dNwarpXYZ_sphx
-   3dOverlap_sphx
-   3dPAR2AFNI.pl_sphx
-   3dPFM_sphx
-   3dPeriodogram_sphx
-   3dPolyfit_sphx
-   3dProbTrackID_sphx
-   3dPval_sphx
-   3dQwarp_sphx
-   3dREMLfit_sphx
-   3dROIMaker_sphx
-   3dROIstats_sphx
-   3dRSFC_sphx
-   3dRank_sphx
-   3dRankizer_sphx
-   3dReHo_sphx
-   3dRegAna_sphx
-   3dRetinoPhase_sphx
-   3dRowFillin_sphx
-   3dRprogDemo_sphx
-   3dSeg_sphx
-   3dSetupGroupInCorr_sphx
-   3dSharpen_sphx
-   3dSignatures_sphx
-   3dSkullStrip_sphx
-   3dSpaceTimeCorr_sphx
-   3dSpatNorm_sphx
-   3dStatClust_sphx
-   3dSurf2Vol_sphx
-   3dSurfMask_sphx
-   3dSynthesize_sphx
-   3dTORTOISEtoHere_sphx
-   3dTRfix_sphx
-   3dTSgen_sphx
-   3dTagalign_sphx
-   3dTcat_sphx
-   3dTcorr1D_sphx
-   3dTcorrMap_sphx
-   3dTcorrelate_sphx
-   3dTfilter_sphx
-   3dTfitter_sphx
-   3dThreetoRGB_sphx
-   3dTnorm_sphx
-   3dToutcount_sphx
-   3dToyProg_sphx
-   3dTproject_sphx
-   3dTqual_sphx
-   3dTrackID_sphx
-   3dTshift_sphx
-   3dTsmooth_sphx
-   3dTsort_sphx
-   3dTsplit4D_sphx
-   3dTstat_sphx
-   3dTto1D_sphx
-   3dTwotoComplex_sphx
-   3dUndump_sphx
-   3dUnifize_sphx
-   3dUniformize_sphx
-   3dUpsample_sphx
-   3dVecRGB_to_HSL_sphx
-   3dVol2Surf_sphx
-   3dWarp_sphx
-   3dWarpDrive_sphx
-   3dWavelets_sphx
-   3dWilcoxon_sphx
-   3dWinsor_sphx
-   3dXClustSim_sphx
-   3dXYZcat_sphx
-   3dZcat_sphx
-   3dZcutup_sphx
-   3dZeropad_sphx
-   3dZregrid_sphx
-   3danisosmooth_sphx
-   3daxialize_sphx
-   3dbuc2fim_sphx
-   3dbucket_sphx
-   3dcalc_sphx
-   3dclust_sphx
-   3dcopy_sphx
-   3ddelay_sphx
-   3ddot_sphx
-   3ddot_beta_sphx
-   3ddup_sphx
-   3dedge3_sphx
-   3dfim_sphx
-   3dfim+_sphx
-   3dfractionize_sphx
-   3dhistog_sphx
-   3dinfill_sphx
-   3dinfo_sphx
-   3dkmeans_sphx
-   3dmaskSVD_sphx
-   3dmask_tool_sphx
-   3dmaskave_sphx
-   3dmaskdump_sphx
-   3dmatcalc_sphx
-   3dmatmult_sphx
-   3dmaxima_sphx
-   3dmerge_sphx
-   3dnewid_sphx
-   3dnoise_sphx
-   3dnvals_sphx
-   3dpc_sphx
-   3dproject_sphx
-   3drefit_sphx
-   3drename_sphx
-   3dresample_sphx
-   3dretroicor_sphx
-   3drotate_sphx
-   3dsvm_sphx
-   3dsvm_linpredict_sphx
-   3dtoXdataset_sphx
-   3dttest_sphx
-   3dttest++_sphx
-   3dvolreg_sphx
-   4swap_sphx
-   @1dDiffMag_sphx
-   @2dwarper_sphx
-   @2dwarper.Allin_sphx
-   @3dMVM_validator_sphx
-   @4Daverage_sphx
-   @ANATICOR_sphx
-   @AddEdge_sphx
-   @AfniEnv_sphx
-   @AfniOrient2RAImap_sphx
-   @AfniOrientSign_sphx
-   @Align_Centers_sphx
-   @Atlasize_sphx
-   @Center_Distance_sphx
-   @CheckForAfniDset_sphx
-   @ClustExp_CatLab_sphx
-   @ClustExp_run_shiny_sphx
-   @CommandGlobb_sphx
-   @DO.examples_sphx
-   @DTI_studio_reposition_sphx
-   @DeblankFileNames_sphx
-   @DiceMetric_sphx
-   @DoPerRoi.py_sphx
-   @DriveAfni_sphx
-   @DriveSuma_sphx
-   @ElectroGrid_sphx
-   @ExamineGenFeatDists_sphx
-   @FATCAT_matplot_shiny_sphx
-   @FS_roi_label_sphx
-   @FSlabel2dset_sphx
-   @FindAfniDsetPath_sphx
-   @FromRAI_sphx
-   @FullPath_sphx
-   @GetAfniBin_sphx
-   @GetAfniDims_sphx
-   @GetAfniID_sphx
-   @GetAfniOrient_sphx
-   @GetAfniPrefix_sphx
-   @GetAfniRes_sphx
-   @GetAfniView_sphx
-   @GradFlipTest_sphx
-   @Install_3dPFM_Demo_sphx
-   @Install_AfniRetinoDemo_sphx
-   @Install_ClustScat_Demo_sphx
-   @Install_D99_macaque_sphx
-   @Install_DBSproc_sphx
-   @Install_FATCAT_DEMO_sphx
-   @Install_FATMVM_DEMO_sphx
-   @Install_InstaCorr_Demo_sphx
-   @Install_MEICA_Demo_sphx
-   @Install_NIH_Marmoset_sphx
-   @Install_RSFMRI_Motion_Group_Demo_sphx
-   @Install_TSrestMovieDemo_sphx
-   @IsoMasks_sphx
-   @MakeLabelTable_sphx
-   @NoExt_sphx
-   @NoPound_sphx
-   @NoisySkullStrip_sphx
-   @Purify_1D_sphx
-   @Quiet_Talkers_sphx
-   @ROI_Corr_Mat_sphx
-   @R_funclist_sphx
-   @RenamePanga_sphx
-   @Reorder_sphx
-   @RetinoProc_sphx
-   @SSwarper_sphx
-   @SUMA_AlignToExperiment_sphx
-   @SUMA_FSvolToBRIK_sphx
-   @SUMA_Make_Spec_Caret_sphx
-   @SUMA_Make_Spec_FS_sphx
-   @SUMA_Make_Spec_SF_sphx
-   @SUMA_renumber_FS_sphx
-   @ScaleVolume_sphx
-   @ScriptCheck_sphx
-   @Shift_Volume_sphx
-   @ShowDynamicRange_sphx
-   @SkullStrip_TouchUp_sphx
-   @Spharm.examples_sphx
-   @SurfSmooth.HEAT_07.examples_sphx
-   @T1scale_sphx
-   @TimeDiff_sphx
-   @ToRAI_sphx
-   @UpdateAfni_sphx
-   @VolCenter_sphx
-   @afni.run.me_sphx
-   @afni_R_package_install_sphx
-   @align_partial_oblique_sphx
-   @auto_align_sphx
-   @auto_tlrc_sphx
-   @build_afni_Xlib_sphx
-   @chauffeur_afni_sphx
-   @clean_help_dir_sphx
-   @clip_volume_sphx
-   @compute_gcor_sphx
-   @demo_prompt_sphx
-   @diff.files_sphx
-   @diff.tree_sphx
-   @djunct_4d_imager_sphx
-   @djunct_calc_mont_dims.py_sphx
-   @djunct_dwi_selector.bash_sphx
-   @djunct_select_str.py_sphx
-   @escape-_sphx
-   @fast_roi_sphx
-   @fat_tract_colorize_sphx
-   @fix_FSsphere_sphx
-   @float_fix_sphx
-   @get.afni.version_sphx
-   @global_parse_sphx
-   @help.AFNI_sphx
-   @isOblique_sphx
-   @make_plug_diff_sphx
-   @make_stim_file_sphx
-   @move.to.series.dirs_sphx
-   @np_sphx
-   @parse_afni_name_sphx
-   @parse_name_sphx
-   @radial_correlate_sphx
-   @simulate_motion_sphx
-   @snapshot_volreg_sphx
-   @snapshot_volreg3_sphx
-   @statauxcode_sphx
-   @suma_reprefixize_spec_sphx
-   @toMNI_Awarp_sphx
-   @toMNI_Qwarpar_sphx
-   @update.afni.binaries_sphx
-   AFNI_Batch_R_sphx
-   AlphaSim_sphx
-   AnalyzeTrace_sphx
-   BrainSkin_sphx
-   CA_EZ_atlas.csh_sphx
-   ClustExp_HistTable.py_sphx
-   ClustExp_StatParse.py_sphx
-   CompareSurfaces_sphx
-   ConvertDset_sphx
-   ConvertSurface_sphx
-   ConvexHull_sphx
-   CreateIcosahedron_sphx
-   DTIStudioFibertoSegments_sphx
-   Dimon_sphx
-   Dimon1_sphx
-   DriveSuma_sphx
-   ExamineXmat_sphx
-   FD2_sphx
-   FIRdesign_sphx
-   FSread_annot_sphx
-   GLTsymtest_sphx
-   HalloSuma_sphx
-   Ifile_sphx
-   InstaTract_sphx
-   IsoSurface_sphx
-   MakeColorMap_sphx
-   MapIcosahedron_sphx
-   ParseName_sphx
-   ROI2dataset_sphx
-   ROIgrow_sphx
-   RSFgen_sphx
-   RetroTS.py_sphx
-   SUMA_glxdino_sphx
-   SUMA_paperplane_sphx
-   SUMA_pixmap2eps_sphx
-   SampBias_sphx
-   ScaleToMap_sphx
-   SpharmDeco_sphx
-   SpharmReco_sphx
-   Surf2VolCoord_sphx
-   SurfClust_sphx
-   SurfDist_sphx
-   SurfDsetInfo_sphx
-   SurfExtrema_sphx
-   SurfFWHM_sphx
-   SurfInfo_sphx
-   SurfMeasures_sphx
-   SurfMesh_sphx
-   SurfPatch_sphx
-   SurfQual_sphx
-   SurfRetinoMap_sphx
-   SurfSmooth_sphx
-   SurfToSurf_sphx
-   SurfaceMetrics_sphx
-   Vecwarp_sphx
-   Xphace_sphx
-   abut_sphx
-   adwarp_sphx
-   afni_sphx
-   afni_history_sphx
-   afni_open_sphx
-   afni_proc.py_sphx
-   afni_restproc.py_sphx
-   afni_run_R_sphx
-   afni_skeleton.py_sphx
-   afni_system_check.py_sphx
-   afni_util.py_sphx
-   afni_vcheck_sphx
-   aiv_sphx
-   align_epi_anat.py_sphx
-   apsearch_sphx
-   auto_warp.py_sphx
-   byteorder_sphx
-   cat_matvec_sphx
-   ccalc_sphx
-   cdf_sphx
-   cifti_tool_sphx
-   cjpeg_sphx
-   column_cat_sphx
-   count_sphx
-   dcm2niix_afni_sphx
-   dicom_hdr_sphx
-   dicom_hinfo_sphx
-   dicom_to_raw_sphx
-   djpeg_sphx
-   eg_main_chrono.py_sphx
-   ent16_sphx
-   fat_lat_csv.py_sphx
-   fat_mat_sel.py_sphx
-   fat_mvm_gridconv.py_sphx
-   fat_mvm_prep.py_sphx
-   fat_mvm_review.py_sphx
-   fat_mvm_scripter.py_sphx
-   fat_proc_align_anat_pair_sphx
-   fat_proc_axialize_anat_sphx
-   fat_proc_connec_vis_sphx
-   fat_proc_convert_dcm_anat_sphx
-   fat_proc_convert_dcm_dwis_sphx
-   fat_proc_decmap_sphx
-   fat_proc_dwi_to_dt_sphx
-   fat_proc_filter_dwis_sphx
-   fat_proc_grad_plot_sphx
-   fat_proc_imit2w_from_t1w_sphx
-   fat_proc_map_to_dti_sphx
-   fat_proc_select_vols_sphx
-   fat_roi_row.py_sphx
-   fdrval_sphx
-   fftest_sphx
-   file_tool_sphx
-   fim2_sphx
-   float_scan_sphx
-   from3d_sphx
-   ftosh_sphx
-   ge_header_sphx
-   gen_epi_review.py_sphx
-   gen_group_command.py_sphx
-   gen_ss_review_scripts.py_sphx
-   gen_ss_review_table.py_sphx
-   gifti_tool_sphx
-   help_format_sphx
-   im2niml_sphx
-   images_equal_sphx
-   imand_sphx
-   imaver_sphx
-   imcalc_sphx
-   imcat_sphx
-   imcutup_sphx
-   imdump_sphx
-   immask_sphx
-   imreg_sphx
-   imrotate_sphx
-   imstack_sphx
-   imstat_sphx
-   imupsam_sphx
-   inspec_sphx
-   lpc_align.py_sphx
-   make_pq_script.py_sphx
-   make_random_timing.py_sphx
-   make_stim_times.py_sphx
-   map_TrackID_sphx
-   mayo_analyze_sphx
-   meica.py_sphx
-   mpeg_encode_sphx
-   mritopgm_sphx
-   mycat_sphx
-   myget_sphx
-   neuro_deconvolve.py_sphx
-   nicat_sphx
-   niccc_sphx
-   nifti1_test_sphx
-   nifti1_tool_sphx
-   nifti_tool_sphx
-   niml_feedme_sphx
-   niprobe_sphx
-   nsize_sphx
-   parse_fs_lt_log.py_sphx
-   plugout_drive_sphx
-   plugout_ijk_sphx
-   plugout_tt_sphx
-   plugout_tta_sphx
-   prompt_popup_sphx
-   prompt_user_sphx
-   python_module_test.py_sphx
-   quick.alpha.vals.py_sphx
-   quickspec_sphx
-   quotize_sphx
-   rPkgsInstall_sphx
-   rbox_sphx
-   read_matlab_files.py_sphx
-   realtime_receiver.py_sphx
-   rmz_sphx
-   rotcom_sphx
-   rtfeedme_sphx
-   serial_helper_sphx
-   sfim_sphx
-   siemens_vision_sphx
-   slow_surf_clustsim.py_sphx
-   sqwave_sphx
-   stimband_sphx
-   strblast_sphx
-   suma_sphx
-   suma_change_spec_sphx
-   tfim_sphx
-   timing_tool.py_sphx
-   to3d_sphx
-   tokens_sphx
-   uber_align_test.py_sphx
-   uber_proc.py_sphx
-   uber_skel.py_sphx
-   uber_subject.py_sphx
-   uber_ttest.py_sphx
-   unWarpEPI.py_sphx
-   uniq_images_sphx
-   waver_sphx
-   whereami_sphx
-   whirlgif_sphx
-   xmat_tool.py_sphx
+      :ref:`1dAstrip <1dAstrip>`,:ref:`1dBandpass <1dBandpass>`,:ref:`1dBport <1dBport>`
+      :ref:`1dCorrelate <1dCorrelate>`,:ref:`1dDW_Grad_o_Mat <1dDW_Grad_o_Mat>`,:ref:`1dDW_Grad_o_Mat++ <1dDW_Grad_o_Mat++>`
+      :ref:`1dFlagMotion <1dFlagMotion>`,:ref:`1dMarry <1dMarry>`,:ref:`1dNLfit <1dNLfit>`
+      :ref:`1dRplot <1dRplot>`,:ref:`1dSEM <1dSEM>`,:ref:`1dTsort <1dTsort>`
+      :ref:`1dUpsample <1dUpsample>`,:ref:`1d_tool.py <1d_tool.py>`,:ref:`1dcat <1dcat>`
+      :ref:`1ddot <1ddot>`,:ref:`1deval <1deval>`,:ref:`1dfft <1dfft>`
+      :ref:`1dgenARMA11 <1dgenARMA11>`,:ref:`1dgrayplot <1dgrayplot>`,:ref:`1dmatcalc <1dmatcalc>`
+      :ref:`1dnorm <1dnorm>`,:ref:`1dplot <1dplot>`,:ref:`1dsum <1dsum>`
+      :ref:`1dsvd <1dsvd>`,:ref:`1dtranspose <1dtranspose>`,:ref:`24swap <24swap>`
+      :ref:`2dImReg <2dImReg>`,:ref:`2perm <2perm>`,:ref:`2swap <2swap>`
+      :ref:`3dABoverlap <3dABoverlap>`,:ref:`3dAFNIto3D <3dAFNIto3D>`,:ref:`3dAFNItoANALYZE <3dAFNItoANALYZE>`
+      :ref:`3dAFNItoMINC <3dAFNItoMINC>`,:ref:`3dAFNItoNIFTI <3dAFNItoNIFTI>`,:ref:`3dAFNItoNIML <3dAFNItoNIML>`
+      :ref:`3dAFNItoRaw <3dAFNItoRaw>`,:ref:`3dANALYZEtoAFNI <3dANALYZEtoAFNI>`,:ref:`3dANOVA <3dANOVA>`
+      :ref:`3dANOVA2 <3dANOVA2>`,:ref:`3dANOVA3 <3dANOVA3>`,:ref:`3dAcost <3dAcost>`
+      :ref:`3dAllineate <3dAllineate>`,:ref:`3dAmpToRSFC <3dAmpToRSFC>`,:ref:`3dAnatNudge <3dAnatNudge>`
+      :ref:`3dAnhist <3dAnhist>`,:ref:`3dAttribute <3dAttribute>`,:ref:`3dAutoTcorrelate <3dAutoTcorrelate>`
+      :ref:`3dAutobox <3dAutobox>`,:ref:`3dAutomask <3dAutomask>`,:ref:`3dBRAIN_VOYAGERtoAFNI <3dBRAIN_VOYAGERtoAFNI>`
+      :ref:`3dBandpass <3dBandpass>`,:ref:`3dBlurInMask <3dBlurInMask>`,:ref:`3dBlurToFWHM <3dBlurToFWHM>`
+      :ref:`3dBrainSync <3dBrainSync>`,:ref:`3dBrickStat <3dBrickStat>`,:ref:`3dCM <3dCM>`
+      :ref:`3dCRUISEtoAFNI <3dCRUISEtoAFNI>`,:ref:`3dClipLevel <3dClipLevel>`,:ref:`3dClustCount <3dClustCount>`
+      :ref:`3dClustSim <3dClustSim>`,:ref:`3dConformist <3dConformist>`,:ref:`3dConvolve <3dConvolve>`
+      :ref:`3dCountSpikes <3dCountSpikes>`,:ref:`3dDFT <3dDFT>`,:ref:`3dDTeig <3dDTeig>`
+      :ref:`3dDTtoDWI <3dDTtoDWI>`,:ref:`3dDTtoNoisyDWI <3dDTtoNoisyDWI>`,:ref:`3dDWItoDT <3dDWItoDT>`
+      :ref:`3dDWUncert <3dDWUncert>`,:ref:`3dDeconvolve <3dDeconvolve>`,:ref:`3dDeconvolve_f <3dDeconvolve_f>`
+      :ref:`3dDegreeCentrality <3dDegreeCentrality>`,:ref:`3dDespike <3dDespike>`,:ref:`3dDetrend <3dDetrend>`
+      :ref:`3dECM <3dECM>`,:ref:`3dEigsToDT <3dEigsToDT>`,:ref:`3dEmpty <3dEmpty>`
+      :ref:`3dEntropy <3dEntropy>`,:ref:`3dErrtsCormat <3dErrtsCormat>`,:ref:`3dExtractGroupInCorr <3dExtractGroupInCorr>`
+      :ref:`3dExtrema <3dExtrema>`,:ref:`3dFDR <3dFDR>`,:ref:`3dFFT <3dFFT>`
+      :ref:`3dFWHM <3dFWHM>`,:ref:`3dFWHMx <3dFWHMx>`,:ref:`3dFourier <3dFourier>`
+      :ref:`3dFriedman <3dFriedman>`,:ref:`3dGenFeatureDist <3dGenFeatureDist>`,:ref:`3dGenPriors <3dGenPriors>`
+      :ref:`3dGetrow <3dGetrow>`,:ref:`3dGroupInCorr <3dGroupInCorr>`,:ref:`3dHist <3dHist>`
+      :ref:`3dIntracranial <3dIntracranial>`,:ref:`3dInvFMRI <3dInvFMRI>`,:ref:`3dKruskalWallis <3dKruskalWallis>`
+      :ref:`3dLFCD <3dLFCD>`,:ref:`3dLME <3dLME>`,:ref:`3dLRflip <3dLRflip>`
+      :ref:`3dLSS <3dLSS>`,:ref:`3dLocalACF <3dLocalACF>`,:ref:`3dLocalBistat <3dLocalBistat>`
+      :ref:`3dLocalHistog <3dLocalHistog>`,:ref:`3dLocalPV <3dLocalPV>`,:ref:`3dLocalSVD <3dLocalSVD>`
+      :ref:`3dLocalstat <3dLocalstat>`,:ref:`3dLombScargle <3dLombScargle>`,:ref:`3dMEMA <3dMEMA>`
+      :ref:`3dMINCtoAFNI <3dMINCtoAFNI>`,:ref:`3dMSE <3dMSE>`,:ref:`3dMVM <3dMVM>`
+      :ref:`3dMannWhitney <3dMannWhitney>`,:ref:`3dMaskToASCII <3dMaskToASCII>`,:ref:`3dMatch <3dMatch>`
+      :ref:`3dMax <3dMax>`,:ref:`3dMean <3dMean>`,:ref:`3dMedianFilter <3dMedianFilter>`
+      :ref:`3dMultiThresh <3dMultiThresh>`,:ref:`3dNLfim <3dNLfim>`,:ref:`3dNetCorr <3dNetCorr>`
+      :ref:`3dNormalityTest <3dNormalityTest>`,:ref:`3dNotes <3dNotes>`,:ref:`3dNwarpAdjust <3dNwarpAdjust>`
+      :ref:`3dNwarpApply <3dNwarpApply>`,:ref:`3dNwarpCalc <3dNwarpCalc>`,:ref:`3dNwarpCat <3dNwarpCat>`
+      :ref:`3dNwarpFuncs <3dNwarpFuncs>`,:ref:`3dNwarpXYZ <3dNwarpXYZ>`,:ref:`3dOverlap <3dOverlap>`
+      :ref:`3dPAR2AFNI.pl <3dPAR2AFNI.pl>`,:ref:`3dPFM <3dPFM>`,:ref:`3dPeriodogram <3dPeriodogram>`
+      :ref:`3dPolyfit <3dPolyfit>`,:ref:`3dProbTrackID <3dProbTrackID>`,:ref:`3dPval <3dPval>`
+      :ref:`3dQwarp <3dQwarp>`,:ref:`3dREMLfit <3dREMLfit>`,:ref:`3dROIMaker <3dROIMaker>`
+      :ref:`3dROIstats <3dROIstats>`,:ref:`3dRSFC <3dRSFC>`,:ref:`3dRank <3dRank>`
+      :ref:`3dRankizer <3dRankizer>`,:ref:`3dReHo <3dReHo>`,:ref:`3dRegAna <3dRegAna>`
+      :ref:`3dRetinoPhase <3dRetinoPhase>`,:ref:`3dRowFillin <3dRowFillin>`,:ref:`3dRprogDemo <3dRprogDemo>`
+      :ref:`3dSeg <3dSeg>`,:ref:`3dSetupGroupInCorr <3dSetupGroupInCorr>`,:ref:`3dSharpen <3dSharpen>`
+      :ref:`3dSignatures <3dSignatures>`,:ref:`3dSkullStrip <3dSkullStrip>`,:ref:`3dSpaceTimeCorr <3dSpaceTimeCorr>`
+      :ref:`3dSpatNorm <3dSpatNorm>`,:ref:`3dStatClust <3dStatClust>`,:ref:`3dSurf2Vol <3dSurf2Vol>`
+      :ref:`3dSurfMask <3dSurfMask>`,:ref:`3dSynthesize <3dSynthesize>`,:ref:`3dTORTOISEtoHere <3dTORTOISEtoHere>`
+      :ref:`3dTRfix <3dTRfix>`,:ref:`3dTSgen <3dTSgen>`,:ref:`3dTagalign <3dTagalign>`
+      :ref:`3dTcat <3dTcat>`,:ref:`3dTcorr1D <3dTcorr1D>`,:ref:`3dTcorrMap <3dTcorrMap>`
+      :ref:`3dTcorrelate <3dTcorrelate>`,:ref:`3dTfilter <3dTfilter>`,:ref:`3dTfitter <3dTfitter>`
+      :ref:`3dThreetoRGB <3dThreetoRGB>`,:ref:`3dTnorm <3dTnorm>`,:ref:`3dToutcount <3dToutcount>`
+      :ref:`3dToyProg <3dToyProg>`,:ref:`3dTproject <3dTproject>`,:ref:`3dTqual <3dTqual>`
+      :ref:`3dTrackID <3dTrackID>`,:ref:`3dTshift <3dTshift>`,:ref:`3dTsmooth <3dTsmooth>`
+      :ref:`3dTsort <3dTsort>`,:ref:`3dTsplit4D <3dTsplit4D>`,:ref:`3dTstat <3dTstat>`
+      :ref:`3dTto1D <3dTto1D>`,:ref:`3dTwotoComplex <3dTwotoComplex>`,:ref:`3dUndump <3dUndump>`
+      :ref:`3dUnifize <3dUnifize>`,:ref:`3dUniformize <3dUniformize>`,:ref:`3dUpsample <3dUpsample>`
+      :ref:`3dVecRGB_to_HSL <3dVecRGB_to_HSL>`,:ref:`3dVol2Surf <3dVol2Surf>`,:ref:`3dWarp <3dWarp>`
+      :ref:`3dWarpDrive <3dWarpDrive>`,:ref:`3dWavelets <3dWavelets>`,:ref:`3dWilcoxon <3dWilcoxon>`
+      :ref:`3dWinsor <3dWinsor>`,:ref:`3dXClustSim <3dXClustSim>`,:ref:`3dXYZcat <3dXYZcat>`
+      :ref:`3dZcat <3dZcat>`,:ref:`3dZcutup <3dZcutup>`,:ref:`3dZeropad <3dZeropad>`
+      :ref:`3dZregrid <3dZregrid>`,:ref:`3danisosmooth <3danisosmooth>`,:ref:`3daxialize <3daxialize>`
+      :ref:`3dbuc2fim <3dbuc2fim>`,:ref:`3dbucket <3dbucket>`,:ref:`3dcalc <3dcalc>`
+      :ref:`3dclust <3dclust>`,:ref:`3dcopy <3dcopy>`,:ref:`3ddelay <3ddelay>`
+      :ref:`3ddot <3ddot>`,:ref:`3ddot_beta <3ddot_beta>`,:ref:`3ddup <3ddup>`
+      :ref:`3dedge3 <3dedge3>`,:ref:`3dfim <3dfim>`,:ref:`3dfim+ <3dfim+>`
+      :ref:`3dfractionize <3dfractionize>`,:ref:`3dhistog <3dhistog>`,:ref:`3dinfill <3dinfill>`
+      :ref:`3dinfo <3dinfo>`,:ref:`3dkmeans <3dkmeans>`,:ref:`3dmaskSVD <3dmaskSVD>`
+      :ref:`3dmask_tool <3dmask_tool>`,:ref:`3dmaskave <3dmaskave>`,:ref:`3dmaskdump <3dmaskdump>`
+      :ref:`3dmatcalc <3dmatcalc>`,:ref:`3dmatmult <3dmatmult>`,:ref:`3dmaxima <3dmaxima>`
+      :ref:`3dmerge <3dmerge>`,:ref:`3dnewid <3dnewid>`,:ref:`3dnoise <3dnoise>`
+      :ref:`3dnvals <3dnvals>`,:ref:`3dpc <3dpc>`,:ref:`3dproject <3dproject>`
+      :ref:`3drefit <3drefit>`,:ref:`3drename <3drename>`,:ref:`3dresample <3dresample>`
+      :ref:`3dretroicor <3dretroicor>`,:ref:`3drotate <3drotate>`,:ref:`3dsvm <3dsvm>`
+      :ref:`3dsvm_linpredict <3dsvm_linpredict>`,:ref:`3dtoXdataset <3dtoXdataset>`,:ref:`3dttest <3dttest>`
+      :ref:`3dttest++ <3dttest++>`,:ref:`3dvolreg <3dvolreg>`,:ref:`4swap <4swap>`
+      :ref:`@1dDiffMag <@1dDiffMag>`,:ref:`@2dwarper <@2dwarper>`,:ref:`@2dwarper.Allin <@2dwarper.Allin>`
+      :ref:`@3dMVM_validator <@3dMVM_validator>`,:ref:`@4Daverage <@4Daverage>`,:ref:`@ANATICOR <@ANATICOR>`
+      :ref:`@AddEdge <@AddEdge>`,:ref:`@AfniEnv <@AfniEnv>`,:ref:`@AfniOrient2RAImap <@AfniOrient2RAImap>`
+      :ref:`@AfniOrientSign <@AfniOrientSign>`,:ref:`@Align_Centers <@Align_Centers>`,:ref:`@Atlasize <@Atlasize>`
+      :ref:`@Center_Distance <@Center_Distance>`,:ref:`@CheckForAfniDset <@CheckForAfniDset>`,:ref:`@ClustExp_CatLab <@ClustExp_CatLab>`
+      :ref:`@ClustExp_run_shiny <@ClustExp_run_shiny>`,:ref:`@CommandGlobb <@CommandGlobb>`,:ref:`@DO.examples <@DO.examples>`
+      :ref:`@DTI_studio_reposition <@DTI_studio_reposition>`,:ref:`@DeblankFileNames <@DeblankFileNames>`,:ref:`@DiceMetric <@DiceMetric>`
+      :ref:`@DoPerRoi.py <@DoPerRoi.py>`,:ref:`@DriveAfni <@DriveAfni>`,:ref:`@DriveSuma <@DriveSuma>`
+      :ref:`@ElectroGrid <@ElectroGrid>`,:ref:`@ExamineGenFeatDists <@ExamineGenFeatDists>`,:ref:`@FATCAT_matplot_shiny <@FATCAT_matplot_shiny>`
+      :ref:`@FS_roi_label <@FS_roi_label>`,:ref:`@FSlabel2dset <@FSlabel2dset>`,:ref:`@FindAfniDsetPath <@FindAfniDsetPath>`
+      :ref:`@FromRAI <@FromRAI>`,:ref:`@FullPath <@FullPath>`,:ref:`@GetAfniBin <@GetAfniBin>`
+      :ref:`@GetAfniDims <@GetAfniDims>`,:ref:`@GetAfniID <@GetAfniID>`,:ref:`@GetAfniOrient <@GetAfniOrient>`
+      :ref:`@GetAfniPrefix <@GetAfniPrefix>`,:ref:`@GetAfniRes <@GetAfniRes>`,:ref:`@GetAfniView <@GetAfniView>`
+      :ref:`@GradFlipTest <@GradFlipTest>`,:ref:`@Install_3dPFM_Demo <@Install_3dPFM_Demo>`,:ref:`@Install_AfniRetinoDemo <@Install_AfniRetinoDemo>`
+      :ref:`@Install_ClustScat_Demo <@Install_ClustScat_Demo>`,:ref:`@Install_D99_macaque <@Install_D99_macaque>`,:ref:`@Install_DBSproc <@Install_DBSproc>`
+      :ref:`@Install_FATCAT_DEMO <@Install_FATCAT_DEMO>`,:ref:`@Install_FATMVM_DEMO <@Install_FATMVM_DEMO>`,:ref:`@Install_InstaCorr_Demo <@Install_InstaCorr_Demo>`
+      :ref:`@Install_MEICA_Demo <@Install_MEICA_Demo>`,:ref:`@Install_NIH_Marmoset <@Install_NIH_Marmoset>`,:ref:`@Install_RSFMRI_Motion_Group_Demo <@Install_RSFMRI_Motion_Group_Demo>`
+      :ref:`@Install_TSrestMovieDemo <@Install_TSrestMovieDemo>`,:ref:`@IsoMasks <@IsoMasks>`,:ref:`@MakeLabelTable <@MakeLabelTable>`
+      :ref:`@NoExt <@NoExt>`,:ref:`@NoPound <@NoPound>`,:ref:`@NoisySkullStrip <@NoisySkullStrip>`
+      :ref:`@Purify_1D <@Purify_1D>`,:ref:`@Quiet_Talkers <@Quiet_Talkers>`,:ref:`@ROI_Corr_Mat <@ROI_Corr_Mat>`
+      :ref:`@R_funclist <@R_funclist>`,:ref:`@RenamePanga <@RenamePanga>`,:ref:`@Reorder <@Reorder>`
+      :ref:`@RetinoProc <@RetinoProc>`,:ref:`@SSwarper <@SSwarper>`,:ref:`@SUMA_AlignToExperiment <@SUMA_AlignToExperiment>`
+      :ref:`@SUMA_FSvolToBRIK <@SUMA_FSvolToBRIK>`,:ref:`@SUMA_Make_Spec_Caret <@SUMA_Make_Spec_Caret>`,:ref:`@SUMA_Make_Spec_FS <@SUMA_Make_Spec_FS>`
+      :ref:`@SUMA_Make_Spec_SF <@SUMA_Make_Spec_SF>`,:ref:`@SUMA_renumber_FS <@SUMA_renumber_FS>`,:ref:`@ScaleVolume <@ScaleVolume>`
+      :ref:`@ScriptCheck <@ScriptCheck>`,:ref:`@Shift_Volume <@Shift_Volume>`,:ref:`@ShowDynamicRange <@ShowDynamicRange>`
+      :ref:`@SkullStrip_TouchUp <@SkullStrip_TouchUp>`,:ref:`@Spharm.examples <@Spharm.examples>`,:ref:`@SurfSmooth.HEAT_07.examples <@SurfSmooth.HEAT_07.examples>`
+      :ref:`@T1scale <@T1scale>`,:ref:`@TimeDiff <@TimeDiff>`,:ref:`@ToRAI <@ToRAI>`
+      :ref:`@UpdateAfni <@UpdateAfni>`,:ref:`@VolCenter <@VolCenter>`,:ref:`@afni.run.me <@afni.run.me>`
+      :ref:`@afni_R_package_install <@afni_R_package_install>`,:ref:`@align_partial_oblique <@align_partial_oblique>`,:ref:`@auto_align <@auto_align>`
+      :ref:`@auto_tlrc <@auto_tlrc>`,:ref:`@build_afni_Xlib <@build_afni_Xlib>`,:ref:`@chauffeur_afni <@chauffeur_afni>`
+      :ref:`@clean_help_dir <@clean_help_dir>`,:ref:`@clip_volume <@clip_volume>`,:ref:`@compute_gcor <@compute_gcor>`
+      :ref:`@demo_prompt <@demo_prompt>`,:ref:`@diff.files <@diff.files>`,:ref:`@diff.tree <@diff.tree>`
+      :ref:`@djunct_4d_imager <@djunct_4d_imager>`,:ref:`@djunct_calc_mont_dims.py <@djunct_calc_mont_dims.py>`,:ref:`@djunct_dwi_selector.bash <@djunct_dwi_selector.bash>`
+      :ref:`@djunct_select_str.py <@djunct_select_str.py>`,:ref:`@escape- <@escape->`,:ref:`@fast_roi <@fast_roi>`
+      :ref:`@fat_tract_colorize <@fat_tract_colorize>`,:ref:`@fix_FSsphere <@fix_FSsphere>`,:ref:`@float_fix <@float_fix>`
+      :ref:`@get.afni.version <@get.afni.version>`,:ref:`@global_parse <@global_parse>`,:ref:`@help.AFNI <@help.AFNI>`
+      :ref:`@isOblique <@isOblique>`,:ref:`@make_plug_diff <@make_plug_diff>`,:ref:`@make_stim_file <@make_stim_file>`
+      :ref:`@move.to.series.dirs <@move.to.series.dirs>`,:ref:`@np <@np>`,:ref:`@parse_afni_name <@parse_afni_name>`
+      :ref:`@parse_name <@parse_name>`,:ref:`@radial_correlate <@radial_correlate>`,:ref:`@simulate_motion <@simulate_motion>`
+      :ref:`@snapshot_volreg <@snapshot_volreg>`,:ref:`@snapshot_volreg3 <@snapshot_volreg3>`,:ref:`@statauxcode <@statauxcode>`
+      :ref:`@suma_reprefixize_spec <@suma_reprefixize_spec>`,:ref:`@toMNI_Awarp <@toMNI_Awarp>`,:ref:`@toMNI_Qwarpar <@toMNI_Qwarpar>`
+      :ref:`@update.afni.binaries <@update.afni.binaries>`,:ref:`AFNI_Batch_R <AFNI_Batch_R>`,:ref:`AlphaSim <AlphaSim>`
+      :ref:`AnalyzeTrace <AnalyzeTrace>`,:ref:`BrainSkin <BrainSkin>`,:ref:`CA_EZ_atlas.csh <CA_EZ_atlas.csh>`
+      :ref:`ClustExp_HistTable.py <ClustExp_HistTable.py>`,:ref:`ClustExp_StatParse.py <ClustExp_StatParse.py>`,:ref:`CompareSurfaces <CompareSurfaces>`
+      :ref:`ConvertDset <ConvertDset>`,:ref:`ConvertSurface <ConvertSurface>`,:ref:`ConvexHull <ConvexHull>`
+      :ref:`CreateIcosahedron <CreateIcosahedron>`,:ref:`DTIStudioFibertoSegments <DTIStudioFibertoSegments>`,:ref:`Dimon <Dimon>`
+      :ref:`Dimon1 <Dimon1>`,:ref:`DriveSuma <DriveSuma>`,:ref:`ExamineXmat <ExamineXmat>`
+      :ref:`FD2 <FD2>`,:ref:`FIRdesign <FIRdesign>`,:ref:`FSread_annot <FSread_annot>`
+      :ref:`GLTsymtest <GLTsymtest>`,:ref:`HalloSuma <HalloSuma>`,:ref:`Ifile <Ifile>`
+      :ref:`InstaTract <InstaTract>`,:ref:`IsoSurface <IsoSurface>`,:ref:`MakeColorMap <MakeColorMap>`
+      :ref:`MapIcosahedron <MapIcosahedron>`,:ref:`ParseName <ParseName>`,:ref:`ROI2dataset <ROI2dataset>`
+      :ref:`ROIgrow <ROIgrow>`,:ref:`RSFgen <RSFgen>`,:ref:`RetroTS.py <RetroTS.py>`
+      :ref:`SUMA_glxdino <SUMA_glxdino>`,:ref:`SUMA_paperplane <SUMA_paperplane>`,:ref:`SUMA_pixmap2eps <SUMA_pixmap2eps>`
+      :ref:`SampBias <SampBias>`,:ref:`ScaleToMap <ScaleToMap>`,:ref:`SpharmDeco <SpharmDeco>`
+      :ref:`SpharmReco <SpharmReco>`,:ref:`Surf2VolCoord <Surf2VolCoord>`,:ref:`SurfClust <SurfClust>`
+      :ref:`SurfDist <SurfDist>`,:ref:`SurfDsetInfo <SurfDsetInfo>`,:ref:`SurfExtrema <SurfExtrema>`
+      :ref:`SurfFWHM <SurfFWHM>`,:ref:`SurfInfo <SurfInfo>`,:ref:`SurfMeasures <SurfMeasures>`
+      :ref:`SurfMesh <SurfMesh>`,:ref:`SurfPatch <SurfPatch>`,:ref:`SurfQual <SurfQual>`
+      :ref:`SurfRetinoMap <SurfRetinoMap>`,:ref:`SurfSmooth <SurfSmooth>`,:ref:`SurfToSurf <SurfToSurf>`
+      :ref:`SurfaceMetrics <SurfaceMetrics>`,:ref:`Vecwarp <Vecwarp>`,:ref:`Xphace <Xphace>`
+      :ref:`abut <abut>`,:ref:`adwarp <adwarp>`,:ref:`afni <afni>`
+      :ref:`afni_history <afni_history>`,:ref:`afni_open <afni_open>`,:ref:`afni_proc.py <afni_proc.py>`
+      :ref:`afni_restproc.py <afni_restproc.py>`,:ref:`afni_run_R <afni_run_R>`,:ref:`afni_skeleton.py <afni_skeleton.py>`
+      :ref:`afni_system_check.py <afni_system_check.py>`,:ref:`afni_util.py <afni_util.py>`,:ref:`afni_vcheck <afni_vcheck>`
+      :ref:`aiv <aiv>`,:ref:`align_epi_anat.py <align_epi_anat.py>`,:ref:`apsearch <apsearch>`
+      :ref:`auto_warp.py <auto_warp.py>`,:ref:`byteorder <byteorder>`,:ref:`cat_matvec <cat_matvec>`
+      :ref:`ccalc <ccalc>`,:ref:`cdf <cdf>`,:ref:`cifti_tool <cifti_tool>`
+      :ref:`cjpeg <cjpeg>`,:ref:`column_cat <column_cat>`,:ref:`count <count>`
+      :ref:`dcm2niix_afni <dcm2niix_afni>`,:ref:`dicom_hdr <dicom_hdr>`,:ref:`dicom_hinfo <dicom_hinfo>`
+      :ref:`dicom_to_raw <dicom_to_raw>`,:ref:`djpeg <djpeg>`,:ref:`eg_main_chrono.py <eg_main_chrono.py>`
+      :ref:`ent16 <ent16>`,:ref:`fat_lat_csv.py <fat_lat_csv.py>`,:ref:`fat_mat_sel.py <fat_mat_sel.py>`
+      :ref:`fat_mvm_gridconv.py <fat_mvm_gridconv.py>`,:ref:`fat_mvm_prep.py <fat_mvm_prep.py>`,:ref:`fat_mvm_review.py <fat_mvm_review.py>`
+      :ref:`fat_mvm_scripter.py <fat_mvm_scripter.py>`,:ref:`fat_proc_align_anat_pair <fat_proc_align_anat_pair>`,:ref:`fat_proc_axialize_anat <fat_proc_axialize_anat>`
+      :ref:`fat_proc_connec_vis <fat_proc_connec_vis>`,:ref:`fat_proc_convert_dcm_anat <fat_proc_convert_dcm_anat>`,:ref:`fat_proc_convert_dcm_dwis <fat_proc_convert_dcm_dwis>`
+      :ref:`fat_proc_decmap <fat_proc_decmap>`,:ref:`fat_proc_dwi_to_dt <fat_proc_dwi_to_dt>`,:ref:`fat_proc_filter_dwis <fat_proc_filter_dwis>`
+      :ref:`fat_proc_grad_plot <fat_proc_grad_plot>`,:ref:`fat_proc_imit2w_from_t1w <fat_proc_imit2w_from_t1w>`,:ref:`fat_proc_map_to_dti <fat_proc_map_to_dti>`
+      :ref:`fat_proc_select_vols <fat_proc_select_vols>`,:ref:`fat_roi_row.py <fat_roi_row.py>`,:ref:`fdrval <fdrval>`
+      :ref:`fftest <fftest>`,:ref:`file_tool <file_tool>`,:ref:`fim2 <fim2>`
+      :ref:`float_scan <float_scan>`,:ref:`from3d <from3d>`,:ref:`ftosh <ftosh>`
+      :ref:`ge_header <ge_header>`,:ref:`gen_epi_review.py <gen_epi_review.py>`,:ref:`gen_group_command.py <gen_group_command.py>`
+      :ref:`gen_ss_review_scripts.py <gen_ss_review_scripts.py>`,:ref:`gen_ss_review_table.py <gen_ss_review_table.py>`,:ref:`gifti_tool <gifti_tool>`
+      :ref:`help_format <help_format>`,:ref:`im2niml <im2niml>`,:ref:`images_equal <images_equal>`
+      :ref:`imand <imand>`,:ref:`imaver <imaver>`,:ref:`imcalc <imcalc>`
+      :ref:`imcat <imcat>`,:ref:`imcutup <imcutup>`,:ref:`imdump <imdump>`
+      :ref:`immask <immask>`,:ref:`imreg <imreg>`,:ref:`imrotate <imrotate>`
+      :ref:`imstack <imstack>`,:ref:`imstat <imstat>`,:ref:`imupsam <imupsam>`
+      :ref:`inspec <inspec>`,:ref:`lpc_align.py <lpc_align.py>`,:ref:`make_pq_script.py <make_pq_script.py>`
+      :ref:`make_random_timing.py <make_random_timing.py>`,:ref:`make_stim_times.py <make_stim_times.py>`,:ref:`map_TrackID <map_TrackID>`
+      :ref:`mayo_analyze <mayo_analyze>`,:ref:`meica.py <meica.py>`,:ref:`mpeg_encode <mpeg_encode>`
+      :ref:`mritopgm <mritopgm>`,:ref:`mycat <mycat>`,:ref:`myget <myget>`
+      :ref:`neuro_deconvolve.py <neuro_deconvolve.py>`,:ref:`nicat <nicat>`,:ref:`niccc <niccc>`
+      :ref:`nifti1_test <nifti1_test>`,:ref:`nifti1_tool <nifti1_tool>`,:ref:`nifti_tool <nifti_tool>`
+      :ref:`niml_feedme <niml_feedme>`,:ref:`niprobe <niprobe>`,:ref:`nsize <nsize>`
+      :ref:`parse_fs_lt_log.py <parse_fs_lt_log.py>`,:ref:`plugout_drive <plugout_drive>`,:ref:`plugout_ijk <plugout_ijk>`
+      :ref:`plugout_tt <plugout_tt>`,:ref:`plugout_tta <plugout_tta>`,:ref:`prompt_popup <prompt_popup>`
+      :ref:`prompt_user <prompt_user>`,:ref:`python_module_test.py <python_module_test.py>`,:ref:`quick.alpha.vals.py <quick.alpha.vals.py>`
+      :ref:`quickspec <quickspec>`,:ref:`quotize <quotize>`,:ref:`rPkgsInstall <rPkgsInstall>`
+      :ref:`rbox <rbox>`,:ref:`read_matlab_files.py <read_matlab_files.py>`,:ref:`realtime_receiver.py <realtime_receiver.py>`
+      :ref:`rmz <rmz>`,:ref:`rotcom <rotcom>`,:ref:`rtfeedme <rtfeedme>`
+      :ref:`serial_helper <serial_helper>`,:ref:`sfim <sfim>`,:ref:`siemens_vision <siemens_vision>`
+      :ref:`slow_surf_clustsim.py <slow_surf_clustsim.py>`,:ref:`sqwave <sqwave>`,:ref:`stimband <stimband>`
+      :ref:`strblast <strblast>`,:ref:`suma <suma>`,:ref:`suma_change_spec <suma_change_spec>`
+      :ref:`tfim <tfim>`,:ref:`timing_tool.py <timing_tool.py>`,:ref:`to3d <to3d>`
+      :ref:`tokens <tokens>`,:ref:`uber_align_test.py <uber_align_test.py>`,:ref:`uber_proc.py <uber_proc.py>`
+      :ref:`uber_skel.py <uber_skel.py>`,:ref:`uber_subject.py <uber_subject.py>`,:ref:`uber_ttest.py <uber_ttest.py>`
+      :ref:`unWarpEPI.py <unWarpEPI.py>`,:ref:`uniq_images <uniq_images>`,:ref:`waver <waver>`
+      :ref:`whereami <whereami>`,:ref:`whirlgif <whirlgif>`,:ref:`xmat_tool.py <xmat_tool.py>`

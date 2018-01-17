@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *********************
 3dBRAIN_VOYAGERtoAFNI
 *********************
+
+.. _3dBRAIN_VOYAGERtoAFNI:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

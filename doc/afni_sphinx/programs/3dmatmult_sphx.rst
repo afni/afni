@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *********
 3dmatmult
 *********
+
+.. _3dmatmult:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

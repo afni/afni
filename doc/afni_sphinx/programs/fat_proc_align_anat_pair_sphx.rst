@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ************************
 fat_proc_align_anat_pair
 ************************
+
+.. _fat_proc_align_anat_pair:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *******
 3dEmpty
 *******
+
+.. _3dEmpty:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

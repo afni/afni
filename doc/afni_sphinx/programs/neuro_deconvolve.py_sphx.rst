@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *******************
 neuro_deconvolve.py
 *******************
+
+.. _neuro_deconvolve.py:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

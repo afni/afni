@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ********
 3dvolreg
 ********
+
+.. _3dvolreg:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

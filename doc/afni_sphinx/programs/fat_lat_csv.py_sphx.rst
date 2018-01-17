@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **************
 fat_lat_csv.py
 **************
+
+.. _fat_lat_csv.py:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

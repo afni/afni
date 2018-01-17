@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ************
 3dClustCount
 ************
+
+.. _3dClustCount:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

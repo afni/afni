@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *******
 3dmerge
 *******
+
+.. _3dmerge:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

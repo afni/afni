@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ****************
 @Center_Distance
 ****************
+
+.. _@Center_Distance:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ************
 auto_warp.py
 ************
+
+.. _auto_warp.py:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

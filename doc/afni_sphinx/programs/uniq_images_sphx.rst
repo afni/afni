@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***********
 uniq_images
 ***********
+
+.. _uniq_images:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

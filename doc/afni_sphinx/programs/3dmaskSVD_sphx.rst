@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *********
 3dmaskSVD
 *********
+
+.. _3dmaskSVD:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

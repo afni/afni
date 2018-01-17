@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *****************
 CreateIcosahedron
 *****************
+
+.. _CreateIcosahedron:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

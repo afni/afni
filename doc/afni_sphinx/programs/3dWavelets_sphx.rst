@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **********
 3dWavelets
 **********
+
+.. _3dWavelets:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *******
 1dNLfit
 *******
+
+.. _1dNLfit:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

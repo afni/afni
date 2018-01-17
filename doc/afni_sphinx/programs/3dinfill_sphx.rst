@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ********
 3dinfill
 ********
+
+.. _3dinfill:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

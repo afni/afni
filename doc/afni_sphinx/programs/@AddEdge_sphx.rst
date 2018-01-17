@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ********
 @AddEdge
 ********
+
+.. _@AddEdge:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

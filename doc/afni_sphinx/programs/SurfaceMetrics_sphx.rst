@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **************
 SurfaceMetrics
 **************
+
+.. _SurfaceMetrics:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

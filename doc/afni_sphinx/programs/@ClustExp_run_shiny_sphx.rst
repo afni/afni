@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *******************
 @ClustExp_run_shiny
 *******************
+
+.. _@ClustExp_run_shiny:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

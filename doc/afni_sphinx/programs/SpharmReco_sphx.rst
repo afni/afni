@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **********
 SpharmReco
 **********
+
+.. _SpharmReco:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

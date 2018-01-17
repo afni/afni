@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **********
 1d_tool.py
 **********
+
+.. _1d_tool.py:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

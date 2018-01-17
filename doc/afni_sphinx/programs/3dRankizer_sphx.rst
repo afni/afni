@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **********
 3dRankizer
 **********
+
+.. _3dRankizer:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

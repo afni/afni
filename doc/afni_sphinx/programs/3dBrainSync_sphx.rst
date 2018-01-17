@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***********
 3dBrainSync
 ***********
+
+.. _3dBrainSync:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

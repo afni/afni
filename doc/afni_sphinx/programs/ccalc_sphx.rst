@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *****
 ccalc
 *****
+
+.. _ccalc:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

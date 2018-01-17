@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *****
 ent16
 *****
+
+.. _ent16:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

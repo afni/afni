@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ********************
 @Install_FATCAT_DEMO
 ********************
+
+.. _@Install_FATCAT_DEMO:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

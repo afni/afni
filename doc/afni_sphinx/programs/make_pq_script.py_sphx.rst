@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *****************
 make_pq_script.py
 *****************
+
+.. _make_pq_script.py:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***************
 @MakeLabelTable
 ***************
+
+.. _@MakeLabelTable:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

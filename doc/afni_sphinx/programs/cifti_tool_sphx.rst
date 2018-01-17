@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **********
 cifti_tool
 **********
+
+.. _cifti_tool:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

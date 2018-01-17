@@ -16,5 +16,6 @@
    steps_mac
    steps_mac_app
    steps_windows10
+   steps_windows10_beta
    error_msgs
 

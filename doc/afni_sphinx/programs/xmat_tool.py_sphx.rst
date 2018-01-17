@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ************
 xmat_tool.py
 ************
+
+.. _xmat_tool.py:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

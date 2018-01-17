@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *******
 1dTsort
 *******
+
+.. _1dTsort:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ********
 whirlgif
 ********
+
+.. _whirlgif:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

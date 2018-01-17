@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ************
 @ScaleVolume
 ************
+
+.. _@ScaleVolume:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

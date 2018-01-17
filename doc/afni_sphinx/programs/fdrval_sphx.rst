@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ******
 fdrval
 ******
+
+.. _fdrval:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

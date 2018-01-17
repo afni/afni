@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ************
 @afni.run.me
 ************
+
+.. _@afni.run.me:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

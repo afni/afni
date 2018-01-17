@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *******
 3dTRfix
 *******
+
+.. _3dTRfix:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

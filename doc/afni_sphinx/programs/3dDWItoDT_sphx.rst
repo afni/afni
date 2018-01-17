@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *********
 3dDWItoDT
 *********
+
+.. _3dDWItoDT:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

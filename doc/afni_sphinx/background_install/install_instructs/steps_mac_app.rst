@@ -80,8 +80,8 @@ Break It Down Again [#f3]_
     If you have some design skills, please send me alternatives.*
 .. ---------- HERE/BELOW: copy for all installs --------------
 
-Prepare for Bootcamp (semi-optional)
-------------------------------------
+Prepare for Bootcamp
+--------------------
 
 .. include:: substep_bootcamp.rst
 

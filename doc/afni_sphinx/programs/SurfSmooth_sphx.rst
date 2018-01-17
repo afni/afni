@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **********
 SurfSmooth
 **********
+
+.. _SurfSmooth:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

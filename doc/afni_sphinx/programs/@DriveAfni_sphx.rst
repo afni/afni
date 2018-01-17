@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **********
 @DriveAfni
 **********
+
+.. _@DriveAfni:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **********
 @GetAfniID
 **********
+
+.. _@GetAfniID:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

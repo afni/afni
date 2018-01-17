@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ********
 @NoPound
 ********
+
+.. _@NoPound:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

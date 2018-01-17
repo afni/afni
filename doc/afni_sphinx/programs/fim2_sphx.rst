@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ****
 fim2
 ****
+
+.. _fim2:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

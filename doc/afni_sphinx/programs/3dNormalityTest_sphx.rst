@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***************
 3dNormalityTest
 ***************
+
+.. _3dNormalityTest:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

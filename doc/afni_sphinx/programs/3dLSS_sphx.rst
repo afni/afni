@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *****
 3dLSS
 *****
+
+.. _3dLSS:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

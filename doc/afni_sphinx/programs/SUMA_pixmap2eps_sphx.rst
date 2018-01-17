@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***************
 SUMA_pixmap2eps
 ***************
+
+.. _SUMA_pixmap2eps:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ****************
 afni_skeleton.py
 ****************
+
+.. _afni_skeleton.py:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

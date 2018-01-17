@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *************
 dcm2niix_afni
 *************
+
+.. _dcm2niix_afni:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

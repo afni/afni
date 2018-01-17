@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***********
 1dCorrelate
 ***********
+
+.. _1dCorrelate:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

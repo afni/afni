@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***************
 3dANALYZEtoAFNI
 ***************
+
+.. _3dANALYZEtoAFNI:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ********************
 read_matlab_files.py
 ********************
+
+.. _read_matlab_files.py:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***********
 3dAllineate
 ***********
+
+.. _3dAllineate:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

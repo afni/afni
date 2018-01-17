@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ********
 1dAstrip
 ********
+
+.. _1dAstrip:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

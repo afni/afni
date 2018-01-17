@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ***********
 ExamineXmat
 ***********
+
+.. _ExamineXmat:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *****************
 @SUMA_renumber_FS
 *****************
+
+.. _@SUMA_renumber_FS:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

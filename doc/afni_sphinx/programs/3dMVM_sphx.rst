@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 *****
 3dMVM
 *****
+
+.. _3dMVM:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

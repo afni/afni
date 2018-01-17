@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ********************
 @Install_FATMVM_DEMO
 ********************
+
+.. _@Install_FATMVM_DEMO:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

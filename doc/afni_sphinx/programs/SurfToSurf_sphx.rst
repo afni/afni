@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 **********
 SurfToSurf
 **********
+
+.. _SurfToSurf:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 

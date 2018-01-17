@@ -1,9 +1,11 @@
-.. contents:: 
-    :depth: 4 
-
 ************
 unWarpEPI.py
 ************
+
+.. _unWarpEPI.py:
+
+.. contents:: 
+    :depth: 4 
 
 .. code-block:: none
 
