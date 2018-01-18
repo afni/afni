@@ -164,6 +164,6 @@ More coming soon
 
 .. [#f1] Men at Work
 .. [#f2] Ready to Run by the Dixie Chicks
-.. [#f3] Sexy Sadie by The Beatles
+.. [#f3] S... Sadie by The Beatles
 .. [#f4] The Police
 .. [#f5] Incredible by Joss Stone
