@@ -1505,7 +1505,7 @@ int main( int argc , char *argv[] )
      }
    }
 
-#define TOPFRAC 0.03456789f
+#define TOPFRAC 0.12345678f
    nfomkeep = (int)(TOPFRAC*niter) ; /* max number of FOMs to keep at 1 voxel */
 
    for( qcase=0 ; qcase < ncase ; qcase++ ){ /* loop over cases */
@@ -1925,7 +1925,7 @@ FARP_LOOPBACK:
          fff = (farperc-farpercold)/(tfrac-tfracold) ;
          ttemp = tfrac ; tfrac = tfracold + (FG_GOAL-farpercold)/fff ;
        }
-#define TFTOP (0.444f*TOPFRAC)
+#define TFTOP (0.555f*TOPFRAC)
        tfracold = ttemp ;
             if( tfrac < min_tfrac ) tfrac = min_tfrac ;
        else if( tfrac > TFTOP     ) tfrac = TFTOP ;
