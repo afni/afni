@@ -41,27 +41,26 @@ csv.files <- list_files_with_exts(cor.path,ext=ext.list)
 ## see if they are loadable and square
 file.list2 <- c()
 for(i in csv.files){
-  
-  ## read in with with fread to take care of seps 
+
+  ## read in with with fread to take care of seps
   ## and data.frame for the row names
   csv.df <- data.frame(fread(i,header=TRUE),row.names=1,check.names=FALSE)
 
   ## check for square with same names
-  if(dim(csv.df)[1] == dim(csv.df)[2] & 
+  if(dim(csv.df)[1] == dim(csv.df)[2] &
      identical(rownames(csv.df),colnames(csv.df))){
     file.list2 <- rbind(file.list2,i)
   } else {
    print(paste(i,'is not a loadable matrix'))
   }
-
 }
 
-names(file.list2) <- basename(file.list2)
+## make sure that there is something there
+if(length(file.list2) > 0) {
+  names(file.list2) <- basename(file.list2)
+  file.list <- c(file.list,file.list2)
+}
 
-file.list <- c(file.list,file.list2)
-
-# print(all.files)
-  
 ## read in stat descriptions for FATCAT and 3dnetcorr
 stat.df <- read.csv('stat_methods.csv',stringsAsFactors=FALSE)
 
