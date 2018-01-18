@@ -6,7 +6,7 @@ Tutorials, Examples
 
 .. toctree::
    :maxdepth: 2
-   
+
    SelfGuidedScripts
    fatcat_prep/main_toc.rst
    fatcat_demo/fatcat_demo.rst
@@ -17,3 +17,4 @@ Tutorials, Examples
    Coding/Writing_Help
    ClusterExplorer/main_toc
    FATCAT_matplot/main_toc
+   3dMVM_validator/main_toc
