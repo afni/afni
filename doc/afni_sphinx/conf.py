@@ -154,7 +154,7 @@ html_theme_options = {
     "min_height": "12in",
     "max_width": "12in",
     "lighter_header_decor": "true",
-    "linkcolor": "#104E8B",
+    "linkcolor": "#1874CD",
     "bgcolor": "#F5F5F5",
     "bodyfont": "Arial",
     "bodylineheight": "1.3em",

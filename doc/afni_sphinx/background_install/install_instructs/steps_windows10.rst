@@ -82,14 +82,9 @@ a. | Click on the following link to start automatic download:
 Install prerequisite: AFNI and  package dependencies
 ----------------------------------------------------
 
-We assume your version of Ubuntu is 16.04, and so you should follow
-the following setup instructions through "Make AFNI/SUMA profiles":
-  
-.. list-table:: 
-   :header-rows: 0
-   :widths: 80
-
-   * - :ref:`Link to Ubuntu 16+ setup instructions for AFNI <install_steps_linux_ubuntu16>`
+| We assume your version of Ubuntu is 16.04, and so you should follow
+  the following setup instructions through "Make AFNI/SUMA profiles":
+| :ref:`Link to Ubuntu 16+ setup instructions for AFNI <install_steps_linux_ubuntu16>`
 
 **... while noting the following:**
 
@@ -97,7 +92,10 @@ the following setup instructions through "Make AFNI/SUMA profiles":
   hours.  Meditation is often a good thing, anyways.
 
 * Include the optional ``gnome-terminal`` installation in the first
-  set of steps.
+  set of steps, and copy+paste this into the terminal::
+
+    echo "export NO_AT_BRIDGE=1" >> ~/.bashrc
+    echo "setenv NO_AT_BRIDGE 1" >> ~/.cshrc
 
 
 Useful setup tips (optional, but recommended)
@@ -109,9 +107,9 @@ a. Install Ubuntu terminal fonts as described `HERE
 #. Follow these ``gnome-terminal`` steps:
 
    * The default profile "use colors from system theme" shows an
-     all-black terminal.  To fix this: select the ``Edit`` tab, then
-     ``Profile``, turn **off** "use colors ...", and finally simply
-     pick a scheme+palette that you like.
+     all-black terminal.  To fix this: go to the terminal's menu bar,
+     select the ``Edit`` tab, then ``Profile``, turn **off** "use
+     colors ...", and just pick a scheme+palette that you like.
 
    * In gnome-terminal, everything is standard and similar to other
      linux implementations, and the middle button pastes whatever is
