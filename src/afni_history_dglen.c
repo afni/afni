@@ -50,6 +50,19 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 18, JAN, 2018, DRG, "3dUndump cubes",
+	MICRO, TYPE_NEW_OPT,
+	"-cubes makes cubes instead of spheres"
+},
+
+{ 18, JAN, 2018, DRG, "thickness scripts",
+	SUPER, TYPE_NEW_PROG,
+	"Scripts to compute thickness of a mask 3 ways",
+	"@measure_bb_thick, @measure_erosion_thick, @measure_in2out\n"
+	"Suite of thickness scripts to compute thickness in volume\n"
+    "and map to surface. Master script, @thickness_master, to\n"
+    "call others with option for FreeSurfer input data"
+},
 { 9, NOV, 2017, DRG, "whereami report changes",
 	MICRO, TYPE_MODIFY,
 	"linkrbrain, sumsdb no longer working, so turned off",
