@@ -27,12 +27,9 @@ if(!dir.exists(cor.path)){
 
 #####################################
 ## get file list and see if there are any good files
+
+## FATCAT or Netcorr files
 file.list <- list_files_with_exts(cor.path,ext=c('grid','netcc'))
-if(length(file.list) == 0){
-  print(paste0("ERROR: no .netcc or .grid files in ",cor.path))
-  quit(save="no")
-}
-names(file.list) <- basename(file.list)
 
 ## any non FATCAT or 3dnetcorr files
 ext.list <- c('csv','CSV','dat','DAT','tsv','TSV','1d','1D')
@@ -55,14 +52,17 @@ for(i in csv.files){
   }
 }
 
-## make sure that there is something there
+## make sure that there is something there and name
 if(length(file.list2) > 0) {
-  names(file.list2) <- basename(file.list2)
   file.list <- c(file.list,file.list2)
 }
+if(length(file.list) == 0){
+  print(paste0("ERROR: no .netcc or .grid files in ",cor.path))
+  quit(save="no")
+}
+names(file.list) <- basename(file.list)
 
 ## read in stat descriptions for FATCAT and 3dnetcorr
 stat.df <- read.csv('stat_methods.csv',stringsAsFactors=FALSE)
-
 
 
