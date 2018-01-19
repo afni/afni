@@ -10,8 +10,9 @@ set thickdir = ""
 
 set outdir  = "thick"
 # help
-HELP:
+
 if ($# < 1) then
+HELP:
     echo "@thickness_master"
     echo "usage:"
     echo "@thickness_master -maskset maskset -surfset surfacedset.gii -outdir basethickdir"
