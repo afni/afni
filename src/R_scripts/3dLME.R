@@ -23,9 +23,9 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
    intro <- 
 '
           ================== Welcome to 3dLME ==================          
-    AFNI Group Analysis Program with Multi-Variate Modeling Approach
+    AFNI Group Analysis Program with Linear Mixed-Effects Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.9.7, Nov 13, 2017
+Version 1.9.8, Jan 19, 2018
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/sscc/gangc/lme.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
