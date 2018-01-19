@@ -1,4 +1,4 @@
-#/bin/tcsh
+#!/bin/tcsh
 # @thickness_master
 # compute thickness different ways
 #   ball and box, erosion and in2out methods
@@ -12,7 +12,7 @@ set outdir  = "thick"
 # help
 HELP:
 if ($# < 1) then
-    echo "@thickness_master
+    echo "@thickness_master"
     echo "usage:"
     echo "@thickness_master -maskset maskset -surfset surfacedset.gii -outdir basethickdir"
     echo
