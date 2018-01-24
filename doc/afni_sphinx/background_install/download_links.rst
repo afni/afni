@@ -128,7 +128,7 @@ tools to check if things are OK), please see :ref:`install_page`.
      <https://afni.nimh.nih.gov/pub/dist/tgz/linux_xorg7.tgz>`_.
 
    * for `Linux gcc32, 32 bit
-     <https://afni.nimh.nih.gov/pub/dist/tgz/linux_gcc32.tgzK>`_.
+     <https://afni.nimh.nih.gov/pub/dist/tgz/linux_gcc32.tgz>`_.
 
    * for `FreeBSD with ports (github)
      <https://github.com/outpaddling/freebsd-ports-wip>`_.
