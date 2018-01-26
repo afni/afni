@@ -49,6 +49,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 26, Jan, 2018, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
+   "applied various NeuroDebian patches from M Hanke and Y Halchenko",
+   "Includes up_include_right, up_condition_dset_unload, up_3dNetCorrFix,\n"
+   "and up-fix_inflate_compare.\n"
+   "Thanks to M Hanke and Y Halchenko for the fixes."
+ } ,
+
  { 26, Jan, 2018, RCR, "dicom_hinfo", MICRO, TYPE_BUG_FIX,
    "fix crash on no input file",
    NULL
