@@ -1335,7 +1335,7 @@ static int set_sop_iuids(char * estr, int * iuid_maj, int * iuid_min)
    int    ind, dcount, major=-1, minor=-1;
 
    if( ! iuid_maj || ! iuid_min || ! estr ) return 0; /* nothing to do */
-   
+
    /* find end search point, up to a max of 64 characters */
    for( ind=0, endp=estr; ind<64 && (isdigit(*endp)||*endp=='.'); ind++,endp++)
       /* nada */ ;
@@ -2560,7 +2560,7 @@ static int init_dicom_globals(dicom_globals_t * info)
 
 /*----------------------------------------------------------------------------*/
 /* Get some header info from a DICOM file [15 Nov 2011 - RWCox] */
-/* 
+/*
  * nposn = name position (was dolast): -1 = first, 0 = skip, 1 = last
  *                                                 5 Oct 2012 [rickr] */
 char * mri_dicom_hdrinfo( char *fname , int natt , char **att , int nposn )
@@ -2619,5 +2619,84 @@ ENTRY("mri_dicom_hdrinfo") ;
    }
    if( nposn == 1 ) strout = THD_zzprintf(strout," %s",fname) ;
 
+   free(epos) ; free(ppp) ; RETURN(strout) ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* Get some header info from a DICOM file with full tag including spaces    */
+/* [Justin Rajendra 01/2018] */
+
+/* stupid function to subset string on indices */
+static char *cut_str_range(char const *input, size_t start, size_t len) {
+     char *ret = malloc(len+1);
+     memcpy(ret, input+start, len);
+     ret[len]  = '\0';
+     return ret;
+ }
+
+/* get full tag until new line character */
+char * mri_dicom_hdrinfo_full( char *fname , int natt , char **att , int nposn )
+{
+
+   char *strout=NULL, *ppp, **epos, *ddd, *end_of_line, *full_tag=NULL;
+   int aa, end_index;
+
+ENTRY("mri_dicom_hdrinfo_full") ;
+
+   if( fname == NULL || (natt > 0 && att == NULL) ) RETURN(NULL) ;
+
+   if( ! g_dicom_ctrl.init ) init_dicom_globals(&g_dicom_ctrl);
+
+   if( !mri_possibly_dicom(fname) ){                /* 07 May 2003 */
+     if( g_dicom_ctrl.verb > 1 )
+       ERROR_message("file %s is not possibly DICOM",fname) ;
+     RETURN(NULL) ;
+   }
+
+   /*-- extract header info from file into a string --*/
+
+   mri_dicom_nohex(1) ;              /* don't print ints in hex mode */
+   mri_dicom_noname(1) ;             /* don't print names, just tags */
+   ppp = mri_dicom_header( fname ) ; /* print header to malloc()-ed string */
+   if( ppp == NULL ){                /* didn't work; not a DICOM file? */
+     if( g_dicom_ctrl.verb > 1 )
+       ERROR_message("file %s is not interpretable as DICOM",fname) ;
+     RETURN(NULL) ;
+   }
+
+   /*-- initialize output --*/
+   if( nposn == -1 || natt <= 0 ) strout = THD_zzprintf(strout,"%s",fname) ;
+
+   /*-- simple case, probably never used --*/
+   if( natt <= 0 ){ free(ppp) ; RETURN(strout) ; }
+
+   /* find positions in header of elements we care about */
+   epos = (char **)calloc( sizeof(char *) , natt ) ;
+   get_posns_from_elist( epos, att, ppp, natt ) ;
+
+   /*-- scan and copy output --*/
+   for( aa=0 ; aa < natt ; aa++ ){
+     full_tag = NULL;
+     if( epos[aa] != NULL ){
+       ddd = strstr(epos[aa],"//") ; /* get start */
+       if( ddd != NULL ){
+           /*  end and end index */
+           end_of_line = strchr(ddd,'\n') ;
+           end_index = (int)(end_of_line - ddd);
+
+           /* chop out and save */
+           full_tag = cut_str_range(ddd,2,end_index-2);
+       }
+     }
+
+     /* if name is first or after first output, add a space */
+     if( nposn != -1 && aa == 0 ){
+         strout = THD_zzprintf(strout,"%s" ,full_tag?full_tag:"null") ;
+     } else {
+         strout = THD_zzprintf(strout," %s",full_tag?full_tag:"null") ;
+     }
+     if( full_tag ) free(full_tag);
+   }
+   if( nposn == 1 ) strout = THD_zzprintf(strout," %s",fname) ;
    free(epos) ; free(ppp) ; RETURN(strout) ;
 }
