@@ -3809,7 +3809,8 @@ extern float THD_fdrcurve_zqtot( THD_3dim_dataset *dset , int iv , float zval ) 
 
     Won't do anything if the dataset is locked into memory
 */
-#define DSET_unload(ds) THD_purge_datablock( (ds)->dblk , DATABLOCK_MEM_ANY )
+#define DSET_unload(ds) THD_purge_datablock( (ds)?(ds)->dblk:NULL , DATABLOCK_MEM_ANY )
+
 
 /*! Unload sub-brick iv in dataset ds from memory.
 
@@ -5840,7 +5841,7 @@ extern float THD_dice_coef_f_masked(int,float *,float *,byte *);/* 28 Jul'15 */
 extern THD_3dim_dataset * THD_Tcorr1D(THD_3dim_dataset *xset,
                               byte *mask, int nmask,
                               MRI_IMAGE *ysim,
-                              char *smethod, char *prefix,int do_short,int do_atanh);
+                              char *smethod, char *prefix,int do_short);
 extern float THD_quantile_corr( int,float *,float *) ;  /* 10 May 2012 */
 extern float quantile_corr( int n , float *x , float rv , float *r ) ;
 extern void THD_quantile_corr_setup( int ) ;
