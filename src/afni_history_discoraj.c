@@ -51,6 +51,10 @@
 afni_history_struct discoraj_history[] = {
 
  /* can copy to and change one of the examples here */
+ { 26 , JAN , 2018 , JKR , "dicom_hinfo" , MINOR , TYPE_GENERAL ,
+   "add -full_entry" ,
+   "prints out the full entry of a tag if there are more than one word"
+ } ,
  { 25 , OCT , 2017 , JKR , "@afni_R_package_install" , SUPER , TYPE_NEW_PROG ,
    "add new program @afni_R_package_install" ,
    "Will install R libraries to run shiny apps"
