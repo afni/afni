@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 26, Jan, 2018, RCR, "dicom_hinfo", MICRO, TYPE_BUG_FIX,
+   "fix crash on no input file",
+   NULL
+ } ,
+
  { 10, Jan, 2018, RCR, "@update.afni.binaries", MICRO, TYPE_ENHANCE,
    "also set PATH in .bash_profile, if it exists",
    NULL
