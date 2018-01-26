@@ -279,6 +279,15 @@ static char *tip[] = {
    " @NoisySkullStrip - when the dataset is very noisy\n"
    " @SSwarper        - nonlinear warping to MNI space combined\n"
    "                    with skull stripping"
+ ,
+   "Program 3dUnifize can make the image intensity of a T1-weighted dataset\n"
+   "more uniform in space. As a bonus, can also contrast-invert a dataset\n"
+   "prior to the uniform-ization, which might be useful for T2-weighted\n"
+   "datasets. It also has an experimental option for processing EPI data."
+ ,
+   "Program 3dcalc does voxel-wise calculations on datasets. Doesn't sound\n"
+   "exciting to you? Once you get to know it, you will find that 3dcalc is\n"
+   "your FRIEND!"
 } ;
 
 #endif

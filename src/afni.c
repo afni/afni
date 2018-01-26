@@ -126,7 +126,9 @@
 #define USE_SIDES  /* 01 Dec 1999: replace "left is xxx" */
                    /* labels with "sides" labels.        */
 
-void AFNI_print_startup_tip(void) ;
+void AFNI_print_startup_tip(int) ;
+
+#include "afni_startup_tips.h"  /* where the tips live */
 
 /*-----------------------------------------------------------------------
    Fallback resources for AFNI.  May be overridden by the user's
@@ -710,6 +712,7 @@ void AFNI_syntax(void)
      "                If an integer is supplied afterwards, will print that\n"
      "                many (random) goodbye messages.\n"
      "   -startup [n] Similar to '-goodbye', but for startup tips.\n"
+     "                [If you want REAL fun, use '-startup ALL'.]\n"
      "   -ver         Print the current AFNI version and exit.\n"
      "\n"
      "N.B.: Many of these options, as well as the initial color set up,\n"
@@ -2599,8 +2602,12 @@ int main( int argc , char *argv[] )
 
    if( argc > 1 && strcasecmp(argv[1],"-startup") == 0 ){ /* 05 Jan 2018 */
      int jj ;
-     ii = (argc > 2 ) ? abs((int)rintf((strtod(argv[2],NULL)))) : 1 ;
-     for( jj=0 ; jj < ii ; jj++ ) AFNI_print_startup_tip() ;
+     if( argc > 2 && strcasecmp(argv[2],"ALL") == 0 ){
+       for( jj=0 ; jj < NTIP ; jj ++ ) AFNI_print_startup_tip(jj) ;
+     } else {
+       ii = (argc > 2 ) ? abs((int)rintf((strtod(argv[2],NULL)))) : 1 ;
+       for( jj=0 ; jj < ii ; jj++ ) AFNI_print_startup_tip(-1) ;
+     }
      exit(0) ;
    }
 
@@ -3641,11 +3648,11 @@ void AFNI_vcheck_flasher( Three_D_View *im3d )
 
 /*----------------------------------------------------------------------*/
 
-#include "afni_startup_tips.h"  /* where the tips live */
-
-void AFNI_print_startup_tip(void) /* 03 Jan 2018 */
+void AFNI_print_startup_tip(int qq) /* 03 Jan 2018 */
 {
    int nn = (lrand48()>>3) % NTIP ;
+
+   if( qq >= 0 && qq < NTIP ) nn = qq ;
 
    if( tip[nn] != NULL )
      fprintf( stderr , "\n\n"
@@ -3920,7 +3927,7 @@ INFO_message("AFNI controller xroot=%d yroot=%d",(int)xroot,(int)yroot) ;
 
    if( !ALLOW_realtime                        &&
        !AFNI_yesenv("AFNI_NEVER_SAY_GOODBYE") &&
-        MAIN_im3d->type == AFNI_3DDATA_VIEW     ) AFNI_print_startup_tip() ;
+        MAIN_im3d->type == AFNI_3DDATA_VIEW     ) AFNI_print_startup_tip(-1) ;
 
    /* this is for me, myself, and I only! */
 
