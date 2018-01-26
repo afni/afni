@@ -171,7 +171,7 @@ int main(int argc, char **argv)
 
    mainENTRY("dicom_hinfo main") ; machdep() ;
 
-   while( argv[iarg][0] == '-' ){
+   while( iarg < argc && argv[iarg][0] == '-' ){
 
      if( strcasecmp(argv[iarg],"-last") == 0 || strcasecmp(argv[iarg],"-namelast") == 0 ){
        nposn = 1 ; iarg++ ; continue ;
