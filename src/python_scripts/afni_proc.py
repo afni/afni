@@ -679,6 +679,9 @@ class SubjProcSream:
 
         self.blocks     = []            # list of ProcessBlock elements
         self.dsets      = []            # list of afni_name elements
+        self.dsets_me   = []            # list of afni_name elements, per echo
+                                        #    (then dsets = dsets_me[0])
+        self.reg_echo   = 0             # 1-based, echo to use for registration 
         self.check_rdir = 'yes'         # check for existence of results dir
         self.stims_orig = []            # orig list of stim files to apply
         self.stims      = []            # list of stim files to apply
@@ -913,6 +916,8 @@ class SubjProcSream:
                         helpstr='add extra blocks to the default list')
         self.valid_opts.add_opt('-dsets', -1, [], okdash=0,
                         helpstr='EPI datasets to process, ordered by run')
+        self.valid_opts.add_opt('-dsets_me', -1, [], okdash=0,
+                        helpstr='one echo of multi-echo EPI datasets')
 
         self.valid_opts.add_opt('-out_dir', 1, [],
                         helpstr='result directory, where script is run')
@@ -988,6 +993,8 @@ class SubjProcSream:
         self.valid_opts.add_opt('-radial_correlate', 1, [],
                         acplist=['yes','no'],
                         helpstr="compute correlations with spherical averages")
+        self.valid_opts.add_opt('-reg_echo', 1, [],
+                        helpstr='specify echo to use for registration')
         self.valid_opts.add_opt('-remove_preproc_files', 0, [],
                         helpstr='remove pb0* preprocessing files')
         self.valid_opts.add_opt('-test_for_dsets', 1, [],
@@ -1523,16 +1530,115 @@ class SubjProcSream:
         if not opt or opt_is_yes(opt): self.test_stims = 1
         else:                          self.test_stims = 0
 
+    def have_me(self):
+       """return 1 if we have multi-echo data, else 0"""
+       if len(self.dsets_me)    == 0: return 0
+       if len(self.dsets_me[0]) == 0: return 0
+       if self.reg_echo == 0:         return 0
 
-    # init blocks from command line options, then check for an
-    # alternate source       rcr - will we use 'file' as source?
-    def create_blocks(self):
-        # first, note datasets
+       return 1
+
+    def init_dsets(self):
+        """process -dsets or -dsets_me options
+        
+           there should be one -dsets_me list of runs per echo
+
+           return 0 on success, 1 on error
+        """
+
+        # cannot use both forms
+        if self.user_opts.find_opt('-dsets') and \
+           self.user_opts.find_opt('-dsets_me'):
+           print("** cannot use -dsets along with -dsets_me")
+           return 1
+
+        # ME: start with multi-echo dsets, then set dsets = dsets_me[0]
+        #     each -dsets_me option lists the runs for that echo
+        oname = '-dsets_me'
+        olist = self.user_opts.find_all_opts(oname)
+        if len(olist) > 0:
+           # first fill dsets_me
+           errs = 0
+           nruns_me = len(olist[0].parlist)
+           self.dsets_me = []
+           view = ''
+           for eind, opt in enumerate(olist):
+              # make sure num runs is consistent per echo
+              nr = len(opt.parlist)
+              if nruns_me != nr:
+                 print("** echo 1 has %d runs, but echo %d has %d runs" \
+                       % (nruns_me, eind+1, nr))
+                 errs += 1
+
+              # make the afni_name dsets
+              dsets = []
+              for rind, dset in enumerate(opt.parlist):
+                  aname = afni_name(dset)
+                  # if test_dsets, make sure they exist
+                  if self.test_dsets and not aname.exist():
+                     print('** missing echo %d, run %d dataset: %s' \
+                           % (eind+1, rind+1, aname.rpv()))
+                     errs += 1
+                  dsets.append(aname)
+
+              if len(dsets) == 0:
+                 print("** have echo %d option %s without any dataset list" \
+                       % (eind+1, oname))
+                 # just bail, rather than checking for empty later
+                 return 1
+
+              # if there were any errors, bail now
+              if errs: return 1
+
+              self.dsets_me.append(dsets)
+
+              # check for consistency of the view
+              if view == '':
+                 view = dset_view(dsets[0].rel_input())
+              for rind, dset in enumerate(dsets):
+                 dview = dset_view(dset.rel_input())
+                 if dview != view:
+                    print("** bad dataset view %s in echo %d run %d dset %s" \
+                          % (dview, eind+1, rind+1, dsets[rind].rpv()))
+                    print("   original view was %s" % view)
+                    errs += 1
+
+           # note the number of found echoes
+           necho = len(self.dsets_me)
+           if necho < 2:
+              print("** must have at least 2 -dsets_me options (so 2 echoes)")
+              errs += 1
+
+           # then fill reg_echo via -reg_echo (registration echo)
+           oname = '-reg_echo'
+           self.reg_echo = 2
+           val, err = self.user_opts.get_type_opt(int, oname)
+           if err: errs += 1
+           if val != None:
+              self.reg_echo = val
+
+           if self.reg_echo < 1 or self.reg_echo > necho:
+              print("** %s: registration echo must be between 1 and %d" \
+                    % (oname, necho))
+              errs += 1
+
+           # if there were any errors, bail now
+           if errs: return 1
+
+           # finally, initialize self.dsets as dsets_me[0]
+           # (try without a deep copy for now, I think these are static)
+           self.dsets = self.dsets_me[0]
+
+           # === done with -dsets_me ===
+
+        # init dsets, if not done from -dsets_me
         opt = self.user_opts.find_opt('-dsets')
         if opt != None:
             for dset in opt.parlist:
                 self.dsets.append(afni_name(dset))
 
+        # process dsets
+        if len(self.dsets) > 0:
             # possibly verify that all of the input datasets exist
             if self.test_dsets:
                 missing = 0
@@ -1548,7 +1654,7 @@ class SubjProcSream:
                 self.origview = self.view
                 if self.verb > 0: print('-- applying view as %s' % self.view)
             elif self.dsets[0].view == '':
-                view = dset_view(self.dsets[0].ppve())
+                view = dset_view(self.dsets[0].rel_input())
                 self.view = view
                 self.origview = self.view
                 if self.verb>0: print('-- applying orig view as %s' % self.view)
@@ -1559,6 +1665,14 @@ class SubjProcSream:
             if dims == None: return 1
             self.orig_delta = dims
             self.delta = dims
+
+        return 0
+
+    # init blocks from command line options, then check for an
+    # alternate source       rcr - will we use 'file' as source?
+    def create_blocks(self):
+        # first, note datasets
+        if self.init_dsets(): return 1
 
         # next, check for -surf_anat, which defines whether to do volume
         # or surface analysis
@@ -1950,6 +2064,20 @@ class SubjProcSream:
                 print('** TR of %g != run #1 TR %g' % (tr, self.tr))
                 return 1
 
+        # check for consistency
+        if self.have_me():
+           for eind, esets in enumerate(self.dsets_me):
+               for rind, dset in enumerate(esets):
+                  err, reps, tr = get_dset_reps_tr(dset.rpve(), verb=self.verb)
+                  if err: return 1
+                  if reps != self.reps_all[rind]:
+                     print("run %d reps vary between echo 1 and echo %d" \
+                           (rind+1, eind+1))
+                     return 1
+                  if tr != self.tr:
+                      print('** TR of %g != run 1 echo 1 TR %g'%(tr, self.tr))
+                      return 1
+
         # note data type and whether data is scaled
         err, vlist = get_typed_dset_attr_list(dset, "BRICK_TYPES", int, verb=0)
         if not err and len(vlist) >= 1:
@@ -2294,7 +2422,7 @@ class SubjProcSream:
             self.write_text("%s\n" % stat_inc)
 
             # further use should assume AFNI format
-            self.anat.to_afni(new_view=dset_view(self.anat.ppve()))
+            self.anat.to_afni(new_view=dset_view(self.anat.rel_input()))
             self.tlrcanat.to_afni()
             self.anat_final = self.anat
 
