@@ -3655,7 +3655,7 @@ void AFNI_print_startup_tip(int qq) /* 03 Jan 2018 */
    if( qq >= 0 && qq < NTIP ) nn = qq ;
 
    if( tip[nn] != NULL )
-     fprintf( stderr , "\n\n"
+     fprintf( stdout , "\n\n"
               "------------------------- AFNI Startup Tip (%d/%d)---------------------------\n"
               "%s\n"
               "-----------------------------------------------------------------------------\n" ,
