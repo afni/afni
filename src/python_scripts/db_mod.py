@@ -6985,7 +6985,7 @@ g_help_string = """
                         -regress_stim_times sb23/stim_files/blk_times.*.1D \\
                         -regress_basis 'BLOCK(30,1)'
 
-        Example 3. The current class example.  This may change of course. ~2~
+        Example 3. (no longer) The current class example.  ~2~
 
            Copy the anatomy into the results directory, register EPI data to
            the last TR, specify stimulus labels, compute blur estimates, and
@@ -7011,7 +7011,7 @@ g_help_string = """
                         -regress_est_blur_epits                            \\
                         -regress_est_blur_errts
 
-        Example 4. Similar to the class example, but specify the processing blocks. ~2~
+        Example 4. Similar to 3, but specify the processing blocks. ~2~
 
            Adding despike and tlrc, and removing tshift.  Note that
            the tlrc block is to run @auto_tlrc on the anat.  Ignore the GLTs.
@@ -7088,7 +7088,7 @@ g_help_string = """
 
            Also consider adding -regress_bandpass.
 
-        Example 5c. RETROICOR (modern): with censoring and bandpass filtering. ~2~
+        Example 5c. RETROICOR (modern): censor and band pass. ~2~
 
            This is an example of how we might currently suggest analyzing
            resting state data.  If no RICOR regressors exist, see example 9
@@ -7452,12 +7452,14 @@ g_help_string = """
                   -regress_est_blur_epits                                    \\
                   -regress_est_blur_errts
 
-       Example 10b. Resting state analysis, tissue-based regressors and 3dRSFC. ~2~
+       Example 10b. Resting state analysis, as 10a with 3dRSFC. ~2~
 
-            (for bandpassing and computation of ALFF, etc)
+            This is for band passing and computation of ALFF, etc.
+
+          * This will soon use a modified 3dRSFC.
 
             Like example #10, but add -regress_RSFC to bandpass via 3dRSFC.
-            Skip censoring and regression bandpassing because of the bandpass
+            Skip censoring and regression band passing because of the bandpass
             operation in 3dRSFC.
 
             To correspond to common tractography, this example stays in orig
@@ -7481,7 +7483,7 @@ g_help_string = """
                   -regress_run_clustsim no                                   \\
                   -regress_est_blur_errts
 
-       Example 11. Resting state analysis (now even more moderner :). ~2~
+       Example 11. Resting state analysis (now even more modern :). ~2~
 
          o Yes, censor (outliers and motion) and despike.
          o Align the anatomy and EPI using the lpc+ZZ cost function, rather
@@ -8925,9 +8927,10 @@ g_help_string = """
            screen output will be duplicated in that text file.
 
     ==================================================
-    ALL OPTIONS:  ~2~
-        (information options, general options, block options)
-        (block options are ordered by block)
+    OPTIONS:  ~2~
+
+        Informational options, general options, and block options.
+        Block options are ordered by block.
 
         -----------------------------------------------------------------
         Informational/terminal options  ~3~
