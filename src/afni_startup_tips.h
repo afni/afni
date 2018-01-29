@@ -396,6 +396,36 @@ static char *tip[] = {
    "  3dDeconvolve -num_stimts 1 -polort -1 -nodata 81 0.5         \\\n"
    "               -stim_times 1 '1D: 0' 'TWOGAMpw(3,6,0.2,10,12)' \\\n"
    "               -x1D stdout: | 1dplot -stdin -THICK -del 0.5"
+ ,
+   "Program 1dNLfit does a nonlinear fit of an expression with free\n"
+   "parameters to a column of numbers. For example:\n"
+   "  1dNLfit -depdata sc.1D -indvar x '1D: 100%0:0.1' \\\n"
+   "          -expr 'a*sin(b*x)+c*cos(b*x)'            \\\n"
+   "          -param a=-2:2 -param b=1:3 -param c=-2:2  > ff.1D\n"
+   "fits a sine+cosine model with 3 free parameters (a,b,c) to the\n"
+   "data in file sc.1D, where the 'time' parameter is x."
+ ,
+   "You can use make_random_timing.py to make AFNI-compatible random\n"
+   "stimulus timing files. You can impose various constraints on the\n"
+   "times generated.\n"
+   "You can use timing_tool.py to manipulate stimulus timing files in\n"
+   "various ways."
+ ,
+   "Program 1dTsort lets you sort .1D columns of numbers.\n"
+   "Program 3dTsort lets you sort each voxel's time series (separately),\n"
+   "and can also randomize them if you want."
+ ,
+   "Program 'count' will generated lists of numbers, which is surprisingly\n"
+   "useful in scripting various things. For example,\n"
+   "  count -dig 1 -comma 0 99 S6\n"
+   "will produce a list of 9 distinct random numbers from 0..99 (inclusive),\n"
+   "separated by commas; for example: '31,18,60,62,7,95'. This list could\n"
+   "be used to select a random subset of dataset sub-bricks for analysis\n"
+   "  3dttest++ -setA Fred.nii[`count -dig 1 -comma 0 333 S20`]"
+ ,
+   "Most AFNI command line programs accept a common set of options, such\n"
+   "as sub-brick selectors. See this page for the details:\n"
+   "  https://afni.nimh.nih.gov/pub/dist/doc/program_help/common_options.html"
 
 } ;
 
