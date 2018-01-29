@@ -4,17 +4,9 @@
 #undef  NTIP
 #define NTIP (sizeof(tip)/sizeof(char *))
 static char *tip[] = {
-   "If you are doing complicated twisted things with AFNI programs, ASK US\n"
-   "(on the message board). Often, there is an easier way to do a task!"
- ,
-   "Program 3drefit can be used to change parameters in a dataset\n"
-   "header (e.g., slice timing). Program 3dinfo can be used to\n"
-   "display information from a dataset header."
- ,
-   "Script @SSwarper can be used to Skull Strip and warp a human\n"
-   "T1-weighted dataset to the MNI template. The outputs can be\n"
-   "re-used in afni_proc.py."
- ,
+
+/*-- Tips for the AFNI GUI --*/
+
    "If you set environment variable AFNI_GLOBAL_SESSION to the name\n"
    "of a directory with datasets, then those datasets will be visible\n"
    "in the UnderLay and OverLay choosers. For example, copy the MNI\n"
@@ -133,6 +125,20 @@ static char *tip[] = {
    "controllers off, if you want. Or, you can turn on 'Time Lock', so that the\n"
    "TR index is locked between controllers, as well as the crosshair location."
  ,
+   "Normally, the grid size of the pixel image created for display in an\n"
+   "AFNI image viewer is take from the grid size of the Underlay dataset.\n"
+   "But you can change that using the 'Datamode' control panel, by choosing\n"
+   "'Warp ULay on Demand', then setting the grid resampling mode below.\n"
+   "Sometimes this is useful for creating nicer looking functional images,\n"
+   "especially when 'Alpha' is turned on."
+ ,
+   "Normally, voxels whose threshold value is below the slider setting will\n"
+   "not be colorized. 'Alpha' fading allows them to get a faded color, while\n"
+   "the above-threshold voxel clusters will get a black outline drawn around\n"
+   "them. Alpha can be turned on from the right-click popup menu above the\n"
+   "threshold slider, or via the AFNI_FUNC_ALPHA environment variable in\n"
+   "your .afnirc file."
+ ,
    "The InstaCalc function (from the InstaCorr drop-down menu) lets you\n"
    "calculate the overlay dataset on the fly, from multiple inputs,\n"
    "using the same expression syntax as 3dcalc, 1deval, etc."
@@ -211,8 +217,8 @@ static char *tip[] = {
    "have a common baseline (minimum among all voxels in the graph window) or\n"
    "a global baseline (set by you) by using the Opt -> Baseline menu items."
  ,
-   "At the bottom of a graph viewer is a bunch of text showing various information\n"
-   "about what is being shown."
+   "At the bottom of a graph viewer is a bunch of text showing various\n"
+   "information about what is being shown."
  ,
    "When looking at FMRI data graphs with a regular stimulus timing, it is\n"
    "helpful to set the graph grid lines to match the stimulus timing spacing.\n"
@@ -237,16 +243,6 @@ static char *tip[] = {
    " ULay Info     = show information from the UnderLay dataset header\n"
    " Purge Memory  = eject datasets from memory, forcing reloads when viewed"
  ,
-   "AFNI has a lot of downloadable demonstrations; you can find them in your\n"
-   "abin directory (if that's where AFNI is for you) by doing\n"
-   "  ls ~/abin/@Install_*\n"
-   "A few examples:\n"
-   "  @Install_InstaCorr_Demo = data and instructions for using InstaCorr\n"
-   "  @Install_ClustScat_Demo = data and instructions for interactively plotting\n"
-   "                            time series extracted from Clusterize ROIs\n"
-   "  @Install_FATCAT_DEMO    = data and instructions for using the AFNI FATCAT\n"
-   "                            programs for DTI tractography (etc.)"
- ,
    "When saving an image (or a montage), you might want to turn the crosshairs off.\n"
    " You can do this from the 'Xhairs' menu in the AFNI controller.\n"
    "If you want all the sub-images in a montage to have crosshairs (instead of\n"
@@ -269,6 +265,12 @@ static char *tip[] = {
    "be used when you re-start AFNI in the same directory to restore the AFNI\n"
    "windows to (approximately) the same state they had before."
  ,
+   "If you are doing complicated twisted things with AFNI programs, ASK US\n"
+   "(on the message board). Often, there is an easier way to do a task!"
+ ,
+
+/*-- tips below here are for non-GUI programs --*/
+
    "Questions about AFNI? Try our Message Board at\n"
    "  https://afni.nimh.nih.gov/afni/community/board/\n"
    "Please be specific and focused, as generic questions without\n"
@@ -278,16 +280,123 @@ static char *tip[] = {
    " 3dSkullStrip     - surface expansion program (many options)\n"
    " @NoisySkullStrip - when the dataset is very noisy\n"
    " @SSwarper        - nonlinear warping to MNI space combined\n"
-   "                    with skull stripping"
+   "                    with skull stripping (and then the warp can be\n"
+   "                    used in afni_proc.py for time series analyses)"
  ,
    "Program 3dUnifize can make the image intensity of a T1-weighted dataset\n"
    "more uniform in space. As a bonus, can also contrast-invert a dataset\n"
    "prior to the uniform-ization, which might be useful for T2-weighted\n"
    "datasets. It also has an experimental option for processing EPI data."
  ,
-   "Program 3dcalc does voxel-wise calculations on datasets. Doesn't sound\n"
+   "Program 3dcalc does voxelwise calculations on datasets. Doesn't sound\n"
    "exciting to you? Once you get to know it, you will find that 3dcalc is\n"
-   "your FRIEND!"
+   "your FRIEND! (: And then you can get to know the interactive InstaCalc :)"
+ ,
+   "AFNI has a lot of downloadable demonstrations; you can find them in your\n"
+   "abin directory (if that's where AFNI is for you) by doing\n"
+   "  ls ~/abin/@Install_*\n"
+   "A few examples:\n"
+   "  @Install_InstaCorr_Demo = data and instructions for using InstaCorr\n"
+   "  @Install_ClustScat_Demo = data and instructions for interactively plotting\n"
+   "                            time series extracted from Clusterize ROIs\n"
+   "  @Install_FATCAT_DEMO    = data and instructions for using the AFNI FATCAT\n"
+   "                            programs for DTI tractography (etc.)"
+ ,
+   "Program 3drefit can be used to change parameters in a dataset\n"
+   "header (e.g., slice timing). Program 3dinfo can be used to\n"
+   "display information from a dataset header."
+ ,
+   "Are you using 3dcalc to compute the average of a bunch of datasets?\n"
+   "You should use program 3dMean instead! It is faster and doesn't\n"
+   "have the artificial limitation of 26 input datasets."
+ ,
+   "Want to calculate summary values (e.g., mean, standard deviation)\n"
+   "at each voxel in a time series dataset? Program 3dTstat is the\n"
+   "tool you need."
+ ,
+   "Programs for extracting information from spatial ROIs:\n"
+   "  3dmaskave  = get average across the ROI, one value per time point\n"
+   "  3dROIstats = like 3dmaskave, but for multiple ROIs\n"
+   "  3dmaskSVD  = like 3dmaskave, but gives the principal singular\n"
+   "               vector (time series) across the ROI instead of the mean\n"
+   "  3dmaskdump = just dumps out ALL the values from the ROI at\n"
+   "               all time points (presumably you will do something\n"
+   "               fun with these in your own software?)"
+ ,
+   "Programs for computing some local statistics in a neighborhood around\n"
+   "each voxel (e.g., a ball):\n"
+   "  3dLocalstat   = various statistics from the neighborhood\n"
+   "                  (e.g., mean, median, variance)\n"
+   "  3dLocalBistat = various 2-sample statistics from the neighborhood,\n"
+   "                  calculated between 2 datasets\n"
+   "                  (e.g., Pearson or Spearman correlation)\n"
+   "  3dLocalPV     = compute the principal vector (time series) from\n"
+   "                  all the dataset time series inside the neighborhood\n"
+   "                  (a fancy way to 'smooth' the data)"
+ ,
+   "Are you using nonlinear warping to align your subjects' T1-weighted\n"
+   "datasets? If not, you should give it a try. The brain images will line\n"
+   "up better than using affine alignment (3dAllineate, @auto_tlrc, etc.)\n"
+   "and you can get better FMRI results at the group level when you use\n"
+   "the nonlinear warps in afni_proc.py. Programs for this:\n"
+   "  3dQwarp      = the foundational nonlinear warping program\n"
+   "  @SSwarper    = uses 3dQwarp and 3dSkullStrip together to align\n"
+   "                 volumes to the MNI template and skull strip them\n"
+   "  auto_warp.py = runs 3dQwarp for you, so you don't have to read\n"
+   "                 that programs lengthy help output"
+ ,
+   "Want to create a 'junk' dataset on the command line, just to test to\n"
+   "see if something works? AFNI programs can create a dataset in memory\n"
+   "from a string; try this example:\n"
+   "  afni jRandomDataset:64,64,32,96\n"
+   "to create and view a random dataset with 64x64x32 3D volumes, and\n"
+   "96 time points. If you want to create and SAVE such a dataset, try\n"
+   "  3dcalc -a jRandomDataset:64,64,32,96 -expr 'a' -prefix Fred.nii\n"
+   "If you want a zero-filled dataset, replace 'a' with '0'."
+ ,
+   "Did you know that AFNI's time series analysis program 3dREMLfit can\n"
+   "include voxelwise regressors (a different time series for each voxel)?\n"
+   "We use this capability in our Anaticor model for de-noising datasets\n"
+   "during activation analysis."
+ ,
+   "AFNI programs for individual dataset time series correlation-ing:\n"
+   "  3dTcorr1D        = correlate each voxel with a small set of 1D files\n"
+   "  3dTcorrelate     = correlate each voxel between 2 datasets\n"
+   "  3dTcorrMap       = make of map of how correlated each voxel is\n"
+   "                     to every other voxel in the same dataset\n"
+   "  3dAutoTcorrelate = correlate each voxel to every other voxel\n"
+   "                     in the same dataset and save everything (HUGE)"
+ ,
+   "Program 3dGroupInCorr can be used for Group Instant Correlation\n"
+   "interactively via the AFNI GUI. It can also be used in batch mode.\n"
+   "The '-batchGRID' option lets you scan over a grid of seed voxels,\n"
+   "compute the individual datasets' correlations with their seeds,\n"
+   "then compute the t-tests among these correlation maps, and save\n"
+   "the results to a collection of datasets."
+ ,
+   "Want to convert each statistic in a dataset to a (voxelwise) p-value?\n"
+   "Use program 3dPval.\n"
+   "More complicated statistical conversions can be done with 3dcalc, using\n"
+   "the cdf2stat() and stat2cdf() functions. You can explore those interactively\n"
+   "using the ccalc program, to make sure you are giving 3dcalc the correct\n"
+   "expression."
+ ,
+   "Want to test dataset values voxelwise for normality (Gaussianity)?\n"
+   "Program 3dNormalityTest will apply the Anderson-Darling test and\n"
+   "give you a dataset with the voxelwise measure of non-Gaussianity."
+ ,
+   "Program 1dCorrelate will compute the pairwise correlation coefficient\n"
+   "between 2 columns of numbers, AND give you the bootstrap confidence\n"
+   "interval for the result."
+ ,
+   "Program 1dplot is useful for quick-and-dirty plotting of columns\n"
+   "of numbers (.1D files). An example, creating a response model\n"
+   "function with 3dDeconvolve and sending the time series directly\n"
+   "into 1dplot:\n"
+   "  3dDeconvolve -num_stimts 1 -polort -1 -nodata 81 0.5         \\\n"
+   "               -stim_times 1 '1D: 0' 'TWOGAMpw(3,6,0.2,10,12)' \\\n"
+   "               -x1D stdout: | 1dplot -stdin -THICK -del 0.5"
+
 } ;
 
 #endif
