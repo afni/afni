@@ -3,6 +3,10 @@
 # erode a dataset repeatedly to separate datasets until nothing left
 # add up all the erosions at the end to get erosion_levels depth dataset
 # and normalize to get erosionnorm dataset
+
+# h_view help instead of regular help (opens editor with -help output)
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+
 # initializations
 set maskset = ""
 set surfset = ""
