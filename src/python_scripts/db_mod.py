@@ -1612,7 +1612,7 @@ def set_vr_int_name(block, proc, prefix='', inset='', runstr='', trstr=''):
    if proc.vr_int_name != '': return 0
 
    # handle ME data
-   if proc.use_me: estr = '.%s' % proc.regecho_var
+   if proc.use_me: estr = '.e%s' % proc.regecho_var
    else:           estr = ''
 
    if inset != '':
@@ -1858,7 +1858,8 @@ def db_cmd_volreg(proc, block):
     else:                                             do_extents = 0
     if block.opts.find_opt('-volreg_no_extent_mask'): do_extents = 0
 
-    cur_prefix = proc.prefix_form_run(block)
+    cur_prefix = proc.prefix_form_run(block, eind=-1)
+    cur_prefix_me = proc.prefix_form_run(block, eind=0)
     proc.volreg_prefix = cur_prefix
     cstr   = '' # appended to comment string
     if dowarp or doe2a or doblip:
@@ -1869,7 +1870,12 @@ def db_cmd_volreg(proc, block):
         if doe2a and not proc.a2e_mat:
             print("** cannot align e2a at volreg, need mat from 'align' block")
             return
-        prefix = 'rm.epi.volreg.r$run'
+
+        # if ME, use registration echo
+        if proc.use_me: estr = '.e%s' % proc.regecho_var
+        else:           estr = ''
+
+        prefix = 'rm.epi.volreg%s.r$run' % estr
         proc.have_rm = 1            # rm.* files exist
         matstr = '%*s-1Dmatrix_save mat.r$run.vr.aff12.1D \\\n' % (13,' ')
         if doblip: cstr = cstr + ', blip warp'
@@ -1879,7 +1885,7 @@ def db_cmd_volreg(proc, block):
         if doadwarp: cstr = cstr + ', adwarp to tlrc space'
         prefix = cur_prefix
         matstr = ''
-    prev_prefix = proc.prev_prefix_form_run(block, view=1)
+    prev_prefix = proc.prev_prefix_form_run(block, view=1, eind=-1)
 
     if doblip: cstr += '\n# (final warp input is same as blip input)'
     cmd = cmd + "# %s\n" \
@@ -1975,7 +1981,8 @@ def db_cmd_volreg(proc, block):
         # if blip, input (prev_prefix) is from prior to blip block
         if doblip:
            bblock = proc.find_block('blip')
-           if bblock: prev_prefix = proc.prev_prefix_form_run(bblock, view=1)
+           if bblock:
+              prev_prefix = proc.prev_prefix_form_run(bblock, view=1, eind=-1)
 
         # if tlrc, use that for 3dAllineate base and change view
         if dowarp:
@@ -2085,11 +2092,27 @@ def db_cmd_volreg(proc, block):
 
         cmd = cmd +                                             \
             "# and apply the extents mask to the EPI data \n"   \
-            "# (delete any time series with missing data)\n"    \
-            "foreach run ( $runs )\n"                           \
-            "    3dcalc -a rm.epi.nomask.r$run%s -b %s \\\n"    \
-            "           -expr 'a*b' -prefix %s\n"               \
-            "end\n\n" % (proc.view, proc.mask_extents.pv(), cur_prefix)
+            "# (delete any time series with missing data)\n"
+
+        # ME updates
+        if proc.use_me:
+           indent = '    '
+           estr = '.e%s' % proc.echo_var
+           cmd += 'foreach %s ( $echo_list )\n' % (proc.echo_var[1:])
+        else:
+           indent = ''
+           estr = ''
+
+        cmd = cmd +                                             \
+            "%sforeach run ( $runs )\n"                           \
+            "%s    3dcalc -a rm.epi.nomask%s.r$run%s -b %s \\\n"    \
+            "%s           -expr 'a*b' -prefix %s\n"               \
+            "%send\n" % (indent, indent, estr, proc.view,
+                         proc.mask_extents.pv(), indent, cur_prefix_me, indent)
+
+        if proc.use_me: cmd += 'end\n'
+
+        cmd += '\n'
 
     # ---------------
     # next, see if we want to apply a (manual) warp to tlrc space
