@@ -1292,7 +1292,7 @@ g_history = """
     3.2  Jan 30, 2018: added -help_concerns
 """
 
-g_version = "version 3.1 November 21, 2017"
+g_version = "version 3.2 January 30, 2018"
 
 g_todo = """
    - add -show_consec_stats option?
