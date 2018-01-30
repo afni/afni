@@ -594,6 +594,11 @@ g_requires_afni = [ \
       [  "1 Apr 2015",  "1d_tool.py uncensor from 1D" ] ]
 
 g_todo_str = """todo:
+  - ME:
+     - do 'apply catenated xform'
+     - test only vreg, w/anat, aff std space, NL, blip
+     - postdata, despike, ricor, blip
+     - after OC/MEICA, clear use_me
   - be able to run simple forms of @Align_Centers
   - implement multi-echo OC and possibly meica functionality
   - improve on distortion correction via gentle NL alignment with anat
