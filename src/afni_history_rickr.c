@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 30, Jan, 2018, RCR, "make_random_timing.py", MICRO, TYPE_NEW_OPT,
+   "add -help_concerns, to describe some general concerns regarding timing",
+   NULL
+ } ,
+
  { 26, Jan, 2018, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
    "applied various NeuroDebian patches from M Hanke and Y Halchenko",
    "Includes up_include_right, up_condition_dset_unload, up_3dNetCorrFix,\n"
