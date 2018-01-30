@@ -481,6 +481,7 @@ informational arguments:
 
     -help                       : display this help
     -help_advanced              : display help for advanced usage
+    -help_concerns              : display general concerns for timing
     -help_todo                  : display list of things to do
     -hist                       : display the modification history
     -show_valid_opts            : display all valid options (short format)
@@ -491,6 +492,7 @@ advanced arguments/options:
 
     -help_advanced              : display help for advanced usage
     -help_decay_fixed           : display background on decay_fixed dist type
+    -help_concerns              : display general concerns for timing
     -help_todo                  : "to do" list is mostly for advanced things
 
     -add_timing_class           : create a new timing class (stim or rest)
@@ -1028,6 +1030,7 @@ make_random_timing.py - Advanced Usage
 options (specific to the advanced usage):
 
     -help_advanced              : display help for advanced usage
+    -help_concerns              : display general concerns for timing
     -help_decay_fixed           : display background on decay_fixed dist type
     -help_todo                  : "to do" list is mostly for advanced things
 
@@ -1039,6 +1042,25 @@ options (specific to the advanced usage):
 
 ----------------------------------------------------------------------
 R Reynolds  Jan 20, 2017          motivated by K Kircanski and A Stringaris
+===========================================================================
+"""
+
+g_help_concerns = """
+===========================================================================
+general concerns regarding random timing (to be expanded)
+
+   (some of this only applies to the advanced usage)
+
+   - should pre-steady state time be included in these timing files
+      - see -pre_stim_rest
+   - otherwise, one might prefer pre-stim rest = 0 (default in advanced)
+   - it is nice to have some minimum post-stim at the end of the run
+      - else the last event is wasted 
+      - consider 6-10 s
+      - see -post_stim_rest
+   - it may be nice to have only post-stim rest, but not any extra random
+     rest attached to the final event
+      - consider "-rand_post_stim_rest no"
 ===========================================================================
 """
 
@@ -1267,6 +1289,7 @@ g_history = """
     3.0  Nov  9, 2017: python3 compatible
     3.1  Nov 21, 2017: added -not_first and -not_last for C Smith
                        (still needs to be added to advanced case)
+    3.2  Jan 30, 2018: added -help_concerns
 """
 
 g_version = "version 3.1 November 21, 2017"
@@ -1428,6 +1451,8 @@ class RandTiming:
                         helpstr='display program help')
         self.valid_opts.add_opt('-help_advanced', 0, [],      \
                         helpstr='display program help for ADVANCED usage')
+        self.valid_opts.add_opt('-help_concerns', 0, [],      \
+                        helpstr='display general timing concerns')
         self.valid_opts.add_opt('-help_decay_fixed', 0, [],      \
                         helpstr='display background for decay_fixed dist')
         self.valid_opts.add_opt('-help_todo', 0, [],      \
@@ -1531,10 +1556,15 @@ class RandTiming:
         if len(sys.argv) <= 1 or '-help' in sys.argv:
             print(g_help_string)
             print(g_help_advanced)
+            print(g_help_concerns)
             return 0
 
         if '-help_advanced' in sys.argv:
             print(g_help_advanced)
+            return 0
+
+        if '-help_concerns' in sys.argv:
+            print(g_help_concerns)
             return 0
 
         if '-help_decay_fixed' in sys.argv:
