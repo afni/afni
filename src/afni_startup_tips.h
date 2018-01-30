@@ -415,7 +415,7 @@ static char *tip[] = {
    "Program 3dTsort lets you sort each voxel's time series (separately),\n"
    "and can also randomize them if you want."
  ,
-   "Program 'count' will generated lists of numbers, which is surprisingly\n"
+   "Program 'count' will generate lists of numbers, which is surprisingly\n"
    "useful in scripting various things. For example,\n"
    "  count -dig 1 -comma 0 99 S6\n"
    "will produce a list of 9 distinct random numbers from 0..99 (inclusive),\n"
@@ -426,6 +426,35 @@ static char *tip[] = {
    "Most AFNI command line programs accept a common set of options, such\n"
    "as sub-brick selectors. See this page for the details:\n"
    "  https://afni.nimh.nih.gov/pub/dist/doc/program_help/common_options.html"
+ ,
+   "Want to resample a dataset to a different grid spacing? Programs:\n"
+   "  3dresample  = older program with NN, Linear, and Cubic interpolation\n"
+   "  3dAllineate = for aligning datasets and then resampling, but with\n"
+   "                the -1Dparam_apply option can just do the resampling\n"
+   "                function; has more interpolation options, including\n"
+   "                quintic polynomials and tapered sinc."
+ ,
+   "Want to blur/smooth a dataset? Programs:\n"
+   "  3dmerge -1blur_fwhm = Gaussian smoothing across whole volume\n"
+   "  3dBlurInMask        = smoothing only inside a mask\n"
+   "  3dLocalPV           = 'smooth' a time series dataset by computing\n"
+   "                        the local principal vector around each\n"
+   "                        voxel, instead of the average vector (slow)"
+ ,
+   "Want to create a 3D dataset from a table of numbers? This can be\n"
+   "done with program 3dUndump."
+ ,
+   "Want to slice up a dataset? Or glue them together?\n"
+   "  3dZcutup  = cut a section of slices out of a dataset\n"
+   "  3dZcat    = glue datasets together in the slice direction\n"
+   "  3dXYZcat  = glue datasets together in any (spatial) direction\n"
+   "  3dZeropad = add (or subtract) slices from a dataset\n"
+   "  3dTcat    = glue datasets together in the time direction"
+ ,
+   "Did someone give you a dataset with the spatial orientation 'flipped',\n"
+   "so that the subject's left is marked as being the right? Program\n"
+   "3dLRflip can flip the data rows to rearrange the data so the dataset\n"
+   "header information and the actual data match again."
 
 } ;
 
