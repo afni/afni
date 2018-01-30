@@ -51,9 +51,12 @@ static char *tip[] = {
    "The right-click popup menu on the label above the threshold slider\n"
    "lets you control the threshold in various ways:\n"
    " * pin the Threshold sub-brick to equal the OLay or OLay+1 sub-brick\n"
+   "   (OLay+1 is very useful for Coef/t-statistic sub-brick pairs)\n"
    " * set the threshold slider to have a given voxelwise p-value\n"
+   "   (based on the statistical properties of the current Thr sub-brick)\n"
    " * control Alpha fading for colorization of sub-threshold voxels\n"
-   " * see only Positive or Negative values (with respect to the threshold)"
+   " * see only Positive or Negative values, with respect to the threshold\n"
+   "   (which will affect the p-value, as being 1- or 2-sided)"
  ,
    "The right-click popup menu on the label above the color overlay bar\n"
    "lets you control colorization from the OLay sub-brick in several ways:\n"
@@ -72,45 +75,70 @@ static char *tip[] = {
    "another AFNI controller. The UnderLay and OverLay datasets will be\n"
    "listed in the controller window title bar."
  ,
-   "Image viewer keypress: q = close window"
+   "Image viewer keypress: q = close window (works in graph viewer too)"
  ,
    "Image viewer keypress: S = save image (works in graph viewer too)"
  ,
    "Image viewer keypress: o = turn OLay color on or off"
  ,
-   "Image viewer keypress: u = make underlay image from the OLay dataset"
+   "Image viewer keypress: u = make underlay image from the OLay dataset\n"
+   "                       press u again to make underlay image from ULay"
  ,
-   "Image viewer keypress: 4 or 5 or 6 = meld ULay and OLay images"
+   "Image viewer keypress: 4 or 5 or 6 = meld ULay and OLay images\n"
+   "                       (controlled by a slider on top of the image)\n"
+   " * 4 = OLay on left side, ULay on right side, slider moves boundary\n"
+   " * 5 = OLay on top side, ULay on bottom side, slider moves boundary\n"
+   " * 6 = ULay and OLay intensity mixed, slider controls mixing fraction\n"
+   "       (slider to left = more ULay; to right = more OLay)"
  ,
-   "Image viewer keypress: z/Z = zoom out or in"
+   "Image viewer keypress: z/Z = zoom out or in\n"
+   "                       Zooming is limited to factors of 1-4"
  ,
    "Graph viewer keypress: < or > = move focus time down or up 1 TR"
  ,
    "Graph viewer keypress: 1 or L = move focus time to first or last TR"
  ,
-   "Graph viewer keypress: v/V = video the focus time up or down"
+   "Graph viewer keypress: v/V = video the focus time up or down\n"
+   "                       This is how you can make a video of subject\n"
+   "                       head movement, by looking at the image viewers\n"
+   "                       while the graph viewer is doing 'v'."
  ,
-   "Graph viewer keypress: m/M = decrease/increase matrix size of graphs"
+   "Graph viewer keypress: m/M = decrease/increase matrix size of graphs\n"
+   "                       Also can do this from the 'Opt->Matrix' menu."
  ,
-   "Graph viewer keypress: w = write time series from central sub-graph to a file"
+   "Graph viewer keypress: w = write time series from central sub-graph to a file\n"
+   "                       Set prefix for file from the 'Opt' menu."
  ,
    "The image viewer 'Mont' button (along bottom) will let you make a montage\n"
-   "from multiple slices, which can be Saved to a .jpg or .png file."
+   "from multiple slices, which can be Saved to a .jpg or .png file.\n"
+   "NOTE: you might want to turn the crosshairs off from the 'Xhairs' menu\n"
+   "      in the main AFNI controller."
  ,
    "If the image editing program 'gimp' is in your path, then the image viewer\n"
    "Save control panel will include an option to start gimp on your image, so\n"
    "you can further edit it immediately. See https://www.gimp.org/"
  ,
-   "The graph viewer 'Tran 1D' function Dataset#N (from the 'Opt' main menu) lets\n"
-   "you plot extra dataset time series on top of the UnderLay dataset's time\n"
-   "series graphs."
+   "The graph viewer 'Tran 1D' function Dataset#N (from the 'Opt' main menu)\n"
+   "lets you plot extra dataset time series on top of the UnderLay dataset's\n"
+   "time series graphs."
  ,
-   "You can change the way the graph viewer shows it plots using the 'Colors, Etc.'\n"
-   "sub-menu from the main 'Opt' menu (lower right corner)."
+   "You can change the way the graph viewer shows it plots by using the\n"
+   "'Colors, Etc.' sub-menu from the main 'Opt' menu (lower right corner):\n"
+   " * Boxes     = color of the boxes around each sub-graph\n"
+   " * BackG     = color of background\n"
+   " * Grid      = color of vertical grid lines\n"
+   " * Text      = color of text\n"
+   " * Data      = color of data\n"
+   "               graph points only, or points+lines, or boxes\n"
+   " * Graph Gap = how many pixels spacing between sub-graphs\n"
+   " * Thick     = how many pixels wide for 'Thick' lines\n"
+   "Most of these settings can also be fixed by AFNI environment\n"
+   "setting in your .afnirc file."
  ,
-   "The graph viewer 'Opt' menu item 'Detrend' lets you choose a polynomial degree\n"
+   "The graph viewer 'Opt->Detrend' menu item lets you choose a polynomial degree\n"
    "for detrending the graph data. This can help you visualize the features of the\n"
-   "data you want to see without be distracted by long term trends up or down."
+   "data you want to see without be distracted by long term trends up or down.\n"
+   " -1 = no detrending ; 0 = remove mean ; 1 = remove linear trend ; et cetera"
  ,
    "The graph viewer 'Opt->Tran 1D->Despike' function will despike the time series\n"
    "graphs, which can be useful when you trying to figure out what's going on\n"
@@ -130,7 +158,7 @@ static char *tip[] = {
    "When the OverLay is at a coarser resolution than the UnderLay (common in FMRI),\n"
    "Li will produce 'nicer' looking maps, but NN will be more 'honest' looking."
  ,
-   "Define Datamode -> Lock lets you turn the xyz coordinate lock between AFNI\n"
+   "'Define Datamode->Lock' lets you turn the xyz coordinate lock between AFNI\n"
    "controllers off, if you want. Or, you can turn on 'Time Lock', so that the\n"
    "TR index is locked between controllers, as well as the crosshair location."
  ,
@@ -176,6 +204,14 @@ static char *tip[] = {
    "Right-click on the 'Save' button in an image viewer will popup the list\n"
    "of possible image save formats."
  ,
+   "The 'Rec' button in an image viewer pops up a menu that lets you choose\n"
+   "different options for saving image snapshots to a special 'Record' viewer.\n"
+   "Once you have recorded the set of images you like, you can save them\n"
+   "from the 'Record' viewer. This is one way to make a video of how the\n"
+   "overlay image changes as the threshold slider moves, for example.\n"
+   " * Next One = record the next image displayed\n"
+   " * Stay On  = record each new image displayed (until turned Off)"
+ ,
    "Left-click in the square right of 'Etc->' in an AFNI controller will\n"
    " popup a copy of the splash screen again. Another left-click there will\n"
    " pop the splash window down again. Clicking in the reincarnated splash screen\n"
@@ -194,7 +230,9 @@ static char *tip[] = {
    "A more interactive method is to press and hold down the left mouse button,\n"
    " then drag the cursor around up/down (brightness) or left/right (contrast).\n"
    " With this method, you just wiggle the mouse around while left-click is\n"
-   " down, and you can adjust the image grayscale until it looks good."
+   " down, and you can adjust the image grayscale until it looks good.\n"
+   "The 'Norm' button will reset the grayscale contrast to the startup setting,\n"
+   " in case you make things look terrible."
  ,
    "Set environment variable AFNI_CREEPTO to YES, and then the 'Jump to' button\n"
    "will move the crosshairs to the chosen location incrementally, rather than\n"
@@ -208,7 +246,8 @@ static char *tip[] = {
    "You can save an image of the color bar by right-clicking on the label above\n"
    " it, and choosing 'Save to PPM' from the popup menu."
  ,
-   "You can crop an image by left-clicking the 'crop' button in an image viewer.\n"
+   "You can crop an image by left-clicking the 'crop' button in an image viewer,\n"
+   " then selecting the crop region by clicking+dragging in the image.\n"
    "You can Montage cropped images (all will be cropped the same way).\n"
    "Right-clicking on 'crop' will give a chooser where you can specify the\n"
    " cropping region size exactly."
@@ -219,36 +258,36 @@ static char *tip[] = {
    " * page up/page down for larger adjustments"
  ,
    "In a graph viewer, you can restrict the plotting to a subset of the time\n"
-   "points by using the Opt->Grid->Index Pin menu item. This feature is most\n"
+   "points by using the 'Opt->Grid->Index Pin' menu item. This feature is most\n"
    "useful when viewing very lengthy datasets."
  ,
    "In a graph viewer, the default plotting method has the bottom of each graph\n"
    "using a separate value (the minimum in that voxel). You can also make them\n"
    "have a common baseline (minimum among all voxels in the graph window) or\n"
-   "a global baseline (set by you) by using the Opt->Baseline menu items."
+   "a global baseline (set by you) by using the 'Opt->Baseline' menu items."
  ,
    "At the bottom of a graph viewer is a bunch of text showing various\n"
    "information about what is being shown."
  ,
    "When looking at FMRI data graphs with a regular stimulus timing, it is\n"
    "helpful to set the graph grid lines to match the stimulus timing spacing.\n"
-   "You can do this from the Opt->Grid->Choose menu item."
+   "You can do this from the 'Opt->Grid->Choose' menu item."
  ,
    "You can have graphs drawn as box plots rather than as connected line segments,\n"
-   "by using the Opt->Colors, Etc.-> Boxes menu item, or by pressing the 'B'\n"
-   "key when the mouse cursor is over the graph viewer window."
+   "by using the 'Opt->Colors, Etc.->(Data) Boxes' menu item, or by pressing the\n"
+   "'B' key when the mouse cursor is over the graph viewer window."
  ,
-   "In the graph viewer Opt and FIM menus, items that have keyboard shortcuts have\n"
-   "the key inside square brackets, as in Opt->Scale-> Down [-], meaning the '-'\n"
-   "key will cause the graph to scaled down (vertically)."
+   "In the graph viewer 'Opt' and 'FIM' menus, items that have keyboard shortcuts\n"
+   "have the key inside square brackets, as in 'Opt->Scale->Down [-]', meaning\n"
+   "the '-' key will cause the graph to scaled down (vertically)."
  ,
    "Advanced graphing: you can change the x-axis values from being 0,1,2,... to be\n"
    "anything you want, chosen from a 1D text file (applies to all voxels) or from\n"
    "a 3D dataset (per voxel x-coordinates). The x-axis for the central sub-plot will\n"
    "be displayed as a vertical graph at the left of the graph viewer window. See\n"
-   "the Opt->X-axis menu items to do strange things."
+   "the 'Opt->X-axis' menu items to do strange things."
  ,
-   "The Define Datamode -> Misc menu has a lot of choices, a few of which are:\n"
+   "The 'Define Datamode->Misc' menu has a lot of choices, a few of which are:\n"
    " * Voxel Coords? = show voxel indexes instead of mm coordinates in AFNI GUI\n"
    " * ULay Info     = show information from the UnderLay dataset header\n"
    " * Purge Memory  = eject datasets from memory, forcing reloads when viewed"
@@ -272,13 +311,13 @@ static char *tip[] = {
    "factor to scale the image size upward: factors from 2 to 8 are available."
  ,
    "You can tell the graph viewer to ignore the first few time points when plotting.\n"
-   "Menu item FIM->Ignore lets you choose how many to ignore by mouse clicks.\n"
+   "Menu item 'FIM->Ignore' lets you choose how many to ignore by mouse clicks.\n"
    "Keypress 'I' increases the ignore count by 1, 'i' decreases by 1.\n"
    "Ignored points are plotted with little blue circles which take the value of\n"
    "the first non-ignored point."
  ,
    "If you have a complicated AFNI window layout you want to save, you can use\n"
-   "Define Datamode -> Misc -> Save Layout to save a startup script that will\n"
+   "'Define Datamode->Misc->Save Layout' to save a startup script that will\n"
    "be used when you re-start AFNI in the same directory to restore the AFNI\n"
    "windows to (approximately) the same state they had before."
  ,
