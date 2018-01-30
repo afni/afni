@@ -679,15 +679,24 @@ class SubjProcSream:
 
         self.blocks     = []            # list of ProcessBlock elements
         self.dsets      = []            # list of afni_name elements
-        self.dsets_me   = []            # list of afni_name elements, per echo
-                                        #    (then dsets = dsets_me[0])
-        self.reg_echo   = 0             # 1-based, echo to use for registration 
+
         self.check_rdir = 'yes'         # check for existence of results dir
         self.stims_orig = []            # orig list of stim files to apply
         self.stims      = []            # list of stim files to apply
         self.extra_stims_orig = []      # orig list of extra_stims
         self.extra_stims      = []      # extra -stim_file list
         self.extra_labs       = []      # labels for extra -stim_file list
+
+        # multi-echo vars
+        self.dsets_me   = []            # list of afni_name elements, per echo
+                                        #    (then dsets = dsets_me[0])
+        self.num_echo   = 1             # applies regardless of have_me
+        self.have_me    = 0             # do we have multi-echo data
+        self.use_me     = 0             # use ME in current command (changes)
+                                        # (clear this after any OC/MEICA step)
+        self.reg_echo   = 0             # 1-based, echo to use for registration 
+        self.echo_var   = '$eind'       # general echo var (e.g. '$eind')
+        self.regecho_var= ''            # var for reg_echo (e.g. '$fave_echo')
 
         # blip variables
         self.blip_in_for  = None        # afni_name: input: forward blip
@@ -1530,11 +1539,12 @@ class SubjProcSream:
         if not opt or opt_is_yes(opt): self.test_stims = 1
         else:                          self.test_stims = 0
 
-    def have_me(self):
+    def _have_me(self):
        """return 1 if we have multi-echo data, else 0"""
        if len(self.dsets_me)    == 0: return 0
        if len(self.dsets_me[0]) == 0: return 0
        if self.reg_echo == 0:         return 0
+       if self.num_echo  < 2:         return 0
 
        return 1
 
@@ -1604,30 +1614,33 @@ class SubjProcSream:
                     errs += 1
 
            # note the number of found echoes
-           necho = len(self.dsets_me)
-           if necho < 2:
+           self.num_echo = len(self.dsets_me)
+           if self.num_echo < 2:
               print("** must have at least 2 -dsets_me options (so 2 echoes)")
               errs += 1
 
            # then fill reg_echo via -reg_echo (registration echo)
            oname = '-reg_echo'
            self.reg_echo = 2
+           self.regecho_var = '$fave_echo'
            val, err = self.user_opts.get_type_opt(int, oname)
            if err: errs += 1
            if val != None:
               self.reg_echo = val
 
-           if self.reg_echo < 1 or self.reg_echo > necho:
+           if self.reg_echo < 1 or self.reg_echo > self.num_echo:
               print("** %s: registration echo must be between 1 and %d" \
-                    % (oname, necho))
+                    % (oname, self.num_echo))
               errs += 1
 
            # if there were any errors, bail now
            if errs: return 1
 
-           # finally, initialize self.dsets as dsets_me[0]
+           # finally, initialize self.dsets as dsets_me[0] and note have_me
            # (try without a deep copy for now, I think these are static)
            self.dsets = self.dsets_me[0]
+           self.have_me = self._have_me()
+           self.use_me = self.have_me
 
            # === done with -dsets_me ===
 
@@ -2065,7 +2078,7 @@ class SubjProcSream:
                 return 1
 
         # check for consistency
-        if self.have_me():
+        if self.have_me:
            for eind, esets in enumerate(self.dsets_me):
                for rind, dset in enumerate(esets):
                   err, reps, tr = get_dset_reps_tr(dset.rpve(), verb=self.verb)
@@ -2377,6 +2390,14 @@ class SubjProcSream:
         if self.runs > 99: digs = 3
         self.write_text('set runs = (`count -digits %d 1 %d`)\n\n' \
                         % (digs,self.runs) )
+
+        if self.have_me:
+           self.write_text('# note echoes and echo index for registration\n')
+           self.write_text('set echo_list = (`count -digits 2 1 %d`)\n' \
+                           % self.num_echo)
+           # self.regecho_var starts with '$', so strip it when assigning
+           self.write_text("set %s = '%02d'\n\n" \
+                            % (self.regecho_var[1:], self.reg_echo))
 
         self.write_text('# create results and stimuli directories\n')
         self.write_text('mkdir %s\nmkdir %s/stimuli\n%s\n' \
@@ -3117,27 +3138,48 @@ class SubjProcSream:
     # given a block, run, return a prefix of the form: pNN.SUBJ.rMM.BLABEL
     #    NN = block index, SUBJ = subj label, MM = run, BLABEL = block label
     # if surf_names: pbNN.SUBJ.rMM.BLABEL.HEMI.niml.dset
+    # if echo index eind > 0, use ...SUBJ.eEE.rRR...
+    #               eind < 0, use        .e$fave_echo
+    #               eind = 0, use        .e$eind
     # (pass as 0/1, -1 for default)
-    def prefix_form(self, block, run, view=0, surf_names=-1):
+    def prefix_form(self, block, run, view=0, surf_names=-1, eind=0):
         if self.runs > 99: rstr = 'r%03d' % run
         else:              rstr = 'r%02d' % run
+
+        # maybe we have an echo index
+        estr = ''
+        if self.use_me:
+           if eind > 0:   estr = '%se%02d' % (self.sep_char, eind)
+           elif eind < 0: estr = '%se%s' % (self.sep_char, self.regecho_var)
+           else:          estr = '%se%s' % (self.sep_char, self.echo_var)
+
         if view: vstr = self.view
         else:    vstr = ''
+
         # if surface, change view to hemisphere and dataset suffix
         if surf_names == -1: surf_names = self.surf_names
         if surf_names:
            vstr = '.niml.dset'
            hstr = '%s%s' % (self.sep_char, self.surf_svi_ref)
         else: hstr = ''
+
         s = self.sep_char
-        return 'pb%02d%s%s%s%s%s%s%s%s' %    \
-               (block.index, s, self.subj_label, hstr, s, rstr, s,
+        return 'pb%02d%s%s%s%s%s%s%s%s%s' %    \
+               (block.index, s, self.subj_label, hstr, estr, s, rstr, s,
                 block.label, vstr)
 
     # same, but leave run as a variable
-    def prefix_form_run(self, block, view=0, surf_names=-1):
+    def prefix_form_run(self, block, view=0, surf_names=-1, eind=0):
         if view: vstr = self.view
         else:    vstr = ''
+
+        # maybe we have an echo index
+        estr = ''
+        if self.use_me:
+           if eind > 0:   estr = '%se%02d' % (self.sep_char, eind)
+           elif eind < 0: estr = '%se%s' % (self.sep_char, self.regecho_var)
+           else:          estr = '%se%s' % (self.sep_char, self.echo_var)
+
         # if surface, change view to hemisphere and dataset suffix
         if surf_names == -1: surf_names = self.surf_names
         if surf_names:
@@ -3147,16 +3189,24 @@ class SubjProcSream:
         if self.sep_char == '.': rvstr = '$run'
         else:                    rvstr = '${run}'
         s = self.sep_char
-        return 'pb%02d%s%s%s%sr%s%s%s%s' %    \
-            (block.index, s, self.subj_label, hstr, s, rvstr, s,
+        return 'pb%02d%s%s%s%s%sr%s%s%s%s' %    \
+            (block.index, s, self.subj_label, hstr, estr, s, rvstr, s,
              block.label, vstr)
 
     # same as prefix_form, but use previous block values (index and label)
     # (so we don't need the block)
     # if self.surf_names: pbNN.SUBJ.rMM.BLABEL.HEMI.niml.dset
-    def prev_prefix_form(self, run, block, view=0, surf_names=-1):
+    def prev_prefix_form(self, run, block, view=0, surf_names=-1, eind=0):
         if self.runs > 99: rstr = 'r%03d' % run
         else:              rstr = 'r%02d' % run
+
+        # maybe we have an echo index
+        estr = ''
+        if self.use_me:
+           if eind > 0:   estr = '%se%02d' % (self.sep_char, eind)
+           elif eind < 0: estr = '%se%s' % (self.sep_char, self.regecho_var)
+           else:          estr = '%se%s' % (self.sep_char, self.echo_var)
+
         if view: vstr = self.view
         else:    vstr = ''
         # if surface, change view to hemisphere and dataset suffix
@@ -3166,14 +3216,21 @@ class SubjProcSream:
            hstr = '%s%s' % (self.sep_char, self.surf_svi_ref)
         else: hstr = ''
         s = self.sep_char
-        return 'pb%02d%s%s%s%s%s%s%s%s' %    \
-               (block.index-1, s, self.subj_label, hstr, s, rstr, s,
+        return 'pb%02d%s%s%s%s%s%s%s%s%s' %    \
+               (block.index-1, s, self.subj_label, hstr, estr, s, rstr, s,
                self.prev_lab(block), vstr)
 
     # same, but leave run as a variable
-    def prev_prefix_form_run(self, block, view=0, surf_names=-1):
+    def prev_prefix_form_run(self, block, view=0, surf_names=-1, eind=0):
         if view: vstr = self.view
         else:    vstr = ''
+        # maybe we have an echo index
+        estr = ''
+        if self.use_me:
+           if eind > 0:   estr = '%se%02d' % (self.sep_char, eind)
+           elif eind < 0: estr = '%se%s' % (self.sep_char, self.regecho_var)
+           else:          estr = '%se%s' % (self.sep_char, self.echo_var)
+
         # if surface, change view to hemisphere and dataset suffix
         if surf_names == -1: surf_names = self.surf_names
         if surf_names:
@@ -3183,11 +3240,12 @@ class SubjProcSream:
         if self.sep_char == '.': rvstr = '$run'
         else:                    rvstr = '${run}'
         s = self.sep_char
-        return 'pb%02d%s%s%s%sr%s%s%s%s' %    \
-               (block.index-1, s, self.subj_label, hstr, s, rvstr, s,
+        return 'pb%02d%s%s%s%s%sr%s%s%s%s' %    \
+               (block.index-1, s, self.subj_label, hstr, estr, s, rvstr, s,
                self.prev_lab(block), vstr)
 
     # same, but leave run wild
+    # rcr - do we need echoes here?
     def prev_dset_form_wild(self, block, view=0, surf_names=-1):
         # if surface, change view to hemisphere and dataset suffix
         if surf_names == -1: surf_names = self.surf_names

@@ -208,11 +208,21 @@ def db_cmd_tcat(proc, block):
     if val == None: rmlast = 0
     else: rmlast = val
 
-    cmd = cmd + "# %s\n"                                                      \
-                "# apply 3dTcat to copy input dsets to results dir, while\n"  \
-                "# removing the first %d TRs\n"                               \
+    cmd = cmd + "# %s\n"                                                \
+                "# apply 3dTcat to copy input dsets to results dir,\n"  \
+                "# while removing the first %d TRs\n"                   \
                 % (block_header('auto block: tcat'), first)
-    for run in range(proc.runs):
+
+    # we might need to process multiple echoes
+    for eind in range(proc.num_echo):
+      if proc.have_me:
+         if (eind+1) == proc.reg_echo:
+            estr = '(fave_echo = registration driver)'
+         else:
+            estr = '(registration follower)'
+         cmd += '\n# EPI runs for echo %d %s\n' % (eind+1, estr)
+
+      for run in range(proc.runs):
         if rmlast == 0: final = '$'
         else:
             reps = proc.reps_all[run]
@@ -220,9 +230,13 @@ def db_cmd_tcat(proc, block):
             if reps-rmlast-1 < 0:
                 print('** run %d: have %d reps, cannot remove %d!' \
                       % (run+1, reps, rmlast))
+                return 1, ''
+        if proc.have_me: pre_form = proc.prefix_form(block,run+1,eind=(eind+1))
+        else:            pre_form = proc.prefix_form(block,run+1)
         cmd = cmd + "3dTcat -prefix %s/%s %s'[%d..%s]'\n" %              \
-                    (proc.od_var, proc.prefix_form(block,run+1),
+                    (proc.od_var, pre_form,
                      proc.dsets[run].rel_input(), flist[run], final)
+      if proc.have_me: cmd += '\n'
 
     proc.reps   -= first+rmlast # update reps to account for removed TRs
     if proc.verb > 0: print("-- %s: reps is now %d" % (block.label, proc.reps))
@@ -584,7 +598,7 @@ def make_outlier_commands(proc, block):
     if not opt or OL.opt_is_yes(opt): lstr = ' -legendre'
     else:                             lstr = ''
 
-    prev_prefix = proc.prev_prefix_form_run(block, view=1)
+    prev_prefix = proc.prev_prefix_form_run(block, view=1, eind=-1)
     ofile = 'outcount.r$run.1D'
     warn  = '** TR #0 outliers: possible pre-steady state TRs in run $run'
     proc.out_wfile = 'out.pre_ss_warn.txt'
@@ -694,7 +708,7 @@ def db_mod_blip(block, proc, user_opts):
       if proc.verb > 2:
          print('-- have blip forward dset %s' \
                % proc.blip_in_for.shortinput(sel=1))
-      fblip_oblset = proc.dsets[0]
+      fblip_oblset = proc.blip_in_for
 
    proc.blip_obl_for = dset_is_oblique(fblip_oblset, proc.verb)
    proc.blip_obl_rev = dset_is_oblique(proc.blip_in_rev, proc.verb)
@@ -1519,21 +1533,34 @@ def db_cmd_tshift(proc, block):
     cur_prefix = proc.prefix_form_run(block)
     prev_prefix = proc.prev_prefix_form_run(block, view=1)
 
+    # ME updates
+    if proc.use_me: indent = '    '
+    else:           indent = ''
+
     # maybe there are extra options to append to the command
     opt = block.opts.find_opt('-tshift_opts_ts')
     if not opt or not opt.parlist: other_opts = ''
-    else: other_opts = '             %s \\\n' % ' '.join(opt.parlist)
+    else: other_opts = '%s             %s \\\n' % (indent,' '.join(opt.parlist))
 
     # write commands
     cmd = cmd + '# %s\n'                                                \
                 '# time shift data so all slice timing is the same \n'  \
                 % block_header('tshift')
-    cmd = cmd + 'foreach run ( $runs )\n'                               \
-                '    3dTshift %s %s -prefix %s \\\n'                    \
+
+    if proc.use_me:
+       cmd += 'foreach eind ( $echo_list )\n'
+
+    cmd = cmd + '%sforeach run ( $runs )\n'                             \
+                '%s    3dTshift %s %s -prefix %s \\\n'                  \
                 '%s'                                                    \
-                '             %s\n'                                     \
-                'end\n\n'                                               \
-                % (align_to, resam, cur_prefix, other_opts, prev_prefix)
+                '%s             %s\n'                                   \
+                '%send\n'                                               \
+                % (indent, indent, align_to, resam, cur_prefix, other_opts,
+                   indent, prev_prefix, indent)
+
+    if proc.use_me: cmd += 'end\n'
+
+    cmd += '\n'
 
     return cmd
 
@@ -1584,11 +1611,15 @@ def set_vr_int_name(block, proc, prefix='', inset='', runstr='', trstr=''):
    # already set?
    if proc.vr_int_name != '': return 0
 
+   # handle ME data
+   if proc.use_me: estr = '.%s' % proc.regecho_var
+   else:           estr = ''
+
    if inset != '':
       proc.vr_int_name = inset
    else:
-      proc.vr_int_name = 'pb%02d.$subj.r%s.%s%s%s' \
-                         % (block.index-1, runstr, proc.prev_lab(block),
+      proc.vr_int_name = 'pb%02d.$subj%s.r%s.%s%s%s' \
+                         % (block.index-1, estr, runstr, proc.prev_lab(block),
                             proc.view, trstr)
    proc.vr_ext_pre = prefix
 
