@@ -1715,21 +1715,34 @@ void AFNI_sigfunc(int sig)
    This catenation of events is for Jerzy 'the Mad Pole' Bodurka.
 ------------------------------------------------------------------------------*/
 
+#if 0 /* not used at this time */
+int AFNI_gcd( int m , int n )    /* Euclid's Greatest Common Denominator */
+{
+  while( m > 0 ){
+    if( n > m ){ int t=m; m=n; n=t; } /* swap */
+    m -= n ;
+  }
+  return n ;
+}
+
+int AFNI_find_relprime_fixed( int n )  /* find number relatively prime to n */
+{
+   int dj , n5=n/5 ;
+   if( n5 < 2 ) return 1 ;
+   for( dj=n5 ; AFNI_gcd(n,dj) > 1 ; dj++ ) ; /*nada*/
+   return dj ;
+}
+#endif
+
 extern int selenium_close(void) ;
 
 /* the goodbye messages are now stored in afni_startup_tips.h */
 
 void AFNI_sigfunc_alrm(int sig)
 {
-#undef NTOP
-#ifdef USE_SONNETS
-# define NTOP (NGBY+1)
-#else
-# define NTOP NGBY
-#endif
    int nn ;
    srand48((long)time(NULL)+(long)getpid()) ; /* reset random number generator */
-   nn = (lrand48()>>3) % NTOP ;
+   nn = (lrand48()>>3) % NGBY ;
    if( !AFNI_yesenv("AFNI_NEVER_SAY_GOODBYE") ){
      if( nn < NGBY ){
 #undef  NDUN
@@ -1752,19 +1765,6 @@ void AFNI_sigfunc_alrm(int sig)
          }
        }
      }
-#ifdef USE_SONNETS
-     else {
-#undef  NDEL
-#define NDEL (sizeof(del)/sizeof(char *))
-       char *del[] = { "delectation" , "delight"       , "spirit"       ,
-                       "edification" , "ennoblement"   , "refinement"   ,
-                       "felicity"    , "gratification" , "enlightenment" } ;
-       nn = (lrand48()>>3) % NUM_SONNETS ;
-       fprintf(stderr,"\n** Exeunt AFNI: for thy %s, a sonnet by William Shakespeare:\n"
-                      "                  --- %d ---\n"
-                      "%s\n" , del[lrand48()%NDEL] , nn+1 , sonnets[nn] ) ;
-     }
-#endif
      /** MCHECK ; **/
    }
 
