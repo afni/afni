@@ -1715,25 +1715,6 @@ void AFNI_sigfunc(int sig)
    This catenation of events is for Jerzy 'the Mad Pole' Bodurka.
 ------------------------------------------------------------------------------*/
 
-#if 0 /* not used at this time */
-int AFNI_gcd( int m , int n )    /* Euclid's Greatest Common Denominator */
-{
-  while( m > 0 ){
-    if( n > m ){ int t=m; m=n; n=t; } /* swap */
-    m -= n ;
-  }
-  return n ;
-}
-
-int AFNI_find_relprime_fixed( int n )  /* find number relatively prime to n */
-{
-   int dj , n5=n/5 ;
-   if( n5 < 2 ) return 1 ;
-   for( dj=n5 ; AFNI_gcd(n,dj) > 1 ; dj++ ) ; /*nada*/
-   return dj ;
-}
-#endif
-
 extern int selenium_close(void) ;
 
 /* the goodbye messages are now stored in afni_startup_tips.h */
@@ -1751,17 +1732,21 @@ void AFNI_sigfunc_alrm(int sig)
                               "is over" , "terminates" , "finishes"   } ;
        if( sig >= 0 ){
          printf("\n** AFNI %s: %s!  [%d/%d]\n\n" ,
-                dun[lrand48()%NDUN],msg[nn],nn+1,NGBY) ;
+                dun[lrand48()%NDUN],gby[nn],nn+1,NGBY) ;
        } else {
          int ss ;
          if( -sig < NGBY ){
-           printf("-------------- %d random AFNI goodbye messages -------------------------\n",-sig);
+           printf("-------------- %d random AFNI goodbye messages -----------------------------\n",-sig);
            for( ss=-1 ; ss > sig ; ss-- ){
-             nn = (lrand48()>>3) % NGBY ; printf("%s!\n\n",msg[nn]) ;
+             nn = (lrand48()>>3) % NGBY ; printf("%s!\n\n",gby[nn]) ;
            }
          } else {
-           printf("-------------- All %d AFNI goodbye messages ----------------------------\n",NGBY);
-           for( nn=0 ; nn < NGBY ; nn++ ) printf("%s!\n\n",msg[nn]) ;
+           int dn = AFNI_find_relprime_random(NGBY) , kk ;
+           printf("-------------- All %d AFNI goodbye messages (random order) -----------------\n",NGBY);
+           for( kk=0,nn=(lrand48()>>3)%NGBY ; kk < NGBY ; kk++ ){
+             printf( "%s!\n\n" , gby[nn] + ((gby[nn][0]=='\n') ? 1 : 0) ) ;
+             nn = (nn+dn)%NGBY ;
+           }
          }
        }
      }

@@ -73,8 +73,6 @@ static char *tip[] = {
    "You can run InstaCorr on several subjects at the same time, using\n"
    "multiple AFNI controllers opened with the 'New' button."
  ,
-   "REMEMBER: afni_proc.py is your friend when doing time series analyses!"
- ,
    "The 'New' button (lower left corner of AFNI controller) lets you open\n"
    "another AFNI controller. The UnderLay and OverLay datasets will be\n"
    "listed in the controller window title bar."
@@ -325,16 +323,33 @@ static char *tip[] = {
    "be used when you re-start AFNI in the same directory to restore the AFNI\n"
    "windows to (approximately) the same state they had before."
  ,
-   "If you are doing complicated twisted things with AFNI programs, ASK US\n"
-   "(on the message board). Often, there is an easier way to do a task!"
+   "Did you know that AFNI can display datasets stored with various data types?\n"
+   " * byte (unsigned 8 bit integers)  * short (signed 16 bit integers)\n"
+   " * float (32 bit values)           * complex (pairs of floats)\n"
+   " * RGB  (triples of bytes)"
+ ,
+   "AFNI can read in .jpg and .png image files as 2D 'datasets'. Is this useful?\n"
+   "It depends on who you ask!"
+ ,
+   "The AFNI program 'aiv' (AFNI Image Viewer) can be used for a quick display\n"
+   "of images in various formats (.jpg, .png, plus datasets). The interface\n"
+   "is the same as the slicer viewer built into the AFNI GUI.\n"
  ,
 
 /*-- tips below here are for non-GUI programs --*/
 
-   "Questions about AFNI? Try our Message Board at\n"
+   "Questions about AFNI? Problems with a program? Try our Message Board at\n"
    "  https://afni.nimh.nih.gov/afni/community/board/\n"
    "Please be specific and focused, as generic questions without\n"
-   "details are hard to answer well on a Web forum."
+   "details are very hard to answer well on a Web forum."
+ ,
+   "If you are doing complicated twisted things with AFNI programs, ASK US\n"
+   "(on the message board). Often, there is an easier way to do a task!"
+ ,
+   "REMEMBER: afni_proc.py is your friend when doing time series analyses!\n"
+   "In particular, if you are still using custom hand-written scripts for\n"
+   "resting-state preprocessing or time series regression, you need to\n"
+   "learn to use afni_proc.py (unless you are doing something unusual)."
  ,
    "Skull stripping T1-weighted datasets? Programs and scripts include:\n"
    " * 3dSkullStrip     - surface expansion program (many options)\n"
@@ -519,14 +534,18 @@ static char *tip[] = {
    "so that the subject's left is marked as being the right? Program\n"
    "3dLRflip can flip the data rows to rearrange the data so the dataset\n"
    "header information and the actual data match again."
+ ,
+   "Want to write an AFNI '3d' program? If you know C, the code 3dToyProg.c\n"
+   "is a good starting point. It shows how to read, calculate, and write\n"
+   "datasets, and is heavily commented."
 
 } ;
 
 /*---- goodbye messages here ----*/
 
 #undef  NGBY
-#define NGBY ((int)(sizeof(msg)/sizeof(char *)))
-static char *msg[] = {
+#define NGBY ((int)(sizeof(gby)/sizeof(char *)))
+static char *gby[] = {
      "Farewell, my friend"                                           ,
      "Farewell?  A long farewell to all my greatness"                ,
      "Sweet is the memory of distant friends"                        ,
@@ -858,7 +877,7 @@ static char *msg[] = {
      "What in God's Holy Name are you blathering on about?"          ,
      "Are you a Dada-ist or a Dude-ist?"                             ,
      "Believe those who seek the truth; doubt those who find it"     ,
-     "There is more to truth that just the facts"                    ,
+     "There is more to truth than just the facts"                    ,
      "There is more to truth than a small p-value"                   ,
      "If you think you are free, no escape is possible"              ,
      "If you chase two rabbits at once, you will not catch either"   ,
@@ -1164,6 +1183,7 @@ static char *msg[] = {
      "If the genome is the source code, it should have come with comments"            ,
      "So the days float through my eyes, but still the days seem the same"            ,
 
+     "The problem with science: answering 1 question creates 20 new (and harder) ones"        ,
      "When all you have is a computer, every problem looks like it needs linear algebra"      ,
      "You know you're in trouble when it takes a 64 bit integer to count your unread emails"  ,
      "Once you've done what you have to do, no one will let you do what you want to do"       ,

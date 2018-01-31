@@ -43,18 +43,25 @@ int AFNI_splash_isopen(void)
    return (ppp != NULL && ISQ_REALZ(ppp->seq)) ? num_splashup : 0 ;
 }
 /*----------------------------------------------------------------------------*/
-static int gcd( int m , int n ){
+int AFNI_gcd( int m , int n ){
   while( m > 0 ){
     if( n > m ){ int t=m; m=n; n=t; } /* swap */
     m -= n;
   }
   return n;
 }
-static int find_relprime_random( int n ) /* find one relatively prime to n */
+int AFNI_find_relprime_random( int n ) /* find one relatively prime to n */
 {
    int dj , n5=n/5 ;
    if( n5 < 2 ) return 1 ;
-   do{ dj = lrand48() % n + 1 ; } while( gcd(n,dj) > 1 ) ;
+   do{ dj = lrand48() % n + 1 ; } while( AFNI_gcd(n,dj) > 1 ) ;
+   return dj ;
+}
+int AFNI_find_relprime_fixed( int n )  /* find number relatively prime to n */
+{
+   int dj , n5=n/5 ;
+   if( n5 < 2 ) return 1 ;
+   for( dj=n5 ; AFNI_gcd(n,dj) > 1 ; dj++ ) ; /*nada*/
    return dj ;
 }
 /*---------------------------------------------------------------------------*/
@@ -156,7 +163,7 @@ static int AFNI_change_splash(void)
        int nxov,nyov,ee,dd ;
        if( ff >= 0 ) ff = (ff+df) % num_face ;
        else {        ff = (lrand48() >> 8) % num_face ;
-                     df = find_relprime_random(num_face) ;
+                     df = AFNI_find_relprime_random(num_face) ;
        }
        imov = mri_read_stuff( fname_face[ff] ) ;
        if( imov != NULL ){
@@ -321,7 +328,7 @@ ENTRY("AFNI_splashup") ;
           index_splash = (first_splash >= 0) ? first_splash
                                              : (lrand48() >> 8) % num_splash ;
           delta_splash = 2*((lrand48() >> 8)%2)-1 ;  /* -1 or +1 */
-          delta_splash *= find_relprime_random(num_splash) ; /* 13 Sep 2007 */
+          delta_splash *= AFNI_find_relprime_random(num_splash) ; /* 13 Sep 2007 */
         } else {
           index_splash = (index_splash+delta_splash+num_splash)%(num_splash) ;
         }
@@ -781,7 +788,7 @@ ENTRY("AFNI_faceup") ;
 
    ddss = num_face + 16449/num_face ; if( ddss > 222 ) ddss = 222 ;
 
-   if( num_face > 4 ) dj = find_relprime_random(num_face) ;
+   if( num_face > 4 ) dj = AFNI_find_relprime_random(num_face) ;
    j0 = lrand48() % num_face ;
 
    for( ii=0 ; ii < num_face ; ii++ ){
@@ -870,7 +877,7 @@ ENTRY("AFNI_allsplash") ;
 
    if( num_splash > 4 ){
      ii = num_splash / 2 ;
-     do{ dj = 1 + lrand48() % ii ; } while( gcd(num_splash,dj) > 1 ) ;
+     do{ dj = 1 + lrand48() % ii ; } while( AFNI_gcd(num_splash,dj) > 1 ) ;
    }
    j0 = lrand48() % num_splash ;
 

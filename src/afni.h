@@ -2404,6 +2404,10 @@ extern void AFNI_store_dset_index(int,int) ;  /* 18 May 2000 */
 extern int  AFNI_needs_dset_ijk(void) ;
 extern int  AFNI_needs_dset_tin(void) ;
 
+extern int AFNI_gcd( int m , int n ) ;
+extern int AFNI_find_relprime_random( int n ) ;
+extern int AFNI_find_relprime_fixed( int n ) ;
+
 /*-----------------------------------------------------------*/
 /*-----------------  initializations  -----------------------*/
 
