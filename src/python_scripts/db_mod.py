@@ -2318,8 +2318,10 @@ def warp_anat_followers(proc, block, anat_aname, epi_aname=None, prevepi=0):
    if len(proc.afollowers) < 1: return 0, None
 
    if epi_aname == None:
-      if prevepi: epi_aname = BASE.afni_name(proc.prev_prefix_form(1, block))
-      else:       epi_aname = BASE.afni_name(proc.prefix_form(block, 1))
+      if prevepi:
+         epi_aname = BASE.afni_name(proc.prev_prefix_form(1, block, eind=-1))
+      else:
+         epi_aname = BASE.afni_name(proc.prefix_form(block, 1, eind=-1))
       epi_aname.new_view(proc.view)
 
    warps = proc.anat_warps[:]
