@@ -1978,11 +1978,18 @@ def db_cmd_volreg(proc, block):
             cmd = cmd + '               %s \\\n' % wstr
             proc.e2final_mv.append(wstr)
 
+        # if ME, alter prev_prefix before applying catendated warp
+        if proc.use_me:
+           prev_prefix = proc.prev_prefix_form_run(block, view=1, eind=0)
+
         # if blip, input (prev_prefix) is from prior to blip block
         if doblip:
            bblock = proc.find_block('blip')
            if bblock:
-              prev_prefix = proc.prev_prefix_form_run(bblock, view=1, eind=-1)
+              if proc.use_me:
+                 prev_prefix = proc.prev_prefix_form_run(bblock,view=1,eind=0)
+              else:
+                 prev_prefix = proc.prev_prefix_form_run(bblock,view=1,eind=-1)
 
         # if tlrc, use that for 3dAllineate base and change view
         if dowarp:
@@ -1993,8 +2000,16 @@ def db_cmd_volreg(proc, block):
         runwarpmat = 'mat.r$run.warp.aff12.1D'
         cmd += '               mat.r$run.vr.aff12.1D > %s\n' % runwarpmat
 
-        if do_extents: wprefix = "rm.epi.nomask.r$run"
-        else:          wprefix = cur_prefix
+        if do_extents:
+           if proc.use_me:
+              wprefix = "rm.epi.nomask.e%s.r$run" % proc.echo_var
+           else:
+              wprefix = "rm.epi.nomask.r$run"
+        else:
+           if proc.use_me:
+              wprefix = cur_prefix_me
+           else:
+              wprefix = cur_prefix
 
         # first outer is any NL std space warp
         if dowarp and proc.nlw_aff_mat != '':
@@ -2016,10 +2031,23 @@ def db_cmd_volreg(proc, block):
         if doblip or proc.nlw_aff_mat:
            wcmd += '%s# then apply non-linear standard-space warp\n' % indent
 
+        # if ME, wrap per echo
+        ime = ''
+        if proc.use_me:
+           mcmd = '%s# (apply warps per echo - warps are fixed, per run)\n' \
+                  '%sforeach %s ( $echo_list )\n' \
+                  % (indent, indent, proc.echo_var[1:])
+           ime = '   ' # ME extra indent
+           wcmd += mcmd
+
         st, wtmp = apply_catenated_warps(proc, epi_warps, base=allinbase,
-                      source=prev_prefix, prefix=wprefix, dim=dim, istr=indent)
+                      source=prev_prefix, prefix=wprefix, dim=dim,
+                      istr=(indent+ime))
         if st: return
         wcmd += wtmp
+
+        if proc.use_me:
+           wcmd += '%send\n' % indent
 
         if do_extents:
            all1_prefix = 'rm.epi.1.r$run'
