@@ -1038,7 +1038,7 @@ static char *msg[] = {
      "The truth is simple. If it was complicated, everyone would understand it"       ,
      "I hate, commas, in the wrong, place"                                            ,
      "The only true wisdom is in knowing you know nothing"                            ,
-     "There is no harm in repeating a good thing! There is no harm in ..."            ,
+     "There is no harm in repeating a good thing! There is no harm in ...."           ,
      "It is in our darkest moments that we must focus to see the light"               ,
      "Dignity does not consist of possessing honors, but in deserving them"           ,
      "What is a billion years, when compared to the lifespan of AFNI?"                ,
@@ -1196,7 +1196,7 @@ static char *msg[] = {
      "\n  We shall not cease from exploration\n"
      "  And the end of all our exploring\n"
      "  Will be to arrive where we started\n"
-     "  And know the place for the first time."                                               ,
+     "  And know the place for the first time"                                                ,
 
      "Remember:\n"
      "  To argue with those who have renounced the use and authority\n"
