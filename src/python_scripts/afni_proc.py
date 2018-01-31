@@ -595,8 +595,9 @@ g_requires_afni = [ \
 
 g_todo_str = """todo:
   - ME:
-     - do 'apply catenated xform'
+     x do 'apply catenated xform'
      - test only vreg, w/anat, aff std space, NL, blip
+     - test radial_correlate
      - postdata, despike, ricor, blip
      - after OC/MEICA, clear use_me
   - be able to run simple forms of @Align_Centers
@@ -3251,7 +3252,14 @@ class SubjProcSream:
 
     # same, but leave run wild
     # rcr - do we need echoes here?
-    def prev_dset_form_wild(self, block, view=0, surf_names=-1):
+    def prev_dset_form_wild(self, block, view=0, surf_names=-1, eind=0):
+        # maybe we have an echo index
+        estr = ''
+        if self.use_me:
+           if eind > 0:   estr = '%se%02d' % (self.sep_char, eind)
+           elif eind < 0: estr = '%se%s' % (self.sep_char, self.regecho_var)
+           else:          estr = '%se%s' % (self.sep_char, self.echo_var)
+
         # if surface, change view to hemisphere and dataset suffix
         if surf_names == -1: surf_names = self.surf_names
         if surf_names:
@@ -3261,18 +3269,25 @@ class SubjProcSream:
            vstr = '%s.HEAD' % self.view
            hstr = ''
         s = self.sep_char
-        return 'pb%02d%s%s%s%sr*%s%s%s' %    \
-             (block.index-1, s, self.subj_label,hstr, s, s,
+        return 'pb%02d%s%s%s%s%sr*%s%s%s' %    \
+             (block.index-1, s, self.subj_label,hstr, estr, s, s,
              self.prev_lab(block), vstr)
 
     # like prefix, but list the whole dset form, in wildcard format
-    def dset_form_wild(self, blabel, view=None, surf_names=-1):
+    def dset_form_wild(self, blabel, view=None, surf_names=-1, eind=0):
         block = self.find_block(blabel)
         if not block:
             print("** DFW: failed to find block for label '%s'" % blabel)
             return ''
-
         bind = block.index
+
+        # maybe we have an echo index
+        estr = ''
+        if self.use_me:
+           if eind > 0:   estr = '%se%02d' % (self.sep_char, eind)
+           elif eind < 0: estr = '%se%s' % (self.sep_char, self.regecho_var)
+           else:          estr = '%se%s' % (self.sep_char, self.echo_var)
+
         # if surface, change view to hemisphere and dataset suffix
         if surf_names == -1: surf_names = self.surf_names
         if surf_names:
@@ -3285,8 +3300,8 @@ class SubjProcSream:
            vstr = '%s.HEAD' % self.view
            hstr = ''
         s = self.sep_char
-        return 'pb%02d%s%s%s%sr*%s%s%s' %      \
-            (bind, s, self.subj_label, hstr, s, s, blabel, vstr)
+        return 'pb%02d%s%s%s%s%sr*%s%s%s' %      \
+            (bind, s, self.subj_label, hstr, estr, s, s, blabel, vstr)
 
 class ProcessBlock:
     def __init__(self, label, proc):

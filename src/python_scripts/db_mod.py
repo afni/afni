@@ -640,7 +640,7 @@ def run_radial_correlate(proc, block):
         other_opts = '%8s%s \\\n' % (' ', ' '.join(olist))
     else: other_opts = ''
 
-    prev_dsets = proc.prev_dset_form_wild(block, view=1)
+    prev_dsets = proc.prev_dset_form_wild(block, view=1, eind=-1)
     rdir = 'corr_test.results.%s' % block.label
 
     cmd  = '# %s\n'                                                       \
@@ -1102,10 +1102,21 @@ def db_cmd_despike(proc, block):
     # write commands
     cmd = cmd + '# %s\n'                                \
                 '# apply 3dDespike to each run\n' % block_header('despike')
-    cmd = cmd + 'foreach run ( $runs )\n'               \
-                '    3dDespike%s%s%s -prefix %s %s\n'   \
-                'end\n\n' %                             \
-                (newstr, other_opts, mstr, prefix, prev)
+
+    indent = ''
+    if proc.use_me:
+       indent = '    '
+       cmd += 'foreach %s ( $echo_list )\n' % (proc.echo_var[1:])
+
+    cmd = cmd + '%sforeach run ( $runs )\n'               \
+                '%s    3dDespike%s%s%s -prefix %s %s\n'   \
+                '%send\n' %                               \
+                (indent, indent,
+                 newstr, other_opts, mstr, prefix, prev, indent)
+
+    if proc.use_me:
+       cmd += 'end\n'
+    cmd += '\n'
 
     return cmd
 
@@ -6811,7 +6822,7 @@ def db_cmd_gen_review(proc):
     tblk = proc.find_block('tcat')
 
     # get dataset names, but be sure not to get the surface form
-    dstr = proc.dset_form_wild('tcat', proc.origview, surf_names=0)
+    dstr = proc.dset_form_wild('tcat', proc.origview, surf_names=0, eind=-1)
     cmd = "# %s\n\n"                                                    \
           "# generate a review script for the unprocessed EPI data\n"   \
           "gen_epi_review.py -script %s \\\n"                           \
