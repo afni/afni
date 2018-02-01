@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 1, Feb , 2018 , PT , "@GradFlipTest" , MINOR , TYPE_MODIFY,
+   "Internal change to allow subset selection in text files.",
+   "Can now use subbrick selector notation with bvals/bvecs.\n"
+},
+
 { 12, Jan , 2018 , PT , "@djunct_select_str.py" , MINOR , TYPE_BUG_FIX,
    "Would return an error when *no* bad vols were selected.",
    "Now updated to work fine with that; just an intermed program.\n"
