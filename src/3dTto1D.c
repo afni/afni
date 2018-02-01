@@ -30,6 +30,8 @@ static char g_version[] = "3dTto1D version 1.1, 18 August 2017";
 #define T21_METH_S_SRMS         4       /* shift_srms */
 #define T21_METH_MDIFF          5       /* mdiff      */
 #define T21_METH_SMDIFF         6       /* smdiff     */
+#define T21_METH_4095_COUNT     7       /* 4095_count */
+#define T21_METH_4095_FRAC      8       /* 4095_frac  */
 
 /*--------------- global options struct ---------------*/
 typedef struct
@@ -54,6 +56,7 @@ options_t g_opts;
 int    show_help           (void);
 int    check_dims          (options_t *);
 int    compute_results     (options_t *);
+int    compute_4095        (options_t *, int);
 int    compute_enorm       (options_t *, int);
 int    compute_meandiff    (options_t *, int);
 int    fill_mask           (options_t *);
@@ -172,6 +175,9 @@ int compute_results(options_t * opts)
    if( method == T21_METH_MDIFF ||
        method == T21_METH_SMDIFF ) RETURN(compute_meandiff(opts, method));
    
+   if( method == T21_METH_4095_COUNT ||
+       method == T21_METH_4095_FRAC ) RETURN(compute_4095(opts, method));
+   
    ERROR_message("unknown method index %d", method);
 
    RETURN(1);
@@ -264,6 +270,98 @@ int compute_meandiff(options_t * opts, int method)
    free(fdata);
   
    if( opts->verb > 1 ) INFO_message("successfully computed mean diff");
+
+   RETURN(0);
+}
+
+
+/* count voxels or mask fraction that hits a global maximum of 4095
+ *
+ * method = 1 : 4095_count
+ *          2 : 4095_frac
+ *
+ * return:  1 : max == 4095
+ *          0 : max != 4095
+ *         -1 : on any error
+ */
+int compute_4095(options_t * opts, int method)
+{
+   double * dwork;
+   float  * fdata, gmax, fval;
+   byte   * mask = opts->mask;  /* save 6 characters... */
+   int      nt, nvox, vind, tind, nmask, found, nlocal;
+
+   ENTRY("compute_4095");
+
+   nt = DSET_NVALS(opts->inset);
+   nvox = DSET_NVOX(opts->inset);
+
+   /* note how many voxels this is over */
+   if( opts->mask ) nmask = THD_countmask( nvox, opts->mask );
+   else             nmask = nvox;
+
+   if( opts->verb )
+      INFO_message("computing %s, nvox = %d, nmask = %d, nt = %d",
+                   meth_index_to_name(method), nvox, nmask, nt);
+
+   /* could steal fdata, but that might be unethical (plus, garbage on err) */
+   opts->result = calloc(nt, sizeof(float));
+
+   if( nmask == 0 ) {
+      ERROR_message("empty mask");
+      RETURN(0);
+   }
+
+   /* check_dims() has been called, so we have sufficient data */
+   fdata = calloc(nt, sizeof(float));
+
+   /* do the work */
+   gmax = 0.0;
+   found = 0;
+   for( vind=0; vind < nvox; vind++ ) {
+      if( opts->mask && ! opts->mask[vind] ) continue;
+
+      if( THD_extract_array(vind, opts->inset, 0, fdata) ) {
+         ERROR_message("failed to exract data at index %d\n", vind);
+         free(fdata);  RETURN(-1);
+      }
+
+      /* start counting */
+      for( tind=0; tind < nt; tind++ ) {
+         fval = fdata[tind];
+
+         /* track global max */
+         if( fval > gmax ) gmax = fval;
+
+         /* if we pass the limit, quit working */
+         if( gmax > 4095.0 ) break;
+
+         /* track hits */
+         if( fval == 4095.0 ) opts->result[tind]++;
+      }
+   }
+
+   /* if the limit is not the bad one, clear everything and run away */
+   if( gmax != 4095.0 ) {
+      for( tind=0; tind < nt; tind++ ) opts->result[tind] = 0.0;
+      free(fdata);
+      RETURN(0);
+   }
+
+   /* so the limit is 4095... */
+
+   /* if frac, scale */
+   if( method == T21_METH_4095_FRAC ) {
+      for( tind=0; tind < nt; tind++ ) opts->result[tind] /= nmask;
+   }
+
+   /* babble to user */
+   if( opts->verb )
+      INFO_message("global max = %f", gmax);
+
+   free(fdata);
+  
+   if( opts->verb > 1 ) INFO_message("successfully ran 4095 test");
 
    RETURN(0);
 }
@@ -450,6 +548,9 @@ int meth_name_to_index(char * name)
 
    if( ! strcasecmp(name, "smdiff") )  return T21_METH_SMDIFF;
 
+   if( ! strcasecmp(name, "4095_count") ) return T21_METH_4095_COUNT;
+   if( ! strcasecmp(name, "4095_frac") )  return T21_METH_4095_FRAC;
+
    /* be explicit, since we have a case for this */
    if( ! strcmp(name, "undefined") ) return T21_METH_UNDEF;
 
@@ -464,6 +565,8 @@ char * meth_index_to_name(int method)
    if( method == T21_METH_S_SRMS )  return "shift_srms";
    if( method == T21_METH_MDIFF )   return "mdiff";
    if( method == T21_METH_SMDIFF )  return "smdiff";
+   if( method == T21_METH_4095_COUNT ) return "4095_count";
+   if( method == T21_METH_4095_FRAC )  return "4095_frac";
 
    return "undefined";
 }
