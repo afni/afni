@@ -7,6 +7,8 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Usage: 3dDetrend [options] dataset
@@ -114,4 +116,4 @@
       3dDetrend -DAFNI_1D_TRANOUT=YES -prefix - -vector G1.1D -polort 3 G5.1D\' > Q.1D
     
     
-    ++ Compile date = Nov  9 2017 {AFNI_17.3.03:macosx_10.7_local}
+    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}

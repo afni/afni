@@ -7,6 +7,8 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Usage: 3dOverlap [options] dset1 dset2 ...
@@ -23,4 +25,4 @@
       3dOverlap -save abcnum a+orig b+orig c+orig
       3dmaskave -mask 'abcnum+orig<3..3>' a+orig
     
-    ++ Compile date = Nov  9 2017 {AFNI_17.3.03:macosx_10.7_local}
+    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}

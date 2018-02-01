@@ -7,12 +7,17 @@
 .. contents:: 
     :depth: 4 
 
-.. code-block:: none
+| 
 
     Program: 3dcalc                                                         
     Author:  RW Cox et al                                                   
                                                                             
-    3dcalc - AFNI's calculator program                                      
+
+3dcalc - AFNI's calculator program
+==================================
+
+.. code-block:: none
+
                                                                             
          This program does voxel-by-voxel arithmetic on 3D datasets         
          (only limited inter-voxel computations are possible).              
@@ -29,15 +34,22 @@
          For smoothing in time:                          cf. 3dTsmooth      
          For statistics from a region around each voxel: cf. 3dLocalstat    
                                                                             
-    ------------------------------------------------------------------------
-    Usage:                                                                  
-    -----                                                                   
+
+Usage:
+======
+
+.. code-block:: none
+
            3dcalc -a dsetA [-b dsetB...] \                                 
                   -expr EXPRESSION       \                                 
                   [options]                                                 
                                                                             
-    Examples:                                                               
-    --------                                                                
+
+Examples:
+=========
+
+.. code-block:: none
+
     1. Average datasets together, on a voxel-by-voxel basis:                
                                                                             
          3dcalc -a fred+tlrc -b ethel+tlrc -c lucy+tlrc \
@@ -167,9 +179,12 @@
             erosion:  -expr 'a*(1-amongst(0,b,c,d,e,f,g))'                  
             dilation: -expr 'amongst(1,a,b,c,d,e,f,g)'                      
                                                                             
-    ------------------------------------------------------------------------
-    ARGUMENTS for 3dcalc (must be included on command line):                
-    ---------                                                               
+
+ARGUMENTS for 3dcalc (must be included on command line):
+========================================================
+
+.. code-block:: none
+
                                                                             
      -a dname    = Read dataset 'dname' and call the voxel values 'a' in the
                    expression (-expr) that is input below. Up to 26 dnames  
@@ -214,9 +229,12 @@
            evaluator, in order to get a feel for how it works and           
            what it accepts.                                                 
                                                                             
-    ------------------------------------------------------------------------
-     OPTIONS for 3dcalc:                                                    
-     -------                                                                
+
+OPTIONS for 3dcalc:
+===================
+
+.. code-block:: none
+
                                                                             
       -help      = Show this help.
                                                                             
@@ -346,9 +364,12 @@
                       [Sorting is done in spatial indexes, not in time.]    
                       [Program 3dTsort will sort voxels along time axis]    
                                                                             
-    ------------------------------------------------------------------------
-    DATASET TYPES:                                                          
-    -------------                                                           
+
+DATASET TYPES:
+==============
+
+.. code-block:: none
+
                                                                             
      The most common AFNI dataset types are 'byte', 'short', and 'float'.   
                                                                             
@@ -369,9 +390,12 @@
      sign bit, which gives 4-5 decimal places of accuracy. If this is not   
      enough, then it makes sense to use the larger type, float.             
                                                                             
-    ------------------------------------------------------------------------
-    3D+TIME DATASETS:                                                       
-    ----------------                                                        
+
+3D+TIME DATASETS:
+=================
+
+.. code-block:: none
+
                                                                             
      This version of 3dcalc can operate on 3D+time datasets.  Each input    
      dataset will be in one of these conditions:                            
@@ -392,9 +416,7 @@
      precedence over '-c wilma+tlrc'.  (The program 3drefit can be used to  
      alter the .HEAD parameters of the output dataset, if desired.)         
                                                                             
-    ------------------------------------------------------------------------
     INPUT DATASET NAMES
-    -------------------
      An input dataset is specified using one of these forms:
         'prefix+view', 'prefix+view.HEAD', or 'prefix+view.BRIK'.
      You can also add a sub-brick selection list after the end of the
@@ -439,7 +461,6 @@
      single quotes, as in 'fred+orig[5..7,9]', or double quotes "x".
                                                                             
     CATENATED AND WILDCARD DATASET NAMES
-    ------------------------------------
      Datasets may also be catenated or combined in memory, as if one first
      ran 3dTcat or 3dbucket.
      
@@ -487,9 +508,12 @@
      
         'group.*/subj.*/stats*+tlrc.HEAD[7]'
                                                                             
-    ------------------------------------------------------------------------
-    1D TIME SERIES:                                                         
-    --------------                                                          
+
+1D TIME SERIES:
+===============
+
+.. code-block:: none
+
                                                                             
      You can also input a '*.1D' time series file in place of a dataset.    
      In this case, the value at each spatial voxel at time index n will be  
@@ -537,9 +561,12 @@
                                                                             
             3dcalc -a '1D: 3 4 5 | 1 2 3'\' -expr 'cbrt(a)' -prefix -      
                                                                             
-    ------------------------------------------------------------------------
-    '1D:' INPUT:                                                            
-    -----------                                                             
+
+'1D:' INPUT:
+============
+
+.. code-block:: none
+
                                                                             
      You can input a 1D time series 'dataset' directly on the command line, 
      without an external file.  The 'filename for such input takes the      
@@ -562,9 +589,12 @@
      If you replace the '0' expression with 'gran(0,1)', you'd get a        
      random 3D+time dataset, which might be useful for testing purposes.    
                                                                             
-    ------------------------------------------------------------------------
-    'I:*.1D' and 'J:*.1D' and 'K:*.1D' INPUT:                               
-    ----------------------------------------                                
+
+'I:*.1D' and 'J:*.1D' and 'K:*.1D' INPUT:
+=========================================
+
+.. code-block:: none
+
                                                                             
      You can input a 1D time series 'dataset' to be defined as spatially    
      dependent instead of time dependent using a syntax like:               
@@ -581,9 +611,12 @@
      In this example, the '-b' value only varies in the k-index spatial     
      direction.                                                             
                                                                             
-    ------------------------------------------------------------------------
-    COORDINATES and PREDEFINED VALUES:                                      
-    ---------------------------------                                       
+
+COORDINATES and PREDEFINED VALUES:
+==================================
+
+.. code-block:: none
+
                                                                             
      If you don't use '-x', '-y', or '-z' for a dataset, then the voxel     
      spatial coordinates will be loaded into those variables.  For example, 
@@ -625,9 +658,12 @@
                                                                             
      The -LPI/-RAI behavior can also be achieved via the AFNI_ORIENT        
      environment variable (27 Aug, 2014).                                   
-    ------------------------------------------------------------------------
-    DIFFERENTIAL SUBSCRIPTS [22 Nov 1999]:                                  
-    -----------------------                                                 
+
+DIFFERENTIAL SUBSCRIPTS [22 Nov 1999]:
+======================================
+
+.. code-block:: none
+
                                                                             
      Normal calculations with 3dcalc are strictly on a per-voxel basis:
      there is no 'cross-talk' between spatial or temporal locations.
@@ -694,18 +730,23 @@
           each voxel:
             3dLocalstat -nbhd 'SPHERE(9)' -stat max -prefix Amax9 A+orig
     
-    ------------------------------------------------------------------------
-    ISSUES:
-    ------ 
+
+ISSUES:
+=======
+
+.. code-block:: none
+
     
      * Complex-valued datasets cannot be processed, except via '-cx2r'.
      * This program is not very efficient (but is faster than it once was).
      * Differential subscripts slow the program down even more.
     
-    ------------------------------------------------------------------------
-    ------------------------------------------------------------------------
-    EXPRESSIONS:
-    ----------- 
+
+EXPRESSIONS:
+============
+
+.. code-block:: none
+
     
      As noted above, datasets are referred to by single letter variable names.
      Arithmetic expressions are allowed, using + - * / ** ^ and parentheses.
@@ -723,6 +764,7 @@
         gran , uran , iran , eran  , lran  , orstat, mod  ,       
         mean , stdev, sem  , Pleg  , cbrt  , rhddc2, hrfbk4,hrfbk5
         minabove, maxbelow, extreme, absextreme    , acfwxm
+        gamp , gampq
     
      where some of the less obvious funcions are:
      * qg(x)    = reversed cdf of a standard normal distribution
@@ -774,6 +816,11 @@
          f(r) = a*expr(-r*r/(2*b*b))+(1-a)*exp(-r/c)
        for X between 0 and 1 (not inclusive).  This is the model function
        estimated in program 3dFWHMx.
+     * gamp(peak,fwhm) returns the parameter p in the formula
+          g(t) = (t/(p*q))^p * exp(p-t/q)
+       that gives the peak value of g(t) occuring at t=peak when the
+       FWHM of g(t) is given by fwhm; gamq(peak,fwhm) gives the q parameter.
+       These functions are largely used for creating FMRI hemodynamic shapes.
     
      You may use the symbol 'PI' to refer to the constant of that name.
      This is the only 2 letter symbol defined; all variables are
@@ -886,4 +933,4 @@
        compiling on an array processor hooked up to a VAX. (It's a mess, but
        it works - somewhat slowly - but hey, computers are fast these days.)
     
-    ++ Compile date = Nov  9 2017 {AFNI_17.3.03:macosx_10.7_local}
+    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}

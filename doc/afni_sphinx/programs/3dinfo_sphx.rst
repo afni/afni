@@ -7,13 +7,18 @@
 .. contents:: 
     :depth: 4 
 
-.. code-block:: none
+| 
 
     
     Prints out sort-of-useful information from a 3D dataset's header
-    Usage: 3dinfo [-verb OR -short] dataset [dataset ...]
+
+Usage: 3dinfo [-verb OR -short] dataset [dataset ...]
+=====================================================
+
+.. code-block:: none
+
       -verb means to print out lots of stuff
-      -VERB means even more stuff
+      -VERB means even more stuff [including slice time offsets]
       -short means to print out less stuff [now the default]
       -h: Mini help, at time, same as -help in many cases.
       -help: The entire help output
@@ -33,7 +38,12 @@
                  output of its -help option. Some options might be missed
                  and others misidentified. Use this output for hints only.
       
-    Alternative Usage (without either of the above options):
+
+Alternative Usage (without either of the above options):
+========================================================
+
+.. code-block:: none
+
       3dinfo -label2index label dataset
       * Prints to stdout the index corresponding to the sub-brick with
         the name label, or a blank line if label not found.
@@ -44,10 +54,21 @@
           3dcalc -a AA_Decon+orig"[$face]" -b AA_Decon+orig"[$hous]" ...
       * Added per the request and efforts of Colm Connolly.
     
-    Alternate Alternative Usage:
+
+Alternate Alternative Usage:
+============================
+
+.. code-block:: none
+
       3dinfo <OPTION> [OPTION ..] dataset [dataset ...]
       Outputs a specific piece of information depending on OPTION.
-      ========= Options producing one value (string) ============
+    
+
+Options producing one value (string)
+++++++++++++++++++++++++++++++++++++
+
+.. code-block:: none
+
        -exists: 1 if dset is loadable, 0 otherwise
                 This works on prefix also.
        -id: Idcodestring of dset
@@ -107,7 +128,13 @@
        -Iextent: Extent along I
        -Sextent: Extent along S
        -all_names: Value of various dset structures handling filenames.
-      ==== Options producing one value per sub-brick ========
+    
+
+Options producing one value per sub-brick
++++++++++++++++++++++++++++++++++++++++++
+
+.. code-block:: none
+
        -fac: Return the float scaling factor
        -label: The label of each sub-brick
        -datum: The data storage type
@@ -115,8 +142,14 @@
        -max: The maximum value, scaled by fac
        -minus: The minimum value, unscaled.
        -maxus: The maximum value, unscaled.
-      ==== Options producing multiple values (strings of multiple lines)====
-           You can specify the delimiter between sub-brick parameters with
+    
+
+Options producing multiple values (strings of multiple lines)
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+.. code-block:: none
+
+       You can specify the delimiter between sub-brick parameters with
            -sb_delim DELIM. Default DELIM is "|"
        -labeltable: Show label table, if any
        -labeltable_as_atlas_points: Show label table in atlas point format.
@@ -124,7 +157,12 @@
        -history: History note. 
        -slice_timing: Show slice timing. 
     
-      === Options affection output format ===
+
+Options affecting output format
++++++++++++++++++++++++++++++++
+
+.. code-block:: none
+
        -header_line: Output as the first line the names of attributes
                      in each field (column)
        -hdr: Same as -header_line
@@ -135,7 +173,12 @@
        -atr_delim ATR_DELIM: Delimiter string between attributes
                              Default ATR_DELIM is the tab character.
     
-      === Options requiring dataset pairing at input ===
+
+Options requiring dataset pairing at input
+++++++++++++++++++++++++++++++++++++++++++
+
+.. code-block:: none
+
         3dinfo allows you to make some comparisons between dataset pairs.
         The comparison is always done in both directions whether or not
         the answer can be different. For example:
@@ -170,7 +213,12 @@
                     couple separately. This requires you to have an even
                     number of dsets on the command line
     
-     Examples with csh syntax using datasets in your afni binaries directory
+
+Examples with csh syntax using datasets in your afni binaries directory
+=======================================================================
+
+.. code-block:: none
+
     
       0- First get some datasets with which we'll play
          set dsets = ( `apsearch -list_all_afni_P_dsets` )
@@ -187,4 +235,4 @@
     
     
     
-    ++ Compile date = Nov  9 2017 {AFNI_17.3.03:macosx_10.7_local}
+    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}

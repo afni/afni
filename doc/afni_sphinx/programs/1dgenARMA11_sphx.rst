@@ -7,6 +7,8 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Program to generate an ARMA(1,1) time series, for simulation studies.

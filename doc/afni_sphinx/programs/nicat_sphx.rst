@@ -7,6 +7,8 @@ nicat
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Usage: nicat [-reopen rr] [-rR] streamspec

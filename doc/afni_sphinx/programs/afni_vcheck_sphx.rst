@@ -7,6 +7,8 @@ afni_vcheck
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Usage: afni_version

@@ -7,12 +7,21 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
+
+Concatenate sub-bricks from input datasets into one big 'bucket' dataset.
+=========================================================================
+
 .. code-block:: none
 
-    Concatenate sub-bricks from input datasets into one big
-    'bucket' dataset.
     Usage: 3dbucket options
-    where the options are:
+
+where the options are:
+======================
+
+.. code-block:: none
+
          -prefix pname = Use 'pname' for the output dataset prefix name.
      OR  -output pname     [default='buck']
     
@@ -55,6 +64,12 @@
     can select every third sub-brick by using the selection list
       fred+orig[0..$(3)]
     
+
+Notes:
+======
+
+.. code-block:: none
+
     N.B.: The sub-bricks are output in the order specified, which may
      not be the order in the original datasets.  For example, using
       fred+orig[0..$(2),1..$(2)]
@@ -81,10 +96,16 @@
      calling the output dataset C, you would type
         3dbucket -prefix C -fbuc 'A+orig[0]' -fbuc 'B+orig[1]'
     
-    WARNING: using this program, it is possible to create a dataset that
+
+WARNING:
+========
+
+.. code-block:: none
+
+             Using this program, it is possible to create a dataset that
              has different basic datum types for different sub-bricks
              (e.g., shorts for brick 0, floats for brick 1).
              Do NOT do this!  Very few AFNI programs will work correctly
              with such datasets!
     
-    ++ Compile date = Nov  9 2017 {AFNI_17.3.03:macosx_10.7_local}
+    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}

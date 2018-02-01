@@ -7,6 +7,8 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Usage: 3dZregrid [option] dataset
@@ -60,4 +62,4 @@
       3dZregrid -dz 1.2 -prefix ElvisZZ Elvis2+orig
       3dvolreg -base Elvis1+orig -prefix Elvis2reg ElvisZZ+orig
     
-    ++ Compile date = Nov  9 2017 {AFNI_17.3.03:macosx_10.7_local}
+    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}

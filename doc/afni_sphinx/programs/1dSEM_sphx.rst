@@ -7,6 +7,8 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Usage: 1dSEM [options] -theta 1dfile -C 1dfile -psi 1dfile -DF nn.n

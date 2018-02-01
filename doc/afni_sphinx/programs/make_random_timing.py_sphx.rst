@@ -7,6 +7,8 @@ make_random_timing.py
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     
@@ -654,6 +656,24 @@ make_random_timing.py
             terms logically separate.
     
             However the program simply adds min_rest to each stimulus length.
+    
+        -not_first LAB LAB ...      : specify classes that should not start a run
+    
+            e.g. -not_first base_task
+    
+            If there are any stimulus tasks that should not occur first within a
+            run, those labels can be provided with this option.
+    
+            This cannot (currently) be applied with -across_runs or -max_consec.
+    
+        -not_last LAB LAB ...       : specify classes that should not end a run
+    
+            e.g. -not_last base_task
+    
+            If there are any stimulus tasks that should not occur last within a
+            run, those labels can be provided with this option.
+    
+            This cannot (currently) be applied with -across_runs or -max_consec.
     
         -offset OFFSET              : specify an offset to add to every stim time
     

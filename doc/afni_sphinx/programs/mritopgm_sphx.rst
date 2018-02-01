@@ -7,6 +7,8 @@ mritopgm
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Converts an image to raw pgm format.

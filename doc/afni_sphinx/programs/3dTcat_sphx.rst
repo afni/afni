@@ -7,6 +7,8 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Concatenate sub-bricks from input datasets into one big 3D+time dataset.
@@ -170,4 +172,4 @@
      ++ If you want to see the filename expansion results, run 3dTcat
         with the option '-DAFNI_GLOB_DEBUG=YES'
     
-    ++ Compile date = Nov  9 2017 {AFNI_17.3.03:macosx_10.7_local}
+    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}

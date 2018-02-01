@@ -7,6 +7,8 @@ imcalc
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Do arithmetic on 2D images, pixel-by-pixel.

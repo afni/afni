@@ -7,11 +7,14 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     
     This script is used to get labels associated with 
-    FreeSurfer's parcellation and annotation files.\n
+    FreeSurfer's parcellation and annotation files.
+    
     
     For volumetric FreeSurfer Parcellations:
     ----------------------------------------

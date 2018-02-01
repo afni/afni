@@ -7,6 +7,8 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Usage: 3dREMLfit [options]
@@ -248,6 +250,8 @@
                          for this temporary storage!
                   * If the program crashes with a 'malloc failure' type of
                       message, then try '-usetemp' (malloc=memory allocator).
+                  * If you use '-verb', then memory usage is printed out
+                      at various points along the way.
                   * '-usetemp' disables OpenMP multi-CPU usage.
                       Only use this option if you need to, since OpenMP should
                       speed the program up significantly on multi-CPU computers.
@@ -350,7 +354,7 @@
                         matrix file, from 3dDeconvolve.
                     * If you don't create a bucket dataset using one of
                         -Rbuck or -Rglt (or -Obuck / -Oglt), using
-                        -gltsym is completely pointless!
+                        -gltsym is completely pointless and stupid!
                    ** Besides the stimulus labels read from the matrix
                         file (put there by 3dDeconvolve), you can refer
                         to regressor columns in the matrix using the
@@ -440,7 +444,9 @@
                     use THOSE parameters to compute the final output.
                    * If mr < 0, -mr is the ball radius in voxels,
                        instead of millimeters.
-                    [No median filtering is done unless -Mfilt is used.]
+                     [No median filtering is done unless -Mfilt is used.]
+                   * This option is not recommended; it is just here for
+                     experimentation.
     
      -CORcut cc = The exact ARMA(1,1) correlation matrix (for a != 0)
                     has no non-zero entries.  The calculations in this
@@ -499,8 +505,9 @@
     ---------------------
     Miscellaneous Options
     ---------------------
-     -quiet = turn off most progress messages
-     -verb  = turn on more progress messages
+     -quiet = turn off most progress messages :(
+     -verb  = turn on more progress messages  :)
+                [including memory usage reports at various stages]
     
     ==========================================================================
     ===========  Various Notes (as if this help weren't long enough) =========
@@ -514,30 +521,40 @@
         where                   lam  = (b+a)(1+a*b)/(1+2*a*b+b*b)
         (N.B.: lam=a when b=0 -- AR(1) noise has r(k)=a^k for k >= 0)
         (N.B.: lam=b when a=0 -- MA(1) noise has r(k)=b for k=1, r(k)=0 for k>1)
+    
     * lam can be bigger or smaller than a, depending on the sign of b:
         b > 0 means lam > a;  b < 0 means lam < a.
+    
     * What I call (a,b) here is sometimes called (p,q) in the ARMA literature.
+    
     * For a noise model which is the sum of AR(1) and white noise, 0 < lam < a
-        (i.e., a > 0  and  -a < b < 0 ).
+        (i.e., a > 0  and  -a < b < 0 ). Thus, the model 'AR(1)+white noise'
+        is a proper subset of ARMA(1,1) -- and also a proper subset of the default
+        -POScor setting (which also allows 0 < a < lam via b > 0).
+    
     * The natural range of a and b is -1..+1.  However, unless -NEGcor is
         given, only non-negative values of a will be used, and only values
         of b that give lam > 0 will be allowed.  Also, the program doesn't
         allow values of a or b to be outside the range -0.9..+0.9.
+    
     * The program sets up the correlation matrix using the censoring and run
         start information saved in the header of the .xmat.1D matrix file, so
         that the actual correlation matrix used will not always be Toeplitz.
+    
     * The 'Rvar' dataset has 5 sub-bricks with variance parameter estimates:
         #0 = a = factor by which correlations decay from lag k to lag k+1
         #1 = b parameter
         #2 = lam (see the formula above) = correlation at lag 1
         #3 = standard deviation of ARMA(1,1) noise in that voxel
         #4 = -log(REML likelihood function) = optimized function at (a,b)
+    
     * The 'Rbeta' dataset has the beta (model fit) parameters estimates
-        computed from the pre-whitened time series data in each voxel,
+        computed from the prewhitened time series data in each voxel,
         as in 3dDeconvolve's '-cbucket' output, in the order in which
         they occur in the matrix.  -addbase and -slibase and -dsort beta
         values come last in this file.
        [The '-nobout' option will disable output of baseline parameters.]
+    
     * The 'Rbuck' dataset has the beta parameters and their statistics
         mixed together, as in 3dDeconvolve's '-bucket' output.
     
@@ -548,11 +565,13 @@
         the identity) is consistent for estimating regression parameters,
         but is not consistent for estimating the noise variance if the
         noise is significantly correlated in time ('serial correlation').
+    
     * Maximum likelihood estimation (ML) of the regression parameters and
         variance/correlation together is asymptotically consistent as the
         number of samples goes to infinity, but the variance estimates
         might still have significant bias at a 'reasonable' number of
         data points.
+    
     * REML estimates the variance/correlation parameters in a space
         of residuals -- the part of the data left after the model fit
         is subtracted.  The amusing/cunning part is that the model fit
@@ -574,40 +593,105 @@
         betas and statistics have not changed appreciably between '-Grid 3'
         and '-Grid 5'; however, you might want to test this on your own data
         (just for fun).
+    
     * REML estimates of the variance/correlation parameters are still
         biased, but are generally significantly less biased than ML estimates.
         Also, the regression parameters (betas) should be estimated somewhat
         more accurately (i.e., with smaller variance than OLSQ).  However,
         this effect is generally small in FMRI data, and probably won't affect
         your group results noticeably (if you don't carry parameter variance
-        estimates to the inter-subject analysis).
+        estimates to the inter-subject analysis, as is done in 3dMEMA).
+    
     * After the (a,b) parameters are estimated, then the solution to the
         linear system is available via Generalized Least SQuares; that is,
-        via pre-whitening using the Choleski factor of the estimated
+        via prewhitening using the Choleski factor of the estimated
         variance/covariance matrix.
+    
     * In the case with b=0 (that is, AR(1) correlations), and if there are
         no time gaps (no censoring, no run breaks), then it is possible to
         directly estimate the a parameter without using REML.  This program
         does not implement such a method (e.g., the Yule-Walker equation).
         The reason why should be obvious.
     
+    * If you like linear algebra, see my scanned math notes about 3dREMLfit:
+        https://afni.nimh.nih.gov/pub/dist/doc/misc/3dREMLfit/3dREMLfit_mathnotes.pdf
+    
+    * I have been asked if 3dREMLfit prewhitens the design matrix as well as
+        the data. The short answer is YES. The long answer follows:
+    
+    * Mathematically, the GLSQ solution is expressed as
+        f = inv[ X' inv(R) X] X' inv(R) y
+        where X = model matrix, R = symmetric correlation matrix
+                  (of noise, depends on the a,b parameters),
+              f = parameter estimates, and y = data vector.
+        Notation: ' = transpose, inv() = inverse matrix.
+        A symmetric matrix S such that SS = R is called a square root of R
+        (there are many such matrices).  The matrix inv(S) is a prewhitening
+        matrix. That is, if the noise vector q is such that E(q q') = R
+        (here E = expected value), and vector t = inv(S) q, then
+        E(t t') = E[ inv(S)q q'inv(S) ] = inv(S) S S inv(S) = I.
+        Note that inv(R) = inv(S) inv(S), and we can rewrite the GLSQ solution as
+        f = inv[ X' inv(S) inv(S) X ] X' inv(S) inv(S) y
+          = inv[ (inv(S)X)' (inv(S)X) ] (inv(S)X)' (inv(S)y)
+        so the GLSQ solution is equivalent to the OLSQ solution, with the model
+        matrix X replaced by inv(S)X and the data vector y replaced by inv(S)y;
+        that is, we prewhiten both of them.  In 3dREMLfit, this is done implicitly
+        in the solution method outlined in the 7-step procedure on the fourth page
+        of my math notes -- a procedure designed for efficient implementation
+        with banded R. The prewhitened X matrix is never explicitly computed:
+        it is not needed, since the goal is to compute vector f, not inv(S)X.
+    
+    * The idea of pre-whitening the data but NOT the matrix is a very bad plan.
+        If you work through the linear algebra, you'll see that the resulting
+        estimate for f is not statistically consistent with the underlying model!
+        In other words, prewhitening only the data but not the matrix is WRONG.
+    
+    * The estimation method for (a,b) is nonlinear; that is, these parameters
+        are NOT estimated by doing an initial OLSQ (or any other one-shot initial
+        calculation), then fitting (a,b) to the resulting residuals. Rather,
+        a number of different (a,b) values are tried out to find the parameter pair
+        where the log-likelihood is optimized. To be precise, the function
+        that is minimized (over the discrete a,b grid) is
+          L(a,b) =  log(det(R(a,b))) + log(det(X' inv(R(a,b)) X))
+                  + (n-m)log(y'P(a,b)y)   - log(det(X'X'))
+        where R(a,b) = ARMA(1,1) correlation matrix (symetric n X n)
+              n      = dimension of data vector = number of rows in X
+              m      = number of columns in X = number of regressors
+              y      = data vector for a given voxel
+              P(a,b) = prewhitening projection matrix (symmetric n X n)
+                     = inv(R) - inv(R)X inv(X' inv(R) X) X' inv(R)
+        The first 2 terms in L only depend on the (a,b) parameters, and can be
+          thought of as a penalty that favors some (a,b) values over others,
+          independent of the data -- for ARMA(1,1), the a=b=0 white noise
+          model is penalized somewhat relative to the non-white noise cases.
+        The 3rd term uses the 2-norm of the prewhitened residuals.
+        The 4th term depends only on X, and is not actually used herein.
+    
+    * Again, see the notes below for more fun math and algorithmic details:
+        https://afni.nimh.nih.gov/pub/dist/doc/misc/3dREMLfit/3dREMLfit_mathnotes.pdf
+    
     ----------------
     Other Commentary
     ----------------
     * Again: the ARMA(1,1) parameters 'a' (AR) and 'b' (MA) are estimated
         only on a discrete grid, for the sake of CPU time.
+    
     * Each voxel gets a separate pair of 'a' and 'b' parameters.
         There is no option to estimate global values for 'a' and 'b'
         and use those for all voxels.  Such an approach might be called
-        'elementary school statistics' by some people.
+        'kindergarten statistics' by the authors of Some People's Methods.
+    
     * OLSQ = Ordinary Least SQuares; these outputs can be used to compare
              the REML/GLSQ estimations with the simpler OLSQ results
              (and to test this program vs. 3dDeconvolve).
+    
     * GLSQ = Generalized Least SQuares = estimated linear system solution
              taking into account the variance/covariance matrix of the noise.
+    
     * The '-matrix' file must be from 3dDeconvolve; besides the regression
         matrix itself, the header contains the stimulus labels, the GLTs,
         the censoring information, etc.
+    
     * If you don't actually want the OLSQ results from 3dDeconvolve, you can
         make that program stop after the X matrix file is written out by using
         the '-x1D_stop' option, and then running 3dREMLfit; something like this:
@@ -619,12 +703,14 @@
         desired length (corresponding to the real data's length, here 800 points),
         and the appropriate TR (here, 2.5 seconds).  This will properly establish
         the size and timing of the matrix file.
+    
     * The bucket output datasets are structured to mirror the output
         from 3dDeconvolve with the default options below:
           -nobout -full_first
         Note that you CANNOT use options like '-bout', '-nocout', and
         '-nofull_first' with 3dREMLfit -- the bucket datasets are ordered
         the way they are and you'll just have to live with it.
+    
     * If the 3dDeconvolve matrix generation step did NOT have any non-base
         stimuli (i.e., everything was '-stim_base'), then there are no 'stimuli'
         in the matrix file.  In that case, since by default 3dREMLfit doesn't
@@ -633,8 +719,10 @@
         indexes with the 'Col[]' notation, and then use '-Rglt' to get these
         values saved somewhere (since '-Rbuck' won't work if there are no
         'Stim attributes').
+    
     * All output datasets are in float format [i.e., no '-short' option].
         Internal calculations are done in double precision.
+    
     * If the regression matrix (including any added columns from '-addbase'
         or '-slibase') is rank-deficient (e.g., has collinear columns),
         then the program will print a message something like
@@ -643,9 +731,10 @@
         the '-GOFORIT' option is used.  You should examine your results
         carefully to make sure they are reasonable (e.g., look at
         the fitted model overlay on the input time series).
+    
     * Despite my best efforts, this program is somewhat slow.
         Partly because it solves many linear systems for each voxel,
-        trying to find the 'best' ARMA(1,1) pre-whitening matrix.
+        trying to find the 'best' ARMA(1,1) prewhitening matrix.
         However, a careful choice of algorithms for solving the linear
         systems (QR method, sparse matrix operations, etc.) and some
         other code optimizations should make running 3dREMLfit tolerable.
@@ -672,6 +761,7 @@
         numerator degrees of freedom in this test from 3 to 2.  The net
         effect is that the F-statistic will be larger than in 3dDeconvolve,
         which does not modify the GLT matrix (or its equivalent).
+    
      * A similar adjustment is made to denominator degrees of freedom, which
         is usually n-m, where n=# of data points and m=# of regressors.
         3dDeconvolve counts all zero regressors in with m, but 3dREMLfit
@@ -687,7 +777,7 @@
     * Create an iPad version of the AFNI software suite.
     
     ----------------------------------------------------------
-    * For more information, see the contents of
+    * For more information, please see the contents of
         https://afni.nimh.nih.gov/pub/dist/doc/misc/3dREMLfit/
       which includes comparisons of 3dDeconvolve and 3dREMLfit
       activations (individual subject and group maps), and an
@@ -721,17 +811,17 @@
           command line with the '-D' option.
     * How many threads are useful?  That varies with the program, and how well
        it was coded.  You'll have to experiment on your own systems!
-    * The number of CPUs on this particular computer system is ...... 8.
+    * The number of CPUs on this particular computer system is ...... 16.
     * The maximum number of CPUs that will be used is now set to .... 8.
     * The REML matrix setup and REML voxel ARMA(1,1) estimation loops are
        parallelized, across (a,b) parameter sets and across voxels, respectively.
     * The GLSQ and OLSQ loops are not parallelized. They are usually much
        faster than the REML voxel loop, and so I made no effort to speed
-       these up (now and forever).
+       these up (now and forever, two and inseparable).
     * '-usetemp' disables OpenMP multi-CPU usage, since the file I/O for
        saving and restoring various matrices and results is not easily
        parallelized.  To get OpenMP speedup for large problems (just where
        you want it), you'll need a lot of RAM.
      =========================================================================
     
-    ++ Compile date = Nov  9 2017 {AFNI_17.3.03:macosx_10.7_local}
+    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}

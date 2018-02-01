@@ -7,6 +7,8 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Usage: 1dBandpass [options] fbot ftop infile
@@ -38,4 +40,4 @@
     Goal:
      * Mostly to test the functions in thd_bandpass.c -- RWCox -- May 2009
     
-    ++ Compile date = Nov  9 2017 {AFNI_17.3.03:macosx_10.7_local}
+    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}

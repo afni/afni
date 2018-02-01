@@ -7,6 +7,8 @@ imstat
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Calculation of statistics of one or more images.

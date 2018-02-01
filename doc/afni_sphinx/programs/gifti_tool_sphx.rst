@@ -7,6 +7,8 @@ gifti_tool
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     ------------------------------------------------------------
@@ -310,25 +312,6 @@ gifti_tool
                This operation can also be performed via -mod_DA_atr:
                e.g. -mod_DA_atr Encoding BASE64GZIP
     
-         -perm_by_iord 0/1 : do we permute based on index order (default=1)
-    
-               e.g. -perm_by_iord 0
-    
-               This option simply controls whether datasets are forced into
-               row-major data storage order upon read.  It is typically
-               desirable, since this is a C library, and so conversion of
-               indices to data (D[a][b][c]) assumes row-major ordering.
-               But Matlab and Fortran use column-major order.
-    
-               For the GIFTI library, the default is to permute the data
-               to row major order (if not already in it).
-    
-               For gifti_tool, the default is to convert to row major order
-               when any of the -write_* options are applied, but to leave
-               the order unchanged otherwise (for inspection and such).
-    
-               See also -mod_ind_ord.
-    
          -set_extern_filelist F1 F2 ... : store data in external files
     
                e.g. -set_extern_filelist run.1.data run.2.data run.3.data
@@ -459,15 +442,6 @@ gifti_tool
                Add a MetaData entry to each DataArray element for this
                NAME and VALUE pair.  If NAME exists, VALUE will replace
                the old value.
-    
-         -mod_ind_ord ORD : modify the index order (1=RowMajor, 2=ColMajor)
-    
-               e.g. -mod_ind_ord 2
-    
-               Arrange the data by the given ArrayIndexingOrder.
-    
-                  ORD = 1 : convert to row major order
-                  ORD = 2 : convert to column major order
     
          -mod_to_float            : change all DataArray data to float
     

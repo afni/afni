@@ -7,6 +7,8 @@ cat_matvec
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Usage: cat_matvec [-MATRIX | -ONELINE] matvec_spec matvec_spec ...

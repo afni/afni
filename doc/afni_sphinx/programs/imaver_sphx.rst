@@ -7,6 +7,8 @@ imaver
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Usage: imaver out_ave out_sig input_images ...

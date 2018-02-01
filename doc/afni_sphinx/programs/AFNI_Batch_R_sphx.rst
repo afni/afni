@@ -7,6 +7,8 @@ AFNI_Batch_R
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
-    /Users/discoraj/abin/AFNI_Batch_R
+    /home/ptaylor/afni_src/linux_ubuntu_12_64/AFNI_Batch_R

@@ -7,6 +7,8 @@ imreg
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Usage: imreg [options] base_image image_sequence ...

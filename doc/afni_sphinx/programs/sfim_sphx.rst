@@ -7,6 +7,8 @@ sfim
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     MCW SFIM: Stepwise Functional IMages, by RW Cox

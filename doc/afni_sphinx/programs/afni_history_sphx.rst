@@ -7,6 +7,8 @@ afni_history
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     afni_history:           show AFNI updates per user, dates or levels

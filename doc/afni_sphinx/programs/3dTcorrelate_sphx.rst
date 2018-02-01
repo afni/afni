@@ -7,6 +7,8 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Usage: 3dTcorrelate [options] xset yset
@@ -15,21 +17,27 @@
     stores the output in a new 1 sub-brick dataset.
     
     Options:
-      -pearson  = Correlation is the normal Pearson (product moment)
+      -pearson    = Correlation is the normal Pearson (product moment)
                     correlation coefficient [this is the default method].
-      -spearman = Correlation is the Spearman (rank) correlation
+      -spearman   = Correlation is the Spearman (rank) correlation
                     coefficient.
-      -quadrant = Correlation is the quadrant correlation coefficient.
-      -ktaub    = Correlation is Kendall's tau_b coefficient.
-                  ++ For 'continuous' or finely-discretized data, tau_b
-                     and rank correlation are nearly equivalent.
+      -quadrant   = Correlation is the quadrant correlation coefficient.
+      -ktaub      = Correlation is Kendall's tau_b coefficient.
+                    ++ For 'continuous' or finely-discretized data, tau_b
+                       and rank correlation are nearly equivalent.
       -covariance = Covariance instead of correlation. That would be 
-                    the pearson correlation without scaling by the product
+                    the Pearson correlation without scaling by the product
                     of the standard deviations.
       -ycoef      = Least squares coefficient that best fits y(t) to x(t),
                     after detrending.  That is, if yd(t) is the detrended
                     y(t) and xd(t) is the detrended x(t), then the ycoef
                     value is from the OLSQ fit to xd(t) = ycoef * y(t) + error.
+    
+      -Fisher     = Apply the 'Fisher' (inverse hyperbolic tangent) transformation
+                    to (correlation) results.
+                    ++ It does not make sense to use this with '-ktaub', but if
+                        you want to do it, the program will not stop you.
+                    ++ This option does not apply to '-covariance' or '-ycoef'.
     
       -polort m = Remove polynomical trend of order 'm', for m=-1..9.
                     [default is m=1; removal is by least squares].
@@ -64,4 +72,4 @@
     
     -- RWCox - Aug 2001
     
-    ++ Compile date = Nov  9 2017 {AFNI_17.3.03:macosx_10.7_local}
+    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}

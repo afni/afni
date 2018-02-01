@@ -7,6 +7,8 @@ RSFgen
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Sample program to generate random stimulus functions.                  

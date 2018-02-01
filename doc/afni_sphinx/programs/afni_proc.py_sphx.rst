@@ -23,7 +23,7 @@ Purpose:
            task, resting state or surface-based analyses.  The processing scripts
            are written in the tcsh language.
     
-           The typical goal is to create volumes of aligned resopnse magnitudes
+           The typical goal is to create volumes of aligned response magnitudes
            (stimulus beta weights) to use as input for a group analysis.
     
 
@@ -100,7 +100,8 @@ SECTIONS: order of sections in the "afni_proc.py -help" output
             DEFAULTS                : basic default operations, per block
             EXAMPLES                : various examples of running this program
             NOTE sections           : details on various topics
-                GENERAL ANALYSIS NOTE, RESTING STATE NOTE, FREESURFER NOTE,
+                GENERAL ANALYSIS NOTE, QUALITY CONTROL NOTE,
+                RESTING STATE NOTE, FREESURFER NOTE,
                 TIMING FILE NOTE, MASKING NOTE,
                 ANAT/EPI ALIGNMENT CASES NOTE, ANAT/EPI ALIGNMENT CORRECTIONS NOTE,
                 WARP TO TLRC NOTE,
@@ -234,8 +235,6 @@ DEFAULTS: basic defaults for each block (blocks listed in default order)
 EXAMPLES (options can be provided in any order):
 ================================================
 
-.. code-block:: none
-
     
 
 Example 1. Minimum use.
@@ -264,12 +263,14 @@ Example 1. Minimum use.
             are examples of how one might process the data for subject sb23.
     
 
-Example 2. Very simple.  Use all defaults, except remove 3 TRs and use
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Example 2. Very simple.
++++++++++++++++++++++++
 
 .. code-block:: none
 
-               basis function BLOCK(30,1).  The default basis function is GAM.
+    
+            Use all defaults, except remove 3 TRs and use basis
+            function BLOCK(30,1).  The default basis function is GAM.
     
                     afni_proc.py -subj_id sb23.e2.simple                       \
                             -dsets sb23/epi_r??+orig.HEAD                      \
@@ -309,12 +310,13 @@ Example 3. The current class example.  This may change of course.
                             -regress_est_blur_errts
     
 
-Example 4. Similar to the class example, but specify the processing
-+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Example 4. Similar to the class example, but specify the processing blocks.
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 .. code-block:: none
 
-               blocks, adding despike and tlrc, and removing tshift.  Note that
+    
+               Adding despike and tlrc, and removing tshift.  Note that
                the tlrc block is to run @auto_tlrc on the anat.  Ignore the GLTs.
     
                     afni_proc.py -subj_id sb23.e4.blocks                       \
@@ -330,8 +332,8 @@ Example 4. Similar to the class example, but specify the processing
                             -regress_est_blur_errts
     
 
-Example 5a. RETROICOR example a, resting state data.
-++++++++++++++++++++++++++++++++++++++++++++++++++++
+Example 5a. RETROICOR, resting state data.
+++++++++++++++++++++++++++++++++++++++++++
 
 .. code-block:: none
 
@@ -368,8 +370,8 @@ Example 5a. RETROICOR example a, resting state data.
                     -blocks despike ricor volreg regress
     
 
-Example 5b. RETROICOR example b, while running a normal regression.
-+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Example 5b. RETROICOR, while running a normal regression.
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 .. code-block:: none
 
@@ -400,12 +402,11 @@ Example 5b. RETROICOR example b, while running a normal regression.
                Also consider adding -regress_bandpass.
     
 
-Example 5c. RETROICOR example c (modern): with censoring and bandpass
-+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Example 5c. RETROICOR (modern): with censoring and bandpass filtering.
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 .. code-block:: none
 
-               filtering.
     
                This is an example of how we might currently suggest analyzing
                resting state data.  If no RICOR regressors exist, see example 9
@@ -415,14 +416,15 @@ Example 5c. RETROICOR example c (modern): with censoring and bandpass
                BOLD FMRI analysis, but is less common for those doing bandpass
                filtering in RS FMRI because the FFT requires one to either break
                the time axis (evil) or to replace the censored data with something
-               probably inapproprate.
+               probably inappropriate.
     
                Instead, it is slow (no FFT, but maybe SFT :) but effective to
                regress frequencies within the regression model, where censoring
                is simple.
     
-               Note: bandpassing in the face of RETROICOR processing is questionable.
-                     To skip bandpassing, remove the -regress_bandpass option line.
+               Note: band passing in the face of RETROICOR is questionable.  It may
+                     be questionable in general.  To skip bandpassing, remove the
+                     -regress_bandpass option line.
     
                Also, align EPI to anat and warp to standard space.
     
@@ -452,7 +454,8 @@ Example 6. A modern example.  GOOD TO CONSIDER.
 .. code-block:: none
 
     
-               Align the EPI to the anatomy.  Also, process in standard space.
+               Align the EPI to the anatomy.  Also, process in MNI space, using
+               the 2009c non-linear template.
     
                For alignment in either direction, add the 'align' block, which
                aligns the anatomy to the EPI.  To then align the EPI to the anat
@@ -463,22 +466,25 @@ Example 6. A modern example.  GOOD TO CONSIDER.
                On top of that, complete the processing in standard space by running
                @auto_tlrc on the anat (via the 'tlrc' block) and applying the same
                transformation to the EPI via -volreg_tlrc_warp.  Again, the EPI
-               transformation is applied along with the motion alignment.
+               transformation is applied along with the motion alignment, using
+               the volume with the minimum outlier fraction as the alignment base
+               (option '-volreg_align_to MIN_OUTLIER').
     
-               So add the 2 processing blocks and 2 extra volreg warps to #3 via
-               '-do_block align tlrc', '-volreg_align_e2a', '-volreg_tlrc_warp'.
+               So use the given -blocks option, plus 2 extra volreg warps to #3 via
+               '-volreg_align_e2a', '-volreg_tlrc_warp'.
     
                As an added bonus, censor TR pairs where the Euclidean Norm of the
-               motion derivative exceeds 1.0.  Also, regress motion parameters
+               motion derivative exceeds 0.3.  Also, regress motion parameters
                separately for each run.
     
                     afni_proc.py -subj_id sb23.e6.align                        \
-                            -dsets sb23/epi_r??+orig.HEAD                      \
-                            -do_block align tlrc                               \
                             -copy_anat sb23/sb23_mpra+orig                     \
+                            -dsets sb23/epi_r??+orig.HEAD                      \
+                            -blocks tshift align tlrc volreg blur mask regress \
                             -tcat_remove_first_trs 3                           \
                             -align_opts_aea -cost lpc+ZZ                       \
-                            -volreg_align_to last                              \
+                            -tlrc_base MNI152_T1_2009c+tlrc                    \
+                            -volreg_align_to MIN_OUTLIER                       \
                             -volreg_align_e2a                                  \
                             -volreg_tlrc_warp                                  \
                             -regress_stim_times sb23/stim_files/blk_times.*.1D \
@@ -487,6 +493,7 @@ Example 6. A modern example.  GOOD TO CONSIDER.
                             -regress_basis 'BLOCK(30,1)'                       \
                             -regress_motion_per_run                            \
                             -regress_censor_motion 0.3                         \
+                            -regress_reml_exec                                 \
                             -regress_opts_3dD                                  \
                                 -gltsym 'SYM: +eneg -fneg'                     \
                                 -glt_label 1 eneg_vs_fneg                      \
@@ -496,9 +503,6 @@ Example 6. A modern example.  GOOD TO CONSIDER.
                To process in orig space, remove -volreg_tlrc_warp.
                To apply manual tlrc transformation, use -volreg_tlrc_adwarp.
                To process as anat aligned to EPI, remove -volreg_align_e2a.
-    
-             * Also, consider '-volreg_align_to MIN_OUTLIER', to use the volume
-               with the minimum outlier fraction as the registration base.
     
              * Also, one can use ANATICOR with task (-regress_anaticor_fast, say)
                in the case of -reml_exec.
@@ -555,7 +559,7 @@ Example 7. Similar to 6, but get a little more esoteric.
     
                     afni_proc.py -subj_id sb23.e7.esoteric                     \
                             -dsets sb23/epi_r??+orig.HEAD                      \
-                            -do_block align tlrc                               \
+                            -blocks tshift align tlrc volreg blur mask regress \
                             -copy_anat sb23/sb23_mpra+orig                     \
                             -tcat_remove_first_trs 3                           \
                             -align_opts_aea -cost lpc+ZZ                       \
@@ -627,7 +631,7 @@ Example 8. Surface-based analysis.
                     -surf_spec      : spec file(s) for surface
     
                Note: one would probably want to use standard mesh surfaces here.
-                     This example will be udpated with them in the future.
+                     This example will be updated with them in the future.
     
                     afni_proc.py -subj_id FT.surf                            \
                         -blocks tshift align volreg surf blur scale regress  \
@@ -650,12 +654,13 @@ Example 8. Surface-based analysis.
                             -gltsym 'SYM: vis -aud' -glt_label 1 V-A
     
 
-Example 9. Resting state analysis (modern): with censoring and
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Example 9. Resting state analysis (modern):
++++++++++++++++++++++++++++++++++++++++++++
 
 .. code-block:: none
 
-               bandpass filtering.
+    
+               With censoring and bandpass filtering.
     
                This is our suggested way to do pre-processing for resting state
                analysis, under the assumption that no cardio/physio recordings
@@ -665,7 +670,7 @@ Example 9. Resting state analysis (modern): with censoring and
                BOLD FMRI analysis, but is less common for those doing bandpass
                filtering in RS FMRI because the FFT requires one to either break
                the time axis (evil) or to replace the censored data with something
-               probably inapproprate.
+               probably inappropriate.
     
                Instead, it is slow (no FFT, but maybe SFT :) but effective to
                regress frequencies within the regression model, where censoring
@@ -796,12 +801,13 @@ Example 10. Resting state analysis, with tissue-based regressors.
                       -regress_est_blur_errts
     
 
-Example 10b. Resting state analysis, with tissue-based regressors and
-+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Example 10b. Resting state analysis, tissue-based regressors and 3dRSFC.
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 .. code-block:: none
 
-                3dRSFC (for bandpassing and computation of ALFF, etc).
+    
+                (for bandpassing and computation of ALFF, etc)
     
                 Like example #10, but add -regress_RSFC to bandpass via 3dRSFC.
                 Skip censoring and regression bandpassing because of the bandpass
@@ -829,8 +835,8 @@ Example 10b. Resting state analysis, with tissue-based regressors and
                       -regress_est_blur_errts
     
 
-Example 11. Resting state analysis (now even more modern :).
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Example 11. Resting state analysis (now even more moderner :).
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 .. code-block:: none
 
@@ -840,7 +846,7 @@ Example 11. Resting state analysis (now even more modern :).
                than the default lpc one.
              o Register EPI volumes to the one which has the minimum outlier
                   fraction (so hopefully the least motion).
-             o Use non-linear registration to MNI template.
+             o Use non-linear registration to MNI template (non-linear 2009c).
                * This adds a lot of processing time.
              o No bandpassing.
              o Use fast ANATICOR method (slightly different from default ANATICOR).
@@ -880,7 +886,7 @@ Example 11. Resting state analysis (now even more modern :).
                       -dsets FT_epi_r?+orig.HEAD                                 \
                       -tcat_remove_first_trs 2                                   \
                       -align_opts_aea -cost lpc+ZZ                               \
-                      -tlrc_base MNI_caez_N27+tlrc                               \
+                      -tlrc_base MNI152_T1_2009c+tlrc                            \
                       -tlrc_NL_warp                                              \
                       -volreg_align_to MIN_OUTLIER                               \
                       -volreg_align_e2a                                          \
@@ -920,7 +926,7 @@ Example 11b. Similar to 11, but without FreeSurfer.
                template_ventricle_2.5mm dataset (and call it Tvent).
              o Use -mask_intersect to intersect ventricle mask with the subject's
                CSFe mask, making a more reliable subject ventricle mask (Svent).
-             o Ventrile principle components are created as per-run regressors.
+             o Ventricle principle components are created as per-run regressors.
              o Make WMe and Svent correlation volumes, which are just for
                entertainment purposes anyway.
              o Run the cluster simulation.
@@ -990,8 +996,6 @@ Example 11b. Similar to 11, but without FreeSurfer.
 Many NOTE sections:
 ===================
 
-.. code-block:: none
-
     
 
 GENERAL ANALYSIS NOTE:
@@ -1054,7 +1058,7 @@ GENERAL ANALYSIS NOTE:
              NOTE: Data from external sites should be heavily scrutinized,
                    including any from well known public repositories.
     
-        3. Consider regular software updates, even as new subjects are acquired.
+        4. Consider regular software updates, even as new subjects are acquired.
            This ends up requiring a full re-analysis at the end.
     
            If it will take a while (one year or more?) to collect data, update the
@@ -1071,6 +1075,336 @@ GENERAL ANALYSIS NOTE:
                 the entire thing with the current software
               - keep a snapshot of the software package used for the analysis
               - report the software version in any publication
+    
+        5. Here is a sample (tcsh) script that might run a basic analysis on
+           one or more subjects:
+    
+
+sample analysis script
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: none
+
+    
+           #!/bin/tcsh
+    
+           # --------------------------------------------------
+           # note fixed top-level directories
+           set data_root = /main/location/of/all/data
+    
+           set input_root = $data_root/scanner_data
+           set output_root = $data_root/subject_analysis
+    
+           # --------------------------------------------------
+           # get a list of subjects, or just use one (consider $argv)
+           cd $input root
+           set subjects = ( subj* )
+           cd -
+    
+           # or perhaps just process one subject?
+           set subjects = ( subj_017 )
+    
+    
+           # --------------------------------------------------
+           # process all subjects
+           foreach subj_id ( $subjects )
+    
+              # --------------------------------------------------
+              # note input and output directories
+              set subj_indir = $input_root/$subj_id
+              set subj_outdir = $output_root/$subj_id
+    
+              # --------------------------------------------------
+              # if output dir exists, this subject has already been processed
+              if ( -d $subj_outdir ) then
+                 echo "** results dir already exists, skipping subject $subj_id"
+                 continue
+              endif
+    
+              # --------------------------------------------------
+              # otherwise create the output directory, write an afni_proc.py
+              # command to it, and fire it up
+    
+              mkdir -p $subj_outdir
+              cd $subj_outdir
+    
+              # create a run.afni_proc script in this directory
+              cat > run.afni_proc << EOF
+    
+              # notes:
+              #   - consider different named inputs (rather than OutBrick)
+              #   - verify how many time points to remove at start (using 5)
+              #   - note which template space is preferable (using MNI)
+              #   - consider non-linear alignment via -tlrc_NL_warp
+              #   - choose blur size (using FWHM = 4 mm)
+              #   - choose basis function (using BLOCK(2,1), for example)
+              #   - assuming 4 CPUs for linear regression
+              #   - afni_proc.py will actually run the proc script (-execute)
+    
+    
+              afni_proc.py -subj_id $subj_id                          \
+                  -blocks tshift align tlrc volreg blur mask regress  \
+                  -copy_anat $subj_indir/anat+orig                    \
+                  -dsets                                              \
+                      $subj_indir/epi_r1+orig                         \
+                      $subj_indir/epi_r2+orig                         \
+                      $subj_indir/epi_r3+orig                         \
+                  -tcat_remove_first_trs 5                            \
+                  -align_opts_aea -cost lpc+ZZ                        \
+                  -tlrc_base MNI152_T1_2009c+tlrc                     \
+                  -tlrc_NL_warp                                       \
+                  -volreg_align_to MIN_OUTLIER                        \
+                  -volreg_align_e2a                                   \
+                  -volreg_tlrc_warp                                   \
+                  -blur_size 4.0                                      \
+                  -regress_motion_per_run                             \
+                  -regress_censor_motion 0.3                          \
+                  -regress_reml_exec -regress_3dD_stop                \
+                  -regress_stim_times                                 \
+                      $stim_dir/houses.txt                            \
+                      $stim_dir/faces.txt                             \
+                      $stim_dir/doughnuts.txt                         \
+                      $stim_dir/pizza.txt                             \
+                  -regress_stim_labels                                \
+                      house face nuts za                              \
+                  -regress_basis 'BLOCK(2,1)'                         \
+                  -regress_opts_3dD                                   \
+                      -jobs 4                                         \
+                      -gltsym 'SYM: house -face' -glt_label 1 H-F     \
+                      -gltsym 'SYM: nuts -za'    -glt_label 2 N-Z     \
+                  -regress_est_blur_errts                             \
+                  -execute
+    
+              EOF
+              # EOF denotes the end of the run.afni_proc command
+    
+              # now run the analysis (generate proc and execute)
+              tcsh run.afni_proc
+    
+           # end loop over subjects
+           end
+    
+    
+
+QUALITY CONTROL NOTE:
++++++++++++++++++++++
+
+.. code-block:: none
+
+    
+        Look at the data.
+    
+        Nothing replaces a living human performing quality control checks by
+        looking at the data.  And the more a person looks at the data, the better
+        they get at spotting anomalies.
+    
+        There are 2 types of QC support generated by afni_proc.py, scripts to help
+        someone review the data, and individual text or image files.
+    
+            scripts (the user can run from the results directory):
+    
+               @epi_review.FT               - view original (post-SS) EPI data
+               @ss_review_basic             - show basic QC measures, in text
+               @ss_review_driver            - minimum recommended QC review
+               @ss_review_driver_commands   - same, as pure commands
+    
+               Notably, the @ss_review_driver script is recommended as the minimum
+               QC to perform on every subject.
+    
+            other files or datasets:   (* shown or reviewed by @ss_review_driver)
+    
+            *  3dDeconvolve.err
+    
+                  This contains any warnings (or errors) from 3dDeconvolve.  This
+                  will be created even if 3dREMLfit is run.
+    
+            *  anat_final.$subj
+    
+                  This AFNI dataset should be registered with the final stats
+                  (including final_epi_vr_base) and with any applied template.
+                  There is also a version with the skull, anat_w_skull_warped.
+    
+            *  blur_est.$subj.1D
+    
+                  This (text) file has the mixed-model ACF (and possibly the FWHM)
+                  parameter estimates of the blur.
+    
+               Classes
+    
+                  If 3dSeg is run for anatomical segmentation, this AFNI dataset
+                  contains the results, a set of masks per tissue class.  The
+                  white matter mask from this might be used for ANATICOR, for
+                  example.
+    
+               corr_brain
+    
+                  This AFNI dataset shows the correlation of every voxel with the
+                  global signal (brain average time series).
+    
+                  One can request other corr_* datasets, based on any tissue or ROI
+                  mask.  See -regress_make_corr_vols for details.
+    
+            *  dfile_rall.1D (and efile.r??.1D)
+    
+                  This contains the 6 estimated motion parameters across all runs.
+                  These parameters are generally used as regressors of no interest,
+                  hopefully per run.  They are also used to generate the enorm time
+                  series, which is then used for censoring.
+    
+               files_ACF
+    
+                  This directory contains ACF values at different radii per run.
+                  One can plot them using something like:
+    
+                    set af = files_ACF/out.3dFWHMx.ACF.errts.r01.1D
+                    1dplot -one -x $af'[0]' $af'[1,2,3]'
+    
+            *  final_epi_vr_base
+    
+                  This dataset is of the EPI volume registration base (used by
+                  3dvolreg), warped to the final space.  It should be in alignment
+                  with the anat_final dataset (and the template).
+    
+               fitts.$subj
+    
+                  This dataset contains the model fit to the time series data.
+                  One can view these time series together in afni using the
+                  Dataset #N plugin.
+    
+               full_mask.$subj
+    
+                  This dataset is a brain mask based on the EPI data, generated
+                  by 3dAutomask.  Though the default is to apply it as part of the
+                  main regression, it is used for computations like ACF and TSNR.
+    
+               ideal_*.1D
+    
+                  These time series text files are the ideal regressors of
+                  interest, if appropriate to calculate.
+    
+               mat.basewarp.aff12.1D
+    
+                  This is used to create the final_epi_vr_base dataset.
+    
+                  Assuming no non-linear registration (including distortion
+                  correction), then this matrix holds the combined affine
+                  transformation of the EPI to anat and to standard space,
+                  as applied to the volume registration base (it does not contain
+                  motion correction transformations).
+    
+                  Time series registration matrices that include motion correction
+                  are in mat.r*.warp.aff12.1D (i.e. one file per run).
+    
+                  In the case of non-linear registration, there is no single file
+                  representing the combined transformation, as it is computed just
+                  to apply the transformation by 3dNwarpApply.  This command can be
+                  found in the proc script or as the last HISTORY entry seen from
+                  the output of "3dinfo final_epi_vr_base".
+    
+            *  motion_${subj}_enorm.1D
+    
+                  This time series text file is the L2 (Euclidean) norm of the
+                  first (backward) differences of the motion parameters.  The
+                  values represent time point to time point estimated motion, and
+                  they are used for censoring.  Values are zero at the beginning of
+                  each run (motion is not computed across runs).
+    
+                  A high average of these numbers, particularly after the numbers
+                  themselves are censored, is justification for dropping a subject.
+                  This average is reported by the @ss_review scripts.
+    
+               motion_${subj}_censor.1D
+    
+                  This is a binary 0/1 time series (matching enorm, say), that
+                  distinguishes time points which would be censored (0) from those
+                  which would not (1).  It is based on the enorm time series and
+                  the -regress_censor_motion limit, with a default to censor in
+                  pairs of time points.  There may be a combined censor file, if
+                  outlier censoring is done (or if a user censor file is input).
+    
+               motion_demean.1D
+    
+                  This is the same as dfile_rall.1D, the motion parameters as
+                  estimated by 3dvolreg, except the the mean per run has been
+                  removed.
+    
+               motion_deriv.1D
+    
+                  This contains the first (backward) differences from either
+                  motion_demean.1D or dfile_rall.1D.  Values are zero at the start
+                  of each run.
+    
+               out.allcostX.txt
+    
+                  This holds anat/EPI registration costs for all cost functions.
+                  It might be informational to evaluate alignment across subjects
+                  and cost functions.
+    
+            *  out.cormat_warn.txt
+    
+                  This contains warnings about a high correlation between any pair
+                  of regressors in the main regression matrix, including baseline
+                  terms.
+    
+            *  out.gcor.1D
+    
+                  This contains the global correlation, the average correlation
+                  between every pair of voxels in the residual time series dataset.
+                  This single value is reported by the @ss_review scripts.
+    
+               out.mask_ae_dice.txt
+    
+                  This contains the Dice coefficient, evaluating the overlap
+                  between the anatomical and EPI brain masks.
+    
+               out.mask_ae_overlap.txt
+    
+                  This contains general output from 3dOverlap, for evaluating the
+                  overlap between the anatomical and EPI brain masks.
+    
+            *  out.pre_ss_warn.txt
+    
+                  This contains warnings about time point #0 in any run where it
+                  might be a pre-steady state time point, based on outliers.
+    
+            *  out.ss_review.txt
+    
+                  This is the text output from @ss_review_basic.  Aside from being
+                  shown by the @ss_review scripts, it is useful for being compiled
+                  across subjects via gen_ss_review_table.py.
+    
+            *  outcount_rall.1D (and outcount.r??.1D)
+    
+                  This is a time series of the fraction of the brain that is an
+                  outlier.  It can be used for censoring.
+    
+            *  sum_ideal.1D
+    
+                  As suggested, this time series is the sum of all non-baseline
+                  regressors.  It is generated from X.nocensor.xmat.1D if censoring
+                  is done, and from X.xmat.1D otherwise.  This might help one find
+                  mistakes in stimulus timing, for example.
+    
+            *  TSNR_$subj
+    
+                  This AFNI dataset contains the voxelwise TSNR after regression.
+                  The brainwise average is shown in @ss_review_basic.
+    
+              X.xmat.1D
+    
+                  This is the complete regression matrix, created by 3dDeconvolve.
+                  One can view it using 1dplot.  It contains all regressors except
+                  for any voxelwise ones (e.g. for ANATICOR).
+    
+              X.nocensor.xmat.1D
+    
+                  This is the same as X.xmat.1D, except the nothing is censored,
+                  so all time points are present.
+    
+            * X.stim.xmat.1D
+    
+                  This (text) file has the non-baseline regressors (so presumably
+                  of interest), created by 3dDeconvolve.
     
 
 RESTING STATE NOTE:
@@ -2006,16 +2340,17 @@ SCRIPT EXECUTION NOTE:
                screen output will be duplicated in that text file.
     
 
-OPTIONS: (information options, general options, block options)
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ALL OPTIONS: 
++++++++++++++
 
 .. code-block:: none
 
-                 (block options are ordered by block)
+            (information options, general options, block options)
+            (block options are ordered by block)
     
 
------------- informational/terminal options ------------
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Informational/terminal options 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: none
 
@@ -2054,8 +2389,8 @@ OPTIONS: (information options, general options, block options)
             -ver                    : show the version number
     
 
------------- general execution and setup options ------------
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+General execution and setup options
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: none
 
@@ -2635,8 +2970,8 @@ OPTIONS: (information options, general options, block options)
                 See also -regress_ppi_stim_files, -regress_ppi_stim_labels.
     
 
------------- block options (in default block order) ------------
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Block options (in default block order)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: none
 
@@ -3084,19 +3419,31 @@ OPTIONS: (information options, general options, block options)
     
             -align_epi_strip_method METHOD : specify EPI skull strip method in AEA
     
-                    e.g. -align_epi_strip_method 3dAutomask
+                    e.g. -align_epi_strip_method 3dSkullStrip
                     default: 3dAutomask (changed from 3dSkullStrip, 20 Aug, 2013)
     
                 When align_epi_anat.py is used to align the EPI and anatomy, it
                 uses 3dSkullStrip to remove non-brain tissue from the EPI dataset.
-                This option can be used to specify which method to use, one of
-                3dSkullStrip, 3dAutomask or None.
+                However afni_proc.py changes that to 3dAutomask by default (as of
+                August 20, 2013).  This option can be used to specify which method
+                to use, one of 3dSkullStrip, 3dAutomask or None.
     
                 This option assumes the 'align' processing block is used.
     
                 Please see "align_epi_anat.py -help" for more information.
                 Please see "3dSkullStrip -help" for more information.
                 Please see "3dAutomask -help" for more information.
+    
+            -align_unifize_epi yes/no: run uniformity correction on EPI base volume
+    
+                    e.g. -align_unifize_epi yes
+                    default: no
+    
+                Use this option to run "3dUnifize -T2" on the vr_base dataset
+                for the purpose of alignment to the anat.
+    
+                The uniformity corrected volume is only used for anatomical
+                alignment.
     
             -volreg_align_e2a       : align EPI to anatomy at volreg step
     
@@ -5027,8 +5374,8 @@ OPTIONS: (information options, general options, block options)
                          -regress_stim_labels.
     
 
---------------- 3dClustSim options ------------------
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+3dClustSim options
+~~~~~~~~~~~~~~~~~~
 
 .. code-block:: none
 

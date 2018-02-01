@@ -7,6 +7,8 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Usage: 3dGroupInCorr [options]
@@ -474,7 +476,7 @@
                be sure the PORT_OFFSETS you use differ by about 50 or you may
                still have port conflicts. A BETTER approach is to use -npb below.
        -npq PORT_OFFSET: Like -np, but more quiet in the face of adversity.
-       -npb PORT_OFFSET_BLOC: Simliar to -np, except it is easier to use.
+       -npb PORT_OFFSET_BLOC: Similar to -np, except it is easier to use.
                               PORT_OFFSET_BLOC is an integer between 0 and
                               MAX_BLOC. MAX_BLOC is around 4000 for now, but
                               it might decrease as we use up more ports in AFNI.
@@ -741,9 +743,9 @@
           command line with the '-D' option.
     * How many threads are useful?  That varies with the program, and how well
        it was coded.  You'll have to experiment on your own systems!
-    * The number of CPUs on this particular computer system is ...... 8.
+    * The number of CPUs on this particular computer system is ...... 16.
     * The maximum number of CPUs that will be used is now set to .... 8.
      =========================================================================
     ++ Authors: Bob Cox and Ziad Saad
     
-    ++ Compile date = Nov  9 2017 {AFNI_17.3.03:macosx_10.7_local}
+    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}

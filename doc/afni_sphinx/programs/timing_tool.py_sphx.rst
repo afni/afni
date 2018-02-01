@@ -7,6 +7,8 @@ timing_tool.py
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     
@@ -303,29 +305,45 @@ timing_tool.py
     
              timing_tool.py -timing stimes.txt -show_duration_stats
     
-       Example 18. Convert FSL formatted timing files to AFNI timing format.
+       Example 18a. Convert FSL formatted timing files to AFNI timing format.
     
           A set of FSL timing files (for a single class), one file per run,
           can be read using -fsl_timing_files (rather than -timing, say).  At
-          that point, 
-          If the files have varying durations, the result will
-          be in AFNI duration modulation format.  If the files have amplitudes
-          that are not constant 0 or constant 1, the result will have amplitude
-          modulators.
+          that point, it internally becomes like a normal timing element.
+    
+          If the files have varying durations, the result will be in AFNI
+          duration modulation format.  If the files have amplitudes that are not
+          constant 0 or constant 1, the result will have amplitude modulators.
     
              timing_tool.py -fsl_timing_files fsl_r1.txt fsl_r2.txt fsl_r3.txt \
                             -write_timing combined.txt
     
-          And possibly force to married format, via -write_as_married.
+       Example 18b. Force to married format, via -write_as_married.
     
              timing_tool.py -fsl_timing_files fsl_r1.txt fsl_r2.txt fsl_r3.txt \
                             -write_timing combined.txt -write_as_married
     
+       Example 18c. Apply one FSL run as run 3 of a 4-run timing file.
+    
+             timing_tool.py -fsl_timing_files fsl_r1.txt \
+                            -select_runs 0 0 1 0 -write_timing NEW.txt
+    
+       Example 18d. Apply two FSL runs as run 3 and 4 of a 5-run timing file.
+    
+          The original runs can be duplicated, put into a new order or omitted.
+          Also, truncate the event times to 1 place after the decimal (-nplaces),
+          and similarly truncate the married terms (durations and/or amplitudes)
+          to 1 place after the decimal (-mplaces).
+    
+             timing_tool.py -fsl_timing_files fsl_r1.txt fsl_r2.txt \
+                            -nplaces 1 -mplaces 1 -write_as_married \
+                            -select_runs 0 0 1 2 0 -write_timing NEW.txt
+    
        Example 19a. Convert TSV formatted timing files to AFNI timing format.
     
           A tab separated value file contains events for all classes for a single
-          run.  Convert a single run to multiple AFNI timing files (or convert
-          multiple runs).
+          run.  Such files might exist in a BIDS dataset.  Convert a single run
+          to multiple AFNI timing files (or convert multiple runs).
     
              timing_tool.py -multi_timing_3col_tsv sing_weather.run*.tsv \
                             -write_multi_timing AFNI_timing.weather
@@ -944,6 +962,55 @@ timing_tool.py
             The default is -1, which uses the minimum needed for accuracy.
     
                 Consider '-show_timing' and '-write_timing'.
+    
+       -mplaces NPLACES             : specify # places used for married fields
+    
+            e.g. -mplaces 1
+    
+            Akin to -nplaces, this option controls the number of places to the 
+            right of the decimal that are used when printing stimulus event
+            modulators (amplitude and duration modulators).
+            The default is -1, which uses the minimum needed for accuracy.
+    
+                Consider '-nplaces', '-show_timing' and '-write_timing'.
+    
+       -select_runs OLD1 OLD2 ... : make new timing from runs of an old one
+    
+            example a: Convert a single run into the second of 4 runs.
+    
+               -select_runs 0 1 0 0
+    
+            example b: Get the last 2 runs out of a 4-run timing file.
+    
+               -select_runs 3 4
+    
+            example c: Reverse the order of a 4 run timing file.
+    
+               -select_runs 4 3 2 1
+    
+            example d: Make a 6 run timing file, where they are all the same
+                       as the original run 2, except the new run 4 is empty.
+    
+               -select_runs 2 2 2 0 2 2
+    
+            example e: Convert 3 runs into positions 4, 5 and 2 of 5 runs.
+                       So 1 -> posn 4, 2 -> posn 5, and 3 -> posn 2.
+                       The other 2 runs are empty.
+    
+               -select_runs 0 3 0 1 2
+    
+    
+            Use this option to create a new timing element by selecting runs of an
+            old one.  Runs are 1-based (from 1 to #runs), and 0 means to use an
+            empty run (no events).  For example, if the original timing element has
+            5 runs, then use 1..5 to select them, and 0 to select an empty run.
+    
+            Original runs can be any number of times, and in any order.
+    
+            The number of runs in the result is equal to the number of runs
+            listed as parameters to this option.
+    
+                Consider '-nplaces', '-show_timing' and '-write_timing'.
     
        -per_run                     : perform relevant operations per run
     

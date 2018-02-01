@@ -7,6 +7,8 @@ uniq_images
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Usage: uniq_images fileA fileB ...

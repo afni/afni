@@ -7,6 +7,8 @@ fdrval
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Usage: fdrval [options] dset sub val [val ...]
@@ -63,4 +65,4 @@ fdrval
     -- Quick re-hack to add '-qinput' option -- 20 Dec 2011 -- RWCox
     -- Re-re-hack to make super-small '-qinput' values work right -- 14 Mar 2014
     
-    ++ Compile date = Nov  9 2017 {AFNI_17.3.03:macosx_10.7_local}
+    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}

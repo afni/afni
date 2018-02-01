@@ -7,6 +7,8 @@ float_scan
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Usage: float_scan [options] input_filename

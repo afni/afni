@@ -7,6 +7,8 @@ suma_change_spec
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     suma_change_spec:

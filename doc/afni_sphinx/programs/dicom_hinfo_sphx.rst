@@ -7,16 +7,24 @@ dicom_hinfo
 .. contents:: 
     :depth: 4 
 
+| 
+
+
+Usage: dicom_hinfo [options] fname [...]
+========================================
+
 .. code-block:: none
 
-    Usage: dicom_hinfo [options] fname [...]
     Prints selected information from the DICOM file 'fname' to stdout.
     Multiple files can be given on the command line; see the examples
     below for useful ideas.
     
-    --------
-    OPTIONS:
-    --------
+
+OPTIONS:
+++++++++
+
+.. code-block:: none
+
      -tag aaaa,bbbb = print the specified tag.
                       -- multiple tags may follow the '-tag' option.
                       -- a tag consists of 4 hexadecimal digits,
@@ -29,6 +37,15 @@ dicom_hinfo
      *OR* -last       instead of first.
     
      -no_name       = Omit any filename output.
+    
+     -full_entry    = Output the full entry if it is more than
+                      one word or contains white space. If the entry is
+                      REALLY long, this may be truncated.
+    
+
+
+.. code-block:: none
+
     
     * The purpose of this program is to be used in scripts to figure out
       which DICOM files to process for various purposes -- see Example #2.
@@ -59,9 +76,12 @@ dicom_hinfo
       I have seen DICOM files that lacked this tag, so you might have to
       experiment (using dicom_hdr) to find a good tag for this purpose.
     
-    ---------
-    EXAMPLES:
-    ---------
+
+EXAMPLES:
+=========
+
+.. code-block:: none
+
     #1: The command below prints out the acquisition start time and the number
         of rows for each valid DICOM file in the directories below the current one:
     
@@ -71,7 +91,6 @@ dicom_hinfo
     
     TASK-A/image-00102-004243.dcm 141255.882508 256
     
-    ---------
     #2: A more complicated example searches all the directories below the current one,
         then prints out a list of summaries of what look like unique acquisitions.
         This could be used to figure out what kind of data you have when someone gives
@@ -113,7 +132,6 @@ dicom_hinfo
         (using program Dimon and its '-infile_list' option appropriately), and then
         look at them to make final decisions about what to keep.
     
-    ---------
     #3: Continuing the above example with actual creation of AFNI dataset
         from the collection of files, a script (in csh syntax):
     
@@ -158,5 +176,4 @@ dicom_hinfo
         You might have to change things around to solve your problem, but I
         hope that this sample script will give you an idea of how to start.
     
-    ---------------------------
     --- RWCox - 15 Nov 2011 ---

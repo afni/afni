@@ -7,6 +7,8 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Usage: @SurfSmooth.HEAT_07.examples <path_to_suma_demo>

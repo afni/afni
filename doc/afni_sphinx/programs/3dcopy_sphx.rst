@@ -7,9 +7,14 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
+
+Usage 1: 3dcopy [-verb] [-denote] old_prefix new_prefix
+=======================================================
+
 .. code-block:: none
 
-    Usage 1: 3dcopy [-verb] [-denote] old_prefix new_prefix
       Will copy all datasets using the old_prefix to use the new_prefix;
     
         3dcopy fred ethel
@@ -19,15 +24,30 @@
                   fred+tlrc.HEAD    to ethel+tlrc.HEAD
                   fred+tlrc.BRIK.gz to ethel+tlrc.BRIK.gz
     
-    Usage 2: 3dcopy old_prefix+view new_prefix
+
+Usage 2: 3dcopy old_prefix+view new_prefix
+==========================================
+
+.. code-block:: none
+
       Will copy only the dataset with the given view (orig, acpc, tlrc).
     
-    Usage 3: 3dcopy old_dataset new_prefix
+
+Usage 3: 3dcopy old_dataset new_prefix
+======================================
+
+.. code-block:: none
+
       Will copy the non-AFNI formatted dataset (e.g., MINC, ANALYZE, CTF)
       to the AFNI formatted dataset with the given new prefix.
     
     
-    Notes:
+
+Notes:
+======
+
+.. code-block:: none
+
     * This is to copy entire datasets, possibly with multiple views.
       So sub-brick selection is not allowed.  Please use 3dbucket or
       3dTcat for that purpose.
@@ -59,4 +79,4 @@
     
     * The '-denote' option will remove any Notes from the file.
     
-    ++ Compile date = Nov  9 2017 {AFNI_17.3.03:macosx_10.7_local}
+    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}

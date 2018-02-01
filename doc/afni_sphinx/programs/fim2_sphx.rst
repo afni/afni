@@ -7,6 +7,8 @@ fim2
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
      Usage: fim2 [options] image_files ...

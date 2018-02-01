@@ -7,6 +7,8 @@ abut
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     ABUT:  put noncontiguous FMRI slices together [for to3d]

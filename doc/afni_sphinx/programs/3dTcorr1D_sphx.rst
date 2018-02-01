@@ -7,6 +7,8 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Usage: 3dTcorr1D [options] xset y1D
@@ -24,6 +26,11 @@
                   ++ For 'continuous' or finely-discretized data, tau_b and
                      rank correlation are nearly equivalent (but not equal).
     
+      -Fisher   = Apply the 'Fisher' (inverse hyperbolic tangent) transformation
+                    to the results.
+                  ++ It does not make sense to use this with '-ktaub', but if
+                     you want to do it, the program will not stop you.
+    
       -prefix p = Save output into dataset with prefix 'p'
                    [default prefix is 'Tcorr1D'].
     
@@ -38,10 +45,14 @@
     * The output dataset is functional bucket type, with one sub-brick
        per column of the input y1D file.
     * No detrending, blurring, or other pre-processing options are available;
-       if you want these things, see 3dDetrend or 3dBandpass or 3dcalc.
+       if you want these things, see 3dDetrend or 3dTproject or 3dcalc.
        [In other words, this program presumes you know what you are doing!]
     * Also see 3dTcorrelate to do voxel-by-voxel correlation of TWO
        3D+time datasets' time series, with similar options.
+    * You can extract the time series from a single voxel with given
+       spatial indexes using 3dmaskave, and then run it with 3dTcorr1D:
+        3dmaskave -quiet -ibox 40 30 20 epi_r1+orig > r1_40_30_20.1D
+        3dTcorr1D -pearson -Fisher -prefix c_40_30_20 epi_r1+orig r1_40_30_20.1D
     * http://en.wikipedia.org/wiki/Correlation
     * http://en.wikipedia.org/wiki/Pearson_product-moment_correlation_coefficient
     * http://en.wikipedia.org/wiki/Spearman%27s_rank_correlation_coefficient
@@ -73,8 +84,8 @@
           command line with the '-D' option.
     * How many threads are useful?  That varies with the program, and how well
        it was coded.  You'll have to experiment on your own systems!
-    * The number of CPUs on this particular computer system is ...... 8.
+    * The number of CPUs on this particular computer system is ...... 16.
     * The maximum number of CPUs that will be used is now set to .... 8.
      =========================================================================
     
-    ++ Compile date = Nov  9 2017 {AFNI_17.3.03:macosx_10.7_local}
+    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}

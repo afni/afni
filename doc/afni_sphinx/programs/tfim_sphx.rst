@@ -7,6 +7,8 @@ tfim
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     MCW TFIM: t-tests on sets of functional images, by RW Cox

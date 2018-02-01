@@ -7,6 +7,8 @@ imcat
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     [7m** ERROR:[0m Too few options

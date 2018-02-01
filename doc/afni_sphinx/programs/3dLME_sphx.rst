@@ -7,13 +7,15 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     
               ================== Welcome to 3dLME ==================          
-        AFNI Group Analysis Program with Multi-Variate Modeling Approach
+        AFNI Group Analysis Program with Linear Mixed-Effects Modeling Approach
     #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    Version 1.9.6, May 19, 2017
+    Version 1.9.8, Jan 19, 2018
     Author: Gang Chen (gangchen@mail.nih.gov)
     Website - https://afni.nimh.nih.gov/sscc/gangc/lme.html
     SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -324,6 +326,9 @@
     
        -mask MASK: Process voxels inside this mask only.
               Default is no masking.
+    
+       -ML: Add this option if Maximum Likelihood is wanted instead of the default
+             method, Restricted Maximum Likelihood (REML).
     
        -model FORMULA: Specify the terms of fixed effects for all explanatory,
              including quantitative, variables. The expression FORMULA with more

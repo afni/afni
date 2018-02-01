@@ -7,6 +7,8 @@ im2niml
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Usage: im2niml imagefile [imagefile ...]

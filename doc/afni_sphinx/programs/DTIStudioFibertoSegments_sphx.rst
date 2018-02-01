@@ -7,6 +7,8 @@ DTIStudioFibertoSegments
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Usage: DTIStudioFibertoSegments [options] dataset

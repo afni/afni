@@ -7,6 +7,8 @@ djpeg
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     usage: djpeg [switches] [inputfile]
@@ -33,3 +35,4 @@ djpeg
       -onepass       Use 1-pass quantization (fast, low quality)
       -maxmemory N   Maximum memory to use (in kbytes)
       -outfile name  Specify name for output file
+      -memsrc        Load input file into memory before decompressing

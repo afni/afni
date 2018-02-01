@@ -7,6 +7,8 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Installs and sets up AFNI's InstaCorr demo archive
@@ -15,15 +17,15 @@
     *****************
     
     For Volume-based 3dGroupInCorr run:
-    cd /Users/discoraj/Documents/nih/sphinx_test/help2sphinx//vol
+    cd /home/ptaylor//vol
     tcsh ./@RunVolGroupInCorr 
     
     For Surface-based 3dGroupInCorr run:
-    cd /Users/discoraj/Documents/nih/sphinx_test/help2sphinx//srf
+    cd /home/ptaylor//srf
     tcsh ./@RunSurfGroupInCorr 
     
     For Surface-based Single-Subject InstaCorr run:
-    cd /Users/discoraj/Documents/nih/sphinx_test/help2sphinx//srf
+    cd /home/ptaylor//srf
     tcsh ./@RunSingleSurfInstaCorr 
     
     *****************

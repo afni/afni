@@ -7,10 +7,15 @@
 .. contents:: 
     :depth: 4 
 
-.. code-block:: none
+| 
 
     
-              ================== Welcome to 3dMVM ==================          
+
+Welcome to 3dMVM
+================
+
+.. code-block:: none
+
         AFNI Group Analysis Program with Multi-Variate Modeling Approach
     #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     Version 3.9.4, Dec 21, 2016
@@ -19,8 +24,12 @@
     SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
     #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     
-    Usage:
-    ------ 
+
+Usage:
+======
+
+.. code-block:: none
+
      3dMVM is a group-analysis program that performs traditional ANOVA- and ANCOVA-
      style computations. In addition, it can run multivariate modeling in the sense
      of multiple simultaneous response variables. For univariate analysis, no bound
@@ -38,7 +47,16 @@
      capability to correct for sphericity violations when within-subject variables
      with more than two levels are involved.
      
-     If you want to cite the analysis approach for AN(C)OVA, use the following:
+
+Please cite:
+============
+
+
+If you want to cite the analysis approach for AN(C)OVA, use the following
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+.. code-block:: none
+
      
      Chen, G., Adleman, N.E., Saad, Z.S., Leibenluft, E., Cox, R.W. (2014). 
      Applications of Multivariate Modeling to Neuroimaging Group Analysis: A
@@ -46,13 +64,24 @@
      571-588. 10.1016/j.neuroimage.2014.06.027
      https://afni.nimh.nih.gov/pub/dist/HBM2014/Chen_in_press.pdf
     
-    For group analyis with effect estimates from multiple basis funcitons, cite:
+
+For group analyis with effect estimates from multiple basis funcitons, cite:
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+.. code-block:: none
+
     
-    Chen, G., Saad, Z.S., Adleman, N.E., Leibenluft, E., Cox, R.W. (2015). 
+     Chen, G., Saad, Z.S., Adleman, N.E., Leibenluft, E., Cox, R.W. (2015). 
      Detecting the subtle shape differences in hemodynamic responses at the
      group level. Front. Neurosci., 26 October 2015.
      http://dx.doi.org/10.3389/fnins.2015.00375
     
+
+Installation requirements:
+==========================
+
+.. code-block:: none
+
      In addition to R installation, the following two R packages need to be acquired
      in R first before running 3dMVM: "afex" and "phia". In addition, the "snow" package
      is also needed if one wants to take advantage of parallel computing. To install
@@ -69,6 +98,12 @@
      More details about 3dMVM can be found at 
      https://afni.nimh.nih.gov/sscc/gangc/MVM.html
      
+
+Running:
+========
+
+.. code-block:: none
+
      Once the 3dMVM command script is constructed, it can be run by copying and
      pasting to the terminal. Alternatively (and probably better) you save the 
      script as a text file, for example, called MVM.txt, and execute it with the 
@@ -87,9 +122,20 @@
      Thanks to the R community, Henrik Singmann, and Helios de Rosario for the 
      strong technical support.
     
-    --------------------------------
-    Example 1 --- three between-subjects (genotype, sex, and scanner) and two 
-    within-subject (condition and emotion) variables:
+
+Examples:
+=========
+
+    
+
+Example 1 --- 3 between-subjects and 2 within-subject variables:
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+.. code-block:: none
+
+       Three between-subjects (genotype, sex, and scanner) and two within-subject 
+       (condition and emotion) variables.
+    
        3dMVM  -prefix Example1 -jobs 4            \
               -bsVars  'genotype*sex+scanner'      \
               -wsVars "condition*emotion"         \
@@ -99,7 +145,6 @@
               -gltLabel 2 face_emot_vs_neu -gltCode 2 'condition : 1*face emotion : 1*pos +1*neg -2*neu'     \
               -gltLabel 3 sex_by_condition_interaction -gltCode 3 'sex : 1*male -1*female condition : 1*face -1*house' \
               -gltLabel 4 3way_interaction -gltCode 4 'sex : 1*male -1*female condition : 1*face -1*house emotion : 1*pos -1*neg' \
-              ...            
               -num_glf 3                         \
               -glfLabel 1 male_condXEmo -glfCode 1 'sex : 1*male condition : 1*face -1*house emotion : 1*pos -1*neg & 1*pos -1*neu' \
               -glfLabel 2 face_sexXEmo -glfCode 2 'sex : 1*male -1*female condition : 1*face emotion : 1*pos -1*neg & 1*pos -1*neu' \
@@ -110,12 +155,17 @@
               s1    TT         male   scan1   face        neg       s1+tlrc'[face_neg_beta]'                 \
               s1    TT         male   scan1   face        neu       s1+tlrc'[face_neu_beta]'                 \
               s1    TT         male   scan1   house       pos       s1+tlrc'[house_pos_beta]'                \
-              ...
               s68   TN         female scan2   house       pos       s68+tlrc'[face_pos_beta]'                \
               s68   TN         female scan2   house       neg       s68+tlrc'[face_neg_beta]'                \
               s68   TN         female scan2   house       neu       s68+tlrc'[house_pos_beta]'                    
     
-       NOTE:  1) The 3rd GLT is for the 2-way 2 x 2 interaction between sex and condition, which
+
+NOTE:
+~~~~~
+
+.. code-block:: none
+
+              1) The 3rd GLT is for the 2-way 2 x 2 interaction between sex and condition, which
               is essentially a t-test (or one degree of freedom for the numerator of F-statistic).
               Multiple degrees of freedom for the numerator of F-statistic can be obtained through
               option -glfCode (see GLFs #1, #2, and #3).
@@ -126,9 +176,15 @@
               5) Option '-SS_type 2' specifies the hierarchial type for the sume of squares in the
               omnibus F-statistics in the output. See more details in the help.
     
-    --------------------------------
-    Example 2 --- two between-subjects (genotype and sex), onewithin-subject
-    (emotion) factor, plus two quantitative variables (age and IQ).
+
+Example 2 --- 2 between-subjects, 1 within-subject, 2 quantitative variables:
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+.. code-block:: none
+
+    
+       Two between-subjects (genotype and sex), one within-subject
+       (emotion) factor, plus two quantitative variables (age and IQ).
     
        3dMVM -prefix Example2 -jobs 24        \
               -bsVars  "genotype*sex+age+IQ"  \
@@ -141,18 +197,22 @@
               -gltLabel 3 age_pos_vs_neg -gltCode 3 'emotion : 1*pos -1*neg age : 5'                \
               -gltLabel 4 genotype_by_sex -gltCode 4 'genotype : 1*TT -1*NN sex : 1*male -1*female' \
               -gltLabel 5 genotype_by_sex_emotion -gltCode 5 'genotype : 1*TT -1*NN sex : 1*male -1*female emotion : 1*pos -1*neg' \
-              ...            
               -dataTable                                                                   \
               Subj  genotype  sex    age  IQ     emotion   InputFile                       \
               s1    TT         male   24   107    pos       s1+tlrc'[pos_beta]'            \
               s1    TT         male   24   107    neg       s1+tlrc'[neg_beta]'            \
               s1    TT         male   24   107    neu       s1+tlrc'[neu_beta]'            \
-              ... 
               s63   NN         female 29   110    pos       s63+tlrc'[pos_beta]'           \
               s63   NN         female 29   110    neg       s63+tlrc'[neg_beta]'           \
               s63   NN         female 29   110    neu       s63+tlrc'[neu_beta]'         
     
-       NOTE:  1) The 2nd GLT shows the age effect (slope) while the 3rd GLT reveals the contrast
+
+NOTE:
+~~~~~
+
+.. code-block:: none
+
+              1) The 2nd GLT shows the age effect (slope) while the 3rd GLT reveals the contrast
               between the emotions at the age of 30 (5 above the center). On the other hand,
               all the other GLTs (1st, 4th, and 5th) should be interpreted at the center Age
               value, 25 year old.
@@ -163,14 +223,20 @@
               interaction between the three factors because 'emotion' has three levels. The F-test for
               the full 2 x 2 x 3 interaction is automatically spilled out by 3dMVM.
     
-    ---------------------------------
-    Example 3 --- BOLD response was modeled with multiple basis functions at individual
-    subject level. In addition, there are one between-subjects (Group) and one within-
-    subject (Condition) variable. Furthermore, the variable corresponding to the number 
-    of basis functions, Time, is also a within-subject variable. In the end, the F-
-    statistics for the interactions of Group:Condition:Time, Group:Time, and 
-    Condition:Time are of specific interest. And these interactions can be further
-    explored with GLTs in 3dMVM.
+
+Example 3 --- Getting more complicated:
++++++++++++++++++++++++++++++++++++++++
+
+.. code-block:: none
+
+    
+       BOLD response was modeled with multiple basis functions at individual
+       subject level. In addition, there are one between-subjects (Group) and one within-
+       subject (Condition) variable. Furthermore, the variable corresponding to the number 
+       of basis functions, Time, is also a within-subject variable. In the end, the F-
+       statistics for the interactions of Group:Condition:Time, Group:Time, and 
+       Condition:Time are of specific interest. And these interactions can be further
+       explored with GLTs in 3dMVM.
     
        3dMVM -prefix Example3 -jobs 12   \
              -bsVars Group               \
@@ -184,29 +250,39 @@
              -gltLabel 6 yng_t1 -gltCode 6 'Group : 1*yng Time : 1*t1' \
              -gltLabel 7 yng_t2 -gltCode 7 'Group : 1*yng Time : 1*t2' \
              -gltLabel 8 yng_t3 -gltCode 8 'Group : 1*yng Time : 1*t3' \
-             ...
              -gltLabel 17 old_face_t0 -gltCode 17 'Group : 1*old Condition : 1*face Time : 1*t0' \
              -gltLabel 18 old_face_t1 -gltCode 18 'Group : 1*old Condition : 1*face Time : 1*t1' \
              -gltLabel 19 old_face_t2 -gltCode 19 'Group : 1*old Condition : 1*face Time : 1*t2' \
              -gltLabel 20 old_face_t3 -gltCode 20 'Group : 1*old Condition : 1*face Time : 1*t3' \
-             ...         
              -dataTable                                            \
              Subj  Group  Condition Time InputFile                 \
              s1    old    face      t0   s1+tlrc'[face#0_beta]'    \
              s1    old    face      t1   s1+tlrc'[face#1_beta]'    \
              s1    old    face      t2   s1+tlrc'[face#2_beta]'    \
              s1    old    face      t3   s1+tlrc'[face#3_beta]'    \
-             ...
              s40   yng    house     t0   s40+tlrc'[house#0_beta]'  \
              s40   yng    house     t1   s40+tlrc'[house#1_beta]'  \
              s40   yng    house     t2   s40+tlrc'[house#2_beta]'  \
              s40   yng    house     t3   s40+tlrc'[house#3_beta]'      
     
-       NOTE:  The model for the analysis can also be set up as and is equivalent to 
+
+NOTE:
+~~~~~
+
+.. code-block:: none
+
+              The model for the analysis can also be set up as and is equivalent to 
               'Group*Condition*Time'.
+       
+
+Options:
+========
+
+.. code-block:: none
+
+       
     
     Options in alphabetical order:
-    ------------------------------
     
        -bsVars FORMULA: Specify the fixed effects for between-subjects factors 
              and quantitative variables. When no between-subject factors

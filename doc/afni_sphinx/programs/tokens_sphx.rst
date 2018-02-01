@@ -7,6 +7,8 @@ tokens
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     usage: tokens [-infile INFILE] [-extra C] [...]

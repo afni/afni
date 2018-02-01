@@ -7,6 +7,8 @@ ftosh
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     ftosh: convert float images to shorts, by RW Cox

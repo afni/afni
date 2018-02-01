@@ -7,6 +7,8 @@ count
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Usage: count [options] bot top [step]

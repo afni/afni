@@ -7,6 +7,8 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Usage: 3dZcat [options] dataset dataset ...
@@ -49,4 +51,4 @@
     * Also see program 3dXYZcat for a version that can catenate along
         the x and y axes as well (with some limitations).
     
-    ++ Compile date = Nov  9 2017 {AFNI_17.3.03:macosx_10.7_local}
+    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}

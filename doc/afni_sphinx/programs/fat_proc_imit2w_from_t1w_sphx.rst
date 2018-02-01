@@ -7,6 +7,8 @@ fat_proc_imit2w_from_t1w
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     -------------------------------------------------------------------------
@@ -25,10 +27,10 @@ fat_proc_imit2w_from_t1w
       axial, sagittal and coronal views of the final T2w volume are saved
       by default in the same location as the output volumes.
     
-      NB: if you use a volume made this way as a reference in TORTOISE,
+      *NB: if you use a volume made this way as a reference in TORTOISE,
       then at least for ~adult-human-like (imitation) t2w volumes, at
-      present it seems like you should use the option:
-        --enforce_deformation_antisymmetry 1
+      present it seems like you should use the following option when:
+      running DR_BUDDI:  --enforce_deformation_antisymmetry 1.
       This seems to improve registration.
     
     

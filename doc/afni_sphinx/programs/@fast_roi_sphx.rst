@@ -7,6 +7,8 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Usage: @fast_roi <-region REGION1> [<-region REGION2> ...]
@@ -41,7 +43,7 @@
                         example shown below, TT_N27_r2+tlrc was created
                         with: 
                3dresample  -dxyz 2 2 2 -rmode Li -prefix ./TT_N27_r2 \
-                           -input /Users/discoraj/abin/TT_N27+tlrc. 
+                           -input /home/ptaylor/afni_src/linux_ubuntu_12_64/TT_N27+tlrc. 
                         where TT_N27+tlrc is usually in the directory 
                         under which afni resides.
       -roi_grid GRID: The volume that defines the final ROI's grid.

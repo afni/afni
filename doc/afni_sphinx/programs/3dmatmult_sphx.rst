@@ -7,6 +7,8 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     -------------------------------------------------------------------------
@@ -75,4 +77,4 @@
     R. Reynolds    (requested by W. Gaggl)
     
     3dmatmult version 0.0, 29 September 2008
-    compiled: Nov  9 2017
+    compiled: Jan 29 2018

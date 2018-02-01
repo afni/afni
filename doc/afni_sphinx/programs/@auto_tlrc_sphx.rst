@@ -7,6 +7,8 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Usage 1: A script to transform an antomical dataset
@@ -165,7 +167,8 @@
                         rotation that is equivalent to: 
                      3drotate -matvec_order RotMat.1D \
                               -prefix struct.r struct+orig 
-                        The equivalent XFORM0.1D is obtained with:\n
+                        The equivalent XFORM0.1D is obtained with:
+    
                      cat_matvec 'struct.r+orig::ROTATE_MATVEC_000000' -I \
                                > XFORM0.1D  
     

@@ -7,9 +7,25 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Gosset (Student) t-test sets of 3D datasets
+    
+       * Also see the newer program 3dttest++, which lets you *
+      ** include covariates to be regressed out of the data.  **
+     *** For most purposes, 3dttest++ is to be preferred over ***
+    **** this program -- 3dttest will no longer be upgraded.  ****
+    ****------------------------------------------------------****
+     *** Also consider program 3dMEMA, which can carry out a  ***
+      ** more sophisticated type of 't-test' that also takes  **
+       * into account the variance map of each input dataset. *
+    
+    -----------------------------------------------------------
+    *********** In short: DO NOT USE THIS PROGRAM! ************
+    -----------------------------------------------------------
+    
     Usage 1: 3dttest [options] -set1 datasets ... -set2 datasets ...
        for comparing the means of 2 sets of datasets (voxel by voxel).
     
@@ -17,14 +33,6 @@
        for comparing the mean of 1 set of datasets against a constant.
     
        ** or use -base1_dset
-    
-       * Also see the newer program 3dttest++, which lets you *
-      ** include covariates to be regressed out of the data.  **
-     *** For most purposes, 3dttest++ is to be preferred over ***
-    **** this program -- 3dttest will no longer be upgraded.  ****
-     *** Also consider program 3dMEMA, which can carry out a  ***
-      ** more sophisticated type of 't-test' that also takes  **
-       * into account the variance map of each input dataset. *
     
     OUTPUTS:
      A single dataset is created that is the voxel-by-voxel difference
@@ -125,4 +133,4 @@
       '3dcalc( -a r1+orig -b r2+orig -expr 0.5*(a+b) )'  {calculation}
     For the gruesome details, see the output of 'afni -help'.
     
-    ++ Compile date = Nov  9 2017 {AFNI_17.3.03:macosx_10.7_local}
+    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}
