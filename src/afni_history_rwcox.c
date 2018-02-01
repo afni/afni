@@ -44,6 +44,14 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 1 , FEB , 2018 , RWC , "AFNI GUI" , MAJOR , TYPE_NEW_OPT ,
+   "-bysub option for reading from BIDS hierarchy" ,
+   "-bysub 10506 (for example) means to find all sub-directories with names\n"
+   "'sub-10506', and read all datasets find in them and in THEIR\n"
+   "sub-directories into a single session. The idea is to make it easy to\n"
+   "read all datasets corresponding to a single subject from a BID hierarchy\n"
+   "into a single session, for easy of viewing." } ,
+
  { 6 , JAN , 2018 , RWC , "3dDeconvolve" , MINOR , TYPE_ENHANCE ,
    "Add TWOGAM basis function" ,
    "Arbitrary difference of two GAM functions." } ,

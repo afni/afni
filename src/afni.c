@@ -128,7 +128,10 @@
 
 void AFNI_print_startup_tip(int) ;
 
-#include "afni_startup_tips.h"  /* where the tips live */
+#include "afni_startup_tips.h"  /* where the tips and goodbye messages live */
+
+int num_bysub = 0 ;    /* 01 Feb 2018 */
+char **bysub  = NULL ;
 
 /*-----------------------------------------------------------------------
    Fallback resources for AFNI.  May be overridden by the user's
@@ -446,6 +449,47 @@ void AFNI_syntax(void)
      "USAGE 1: read in sessions of 3D datasets (created by to3d, etc.)\n"
      "----------------------------------------------------------------\n"
      "   afni [options] [session_directory ...]\n"
+     "\n"
+     "   -bysub       This new [01 Feb 2018] option allows you to have 'sessions'\n"
+     "                  made up from files scattered across multiple directories.\n"
+     "                  The purpose of this option is to gather all the datasets\n"
+     "                  corresponding to a single subject identifier, as is done\n"
+     "                  in the BIDS file hierarchy -- http://bids.neuroimaging.io/\n"
+     "               ** After '-bysub' you put one or more subject identifiers,\n"
+     "                  which are of the form 'sub-XXX' where 'XXX' is some\n"
+     "                  subject code (it does not have to be exactly 3 characters).\n"
+     "               ** If an identifier does NOT start with 'sub-', then that\n"
+     "                  4 letter string will be added to the front. This allows\n"
+     "                  you to specify your subjects by their numbers 'XXX' alone.\n"
+     "               ** The list of subject identifiers ends when an argument\n"
+     "                  on the command line starts with the '-' character.\n"
+     "                  That would be another option, or the '-' character\n"
+     "                  by itself if the next things on the command line\n"
+     "                  are the list of directories to scan for datasets.\n"
+     "               ** Each directory on the command line (after all options)\n"
+     "                  will be scanned recursively (down the file tree) for\n"
+     "                  subdirectories whose name matches the 'sub-XXX' identifier\n"
+     "                  exactly. All such subdirectories will have all their\n"
+     "                  datasets read in (recursively down the file tree) and\n"
+     "                  put into a single session for viewing in AFNI.\n"
+     "               ** Remember: if no directories are given on the command\n"
+     "                  line after the various options, then the current working\n"
+     "                  directory ('.' or 'echo $cwd') is used.\n"
+     "               ** If a directory on the command line does NOT have any\n"
+     "                  subdirectories that match any of the '-bysub' identifiers,\n"
+     "                  then that directory will be read in the normal way, with\n"
+     "                  all the datasets in that particular directory (but not\n"
+     "                  subdirectories) read into the session.\n"
+     "               ** Please note that '-bysub' sessions will NOT be rescanned\n"
+     "                  for new datasets that might get placed there after the\n"
+     "                  AFNI GUI starts, unlike normal (single directory) sessions.\n"
+     "               ** Example:\n"
+     "                    afni -bysub 10506 50073 - ~/data/OpenFMRI/ds000030\n"
+     "                  This will open the data for subjects 10506 and 50073 from\n"
+     "                  the data at https://openfmri.org/dataset/ds000030/\n"
+     "               ** You can put multiple subject IDs after '-bysub', as\n"
+     "                  in the example above. You can also use the '-bysub' option\n"
+     "                  more than once, if you like.\n"
      "\n"
 #if MMAP_THRESHOLD > 0
      "   -purge       Conserve memory by purging data to disk.\n"
@@ -1066,6 +1110,29 @@ ENTRY("AFNI_parse_args") ;
       }
 #endif
 
+      if( strcmp(argv[narg],"-bysub") == 0 ){  /* 01 Feb 2018 */
+        int bb ;
+        if( ++narg >= argc ) ERROR_exit("need an argument after -bysub!") ;
+        for( ; narg < argc         &&
+              argv[narg][0] != '-' &&
+              argv[narg][0] != '.' &&
+              argv[narg][0] != '/'    ; narg++ ){
+          bysub = (char **)realloc(bysub,sizeof(char *)*(num_bysub+1)) ;
+          if( strncmp(argv[narg],"sub-",4) == 0 ){
+            bysub[num_bysub] = strdup(argv[narg]) ;
+          } else {
+            bysub[num_bysub] = (char *)malloc(sizeof(char)*(strlen(argv[narg])+8)) ;
+            sprintf( bysub[num_bysub] , "sub-%s" , argv[narg] ) ;
+          }
+          bb = strlen(bysub[num_bysub]) ;
+          if( bb > 1 && bysub[num_bysub][bb-1] == '/' )
+            bysub[num_bysub][bb-1] = '\0' ;
+          num_bysub++ ;
+        }
+        if( narg < argc && strcmp(argv[narg],"-") == 0 ) narg++ ;
+        continue ;
+      }
+
       if( strcmp(argv[narg],"-seehidden") == 0 ){
         first_plugin_check = 1 ;
         narg++ ; continue ;
@@ -1592,6 +1659,11 @@ ENTRY("AFNI_parse_args") ;
 
    } /* end of loop over argv's starting with '-' */
 
+   if( num_bysub > 0 && GLOBAL_argopt.recurse ){  /* 01 Feb 2018 */
+     WARNING_message("-bysub disables -R option") ;
+     GLOBAL_argopt.recurse = 0 ;
+   }
+
 #if 0
 #ifdef USE_TRACING
    if( ALLOW_realtime ) DBG_trace = 0 ; /* 26 Jan 2001 */
@@ -1738,7 +1810,8 @@ void AFNI_sigfunc_alrm(int sig)
          if( -sig < NGBY ){
            printf("-------------- %d random AFNI goodbye messages -----------------------------\n",-sig);
            for( ss=-1 ; ss > sig ; ss-- ){
-             nn = (lrand48()>>3) % NGBY ; printf("%s!\n\n",gby[nn]) ;
+             nn = (lrand48()>>3) % NGBY ;
+             printf( "%s!\n\n" , gby[nn] + ((gby[nn][0]=='\n') ? 1 : 0) ) ;
            }
          } else {
            int dn = AFNI_find_relprime_random(NGBY) , kk ;
@@ -5612,7 +5685,7 @@ ENTRY("AFNI_read_inputs") ;
 
    /*--- read directly from images (the old-fashioned way) ---*/
 
-   if( GLOBAL_argopt.read_images ){
+   if( GLOBAL_argopt.read_images ){  /* pretty much obsolete */
       THD_3dim_dataset *dset ;
       THD_session *new_ss ;
       int vv ;
@@ -5669,6 +5742,7 @@ ENTRY("AFNI_read_inputs") ;
       THD_string_array *flist , *dlist=NULL , *elist=NULL , *qlist ;
       char *dname , *eee ;
       THD_session *new_ss ;
+      THD_session **new_ssar=NULL ; int num_ssar , qss ;
       int num_dsets=0 ;       /* 04 Jan 2000 */
       THD_session *gss=NULL ; /* 11 May 2002: global session */
       THD_session *dss=NULL ; /* 28 Aug 2003: session for command-line datasets */
@@ -5725,6 +5799,7 @@ ENTRY("AFNI_read_inputs") ;
         css->ndsets = 0;
         css->dsrow  = NULL;
         BLANK_SESSION(css) ;
+        css->is_collection = 1 ; /* 01 Feb 2018 */
         MCW_strncpy( css->sessname , "All_Datasets" , THD_MAX_NAME ) ;
         MCW_strncpy( css->lastname , "All_Datasets" , THD_MAX_NAME ) ;
       }
@@ -5796,12 +5871,32 @@ if(PRINT_TRACING)
 
          dname  = qlist->ar[id] ;
          new_ss = NULL ;
-         if( strncmp(dname,"3dcalc(",7) != 0 )      /* try to read datasets */
-           new_ss = THD_init_session( dname ) ; /* from this directory name */
+
+         if( new_ssar != NULL ) free(new_ssar) ; /* 01 Feb 2018 */
+         new_ssar = NULL ; num_ssar = 0 ;
+
+         if( THD_is_directory(dname) ){   /* directory? read session(s) */
+
+           for( qss=0 ; qss < num_bysub ; qss++ ){   /* bysub [01 Feb 2018] */
+             new_ss = THD_init_session_bysub(dname,bysub[qss]) ;
+             if( new_ss != NULL ){
+               new_ssar = (THD_session **)realloc( new_ssar ,
+                                                   sizeof(THD_session *)*(num_ssar+1) ) ;
+               new_ssar[num_ssar++] = new_ss ;
+             }
+           }
+           if( num_ssar == 0 ){                  /* bysub failed, try again */
+             new_ss = THD_init_session(dname) ;
+             if( new_ss != NULL ){
+               new_ssar = (THD_session **)malloc(sizeof(THD_session *)) ;
+               new_ssar[0] = new_ss ; num_ssar = 1 ;
+             }
+           }
+         }
 
          REFRESH ;
 
-         if( new_ss == NULL && !THD_is_directory(dname) ){ /* 28 Aug 2003 */
+         if( new_ssar == NULL && !THD_is_directory(dname) ){ /* 28 Aug 2003 */
            STATUS("trying to read it as a dataset file") ;
            qd = dss->num_dsset ;
            if( qd < THD_MAX_SESSION_SIZE ){
@@ -5822,69 +5917,70 @@ if(PRINT_TRACING)
            }
          }
 
-         if( new_ss != NULL && new_ss->num_dsset > 0 ){ /* got something? */
+         if( new_ssar != NULL && num_ssar > 0 ){ /* got something? */
            THD_3dim_dataset *dset ;
+
+           GLOBAL_argopt.only_images = 0 ;  /* 24 Feb 2017 */
 
            /* set parent pointers */
 
-           GLOBAL_argopt.only_images = 0 ;  /* 24 Feb 2017 */
-           new_ss->parent = NULL ;
-           for( qd=0 ; qd < new_ss->num_dsset ; qd++ ){
-             for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ ){
-                 dset = GET_SESSION_DSET(new_ss, qd, vv);
-/*               dset = new_ss->dsset_xform_table[qd][vv] ;*/
-               if( dset != NULL ){
-                 PARENTIZE( dset , NULL ) ;
-                 AFNI_inconstancy_check(NULL,dset) ; /* 06 Sep 2006 */
-               }
-           } }
+           for( qss=0 ; qss < num_ssar ; qss++ ){  /* 01 Feb 2018 */
+             new_ss = new_ssar[qss] ;
+             new_ss->parent = NULL ;
+             for( qd=0 ; qd < new_ss->num_dsset ; qd++ ){
+               for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ ){
+                   dset = GET_SESSION_DSET(new_ss, qd, vv);
+/*                 dset = new_ss->dsset_xform_table[qd][vv] ;*/
+                 if( dset != NULL ){
+                   PARENTIZE( dset , NULL ) ;
+                   AFNI_inconstancy_check(NULL,dset) ; /* 06 Sep 2006 */
+                 }
+             } }
 
-           /* put the new session into place in the list of sessions */
+             /* put the new session into place in the list of sessions */
 
-           GLOBAL_library.sslist->ssar[(GLOBAL_library.sslist->num_sess)++] = new_ss ;
-           if( qlist == elist ) recursed_ondot++ ;  /* 18 Feb 2007 */
+             GLOBAL_library.sslist->ssar[(GLOBAL_library.sslist->num_sess)++] = new_ss ;
+             if( qlist == elist ) recursed_ondot++ ;  /* 18 Feb 2007 */
 
-           sprintf(str,"\n session #%3d  = %s ==> %d dataset%s" ,
-                   GLOBAL_library.sslist->num_sess ,
-                   new_ss->sessname , new_ss->num_dsset ,
-                   (new_ss->num_dsset > 1) ? "s" : " " ) ;
-           REPORT_PROGRESS(str) ;
-
-           num_dsets += new_ss->num_dsset ;
-
-           /* 28 Aug 2002: add any inter-dataset warps to global warptable */
-
-           if( new_ss->warptable != NULL ){
-             if( GLOBAL_library.warptable == NULL ) /* create global warptable */
-               GLOBAL_library.warptable = new_Htable(101) ;
-             subsume_Htable( new_ss->warptable , GLOBAL_library.warptable ) ;
-             destroy_Htable( new_ss->warptable ) ;
-             new_ss->warptable = NULL ;
-           }
-
-           /* 02 Jun 2016: catenate this session with the css (all datasets) */
-
-           if( do_css ){
-             AFNI_append_sessions( css , new_ss ) ; num_css++ ;
-           }
-
-           /* 11 May 2002: put global datasets into session now */
-
-           if( new_ss != NULL && gss != NULL )
-             AFNI_append_sessions( new_ss , gss ) ;
-
-           /* if we've maxed out on sessions AND
-              if this isn't the last command line argument ... */
-
-           if( GLOBAL_library.sslist->num_sess == THD_MAX_NUM_SESSION &&
-               id < num_ss-1 ){
-             sprintf(str,"\n *** reached max no. sessions (%d) ***",
-                     THD_MAX_NUM_SESSION) ;
+             sprintf(str,"\n session #%3d  = %s ==> %d dataset%s" ,
+                     GLOBAL_library.sslist->num_sess ,
+                     new_ss->lastname , new_ss->num_dsset ,
+                     (new_ss->num_dsset > 1) ? "s" : " " ) ;
              REPORT_PROGRESS(str) ;
-             break ;                            /* exit the loop over id */
-           }
-         }
-         else {   /* 18 Feb 2007: do -R2 on "./" if no data found */
+
+             num_dsets += new_ss->num_dsset ;
+
+             /* 28 Aug 2002: add any inter-dataset warps to global warptable */
+
+             if( new_ss->warptable != NULL ){
+               if( GLOBAL_library.warptable == NULL ) /* create global warptable */
+                 GLOBAL_library.warptable = new_Htable(101) ;
+               subsume_Htable( new_ss->warptable , GLOBAL_library.warptable ) ;
+               destroy_Htable( new_ss->warptable ) ;
+               new_ss->warptable = NULL ;
+             }
+
+             /* 02 Jun 2016: catenate this session with the css (all datasets) */
+
+             if( do_css )
+               THD_append_sessions( css , new_ss ) ; num_css++ ;
+
+             /* 11 May 2002: put global datasets into session now */
+
+             if( new_ss != NULL && gss != NULL )
+               THD_append_sessions( new_ss , gss ) ;
+
+             /* if we've maxed out on sessions */
+
+             if( GLOBAL_library.sslist->num_sess == THD_MAX_NUM_SESSION ){
+               sprintf(str,"\n *** reached max no. sessions (%d) ***",
+                     THD_MAX_NUM_SESSION) ;
+               REPORT_PROGRESS(str) ;
+               goto END_OF_ID_LOOP ; /* exit loop over id [bad news, baby] */
+             }
+           } /* end of loop over array of new sessions */
+
+         } else if( num_bysub == 0 ){   /* 18 Feb 2007: do -R2 on "./" if no data found */
            if( qlist == dlist && elist != NULL ){
              fprintf(stderr,"\n** Searching subdirectories of './' for data") ;
              qlist = elist; goto RESTART_DIRECTORY_SCAN;
@@ -5893,12 +5989,14 @@ if(PRINT_TRACING)
 
       }  /*----- end of id loop (over input directory names) -----*/
 
+END_OF_ID_LOOP:  /* for the bad news above [01 Feb 2018] */
+
       /* 28 Aug 2003: if have datasets in session dss, use it */
 
       if( dss->num_dsset > 0 ){
         if( GLOBAL_library.sslist->num_sess < THD_MAX_NUM_SESSION ){
           if( do_css ){ /* 02 Jun 2016 */
-            AFNI_append_sessions(css,dss); num_css++;
+            THD_append_sessions(css,dss); num_css++;
           }
           GLOBAL_library.sslist->ssar[(GLOBAL_library.sslist->num_sess)++] = dss ;
           num_dsets += dss->num_dsset ;
@@ -5906,7 +6004,7 @@ if(PRINT_TRACING)
                   GLOBAL_library.sslist->num_sess, dss->sessname, dss->num_dsset,
                   (dss->num_dsset > 1) ? "s" : " " ) ;
           REPORT_PROGRESS(str) ;
-          if( gss != NULL ) AFNI_append_sessions( dss , gss ) ;
+          if( gss != NULL ) THD_append_sessions( dss , gss ) ;
         } else {
           fprintf(stderr,"\n** Can't use command line datasets: session overflow!\n") ;
           free(dss) ;
@@ -5916,7 +6014,7 @@ if(PRINT_TRACING)
       }
 
       if( gss != NULL && do_css ){
-        AFNI_append_sessions(css,gss); num_css++;
+        THD_append_sessions(css,gss); num_css++;
       }
 
       /* 11 May 2002: if have global session but no others, use it */
