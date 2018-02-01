@@ -1961,7 +1961,6 @@ extern void AFNI_read_1D_CB( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_finalize_read_1D_CB( Widget , XtPointer , XtPointer ) ;
 
 extern int  DSET_in_global_session( THD_3dim_dataset * ) ;       /* 20 Dec 2001 */
-extern void AFNI_append_sessions( THD_session *, THD_session *); /* 20 Dec 2001 */
 
 extern void AFNI_read_Web_CB( Widget, XtPointer, XtPointer );    /* 26 Mar 2001 */
 extern void AFNI_finalize_read_Web_CB( Widget, XtPointer, MCW_choose_cbs * );

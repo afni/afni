@@ -1372,7 +1372,7 @@ void AFNI_force_adoption( THD_session *ss , Boolean do_anats )
 
 ENTRY("AFNI_force_adoption") ;
 
-   if( ! ISVALID_SESSION(ss) || ss->num_dsset == 0 ) EXRETURN ;
+   if( ! ISVALID_SESSION(ss) || ss->num_dsset == 0 || ss->is_collection ) EXRETURN ;
 
    if( ss == GLOBAL_library.session ) EXRETURN ; /* 21 Dec 2001 */
 
@@ -3935,34 +3935,6 @@ ENTRY("AFNI_read_sess_CB") ;
    EXRETURN ;
 }
 
-/*---------------------------------------------------------------------*/
-/*! Append datasets in THD_session ssb to those in ssa.
-    \date 20 Dec 2001
-*/
-
-void AFNI_append_sessions( THD_session *ssa , THD_session *ssb )
-{
-   int qs, qd, vv ;
-   THD_3dim_dataset *temp_dset;
-
-ENTRY("AFNI_append_sessions") ;
-
-   if( !ISVALID_SESSION(ssa) || !ISVALID_SESSION(ssb)  ) EXRETURN ;
-   if( THD_equiv_files(ssa->sessname,ssb->sessname)==1 ) EXRETURN ;
-
-   qs = ssa->num_dsset ;
-   for( qd=0; qd < ssb->num_dsset && qd+qs < THD_MAX_SESSION_SIZE ; qd++ )
-     for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ ) {
-       temp_dset = GET_SESSION_DSET(ssb, qd, vv);
-       SET_SESSION_DSET(temp_dset, ssa,qd+qs,vv);
-/*     ssa->dsset_xform_table[qd+qs][vv] = ssb->dsset_xform_table[qd][vv] ;*/
-     }
-   ssa->num_dsset += qd ;
-
-   EXRETURN ;
-}
-
-
 /*---------------------------------------------------------------------
    Got a button press from the file selection dialog,
    so process it (maybe read in a new session!)
@@ -4093,7 +4065,7 @@ STATUS("processing new session") ;
 
                /* 20 Dec 2001: if have global datasets, put them in here */
 
-               AFNI_append_sessions( new_ss , GLOBAL_library.session ) ;
+               THD_append_sessions( new_ss , GLOBAL_library.session ) ;
 
                /* if we were living with a dummy, fix that */
 
@@ -4588,7 +4560,7 @@ fprintf(stderr,"Enter AFNI_rescan_session_OLD on session index %d\n",sss) ;
    if( sss < 0 || sss >= GLOBAL_library.sslist->num_sess ){ RETURN(0) ; }
 
    old_ss = GLOBAL_library.sslist->ssar[sss] ;
-   if( ! ISVALID_SESSION(old_ss) ){ RETURN(0); }
+   if( ! ISVALID_SESSION(old_ss) || old_ss->is_collection ){ RETURN(0); }
 
    if( old_ss == GLOBAL_library.session ) RETURN(0) ;  /* 21 Dec 2001 */
 
@@ -4685,7 +4657,7 @@ STATUS("PARENTIZE-ing datasets in new session") ;
 
    /* 20 Dec 2001: add the global datasets back in, if any */
 
-   AFNI_append_sessions( new_ss , GLOBAL_library.session ) ;
+   THD_append_sessions( new_ss , GLOBAL_library.session ) ;
 
    /* assign the warp and anatomy parent pointers;
       then, make any datasets that don't exist but logically
@@ -4818,7 +4790,7 @@ fprintf(stderr,"Enter AFNI_rescan_session_NEW on session index %d\n",sss) ;
    if( sss < 0 || sss >= GLOBAL_library.sslist->num_sess ){ RETURN(0); }
 
    old_ss = GLOBAL_library.sslist->ssar[sss] ;
-   if( ! ISVALID_SESSION(old_ss) ){ RETURN(0); }
+   if( ! ISVALID_SESSION(old_ss) || old_ss->is_collection ){ RETURN(0); }
 
                                      /* can't rescan global session */
    if( old_ss == GLOBAL_library.session ) RETURN(0); /* 21 Dec 2001 */
@@ -4956,8 +4928,11 @@ ENTRY("AFNI_rescan_timeseries_CB") ;
 
    for( iss=0 ; iss < GLOBAL_library.sslist->num_sess ; iss++ ){
       ss = GLOBAL_library.sslist->ssar[iss] ;
+      if( ss->is_collection ) continue ;
       ADDTO_SARR(dlist,ss->sessname) ;
    }
+
+   if( dlist->num == 0 ){ DESTROY_SARR(dlist) ; EXRETURN ; }
 
    /** read timeseries into a new array **/
 
@@ -5135,6 +5110,7 @@ ENTRY("AFNI_write_many_dataset_CB") ;
    ltop = 4 ;
    for( iss=0 ; iss < GLOBAL_library.sslist->num_sess ; iss++ ){
       ss = GLOBAL_library.sslist->ssar[iss] ;
+      if( ss->is_collection ) continue ;
 
       for( id=0 ; id < ss->num_dsset ; id++ ){
          dset = GET_SESSION_DSET(ss, id, vv);
@@ -5152,6 +5128,7 @@ ENTRY("AFNI_write_many_dataset_CB") ;
    num_dset = 0 ;
    for( iss=0 ; iss < GLOBAL_library.sslist->num_sess ; iss++ ){
       ss = GLOBAL_library.sslist->ssar[iss] ;
+      if( ss->is_collection ) continue ;
 
       /* check anat datasets */
 
@@ -5916,6 +5893,7 @@ ENTRY("AFNI_mark_for_death") ;
    for( iss=0 ; iss < ssl->num_sess ; iss++ ){
       ss = ssl->ssar[iss] ;
       if( !ISVALID_SESSION(ss) ) continue ;  /* no good ==> skip */
+      if( ss->is_collection    ) continue ;
 
       /* loop over datasets in this session */
 
@@ -5965,6 +5943,7 @@ ENTRY("AFNI_andersonville") ;
    for( iss=0 ; iss < ssl->num_sess ; iss++ ){
       ss = ssl->ssar[iss] ;
       if( !ISVALID_SESSION(ss) ) continue ;  /* no good ==> skip */
+      if( ss->is_collection    ) continue ;
 
       if( ss == GLOBAL_library.session ) continue ; /* 21 Dec 2001 */
 

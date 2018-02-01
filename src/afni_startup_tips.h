@@ -335,6 +335,11 @@ static char *tip[] = {
    "of images in various formats (.jpg, .png, plus datasets). The interface\n"
    "is the same as the slicer viewer built into the AFNI GUI.\n"
  ,
+   "The AFNI GUI now 'knows' about the BIDS file hierarchy. You can open all\n"
+   "the datasets from a given subject in a single session, even though BIDS\n"
+   "scatters them over several subdirectories. To do this, use the '-bysub'\n"
+   "option. See the output of 'afni -help' for the details."
+ ,
 
 /*-- tips below here are for non-GUI programs --*/
 
