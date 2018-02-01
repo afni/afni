@@ -231,11 +231,15 @@ def db_cmd_tcat(proc, block):
                 print('** run %d: have %d reps, cannot remove %d!' \
                       % (run+1, reps, rmlast))
                 return 1, ''
+        # ME: set output name
         if proc.have_me: pre_form = proc.prefix_form(block,run+1,eind=(eind+1))
         else:            pre_form = proc.prefix_form(block,run+1)
+        # ME: set input name
+        if proc.have_me: dset = proc.dsets_me[eind][run]
+        else:            dset = proc.dsets[run]
+
         cmd = cmd + "3dTcat -prefix %s/%s %s'[%d..%s]'\n" %              \
-                    (proc.od_var, pre_form,
-                     proc.dsets[run].rel_input(), flist[run], final)
+                    (proc.od_var, pre_form, dset.rel_input(), flist[run], final)
       if proc.have_me: cmd += '\n'
 
     proc.reps   -= first+rmlast # update reps to account for removed TRs
@@ -709,6 +713,11 @@ def db_mod_blip(block, proc, user_opts):
          print('-- have blip forward dset %s' \
                % proc.blip_in_for.shortinput(sel=1))
       fblip_oblset = proc.blip_in_for
+   # ME: both forward and reverse are required
+   elif proc.use_me:
+      print("** when using multi-echo data and distortion correction,\n"
+            "   -blip_reverse_dset requires corresponding -blip_forward_dset")
+      return
 
    proc.blip_obl_for = dset_is_oblique(fblip_oblset, proc.verb)
    proc.blip_obl_rev = dset_is_oblique(proc.blip_in_rev, proc.verb)
@@ -845,19 +854,31 @@ def db_cmd_blip(proc, block):
    else:    oblset = None
    cmd += blip_warp_command(proc, warp_rev.shortinput(), mmedr.shortinput(),
                     '%s_masked'%rev_prefix, oblset=roblset, interp=blip_interp)
-
    cmd += '\n'
 
-   # apply forward mid-warp to EPI
-   inform = proc.prev_prefix_form_run(block, view=1)
-   outform = proc.prefix_form_run(block)
+   # -----------------------------------------------------------------
+   # main result (besides actual xform): apply forward mid-warp to EPI
+   inform = proc.prev_prefix_form_run(block, view=1, eind=0)
+   outform = proc.prefix_form_run(block, eind=0)
    bstr = blip_warp_command(proc, warp_for.shortinput(), inform, outform,
            interp=blip_interp, oblset=foblset, indent='    ')
-   cmd += '# warp EPI time series data\n'       \
-          'foreach run ( $runs )\n'             \
-          '%s' \
-          'end\n\n'                             \
-          % (bstr)
+   cmd += '# warp EPI time series data\n'
+
+   # ME: prepare to loop across echoes
+   indent = ''
+   if proc.use_me:
+      indent = '    '
+      cmd += 'foreach %s ( $echo_list )\n' % (proc.echo_var[1:])
+
+   cmd += '%sforeach run ( $runs )\n'             \
+          '%s%s' \
+          '%send\n'                               \
+          % (indent, indent, bstr, indent)
+
+   if proc.use_me:
+      cmd += 'end\n'
+
+   cmd += '\n'
 
    return cmd
 
@@ -1222,6 +1243,12 @@ def db_cmd_ricor(proc, block):
         print('** ERROR: have %d runs but %d slice-base ricor regressors' % \
               (proc.runs, len(proc.ricor_regs)))
         return
+
+    # ME: implement multi-echo once someone wants it...
+    if proc.use_me:
+       print("** ricor block is not yet allowed on ME data")
+       print("   (please request on AFNI message board)")
+       return
 
     # get datum, if set
     rdatum, err = block.opts.get_string_opt('-ricor_datum')
@@ -1918,15 +1945,22 @@ def db_cmd_volreg(proc, block):
 
         if dowarp or do_extents: cmd = cmd + '# register and warp\n'
 
+    if proc.use_me:
+       mestr =  '    # (registration is driven by %s)\n' % proc.regecho_var
+    else:
+       mestr = ''
+
     cmd = cmd + "foreach run ( $runs )\n"                                     \
-                "    # register each volume to the base\n"                    \
+                "    # register each volume to the base image\n"              \
+                "%s"                                                          \
                 "    3dvolreg -verbose -zpad %d -base %s \\\n"                \
                 "             -1Dfile dfile.r$run.1D -prefix %s \\\n"         \
                 "             %s \\\n"                                        \
                 "%s"                                                          \
                 "%s"                                                          \
                 "             %s\n" %                                         \
-                (zpad, bstr, prefix, resam, other_opts, matstr, prev_prefix)
+                (mestr, zpad, bstr, prefix, resam,
+                 other_opts, matstr, prev_prefix)
 
     if do_extents:
        all1_input = BASE.afni_name('rm.epi.all1'+proc.view)
@@ -2096,7 +2130,7 @@ def db_cmd_volreg(proc, block):
            cmd = cmd +                                                      \
                "1d_tool.py -infile %s \\\n"                                 \
                "           -set_run_lengths %s \\\n"                        \
-               "           -derivative  -collapse_cols euclidean_norm \\\n" \
+               "           -derivative -collapse_cols euclidean_norm \\\n"  \
                "           -write %s\n\n"                                   \
                % (proc.mot_file, UTIL.int_list_string(proc.reps_all),
                   proc.mot_enorm)
@@ -4332,6 +4366,11 @@ def db_cmd_regress(proc, block):
     if proc.ricor_nreg > 0:
        opt = block.opts.find_opt('-regress_apply_ricor')
        if OL.opt_is_yes(opt): proc.ricor_apply = 'yes'
+
+    # ME: multi-echo is not allowed in the regression block
+    if proc.use_me:
+       print("** regression is no allowed on ME data, combine first")
+       return
 
     # maybe we want a special prefix (do not test stims in this case)
     if proc.script_3dD:
