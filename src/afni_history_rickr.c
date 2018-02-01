@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 31, Jan, 2018, RCR, "timing_tool.py", MICRO, TYPE_MODIFY,
+   "in MT2_event_list 'part', if no run events, output '* *'",
+   "Done for W Tseng."
+ } ,
+
  { 30, Jan, 2018, RCR, "make_random_timing.py", MICRO, TYPE_NEW_OPT,
    "add -help_concerns, to describe some general concerns regarding timing",
    NULL
