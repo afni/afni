@@ -598,7 +598,7 @@ g_todo_str = """todo:
      x do 'apply catenated xform'
      - test only vreg, w/anat, aff std space, NL, blip
      - test radial_correlate
-     - ricor, blip
+     - implement for ricor
      - after OC/MEICA, clear use_me
   - be able to run simple forms of @Align_Centers
   - implement multi-echo OC and possibly meica functionality
