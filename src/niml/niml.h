@@ -1231,7 +1231,7 @@ extern void NI_register_doer( char *, NI_voidfunc * ) ;
 /*-------------------------------------------------------------------------*/
 /*! An array of strings, each allocated with NI_malloc(). */
 
-typedef struct { int num; char **str;} NI_str_array ;
+typedef struct { int num; char **str; } NI_str_array ;
 
 #define NI_delete_str_array(sar)             \
   do{ int pp ;                               \
