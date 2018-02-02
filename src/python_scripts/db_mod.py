@@ -6912,7 +6912,12 @@ def db_cmd_gen_review(proc):
     tblk = proc.find_block('tcat')
 
     # get dataset names, but be sure not to get the surface form
+    # (if ME, force it here)
+    use_me = proc.use_me
+    proc.use_me = proc.have_me
     dstr = proc.dset_form_wild('tcat', proc.origview, surf_names=0, eind=-1)
+    proc.use_me = use_me
+
     cmd = "# %s\n\n"                                                    \
           "# generate a review script for the unprocessed EPI data\n"   \
           "gen_epi_review.py -script %s \\\n"                           \
