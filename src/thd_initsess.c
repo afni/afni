@@ -127,7 +127,6 @@ fprintf(stderr, "blanking session\n");
 fprintf(stderr,"\nputting datasets into initial view \n");
 #endif
           SET_SESSION_DSET(dset, sess, nds, iview);  /* should always happen */
-/*        sess->dsset_xform_table[nds][iview] = dset ; */  /* should always happen */
         }
       }
 
@@ -174,7 +173,6 @@ fprintf(stderr,"\nputting datasets into initial view \n");
          }
          iview = dset->view_type ;
          SET_SESSION_DSET(dset, sess, nds, iview);
-/*         sess->dsset_xform_table[nds][iview] = dset ;*/
          sess->num_dsset ++ ;
        } /* end of loop over files */
        MCW_free_expand( num_minc , fn_minc ) ;
@@ -211,7 +209,6 @@ fprintf(stderr,"\nputting datasets into initial view \n");
          }
          iview = dset->view_type ;
          SET_SESSION_DSET(dset, sess, nds, iview);
-/*         sess->dsset_xform_table[nds][iview] = dset ;*/
          sess->num_dsset ++ ;
        } /* end of loop over files */
        MCW_free_expand( num_nifti , fn_nifti ) ;
@@ -256,7 +253,6 @@ fprintf(stderr,"\nputting datasets into initial view \n");
         }
         iview = dset->view_type ;
         SET_SESSION_DSET(dset, sess, nds, iview);
-/*      sess->dsset_xform_table[nds][iview] = dset ; */
         sess->num_dsset ++ ;
 #ifdef ALLOW_FSL_FEAT
              if( strcmp(DSET_PREFIX(dset),"example_func.hdr") == 0 ) feat_exf = nds;
@@ -601,11 +597,52 @@ printf("warp_std_hrs AFTER:") ; DUMP_LMAP(warp_std_hrs->rig_bod.warp) ;
          }
          iview = dset->view_type ;
          SET_SESSION_DSET(dset, sess, nds, iview);
-/*         sess->dsset_xform_table[nds][iview] = dset ;*/
          sess->num_dsset ++ ;
        } /* end of loop over files */
        MCW_free_expand( num_ctf , fn_ctf ) ;
      } /* end of if we found CTF files */
+   }
+
+   /*-- 02 Feb 2018: try to read .jpg and .png "datasets" --*/
+
+   if( !AFNI_noenv("AFNI_IMAGE_DATASETS") ){
+     char *ename[4] , **fn_img ;
+     int num_img , ii ;
+
+     STATUS("looking for JPG/PNG files") ;
+
+     ename[0] = AFMALL(char, THD_MAX_NAME) ;
+     ename[1] = AFMALL(char, THD_MAX_NAME) ;
+     ename[2] = AFMALL(char, THD_MAX_NAME) ;
+     ename[3] = AFMALL(char, THD_MAX_NAME) ;
+     strcpy(ename[0],sess->sessname) ; strcat(ename[0],"*.png") ;
+     strcpy(ename[1],sess->sessname) ; strcat(ename[1],"*.PNG") ;
+     strcpy(ename[2],sess->sessname) ; strcat(ename[2],"*.jpg") ;
+     strcpy(ename[3],sess->sessname) ; strcat(ename[3],"*.JPG") ;
+     MCW_file_expand( 4,ename , &num_img,&fn_img ) ;  /* find files */
+     free(ename[0]) ; free(ename[1]) ; free(ename[2]) ; free(ename[3]) ;
+
+     if( num_img > 0 ){                               /* got some files! */
+       STATUS("opening JPG/PNG files") ;
+       for( ii=0 ; ii < num_img ; ii++ ){             /* loop over files */
+
+         dset = THD_open_image( fn_img[ii] ) ;        /* try top read */
+
+         if( !ISVALID_DSET(dset) ) continue ;         /* doesn't read? */
+         nds = sess->num_dsset ;
+         if( nds >= THD_MAX_SESSION_SIZE ){
+           fprintf(stderr,
+            "\n*** Session %s table overflow with dataset %s ***\n",
+            sessname , fn_img[ii] ) ;
+           THD_delete_3dim_dataset( dset , False ) ;
+           break ; /* out of for(ii) loop */
+         }
+         iview = dset->view_type ;
+         SET_SESSION_DSET(dset, sess, nds, iview);
+         sess->num_dsset ++ ;
+       } /* end of loop over files */
+       MCW_free_expand( num_img , fn_img ) ;
+     } /* end of if we found JPG/PNG files */
    }
 
    /*-- 03 Dec 2001: try to read MPEG "datasets" --*/
@@ -635,7 +672,6 @@ printf("warp_std_hrs AFTER:") ; DUMP_LMAP(warp_std_hrs->rig_bod.warp) ;
          }
          iview = dset->view_type ;
          SET_SESSION_DSET(dset, sess, nds, iview);
-/*         sess->dsset_xform_table[nds][iview] = dset ;*/
          sess->num_dsset ++ ;
        } /* end of loop over files */
        MCW_free_expand( num_mpeg , fn_mpeg ) ;
@@ -713,7 +749,6 @@ ENTRY("THD_order_session") ;
 
    for( ids=0 ; ids < nds ; ids++ )
      for( iview=0 ; iview <= LAST_VIEW_TYPE ; iview++ )
-/*       sess->dsset_xform_table[ids][iview] = qset[ids][iview] ;*/
         SET_SESSION_DSET(qset[ids][iview], sess, ids, iview);
    sess->num_dsset = nds ;  /* shouldn't change */
    EXRETURN ;
@@ -739,7 +774,6 @@ ENTRY("THD_append_sessions") ;
      for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ ) {
        temp_dset = GET_SESSION_DSET(ssb, qd, vv);
        SET_SESSION_DSET(temp_dset, ssa,qd+qs,vv);
-/*     ssa->dsset_xform_table[qd+qs][vv] = ssb->dsset_xform_table[qd][vv] ;*/
      }
    ssa->num_dsset += qd ;
 
