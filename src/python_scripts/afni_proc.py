@@ -3144,26 +3144,29 @@ class SubjProcSream:
     # given a block, run, return a prefix of the form: pNN.SUBJ.rMM.BLABEL
     #    NN = block index, SUBJ = subj label, MM = run, BLABEL = block label
     # if surf_names: pbNN.SUBJ.rMM.BLABEL.HEMI.niml.dset
-    # if echo index eind > 0,   use ...SUBJ.eEE.rRR...
-    #               eind == -1, use        .e$fave_echo
-    #               eind == -2, use        .e*          (wildcard)
-    #               eind == -9, use        ''           (nothing)
-    #    (else)     eind == 0,  use        .e$eind
+    # if echo index eind  >  0,  use ...SUBJ.eEE.rRR...
+    #               eind == -1,  use .e$fave_echo
+    #               eind == -2,  use .e*          (wildcard)
+    #               eind == -9,  use ''           (nothing)
+    #    (else)     eind ==  0,  use .e$eind
     # (pass as 0/1, -1 for default)
     def prefix_form(self, block, run, view=0, surf_names=-1, eind=0):
         if self.runs > 99: rstr = 'r%03d' % run
         else:              rstr = 'r%02d' % run
 
         # maybe we have an echo index
+        sstr = '' # if going wild (and not surf), need .HEAD suffix
         estr = ''
         if self.use_me:
            if eind > 0:     estr = '%se%02d' % (self.sep_char, eind)
            elif eind == -1: estr = '%se%s' % (self.sep_char, self.regecho_var)
-           elif eind == -2: estr = '%se*'  % (self.sep_char)
+           elif eind == -2:
+                            sstr = '.HEAD'
+                            estr = '%se*'  % (self.sep_char)
            elif eind == -9: estr = ''
            else:            estr = '%se%s' % (self.sep_char, self.echo_var)
 
-        if view: vstr = self.view
+        if view: vstr = '%s%s' % (self.view, sstr)
         else:    vstr = ''
 
         # if surface, change view to hemisphere and dataset suffix
@@ -3171,6 +3174,7 @@ class SubjProcSream:
         if surf_names:
            vstr = '.niml.dset'
            hstr = '%s%s' % (self.sep_char, self.surf_svi_ref)
+           sstr = '' # force no suffix
         else: hstr = ''
 
         s = self.sep_char
@@ -3180,23 +3184,28 @@ class SubjProcSream:
 
     # same, but leave run as a variable
     def prefix_form_run(self, block, view=0, surf_names=-1, eind=0):
-        if view: vstr = self.view
-        else:    vstr = ''
 
         # maybe we have an echo index
+        sstr = '' # if going wild (and not surf), need .HEAD suffix
         estr = ''
         if self.use_me:
            if eind > 0:     estr = '%se%02d' % (self.sep_char, eind)
            elif eind == -1: estr = '%se%s' % (self.sep_char, self.regecho_var)
-           elif eind == -2: estr = '%se*'  % (self.sep_char)
+           elif eind == -2:
+                            sstr = '.HEAD'
+                            estr = '%se*'  % (self.sep_char)
            elif eind == -9: estr = ''
            else:            estr = '%se%s' % (self.sep_char, self.echo_var)
+
+        if view: vstr = '%s%s' % (self.view, sstr)
+        else:    vstr = ''
 
         # if surface, change view to hemisphere and dataset suffix
         if surf_names == -1: surf_names = self.surf_names
         if surf_names:
            vstr = '.niml.dset'
            hstr = '%s%s' % (self.sep_char, self.surf_svi_ref)
+           sstr = '' # force no suffix
         else: hstr = ''
         if self.sep_char == '.': rvstr = '$run'
         else:                    rvstr = '${run}'
@@ -3213,21 +3222,26 @@ class SubjProcSream:
         else:              rstr = 'r%02d' % run
 
         # maybe we have an echo index
+        sstr = '' # if going wild (and not surf), need .HEAD suffix
         estr = ''
         if self.use_me:
            if eind > 0:     estr = '%se%02d' % (self.sep_char, eind)
            elif eind == -1: estr = '%se%s' % (self.sep_char, self.regecho_var)
-           elif eind == -2: estr = '%se*'  % (self.sep_char)
+           elif eind == -2:
+                            sstr = '.HEAD'
+                            estr = '%se*'  % (self.sep_char)
            elif eind == -9: estr = ''
            else:            estr = '%se%s' % (self.sep_char, self.echo_var)
 
-        if view: vstr = self.view
+        if view: vstr = '%s%s' % (self.view, sstr)
         else:    vstr = ''
+
         # if surface, change view to hemisphere and dataset suffix
         if surf_names == -1: surf_names = self.surf_names
         if surf_names:
            vstr = '.niml.dset'
            hstr = '%s%s' % (self.sep_char, self.surf_svi_ref)
+           sstr = '' # force no suffix
         else: hstr = ''
         s = self.sep_char
         return 'pb%02d%s%s%s%s%s%s%s%s%s' %    \
@@ -3236,22 +3250,27 @@ class SubjProcSream:
 
     # same, but leave run as a variable
     def prev_prefix_form_run(self, block, view=0, surf_names=-1, eind=0):
-        if view: vstr = self.view
-        else:    vstr = ''
         # maybe we have an echo index
+        sstr = '' # if going wild (and not surf), need .HEAD suffix
         estr = ''
         if self.use_me:
            if eind > 0:     estr = '%se%02d' % (self.sep_char, eind)
            elif eind == -1: estr = '%se%s' % (self.sep_char, self.regecho_var)
-           elif eind == -2: estr = '%se*'  % (self.sep_char)
+           elif eind == -2:
+                            sstr = '.HEAD'
+                            estr = '%se*'  % (self.sep_char)
            elif eind == -9: estr = ''
            else:            estr = '%se%s' % (self.sep_char, self.echo_var)
+
+        if view: vstr = '%s%s' % (self.view, sstr)
+        else:    vstr = ''
 
         # if surface, change view to hemisphere and dataset suffix
         if surf_names == -1: surf_names = self.surf_names
         if surf_names:
            vstr = '.niml.dset'
            hstr = '%s%s' % (self.sep_char, self.surf_svi_ref)
+           sstr = '' # force no suffix
         else: hstr = ''
         if self.sep_char == '.': rvstr = '$run'
         else:                    rvstr = '${run}'
