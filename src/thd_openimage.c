@@ -20,8 +20,10 @@ ENTRY("THD_image_to_dset") ;
    LOAD_FVEC3( fvec , -0.5f*(im->nx-1) , -0.5f*(im->ny-1) , -0.5f*(im->nz-1) ) ;
 
    EDIT_dset_items( dset ,
-                     ADN_nxyz   , ivec ,
-                     ADN_xyzorg , fvec ,
+                     ADN_nxyz      , ivec ,
+                     ADN_xyzorg    , fvec ,
+                     ADN_type      , HEAD_FUNC_TYPE ,
+                     ADN_func_type , FUNC_FIM_TYPE ,
                     ADN_none ) ;
 
    if( THD_filename_ok(prefix) )
