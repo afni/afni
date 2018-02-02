@@ -1365,6 +1365,15 @@ to move popup menus to "good" locations on screens will be skipped.
 This seems to be necessary on some Solaris systems, where the menus
 can end up being moved to bizarre locations.
 
+-----------------------------
+Variable: AFNI_IMAGE_DATASETS
+-----------------------------
+If this YES/NO variable is not set to NO, then 2D image files
+(*.png and *.jpg) will be read as datasets when the interactive
+AFNI program starts. That is, you have to set this variable explicitly
+to NO if you do not want image files read into the AFNI GUI at
+startup. Image files can be opened using the Axial image viewer.
+
 ----------------------------
 Variable: AFNI_MINC_DATASETS
 ----------------------------
@@ -2586,7 +2595,7 @@ AFNI depends on the setting of this variable.  The options are:
   TIME  = the frame sequence number will be the time axis
   NO    = MPEG files won't be read as AFNI datasets
           (they can still be read as images into to3d, aiv, etc.)
-If this variable is NOT set to anything, then it is the same as SPACE.
+If this variable is NOT set to anything, then it is the same as NO.
 
 MPEG filenames input to AFNI programs (as sources of images or as datasets)
 must end in ".mpg", ".MPG", ".mpeg", or ".MPEG".  MPEG datasets will be read
