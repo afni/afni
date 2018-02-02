@@ -488,6 +488,15 @@ void AFNI_syntax(void)
      "                  This will open the data for subjects 10506 and 50073 from\n"
      "                  the data at the specified directory -- presumably the\n"
      "                  data downloaded from https://openfmri.org/dataset/ds000030/\n"
+     "               ** If directory sub-10506 is found and has (say) sub-directories\n"
+     "                    anat beh dwi func\n"
+     "                  all AFNI-readable datasets from these sub-directories will\n"
+     "                  be input and collected into one session, to be easily\n"
+     "                  viewed together. In addition, if a sub-directory named\n"
+     "                    derivatives/sub-10506\n"
+     "                  is found underneath ~/data/OpenFMRI/ds000030, all the\n"
+     "                  datasets found underneath that will also be put into the\n"
+     "                  same session, so they can be viewed with the 'raw' data.\n"
      "               ** You can put multiple subject IDs after '-bysub', as\n"
      "                  in the example above. You can also use the '-bysub' option\n"
      "                  more than once, if you like.\n"
@@ -9017,6 +9026,7 @@ void AFNI_initialize_view( THD_3dim_dataset *old_anat, Three_D_View *im3d )
    AFNI_marks_widgets   *marks ;
    THD_fvec3 fv ;
    THD_ivec3 iv ;
+   static int first_image=1 ; /* 02 Feb 2018 */
 
 ENTRY("AFNI_initialize_view") ;
 
@@ -9228,6 +9238,27 @@ STATUS("turning markers on") ;
    ENABLE_LOCK ;   /* 11 Nov 1996 */
 
    SAVE_VPT(im3d) ;  /* save current location as jumpback */
+
+   if( first_image                &&
+       GLOBAL_argopt.left_is_left &&
+       im3d->anat_now->dblk->diskptr->storage_mode == STORAGE_BY_IMAGE_FILE ){
+
+     first_image = 0 ;
+     (void) MCW_popup_message( im3d->vwid->picture ,
+                                 " \n"
+                                 "*****--- WARNING: ---*****\n"
+                                 "  Image viewing is set to\n"
+                                 "  Left-is-Left, so that\n"
+                                 "  viewing .jpg or .png\n"
+                                 "  'datasets' might show\n"
+                                 "  as reflected left-right.\n"
+                                 "  To fix this, press the\n"
+                                 "  l (lower case L) key\n"
+                                 "  when the mouse cursor\n"
+                                 "  focus is over the image\n"
+                                 "  viewer window.\n"
+                               , MCW_USER_KILL | MCW_TIMER_KILL ) ;
+   }
 
    EXRETURN ;
 }

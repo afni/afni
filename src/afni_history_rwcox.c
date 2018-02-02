@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 2 , FEB , 2018 , RWC , "AFNI GUI" , MINOR , TYPE_MODIFY ,
+   "Read .jpg and .png 'datasets' by default into sessions" ,
+   NULL } ,
+
  { 1 , FEB , 2018 , RWC , "AFNI GUI" , MAJOR , TYPE_NEW_OPT ,
    "-bysub option for reading from BIDS hierarchy" ,
    "-bysub 10506 (for example) means to find all sub-directories with names\n"
