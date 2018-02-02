@@ -2610,6 +2610,54 @@ def db_cmd_volreg_tsnr(proc, block, emask=''):
            signal, signal, proc.view, mask=emask,
            name_qual='.vreg.r01',detrend=1)
 
+# --------------- combine block ---------------
+
+def db_mod_combine(block, proc, user_opts):
+   """ponder...
+
+   """
+
+   if not proc.use_me:
+      print("** have combine block, but no ME?")
+      return 1
+
+   block.valid = 1
+
+def db_cmd_combine(proc, block):
+   """combine all echoes
+
+      This will grow to include options like:
+         ave    : simply average
+         OC     : optimally combine
+         meica  : run meica to get projection terms
+                  possibly also use to combine echoes
+   """
+
+   if not proc.use_me:
+      print("** creating combine block, but no ME?")
+      return
+
+   # input prefix has $run fixed, but uses a wildcard for echoes
+   # output prefix has $run fixed, but no echo var
+   cur_prefix = proc.prefix_form_run(block, eind=-9)
+   prev_prefix = proc.prev_prefix_form_run(block, view=1, eind=-2)
+
+   # write commands
+   cmd =  '# %s\n'                                \
+          '# combine multi-echo data, per run\n'  \
+          % block_header('combine')
+
+   cmd += '# for now, just average across echo sets\n' \
+          'foreach run ( $runs )\n'                    \
+          '    3dMean -prefix %s %s\n'                 \
+          'end\n\n' % (cur_prefix, prev_prefix)
+
+   # importantly, we are now done with ME processing
+   proc.use_me = 0
+
+   return cmd
+
+
 # --------------- motsim block ---------------
 
 def db_mod_motsim(block, proc, user_opts):
@@ -2649,7 +2697,8 @@ def db_mod_motsim(block, proc, user_opts):
    # #PCs will be added to the afni_name object before db_cmd_regress
 
    if proc.verb > 2:
-      print('-- will create motsim dset types: %s' % ', '.join(list(mdsets.keys())))
+      print('-- will create motsim dset types: %s' \
+            % ', '.join(list(mdsets.keys())))
 
    block.valid = 1
 
