@@ -49,6 +49,21 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  1, Feb, 2018, RCR, "3dTto1D", MINOR, TYPE_NEW_OPT,
+   "add methods 4095_count/frac/warn",
+   "Count 4095 values, or warn if datum is short and max is 4095."
+ } ,
+
+ { 31, Jan, 2018, RCR, "timing_tool.py", MICRO, TYPE_MODIFY,
+   "in MT2_event_list 'part', if no run events, output '* *'",
+   "Done for W Tseng."
+ } ,
+
+ { 30, Jan, 2018, RCR, "make_random_timing.py", MICRO, TYPE_NEW_OPT,
+   "add -help_concerns, to describe some general concerns regarding timing",
+   NULL
+ } ,
+
  { 26, Jan, 2018, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
    "applied various NeuroDebian patches from M Hanke and Y Halchenko",
    "Includes up_include_right, up_condition_dset_unload, up_3dNetCorrFix,\n"
