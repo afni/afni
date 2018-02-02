@@ -291,8 +291,7 @@ int compute_meandiff(options_t * opts, int method)
  *          4095_frac   : return masked fractions
  *          4095_warn   : return limit warning
  *
- * return 1 on error, 0 othewise
- * for warn case, return 1 if max == 4095
+ * return 1 on error, 0 otherwise
  */
 int compute_4095(options_t * opts, int method)
 {
@@ -333,7 +332,7 @@ int compute_4095(options_t * opts, int method)
 
       if( THD_extract_array(vind, opts->inset, 0, fdata) ) {
          ERROR_message("failed to exract data at index %d\n", vind);
-         free(fdata);  RETURN(-1);
+         free(fdata);  RETURN(1);
       }
 
       /* start counting */
@@ -360,15 +359,15 @@ int compute_4095(options_t * opts, int method)
 
    /* if warning, decide and return */
    if( method == T21_METH_4095_WARN ) {
-      if( gmax != 4095 ) RETURN(0);
-
-      if( DSET_BRICK_TYPE(opts->inset, 0) == MRI_short ) {
-         if( opts->verb )
-            WARNING_message("suspicious max of 4095 in a short dataset");
-         RETURN(1);
+      if( gmax != 4095 ) {
+        if( opts->verb ) INFO_message("max of %g is okay", gmax);
+        else             { printf("0\n");  fflush(stdout); }
+        RETURN(0);
       }
-      if( opts->verb )
-         INFO_message("max of 4095 but datum is not short, so okay");
+
+      if( opts->verb ) WARNING_message("suspicious max of exactly 4095");
+      else             { printf("1\n"); fflush(stdout); }
+
       RETURN(0);
    }
 
@@ -715,9 +714,19 @@ int show_help(void)
    "\n"
    "      This is the mean diff scaled by the global mean.\n"
    "\n"
-   "   method 4095_*\n"
+   "   method 4095_count\n"
    "\n"
-   "      These methods seem clear.\n"
+   "      At each time point, output the number of (masked) voxels that are\n"
+   "      exactly 4095.\n"
+   "\n"
+   "   method 4095_frac\n"
+   "\n"
+   "      At each time point, output the fraction of (masked) voxels that\n"
+   "      are exactly 4095.\n"
+   "\n"
+   "   method 4095_warn\n"
+   "\n"
+   "      Simply warn whether the maximum is exactly 4095 (so no -prefix).\n"
    "\n"
    "--------------------------------------------------\n"
    "informational command arguments:\n"
@@ -767,6 +776,14 @@ int show_help(void)
    "\n"
    "         smdiff     : mdiff scaled by grand mean\n"
    "                      = mdiff/mean\n"
+   "\n"
+   "         4095_count : count of voxels that are exactly 4095\n"
+   "\n"
+   "         4095_frac  : fraction of voxels that are exactly 4095\n"
+   "                      = 4095_count/(mask size)\n"
+   "\n"
+   "         4095_warn  : state whether global max is exactly 4095\n"
+   "                      (no 1D output)\n"
    "\n"
    "--------------------------------------------------\n"
    "optional command arguments:\n"
