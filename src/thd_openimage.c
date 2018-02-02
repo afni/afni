@@ -20,8 +20,8 @@ ENTRY("THD_image_to_dset") ;
    LOAD_FVEC3( fvec , -0.5f*(im->nx-1) , -0.5f*(im->ny-1) , -0.5f*(im->nz-1) ) ;
 
    orixyz.ijk[0] = ORI_L2R_TYPE ; /* 02 Feb 2018 */
-   orixyz.ijk[1] = ORI_A2P_TYPE ;
-   orixyz.ijk[2] = ORI_I2S_TYPE ;
+   orixyz.ijk[1] = ORI_A2P_TYPE ; /* orient it so Left-on-Left viewing is good */
+   orixyz.ijk[2] = ORI_I2S_TYPE ; /* since L-on-L viewing is the AFNI default */
 
    EDIT_dset_items( dset ,
                      ADN_nxyz      , ivec ,
