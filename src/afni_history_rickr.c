@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  1, Feb, 2018, RCR, "3dTto1D", MINOR, TYPE_NEW_OPT,
+   "add methods 4095_count/frac/warn",
+   "Count 4095 values, or warn if datum is short and max is 4095."
+ } ,
+
  { 31, Jan, 2018, RCR, "timing_tool.py", MICRO, TYPE_MODIFY,
    "in MT2_event_list 'part', if no run events, output '* *'",
    "Done for W Tseng."
