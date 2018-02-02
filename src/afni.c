@@ -500,7 +500,8 @@ void AFNI_syntax(void)
      "               ** In this context, 'dataset' also means .png and .jpg files\n"
      "                  found in the sub-XXX directories. These images can be\n"
      "                  opened in the AFNI GUI using the Axial image viewer.\n"
-     "                  If you do NOT want .png and .jpg files read into AFNI,\n"
+     "                  (You might want to turn the AFNI crosshairs off!)\n"
+     "               ** If you do NOT want .png and .jpg files read into AFNI,\n"
      "                  set UNIX environment variable AFNI_IMAGE_DATASETS to 'NO'.\n"
      "               ** You can put multiple subject IDs after '-bysub', as\n"
      "                  in the example above. You can also use the '-bysub' option\n"
@@ -2696,8 +2697,10 @@ STATUS("call 14") ;
         if( GLOBAL_argopt.only_images ){   /* 24 Feb 2017 */
           AV_assign_ival( MAIN_im3d->vwid->imag->crosshair_av,0) ;
           MAIN_im3d->vinfo->crosshair_visible = False ;
+#if 0
           GLOBAL_argopt.left_is_left = 0 ;
           putenv("AFNI_LEFT_IS_LEFT=NO" ) ;
+#endif
         }
 
         AFNI_initialize_controller( MAIN_im3d ) ;  /* decide what to see */
@@ -9245,6 +9248,7 @@ STATUS("turning markers on") ;
 
    SAVE_VPT(im3d) ;  /* save current location as jumpback */
 
+#if 0 /* no longer needed */
    if( first_image                &&
        GLOBAL_argopt.left_is_left &&
        im3d->anat_now->dblk->diskptr->storage_mode == STORAGE_BY_IMAGE_FILE ){
@@ -9265,6 +9269,7 @@ STATUS("turning markers on") ;
                                  "  viewer window.\n"
                                , MCW_USER_KILL | MCW_TIMER_KILL ) ;
    }
+#endif
 
    EXRETURN ;
 }
