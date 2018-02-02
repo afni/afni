@@ -633,14 +633,14 @@ g_todo_str = """todo:
 # dictionary of block types and modification functions
 
 BlockLabels  = ['tcat', 'postdata', 'despike', 'ricor', 'tshift', 'blip',
-                'align', 'volreg', 'motsim', 'surf', 'blur', 'mask', 'scale',
-                'regress', 'tlrc', 'empty']
+                'align', 'volreg', 'combine', 'motsim', 'surf', 'blur',
+                'mask', 'scale', 'regress', 'tlrc', 'empty']
 BlockModFunc  = {'tcat'   : db_mod_tcat,     'postdata' : db_mod_postdata,
                  'despike': db_mod_despike,
                  'ricor'  : db_mod_ricor,    'tshift' : db_mod_tshift,
                  'blip'   : db_mod_blip,
                  'align'  : db_mod_align,    'volreg' : db_mod_volreg,
-                 'motsim' : db_mod_motsim,
+                 'combine': db_mod_combine,  'motsim' : db_mod_motsim,
                  'surf'   : db_mod_surf,     'blur'   : db_mod_blur,
                  'mask'   : db_mod_mask,     'scale'  : db_mod_scale,
                  'regress': db_mod_regress,  'tlrc'   : db_mod_tlrc,
@@ -650,7 +650,7 @@ BlockCmdFunc  = {'tcat'   : db_cmd_tcat,     'postdata' : db_cmd_postdata,
                  'ricor'  : db_cmd_ricor,    'tshift' : db_cmd_tshift,
                  'blip'   : db_cmd_blip,
                  'align'  : db_cmd_align,    'volreg' : db_cmd_volreg,
-                 'motsim' : db_cmd_motsim,
+                 'combine': db_cmd_combine,  'motsim' : db_cmd_motsim,
                  'surf'   : db_cmd_surf,     'blur'   : db_cmd_blur,
                  'mask'   : db_cmd_mask,     'scale'  : db_cmd_scale,
                  'regress': db_cmd_regress,  'tlrc'   : db_cmd_tlrc,
@@ -660,7 +660,7 @@ AllOptionStyles = ['cmd', 'file', 'gui', 'sdir']
 # default block labels, and other labels (along with the label they follow)
 DefLabels = ['tcat', 'tshift', 'volreg', 'blur', 'mask', 'scale', 'regress']
 OtherDefLabels = {'despike':'postdata', 'align':'postdata', 'ricor':'despike',
-                  'surf':'volreg'}
+                  'combine':'volreg', 'surf':'volreg'}
 OtherLabels    = ['empty']
 DefSurfLabs    = ['tcat','tshift','align','volreg','surf','blur',
                   'scale','regress']
@@ -3144,9 +3144,11 @@ class SubjProcSream:
     # given a block, run, return a prefix of the form: pNN.SUBJ.rMM.BLABEL
     #    NN = block index, SUBJ = subj label, MM = run, BLABEL = block label
     # if surf_names: pbNN.SUBJ.rMM.BLABEL.HEMI.niml.dset
-    # if echo index eind > 0, use ...SUBJ.eEE.rRR...
-    #               eind < 0, use        .e$fave_echo
-    #               eind = 0, use        .e$eind
+    # if echo index eind > 0,   use ...SUBJ.eEE.rRR...
+    #               eind == -1, use        .e$fave_echo
+    #               eind == -2, use        .e*          (wildcard)
+    #               eind == -9, use        ''           (nothing)
+    #    (else)     eind == 0,  use        .e$eind
     # (pass as 0/1, -1 for default)
     def prefix_form(self, block, run, view=0, surf_names=-1, eind=0):
         if self.runs > 99: rstr = 'r%03d' % run
@@ -3155,9 +3157,11 @@ class SubjProcSream:
         # maybe we have an echo index
         estr = ''
         if self.use_me:
-           if eind > 0:   estr = '%se%02d' % (self.sep_char, eind)
-           elif eind < 0: estr = '%se%s' % (self.sep_char, self.regecho_var)
-           else:          estr = '%se%s' % (self.sep_char, self.echo_var)
+           if eind > 0:     estr = '%se%02d' % (self.sep_char, eind)
+           elif eind == -1: estr = '%se%s' % (self.sep_char, self.regecho_var)
+           elif eind == -2: estr = '%se*'  % (self.sep_char)
+           elif eind == -9: estr = ''
+           else:            estr = '%se%s' % (self.sep_char, self.echo_var)
 
         if view: vstr = self.view
         else:    vstr = ''
@@ -3182,9 +3186,11 @@ class SubjProcSream:
         # maybe we have an echo index
         estr = ''
         if self.use_me:
-           if eind > 0:   estr = '%se%02d' % (self.sep_char, eind)
-           elif eind < 0: estr = '%se%s' % (self.sep_char, self.regecho_var)
-           else:          estr = '%se%s' % (self.sep_char, self.echo_var)
+           if eind > 0:     estr = '%se%02d' % (self.sep_char, eind)
+           elif eind == -1: estr = '%se%s' % (self.sep_char, self.regecho_var)
+           elif eind == -2: estr = '%se*'  % (self.sep_char)
+           elif eind == -9: estr = ''
+           else:            estr = '%se%s' % (self.sep_char, self.echo_var)
 
         # if surface, change view to hemisphere and dataset suffix
         if surf_names == -1: surf_names = self.surf_names
@@ -3209,9 +3215,11 @@ class SubjProcSream:
         # maybe we have an echo index
         estr = ''
         if self.use_me:
-           if eind > 0:   estr = '%se%02d' % (self.sep_char, eind)
-           elif eind < 0: estr = '%se%s' % (self.sep_char, self.regecho_var)
-           else:          estr = '%se%s' % (self.sep_char, self.echo_var)
+           if eind > 0:     estr = '%se%02d' % (self.sep_char, eind)
+           elif eind == -1: estr = '%se%s' % (self.sep_char, self.regecho_var)
+           elif eind == -2: estr = '%se*'  % (self.sep_char)
+           elif eind == -9: estr = ''
+           else:            estr = '%se%s' % (self.sep_char, self.echo_var)
 
         if view: vstr = self.view
         else:    vstr = ''
@@ -3233,9 +3241,11 @@ class SubjProcSream:
         # maybe we have an echo index
         estr = ''
         if self.use_me:
-           if eind > 0:   estr = '%se%02d' % (self.sep_char, eind)
-           elif eind < 0: estr = '%se%s' % (self.sep_char, self.regecho_var)
-           else:          estr = '%se%s' % (self.sep_char, self.echo_var)
+           if eind > 0:     estr = '%se%02d' % (self.sep_char, eind)
+           elif eind == -1: estr = '%se%s' % (self.sep_char, self.regecho_var)
+           elif eind == -2: estr = '%se*'  % (self.sep_char)
+           elif eind == -9: estr = ''
+           else:            estr = '%se%s' % (self.sep_char, self.echo_var)
 
         # if surface, change view to hemisphere and dataset suffix
         if surf_names == -1: surf_names = self.surf_names
@@ -3256,9 +3266,11 @@ class SubjProcSream:
         # maybe we have an echo index
         estr = ''
         if self.use_me:
-           if eind > 0:   estr = '%se%02d' % (self.sep_char, eind)
-           elif eind < 0: estr = '%se%s' % (self.sep_char, self.regecho_var)
-           else:          estr = '%se%s' % (self.sep_char, self.echo_var)
+           if eind > 0:     estr = '%se%02d' % (self.sep_char, eind)
+           elif eind == -1: estr = '%se%s' % (self.sep_char, self.regecho_var)
+           elif eind == -2: estr = '%se*'  % (self.sep_char)
+           elif eind == -9: estr = ''
+           else:            estr = '%se%s' % (self.sep_char, self.echo_var)
 
         # if surface, change view to hemisphere and dataset suffix
         if surf_names == -1: surf_names = self.surf_names
@@ -3284,9 +3296,11 @@ class SubjProcSream:
         # maybe we have an echo index
         estr = ''
         if self.use_me:
-           if eind > 0:   estr = '%se%02d' % (self.sep_char, eind)
-           elif eind < 0: estr = '%se%s' % (self.sep_char, self.regecho_var)
-           else:          estr = '%se%s' % (self.sep_char, self.echo_var)
+           if eind > 0:     estr = '%se%02d' % (self.sep_char, eind)
+           elif eind == -1: estr = '%se%s' % (self.sep_char, self.regecho_var)
+           elif eind == -2: estr = '%se*'  % (self.sep_char)
+           elif eind == -9: estr = ''
+           else:            estr = '%se%s' % (self.sep_char, self.echo_var)
 
         # if surface, change view to hemisphere and dataset suffix
         if surf_names == -1: surf_names = self.surf_names
