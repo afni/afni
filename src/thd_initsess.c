@@ -832,7 +832,7 @@ ENTRY("THD_get_subdirs_bysub") ;
    /* get dirnames via piping from find */
 
    cmd = (char *)malloc(sizeof(char)*(128+strlen(dirname)+strlen(newsubid))) ;
-   sprintf( cmd, "find %s -name '%s' -type d", dirname , newsubid ) ;
+   sprintf( cmd, "find %s -name '%s' -type d -depth -9", dirname , newsubid ) ;
 
    flist = THD_suck_pipe( cmd ) ;
 
@@ -879,7 +879,7 @@ ENTRY("THD_init_session_recursive") ;
    /* get list of all subdir names */
 
    cmd = (char *)malloc(sizeof(char)*(strlen(dirname)+128)) ;
-   sprintf( cmd, "find %s -type d", dirname) ;
+   sprintf( cmd, "find %s -type d -depth -9", dirname) ;
    flist = THD_suck_pipe( cmd ) ;
    if( flist == NULL || strlen(flist) < 1 ) RETURN(NULL) ;
 
