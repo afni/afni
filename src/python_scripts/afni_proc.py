@@ -596,6 +596,7 @@ g_requires_afni = [ \
 g_todo_str = """todo:
   - ME:
      x do 'apply catenated xform'
+     - compare OC inputs with those from Lauren
      - test only vreg, w/anat, aff std space, NL, blip
      - test radial_correlate
      - implement for ricor
