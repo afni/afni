@@ -6912,18 +6912,23 @@ def db_cmd_gen_review(proc):
     tblk = proc.find_block('tcat')
 
     # get dataset names, but be sure not to get the surface form
-    # (if ME, force it here)
+    # (if ME, force it here, and get all echoes)
     use_me = proc.use_me
     proc.use_me = proc.have_me
-    dstr = proc.dset_form_wild('tcat', proc.origview, surf_names=0, eind=-1)
+    dstr = proc.dset_form_wild('tcat', proc.origview, surf_names=0, eind=-2)
     proc.use_me = use_me
+    if proc.have_me:
+       mestr = "# (all echoes of all runs)\n"
+    else:
+       mestr = ''
 
     cmd = "# %s\n\n"                                                    \
           "# generate a review script for the unprocessed EPI data\n"   \
+          "%s"                                                          \
           "gen_epi_review.py -script %s \\\n"                           \
           "    -dsets %s\n\n"                                           \
           % (block_header('auto block: generate review scripts'),
-             proc.epi_review, dstr)
+             mestr, proc.epi_review, dstr)
 
     # if no regress block, skip gen_ss_review_scripts.py
     if not proc.find_block('regress'):
