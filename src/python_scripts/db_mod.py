@@ -235,7 +235,7 @@ def db_cmd_tcat(proc, block):
         if proc.have_me: pre_form = proc.prefix_form(block,run+1,eind=(eind+1))
         else:            pre_form = proc.prefix_form(block,run+1)
         # ME: set input name
-        if proc.have_me: dset = proc.dsets_me[eind][run]
+        if proc.have_me: dset = proc.dsets_me[run][eind]
         else:            dset = proc.dsets[run]
 
         cmd = cmd + "3dTcat -prefix %s/%s %s'[%d..%s]'\n" %              \
