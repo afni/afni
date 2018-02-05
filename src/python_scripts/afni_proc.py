@@ -580,6 +580,8 @@ g_history = """
     6.00 Nov  7, 2017: python3 compatible
     6.01 Nov 15, 2017: fixed -despike_mask (by D Plunkett)
     6.02 Dec 12, 2017: added "sample analysis script" to help
+    6.03 Feb  2, 2018: can process multi-echo data
+        - added -dsets_me and 'combine' processing block
 """
 
 g_version = "version 6.02, December 12, 2017"
@@ -3180,7 +3182,7 @@ class SubjProcSream:
 
         s = self.sep_char
         return 'pb%02d%s%s%s%s%s%s%s%s%s' %    \
-               (block.index, s, self.subj_label, hstr, estr, s, rstr, s,
+               (block.index, s, self.subj_label, hstr, s, rstr, estr, s,
                 block.label, vstr)
 
     # same, but leave run as a variable
@@ -3211,8 +3213,8 @@ class SubjProcSream:
         if self.sep_char == '.': rvstr = '$run'
         else:                    rvstr = '${run}'
         s = self.sep_char
-        return 'pb%02d%s%s%s%s%sr%s%s%s%s' %    \
-            (block.index, s, self.subj_label, hstr, estr, s, rvstr, s,
+        return 'pb%02d%s%s%s%sr%s%s%s%s%s' %    \
+            (block.index, s, self.subj_label, hstr, s, rvstr, estr, s,
              block.label, vstr)
 
     # same as prefix_form, but use previous block values (index and label)
@@ -3246,7 +3248,7 @@ class SubjProcSream:
         else: hstr = ''
         s = self.sep_char
         return 'pb%02d%s%s%s%s%s%s%s%s%s' %    \
-               (block.index-1, s, self.subj_label, hstr, estr, s, rstr, s,
+               (block.index-1, s, self.subj_label, hstr, s, rstr, estr, s,
                self.prev_lab(block), vstr)
 
     # same, but leave run as a variable
@@ -3276,12 +3278,11 @@ class SubjProcSream:
         if self.sep_char == '.': rvstr = '$run'
         else:                    rvstr = '${run}'
         s = self.sep_char
-        return 'pb%02d%s%s%s%s%sr%s%s%s%s' %    \
-               (block.index-1, s, self.subj_label, hstr, estr, s, rvstr, s,
+        return 'pb%02d%s%s%s%sr%s%s%s%s%s' %    \
+               (block.index-1, s, self.subj_label, hstr, s, rvstr, estr, s,
                self.prev_lab(block), vstr)
 
     # same, but leave run wild
-    # rcr - do we need echoes here?
     def prev_dset_form_wild(self, block, view=0, surf_names=-1, eind=0):
         # maybe we have an echo index
         estr = ''
@@ -3301,8 +3302,8 @@ class SubjProcSream:
            vstr = '%s.HEAD' % self.view
            hstr = ''
         s = self.sep_char
-        return 'pb%02d%s%s%s%s%sr*%s%s%s' %    \
-             (block.index-1, s, self.subj_label,hstr, estr, s, s,
+        return 'pb%02d%s%s%s%sr*%s%s%s%s' %    \
+             (block.index-1, s, self.subj_label,hstr, s, estr, s,
              self.prev_lab(block), vstr)
 
     # like prefix, but list the whole dset form, in wildcard format
@@ -3334,8 +3335,8 @@ class SubjProcSream:
            vstr = '%s.HEAD' % self.view
            hstr = ''
         s = self.sep_char
-        return 'pb%02d%s%s%s%s%sr*%s%s%s' %      \
-            (bind, s, self.subj_label, hstr, estr, s, s, blabel, vstr)
+        return 'pb%02d%s%s%s%sr*%s%s%s%s' %      \
+            (bind, s, self.subj_label, hstr, s, estr, s, blabel, vstr)
 
 class ProcessBlock:
     def __init__(self, label, proc):
