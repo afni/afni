@@ -581,7 +581,7 @@ g_history = """
     6.01 Nov 15, 2017: fixed -despike_mask (by D Plunkett)
     6.02 Dec 12, 2017: added "sample analysis script" to help
     6.03 Feb  2, 2018: can process multi-echo data
-        - added -dsets_me and 'combine' processing block
+        - added -dsets_me_echo/_run and 'combine' processing block
 """
 
 g_version = "version 6.02, December 12, 2017"
@@ -697,8 +697,8 @@ class SubjProcSream:
         self.extra_labs       = []      # labels for extra -stim_file list
 
         # multi-echo vars
-        self.dsets_me   = []            # list of afni_name elements, per echo
-                                        #    (then dsets = dsets_me[0])
+        self.dsets_me   = []            # afni_name dsets, run x echoes
+                                        # (dsets = dsets_me[:][fave_echo])
         self.num_echo   = 1             # applies regardless of have_me
         self.have_me    = 0             # do we have multi-echo data
         self.use_me     = 0             # use ME in current command (changes)
@@ -934,8 +934,10 @@ class SubjProcSream:
                         helpstr='add extra blocks to the default list')
         self.valid_opts.add_opt('-dsets', -1, [], okdash=0,
                         helpstr='EPI datasets to process, ordered by run')
-        self.valid_opts.add_opt('-dsets_me', -1, [], okdash=0,
-                        helpstr='one echo of multi-echo EPI datasets')
+        self.valid_opts.add_opt('-dsets_me_echo', -1, [], okdash=0,
+                        helpstr='one echo, many runs of multi-echo data')
+        self.valid_opts.add_opt('-dsets_me_run', -1, [], okdash=0,
+                        helpstr='one run, many echoes of multi-echo data')
 
         self.valid_opts.add_opt('-out_dir', 1, [],
                         helpstr='result directory, where script is run')
@@ -1557,78 +1559,153 @@ class SubjProcSream:
 
        return 1
 
-    def init_dsets(self):
-        """process -dsets or -dsets_me options
+    def get_dsets(self):
+        """get list of datasets
         
-           there should be one -dsets_me list of runs per echo
+           if -dsets,         there should be one list of runs
+                              (populate self.dsets)
+           if -dsets_me_echo, there should be one option list of runs per echo
+                              (populate self.dsets_me, and other fields)
+           if -dsets_me_run,  there should be one option list of echoes per run
+                              (populate self.dsets_me, and other fields)
+
+           populate:
+             self.dsets       all, or of favorite echo
+             self.dsets_me    in echo-major order (dsets = dsets_me[fave])
+             self.num_echo
+             self.have_me, use_me
+
+           test:
+             some -dsets* option
+             dataset existence (if self.test_dsets)
+             rectangular list
+
+           return 0 on success, >0 on error
+        """
+
+        o0 = self.user_opts.find_opt('-dsets')
+        o1 = self.user_opts.find_opt('-dsets_me_echo')
+        o2 = self.user_opts.find_opt('-dsets_me_run')
+
+        errs = 0
+
+        # simple form: just populate (and check for other forms)
+        if o0:
+           if o1 or o2:
+              print("** cannot use -dsets_me_* with -dsets")
+              return 1
+           self.dsets = []
+           for rind, dset in enumerate(o0.parlist):
+              aname = afni_name(dset)
+              self.dsets.append(aname)
+              if self.test_dsets and not aname.exist():
+                 print("** missing run %d dataset: %s"%(rind+1, dset))
+                 errs += 1
+           return errs
+           
+        # now there should be some ME option
+
+        if o1 and o2:
+           print("** cannot use both -dsets_me_echo and -dsets_me_run")
+           return 1
+
+        if not o1 and not o2:
+           print("** missing input: some -dsets* option is required")
+           return 1
+
+        # okay, we have an ME condition
+
+        # populate dme as rectangular echo-major list of datasets
+        # (save tests for later, except to make sure it is rectangular)
+        dme = []
+
+        if o1:
+           oname = '-dsets_me_echo'
+           olist = self.user_opts.find_all_opts(oname)
+           nruns = len(olist[0].parlist)
+           for eind, opt in enumerate(olist):
+              nr = len(opt.parlist)
+              if nr != nruns:
+                 print("** echo 1 has %d runs, but echo %d has %d runs" \
+                       % (nruns, eind+1, nr))
+                 errs += 1
+
+              dsets = []
+              for rind, dset in enumerate(opt.parlist):
+                 dsets.append(afni_name(dset))
+              if len(dsets) == 0:
+                 print("** have echo %d option %s without any dataset list" \
+                       % (eind, oname))
+                 errs += 1
+
+              # and populate dme array, per echo, for now
+              dme.append(dsets)
+
+           # already echo-major order, no need to transpose
+
+        if o2:
+           # input is run-major order, will conver to echo-major at end
+           oname = '-dsets_me_run'
+           olist = self.user_opts.find_all_opts(oname)
+           necho = len(olist[0].parlist)
+           for rind, opt in enumerate(olist):
+              ne = len(opt.parlist)
+              if ne != necho:
+                 print("** run 1 has %d echoes, but run %d has %d echoes" \
+                       % (necho, rind+1, ne))
+                 errs += 1
+
+              dsets = []
+              for eind, dset in enumerate(opt.parlist):
+                 dsets.append(afni_name(dset))
+              if len(dsets) == 0:
+                 print("** have run %d option %s without any dataset list" \
+                       % (rind, oname))
+                 errs += 1
+
+              # and populate dme array, per echo, for now
+              dme.append(dsets)
+
+           # cannot transpose if not rectangular (errs > 0)
+           if errs: return 1
+
+           # now convert dme from run major order to echo major order
+           nruns = len(dme)
+           rlist = [[dme[rind][eind] for rind in range(nruns)] \
+                                     for eind in range(necho) ]
+           dme = rlist
+
+        # now check for existence
+        if self.test_dsets:
+           for eind, elist in enumerate(dme):
+              for rind, dset in enumerate(elist):
+                 if not dset.exist():
+                    print('** missing run %d echo %d dataset: %s' \
+                          % (rind+1, eind+1, dset.rpv()))
+                    errs += 1
+
+        # populate everything
+        self.dsets_me = dme
+        self.dsets = self.dsets_me[0]
+        self.have_me = 1
+        self.use_me = self.have_me
+        self.num_echo = len(dme)
+
+        # return the status
+        return errs
+
+    def init_dsets(self):
+        """process -dsets or -dsets_me* options
 
            return 0 on success, 1 on error
         """
 
-        # cannot use both forms
-        if self.user_opts.find_opt('-dsets') and \
-           self.user_opts.find_opt('-dsets_me'):
-           print("** cannot use -dsets along with -dsets_me")
-           return 1
+        # process any -dsets* option
+        # (populate self.dsets, self.dsets_me, self.num_echo, self.have_me)
+        if self.get_dsets(): return 1
 
-        # ME: start with multi-echo dsets, then set dsets = dsets_me[0]
-        #     each -dsets_me option lists the runs for that echo
-        oname = '-dsets_me'
-        olist = self.user_opts.find_all_opts(oname)
-        if len(olist) > 0:
-           # first fill dsets_me
-           errs = 0
-           nruns_me = len(olist[0].parlist)
-           self.dsets_me = []
-           view = ''
-           for eind, opt in enumerate(olist):
-              # make sure num runs is consistent per echo
-              nr = len(opt.parlist)
-              if nruns_me != nr:
-                 print("** echo 1 has %d runs, but echo %d has %d runs" \
-                       % (nruns_me, eind+1, nr))
-                 errs += 1
-
-              # make the afni_name dsets
-              dsets = []
-              for rind, dset in enumerate(opt.parlist):
-                  aname = afni_name(dset)
-                  # if test_dsets, make sure they exist
-                  if self.test_dsets and not aname.exist():
-                     print('** missing echo %d, run %d dataset: %s' \
-                           % (eind+1, rind+1, aname.rpv()))
-                     errs += 1
-                  dsets.append(aname)
-
-              if len(dsets) == 0:
-                 print("** have echo %d option %s without any dataset list" \
-                       % (eind+1, oname))
-                 # just bail, rather than checking for empty later
-                 return 1
-
-              # if there were any errors, bail now
-              if errs: return 1
-
-              self.dsets_me.append(dsets)
-
-              # check for consistency of the view
-              if view == '':
-                 view = dset_view(dsets[0].rel_input())
-              for rind, dset in enumerate(dsets):
-                 dview = dset_view(dset.rel_input())
-                 if dview != view:
-                    print("** bad dataset view %s in echo %d run %d dset %s" \
-                          % (dview, eind+1, rind+1, dsets[rind].rpv()))
-                    print("   original view was %s" % view)
-                    errs += 1
-
-           # note the number of found echoes
-           self.num_echo = len(self.dsets_me)
-           if self.num_echo < 2:
-              print("** must have at least 2 -dsets_me options (so 2 echoes)")
-              errs += 1
-
-           # then fill reg_echo via -reg_echo (registration echo)
+        # if ME, then fill reg_echo via -reg_echo (registration echo)
+        if self.have_me:
            oname = '-reg_echo'
            self.reg_echo = 2
            self.regecho_var = '$fave_echo'
@@ -1640,53 +1717,29 @@ class SubjProcSream:
            if self.reg_echo < 1 or self.reg_echo > self.num_echo:
               print("** %s: registration echo must be between 1 and %d" \
                     % (oname, self.num_echo))
-              errs += 1
+              return 1
 
-           # if there were any errors, bail now
-           if errs: return 1
+        # set view and dimensions based on dsets
 
-           # finally, initialize self.dsets as dsets_me[0] and note have_me
-           # (try without a deep copy for now, I think these are static)
-           self.dsets = self.dsets_me[0]
-           self.have_me = self._have_me()
-           self.use_me = self.have_me
+        # init view
+        view = self.dsets[0].view
+        if view and view != self.view:
+           self.view = view
+           self.origview = view
+           if self.verb > 0: print('-- applying view as %s' % view)
+        elif not view:
+           view = dset_view(self.dsets[0].rel_input())
+           self.view = view
+           self.origview = view
+           if self.verb > 0: print('-- applying input view as %s' % view)
 
-           # === done with -dsets_me ===
 
-        # init dsets, if not done from -dsets_me
-        opt = self.user_opts.find_opt('-dsets')
-        if opt != None:
-            for dset in opt.parlist:
-                self.dsets.append(afni_name(dset))
-
-        # process dsets
-        if len(self.dsets) > 0:
-            # possibly verify that all of the input datasets exist
-            if self.test_dsets:
-                missing = 0
-                for dset in self.dsets:
-                    if not dset.exist():
-                        print('** missing dataset: %s' % dset.rpv())
-                        missing = 1
-                if missing: return 1
-
-            # and check for EPI view
-            if self.dsets[0].view and self.dsets[0].view != self.view:
-                self.view = self.dsets[0].view
-                self.origview = self.view
-                if self.verb > 0: print('-- applying view as %s' % self.view)
-            elif self.dsets[0].view == '':
-                view = dset_view(self.dsets[0].rel_input())
-                self.view = view
-                self.origview = self.view
-                if self.verb>0: print('-- applying orig view as %s' % self.view)
-
-            # get voxel dimensions
-            dims = UTIL.get_3dinfo_val_list(self.dsets[0].rel_input(),
-                                            'd3', float, verb=1)
-            if dims == None: return 1
-            self.orig_delta = dims
-            self.delta = dims
+        # get voxel dimensions
+        dims = UTIL.get_3dinfo_val_list(self.dsets[0].rel_input(),
+                                        'd3', float, verb=1)
+        if dims == None: return 1
+        self.orig_delta = dims
+        self.delta = dims
 
         return 0
 
