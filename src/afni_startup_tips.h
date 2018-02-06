@@ -328,8 +328,9 @@ static char *tip[] = {
    " * float (32 bit values)           * complex (pairs of floats)\n"
    " * RGB  (triples of bytes)"
  ,
-   "AFNI can read in .jpg and .png image files as 2D 'datasets'. Is this useful?\n"
-   "It depends on who you ask!"
+   "AFNI will read in .jpg and .png image files as 2D 'datasets'. Is this useful?\n"
+   "It depends on who you ask! If you don't like this, set Unix environment\n"
+   "variable AFNI_IMAGE_DATASETS to NO (in your ~/.afnirc file)."
  ,
    "The AFNI program 'aiv' (AFNI Image Viewer) can be used for a quick display\n"
    "of images in various formats (.jpg, .png, plus datasets). The interface\n"
@@ -955,7 +956,7 @@ static char *gby[] = {
      "Returning you from brain-blob land to actual thinking land"    ,
 
      /* This set of quotes is from Paradise Lost,
-        by John Milton (a very very early AFNI user) */
+        by John Milton (a very Very early AFNI user) */
 
      "With hideous ruin and combustion, down to bottomless perdition"                    ,
      "The mind and spirit remains invincible"                                            ,
@@ -997,6 +998,15 @@ static char *gby[] = {
      "With thoughts inflamed of highest design"                                          ,
      "Flying far off into a Limbo large and broad"                                       ,
      "Ascending by degrees magnificent"                                                  ,
+
+     /* From Phaedo, by Plato (a very Very VERY early AFNI user) */
+
+     "Is not existence revealed to us in thought, if at all?"                            ,
+     "Is there or is there not an absolute justice?"                                     ,
+     "Is there an absolute beauty and absolute good?"                                    ,
+     "Attains to knowledge in highest purity with mind (and statistics) alone"           ,
+     "The wise person will want to be ever with her who is better than himself"          ,
+     "There is no greater evil one can suffer than to hate reasonable discourse"         ,
 
      /* These are to make it clear that Cox is not to be blamed for ANYTHING */
 
@@ -1066,7 +1076,7 @@ static char *gby[] = {
      "It is in our darkest moments that we must focus to see the light"               ,
      "Dignity does not consist of possessing honors, but in deserving them"           ,
      "What is a billion years, when compared to the lifespan of AFNI?"                ,
-     "In a billion years, the sun gets so hot Earth with be fried. Are you ready?"    ,
+     "In a billion years, the sun gets so hot Earth will be fried. Are you ready?"    ,
 
      "I look to that which is, and beyond, to that which will ever be"                ,
      "To steal ideas from one person is plagiarism; to steal from many is research"   ,
