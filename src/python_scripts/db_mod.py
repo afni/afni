@@ -235,7 +235,7 @@ def db_cmd_tcat(proc, block):
         if proc.have_me: pre_form = proc.prefix_form(block,run+1,eind=(eind+1))
         else:            pre_form = proc.prefix_form(block,run+1)
         # ME: set input name
-        if proc.have_me: dset = proc.dsets_me[run][eind]
+        if proc.have_me: dset = proc.dsets_me[eind][run]
         else:            dset = proc.dsets[run]
 
         cmd = cmd + "3dTcat -prefix %s/%s %s'[%d..%s]'\n" %              \
@@ -862,18 +862,19 @@ def db_cmd_blip(proc, block):
    outform = proc.prefix_form_run(block, eind=0)
    bstr = blip_warp_command(proc, warp_for.shortinput(), inform, outform,
            interp=blip_interp, oblset=foblset, indent='    ')
-   cmd += '# warp EPI time series data\n'
+   cmd += '# warp EPI time series data\n' \
+          'foreach run ( $runs )\n'
 
    # ME: prepare to loop across echoes
    indent = ''
    if proc.use_me:
       indent = '    '
-      cmd += 'foreach %s ( $echo_list )\n' % (proc.echo_var[1:])
+      cmd += '%sforeach %s ( $echo_list )\n' % (indent, proc.echo_var[1:])
 
-   cmd += '%sforeach run ( $runs )\n'             \
-          '%s%s' \
-          '%send\n'                               \
-          % (indent, indent, bstr, indent)
+   # main loop
+   cmd += '%s%s'                    \
+          '%send\n'                 \
+          % (indent, bstr, indent)
 
    if proc.use_me:
       cmd += 'end\n'
@@ -1121,19 +1122,19 @@ def db_cmd_despike(proc, block):
     else:                                      newstr = ' -NEW'
 
     # write commands
-    cmd = cmd + '# %s\n'                                \
-                '# apply 3dDespike to each run\n' % block_header('despike')
+    cmd = cmd + '# %s\n'                            \
+                '# apply 3dDespike to each run\n'   \
+                'foreach run ( $runs )\n'           \
+                % block_header('despike')
 
     indent = ''
     if proc.use_me:
        indent = '    '
-       cmd += 'foreach %s ( $echo_list )\n' % (proc.echo_var[1:])
+       cmd += '%sforeach %s ( $echo_list )\n' % (indent, proc.echo_var[1:])
 
-    cmd = cmd + '%sforeach run ( $runs )\n'               \
-                '%s    3dDespike%s%s%s -prefix %s %s\n'   \
+    cmd = cmd + '%s    3dDespike%s%s%s -prefix %s %s\n'   \
                 '%send\n' %                               \
-                (indent, indent,
-                 newstr, other_opts, mstr, prefix, prev, indent)
+                (indent, newstr, other_opts, mstr, prefix, prev, indent)
 
     if proc.use_me:
        cmd += 'end\n'
@@ -1583,18 +1584,18 @@ def db_cmd_tshift(proc, block):
     # write commands
     cmd = cmd + '# %s\n'                                                \
                 '# time shift data so all slice timing is the same \n'  \
+                'foreach run ( $runs )\n'                               \
                 % block_header('tshift')
 
     if proc.use_me:
-       cmd += 'foreach eind ( $echo_list )\n'
+       cmd += '%sforeach eind ( $echo_list )\n' % indent
 
-    cmd = cmd + '%sforeach run ( $runs )\n'                             \
-                '%s    3dTshift %s %s -prefix %s \\\n'                  \
-                '%s'                                                    \
-                '%s             %s\n'                                   \
-                '%send\n'                                               \
-                % (indent, indent, align_to, resam, cur_prefix, other_opts,
-                   indent, prev_prefix, indent)
+    cmd += '%s    3dTshift %s %s -prefix %s \\\n'                  \
+           '%s'                                                    \
+           '%s             %s\n'                                   \
+           '%send\n'                                               \
+           % (indent, align_to, resam, cur_prefix, other_opts,
+              indent, prev_prefix, indent)
 
     if proc.use_me: cmd += 'end\n'
 
@@ -1656,8 +1657,8 @@ def set_vr_int_name(block, proc, prefix='', inset='', runstr='', trstr=''):
    if inset != '':
       proc.vr_int_name = inset
    else:
-      proc.vr_int_name = 'pb%02d.$subj%s.r%s.%s%s%s' \
-                         % (block.index-1, estr, runstr, proc.prev_lab(block),
+      proc.vr_int_name = 'pb%02d.$subj.r%s%s.%s%s%s' \
+                         % (block.index-1, runstr, estr, proc.prev_lab(block),
                             proc.view, trstr)
    proc.vr_ext_pre = prefix
 
@@ -2165,22 +2166,22 @@ def db_cmd_volreg(proc, block):
 
         cmd = cmd +                                             \
             "# and apply the extents mask to the EPI data \n"   \
-            "# (delete any time series with missing data)\n"
+            "# (delete any time series with missing data)\n"    \
+            "foreach run ( $runs )\n"
 
         # ME updates
         if proc.use_me:
            indent = '    '
            estr = '.e%s' % proc.echo_var
-           cmd += 'foreach %s ( $echo_list )\n' % (proc.echo_var[1:])
+           cmd += '%sforeach %s ( $echo_list )\n' % (indent, proc.echo_var[1:])
         else:
            indent = ''
            estr = ''
 
-        cmd = cmd +                                             \
-            "%sforeach run ( $runs )\n"                           \
-            "%s    3dcalc -a rm.epi.nomask%s.r$run%s -b %s \\\n"    \
+        cmd = cmd +                                               \
+            "%s    3dcalc -a rm.epi.nomask%s.r$run%s -b %s \\\n"  \
             "%s           -expr 'a*b' -prefix %s\n"               \
-            "%send\n" % (indent, indent, estr, proc.view,
+            "%send\n" % (indent, estr, proc.view,
                          proc.mask_extents.pv(), indent, cur_prefix_me, indent)
 
         if proc.use_me: cmd += 'end\n'
@@ -3047,9 +3048,9 @@ def db_cmd_blur(proc, block):
     # handle surface data separately
     if proc.surf_anat: return cmd_blur_surf(proc, block)
 
-    opt    = block.opts.find_opt('-blur_filter')
-    filter = opt.parlist[0]
-    opt    = block.opts.find_opt('-blur_size')
+    opt      = block.opts.find_opt('-blur_filter')
+    filtname = opt.parlist[0]
+    opt      = block.opts.find_opt('-blur_size')
     if opt:
         size = opt.parlist[0]
         havesize = 1
@@ -3067,6 +3068,12 @@ def db_cmd_blur(proc, block):
 
     other_opts = ''
 
+    # ME: might need to indent everything...
+    if proc.use_me:
+       indent = '    '
+    else:
+       indent = ''
+
     # if -blur_in_mask, use 3dBlurInMask (requires 1blur_fwhm)
     bopt = block.opts.find_opt('-blur_to_fwhm')
     if bopt:
@@ -3076,7 +3083,7 @@ def db_cmd_blur(proc, block):
 
        # set any mask option
        if block.opts.find_opt('-blur_in_automask'):
-           mopt = ' -automask'
+          mopt = ' -automask'
        else:
           mopt = ''
           mask = proc.mask
@@ -3089,23 +3096,24 @@ def db_cmd_blur(proc, block):
        # any last request?
        opt = block.opts.find_opt('-blur_opts_B2FW')
        if not opt or not opt.parlist: other_opts = ''
-       else: other_opts = '                 %s \\\n' % ' '.join(opt.parlist)
+       else: other_opts = '%s                 %s \\\n' \
+                          % (indent, ' '.join(opt.parlist))
 
        # make command string
-       cstr = "    3dBlurToFWHM -FWHM %s%s \\\n"        \
+       cstr = "%s    3dBlurToFWHM -FWHM %s%s \\\n"        \
               "%s"                                      \
-              "                 -input %s \\\n"         \
-              "                 -prefix %s \n"          \
-              % (size, mopt, other_opts, prev, prefix)
+              "%s                 -input %s \\\n"         \
+              "%s                 -prefix %s \n"          \
+              % (indent, size, mopt, other_opts, indent, prev, indent, prefix)
 
     # if -blur_in_mask, use 3dBlurInMask (requires 1blur_fwhm)
     elif OL.opt_is_yes(block.opts.find_opt('-blur_in_mask')) or \
         block.opts.find_opt('-blur_in_automask'):
 
        # verify FWHM filter
-       if filter != '-1blur_fwhm' and filter != '-FWHM':
+       if filtname != '-1blur_fwhm' and filtname != '-FWHM':
           print("** error: 3dBlurInMask requires FWHM filter, have '%s'\n" \
-                "   (consider scale of 1.36 for RMS->FWHM)" % (filter))
+                "   (consider scale of 1.36 for RMS->FWHM)" % (filtname))
           return
 
        # set any mask option
@@ -3122,20 +3130,23 @@ def db_cmd_blur(proc, block):
        # any last request?
        opt = block.opts.find_opt('-blur_opts_BIM')
        if not opt or not opt.parlist: other_opts = ''
-       else: other_opts = '             %s \\\n' % ' '.join(opt.parlist)
+       else: other_opts = '%s             %s \\\n' \
+                          % (indent, ' '.join(opt.parlist))
 
        # make command string
-       cstr = "    3dBlurInMask -preserve -FWHM %s%s \\\n"      \
-              "                 -prefix %s \\\n"                \
+       cstr = "%s    3dBlurInMask -preserve -FWHM %s%s \\\n"    \
+              "%s                 -prefix %s \\\n"              \
               "%s"                                              \
-              "                 %s\n"                           \
-              % (str(size),mopt,prefix, other_opts, prev)
+              "%s                 %s\n"                         \
+              % (indent, str(size), mopt, indent, prefix,
+                 other_opts, indent, prev)
 
     else: # default: use 3dmerge for blur
        # maybe there are extra options to append to the command
        opt = block.opts.find_opt('-blur_opts_merge')
        if not opt or not opt.parlist: other_opts = ''
-       else: other_opts = '             %s \\\n' % ' '.join(opt.parlist)
+       else: other_opts = '%s             %s \\\n' \
+                          % (indent, ' '.join(opt.parlist))
 
        # if we have an extents mask, apply it if no scale block
        do_mask = proc.mask_extents != None and \
@@ -3144,24 +3155,33 @@ def db_cmd_blur(proc, block):
        if do_mask: tprefix = 'rm.%s' % prefix
        else:       tprefix = prefix
 
-       cstr = "    3dmerge %s %s -doall -prefix %s \\\n"       \
+       cstr = "%s    3dmerge %s %s -doall -prefix %s \\\n"     \
               "%s"                                             \
-              "            %s\n"                               \
-              % (filter, str(size), tprefix, other_opts, prev)
+              "%s            %s\n"                             \
+              % (indent, filtname, str(size), tprefix, other_opts, indent,prev)
 
        if do_mask:
-          cstr += "\n"                                                   \
-                  "    # and apply extents mask, since no scale block\n" \
-                  "    3dcalc -a %s%s -b %s \\\n"                        \
-                  "           -expr 'a*b' -prefix %s\n"                  \
-                  % (tprefix, proc.view, proc.mask_extents.shortinput(), prefix)
+          cstr += "\n"                                                     \
+                  "%s    # and apply extents mask, since no scale block\n" \
+                  "%s    3dcalc -a %s%s -b %s \\\n"                        \
+                  "%s           -expr 'a*b' -prefix %s\n"                  \
+                  % (indent, indent, tprefix, proc.view,
+                     proc.mask_extents.shortinput(), indent, prefix)
 
-    cmd = "# %s\n" % block_header('blur')
+    cmd = "# %s\n"                              \
+          "# blur each volume of each run\n"    \
+          "foreach run ( $runs )\n" % block_header('blur')
 
-    cmd = cmd + "# blur each volume of each run\n"      \
-                "foreach run ( $runs )\n"               \
-                "%s"                                    \
-                "end\n\n" % (cstr)
+    if proc.use_me:
+       indent = '    '
+       cmd += '%sforeach %s ( $echo_list )\n' % (indent, proc.echo_var[1:])
+
+    cmd += cstr
+
+    if proc.use_me:
+       cmd += '%send\n' % indent
+
+    cmd += "end\n\n"
 
     return cmd
 
@@ -4418,7 +4438,7 @@ def db_cmd_regress(proc, block):
 
     # ME: multi-echo is not allowed in the regression block
     if proc.use_me:
-       print("** regression is no allowed on ME data, combine first")
+       print("** regression is not allowed on ME data, combine first")
        return
 
     # maybe we want a special prefix (do not test stims in this case)

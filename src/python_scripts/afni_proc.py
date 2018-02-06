@@ -598,10 +598,13 @@ g_requires_afni = [ \
 g_todo_str = """todo:
   - ME:
      x do 'apply catenated xform'
+     - if ME and only volreg, apply 3dAllineate
+        - sooo, initial 3dvolreg output will be changed to garbage?
      - compare OC inputs with those from Lauren
      - test only vreg, w/anat, aff std space, NL, blip
+     - test all blocks: despike, tshift, blur, mask, scale
      - test radial_correlate
-     - implement for ricor
+     - implement for ricor, despike, blur, scale, mask (fave)
      - after OC/MEICA, clear use_me
   - be able to run simple forms of @Align_Centers
   - implement multi-echo OC and possibly meica functionality
@@ -697,8 +700,8 @@ class SubjProcSream:
         self.extra_labs       = []      # labels for extra -stim_file list
 
         # multi-echo vars
-        self.dsets_me   = []            # afni_name dsets, run x echoes
-                                        # (dsets = dsets_me[:][fave_echo])
+        self.dsets_me   = []            # afni_name dsets, echoes x runs
+                                        # (dsets = dsets_me[fave_echo])
         self.num_echo   = 1             # applies regardless of have_me
         self.have_me    = 0             # do we have multi-echo data
         self.use_me     = 0             # use ME in current command (changes)
@@ -2454,7 +2457,8 @@ class SubjProcSream:
                         % (digs,self.runs) )
 
         if self.have_me:
-           self.write_text('# note echoes and echo index for registration\n')
+           self.write_text('# note %d echoes and registration echo index\n' \
+                           % self.num_echo)
            self.write_text('set echo_list = (`count -digits 2 1 %d`)\n' \
                            % self.num_echo)
            # self.regecho_var starts with '$', so strip it when assigning
