@@ -273,7 +273,7 @@ int main(int argc, char *argv[]) {
    // ****************************************************************
    // ****************************************************************
 
-   INFO_message("version: 2018_02_05");
+   INFO_message("version: 2018_02_06");
 	
    /** scan args **/
    if (argc == 1) { usage_ZipperZapper(1); exit(0); }
@@ -735,9 +735,9 @@ int main(int argc, char *argv[]) {
       fclose(fout0);
       fclose(fout1);
       fclose(fout2);
-      INFO_message("!Wrote text file:    %s", tprefixx);
-      INFO_message("!Wrote text file:    %s", tprefixy);
-      INFO_message("!Wrote text file:    %s", tprefixc);
+      INFO_message("--> Wrote text file:    %s", tprefixx);
+      INFO_message("--> Wrote text file:    %s", tprefixy);
+      INFO_message("--> Wrote text file:    %s", tprefixc);
    }
 
    if ( DO_OUT_SLIPAR ) {
@@ -779,12 +779,13 @@ int main(int argc, char *argv[]) {
          ERROR_exit("Can't overwrite existing dataset '%s'",
                     DSET_HEADNAME(diffdset));
       THD_write_3dim_dataset(NULL, NULL, diffdset, True);
-      INFO_message("!Wrote dataset:    %s\n", DSET_BRIKNAME(diffdset));
+      INFO_message("--> Wrote dataset:    %s\n", DSET_BRIKNAME(diffdset));
    }
 
 
-   // !!! maybe just temp:  output map of badness
-   if ( DO_OUT_BADMASK ) {
+   // !!! maybe just temp: output map of badness, *if* there are bad
+   // !!! vols
+   if ( DO_OUT_BADMASK && Nvolbad ) {
       
       byte **badarr=NULL;
 
@@ -848,7 +849,7 @@ int main(int argc, char *argv[]) {
          ERROR_exit("Can't overwrite existing dataset '%s'",
                     DSET_HEADNAME(baddset));
       THD_write_3dim_dataset(NULL, NULL, baddset, True);
-      INFO_message("!Wrote dataset:    %s\n", DSET_BRIKNAME(baddset));
+      INFO_message("--> Wrote dataset:    %s\n", DSET_BRIKNAME(baddset));
       
       if(badarr) {
          for( i=0 ; i<Dim[3] ; i++) 
@@ -895,6 +896,7 @@ int main(int argc, char *argv[]) {
       exit(19);
    }
 
+
    fprintf(stderr, "++ The following %d vols were identified as bad:\n",
            Nvolbad);
    fprintf(stderr, "%15s %15s\n", "Bad vols", "N bad slices");
@@ -906,6 +908,9 @@ int main(int argc, char *argv[]) {
       }
    }
    fclose(fout0);
+
+   if( !Nvolbad )
+      fprintf(stderr, "%15s %15s\n", "(None!)", "(zilch!)");
 
    INFO_message("Wrote text file listing bads:    %s", lprefix);
 
