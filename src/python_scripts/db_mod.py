@@ -1914,7 +1914,7 @@ def db_cmd_volreg(proc, block):
         if proc.use_me: estr = '.e%s' % proc.regecho_var
         else:           estr = ''
 
-        prefix = 'rm.epi.volreg%s.r$run' % estr
+        prefix = 'rm.epi.volreg.r$run%s' % estr
         proc.have_rm = 1            # rm.* files exist
         matstr = '%*s-1Dmatrix_save mat.r$run.vr.aff12.1D \\\n' % (13,' ')
         if doblip: cstr = cstr + ', blip warp'
@@ -2048,7 +2048,7 @@ def db_cmd_volreg(proc, block):
 
         if do_extents:
            if proc.use_me:
-              wprefix = "rm.epi.nomask.e%s.r$run" % proc.echo_var
+              wprefix = "rm.epi.nomask.r$run.e%s" % proc.echo_var
            else:
               wprefix = "rm.epi.nomask.r$run"
         else:
@@ -3828,6 +3828,7 @@ def db_cmd_scale(proc, block):
            "%s" % maxstr
 
     # if stype is grand_mean, compute the mean now, across runs
+    # (rcr - actually write this)
     if stype == 'grand_mean':
        if not proc.mask:
           print('** no EPI mask for -scale_type %s' % stype)
@@ -3844,6 +3845,12 @@ def db_cmd_scale(proc, block):
 
     cmd += "%sforeach run ( $runs )\n" % istr
 
+    # ME:
+    if proc.use_me:
+       iprev = istr
+       istr += ' '*4
+       cmd += '%sforeach %s ( $echo_list )\n' % (istr, proc.echo_var[1:])
+
     # per run loop
     cmd += "%s    3dTstat -prefix %s_r$run%s %s\n"                      \
            "%s    3dcalc -a %s %s-b %s_r$run%s \\\n"                    \
@@ -3857,6 +3864,12 @@ def db_cmd_scale(proc, block):
 
     # end per run loop, and possibly per hemisphere one
     cmd += "%send\n" % istr
+
+    # ME:
+    if proc.use_me:
+       istr = iprev
+       cmd += "%send\n" % istr
+
     cmd += feh_end + '\n'
 
     proc.have_rm = 1            # rm.* files exist
