@@ -32,7 +32,7 @@ static char *tip[] = {
    "Looking at venography or arteriography datasets? The image viewer 'Disp'\n"
    "control panel 'Project' menu lets you look at projections of the underlay\n"
    "dataset through a slab of slices, including Minimum and Maximum. The\n"
-   "slab half-thickness is given by the 'Slap +-' control below 'Project'."
+   "slab half-thickness is given by the 'Slab +-' control below 'Project'."
  ,
    "If you crop an image, you can move the crop window around by pressing\n"
    "the Shift key plus one of the keyboard arrow keys."
@@ -134,8 +134,9 @@ static char *tip[] = {
    "               graph points only, or points+lines, or boxes\n"
    " * Graph Gap = how many pixels spacing between sub-graphs\n"
    " * Thick     = how many pixels wide for 'Thick' lines\n"
-   "Most of these settings can also be fixed by AFNI environment\n"
-   "setting in your .afnirc file."
+   "Most of these settings can also be selected by AFNI environment\n"
+   "settings in your .afnirc file; with some work, you can setup the\n"
+   "graph viewer to look the way you want it to be permanently."
  ,
    "The graph viewer 'Opt->Detrend' menu item lets you choose a polynomial degree\n"
    "for detrending the graph data. This can help you visualize the features of the\n"
@@ -168,8 +169,10 @@ static char *tip[] = {
    "AFNI image viewer is take from the grid size of the Underlay dataset.\n"
    "But you can change that using the 'Datamode' control panel, by choosing\n"
    "'Warp ULay on Demand', then setting the grid resampling mode below.\n"
-   "Sometimes this is useful for creating nicer looking functional images,\n"
-   "especially when 'Alpha' is turned on."
+   "Sometimes using this to make the display grid more fine is useful for\n"
+   "creating nicer looking functional images, especially when 'Alpha' is\n"
+   "turned on (to outline above-threshold clusters and at the same time\n"
+   "show below-threshold in faded-out translucent colors)."
  ,
    "Normally, voxels whose threshold value is below the slider setting will\n"
    "not be colorized. 'Alpha' fading allows them to get a faded color, while\n"
@@ -183,8 +186,8 @@ static char *tip[] = {
    "using the same expression syntax as 3dcalc, 1deval, etc."
  ,
    "You can right-click on the label to the left of a drop-down menu\n"
-   "(e.g., 'ULay') to get a chooser panel that lets you control the\n"
-   "menu choice in a different way."
+   "(e.g., 'ULay', 'Xhairs', 'Color') to get a chooser panel that lets you\n"
+   "control the menu choice in a different way, with a separate chooser."
  ,
    "The 'Rota' arrows (in Define Overlay) lets you rotate the color bar,\n"
    " one color step per click -- if you use Shift+click, it takes 5\n"
@@ -201,10 +204,11 @@ static char *tip[] = {
    " raise the corresponding AFNI controller to the top.\n"
    "Right-click on the AFNI logo (lower left) of a graph viewer does the same.\n"
    "These functions are here in case you lose the controller somewhere on\n"
-   "the screen, and want to get it back."
+   " the screen, and want to get it back."
  ,
    "Right-click on the 'Save' button in an image viewer will popup the list\n"
-   "of possible image save formats."
+   "of possible image save formats, and let you choose one. You can do this\n"
+   "from the 'Disp' control panel also, but this right-click method is faster."
  ,
    "The 'Rec' button in an image viewer pops up a menu that lets you choose\n"
    "different options for saving image snapshots to a special 'Record' viewer.\n"
@@ -219,7 +223,7 @@ static char *tip[] = {
    " pop the splash window down again. Clicking in the reincarnated splash screen\n"
    " may give funny results.\n"
    "Right-click in that square will give a menu with some fun choices.\n"
-   "Middle-click in that square will popup a random insult.\n"
+   "Middle-click in that square will popup a random insult."
  ,
    "Set environment variable AFNI_DATASET_BROWSE to YES and then when you\n"
    "click on a dataset name in the OverLay or UnderLay popup chooser, AFNI\n"
@@ -328,17 +332,35 @@ static char *tip[] = {
    " * float (32 bit values)           * complex (pairs of floats)\n"
    " * RGB  (triples of bytes)"
  ,
-   "AFNI can read in .jpg and .png image files as 2D 'datasets'. Is this useful?\n"
-   "It depends on who you ask!"
+   "AFNI will read in .jpg and .png image files as 2D 'datasets'. Is this useful?\n"
+   "It depends on who you ask! If you don't like this, set Unix environment\n"
+   "variable AFNI_IMAGE_DATASETS to NO (in your ~/.afnirc file)."
  ,
    "The AFNI program 'aiv' (AFNI Image Viewer) can be used for a quick display\n"
    "of images in various formats (.jpg, .png, plus datasets). The interface\n"
-   "is the same as the slicer viewer built into the AFNI GUI.\n"
+   "is the same as the slicer viewer built into the AFNI GUI."
  ,
    "The AFNI GUI now 'knows' about the BIDS file hierarchy. You can open all\n"
    "the datasets from a given subject in a single session, even though BIDS\n"
    "scatters them over several subdirectories. To do this, use the '-bysub'\n"
    "option. See the output of 'afni -help' for the details."
+ ,
+   "Obscure AFNI GUI buttons:\n"
+   " EditEnv = Lets you edit some AFNI environment settings interactively;\n"
+   "           useful when you need to change something and don't want\n"
+   "           to quit and re-start AFNI. For example, setting\n"
+   "           AFNI_LEFT_IS_POSTERIOR will flip the usual Sagittal\n"
+   "           image and graph viewers so that the display's left\n"
+   "           corresponds to the subject's posterior, rather than\n"
+   "           the default anterior.\n"
+   " NIML+PO = Starts NIML and Plugout socket listening; useful when you\n"
+   "           meant to do one (or both) of these one the command line\n"
+   "           (options '-niml' and '-yesplugouts'), but forgot.\n"
+   "           For example, NIML is needed for 3dGroupInCorr to connect."
+ ,
+   "The 'Render Dataset' plugin allows you to do 3D volume rendering\n"
+   "in the AFNI GUI, with color overlays, animations, and cutouts.\n"
+   "(The SUMA GUI also has a volume rendering mode.)"
  ,
 
 /*-- tips below here are for non-GUI programs --*/
@@ -423,7 +445,7 @@ static char *tip[] = {
    " * @SSwarper    = uses 3dQwarp and 3dSkullStrip together to align\n"
    "                  volumes to the MNI template and skull strip them\n"
    " * auto_warp.py = runs 3dQwarp for you, so you don't have to read\n"
-   "                  that programs lengthy help output"
+   "                  that program's lengthy help output"
  ,
    "Want to create a 'junk' dataset on the command line, just to test to\n"
    "see if something works? AFNI programs can create a dataset in memory\n"
@@ -437,7 +459,7 @@ static char *tip[] = {
    "Did you know that AFNI's time series analysis program 3dREMLfit can\n"
    "include voxelwise regressors (a different time series for each voxel)?\n"
    "We use this capability in our Anaticor model for de-noising datasets\n"
-   "during activation analysis."
+   "during activation or resting state analyses."
  ,
    "AFNI programs for individual dataset time series correlation-ing:\n"
    " * 3dTcorr1D        = correlate each voxel with a small set of 1D files\n"
@@ -503,7 +525,9 @@ static char *tip[] = {
    "will produce a list of 9 distinct random numbers from 0..99 (inclusive),\n"
    "separated by commas; for example: '31,18,60,62,7,95'. This list could\n"
    "be used to select a random subset of dataset sub-bricks for analysis\n"
-   "  3dttest++ -setA Fred.nii[`count -dig 1 -comma 0 333 S20`]"
+   "  3dttest++ -setA Fred.nii[`count -dig 1 -comma 0 333 S20`]\n"
+   "(in the above command, the quotes are the single backquote ` and not\n"
+   "the single frontquote ')."
  ,
    "Most AFNI command line programs accept a common set of options, such\n"
    "as sub-brick selectors. See this page for the details:\n"
@@ -955,7 +979,7 @@ static char *gby[] = {
      "Returning you from brain-blob land to actual thinking land"    ,
 
      /* This set of quotes is from Paradise Lost,
-        by John Milton (a very very early AFNI user) */
+        by John Milton (a very Very early AFNI user) */
 
      "With hideous ruin and combustion, down to bottomless perdition"                    ,
      "The mind and spirit remains invincible"                                            ,
@@ -997,6 +1021,15 @@ static char *gby[] = {
      "With thoughts inflamed of highest design"                                          ,
      "Flying far off into a Limbo large and broad"                                       ,
      "Ascending by degrees magnificent"                                                  ,
+
+     /* From Phaedo, by Plato (a very Very VERY early AFNI user) */
+
+     "Is not existence revealed to us in thought, if at all?"                            ,
+     "Is there or is there not an absolute justice?"                                     ,
+     "Is there an absolute beauty and absolute good?"                                    ,
+     "Attains to knowledge in highest purity with mind (and statistics) alone"           ,
+     "The wise person will want to be ever with her who is better than himself"          ,
+     "There is no greater evil one can suffer than to hate reasonable discourse"         ,
 
      /* These are to make it clear that Cox is not to be blamed for ANYTHING */
 
@@ -1066,7 +1099,7 @@ static char *gby[] = {
      "It is in our darkest moments that we must focus to see the light"               ,
      "Dignity does not consist of possessing honors, but in deserving them"           ,
      "What is a billion years, when compared to the lifespan of AFNI?"                ,
-     "In a billion years, the sun gets so hot Earth with be fried. Are you ready?"    ,
+     "In a billion years, the sun gets so hot Earth will be fried. Are you ready?"    ,
 
      "I look to that which is, and beyond, to that which will ever be"                ,
      "To steal ideas from one person is plagiarism; to steal from many is research"   ,
