@@ -64,8 +64,11 @@
 #set version   = "3.5";  set rev_dat   = "May 25, 2017"
 #   + new option: input mask for early application
 #
-set version   = "3.6";  set rev_dat   = "Sep 04, 2017"
+#set version   = "3.6";  set rev_dat   = "Sep 04, 2017"
 #   + work with new @chauffeur, -prefix only
+#
+set version   = "3.7";  set rev_dat   = "Feb 06, 2018"
+#   + add despiking/ceiling option
 #
 # ----------------------------------------------------------------
 
@@ -105,6 +108,7 @@ set DO_CLEAN  = "1"                 # default: keep working dir
 set PRE_LR  = "1"
 set POST_LR = "0"
 set DO_CM   = "0"                   # initial center of mass calc
+set DO_CEIL = "0"
 
 set costfunc         = "lpa"        # in 3dAllin estimate
 set extra_allin_apps = ""           # could use to upsample?
@@ -206,6 +210,9 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set INF_SLI = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-do_ceil_out" ) then
+        set DO_CEIL = "1"
 
     # can enter a weight mask emphasizing, e.g., subcort struct for
     # ACPC align
@@ -559,7 +566,7 @@ endif
 
 set v1 = `3dBrickStat -automask -percentile $valthr 1 $valthr "$fout"`
 set thr_t1 = "${v1[2]}"
-echo "\n\n++ Percentile for thresholding: ${thr_t1}\n"
+echo "\n\n++ Threshold value at ${valthr}%: ${thr_t1}\n"
 
 set iidx = `printf "%02d" $idx`
 set fin  = "$fout"
@@ -809,6 +816,30 @@ if ( $OutMatchRef == "0" ) then
 
 endif
 
+if ( $DO_CEIL == "1" ) then
+
+    set mmax  = `3dinfo -dmax "$fout"`
+    set v2    = `3dBrickStat -automask -percentile 50 48 98 "$fout"`
+    set mmean = "${v2[2]}"
+    set ttt   = "${v2[4]}"
+
+    echo "\n\n++ Ceiling for final output *on*: using 98%ile value."
+    echo "++ Value for final ceiling: ${ttt} (max. was $mmax; mean was $mmean)."
+    echo ""
+
+    set iidx = `printf "%02d" $idx`
+    set fin  = "$fout"
+    set fout = "${tpref}_${iidx}_ceil.nii"
+    3dcalc    -echo_edu                          \
+        -a      "$fin"                           \
+        -expr   "maxbelow(${ttt},a)"             \
+        -prefix "$fout"                          \
+        -overwrite
+    @ idx += 1
+
+endif
+
+
 # DONE, just copy endprod out!
 set fin  = $fout
 set fout = "${opref}${postfix}.nii.gz"
@@ -938,6 +969,7 @@ cat << EOF
         -prefix PPP                           \
         {-workdir  WWW}                       \
         {-out_match_ref}                      \
+        {-do_ceil_out}                        \
         {-extra_al_wtmask WT }                \
         {-extra_al_cost CC}                   \
         {-extra_al_inps II}                   \
@@ -980,6 +1012,12 @@ cat << EOF
                     image with (human, adult) t1w-like contrast
                     has been input.
      NB ---> one of these 'mode_*' setting MUST be picked.
+
+  -do_ceil_out     :for the final output volume, apply a ceiling based
+                    on the 98%ile value from within an automasked volume
+                    of the dset.  This reduces the influence of (sometimes
+                    very) large spiky voxels.  Seems like it might be
+                    useful for later alignments.
 
   -extra_al_wtmask WT:
                     Axialization is generally based on an overall 

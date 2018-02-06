@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 6, Feb , 2018 , PT , "fat_proc_axialize_anat" , MINOR , TYPE_NEW_OPT,
+   "Can put a ceiling on the final output volume: -do_ceil_out.",
+   "Reduce impact of tiny spikes (often at fringe) later on.\n"
+},
+
 { 1, Feb , 2018 , PT , "@GradFlipTest" , MINOR , TYPE_MODIFY,
    "Internal change to allow subset selection in text files.",
    "Can now use subbrick selector notation with bvals/bvecs.\n"
