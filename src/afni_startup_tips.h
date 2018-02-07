@@ -935,7 +935,8 @@ static char *gby[] = {
      "Hard work pays off in the future, but laziness pays off now"   ,
      "We learn from our mistakes -- I've learned a lot today"        ,
      "If a turtle loses its shell, is it naked or homeless?"         ,
-     "There is no mistake so great as being right"                   ,
+     "There is no mistake so great as being right ahead of time"     ,
+     "We give you tools; You build things with them"                 ,
 
      /* bastardizations of Shakespeare */
 
