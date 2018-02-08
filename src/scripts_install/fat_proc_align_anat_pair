@@ -39,12 +39,12 @@
 #set version   = "1.8";    set rev_dat   = "Sep 04, 2017"
 #   + update to work with newer @chauffeur*, -prefix only
 #
-#set version   = "1.9";    set rev_dat   = "Jan 12, 2018"
+set version   = "1.9";    set rev_dat   = "Jan 12, 2018"
 #   + wt vol into working dir
 #
-set version   = "1.92";    set rev_dat   = "Feb 7, 2018"
+set version   = "1.93";    set rev_dat   = "Feb 8, 2018"
 #   + new opt: can skullstrip intermediate t1w to help alignment, via
-#   -do_ss_tmp_t1w
+#   -do_ss_tmp_t1w ... and that file stays in wdir
 #
 # ---------------------------------------------------------------
 
@@ -366,13 +366,13 @@ if ( "$imtrx" == "" ) then
     # [PT: Feb 7, 2018] might need if T1w has lots of non-brain stuff
     if ( "$DO_SS_T1W" == "1" ) then
 
-        3dSkullStrip                     \
-            -overwrite                   \
-            -orig_vol                    \
-            -prefix f03_t1w_ss.nii.gz    \
+        3dSkullStrip                           \
+            -overwrite                         \
+            -orig_vol                          \
+            -prefix $wdir/f03_t1w_ss.nii.gz    \
             -input "$t1thr"
 
-        set t1thr = "f03_t1w_ss.nii.gz"
+        set t1thr = "$wdir/f03_t1w_ss.nii.gz"
 
     endif
 
