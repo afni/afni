@@ -580,7 +580,7 @@ g_history = """
     6.00 Nov  7, 2017: python3 compatible
     6.01 Nov 15, 2017: fixed -despike_mask (by D Plunkett)
     6.02 Dec 12, 2017: added "sample analysis script" to help
-    6.03 Feb  2, 2018: can process multi-echo data
+    6.03 Feb  8, 2018: can process multi-echo data
         - added -dsets_me_echo/_run and 'combine' processing block
 """
 
@@ -598,14 +598,14 @@ g_requires_afni = [ \
 g_todo_str = """todo:
   - ME:
      x do 'apply catenated xform'
-     - if ME and only volreg, apply 3dAllineate
-        - sooo, initial 3dvolreg output will be changed to garbage?
      - compare OC inputs with those from Lauren
      - test only vreg, w/anat, aff std space, NL, blip
      - test all blocks: despike, tshift, blur, mask, scale
      - test radial_correlate
-     - implement for ricor, despike, blur, scale, mask (fave)
-     - implement case for volreg without align or tlrc
+     x implement for despike, tshift, blur, scale, mask (fave)
+     - implement for ricor
+     - implement case for volreg (without align or tlrc)
+        - sooo, initial 3dvolreg output will be changed to garbage?
      - after OC/MEICA, clear use_me
   - be able to run simple forms of @Align_Centers
   - implement multi-echo OC and possibly meica functionality
