@@ -605,6 +605,7 @@ g_todo_str = """todo:
      - test all blocks: despike, tshift, blur, mask, scale
      - test radial_correlate
      - implement for ricor, despike, blur, scale, mask (fave)
+     - implement case for volreg without align or tlrc
      - after OC/MEICA, clear use_me
   - be able to run simple forms of @Align_Centers
   - implement multi-echo OC and possibly meica functionality
