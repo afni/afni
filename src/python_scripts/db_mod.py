@@ -243,7 +243,11 @@ def db_cmd_tcat(proc, block):
       if proc.have_me: cmd += '\n'
 
     proc.reps   -= first+rmlast # update reps to account for removed TRs
-    if proc.verb > 0: print("-- %s: reps is now %d" % (block.label, proc.reps))
+    if proc.verb > 0:
+       print("-- %s: reps is now %d" % (block.label, proc.reps))
+       if proc.have_me:
+          print("-- multi-echo data: have %d echoes across %d run(s)" \
+                % (len(proc.dsets_me), len(proc.dsets)))
 
     for run in range(len(proc.reps_all)):
        proc.reps_all[run] -= (flist[run] + rmlast)
@@ -3802,6 +3806,11 @@ def db_cmd_scale(proc, block):
         bstr = ''
         mean_pre = "rm.mean"
 
+    if proc.use_me:
+        estr = '.e%s' % proc.echo_var
+    else:
+        estr = ''
+
     # choose a mask: either passed, extents, or none
     mset = None
     if   proc.surf_anat:              mset = None       # no mask on surface
@@ -3852,11 +3861,11 @@ def db_cmd_scale(proc, block):
        cmd += '%sforeach %s ( $echo_list )\n' % (istr, proc.echo_var[1:])
 
     # per run loop
-    cmd += "%s    3dTstat -prefix %s_r$run%s %s\n"                      \
-           "%s    3dcalc -a %s %s-b %s_r$run%s \\\n"                    \
+    cmd += "%s    3dTstat -prefix %s_r$run%s%s %s\n"                    \
+           "%s    3dcalc -a %s %s-b %s_r$run%s%s \\\n"                  \
            "%s"                                                         \
-           % (istr, mean_pre, suff, prev,
-              istr, prev, bstr, mean_pre, vsuff, mask_str)
+           % (istr, mean_pre, estr, suff, prev,
+              istr, prev, bstr, mean_pre, estr, vsuff, mask_str)
 
     cmd += "%s           -expr '%s' \\\n"                               \
            "%s           -prefix %s\n"                                  \
