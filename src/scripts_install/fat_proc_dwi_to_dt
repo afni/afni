@@ -58,9 +58,15 @@
 #   + output QC images for uncert (V12 and FA), and also for showing
 #     anat lines on the dwi vol
 #
-set version   = "2.5b";    set rev_dat   = "Sep 06, 2017"
+#set version   = "2.5b";    set rev_dat   = "Sep 06, 2017"
 #   + for showing anat lines on DWI, allow anat lines to be clearer
 #     --> quickchange in how this is done: don't use -master.
+#
+set version   = "2.6";    set rev_dat   = "Feb 08, 2018"
+#   + fixed bug: wasn't resampling mask if input when the DWI was,
+#     which created an erroneous mismatch between them.  Sigh. Fixed
+#     now.  Thanks, Sandra H., for finding this!
+#
 # ----------------------------------------------------------------
 
 set this_prog = "fat_proc_dwi_to_dt"
@@ -500,11 +506,24 @@ endif
 
 # -------------- copy DWI/reset ori^2 --------------
 
+# [PT: Feb 8, 2018] Check that mask matches grid of DWI set!
+if ( "$imask" != "") then
+    set checkgrid = `3dinfo -same_grid $imask $idwi`
+    if ( "$checkgrid[1]" == "1" ) then
+        echo "++ OK, the entered mask's grid matches that of the DWI set."
+    else
+        echo "** ERROR: need mask needs to match the grid of the DWI set!"
+        goto BAD_EXIT
+    endif
+endif
+
+
 if ( "$iref" != "" ) then
 
     # make sure this is in same orientation with ref
     set ori_idwi = `3dinfo -orient "$idwi"`
     if ( "$ori_idwi" != "$ori_new" ) then
+
         echo "++ Resampling/fitting input DWI vols."
         set tmp_idwi = $wdir/DWI_res.nii
         3dresample               \
@@ -513,6 +532,23 @@ if ( "$iref" != "" ) then
             -inset  "$idwi"      \
             -orient "$ori_new"   \
             -prefix $tmp_idwi
+
+        # [PT: Feb 8, 2018] ... and apply the same to the mask--
+        # thanks, Sandra H!
+        if ( "$imask" != "") then
+
+            echo "++ Resampling the input mask."
+            set tmp_imask = $wdir/dwi_mask_res.nii
+            3dresample               \
+                -echo_edu            \
+                -overwrite           \
+                -inset  "$imask"     \
+                -orient "$ori_new"   \
+                -prefix $tmp_imask
+
+            set imask = $tmp_imask
+
+        endif
     else
         # ... or just use input file as is
         set tmp_idwi = "$idwi"
