@@ -2179,7 +2179,7 @@ def db_cmd_volreg(proc, block):
            estr = ''
 
         cmd = cmd +                                               \
-            "%s    3dcalc -a rm.epi.nomask%s.r$run%s -b %s \\\n"  \
+            "%s    3dcalc -a rm.epi.nomask.r$run%s%s -b %s \\\n"  \
             "%s           -expr 'a*b' -prefix %s\n"               \
             "%send\n" % (indent, estr, proc.view,
                          proc.mask_extents.pv(), indent, cur_prefix_me, indent)
