@@ -71,7 +71,7 @@ static INLINE void AAmemset( void *ooo , int c , size_t nnn )
     "* For implementation and compilation details, please see\n"                   \
     "   https://afni.nimh.nih.gov/pub/dist/doc/misc/OpenMP.html\n"                 \
     "* The number of CPU threads used will default to the maximum number on\n"     \
-    "   your system.  You can control this value by setting environment variable\n"\
+    "   your system. You can control this value by setting environment variable\n" \
     "   OMP_NUM_THREADS to some smaller value (including 1).\n"                    \
     "* Un-setting OMP_NUM_THREADS resets OpenMP back to its default state of\n"    \
     "   using all CPUs available.\n"                                               \
@@ -83,8 +83,8 @@ static INLINE void AAmemset( void *ooo , int c , size_t nnn )
     "   since OpenMP queries this variable BEFORE the program actually starts.\n"  \
     "   ++ You can't usefully set this variable in your ~/.afnirc file or on the\n"\
     "      command line with the '-D' option.\n"                                   \
-    "* How many threads are useful?  That varies with the program, and how well\n" \
-    "   it was coded.  You'll have to experiment on your own systems!\n"           \
+    "* How many threads are useful? That varies with the program, and how well\n"  \
+    "   it was coded. You'll have to experiment on your own systems!\n"            \
     "* The number of CPUs on this particular computer system is ...... %d.\n"      \
     "* The maximum number of CPUs that will be used is now set to .... %d.\n"      \
     "%s"                                                                           \
