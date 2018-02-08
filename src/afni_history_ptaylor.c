@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+   { 8, Feb , 2018 , PT , "fat_proc_dwi_to_dt" , MINOR , TYPE_BUG_FIX,
+   "When a mask was input, it wasn't resampled if needed to be.",
+   "Now fixed, and added check that grid of mask is good. Good.\n"
+},
+
 { 6, Feb , 2018 , PT , "fat_proc_axialize_anat" , MINOR , TYPE_NEW_OPT,
    "Can put a ceiling on the final output volume: -do_ceil_out.",
    "Reduce impact of tiny spikes (often at fringe) later on.\n"
