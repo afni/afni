@@ -2101,7 +2101,7 @@ def db_cmd_volreg(proc, block):
         indent = '    '
         wcmd = '\n%s# apply catenated xform: %s\n' % (indent, cstr)
         # rcr - remove:
-        if doblip or proc.nlw_aff_mat:
+        if proc.nlw_aff_mat:
            wcmd += '%s# then apply non-linear standard-space warp\n' % indent
 
         # if ME, wrap per echo
