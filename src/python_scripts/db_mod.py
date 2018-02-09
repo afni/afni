@@ -124,25 +124,42 @@ def apply_catenated_warps(proc, warp_list, base='', source='', prefix='',
       return 1, ''
 
    if NL:
+      if base: mstr = ' -master %s' % base
+      else:    mstr = ''
       if dim > 0: dimstr = ' -dxyz %g' % dim
       else:       dimstr = ''
 
-      clist = ['3dNwarpApply -master %s%s \\\n' % (base, dimstr),
+      clist = ['3dNwarpApply%s%s \\\n' % (mstr, dimstr),
                '             -source %s \\\n'   % source,
                '             -nwarp %s \\\n'    % wstr]
+
       if NLinterp: clist.append('             -interp %s \\\n' % NLinterp)
       if NN:       clist.append('             -ainterp NN -quiet \\\n')
       clist.append('             -prefix %s\n' % prefix)
 
    else: # affine
+      if base: mstr = ' -base %s' % base
+      else:    mstr = ''
+      if dim > 0: dimstr = ' -mast_dxyz %g' % dim
+      else:       dimstr = ''
       if NN: nstr = ' -final NN -quiet'
       else:  nstr = ''
 
-      clist = ['3dAllineate -base %s \\\n'           % base,
+      if dimstr or nstr:
+         mastline = '            -mast_dxyz %g%s \\\n' % (dim, nstr)
+      else:
+         mastline = ''
+
+      clist = ['3dAllineate%s\\\n'                   % mstr,
                '            -input %s \\\n'          % source,
                '            -1Dmatrix_apply %s \\\n' % wstr,
-               '            -mast_dxyz %g%s \\\n'    % (dim, nstr),
-               '            -prefix %s\n'            % prefix]
+              ]
+
+      # separate, since we cannot include empty lines
+      if dimstr or nstr:
+         clist.append(mastline)
+
+      clist.append('            -prefix %s\n'            % prefix)
 
    cmd = istr + istr.join(clist)
 
@@ -1905,7 +1922,7 @@ def db_cmd_volreg(proc, block):
     cur_prefix_me = proc.prefix_form_run(block, eind=0)
     proc.volreg_prefix = cur_prefix
     cstr   = '' # appended to comment string
-    if dowarp or doe2a or doblip:
+    if dowarp or doe2a or doblip or proc.use_me:
         # verify that we have someplace to warp to
         if dowarp and not proc.tlrcanat:
             print('** cannot warp, need -tlrc_anat or -copy_anat with tlrc')
@@ -1928,6 +1945,7 @@ def db_cmd_volreg(proc, block):
         if doadwarp: cstr = cstr + ', adwarp to tlrc space'
         prefix = cur_prefix
         matstr = ''
+
     prev_prefix = proc.prev_prefix_form_run(block, view=1, eind=-1)
 
     if doblip: cstr += '\n# (final warp input is same as blip input)'
@@ -1995,21 +2013,23 @@ def db_cmd_volreg(proc, block):
 
     # if warping, multiply matrices and apply
     # (store cat_matvec entries in case of later use)
-    if dowarp or doe2a or doblip:
+    if dowarp or doe2a or doblip or proc.use_me:
         # warn the user of output grid change
         pstr = '++ volreg: applying '
         cary = []
         cstr = ''
         if doblip: cary.append('blip')
         cary.append('volreg')
+
         if doe2a: cary.append('epi2anat')
         if dowarp: cary.append('tlrc')
+
         cstr = '/'.join(cary)
 
         pstr += (cstr + ' xforms')
         if dowarp or doe2a: pstr += (' to isotropic %g mm' % dim)
         if dowarp: pstr += ' tlrc'
-        pstr += ' voxels'
+        if dowarp or doe2a: pstr += ' voxels'
 
         cmd = cmd + '\n'                        \
             '    # catenate %s xforms\n'        \
@@ -2045,7 +2065,10 @@ def db_cmd_volreg(proc, block):
         if dowarp:
             allinbase = proc.tlrcanat.pv()
             proc.view = '+tlrc'
-        else: allinbase = proc.anat.pv()
+        elif doe2a:
+            allinbase = proc.anat.pv()
+        else:
+            allinbase = ''
 
         runwarpmat = 'mat.r$run.warp.aff12.1D'
         cmd += '               mat.r$run.vr.aff12.1D > %s\n' % runwarpmat
