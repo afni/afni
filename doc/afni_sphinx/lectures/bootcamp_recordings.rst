@@ -20,6 +20,9 @@ They are organized by the day and title of the lecture according to
 the schedule of that week, shown :download:`here
 <media/AFNI_Oct2017_5day_schedule.pdf>`.
 
+The videos provided here are screen captures with audio and toggleable
+captioning.
+
 Bootcamp Videos
 ===============
 
