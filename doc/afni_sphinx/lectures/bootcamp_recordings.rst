@@ -81,7 +81,7 @@ Tuesday
        epi); cost functions (esp. lpc and lpa); cross-modality (anat
        to epi; align_epi_anat.py); programs for visualization of
        alignment
-   * - Alignment and Registration, pt1 (Glen)
+   * - Alignment and Registration, pt2 (Glen)
      - `afni10_volreg_talairach.pdf
        <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni10_volreg_talairach.pdf>`_
      - visualization in GUI; checking alignment quality; left-right
@@ -126,7 +126,7 @@ Wednesday
        function (GUI+command line); atlas GUI features ("Go to atlas"
        location; atlas colors); "other" atlases (pediatric, infant,
        cerebellum, macaque, marmoset, rat)
-   * - Atlases, ROIs & Driving AFNI, pt1 (Glen)
+   * - Atlases, ROIs & Driving AFNI, pt2 (Glen)
      - `afni10_volreg_talairach.pdf
        <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni10_volreg_talairach.pdf>`_,
        `afni11_roi.pdf
