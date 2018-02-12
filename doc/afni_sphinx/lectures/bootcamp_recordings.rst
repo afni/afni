@@ -121,7 +121,7 @@ Wednesday
        nonlinear alignment to template; choosing a template/examples;
        coordinate order/systems; visualizing atlases; "whereami"
        function (GUI+command line); atlas GUI features ("Go to atlas"
-       location; Atlas Colors); "other" atlases (pediatric, infant,
+       location; atlas colors); "other" atlases (pediatric, infant,
        cerebellum, macaque, marmoset, rat)
    * - Atlases, ROIs & Driving AFNI, pt1 (Glen)
      - `afni10_volreg_talairach.pdf
@@ -248,6 +248,18 @@ DTI & FATCAT lectures
        results into the multivariate modeling (MVM) framework;
        fat_mvm_prep.py and fat_mvm_scripter.py to combine MRI and
        non-MRI data for modeling; example analysis from real study
+   * - FATCAT Hands-On Demo (Taylor)
+     - `FATCAT_05_HO.pdf
+       <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/FATCAT_HO.pdf>`_,
+       `suma.pdf
+       <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/suma.pdf>`_,
+       `suma_keystrokes.txt
+       <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/suma_keystrokes.txt>`_
+     - Overview of FATCAT Demo; visualization of DTI (+FMRI) data
+       using AFNI and SUMA; viewing tractography output; making ROIs
+       from FMRI; whole brain tracking and mask controller; 
+
+
 
 
 
