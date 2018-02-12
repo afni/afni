@@ -2094,14 +2094,16 @@ def db_cmd_volreg(proc, block):
         # most inner is blip (all1 warp need not include blip)
         all1_warps = epi_warps[:]
         if doblip:
-           cstr += '/NLtlrc'
            blipinput = proc.blip_dset_warp.shortinput()
            epi_warps.append(warp_item('blip', 'NL', blipinput))
+
+        if dowarp and proc.nlw_NL_mat:
+           cstr += '/NLtlrc'
 
         indent = '    '
         wcmd = '\n%s# apply catenated xform: %s\n' % (indent, cstr)
         # rcr - remove:
-        if proc.nlw_aff_mat:
+        if dowarp and proc.nlw_aff_mat:
            wcmd += '%s# then apply non-linear standard-space warp\n' % indent
 
         # if ME, wrap per echo
