@@ -42,8 +42,8 @@ Monday
        <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni01_intro.pdf>`_,
        `AFNI_interactive2.pdf
        <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/AFNI_interactive2.pdf>`_
-     - AFNI datasets, image viewer, side controls
-       (brightness/contrast, zoom), help, display panel, montage,
+     - AFNI datasets; image viewer; side controls
+       (brightness/contrast, zoom); help; display panel; montage;
        multiple controllers
    * - AFNI Interactive (Glen)
      - `AFNI_interactive2.pdf
@@ -51,7 +51,7 @@ Monday
        `afni03_interactive.pdf
        <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni03_interactive.pdf>`_
      - graphing across time, overlay control (opacity and
-       thresholding), clusterize plugin, other plugins, "driving" AFNI
+       thresholding); clusterize plugin; other plugins; "driving" AFNI
        viewer from command line
    * - Single Subject Analysis (Cox)
      - 
@@ -59,8 +59,7 @@ Monday
    * - Regression Hands-On (Reynolds)
      - 
      -
-`
-       <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/>`_,
+
 
 Tuesday
 -------
@@ -76,19 +75,19 @@ Tuesday
    * - Alignment and Registration, pt1 (Glen)
      - `afni10_volreg_talairach.pdf
        <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni10_volreg_talairach.pdf>`_
-     - definitions and overview (rigid, linear affine, motion
-       correction and regressors (3dvolreg), cross-modality (anat to
-       epi), cost functions (esp. lpc and lpa), cross-modality (anat
-       to epi) align_epi_anat.py, programs for visualization of
+     - definitions and overview (rigid; linear affine; motion
+       correction and regressors (3dvolreg); cross-modality (anat to
+       epi); cost functions (esp. lpc and lpa); cross-modality (anat
+       to epi; align_epi_anat.py); programs for visualization of
        alignment
    * - Alignment and Registration, pt1 (Glen)
      - `afni10_volreg_talairach.pdf
        <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni10_volreg_talairach.pdf>`_
-     - visualization in GUI, checking alignment quality, left-right
-       flipping, alignment to standard space, non-human alignment,
-       afni_proc.py alignment, nonlinear warping (3dQwarp),
-       blip-up/down (EPI distortion) correction, atlas definitions,
-       templates, @auto_tlrc,
+     - visualization in GUI; checking alignment quality; left-right
+       flipping; alignment to standard space; non-human alignment;
+       afni_proc.py alignment; nonlinear warping (3dQwarp);
+       blip-up/down (EPI distortion) correction; atlas definitions;
+       templates; @auto_tlrc
    * - FMRI Analysis: Start-to-Middle (Reynolds)
      - 
      -
@@ -114,11 +113,11 @@ Wednesday
    * - Atlases, ROIs & Driving AFNI, pt1 (Glen)
      -`afni10_volreg_talairach.pdf
        <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni10_volreg_talairach.pdf>`_
-     - standard space/template definitions, atlas definitions,
-       nonlinear alignment to template, choosing a template/examples,
-       coordinate order/systems, visualizing atlases, "whereami"
-       function (GUI+command line), atlas GUI features ("Go to atlas"
-       location, Atlas Colors), "other" atlases (pediatric, infant,
+     - standard space/template definitions; atlas definitions;
+       nonlinear alignment to template; choosing a template/examples;
+       coordinate order/systems; visualizing atlases; "whereami"
+       function (GUI+command line); atlas GUI features ("Go to atlas"
+       location; Atlas Colors); "other" atlases (pediatric, infant,
        cerebellum, macaque, marmoset, rat)
    * - Atlases, ROIs & Driving AFNI, pt1 (Glen)
      - `afni10_volreg_talairach.pdf
@@ -127,10 +126,10 @@ Wednesday
        <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni11_roi.pdf>`_,
        `afni11_roi_cmds.txt
        <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni11_roi_cmds.txt>`_
-     - creating templates+atlases using AFNI, ROI definitions, methods
-       to create ROIs (draw, clusterize, from atlas), AFNI draw
-       plugin, resampling ROIs, extracting quantities from ROIs
-       (averages, masks), clustering ROIs, ROIs from atlas regions,
+     - creating templates+atlases using AFNI; ROI definitions; methods
+       to create ROIs (draw; clusterize; from atlas); AFNI draw
+       plugin; resampling ROIs; extracting quantities from ROIs
+       (averages, masks); clustering ROIs; ROIs from atlas regions;
        transforming between native subject and template spaces
    * - Group Analysis Hands-On (Chen)
      - 
