@@ -104,6 +104,19 @@ Tuesday
      - `afni16_start_to_finish.pdf
        <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni16_start_to_finish.pdf>`_
      - continuation of Start-to-Middle; @ss_review_driver
+   * - Exercises and Consultations (class) 
+     - `afni19_jazz.pdf
+       <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni19_jazz.pdf>`_,
+       `afni19_jazz_hints.pdf
+       <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni19_jazz_hints.pdf>`_,
+       `afni19_jazz_answers.pdf
+       <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni19_jazz_answers.pdf>`_,
+     - *This session does not contain any lecture; students can ask
+       questions, and/or work on the AFNI Jazzercise questions, which
+       are provided here.  These PDFs are meant to help new users gain
+       familiarity with some AFNI functions; feel free to use the
+       "hints" and "answers" for assistance!*
+
 
 .. _class_recordings_wedn:
 
@@ -229,7 +242,10 @@ The following lectures were recorded after the Bootcamp itself, but
 mirror those lectures given during the "DTI Breakout" session on the
 Monday of the Bootcamp.  At some point in the near(ish) future, we
 hope to record the presentations given by the other DTI session
-presenters, as well, and add them here.
+presenters, as well, and add them here; at present, some brief notes
+by the TORTOISE group on EPI distortions in DTI and motivation for
+using TORTOISE to correct them are provided here: `TORTOISE_Okan.pdf
+<https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/TORTOISE_Okan.pdf>`_.
 
 For the "Hands-On" demo viewing, it helps to have gone through the
 first SUMA session from :ref:`Thursday, above
