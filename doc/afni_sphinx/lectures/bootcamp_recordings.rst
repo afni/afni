@@ -81,7 +81,7 @@ Tuesday
        epi); cost functions (esp. lpc and lpa); cross-modality (anat
        to epi; align_epi_anat.py); programs for visualization of
        alignment
-   * - Alignment and Registration, pt1 (Glen)
+   * - Alignment and Registration, pt2 (Glen)
      - `afni10_volreg_talairach.pdf
        <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni10_volreg_talairach.pdf>`_
      - visualization in GUI; checking alignment quality; left-right
@@ -99,9 +99,8 @@ Tuesday
        <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni16_start_to_finish.pdf>`_
      - continuation of Start-to-Middle; @ss_review_driver
 
-
 Wednesday
----------
+------
 
 .. list-table:: 
    :header-rows: 1
@@ -112,18 +111,22 @@ Wednesday
      - Associated handouts
      - Contents, notes
    * - Group Analysis in FMRI (Chen)
-     - 
-     -
+     - `afni24_GroupAna.pdf
+       <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni24_GroupAna.pdf>`_
+     - basic concepts and terminologies in group analysis;
+       group analysis approaches: t-tests, GLM, ANOVA, ANCOVA, LME;
+       miscellaneous issues: centering, intraclass correlation,
+       inter-subject correlation
    * - Atlases, ROIs & Driving AFNI, pt1 (Glen)
-     -`afni10_volreg_talairach.pdf
+     - `afni10_volreg_talairach.pdf
        <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni10_volreg_talairach.pdf>`_
      - standard space/template definitions; atlas definitions;
        nonlinear alignment to template; choosing a template/examples;
        coordinate order/systems; visualizing atlases; "whereami"
        function (GUI+command line); atlas GUI features ("Go to atlas"
-       location; Atlas Colors); "other" atlases (pediatric, infant,
+       location; atlas colors); "other" atlases (pediatric, infant,
        cerebellum, macaque, marmoset, rat)
-   * - Atlases, ROIs & Driving AFNI, pt1 (Glen)
+   * - Atlases, ROIs & Driving AFNI, pt2 (Glen)
      - `afni10_volreg_talairach.pdf
        <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni10_volreg_talairach.pdf>`_,
        `afni11_roi.pdf
@@ -136,11 +139,15 @@ Wednesday
        (averages, masks); clustering ROIs; ROIs from atlas regions;
        transforming between native subject and template spaces
    * - Group Analysis Hands-On (Chen)
-     - 
-     -
+     - `afni25_GroupAna_HO.pdf
+       <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni25_GroupAna_HO.pdf>`_
+     - Bayesian Multilevel Modeling; 
+       available group analysis programs in AFNI: 3dttest++, 3dMEMA,
+       3dANOVAx, 3dMVM, 3dLME;
+       a few hands-on group analysis examples
    * - Advanced Regression++ (Cox)
-     - 
-     -
+     - a
+     - b
 
 
 Thursday
@@ -169,8 +176,11 @@ Thursday
        complete single subject surface-based analysis with afni_proc.py;
        viewing effects of processing on surface data
    * - Group Analysis Hands-On++ (Chen)
-     - 
-     -
+     - `afni25_GroupAna_HO.pdf
+       <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni25_GroupAna_HO.pdf>`_
+     - available group analysis programs in AFNI: 3dttest++, 3dMEMA,
+       3dANOVAx, 3dMVM, 3dLME;
+       a few hands-on group analysis examples
    * - Resting State & InstaCorr (Cox)
      - 
      -
@@ -248,6 +258,18 @@ DTI & FATCAT lectures
        results into the multivariate modeling (MVM) framework;
        fat_mvm_prep.py and fat_mvm_scripter.py to combine MRI and
        non-MRI data for modeling; example analysis from real study
+   * - FATCAT Hands-On Demo (Taylor)
+     - `FATCAT_05_HO.pdf
+       <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/FATCAT_HO.pdf>`_,
+       `suma.pdf
+       <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/suma.pdf>`_,
+       `suma_keystrokes.txt
+       <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/suma_keystrokes.txt>`_
+     - Overview of FATCAT Demo; visualization of DTI (+FMRI) data
+       using AFNI and SUMA; viewing tractography output; making ROIs
+       from FMRI; whole brain tracking and mask controller; 
+
+
 
 
 
