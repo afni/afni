@@ -1138,9 +1138,10 @@ int main( int argc , char * argv[] )
    /*-- more checks --*/
 
    /* the following aren't fatal errors, but merit a warning slap in the face */
+   /* [modified to be less stringent [11 Feb 2018] -- RWC */
 
-   if( FLDIF(DSET_DX(baset),dx) ||
-       FLDIF(DSET_DY(baset),dy) || FLDIF(DSET_DZ(baset),dz) ){
+   if( FLDIF(DSET_DX(baset),dx) > 0.002f ||
+       FLDIF(DSET_DY(baset),dy) > 0.002f || FLDIF(DSET_DZ(baset),dz) > 0.002f ){
      WARNING_message("base and input grid spacings don't match!\n"
                      /*"If this is not by design or if registration\n"
                      "fails, use 3dresample with -master option:\n"
@@ -1149,15 +1150,15 @@ int main( int argc , char * argv[] )
                      "             -prefix RS\n"
                      "to sesample the input data and rerun the\n"
                      "registration with RS as the input.\n", DSET_BRIKNAME(baset), DSET_BRIKNAME(inset) */) ;
-     WARNING_message("base  grid = %.5f X %.5f X %.5f mm\n",
+     WARNING_message("base  grid = %.6f X %.6f X %.6f mm\n",
                      DSET_DX(baset),DSET_DY(baset),DSET_DZ(baset) ) ;
-     WARNING_message("input grid = %.5f X %.5f X %.5f mm\n",
+     WARNING_message("input grid = %.6f X %.6f X %.6f mm\n",
                      DSET_DX(inset),DSET_DY(inset),DSET_DZ(inset) ) ;
    }
 
-   if( FLDIF(DSET_XORG(baset),DSET_XORG(inset)) ||
-       FLDIF(DSET_YORG(baset),DSET_YORG(inset)) ||
-       FLDIF(DSET_ZORG(baset),DSET_ZORG(inset))   ){
+   if( FLDIF(DSET_XORG(baset),DSET_XORG(inset)) > 0.02f ||
+       FLDIF(DSET_YORG(baset),DSET_YORG(inset)) > 0.02f ||
+       FLDIF(DSET_ZORG(baset),DSET_ZORG(inset)) > 0.02f   ){
      WARNING_message("base and input grid offsets don't match!\n"
                      /*"If this is not by design or if registration\n"
                      "fails, use 3dresample with -master option:\n"
@@ -1166,9 +1167,9 @@ int main( int argc , char * argv[] )
                      "             -prefix RS\n"
                      "to sesample the input data and rerun the\n"
                      "registration with RS as the input.\n", DSET_BRIKNAME(baset), DSET_BRIKNAME(inset) */) ;
-     WARNING_message("base  offsets = %.5f X %.5f X %.5f mm\n",
+     WARNING_message("base  offsets = %.6f X %.6f X %.6f mm\n",
                      DSET_XORG(baset),DSET_YORG(baset),DSET_ZORG(baset) ) ;
-     WARNING_message("input offsets = %.5f X %.5f X %.5f mm\n",
+     WARNING_message("input offsets = %.6f X %.6f X %.6f mm\n",
                      DSET_XORG(inset),DSET_YORG(inset),DSET_ZORG(inset) ) ;
    }
 

@@ -4759,6 +4759,9 @@ LABELS_ARE_DONE:  /* target for goto above */
 
              sprintf(fname,"%s.%s.5percent.txt",prefix_clustsim,clab[icase]) ;
              fp = fopen(fname,"w") ;
+             if( fp == NULL ){
+               ERROR_message("Unable to open '%s' for output :(",fname) ;
+             }
              INFO_message("3dttest++ ----- Global %% FPR points for simulated z-stats:") ;
 
              for( ipp=9 ; ipp > 0 ; ipp-- ){
@@ -4781,8 +4784,10 @@ LABELS_ARE_DONE:  /* target for goto above */
                  WARNING_message("   [for some reason, unable to write above results to a file]") ;
                }
              }
-             fclose(fp) ;
-             ININFO_message("    [above results also in file %s]",fname) ;
+             if( fp != NULL ){
+               fclose(fp) ;
+               ININFO_message("    [above results also in file %s]",fname) ;
+             }
              mri_free(allim) ;
            }
          }
