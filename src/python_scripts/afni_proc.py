@@ -580,7 +580,7 @@ g_history = """
     6.00 Nov  7, 2017: python3 compatible
     6.01 Nov 15, 2017: fixed -despike_mask (by D Plunkett)
     6.02 Dec 12, 2017: added "sample analysis script" to help
-    6.03 Feb  8, 2018: can process multi-echo data
+    6.03 Feb 12, 2018: can process multi-echo data
         - added -dsets_me_echo/_run and 'combine' processing block
 """
 
