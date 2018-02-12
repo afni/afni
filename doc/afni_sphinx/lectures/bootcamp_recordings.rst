@@ -13,14 +13,20 @@ Overview
 ========
 
 The current set of Bootcamp recordings, unless otherwise noted, were
-recorded during the AFNI Bootcamp held at the NIH in October, 2017.  
+recorded during the AFNI Bootcamp held at the NIH in October, 2017.
+The videos provided here are screen captures with audio and toggleable
+captioning.
 
 They are organized by the day and title of the lecture according to
 the schedule of that week, shown :download:`here
 <media/AFNI_Oct2017_5day_schedule.pdf>`.
 
-The videos provided here are screen captures with audio and toggleable
-captioning.
+For each lecture, accompanying files are provided, which are either
+directly used or contain records of the information presented
+(particularly for visualization-based presentations using the AFNI and
+SUMA GUIs).  Additional files that might are relevant, though perhaps
+not directly used in the presentations, are also provided in
+parentheses.
 
 
 .. _class_recordings_bootcamp:
@@ -45,7 +51,9 @@ Monday
      - `afni01_intro.pdf
        <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni01_intro.pdf>`_,
        `AFNI_interactive2.pdf
-       <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/AFNI_interactive2.pdf>`_
+       <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/AFNI_interactive2.pdf>`_,
+       `QuickTasks.pptx.pdf
+       <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/QuickTasks.pptx.pdf>`_
      - AFNI datasets; image viewer; side controls
        (brightness/contrast, zoom); help; display panel; montage;
        multiple controllers
@@ -90,6 +98,8 @@ Tuesday
    * - Alignment and Registration, pt2 (Glen)
      - `afni10_volreg_talairach.pdf
        <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni10_volreg_talairach.pdf>`_
+       (`3dQwarp.pdf
+       <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/3dQwarp.pdf>`_)
      - visualization in GUI; checking alignment quality; left-right
        flipping; alignment to standard space; non-human alignment;
        afni_proc.py alignment; nonlinear warping (3dQwarp);

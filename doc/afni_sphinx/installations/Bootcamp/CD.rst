@@ -4,9 +4,13 @@
 **Bootcamp Material**
 =====================
 
-   Much of the demo material is part of the bootcamp installation. You could go about installing the whole package as follows::
+Much of the demo material is part of the bootcamp installation. You
+could go about installing the whole package as follows::
    
-   afni_open -aw CD.tgz
-   tar xvzf CD.tgz
-   
-   or you can install various demos separately.
+  curl -O https://afni.nimh.nih.gov/pub/dist/edu/data/CD.tgz
+  tar xvzf CD.tgz
+  cd CD
+  tcsh s2.cp.files . ~
+  cd ..
+
+which will unpack the Bootcamp demo data into your home directory.
