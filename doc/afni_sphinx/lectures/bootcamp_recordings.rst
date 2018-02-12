@@ -15,18 +15,21 @@ Overview
 The current set of Bootcamp recordings, unless otherwise noted, were
 recorded during the AFNI Bootcamp held at the NIH in October, 2017.
 The videos provided here are screen captures with audio and toggleable
-captioning.
-
-They are organized by the day and title of the lecture according to
-the schedule of that week, shown :download:`here
+captioning. They are organized by the day and title of the lecture
+according to the schedule of that week, shown :download:`here
 <media/AFNI_Oct2017_5day_schedule.pdf>`.
 
-For each lecture, accompanying files are provided, which are either
-directly used or contain records of the information presented
-(particularly for visualization-based presentations using the AFNI and
-SUMA GUIs).  Additional files that might are relevant, though perhaps
-not directly used in the presentations, are also provided in
-parentheses.
+For each lecture, links to accompanying PDF/TXT files are provided,
+which are either directly used or contain records of the information
+presented (particularly for visualization-based presentations using
+the AFNI and SUMA GUIs).  Additional files that might are relevant,
+though perhaps not directly used in the presentations, are also
+provided in parentheses.
+
+The Bootcamp demo data directory can be downloaded by following
+:ref:`these "Boot up" instructions <install_bootcamp>`.  We also
+strongly recommend that people unfamiliar with scripting take a quick
+tour through the handy :ref:`Linux tutorial <U_all>`.
 
 
 .. _class_recordings_bootcamp:
@@ -234,13 +237,9 @@ Friday
      - 
      -
    * - DTI, FATCAT & more SUMA (Taylor)
-     - `FATCAT_02_dti_tracking_intro.pdf
-       <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/FATCAT_02_dti_tracking_intro.pdf>`_,
-       `FATCAT_03_dti_tracking_funcs.pdf
-       <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/FATCAT_03_dti_tracking_funcs.pdf>`_,
-       `FATCAT_HO.pdf
-       <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/FATCAT_HO.pdf>`_
-     - stuff
+     - 
+     - *see the "DTI & FATCAT videos" section, and in particular the
+       "FATCAT Hands-On Demo" lecture, below.*
 
 
 .. _class_recordings_suppl:
