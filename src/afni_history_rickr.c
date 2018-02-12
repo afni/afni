@@ -49,11 +49,6 @@
 
 afni_history_struct rickr_history[] = {
 
- { 12, Feb, 2018, RCR, "3dvolreg", MICRO, TYPE_BUG_FIX,
-   "report and exit on fopen failures for -1D/dfile, etc.",
-   "Thanks to Mingbo (MB) for reporting the problem."
- } ,
-
  {  1, Feb, 2018, RCR, "3dTto1D", MINOR, TYPE_NEW_OPT,
    "add methods 4095_count/frac/warn",
    "Count 4095 values, or warn if datum is short and max is 4095."
