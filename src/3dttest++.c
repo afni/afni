@@ -1412,7 +1412,7 @@ void display_help_menu(void)
       "                    NN=1 or NN=2 or NN=3 } spatial connectivity for clustering\n"
       "                    sid=1 or sid=2       } 1-sided or 2-sided t-tests\n"
       "                    pthr=p1,p2,...       } list of p-values to use\n"
-      "                    hpow=h1,h2,...       } list of H powers to use\n"
+      "                    hpow=h1,h2,...       } list of H powers (0, 1, and/or 2)\n"
       "                    fpr=value            } FPR goal, between 2 and 9 (percent)\n"
       "                                         } - must be an integer\n"
       "                                         } - or the word 'ALL' to output\n"
