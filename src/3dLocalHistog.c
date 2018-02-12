@@ -233,7 +233,7 @@ int main( int argc , char *argv[] )
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
        if( labfile != NULL ) ERROR_exit("Can't use '%s' twice!",argv[iarg-1]) ;
        labfile = strdup(argv[iarg]) ;
-       labnel = THD_string_table_read(labfile) ;
+       labnel = THD_string_table_read(labfile,0) ;
        if( labnel == NULL || labnel->vec_num < 2 )
          ERROR_exit("Can't read label file '%s'",labfile) ;
        nlab   = labnel->vec_len ;

@@ -526,9 +526,11 @@ ENTRY("THD_mixed_table_read") ;
 
 /*------------------------------------------------------------------------*/
 /* This table has only strings, and no header labels.
+   Bit flags:
+     1 = read as tsv (tab separated values)
 *//*----------------------------------------------------------------------*/
 
-NI_element * THD_string_table_read( char *fname )
+NI_element * THD_string_table_read( char *fname , int flags )
 {
    NI_str_array *sar ;
    char *dname , *cpt , *dpt , *qpt , lbuf[NLL] ;
@@ -537,6 +539,7 @@ NI_element * THD_string_table_read( char *fname )
    FILE *fts ;
    float val ;
    int verb = AFNI_yesenv("AFNI_DEBUG_TABLE") ;
+   int do_tsv = (flags & 1) != 0 ;
 
 ENTRY("THD_string_table_read") ;
 
@@ -613,7 +616,10 @@ ENTRY("THD_string_table_read") ;
      TRBUF(lbuf) ;
      if( verb ) ININFO_message("  processing row #%d = '%s'",row,lbuf+ibot) ;
 
-     sar = NI_decode_string_list( lbuf+ibot , ";" ) ;
+     if( do_tsv )
+       sar = NI_strict_decode_string_list( lbuf+ibot, "\t" ) ; /* 08 Feb 2018 */
+     else
+       sar = NI_decode_string_list( lbuf+ibot , ";" ) ;
      if( sar == NULL ) continue ;                      /* nuthin ==> loopback */
 
      if( row == 0 ){   /* first row ==> format element */
@@ -627,7 +633,6 @@ ENTRY("THD_string_table_read") ;
 
      /* put values from this line into this row of the table */
 
-     NI_insert_string( nel , row , 0 , sar->str[0] ) ;
      if( niv <= 0 ){
        for( ii=0 ; ii < ncol ; ii++ ){
          if( ii < sar->num ) dpt = sar->str[ii] ;
