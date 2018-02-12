@@ -57,8 +57,9 @@ Monday
      - 
      -
    * - Regression Hands-On (Reynolds)
-     - 
-     -
+     - `afni05_regression.pdf
+       <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni05_regression.pdf>`_
+     - hands-on: preprocessing overview and simple linear regression example
 
 
 Tuesday
@@ -89,11 +90,14 @@ Tuesday
        blip-up/down (EPI distortion) correction; atlas definitions;
        templates; @auto_tlrc
    * - FMRI Analysis: Start-to-Middle (Reynolds)
-     - 
-     -
+     - `afni16_start_to_finish.pdf
+       <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni16_start_to_finish.pdf>`_
+     - hands-on: detailed analysis (preprocessing through linear regression) of
+       FT_analysis data; looking at data
    * - FMRI Analysis: Middle-to-End (Reynolds)
-     - 
-     -
+     - `afni16_start_to_finish.pdf
+       <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni16_start_to_finish.pdf>`_
+     - continuation of Start-to-Middle; @ss_review_driver
 
 
 Wednesday
