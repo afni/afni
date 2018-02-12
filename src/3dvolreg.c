@@ -1102,6 +1102,8 @@ int main( int argc , char *argv[] )
 
      if( VL_matrix_save_1D != NULL ){             /* 24 Jul 2007 */
        VL_msfp = fopen(VL_matrix_save_1D,"w") ;
+       if( !VL_msfp ) ERROR_exit("failed to open -1Dmatrix_save file: %s",
+                                 VL_matrix_save_1D);
        fprintf(VL_msfp,
                "# 3dvolreg matrices (DICOM-to-DICOM, row-by-row):\n") ;
      }
@@ -1249,6 +1251,8 @@ int main( int argc , char *argv[] )
          if( strcmp(VL_dmaxfile,"-") != 0 ){
            if( THD_is_file(VL_dmaxfile) ) WARNING_message("Overwriting file %s",VL_dmaxfile);
            fp = fopen( VL_dmaxfile , "w" ) ;
+           if( !fp ) ERROR_exit("failed to open -maxdisp1D file: %s",
+                                VL_dmaxfile);
          } else {
            fp = stdout ;
          }
@@ -1262,6 +1266,8 @@ int main( int argc , char *argv[] )
          if( strcmp(VL_emaxfile,"-") != 0 ){
            if( THD_is_file(VL_emaxfile) ) WARNING_message("Overwriting file %s",VL_emaxfile);
            fp = fopen( VL_emaxfile , "w" ) ;
+           if( !fp ) ERROR_exit("failed to open -maxdisp1D emax file: %s",
+                                VL_emaxfile);
          } else {
            fp = stdout ;
          }
@@ -1342,6 +1348,7 @@ int main( int argc , char *argv[] )
        fprintf(stderr,"** Warning: overwriting file %s\n",VL_dfile) ;
 
      fp = fopen( VL_dfile , "w" ) ;
+     if( ! fp ) ERROR_exit("failed to open -dfile: %s", VL_dfile);
      for( kim=0 ; kim < imcount ; kim++ )
        fprintf(fp , "%4d %8.4f %8.4f %8.4f %8.4f %8.4f %8.4f  %11.4g %11.4g\n" ,
                kim , roll[kim], pitch[kim], yaw[kim],
@@ -1357,6 +1364,7 @@ int main( int argc , char *argv[] )
          fprintf(stderr,"** Warning: overwriting file %s\n",VL_1Dfile) ;
 
       fp = fopen( VL_1Dfile , "w" ) ;
+      if( ! fp ) ERROR_exit("failed to open -1Dfile: %s", VL_1Dfile);
       for( kim=0 ; kim < imcount ; kim++ )
          fprintf(fp , "%8.4f %8.4f %8.4f %8.4f %8.4f %8.4f\n" ,
                  roll[kim], pitch[kim], yaw[kim],
