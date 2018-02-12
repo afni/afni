@@ -99,9 +99,8 @@ Tuesday
        <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni16_start_to_finish.pdf>`_
      - continuation of Start-to-Middle; @ss_review_driver
 
-
 Wednesday
----------
+------
 
 .. list-table:: 
    :header-rows: 1
@@ -112,14 +111,14 @@ Wednesday
      - Associated handouts
      - Contents, notes
    * - Group Analysis in FMRI (Chen)
-     -`afni24_GroupAna.pdf
+     - `afni24_GroupAna.pdf
        <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni24_GroupAna.pdf>`_
      - basic concepts and terminologies in group analysis;
        group analysis approaches: t-tests, GLM, ANOVA, ANCOVA, LME;
        miscellaneous issues: centering, intraclass correlation,
        inter-subject correlation
    * - Atlases, ROIs & Driving AFNI, pt1 (Glen)
-     -`afni10_volreg_talairach.pdf
+     - `afni10_volreg_talairach.pdf
        <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni10_volreg_talairach.pdf>`_
      - standard space/template definitions; atlas definitions;
        nonlinear alignment to template; choosing a template/examples;
@@ -147,8 +146,8 @@ Wednesday
        3dANOVAx, 3dMVM, 3dLME;
        a few hands-on group analysis examples
    * - Advanced Regression++ (Cox)
-     - 
-     -
+     - a
+     - b
 
 
 Thursday
