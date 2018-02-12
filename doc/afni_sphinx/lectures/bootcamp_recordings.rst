@@ -92,8 +92,8 @@ Tuesday
    * - FMRI Analysis: Start-to-Middle (Reynolds)
      - `afni16_start_to_finish.pdf
        <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni16_start_to_finish.pdf>`_
-     - hands-on: detailed analysis (preprocessing through linear regression) of
-       FT_analysis data; looking at data
+     - hands-on: afni_proc.py; detailed analysis (preprocessing through linear
+       regression) of FT_analysis data; looking at data
    * - FMRI Analysis: Middle-to-End (Reynolds)
      - `afni16_start_to_finish.pdf
        <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni16_start_to_finish.pdf>`_
@@ -163,8 +163,11 @@ Thursday
        create surfaces for SUMA; how surface analysis complements
        volumetric analysis; SUMA data visualization (interactive).
    * - *More* SUMA & Surface Analysis (Reynolds)
-     - 
-     -
+     - `suma.pdf
+       <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/suma.pdf>`_,
+     - hands-on: SUMA continuation; surface ROI drawing and mapping to volume;
+       complete single subject surface-based analysis with afni_proc.py;
+       viewing effects of processing on surface data
    * - Group Analysis Hands-On++ (Chen)
      - 
      -
