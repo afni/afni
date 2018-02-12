@@ -1,6 +1,5 @@
 .. _class_recordings:
 
-
 ********************************
 AFNI Bootcamp Lecture Recordings
 ********************************
@@ -23,8 +22,13 @@ the schedule of that week, shown :download:`here
 The videos provided here are screen captures with audio and toggleable
 captioning.
 
+
+.. _class_recordings_bootcamp:
+
 Bootcamp Videos
 ===============
+
+.. _class_recordings_mon:
 
 Monday
 ------
@@ -62,6 +66,8 @@ Monday
      - hands-on: preprocessing overview and simple linear regression example
 
 
+.. _class_recordings_tues:
+
 Tuesday
 -------
 
@@ -98,6 +104,8 @@ Tuesday
      - `afni16_start_to_finish.pdf
        <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni16_start_to_finish.pdf>`_
      - continuation of Start-to-Middle; @ss_review_driver
+
+.. _class_recordings_wedn:
 
 Wednesday
 ------
@@ -149,6 +157,7 @@ Wednesday
      - a
      - b
 
+.. _class_recordings_thurs:
 
 Thursday
 --------
@@ -185,6 +194,7 @@ Thursday
      - 
      -
 
+.. _class_recordings_fri:
 
 Friday
 ------
@@ -210,6 +220,8 @@ Friday
      - stuff
 
 
+.. _class_recordings_suppl:
+
 Supplementary lectures
 ======================
 
@@ -219,8 +231,15 @@ Monday of the Bootcamp.  At some point in the near(ish) future, we
 hope to record the presentations given by the other DTI session
 presenters, as well, and add them here.
 
-DTI & FATCAT lectures
-------
+For the "Hands-On" demo viewing, it helps to have gone through the
+first SUMA session from :ref:`Thursday, above
+<class_recordings_thurs>`.
+
+
+.. _class_recordings_fatcat:
+
+DTI & FATCAT videos
+-------------------
 
 .. list-table:: 
    :header-rows: 1
@@ -266,8 +285,10 @@ DTI & FATCAT lectures
        `suma_keystrokes.txt
        <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/suma_keystrokes.txt>`_
      - Overview of FATCAT Demo; visualization of DTI (+FMRI) data
-       using AFNI and SUMA; viewing tractography output; making ROIs
-       from FMRI; whole brain tracking and mask controller; 
+       using AFNI and SUMA; viewing tractography output (solo, with
+       surfaces, with ROIs, with FMRI data); making ROIs from FMRI;
+       whole brain tracking and mask controller (with InstaTract);
+       matrices and graphs in SUMA; FMRI+tractography visualizations
 
 
 
