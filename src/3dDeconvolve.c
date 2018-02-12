@@ -11807,7 +11807,7 @@ ENTRY("basis_parser") ;
        if( num_block == 0 ){
          first_block_peakval = bot ;
          first_block_peaksym = strdup(sym) ;
-       } else if( FLDIF(bot,first_block_peakval) ){
+       } else if( FLDIF(bot,first_block_peakval) > 0.002f ){
          WARNING_message(
           "%s has different peak value than first %s\n"
           "            We hope you know what you are doing!" ,
@@ -11818,7 +11818,7 @@ ENTRY("basis_parser") ;
          if( first_len_pkzero == 0.0f ){
            first_len_pkzero = top ;
            first_sym_pkzero = strdup(sym) ;
-         } else if( FLDIF(top,first_len_pkzero) ){
+         } else if( FLDIF(top,first_len_pkzero) > 0.002f ){
            WARNING_message(
             "%s has different duration than first %s\n"
             "       ==> Amplitudes will differ.  We hope you know what you are doing!" ,
@@ -11878,7 +11878,7 @@ ENTRY("basis_parser") ;
        if( num_block == 0 ){
          first_block_peakval = bot ;
          first_block_peaksym = strdup(sym) ;
-       } else if( FLDIF(bot,first_block_peakval) ){
+       } else if( FLDIF(bot,first_block_peakval) > 0.002f ){
          WARNING_message(
           "%s has different peak value than first %s\n"
           "            We hope you know what you are doing!" ,
@@ -11889,7 +11889,7 @@ ENTRY("basis_parser") ;
          if( first_len_pkzero == 0.0f ){
            first_len_pkzero = top ;
            first_sym_pkzero = strdup(sym) ;
-         } else if( FLDIF(top,first_len_pkzero) ){
+         } else if( FLDIF(top,first_len_pkzero) > 0.002f ){
            WARNING_message(
             "%s has different duration than first %s\n"
             "       ==> Amplitudes will differ.  We hope you know what you are doing!" ,
