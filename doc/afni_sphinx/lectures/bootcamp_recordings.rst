@@ -112,8 +112,12 @@ Wednesday
      - Associated handouts
      - Contents, notes
    * - Group Analysis in FMRI (Chen)
-     - 
-     -
+     -`afni24_GroupAna.pdf
+       <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni24_GroupAna.pdf>`_
+     - basic concepts and terminologies in group analysis;
+       group analysis approaches: t-tests, GLM, ANOVA, ANCOVA, LME;
+       miscellaneous issues: centering, intraclass correlation,
+       inter-subject correlation
    * - Atlases, ROIs & Driving AFNI, pt1 (Glen)
      -`afni10_volreg_talairach.pdf
        <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni10_volreg_talairach.pdf>`_
@@ -136,8 +140,12 @@ Wednesday
        (averages, masks); clustering ROIs; ROIs from atlas regions;
        transforming between native subject and template spaces
    * - Group Analysis Hands-On (Chen)
-     - 
-     -
+     - `afni25_GroupAna_HO.pdf
+       <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni25_GroupAna_HO.pdf>`_
+     - Bayesian Multilevel Modeling; 
+       available group analysis programs in AFNI: 3dttest++, 3dMEMA,
+       3dANOVAx, 3dMVM, 3dLME;
+       a few hands-on group analysis examples
    * - Advanced Regression++ (Cox)
      - 
      -
@@ -169,8 +177,11 @@ Thursday
        complete single subject surface-based analysis with afni_proc.py;
        viewing effects of processing on surface data
    * - Group Analysis Hands-On++ (Chen)
-     - 
-     -
+     - `afni25_GroupAna_HO.pdf
+       <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni25_GroupAna_HO.pdf>`_
+     - available group analysis programs in AFNI: 3dttest++, 3dMEMA,
+       3dANOVAx, 3dMVM, 3dLME;
+       a few hands-on group analysis examples
    * - Resting State & InstaCorr (Cox)
      - 
      -
