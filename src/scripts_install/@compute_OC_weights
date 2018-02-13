@@ -1,0 +1,81 @@
+#!/bin/tcsh
+
+# get optimally combining weights for echoes
+#
+# Should this be left as a little script or turned into a
+# more formal python program?  Either way, add some options...
+
+# system of equations from Javier's presentation:
+#
+#   mean(S(TE_1)) ~= R(x)*TE_1 + log(So(x))
+#   mean(S(TE_2)) ~= R(x)*TE_2 + log(So(x))
+#   mean(S(TE_3)) ~= R(x)*TE_3 + log(So(x))
+
+# example dset: pb01.P3SBJ01.c.NLtlrc.r01.e01.volreg+tlrc.HEAD
+
+
+# ** note: in step 6.prod, a bad TE will imply equal weights across echoes
+
+set eset = $argv[1]
+set inputs = ( $argv[2-] )
+set view = `3dinfo -av_space $inputs[1]`
+
+
+set numecho = $#inputs
+set eind_list = ( `count -digits 1 1 $numecho` )
+
+set rdir = OC.weight.results
+
+if ( -d $rdir ) then
+   echo "** output dir $rdir already exists, exiting..."
+   exit 1
+endif
+
+mkdir $rdir
+
+# get means for each echo
+foreach eind ( $eind_list ) 
+   3dTstat -mean -prefix $rdir/s1.mean.e$eind $inputs[$eind]
+end
+
+# enter results dir and proceed
+cd $rdir
+
+# get means for each echo
+foreach eind ( $eind_list ) 
+   3dcalc -a s1.mean.e$eind$view -expr 'log(a)' -prefix s2.log.e$eind
+end
+
+# "temporal" catenation
+3dTcat -TR 1 -prefix s3.tcat.logs s2.log.e*.HEAD
+
+
+# regress to solve for R(x) and log(So(x))
+3dDeconvolve -input s3.tcat.logs$view   \
+        -polort 0                       \
+        -num_stimts 1                   \
+        -stim_file 1 ../echo_times.1D   \
+        -x1D x.xmat.1D                  \
+        -fitts s4.fitts                 \
+        -bucket s4.bucket               \
+        -bout
+
+# output volumes are:
+#    0 : full-F
+#    1 : constant term : log(S0(x))
+#    2 : linear term   : -R2(x)
+
+# separate T2-star volume
+3dcalc -a s4.bucket$view'[2]' -expr -a -prefix s5.t2.star
+
+# make a product time series (for any <= 0 values, replace with 1)
+# TE_n * e^-(TE_n/t2star)
+3dcalc -a s5.t2.star$view -b ../echo_times.1D \
+       -expr 'step(a)*b*exp(-b/a)+(1-step(a))' -prefix s6.prod
+
+# and sum
+3dTstat -sum -prefix s7.sum.te s6.prod$view
+
+# make a time series of weights per echo, which is now just prod/sum
+3dcalc -a s6.prod$view -b s7.sum.te$view -expr a/b -prefix s8.weight
+
