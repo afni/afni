@@ -5407,9 +5407,13 @@ void check_for_valid_inputs
   ININFO_message("Number of parameters:  %d [%d baseline ; %d signal]",p,q,p-q) ;
 
   /*----- Check for sufficient data -----*/
-  if (N == 0)  DC_error ("No usable time points?");
+  if (N == 0)  DC_error ("No usable time points? :(");
   if (N <= p)
     {
+       if( nt > p )  /* Better grieving when death happens [13 Feb 2018] */
+         ERROR_message(" *** Censoring has made regression impossible :( ***") ;
+       else
+         ERROR_message("Regression model has too many parameters for dataset length :(") ;
        sprintf (message,  "Insufficient data (%d) for estimating %d parameters", N,p);
        DC_error (message);
    }
