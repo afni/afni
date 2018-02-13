@@ -716,7 +716,11 @@ int main( int argc , char *argv[] )
 
    if( ainter_code < 0 ) ainter_code = interp_code ;
 
+#if 0
    verb_nww = verb ;  /* verb_nww used in warping functions in mri_nwarp.c */
+#else
+   verb_nww = 2 ;
+#endif
 
    /*--- read and setup the list of nonlinear warps ---*/
 
