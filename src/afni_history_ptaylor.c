@@ -66,7 +66,12 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
-   { 8, Feb , 2018 , PT , "fat_proc_dwi_to_dt" , MINOR , TYPE_BUG_FIX,
+{ 13, Feb , 2018 , PT , "fat_proc_filter_dwis" , MINOR , TYPE_MODIFY,
+   "Can now accept *multiple* selector strings that get merged.",
+   "Multiple strings/files can be input, yay.\n"
+},
+
+{ 8, Feb , 2018 , PT , "fat_proc_dwi_to_dt" , MINOR , TYPE_BUG_FIX,
    "When a mask was input, it wasn't resampled if needed to be.",
    "Now fixed, and added check that grid of mask is good. Good.\n"
 },
