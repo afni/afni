@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 13, Feb, 2018, RCR, "@compute_OC_weights", MINOR, TYPE_NEW_PROG,
+   "compute multi-echo optimally combining weights dataset",
+   NULL
+ } ,
+
  { 13, Feb, 2018, RCR, "3dbucket", MICRO, TYPE_MODIFY,
    "return success of dataset write",
    NULL
