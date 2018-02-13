@@ -837,7 +837,8 @@ int main( int argc , char * argv[] )
       if( BUCK_glue ) putenv("AFNI_DECONFLICT=OVERWRITE") ;
       if( BUCK_glue && BUCK_ccode >= 0 )
         THD_set_write_compression(BUCK_ccode) ; /* 16 Mar 2010 */
-      THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
+      if ( ! THD_write_3dim_dataset( NULL,NULL , new_dset , True ) )
+         exit(1) ;
       if( BUCK_verb ) fprintf(stderr,"-verb: wrote output: %s\n",DSET_BRIKNAME(new_dset)) ;
    }
 
