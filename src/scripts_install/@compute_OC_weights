@@ -36,14 +36,16 @@ history for $prog :
    0.0  12 Feb 2018 - a quick working copy
    0.1  12 Feb 2018 - with some options
    0.2  13 Feb 2018 - reasonable option list and basic help
+   0.3  13 Feb 2018 - add a few options
 
 EOF
 exit
 RUN:
 
 
-set etimes_file = ''
 set echo_dsets = ()
+set etimes_file = ''
+set etimes_scale = 1
 set necho = 0
 set prefix = OC_weights
 set results_dir = OC.weight.results
@@ -58,14 +60,6 @@ while ( $ac <= $#argv )
       goto HELP
    else if ( "$argv[$ac]" == "-hist" ) then
       goto HIST
-
-   else if ( "$argv[$ac]" == "-echo_times_file" ) then
-      @ ac ++
-      if ( $ac > $#argv ) then
-         echo "** missing parameter for option '-echo_times_file'"
-         exit 1
-      endif
-      set etimes_file = $argv[$ac]
 
    else if ( "$argv[$ac]" == "-echo_dsets" ) then
       @ ac ++
@@ -87,6 +81,27 @@ while ( $ac <= $#argv )
 
       # take them as echo datasets
       set echo_dsets = ( $argv[$acbase-$ac] )
+
+   else if ( "$argv[$ac]" == "-echo_times_file" ) then
+      @ ac ++
+      if ( $ac > $#argv ) then
+         echo "** missing parameter for option '-echo_times_file'"
+         exit 1
+      endif
+      set etimes_file = $argv[$ac]
+
+   else if ( "$argv[$ac]" == "-echo_times_scale" ) then
+      @ ac ++
+      if ( $ac > $#argv ) then
+         echo "** missing parameter for option '-echo_times_scale' (yes/no)"
+         exit 1
+      endif
+      if ( "$argv[$ac]" == no ) then
+         set etimes_scale = 0
+      else if ( "$argv[$ac]" != yes ) then
+         echo "** -echo_times_scale requires yes/no parameter"
+         exit 1
+      endif
 
    else if ( "$argv[$ac]" == "-prefix" ) then
       @ ac ++
@@ -167,8 +182,14 @@ foreach eind ( $eind_list )
 end
 
 # copy echo times file into working dir and adjust var
-cp $etimes_file $results_dir
-set etimes_file = $etimes_file:t
+# (and possibly scale)
+set enew = $etimes_file:t
+if ( $etimes_scale ) then
+   1deval -a $etimes_file -expr a/1000 > $results_dir/$enew
+else
+   cp $etimes_file $results_dir
+endif
+set etimes_file = $enew
 
 # ----------------------------------------------------------------------
 # enter results dir and proceed
@@ -210,7 +231,12 @@ end
 3dTstat -sum -prefix s7.sum.te s6.prod$view
 
 # make a time series of weights per echo, which is now just prod/sum
-3dcalc -a s6.prod$view -b s7.sum.te$view -expr a/b -prefix s8.weight
+# (guard against division by close-to-zero)
+3dcalc -a s6.prod$view -b s7.sum.te$view -expr 'step(b-1.0e-10)*a/b' \
+       -prefix s8.weight
+
+# as a test...
+3dTstat -sum -prefix s9.sum.weights s8.weight$view
 
 # copy back to $prefix
 cd $root_dir
