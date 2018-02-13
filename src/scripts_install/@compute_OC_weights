@@ -24,14 +24,40 @@
 
 # ** note: in step 6.prod, a bad TE will imply equal weights across echoes
 
-set necho = 0
+set VERSION = 0.2
+set prog = @compute_OC_weights
+
+goto RUN
+HIST:
+cat << EOF
+
+history for $prog :
+
+   0.0  12 Feb 2018 - a quick working copy
+   0.1  12 Feb 2018 - with some options
+   0.2  13 Feb 2018 - reasonable option list and basic help
+
+EOF
+exit
+RUN:
+
+
 set etimes_file = ''
 set echo_dsets = ()
+set necho = 0
+set prefix = OC_weights
+set results_dir = OC.weight.results
+set root_dir = `pwd`
+set verb = 1
+
+if ( $#argv < 1 ) goto HELP
 
 set ac = 1
 while ( $ac <= $#argv )
    if ( "$argv[$ac]" == "-help" || "$argv[$ac]" == "-h" ) then
       goto HELP
+   else if ( "$argv[$ac]" == "-hist" ) then
+      goto HIST
 
    else if ( "$argv[$ac]" == "-echo_times_file" ) then
       @ ac ++
@@ -40,6 +66,7 @@ while ( $ac <= $#argv )
          exit 1
       endif
       set etimes_file = $argv[$ac]
+
    else if ( "$argv[$ac]" == "-echo_dsets" ) then
       @ ac ++
       set acbase = $ac
@@ -60,6 +87,27 @@ while ( $ac <= $#argv )
 
       # take them as echo datasets
       set echo_dsets = ( $argv[$acbase-$ac] )
+
+   else if ( "$argv[$ac]" == "-prefix" ) then
+      @ ac ++
+      if ( $ac > $#argv ) then
+         echo "** missing parameter for option '-prefix'"
+         exit 1
+      endif
+      set prefix = $argv[$ac]
+
+   else if ( "$argv[$ac]" == "-results_dir" ) then
+      @ ac ++
+      if ( $ac > $#argv ) then
+         echo "** missing parameter for option '-results_dir'"
+         exit 1
+      endif
+      set results_dir = $argv[$ac]
+   else if ( "$argv[$ac]" == "-verb" ) then
+      @ verb += 1
+      if ( $verb > 2 ) then
+         set echo
+      endif
    else
       echo "** bad option $ac : '$argv[$ac]'"
    endif
@@ -90,8 +138,6 @@ if ( $necho != $#echo_dsets ) then
    exit 1
 endif
 
-echo "-- have $necho echoes"
-
 
 # try to set the view
 set view = `3dinfo -av_space $echo_dsets[1]`
@@ -100,32 +146,33 @@ if ( "$view" == "NO-DSET" || "$view" == "" ) then
    exit 1
 endif
 
+if ( $verb ) echo "-- have $necho echoes"
+if ( $verb == 2 ) echo "-- have view $view"
+
 set eind_list = ( `count -digits 1 1 $necho` )
 
-set rdir = OC.weight.results
-
-if ( -d $rdir ) then
-   echo "** output dir $rdir already exists, exiting..."
+if ( -d $results_dir ) then
+   echo "** output dir $results_dir already exists, exiting..."
    exit 1
 endif
 
-mkdir $rdir
+mkdir $results_dir
 
 # ----------------------------------------------------------------------
 # get inputs or basic computations into working directory
 
 # get means for each echo
 foreach eind ( $eind_list ) 
-   3dTstat -mean -prefix $rdir/s1.mean.e$eind $echo_dsets[$eind]
+   3dTstat -mean -prefix $results_dir/s1.mean.e$eind $echo_dsets[$eind]
 end
 
 # copy echo times file into working dir and adjust var
-cp $etimes_file $rdir
+cp $etimes_file $results_dir
 set etimes_file = $etimes_file:t
 
 # ----------------------------------------------------------------------
 # enter results dir and proceed
-cd $rdir
+cd $results_dir
 
 # get means for each echo
 foreach eind ( $eind_list ) 
@@ -165,3 +212,63 @@ end
 # make a time series of weights per echo, which is now just prod/sum
 3dcalc -a s6.prod$view -b s7.sum.te$view -expr a/b -prefix s8.weight
 
+# copy back to $prefix
+cd $root_dir
+3dbucket -prefix $prefix $results_dir/s8.weight$view
+
+if ( $status ) then
+   echo "** failed to create $prefix"
+else if ( $verb ) then
+   echo "++ output written to $prefix"
+endif
+
+exit 0
+
+HELP:
+cat << EOF
+
+$prog           - compute optimally combined weights dataset
+
+   Given echo times (in a text file) and one run of multi-echo EPI data,
+   compute a dataset that can be used to combine the echoes.  The weight
+   dataset would have one volume per echo, which can be used to combine
+   the echoes into a single dataset.  The same echoes can be applied to
+   all runs.
+
+    3dcalc -a echo1+tlrc        -b echo2+tlrc        -c echo3+tlrc        \
+           -d weights+tlrc'[0]' -e weights+tlrc'[1]' -f weights+tlrc'[2]' \
+           -expr 'a*d+b*e+c*f'  -prefix opt.combined
+
+  Options:
+
+    required parameters:
+
+       -echo_times_file FILE    - specify file with echo times
+                                  (e.g. it could contain 10 20.5 30)
+
+             -echo_times_file echo_times.1D
+
+       -echo_dsets D1 D2 D3     - specify one run of multi-echo EPI data, e.g.:
+
+             -echo_dsets pb03.SUBJ.r01.e*.volreg+tlrc.HEAD
+
+    optional parameters:
+
+       -prefix PREFIX           - specify prefix of resulting OC weights dataset
+
+             -prefix OC.weights.SUBJ
+
+       -results_dir RDIR        - specify directory to compute results in
+
+             -results_dir temp.OC
+
+       -verb                    - increase verbosity of output
+
+    general parameters:
+
+       -help
+       -hist
+       -ver
+
+  
+EOF
