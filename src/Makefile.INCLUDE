@@ -58,7 +58,10 @@ EXTRAS   = cjpeg djpeg whirlgif mpeg_encode myget Xphace rmz aiv mycat quotize $
 ## This list is the core AFNI package:
 ## other programs are experimental and/or outsiders.
 
-PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   \
+## the program list is now split into 4 parts, to facilite the build process
+## [RWC - Feb 2018]
+
+PROGS_1  = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   \
            sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnvals          \
            fim2 imand FD2 sqwave immask imdump imaver 3dhistog 3dfim 3daxialize \
                cdf 2swap 4swap mritopgm 3dANOVA 3dANOVA2 3dANOVA3 plugout_tta   \
@@ -68,8 +71,9 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            2dImReg 3dmaskave 3dbuc2fim byteorder imstack 3dDeconvolve 3dTcat    \
            3drotate 3dvolreg 3dpc 3dfractionize 1dplot adwarp imupsam           \
            3dIntracranial 24swap 3dTsmooth RSFgen float_scan 1dtranspose        \
-           3dFourier 3dNotes 3dROIstats 1deval 3dStatClust 3dTstat 3dmaskdump   \
-           3dTshift 3dDetrend 1dfft 1dcat 3drename 1dnorm afni_vcheck 3ddot     \
+           3dFourier 3dNotes 3dROIstats 1deval 3dStatClust 3dTstat 3dmaskdump
+
+PROGS_2  = 3dTshift 3dDetrend 1dfft 1dcat 3drename 1dnorm afni_vcheck 3ddot     \
            3dWavelets 3dfim+ imcutup imcat 3dWinsor 3dZeropad 3dTagalign        \
            3dMean 3dAttribute cat_matvec 3dOverlap 3dClipLevel 3dZregrid        \
            3dEntropy 3ddelay ent16 3dRowFillin 1dgrayplot 3dToutcount 1dsum     \
@@ -78,8 +82,9 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dAFNItoANALYZE siemens_vision ge_header mayo_analyze 3dAFNItoNIFTI  \
            3dAutoTcorrelate 3dFDR rtfeedme 3dAutomask 3dAFNItoMINC 3dBrickStat  \
            3dThreetoRGB Ifile 3dresample 3dAutobox 3dLRflip 3dANALYZEtoAFNI     \
-           dicom_hdr 3dDespike dicom_to_raw file_tool rotcom 1ddot 1dsvd        \
-           3dDeconvolve_f 3dAnhist 3dAFNIto3D 3dUniformize 3dWarp nicat         \
+           dicom_hdr 3dDespike dicom_to_raw file_tool rotcom 1ddot 1dsvd
+
+PROGS_3  = 3dDeconvolve_f 3dAnhist 3dAFNIto3D 3dUniformize 3dWarp nicat         \
            3dSpatNorm fftest serial_helper 3dDTeig 3dDWItoDT 3dWarpDrive        \
            nifti_tool 3dAllineate nifti1_test whereami plugout_drive 3dLSS      \
            3dMedianFilter 3dretroicor 3dAFNItoNIML 3dAFNItoRaw im2niml 3dedge3  \
@@ -89,8 +94,9 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dBlurToFWHM 1dSEM 3dDFT 3dSynthesize 1dMarry 3dEmpty 3dsvm          \
            1dFlagMotion 3dTsort 1dTsort 3dTfitter afni_history 1dUpsample       \
            3dLocalSVD  niml_feedme  3dErrtsCormat 3dUndump 3dREMLfit 3dTnorm    \
-           3dUpsample 3dTcorrMap 3dmatmult 3dABoverlap 3dmaskSVD 1dBandpass     \
-           3dBlurInMask 3dRank 3dFFT 1dgenARMA11 3dPeriodogram 1dAstrip         \
+           3dUpsample 3dTcorrMap 3dmatmult 3dABoverlap 3dmaskSVD 1dBandpass
+
+PROGS_4  = 3dBlurInMask 3dRank 3dFFT 1dgenARMA11 3dPeriodogram 1dAstrip         \
            3dLocalPV 3dBandpass 3dSetupGroupInCorr 3dGroupInCorr 3dTcorr1D      \
            3dClustSim 3dRetinoPhase 3dMaskToASCII 3dttest++ 3dDTtoDWI           \
            niccc rbox qdelaunay 3dkmeans 3dXYZcat 3dPolyfit 3dNwarpApply        \
@@ -104,6 +110,16 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dTsplit4D 3dSharpen 3dExtractGroupInCorr dcm2niix_afni 3dTto1D      \
            3dBrainSync                                                          \
            $(EXTRAS)
+
+progs_1:$(PROGS_1)
+
+progs_2:$(PROGS_2)
+
+progs_3:$(PROGS_3)
+
+progs_4:$(PROGS_4)
+
+PROGRAMS = $(PROGS_1) $(PROGS_2) $(PROGS_3) $(PROGS_4)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise count \
