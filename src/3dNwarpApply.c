@@ -716,20 +716,18 @@ int main( int argc , char *argv[] )
 
    if( ainter_code < 0 ) ainter_code = interp_code ;
 
-#if 0
-   verb_nww = verb ;  /* verb_nww used in warping functions in mri_nwarp.c */
-#else
-   verb_nww = 2 ;
-#endif
+   /* verb_nww = global variable used in warping functions in mri_nwarp.c */
+
+   verb_nww = AFNI_yesenv("AFNI_DEBUG_WARP") ? 2 : verb ;
 
    /*--- read and setup the list of nonlinear warps ---*/
 
-   if( verb ) fprintf(stderr,"++ Processing -nwarp ") ;
+   if( verb || verb_nww ) fprintf(stderr,"++ Processing -nwarp ") ;
 
    /* read the list */
 
    nwc = IW3D_read_nwarp_catlist( nwc_string ) ;
-   if( verb ) fprintf(stderr,"\n") ;
+   if( verb && verb_nww < 2 ) fprintf(stderr,"\n") ;
 
    if( nwc == NULL )
      ERROR_exit("Cannot process warp string '%s'",nwc_string) ;
@@ -769,8 +767,12 @@ int main( int argc , char *argv[] )
    /* combine warps (matrices and datasets) to the extent possible */
 
    IW3D_reduce_nwarp_catlist( nwc ) ;  /* may already have been done */
+   NI_sleep(1) ;
 
    /*--------- the actual work of warping ---------*/
+
+   if( verb > 1 || verb_nww > 1 )
+     INFO_message(".......... Starting dataset warping ..........") ;
 
    dset_outar = THD_nwarp_dataset_array( nwc , dset_srcar , dset_mast , prefix ,
                                      interp_code,ainter_code , 0.0f , wfac , 0 ) ;
