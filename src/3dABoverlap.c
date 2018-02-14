@@ -78,9 +78,9 @@ int main( int argc , char * argv[] )
      ERROR_exit("Illegal option: %s",argv[iarg]) ;
    }
 
-   mainENTRY("3dOverlap main") ; machdep() ;
-   if( verb ) PRINT_VERSION("3dOverlap") ;
-   AFNI_logger("3dOverlap",argc,argv) ;
+   mainENTRY("3dABoverlap main") ; machdep() ;
+   if( verb ) PRINT_VERSION("3dABoverlap") ;
+   AFNI_logger("3dABoverlap",argc,argv) ;
 
    /* input datasets */
 
