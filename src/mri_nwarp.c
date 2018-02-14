@@ -5616,6 +5616,8 @@ ENTRY("THD_nwarp_dataset_array") ;
      if( verb_nww > 1 )
        INFO_message("Loading '%s' for warping",DSET_HEADNAME(dset_sss)) ;
      DSET_load(dset_sss) ;
+     if( verb_nww > 1 )
+       ININFO_message(" DSET_LOAD returns") ;
      if( !DSET_LOADED(dset_sss) ){
        ERROR_message("Can't load dataset '%s' for warping",DSET_HEADNAME(dset_sss)) ;
        RETURN(NULL) ;
