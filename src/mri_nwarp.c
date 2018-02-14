@@ -5613,6 +5613,8 @@ ENTRY("THD_nwarp_dataset_array") ;
 
    for( kds=0 ; kds < numds ; kds++ ){         /* loop over input datasets */
      dset_sss = DSET_IN_3DARR(dset_src,kds) ;
+     if( verb_nww > 1 )
+       INFO_message("Loading '%s' for warping",DSET_HEADNAME(dset_sss)) ;
      DSET_load(dset_sss) ;
      if( !DSET_LOADED(dset_sss) ){
        ERROR_message("Can't load dataset '%s' for warping",DSET_HEADNAME(dset_sss)) ;
@@ -5620,6 +5622,8 @@ ENTRY("THD_nwarp_dataset_array") ;
      }
      if( kds == 0 ){     /* get first dataset's geometry */
        gs = EDIT_get_geometry_string(dset_sss) ;
+       if( verb_nww > 1 )
+         ININFO_message(" dataset geometry = %s",gs) ;
      } else {            /* check later datasets to see if they match */
        hs = EDIT_get_geometry_string(dset_sss) ;
        if( EDIT_geometry_string_diff(gs,hs) > 0.01f ){
@@ -5632,6 +5636,7 @@ ENTRY("THD_nwarp_dataset_array") ;
      nvals = DSET_NVALS(dset_sss) ; if( nvals > nvmax ) nvmax = nvals ;
      if( !ISVALID_MAT44(dset_sss->daxes->ijk_to_dicom) )
        THD_daxes_to_mat44(dset_sss->daxes) ;
+     NI_sleep(1) ;
    }
    free(gs) ; gs = hs = NULL ;
 
@@ -5685,6 +5690,8 @@ ENTRY("THD_nwarp_dataset_array") ;
      dset_sss = DSET_IN_3DARR(dset_src,kds) ;
      nvals = DSET_NVALS(dset_sss) ; if( nvals > nvmax ) nvals = nvmax ;
      dset_ooo = EDIT_empty_copy( dset_mast ) ;
+     if( verb_nww > 1 )
+       ININFO_message(" creating empty output dataset '%s'",prefix[kds]) ;
      EDIT_dset_items( dset_ooo ,
                         ADN_prefix    , prefix[kds] ,
                         ADN_nvals     , nvals ,
@@ -5712,6 +5719,7 @@ ENTRY("THD_nwarp_dataset_array") ;
      THD_daxes_to_mat44(dset_ooo->daxes) ;           /* save coord transforms */
 
      ADDTO_3DARR(dset_out,dset_ooo) ;
+     NI_sleep(1) ;
    }
 
    nx = DSET_NX(dset_mast) ;  /* 3D grid sizes */
@@ -5719,12 +5727,13 @@ ENTRY("THD_nwarp_dataset_array") ;
    nz = DSET_NZ(dset_mast) ; nxyz = nx*ny*nz ;
 
    vp = 1 + (nvmax/50) ;              /* how often to print a '.' progress meter */
-   if( verb_nww ) fprintf(stderr,"++ Warping: ") ;  /* start progress meter */
+   if( verb_nww ) fprintf(stderr,"++ Warping:") ;  /* start progress meter */
 
    /****** Loop over output sub-bricks,
            create the warp dataset for that 'time' index, then apply it *****/
 
 #ifdef DEBUG_CATLIST
+NI_sleep(1) ;
 if( verb_nww > 1 ) fprintf(stderr,"[nvar=%d]",nwc->nvar) ;
 #endif
 
@@ -5736,7 +5745,7 @@ if( verb_nww > 1 ) fprintf(stderr,"[nvar=%d]",nwc->nvar) ;
                                   /* end of 'time' inside nwc */
        /*** toss the old warps */
 #ifdef DEBUG_CATLIST
-if( verb_nww > 1 ) fprintf(stderr,"a") ;
+if( verb_nww > 1 ) fprintf(stderr," a") ;
 #endif
        DSET_delete  (dset_nwarp) ; DSET_delete  (dset_qwarp) ;
        DESTROY_IMARR(imar_nwarp) ; DESTROY_IMARR(imar_src  ) ;
@@ -5846,7 +5855,7 @@ if( verb_nww > 1 ) fprintf(stderr,"!") ;
 
    /* toss the final warps */
 #ifdef DEBUG_CATLIST
-if( verb_nww > 1 ) fprintf(stderr,"z") ;
+if( verb_nww > 1 ) fprintf(stderr," z") ;
 #endif
    DSET_delete  (dset_nwarp) ; DSET_delete  (dset_qwarp) ;
    DESTROY_IMARR(imar_nwarp) ; DESTROY_IMARR(imar_src  ) ;
