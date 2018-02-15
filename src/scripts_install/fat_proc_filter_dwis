@@ -55,9 +55,12 @@
 #   + new -select_file option
 #   + whine if *no* selection string entered
 #
-set version = "3.3"; set rev_dat = "Feb 13, 2018"
+#set version = "3.3"; set rev_dat = "Feb 13, 2018"
 #   + allow for *multiple* input files or strings after "-select ..."
 #     or "-select_file"
+#
+set version = "3.3b"; set rev_dat = "Feb 15, 2018"
+#   + fixed output path for $ogoods
 #
 # ----------------------------------------------------------------
  
@@ -463,11 +466,11 @@ foreach ii ( `seq 1 1 $#keepsel` )
 end
 
 # Combine all good lists
-@djunct_combine_str.py $ogoods $Ndwi $keepsel
+@djunct_combine_str.py $odir/$ogoods $Ndwi $keepsel
 
-set KEEP = `cat "$ogoods"`
+set KEEP = `cat "$odir/$ogoods"`
 echo "++ String selectors merged:\n\t $KEEP"
-echo "   and then saved into file:\n\t $ogoods"
+echo "   and then saved into file:\n\t $odir/$ogoods"
 
 # ======================== convert dicoms ===============================
 
@@ -538,11 +541,6 @@ cat << EOF
            want to be parsed; this could be a unit-magn bvec file + a
            file of bvalues, or it could be a single file of scaled
            vector|matrix values.
-           
-        3) a selector string, or file containing a selector string, or 
-           even *multiple* selectors strings (of which the union will be 
-           applied) for selecting out a coherent set of volume and 
-           grad/bmatrix/bval information.
 
     The output will be in similar format to what was input (i.e., the
     type of bvector|bmatrix files matching what was input), but with a
@@ -602,21 +600,12 @@ cat << EOF
                      here!
                      NB2: Always use the single quotes around the
                      selector expression. 
-                     NB3: Now, you can add *multiple* strings (as well
-                     as "-select_file ..." inputs) after this option
-                     flag, and the union of these strings will be
-                     applied to the final data set; useful if you have
-                     dual phase-encoded data!
-      and/or
-  -select_file SF   :where SF is a file name whose only contents are a
-                     nice string of indices and index ranges for
-                     selecting which volumes/grads/bvals to *keep*.
-                     Like, literally just 0..3,5,7..\$ sitting alone
-                     in a file-- no apostrophes needed/wanted.  NB: as
-                     above with "-select ...", you can include
-                     multiple files after this option flag (as well as
-                     "-select ..." inputs), and the union of the
-                     selectors will be applied to the data.
+       or
+  -select_file SF   :where SF is a file name whose only contents are a nice 
+                     string of indices and index ranges for selecting which
+                     volumes/grads/bvals to *keep*.  Like, literally just
+                        0..3,5,7..\$
+                     sitting alone in a file-- no apostrophes needed/wanted.
 
   -prefix    PPP    :output prefix for all the volumes and text files.
                      Required.
@@ -664,24 +653,6 @@ cat << EOF
             -in_col_matT  UNFILT_AP/AP_bmatT.dat        \
             -select_file  UNFILT_AP/dwi_sel_goods.txt   \
             -prefix       FILT_AP/AP 
-
-    3) ... with selectors via the contents of *2* files, which you
-       might apply to each of the dual phase-encoded sets:
-
-        $this_prog  \
-            -in_dwi       UNFILT_AP/AP.nii.gz           \
-            -in_col_matT  UNFILT_AP/AP_bmatT.dat        \
-            -select_file  UNFILT_AP/dwi_sel_goods.txt   \
-                          UNFILT_PA/dwi_sel_goods.txt   \
-            -prefix       FILT_AP/AP 
-
-        $this_prog  \
-            -in_dwi       UNFILT_PA/PA.nii.gz           \
-            -in_col_matT  UNFILT_PA/PA_bmatT.dat        \
-            -select_file  UNFILT_AP/dwi_sel_goods.txt   \
-                          UNFILT_PA/dwi_sel_goods.txt   \
-            -prefix       FILT_PA/PA 
-
 
 # -----------------------------------------------------------------------
 
