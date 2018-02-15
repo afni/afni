@@ -44,15 +44,15 @@ EOF
 exit
 RUN:
 
-
 set echo_dsets = ()
 set etimes_file = ''
 set necho = 0
 set prefix = OC_weights
-set results_dir = OC.weight.results
 set t2s_limit = 300
-set root_dir = `pwd`
+set work_dir = OC.weight.results
 set verb = 1
+
+set root_dir = `pwd`
 
 if ( $#argv < 1 ) goto HELP
 
@@ -100,13 +100,20 @@ while ( $ac <= $#argv )
       endif
       set prefix = $argv[$ac]
 
-   else if ( "$argv[$ac]" == "-results_dir" ) then
+   else if ( "$argv[$ac]" == "-work_dir" ) then
       @ ac ++
       if ( $ac > $#argv ) then
-         echo "** missing parameter for option '-results_dir'"
+         echo "** missing parameter for option '-work_dir'"
          exit 1
       endif
-      set results_dir = $argv[$ac]
+      set work_dir = $argv[$ac]
+   else if ( "$argv[$ac]" == "-t2_star_limit" ) then
+      @ ac ++
+      if ( $ac > $#argv ) then
+         echo "** missing parameter for option '-t2_star_limit'"
+         exit 1
+      endif
+      set t2s_limit = $argv[$ac]
    else if ( "$argv[$ac]" == "-verb" ) then
       @ verb += 1
       if ( $verb > 2 ) then
@@ -118,6 +125,17 @@ while ( $ac <= $#argv )
 
    @ ac += 1
 end
+
+# maybe chat a little
+if ( $verb > 1 ) then
+   echo "++ have $#echo_dsets echo datasets"
+   echo "++ echo_times_file = $etimes_file"
+   echo "++ output prefix = $prefix"
+   echo "++ work_dir = $work_dir"
+   echo "++ t2_star_limit = $t2s_limit"
+   echo ""
+exit
+endif
 
 # check for required parameters
 if ( ! -f "$etimes_file" ) then
@@ -267,9 +285,9 @@ $prog           - compute optimally combined weights dataset
 
              -prefix OC.weights.SUBJ
 
-       -results_dir RDIR        - specify directory to compute results in
+       -work_dir RDIR           - specify directory to compute results in
 
-             -results_dir temp.OC
+             -work_dir temp.OC
 
        -verb                    - increase verbosity of output
 
