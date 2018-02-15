@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 15, Feb, 2018, RCR, "afni_util.py", MICRO, TYPE_NEW_OPT,
+   "add showproc option to exec_tcsh_command(), to show command and text",
+   NULL
+ } ,
+
  { 13, Feb, 2018, RCR, "@compute_OC_weights", MINOR, TYPE_NEW_PROG,
    "compute multi-echo optimally combining weights dataset",
    NULL
