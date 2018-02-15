@@ -16,20 +16,28 @@
 
 # system of equations from Javier's presentation:
 #
-#   mean(S(TE_1)) ~= R(x)*TE_1 + log(So(x))
-#   mean(S(TE_2)) ~= R(x)*TE_2 + log(So(x))
-#   mean(S(TE_3)) ~= R(x)*TE_3 + log(So(x))
+#   log(mean(S(TE_1))) ~= -mean(R2s(x))*TE_1 + log(So(x))
+#   log(mean(S(TE_2))) ~= -mean(R2s(x))*TE_2 + log(So(x))
+#   log(mean(S(TE_3))) ~= -mean(R2s(x))*TE_3 + log(So(x))
+#
+# Then T2_star = 1/mean(R2s(x)), and weights come from:
+#
+#                TE_n*e^-(TE_n/T2_star)
+#   w(TE_n) = -----------------------------
+#             sum_n[TE_n*e^-(TE_n/T2_star)]
+#
+#
 
-# example dset: pb01.SUBJECT.c.NLtlrc.r01.e01.volreg+tlrc.HEAD
+# example dset: pb01.SUBJECT.r01.e01.volreg+tlrc.HEAD
 
-# ** note: in step 6.prod, a bad TE will imply equal weights across echoes
+# ** note: bad voxels should have weights of zero
 
 
 # ======================================================================
-# todo:
+# to do:
 # ======================================================================
 
-set VERSION = 0.2
+set VERSION = 0.1
 set prog = @compute_OC_weights
 
 goto RUN
@@ -38,7 +46,8 @@ cat << EOF
 
 history for $prog :
 
-   0.0  14 Feb 2018 - progress...
+   0.0  12 Feb 2018 - started
+   0.1  15 Feb 2018 - ready for basic consumption?
 
 EOF
 exit
@@ -134,7 +143,6 @@ if ( $verb > 1 ) then
    echo "++ work_dir = $work_dir"
    echo "++ t2_star_limit = $t2s_limit"
    echo ""
-exit
 endif
 
 # check for required parameters
@@ -173,28 +181,28 @@ if ( $verb == 2 ) echo "-- have view $view"
 
 set eind_list = ( `count -digits 1 1 $necho` )
 
-if ( -d $results_dir ) then
-   echo "** output dir $results_dir already exists, exiting..."
+if ( -d $work_dir ) then
+   echo "** output dir $work_dir already exists, exiting..."
    exit 1
 endif
 
-mkdir $results_dir
+mkdir $work_dir
 
 # ----------------------------------------------------------------------
 # get inputs or basic computations into working directory
 
 # get means for each echo
 foreach eind ( $eind_list ) 
-   3dTstat -mean -prefix $results_dir/s1.mean.e$eind $echo_dsets[$eind]
+   3dTstat -mean -prefix $work_dir/s1.mean.e$eind $echo_dsets[$eind]
 end
 
 # copy echo times file into working dir and adjust var
-cp $etimes_file $results_dir
+cp $etimes_file $work_dir
 set etimes_file = $etimes_file:t
 
 # ----------------------------------------------------------------------
 # enter results dir and proceed
-cd $results_dir
+cd $work_dir
 
 # get means for each echo
 foreach eind ( $eind_list ) 
@@ -236,12 +244,12 @@ end
 3dcalc -a s6.prod$view -b s7.sum.te$view -expr 'step(b-1.0e-10)*a/b' \
        -prefix s8.weight
 
-# as a test...
+# as a test, and possibly to be used as a mask
 3dTstat -sum -prefix s9.sum.weights s8.weight$view
 
 # copy back to $prefix
 cd $root_dir
-3dbucket -prefix $prefix $results_dir/s8.weight$view
+3dbucket -prefix $prefix $work_dir/s8.weight$view
 
 if ( $status ) then
    echo "** failed to create $prefix"
