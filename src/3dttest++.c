@@ -4053,10 +4053,14 @@ LABELS_ARE_DONE:  /* target for goto above */
    vstep = (nmask_hits > 6666) ? nmask_hits/50 : 0 ;
    if( brickwise_num > 1 ){
      vstep = 0 ; bstep = brickwise_num/50 ; if( bstep == 0 ) bstep = 1 ;
-     if( do_randomsign )
-       fprintf(stderr,"++ t-test randomsign:") ;
-     else
+     if( do_randomsign ){
+       if( do_permute )
+         fprintf(stderr,"++ t-test randomsign/permute:") ;
+       else
+         fprintf(stderr,"++ t-test randomsign:") ;
+     } else {
        fprintf(stderr,"++ t-test brickwise:") ;
+     }
    } else {
      bstep =0 ;
    }
