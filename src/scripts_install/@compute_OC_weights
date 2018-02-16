@@ -20,44 +20,32 @@
 #   log(mean(S(TE_2))) ~= -mean(R2s(x))*TE_2 + log(So(x))
 #   log(mean(S(TE_3))) ~= -mean(R2s(x))*TE_3 + log(So(x))
 #
-# Then T2_star = 1/mean(R2s(x)), and weights come from:
+# Then T2* = 1/mean(R2s(x)), and weights come from:
 #
-#                TE_n*e^-(TE_n/T2_star)
-#   w(TE_n) = -----------------------------
-#             sum_n[TE_n*e^-(TE_n/T2_star)]
+#                TE_n*e^-(TE_n/T2*)
+#   w(TE_n) = -------------------------
+#             sum_n[TE_n*e^-(TE_n/T2*)]
 #
 #
+# Note that T2* is the reciprocal of m(R2s), and that it is subsequently
+# applied via TE_n/T2*.  So apply via T2s_inv (multiplicative), to avoid
+# repeated division.
+# 
+# 
+# ** bad voxels (e.g. m(R2s)<0) will get weights of 1.0/necho
 
-# example dset: pb01.SUBJECT.r01.e01.volreg+tlrc.HEAD
 
-# ** note: bad voxels should have weights of zero
-
-
-# ======================================================================
-# to do:
-# ======================================================================
-
-set VERSION = 0.1
+set VERSION = 0.3
 set prog = @compute_OC_weights
 
-goto RUN
-HIST:
-cat << EOF
 
-history for $prog :
-
-   0.0  12 Feb 2018 - started
-   0.1  15 Feb 2018 - ready for basic consumption?
-
-EOF
-exit
-RUN:
-
+set def_to_equal = 1
 set echo_dsets = ()
 set etimes_file = ''
 set necho = 0
 set prefix = OC_weights
 set t2s_limit = 300
+set tolerance = 0.001
 set work_dir = OC.weight.results
 set verb = 1
 
@@ -71,6 +59,21 @@ while ( $ac <= $#argv )
       goto HELP
    else if ( "$argv[$ac]" == "-hist" ) then
       goto HIST
+
+   else if ( "$argv[$ac]" == "-def_to_equal" ) then
+      @ ac ++
+      if ( $ac > $#argv ) then
+         echo "** missing parameter for option '-def_to_equal'"
+         exit 1
+      endif
+      if ( "$argv[$ac]" == yes ) then
+         set def_to_equal = 1
+      else if ( "$argv[$ac]" == no ) then
+         set def_to_equal = 0
+      else
+         echo "** -def_to_equal requires yes/no, have $argv[$ac]"
+         exit 1
+      endif
 
    else if ( "$argv[$ac]" == "-echo_dsets" ) then
       @ ac ++
@@ -109,6 +112,13 @@ while ( $ac <= $#argv )
       endif
       set prefix = $argv[$ac]
 
+   else if ( "$argv[$ac]" == "-sum_weight_tolerance" ) then
+      @ ac ++
+      if ( $ac > $#argv ) then
+         echo "** missing parameter for option '-sum_weight_tolerance'"
+         exit 1
+      endif
+      set tolerance = $argv[$ac]
    else if ( "$argv[$ac]" == "-work_dir" ) then
       @ ac ++
       if ( $ac > $#argv ) then
@@ -197,8 +207,10 @@ foreach eind ( $eind_list )
 end
 
 # copy echo times file into working dir and adjust var
-cp $etimes_file $work_dir
+# (also, force them to be verticle, just to be safe)
+set etimes = ( `cat $etimes_file` )
 set etimes_file = $etimes_file:t
+echo $etimes | tr ' ' '\n' > $work_dir/$etimes_file
 
 # ----------------------------------------------------------------------
 # enter results dir and proceed
@@ -229,27 +241,53 @@ end
 #    2 : linear term   : -R2(x)
 
 # separate T2-star volume (basically -1/T2star, but with limits)
+# also: compute 1/T2*, to use multiplication rather than repeated division
+#       (so no t2s_limit?)
+# also: specifying float should not be necessary, but let's be sure
+#       (float will propagate)
 3dcalc -a s4.bucket$view'[2]' -expr "step(-a)*min(-1/a,$t2s_limit)" \
-       -prefix s5.t2.star
+       -datum float -prefix s5.t2.star
+3dcalc -a s4.bucket$view'[2]' -expr "-a*step(-a)" \
+       -datum float -prefix s5.t2.star.inv
 
 # make a product time series (for any <= 0 values, replace with 1)
 # TE_n * e^-(TE_n/t2star)
-3dcalc -a s5.t2.star$view -b $etimes_file -expr 'b*exp(-b/a)' -prefix s6.prod
+# ** use 1/T2* here, so product is   TE_n * e^-(TE_n * t2s_inv)
+3dcalc -a s5.t2.star.inv$view -b $etimes_file \
+       -expr 'step(a)*b*exp(-b*a)' -prefix s6.prod
 
-# and sum
+# and sum for weight denominator
 3dTstat -sum -prefix s7.sum.te s6.prod$view
 
 # make a time series of weights per echo, which is now just prod/sum
-# (guard against division by close-to-zero)
-3dcalc -a s6.prod$view -b s7.sum.te$view -expr 'step(b-1.0e-10)*a/b' \
-       -prefix s8.weight
+# (guard against truncation errors by limiting to 1)
+3dcalc -a s6.prod$view -b s7.sum.te$view -expr 'min(a/b,1)' \
+       -prefix s8.weight.orig
+set result_dset = s8.weight.orig
 
-# as a test, and possibly to be used as a mask
-3dTstat -sum -prefix s9.sum.weights s8.weight$view
+# as a safeguard, mask the weights by voxels with valid sums
+# (within 'tolerance' of 1)
+3dTstat -sum -prefix s9.sum.weights s8.weight.orig$view
+3dcalc -a s9.sum.weights$view -prefix s9.tolerance.fail \
+       -expr "step(a)*(1-within(a,1-$tolerance,1+$tolerance))"
+3dcalc -a s9.sum.weights$view -prefix s9.tolerance.mask \
+       -expr "within(a,1-$tolerance,1+$tolerance)"
+
+# if default is mean across echoes, insert into result
+if ( $def_to_equal ) then
+   set wval = `ccalc 1/$necho`
+   3dcalc -a s8.weight.orig$view -b s9.tolerance.mask$view \
+          -expr "bool(b)*a+(1-bool(b))*$wval" -prefix s10.masked.weights
+else
+   3dcalc -a s8.weight.orig$view -b s9.tolerance.mask$view \
+          -expr 'a*b' -prefix s10.masked.weights
+endif
+set result_dset = s10.masked.weights
+        
 
 # copy back to $prefix
 cd $root_dir
-3dbucket -prefix $prefix $work_dir/s8.weight$view
+3dbucket -prefix $prefix $work_dir/$result_dset$view
 
 if ( $status ) then
    echo "** failed to create $prefix"
@@ -259,6 +297,9 @@ endif
 
 exit 0
 
+
+# ===========================================================================
+# show help 
 HELP:
 cat << EOF
 
@@ -274,36 +315,106 @@ $prog           - compute optimally combined weights dataset
            -d weights+tlrc'[0]' -e weights+tlrc'[1]' -f weights+tlrc'[2]' \
            -expr 'a*d+b*e+c*f'  -prefix opt.combined
 
-  Options:
+   ----------------------------------------------------------------------
 
-    required parameters:
+   These computations are based on the system of equations from the summer
+   2017 presentation by Javier Gonzalez-Castillo.  After solving:
+  
+     log(mean(S(TE_1))) ~= -mean(R2s(x))*TE_1 + log(So(x))
+     log(mean(S(TE_2))) ~= -mean(R2s(x))*TE_2 + log(So(x))
+     log(mean(S(TE_3))) ~= -mean(R2s(x))*TE_3 + log(So(x))
+  
+   then T2* = 1/mean(R2s(x)), and weights come from:
+  
+                  TE_n*e^-(TE_n/T2*)
+     w(TE_n) = -------------------------
+               sum_n[TE_n*e^-(TE_n/T2*)]
 
-       -echo_times_file FILE    - specify file with echo times
-                                  (e.g. it could contain 10 20.5 30)
+   Bad, naughty voxels are defined as those with either negative T2* values,
+   or for which the sum of the weights is not sufficiently close to 1, which
+   would probably mean that there were computational truncation errors, likely
+   due to R2s being very close to 0.
 
-             -echo_times_file echo_times.1D
+   so "fail" if
+         mean(R2s) <= 0
+   or
+         abs(1-sum[weights]) > 'tolerance'
 
-       -echo_dsets D1 D2 D3     - specify one run of multi-echo EPI data, e.g.:
+   In such cases, the weights will default to 1/number_of_echoes.
+  
+   ----------------------------------------------------------------------
 
-             -echo_dsets pb03.SUBJ.r01.e*.volreg+tlrc.HEAD
+   examples:
 
-    optional parameters:
+      1. basic
 
-       -prefix PREFIX           - specify prefix of resulting OC weights dataset
+         @compute_OC_weights -echo_times_file etimes.1D \\
+                -echo_dsets pb02*r01*volreg*.HEAD
+  
+      2. specify working directory and resulting weights dataset prefix
 
-             -prefix OC.weights.SUBJ
+         @compute_OC_weights -echo_times_file etimes.1D \\
+                -echo_dsets pb02*r01*volreg*.HEAD       \\
+                -prefix OC.run1 -work_dir OC.work.run1
 
-       -work_dir RDIR           - specify directory to compute results in
+   ----------------------------------------------------------------------
 
-             -work_dir temp.OC
+   required parameters:
 
-       -verb                    - increase verbosity of output
+      -echo_times_file FILE     - specify file with echo times
+                                  (e.g. it could contain 15 30.5 41)
 
-    general parameters:
+      -echo_dsets D1 D2 D3      - specify one run of multi-echo EPI data, e.g.:
+
+         e.g. -echo_dsets pb03.SUBJ.r01.e*.volreg+tlrc.HEAD
+
+
+   general options:
+
+      -def_to_equal yes/no      - specify whether to default to equal weights
+                                  (default = yes)
+
+        In the case where T2* seems huge or <= 0, or if the sum of the
+        fractional weights is not close to 1 (see -tolerance), one might
+        want to apply default weights equal to 1/num_echoes (so echoes
+        are weighted equally).
+
+      -prefix PREFIX            - specify prefix of resulting OC weights dataset
+
+           e.g. -prefix OC.weights.SUBJ
+
+      -t2_star_limit LIMIT      - specify limit for T2* values (default 300)
+
+        This is not too important, as bad T2* values should be handled by
+        -def_to_equal.
+
+      -work_dir WDIR            - specify directory to compute results in
+
+      -verb                     - increase verbosity of output
+
+
+   terminal options:
 
        -help
        -hist
        -ver
 
+   ----------------------------------------------------------------------
+   R Reynolds, Feb, 2016               Thanks to Javier Gonzalez-Castillo
   
 EOF
+exit
+
+
+# ===========================================================================
+# show history 
+HIST:
+cat << EOF
+
+modification history for $prog :
+
+   0.0  12 Feb 2018 : started
+   0.1  16 Feb 2018 : ready for use (added -def_to_equal)
+   
+EOF
+exit
