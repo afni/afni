@@ -383,6 +383,19 @@ $prog           - compute optimally combined weights dataset
 
            e.g. -prefix OC.weights.SUBJ
 
+      -sum_weight_tolerance TOL - tolerance for summed weight diff from 1.0
+                                  (def = 0.001)
+
+           e.g. -sum_weight_tolerance 0.0001
+
+        If echo means (at some voxel) do not follow a decay curve, there
+        could be truncation errors in weighting computation that lead to
+        weights which do not sum to 1.0.  If abs(1-sum) > tolerance, such a
+        voxel will be set in the tolerance.fail dataset.
+
+        The default effect of this failure is to get equal weights across
+        the echoes.
+
       -t2_star_limit LIMIT      - specify limit for T2* values (default 300)
 
         This is not too important, as bad T2* values should be handled by
@@ -414,7 +427,11 @@ cat << EOF
 modification history for $prog :
 
    0.0  12 Feb 2018 : started
-   0.1  16 Feb 2018 : ready for use (added -def_to_equal)
-   
+   0.1  16 Feb 2018 : ready for use
+                    - added -def_to_equal, -sum_weight_tolerance
+                    - allow echo_times file to be horizontal, too
+                    - do not apply T2*, but leave as reciprocal
+                    - help updates
+
 EOF
 exit
