@@ -582,9 +582,12 @@ g_history = """
     6.02 Dec 12, 2017: added "sample analysis script" to help
     6.03 Feb 12, 2018: can process multi-echo data
         - added -dsets_me_echo/_run and 'combine' processing block
+        - this is a preliminary step, before running OC and ME-ICA
+    6.04 Feb 16, 2018: compute epi_anat mask, intersecting the two
+        - added -mask_epi_anat, to apply that in place of full_mask
 """
 
-g_version = "version 6.02, December 12, 2017"
+g_version = "version 6.04, February 16, 2018"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -606,7 +609,7 @@ g_todo_str = """todo:
      - implement for ricor
      - implement case for volreg (without align or tlrc)
         - sooo, initial 3dvolreg output will be changed to garbage?
-     - after OC/MEICA, clear use_me
+     x after OC/MEICA, clear use_me
   - be able to run simple forms of @Align_Centers
   - implement multi-echo OC and possibly meica functionality
   - improve on distortion correction via gentle NL alignment with anat
@@ -831,6 +834,7 @@ class SubjProcSream:
         self.scaled     = -1            # if shorts, are they scaled?
         self.mask       = None          # mask dataset: one of the following
         self.mask_epi   = None          # mask dataset (from EPI)
+        self.mask_epi_anat = None       # mask dataset (EPI anat intersection)
         self.mask_anat  = None          # mask dataset (from subject anat)
         self.mask_group = None          # mask dataset (from tlrc base)
         self.mask_extents = None        # mask dataset (of EPI extents)
@@ -1160,6 +1164,10 @@ class SubjProcSream:
         self.valid_opts.add_opt('-volreg_zpad', 1, [],
                         helpstr='number of slices to pad by in volreg')
 
+        self.valid_opts.add_opt('-combine_method', 1, [],
+                        acplist=['mean','OC'],
+                        helpstr='specify method for combining echoes per run')
+
         self.valid_opts.add_opt('-blur_filter', 1, [],
                         helpstr='blurring filter option (def: -1blur_fwhm)')
         self.valid_opts.add_opt('-blur_in_mask', 1, [],
@@ -1183,6 +1191,9 @@ class SubjProcSream:
                         helpstr="select mask to apply in regression")
         self.valid_opts.add_opt('-mask_dilate', 1, [],
                         helpstr="dilation to be applied in automask")
+        self.valid_opts.add_opt('-mask_epi_anat', 1, [],
+                        acplist=['yes','no'],
+                        helpstr='use epi_anat rather than EPI mask (yes/no)')
         self.valid_opts.add_opt('-mask_import', 2, [],
                         helpstr="import mask as given label (label/mset)")
         self.valid_opts.add_opt('-mask_intersect', 3, [],

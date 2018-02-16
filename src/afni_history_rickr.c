@@ -49,12 +49,23 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, Feb, 2018, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add option -mask_epi_anat, to apply tigher mask in place of full_mask",
+   "By default, create epi_anat intersection mask."
+ } ,
+
+ { 16, Feb, 2018, RCR, "afni_proc.py", MAJOR, TYPE_NEW_OPT,
+   "add combine block and ability to process multi-echo data",
+   "Have new options -dsets_me_echo and -dsets_me_run for input.\n"
+   "Still need to implement OC and ME-ICA."
+ } ,
+
  { 15, Feb, 2018, RCR, "afni_util.py", MICRO, TYPE_NEW_OPT,
    "add showproc option to exec_tcsh_command(), to show command and text",
    NULL
  } ,
 
- { 15, Feb, 2018, RCR, "@compute_OC_weights", MINOR, TYPE_NEW_PROG,
+ { 15, Feb, 2018, RCR, "@compute_OC_weights", MAJOR, TYPE_NEW_PROG,
    "compute multi-echo optimally combining weights dataset",
    NULL
  } ,
