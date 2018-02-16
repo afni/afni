@@ -178,15 +178,15 @@ def db_mod_tcat(block, proc, user_opts):
     uopt = user_opts.find_opt('-tcat_remove_first_trs')
     bopt = block.opts.find_opt('-tcat_remove_first_trs')
     if uopt and bopt:
-        try: bopt.parlist = [int(param) for param in uopt.parlist]
-        except:
-            print("** ERROR: %s: invalid as integers: %s"   \
-                  % (uopt.name, ' '.join(uopt.parlist)))
-            errs += 1
-        if errs == 0 and bopt.parlist[0] > 0:
-          print('** warning: removing first %d TRs from beginning of each run\n' \
-            '   --> the stimulus timing files must reflect the '             \
-                    'removal of these TRs' % bopt.parlist[0])
+      try: bopt.parlist = [int(param) for param in uopt.parlist]
+      except:
+          print("** ERROR: %s: invalid as integers: %s"   \
+                % (uopt.name, ' '.join(uopt.parlist)))
+          errs += 1
+      if errs == 0 and bopt.parlist[0] > 0:
+        print('** warning: removing first %d TRs from beginning of each run\n'\
+              '   --> the stimulus timing files must reflect the '            \
+              'removal of these TRs' % bopt.parlist[0])
 
     apply_uopt_to_block('-tcat_remove_last_trs', user_opts, block)
     apply_uopt_to_block('-tcat_preSS_warn_limit', user_opts, block)
@@ -2651,6 +2651,8 @@ def db_mod_combine(block, proc, user_opts):
       print("** have combine block, but no ME?")
       return 1
 
+   apply_uopt_to_block('-combine_method', user_opts, block)
+
    block.valid = 1
 
 def db_cmd_combine(proc, block):
@@ -3296,6 +3298,7 @@ def db_mod_mask(block, proc, user_opts):
             return 1
 
     apply_uopt_to_block('-mask_apply',        user_opts, block)
+    apply_uopt_to_block('-mask_epi_anat',     user_opts, block)
     apply_uopt_to_block('-mask_rm_segsy',     user_opts, block)
     apply_uopt_to_block('-mask_segment_anat', user_opts, block)
     apply_uopt_to_block('-mask_segment_erode',user_opts, block)
@@ -3744,6 +3747,19 @@ def anat_mask_command(proc, block):
                 "3dmask_tool -dilate_input 5 -5 -fill_holes -input %s \\\n" \
                 "            -prefix %s\n\n"                                \
                 % (tanat.pv(), proc.mask_anat.prefix)
+
+    # computed tightened EPI mask, by intersecting with anat mask
+    if proc.mask_epi and proc.mask_anat:
+       proc.mask_epi_anat = proc.mask_epi.new('mask_epi_anat.$subj')
+       if block.opts.have_yes_opt('-mask_epi_anat'):
+           if proc.verb: print("++ mask: use epi_anat mask in place of EPI one")
+           proc.mask = proc.mask_epi_anat
+       rcmd = "# compute tighter EPI mask by intersecting with anat mask\n" \
+              "3dmask_tool -input %s %s \\\n"                               \
+              "            -inter -prefix %s\n\n"                           \
+              % (proc.mask_epi.shortinput(), proc.mask_anat.shortinput(),
+                 proc.mask_epi_anat.out_prefix())
+       cmd += rcmd
 
     if block.opts.have_yes_opt('-mask_test_overlap', default=1):
         if proc.mask_epi and proc.mask_anat:
