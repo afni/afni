@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 16 , FEB , 2018 , RWC , "3dTcorr1D" , MICRO , TYPE_NEW_OPT ,
+   "New -dot option (dot product)" ,
+   NULL } ,
+
  { 2 , FEB , 2018 , RWC , "AFNI GUI" , MINOR , TYPE_MODIFY ,
    "Read .jpg and .png 'datasets' by default into sessions" ,
    NULL } ,
