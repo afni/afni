@@ -145,7 +145,7 @@ static MRI_IMAGE *imtemplate = NULL ;
 #define PSMALL 1.e-15
 
 #define FARP_GOAL 5.00f    /* 5 percent */
-#define FGFAC     0.98f    /* fudge factor (1 = no fudge for you) */
+#define FGFAC     1.00f    /* fudge factor (1 = no fudge for you) */
 
 static float fgfac     = FGFAC ;
 static float farp_goal = FARP_GOAL ;
@@ -965,7 +965,7 @@ int main( int argc , char *argv[] )
    float     ***car0 =NULL , ***car1 =NULL , ***car2 =NULL , **carHP ;
    float *farar=NULL ;
    int nfomkeep , nfar , itrac , ithresh , hp,ibr, ithresh_list[MAXITE] ;
-   float tfrac=0.0006f , farperc=0.0f,farcut , tfracold,farpercold,ttemp ;
+   float tfrac=0.0006f , farperc=0.0f,farcut=0.0f , tfracold,farpercold,ttemp ;
    int ifarp ;
 
    /*----- help me if you can (I'm feeling down) -----*/
@@ -1905,14 +1905,17 @@ FARP_LOOPBACK:
 
      farpercold = farperc ;               /* save what we got last time */
      farperc    = (100.0f*nfar)/(float)niter ; /* what we got this time */
+
+     /* farcut = precision desired for our FPR goal */
+     farcut = 0.222f ;
+     if( itrac > 3 ) farcut += (itrac-3)*0.0444f ;
+
      if( verb )
-       ININFO_message("         FPR = %.2f%%", farperc/fgfac ) ;
+       ININFO_message("         FPR = %.3f%%  farcut = %.3f%%", farperc,farcut ) ;
      MEMORY_CHECK(" ") ;
 
      /* do we need to try another tfrac to get closer to our goal? */
-     /* farcut = precision desired for our FPR goal */
 
-     farcut = 0.222f + (itrac < 4) ? 0.0f : (itrac-3)*0.0444f ;
      if( itrac < MAXITE && fabsf(farperc-FG_GOAL) > farcut ){
        float fff ;
        if( itrac == 1 || (farperc-FG_GOAL)*(farpercold-FG_GOAL) > 0.0f ){ /* scale */
