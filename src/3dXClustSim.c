@@ -1505,7 +1505,7 @@ int main( int argc , char *argv[] )
      }
    }
 
-#define TOPFRAC 0.12345678f
+#define TOPFRAC 0.13579f
    nfomkeep = (int)(TOPFRAC*niter) ; /* max number of FOMs to keep at 1 voxel */
 
    for( qcase=0 ; qcase < ncase ; qcase++ ){ /* loop over cases */
@@ -1910,22 +1910,21 @@ FARP_LOOPBACK:
      MEMORY_CHECK(" ") ;
 
      /* do we need to try another tfrac to get closer to our goal? */
+     /* farcut = precision desired for our FPR goal */
 
-          if( itrac < 5 ) farcut = 0.222f ; /* precision of goal meeting */
-     else if( itrac < 7 ) farcut = 0.333f ;
-     else if( itrac < 9 ) farcut = 0.444f ;
-     else                 farcut = 0.555f ; /* despair */
+     farcut = 0.222f + (itrac < 4) ? 0.0f : (itrac-3)*0.0444f ;
      if( itrac < MAXITE && fabsf(farperc-FG_GOAL) > farcut ){
        float fff ;
        if( itrac == 1 || (farperc-FG_GOAL)*(farpercold-FG_GOAL) > 0.0f ){ /* scale */
          fff = FG_GOAL/farperc ;
          if( fff > 2.222f ) fff = 2.222f ; else if( fff < 0.450f ) fff = 0.450f ;
+         if( itrac > 5 ) fff = powf(fff,1.5f) ; /* accelerate */
          ttemp = tfrac ; tfrac *= fff ;
        } else {                                      /* linear inverse interpolate */
          fff = (farperc-farpercold)/(tfrac-tfracold) ;
          ttemp = tfrac ; tfrac = tfracold + (FG_GOAL-farpercold)/fff ;
        }
-#define TFTOP (0.555f*TOPFRAC)
+#define TFTOP (0.666f*TOPFRAC)
        tfracold = ttemp ;
             if( tfrac < min_tfrac ) tfrac = min_tfrac ;
        else if( tfrac > TFTOP     ) tfrac = TFTOP ;
