@@ -66,7 +66,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 15, Feb, 2018, RCR, "@compute_OC_weights", MAJOR, TYPE_NEW_PROG,
-   "compute multi-echo optimally combining weights dataset",
+   "compute voxelwise weights for optimally combining multi-echo data",
    NULL
  } ,
 
