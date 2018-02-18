@@ -1753,7 +1753,7 @@ int main( int argc , char *argv[] )
 #if 0
        tfrac *= ( farp_goal / farplist[ifarp-1] ) ; /* adjust previous result */
 #else
-       tfrac *= ( farp_goal / farlast ) ; /* adjust previous result */
+       tfrac *= 1.1111f * ( farp_goal / farlast ) ; /* adjust previous result */
 #endif
 
      itrac = 0 ;
@@ -1910,7 +1910,7 @@ FARP_LOOPBACK:
 
      farpercold = farperc ;               /* save what we got last time */
      farperc    = (100.0f*nfar)/(float)niter ; /* what we got this time */
-     farlast    = farperc ;
+     farlast    = farperc ;           /* save for next FPR goal, if any */
 
      /* farcut = precision desired for our FPR goal */
      farcut = 0.222f ;
@@ -1925,9 +1925,8 @@ FARP_LOOPBACK:
      if( itrac < MAXITE && fabsf(farperc-FG_GOAL) > farcut ){
        float fff ;
        if( itrac == 1 || (farperc-FG_GOAL)*(farpercold-FG_GOAL) > 0.0f ){ /* scale */
-         fff = FG_GOAL/farperc ;
+         fff = (1.0f+0.1f*itrac) * FG_GOAL/farperc ; /* acceleration */
          if( fff > 2.222f ) fff = 2.222f ; else if( fff < 0.450f ) fff = 0.450f ;
-         if( itrac > 3 ) fff = powf(fff,1.5f) ; /* accelerate */
          ttemp = tfrac ; tfrac *= fff ;
        } else {                                      /* linear inverse interpolate */
          fff = (farperc-farpercold)/(tfrac-tfracold) ;
