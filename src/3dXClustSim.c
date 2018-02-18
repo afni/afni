@@ -965,7 +965,7 @@ int main( int argc , char *argv[] )
    float     ***car0 =NULL , ***car1 =NULL , ***car2 =NULL , **carHP ;
    float *farar=NULL ;
    int nfomkeep , nfar , itrac , ithresh , hp,ibr, ithresh_list[MAXITE] ;
-   float tfrac=0.0006f , farperc=0.0f,farcut=0.0f , tfracold,farpercold,ttemp ;
+   float tfrac=0.0006f, farperc=0.0f,farcut=0.0f, tfracold,farpercold,ttemp, farlast ;
    int ifarp ;
 
    /*----- help me if you can (I'm feeling down) -----*/
@@ -1734,6 +1734,7 @@ int main( int argc , char *argv[] )
 
    nit33 = 1.0f/(niter+0.333f) ;
 
+   farlast = farplist[0] ;
    for( ifarp=0 ; ifarp < numfarp ; ifarp++ ){ /* 23 Aug 2017 */
 
      farp_goal = farplist[ifarp] ;
@@ -1749,7 +1750,11 @@ int main( int argc , char *argv[] )
      if( ifarp == 0 )                               /* first time thru */
        tfrac = (5.0f+farp_goal)*0.00005f ;
      else
+#if 0
        tfrac *= ( farp_goal / farplist[ifarp-1] ) ; /* adjust previous result */
+#else
+       tfrac *= ( farp_goal / farlast ) ; /* adjust previous result */
+#endif
 
      itrac = 0 ;
      farpercold = farperc = 0.0f ; tfracold = tfrac ;
@@ -1905,6 +1910,7 @@ FARP_LOOPBACK:
 
      farpercold = farperc ;               /* save what we got last time */
      farperc    = (100.0f*nfar)/(float)niter ; /* what we got this time */
+     farlast    = farperc ;
 
      /* farcut = precision desired for our FPR goal */
      farcut = 0.222f ;
