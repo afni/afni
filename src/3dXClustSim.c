@@ -1927,7 +1927,7 @@ FARP_LOOPBACK:
        if( itrac == 1 || (farperc-FG_GOAL)*(farpercold-FG_GOAL) > 0.0f ){ /* scale */
          fff = FG_GOAL/farperc ;
          if( fff > 2.222f ) fff = 2.222f ; else if( fff < 0.450f ) fff = 0.450f ;
-         if( itrac > 5 ) fff = powf(fff,1.5f) ; /* accelerate */
+         if( itrac > 3 ) fff = powf(fff,1.5f) ; /* accelerate */
          ttemp = tfrac ; tfrac *= fff ;
        } else {                                      /* linear inverse interpolate */
          fff = (farperc-farpercold)/(tfrac-tfracold) ;
