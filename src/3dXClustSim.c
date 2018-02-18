@@ -1914,7 +1914,7 @@ FARP_LOOPBACK:
 
      /* farcut = precision desired for our FPR goal */
      farcut = 0.222f ;
-     if( itrac > 3 ) farcut += (itrac-3)*0.0444f ;
+     if( itrac > 2 ) farcut += (itrac-2)*0.04321f ;
 
      if( verb )
        ININFO_message("         FPR = %.3f%%  farcut = %.3f%%", farperc,farcut ) ;
