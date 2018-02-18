@@ -1920,7 +1920,11 @@ FARP_LOOPBACK:
        ININFO_message("         FPR = %.3f%%  farcut = %.3f%%", farperc,farcut ) ;
      MEMORY_CHECK(" ") ;
 
-     /* do we need to try another tfrac to get closer to our goal? */
+     /* if no substantial progress, quit */
+
+     if( itrac > 2 && fabsf(farperc-farpercold) < 0.0333f ) goto FARP_BREAKOUT ;
+
+     /* try another tfrac to get closer to our goal? */
 
      if( itrac < MAXITE && fabsf(farperc-FG_GOAL) > farcut ){
        float fff ;
