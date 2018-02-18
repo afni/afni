@@ -1929,7 +1929,7 @@ FARP_LOOPBACK:
      if( itrac < MAXITE && fabsf(farperc-FG_GOAL) > farcut ){
        float fff ;
        if( itrac == 1 || (farperc-FG_GOAL)*(farpercold-FG_GOAL) > 0.0f ){ /* scale */
-         fff = (1.0f+0.1f*itrac) * FG_GOAL/farperc ; /* acceleration */
+         fff = (1.0f+0.1666f*itrac) * FG_GOAL/farperc ; /* acceleration */
          if( fff > 2.222f ) fff = 2.222f ; else if( fff < 0.450f ) fff = 0.450f ;
          ttemp = tfrac ; tfrac *= fff ;
        } else {                                      /* linear inverse interpolate */
