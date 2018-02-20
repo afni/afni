@@ -160,7 +160,7 @@ static int numfarp = 1 ;
 static char *abcd[NFARP]     = { "a", "b", "c", "d", "e", "f", "g", "h" } ;
 
 #define FG_GOAL  (farp_goal*fgfac)
-#define MAXITE   13
+#define MAXITE   11
 
 /*----------------------------------------------------------------------------*/
 /*! Threshold for upper tail probability of N(0,1) = 1-inverseCDF(pval) */
@@ -1928,11 +1928,13 @@ FARP_LOOPBACK:
      /* try another tfrac to get closer to our goal? */
 
      if( itrac < MAXITE && fabsf(farperc-FG_GOAL) > farcut ){
-       float fff ;
-       if( itrac == 1 || (farperc-FG_GOAL)*(farpercold-FG_GOAL) > 0.0f ){ /* scale */
-         fff = (1.0f+0.1666f*itrac) * FG_GOAL/farperc ; /* acceleration */
+       float fff , dtt ;
+       if( itrac == 1 || (farperc-FG_GOAL)*(farpercold-FG_GOAL) > 0.1f ){ /* scale */
+         fff = FG_GOAL/farperc ;
          if( fff > 2.222f ) fff = 2.222f ; else if( fff < 0.450f ) fff = 0.450f ;
-         ttemp = tfrac ; tfrac *= fff ;
+         dtt  = (fff-1.0f)*tfrac ;        /* tfrac step */
+         dtt *= (0.9753f+0.1111f*itrac) ; /* accelerate it */
+         ttemp = tfrac ; tfrac += dtt ; 
        } else {                                      /* linear inverse interpolate */
          fff = (farperc-farpercold)/(tfrac-tfracold) ;
          ttemp = tfrac ; tfrac = tfracold + (FG_GOAL-farpercold)/fff ;
