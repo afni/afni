@@ -1506,7 +1506,7 @@ int main( int argc , char *argv[] )
      }
    }
 
-#define TOPFRAC 0.13579f
+#define TOPFRAC 0.2468f
    nfomkeep = (int)(TOPFRAC*niter) ; /* max number of FOMs to keep at 1 voxel */
 
    for( qcase=0 ; qcase < ncase ; qcase++ ){ /* loop over cases */
@@ -1840,8 +1840,8 @@ FARP_LOOPBACK:
            npt = fomsortH[ipthr][iv]->npt ;  /* how many FOM values here */
            jthresh = ithresh ;            /* default index of FOM thresh */
 
-           if( jthresh > (int)(0.333f*npt) ){  /* edge case: */
-             jthresh = (int)(0.333f*npt) ;     /* not many FOM values here */
+           if( jthresh > (int)(0.666f*npt) ){  /* edge case: */
+             jthresh = (int)(0.666f*npt) ;     /* not many FOM values here */
 #pragma omp atomic
              nedge++ ;
            }
@@ -1918,7 +1918,8 @@ FARP_LOOPBACK:
      if( itrac > 2 ) farcut += (itrac-2)*0.04321f ;
 
      if( verb )
-       ININFO_message("         FPR=%.3f%%  farcut=%.3f%%  nedge=%d", farperc,farcut,nedge ) ;
+       ININFO_message("         FPR=%.2f%%  farcut=%.2f%%  nedge=%d  nmin=%d",
+                      farperc,farcut,nedge,nmin ) ;
      MEMORY_CHECK(" ") ;
 
      /* if no substantial progress, quit */
@@ -1933,7 +1934,7 @@ FARP_LOOPBACK:
          fff = FG_GOAL/farperc ;
          if( fff > 2.222f ) fff = 2.222f ; else if( fff < 0.450f ) fff = 0.450f ;
          dtt  = (fff-1.0f)*tfrac ;        /* tfrac step */
-         dtt *= (0.9753f+0.1111f*itrac) ; /* accelerate it */
+         dtt *= (0.9666f+0.2222f*itrac) ; /* accelerate it */
          ttemp = tfrac ; tfrac += dtt ; 
        } else {                                      /* linear inverse interpolate */
          fff = (farperc-farpercold)/(tfrac-tfracold) ;
