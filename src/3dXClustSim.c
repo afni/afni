@@ -1764,12 +1764,12 @@ int main( int argc , char *argv[] )
 
 FARP_LOOPBACK:
      {
-       float min_tfrac ; int nedge,nmin ;
+       float min_tfrac ; int nedge,nmin,ntest ;
        min_tfrac = 6.0f / niter ; if( min_tfrac > 0.0001f ) min_tfrac = 0.0001f ;
 
        itrac++ ;                                      /* number of iterations */
        nfar = 0 ;                                          /* total FAR count */
-       nedge = nmin = 0 ;                             /* number of edge cases */
+       nedge = nmin = ntest = 0 ;                     /* number of edge cases */
 
          /* we take ithresh-th largest FOM at each voxel as its FOM threshold */
 #if 0
@@ -1857,6 +1857,9 @@ FARP_LOOPBACK:
            f1 = fomsortH[ipthr][iv]->far[jthresh+1] ;
            ft = inverse_interp_extreme( a0,a1,tfrac , f0,f1 ) ;
 
+#pragma omp atomic                      /* total number of tests */
+           ntest++ ;
+
            if( ft < gthreshH[ipthr] ){  /* min case: */
              ft = gthreshH[ipthr] ;     /* threshold falls below global */
 #pragma omp atomic                      /* min computed for this situation */
@@ -1918,8 +1921,8 @@ FARP_LOOPBACK:
      if( itrac > 2 ) farcut += (itrac-2)*0.04321f ;
 
      if( verb )
-       ININFO_message("         FPR=%.2f%%  farcut=%.2f%%  nedge=%d  nmin=%d",
-                      farperc,farcut,nedge,nmin ) ;
+       ININFO_message("         FPR=%.2f%%  farcut=%.2f%%  nedge=%d  nmin=%d ntest=%d",
+                      farperc,farcut,nedge,nmin,ntest ) ;
      MEMORY_CHECK(" ") ;
 
      /* if no substantial progress, quit */
