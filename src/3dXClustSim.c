@@ -967,6 +967,7 @@ int main( int argc , char *argv[] )
    int nfomkeep , nfar , itrac , ithresh , hp,ibr, ithresh_list[MAXITE] ;
    float tfrac=0.0006f, farperc=0.0f,farcut=0.0f, tfracold,farpercold,ttemp, farlast ;
    int ifarp ;
+   float *gthrout , *gthrH ;
 
    /*----- help me if you can (I'm feeling down) -----*/
 
@@ -1839,8 +1840,8 @@ FARP_LOOPBACK:
            npt = fomsortH[ipthr][iv]->npt ;  /* how many FOM values here */
            jthresh = ithresh ;            /* default index of FOM thresh */
 
-           if( jthresh > (int)(0.222f*npt) ){  /* edge case: */
-             jthresh = (int)(0.222f*npt) ;     /* not many FOM values here */
+           if( jthresh > (int)(0.333f*npt) ){  /* edge case: */
+             jthresh = (int)(0.333f*npt) ;     /* not many FOM values here */
 #pragma omp atomic
              nedge++ ;
            }
@@ -1917,7 +1918,7 @@ FARP_LOOPBACK:
      if( itrac > 2 ) farcut += (itrac-2)*0.04321f ;
 
      if( verb )
-       ININFO_message("         FPR = %.3f%%  farcut = %.3f%%", farperc,farcut ) ;
+       ININFO_message("         FPR=%.3f%%  farcut=%.3f%%  nedge=%d", farperc,farcut,nedge ) ;
      MEMORY_CHECK(" ") ;
 
      /* if no substantial progress, quit */
@@ -1949,6 +1950,8 @@ FARP_BREAKOUT: ; /*nada*/
      /*=====================================================*/
      /*--- Write stuff out, then this farp_goal is done ---*/
 
+     gthrout = (float *)malloc(sizeof(float)*npthr*nhpow) ;
+
      for( qcase=0 ; qcase < ncase ; qcase++ ){ /* one dataset per case */
 
        qset = EDIT_empty_copy(mask_dset) ;
@@ -1965,31 +1968,41 @@ FARP_BREAKOUT: ; /*nada*/
 
        for( ibr=0,qpthr=0 ; qpthr < npthr ; qpthr++ ){
         for( hp=0 ; hp < 3 ; hp++ ){
-         if( hp==0 ){ if( !do_hpow0 ) continue ; else carHP = car0[qcase] ; }
-         if( hp==1 ){ if( !do_hpow1 ) continue ; else carHP = car1[qcase] ; }
-         if( hp==2 ){ if( !do_hpow2 ) continue ; else carHP = car2[qcase] ; }
+         if( hp==0 ){ if( !do_hpow0 ) continue;
+                      else { carHP=car0[qcase]; gthrH=gthresh0[ifarp][qcase]; }}
+         if( hp==1 ){ if( !do_hpow1 ) continue;
+                      else { carHP=car1[qcase]; gthrH=gthresh1[ifarp][qcase]; }}
+         if( hp==2 ){ if( !do_hpow2 ) continue;
+                      else { carHP=car2[qcase]; gthrH=gthresh2[ifarp][qcase]; }}
          EDIT_substitute_brick( qset , ibr , MRI_float , NULL ) ;
          qar = DSET_ARRAY(qset,ibr) ;
          AAmemcpy( qar , carHP[qpthr] , sizeof(float)*nxyz ) ;
          sprintf(qpr,"Mth:%.4f:h=%d",pthr[qpthr],hp) ;
-         EDIT_BRICK_LABEL(qset,ibr,qpr) ; ibr++ ;
+         EDIT_BRICK_LABEL(qset,ibr,qpr) ;
+         gthrout[ibr] = gthrH[qpthr] ;
+         ibr++ ;
        }}
 
        /* attach an attribute describing the multi-threshold setup */
 
        { float *afl=malloc(sizeof(float)*(npthr+5)) ;
-         afl[0] = (float)nnlev ;
-         afl[1] = (float)nnsid ;
-         afl[2] = (float)qpthr ;
-         afl[3] = (float)(do_hpow0 + 2*do_hpow1 + 4*do_hpow2) ;
-         for( qpthr=0 ; qpthr < npthr ; qpthr++ )
+         afl[0] = (float)nnlev ;                                       /* NN */
+         afl[1] = (float)nnsid ;                      /* sidedness of t-test */
+         afl[2] = (float)npthr ;                   /* number of z-thresholds */
+         afl[3] = (float)(do_hpow0 + 2*do_hpow1 + 4*do_hpow2) ; /* hpow bits */
+         for( qpthr=0 ; qpthr < npthr ; qpthr++ )    /* and the z-thresholds */
            afl[qpthr+4] = zthr_used[qpthr] ;
 
-         afl[npthr+4] = (float)min_clust ; /* 21 Sep 2017 */
+         afl[npthr+4] = (float)min_clust ; /* min cluster size [21 Sep 2017] */
 
          THD_set_float_atr( qset->dblk ,
                             "MULTI_THRESHOLDS" , npthr+5 , afl ) ;
          free(afl) ;
+
+         /* attribute for the minimum thresholds per brick [20 Feb 2018] */
+
+         THD_set_float_atr( qset->dblk ,
+                            "MULTI_THRESHOLDS_MIN" , npthr*nhpow , gthrout ) ;
        }
 
        /* output dataset */
