@@ -1924,7 +1924,10 @@ FARP_LOOPBACK:
 
      /* if no substantial progress, quit */
 
-     if( itrac > 2 && fabsf(farperc-farpercold) < 0.0333f ) goto FARP_BREAKOUT ;
+     if( itrac > 2 && fabsf(farperc-farpercold) < 0.0222f ){
+       ININFO_message("         ((Progress too slow - breaking out **))") ;
+       goto FARP_BREAKOUT ;
+     }
 
      /* try another tfrac to get closer to our goal? */
 
