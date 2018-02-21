@@ -245,7 +245,9 @@ end
 #       (so no t2s_limit?)
 # also: specifying float should not be necessary, but let's be sure
 #       (float will propagate)
-3dcalc -a s4.bucket$view'[2]' -expr "step(-a)*min(-1/a,$t2s_limit)" \
+# if slope is positive, use the limit
+3dcalc -a s4.bucket$view'[2]'                                   \
+       -expr "step(-a)*min(-1/a,$t2s_limit)+step(a)*$t2s_limit" \
        -datum float -prefix s5.t2.star
 3dcalc -a s4.bucket$view'[2]' -expr "-a*step(-a)" \
        -datum float -prefix s5.t2.star.inv
@@ -359,6 +361,22 @@ $prog           - compute optimally combined weights dataset
 
    ----------------------------------------------------------------------
 
+   random babble:
+
+      If the regression leads to a T2* < 0 or T2 > 300 (or whatever the limit
+      is, set via -t2_star_limit), then that limit (300) will be applied.
+      If it is exactly 0, the default weighting will be applied (which should
+      actually match the effect of hitting the T2* limit), equal weights.
+
+      If the sum of the weights is not almost exactly 1.0 (see the option,
+      -sum_weight_tolerance), the weights will also default to equal (see
+      option -def_to_equal).
+
+      Basically, the program is designed such that either a reasonalbe T2*
+      is computed and applied, or the weighting result will be 1/num_echoes.
+
+   ----------------------------------------------------------------------
+
    required parameters:
 
       -echo_times_file FILE     - specify file with echo times
@@ -432,6 +450,8 @@ modification history for $prog :
                     - allow echo_times file to be horizontal, too
                     - do not apply T2*, but leave as reciprocal
                     - help updates
+   0.2  21 Feb 2018 : more babble; apply T2* < 0 as T2* limit
+                      (has no effect, but to make a prettier T2* map)
 
 EOF
 exit
