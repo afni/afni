@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21, Feb, 2018, RCR, "@compute_OC_weights", MICRO, TYPE_MODIFY,
+   "apply T2* < 0 as limit",
+   "Should have no effect on resulting weights, but make a prettier T2* map."
+ } ,
+
  { 16, Feb, 2018, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "add option -mask_epi_anat, to apply tigher mask in place of full_mask",
    "By default, create epi_anat intersection mask."
