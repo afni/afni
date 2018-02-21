@@ -240,20 +240,35 @@ end
 #    1 : constant term : log(S0(x))
 #    2 : linear term   : -R2(x)
 
-# separate T2-star volume (basically -1/T2star, but with limits)
-# also: compute 1/T2*, to use multiplication rather than repeated division
-#       (so no t2s_limit?)
-# also: specifying float should not be necessary, but let's be sure
-#       (float will propagate)
-# if slope is positive, use the limit
+
+# ---------------------------------------------------------------------------
+# compute T2* in multiple forms (for QC):
+#
+#    raw:     without any limits -1/mean(R2)
+#    limited: if T2* < 0 or T2* > $t2s_limit, use $t2s_limit
+#    inverse: (reciprocal) use 1/T2*, since there is little gain
+#             in dividing twice
+#             - if T2* < 0, apply as 0
+#             - if sum of TE_i*e^-(TE_i / T2*) is not close to 1, apply as 0
+#           ==> for 0, use weight = 1/num_echoes
+
+# raw T2*: save a volume that has no applied limit, just for QC
+3dcalc -a s4.bucket$view'[2]' -expr "-1/a" -datum float -prefix s5.t2.star.raw
+
+# limited: T2*, but $t2s_limit if T2* < 0 or T2* > $t2s_limit
 3dcalc -a s4.bucket$view'[2]'                                   \
        -expr "step(-a)*min(-1/a,$t2s_limit)+step(a)*$t2s_limit" \
        -datum float -prefix s5.t2.star
+
+# inverse: 1/T2*, to use multiplication rather than repeated division
+#          (so no t2s_limit?)
+#        * 1/T2* is actually applied, if positive
 3dcalc -a s4.bucket$view'[2]' -expr "-a*step(-a)" \
        -datum float -prefix s5.t2.star.inv
 
+# ---------------------------------------------------------------------------
 # make a product time series (for any <= 0 values, replace with 1)
-# TE_n * e^-(TE_n/t2star)
+# TE_n * e^-(TE_n/T2*)
 # ** use 1/T2* here, so product is   TE_n * e^-(TE_n * t2s_inv)
 3dcalc -a s5.t2.star.inv$view -b $etimes_file \
        -expr 'step(a)*b*exp(-b*a)' -prefix s6.prod
@@ -363,10 +378,13 @@ $prog           - compute optimally combined weights dataset
 
    random babble:
 
-      If the regression leads to a T2* < 0 or T2 > 300 (or whatever the limit
-      is, set via -t2_star_limit), then that limit (300) will be applied.
-      If it is exactly 0, the default weighting will be applied (which should
-      actually match the effect of hitting the T2* limit), equal weights.
+      The T2* map is not actually used, but rather 1/T2* (to avoid repeated
+      division).  A negative result will lead to a zero T2* value and therefore
+      the default, equal weighting.
+
+      For the actual T2* map (which is not used), T2* < 0 or T2* > 300
+      (or whatever the limit is, set via -t2_star_limit), will lead to applying
+      the T2* limit (300).
 
       If the sum of the weights is not almost exactly 1.0 (see the option,
       -sum_weight_tolerance), the weights will also default to equal (see
