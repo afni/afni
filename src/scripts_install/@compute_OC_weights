@@ -42,13 +42,15 @@ set prog = @compute_OC_weights
 set def_to_equal = 1
 set echo_dsets = ()
 set etimes_file = ''
-set necho = 0
 set prefix = OC_weights
 set t2s_limit = 300
 set tolerance = 0.001
 set work_dir = OC.weight.results
 set verb = 1
 
+set etimes_list = ( )
+set times_in_ms = 1
+set necho = 0
 set root_dir = `pwd`
 
 if ( $#argv < 1 ) goto HELP
@@ -167,10 +169,18 @@ if ( $#echo_dsets < 2 ) then
 endif
 
 # check for echo times, and compare against num EPI datasets
+set etimes_list = ( `1dcat $etimes_file` )
 set necho = `1dcat $etimes_file | wc -w`
 if ( $necho == 0 ) then
    echo "** missing -echo_times_file $etimes_file"
    exit 1
+endif
+
+# if first echo is greater than 1, assume times are in ms
+set times_in_ms = `ccalc -i "step($etimes_list[1]-1.0)"`
+if ( ! $times_in_ms ) then
+    echo "++ times seem to be in seconds, will scale to ms"
+    set etimes_list = ( `echo $etimes_list | 1deval -a stdin: -expr 'a*1000'` )
 endif
 
 if ( $necho != $#echo_dsets ) then
@@ -200,17 +210,17 @@ mkdir $work_dir
 
 # ----------------------------------------------------------------------
 # get inputs or basic computations into working directory
+    echo "++ times seem to be in seconds, will scale to ms"
 
 # get means for each echo
 foreach eind ( $eind_list ) 
    3dTstat -mean -prefix $work_dir/s1.mean.e$eind $echo_dsets[$eind]
 end
 
-# copy echo times file into working dir and adjust var
-# (also, force them to be verticle, just to be safe)
-set etimes = ( `cat $etimes_file` )
+# create new echo times in working dir and adjust var
+# (echo times may have been converted to ms; times are verticle)
 set etimes_file = $etimes_file:t
-echo $etimes | tr ' ' '\n' > $work_dir/$etimes_file
+echo $etimes_list | tr ' ' '\n' > $work_dir/$etimes_file
 
 # ----------------------------------------------------------------------
 # enter results dir and proceed
@@ -465,7 +475,7 @@ modification history for $prog :
    0.0  12 Feb 2018 : started
    0.1  16 Feb 2018 : ready for use
                     - added -def_to_equal, -sum_weight_tolerance
-                    - allow echo_times file to be horizontal, too
+                    - allow echo times file to be horizontal, too
                     - do not apply T2*, but leave as reciprocal
                     - help updates
    0.2  21 Feb 2018 : more babble; apply T2* < 0 as T2* limit
