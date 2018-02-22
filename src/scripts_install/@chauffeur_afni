@@ -1,5 +1,7 @@
 #!/bin/tcsh
 
+#!!!!!!!!!!!!!!!!!!!! in progress update p-to-stat!
+
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
 # -----------------------------------------------------------------
@@ -63,8 +65,12 @@
 #set version   = "3.0";   set rev_dat   = "Nov 24, 2017"
 #     + start helpifying
 #
-set version   = "3.1";   set rev_dat   = "Nov 27, 2017"
+#set version   = "3.1";   set rev_dat   = "Nov 27, 2017"
 #     + improve/correct slice-width selection (thanks, J. Lee!)
+#
+set version   = "3.2";   set rev_dat   = "Feb 21, 2018"
+#     + add in p-to-stat capability for thresholding, via 
+#       "-thr_olay_p2stat .." opt
 #
 # =====================================================================
 
@@ -102,6 +108,7 @@ set bufac   = "2"                # blowup factor
 set frange  = "0"                # either this (autorange), or user puts in
 set USER_FRANGE = 0              # internal toggle only
 set thrnew  = "0."               # threshold value (zero default)
+set p_thr_val = ""               # for p-to-stat capability in thr
 set thrflag = "*"                # threshold flags
 
 set crossh = "OFF"               # crosshairs OFF by default
@@ -224,7 +231,13 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set thrnew = "$argv[$ac]"
-        
+
+    # [PT: Feb 21, 2018] 
+    else if ( "$argv[$ac]" == "-thr_olay_p2stat" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set p_thr_val = "$argv[$ac]"
+
     else if ( "$argv[$ac]" == "-thrflag" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
@@ -484,6 +497,64 @@ if ( $innit == 0 ) then
     echo "   ---> needs to be (exactly) one of:  $check_list\n\n"
     goto BAD_EXIT
 endif
+
+# --------------------- p-to-stat thr capability -----------------
+# [PT: Feb 21, 2018]
+
+set statthr = "0"
+
+# Get info stored in header about: what kind of stat is stored, what
+# params are known about it (e.g., degrees of freedom), and use that
+# to calculate a value corresponding to user's selected p-value.  This
+# involves "reading attributes" from the header with 3dAttribute. To
+# learn more about these numbers, see:
+# https://afni.nimh.nih.gov/pub/dist/doc/program_help/README.attributes.html
+# Need 2 conditions here: a pval entered, and a subbrick index for the
+# thr dset specified
+if ( "${p_thr_val}" != "" && $subbb[3] >= 0 ) then
+
+    echo "++ Will calc threshold based on stat in [${subbb[3]}] brick"
+
+    # Get info from header about stat of certain brick.
+    set my_bstats = `3dAttribute BRICK_STATAUX \
+                        "$olay""[$subbb[3]]"`
+
+    ## Interval of allowed stats, by code number; basically, could be:
+    ## corr coef, t-stat, F-stat or z-score.
+    set OK_STAT = "0"
+    foreach i ( `seq 2 1 5` )
+        if ( "${my_bstats[2]}" == "$i" ) then
+            set OK_STAT = "1"
+        endif
+    end
+
+    # If we have a stat, interpret the numbers stored about it.
+    if ( "$OK_STAT" == "1" ) then
+        set my_stype = `@statauxcode ${my_bstats[2]}`
+        echo "++ OK stat type  : $my_stype"
+
+        set my_npars = ${my_bstats[3]}
+        set my_pars = ()
+        foreach i ( `seq 1 1 $my_npars` ) 
+            @ ii = 3 + $i
+            set my_pars = ( $my_pars "${my_bstats[$ii]}" )
+        end
+
+        echo "++ BRICK_STATAUX : $my_bstats"
+        echo "++        params : $my_pars"
+
+        # Calculate the stat value associated with the user's p-value,
+        # and store it in a variable for later user.
+        set my_cdf  = `cdf -p2t "$my_stype" "${p_thr_val}" ${my_pars}`
+        # same name as thr val that could be put in directly
+        set thrnew  = "$my_cdf[3]"
+    else
+        echo "**ERROR: unworkable stat type!  Bad code: ${my_bstats[2]}"
+        goto BAD_EXIT
+    endif
+endif
+
+# ------------------------------------------------------------------------
 
 # in so many cases we need a tmp working directory
 set read_dir = "$odir/$tmp_dir"
@@ -856,14 +927,34 @@ For example, "(see ENV: SAVE_AGIF)".
                      while the cor and axi spacing would be automatically 
                      calculated.
 
--thr_olay  THR     :threshold the olay dset at THR (def: 0, or 
-                    unthreshold). (See DR: SET_THRESHNEW)
+-thr_olay THR      :threshold the olay dset at THR (def: 0, or
+                    unthreshold). If you are thresholding a statistic
+                    brick, then you should see the "-thr_olay_p2stat ..."
+                    option, below. (See DR: SET_THRESHNEW)
 -thrflag   'fff'   :further control of how the THR value is interpreted 
                     (def: "*"). (See DR: SET_THRESHNEW)
+-thr_olay_p2stat PP :an alternative way to specify a voxelwise
+                    threshold (i.e., instead of "-thr_olay ..."), when
+                    thresholding based on a statistic; you can specify
+                    the p-value you want, and using internal header
+                    information, the appropriate value for whatever
+                    statistic is in the statistic brick will be
+                    calculated and applied; you likely need to use
+                    "-set_subbricks i j k" with this, where 'k' would
+                    be the index of the statistic brick (and likely
+                    'j' would be the index of the associated
+                    coefficient/beta brick; 'i' would be the brick of
+                    the underlay volume, and if there is only a single
+                    volume there, it could just be either '0' or
+                    '-1').
 
 -set_subbricks i j k :specify subbricks being viewed in the ulay, olay
                     and threshold dsets (def: "-1 -1 -1", which means
-                    ignore these values). (See DR: SET_SUBBRICKS)
+                    ignore these values).  This is the way to specify 
+                    different overlay and threshold subbricks for 
+                    displaying, such as using the "beta" or "coefficient"
+                    for color and the "statistic" as the threshold level.
+                    (See DR: SET_SUBBRICKS)
 
 -func_range FR     :specify upper value FR of the olay dset to be
                     matched to top of colorbar (def: calc 98%ile value
@@ -1010,6 +1101,26 @@ EXAMPLES:
         -set_xhairs OFF                   \
         -label_mode 1 -label_size 3       \
         -do_clean 
+
+
+    # 3) Make a 3x5 montage of an overlayed data set that shows the
+    #    beta coefficients stored in brick [1] while thresholding the
+    #    associated statistic stored in brick [2] at voxelwise p=0.001, 
+    #    overlayed on the anatomical volume.
+    @chauffeur_afni                       \
+        -ulay  anat.nii.gz                \
+        -olay  stats.nii.gz               \
+        -cbar Plasma                      \
+        -func_range 3                     \
+        -thr_olay_p2stat 0.001            \
+        -set_subbricks -1 1 2             \
+        -opacity 4                        \
+        -prefix   STAT_MAP                \
+        -montx 5 -monty 3                 \
+        -set_xhairs OFF                   \
+        -label_mode 1 -label_size 3       \
+        -do_clean 
+
 
 # -------------------------------------------------------------------
 
