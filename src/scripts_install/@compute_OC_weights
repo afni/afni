@@ -315,6 +315,7 @@ set result_dset = s10.masked.weights
 # copy back to $prefix
 cd $root_dir
 3dbucket -prefix $prefix $work_dir/$result_dset$view
+3dNotes -h "$prog $argv" $prefix$view
 
 if ( $status ) then
    echo "** failed to create $prefix"
