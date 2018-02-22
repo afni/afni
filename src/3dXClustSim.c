@@ -968,6 +968,7 @@ int main( int argc , char *argv[] )
    float tfrac=0.0006f, farperc=0.0f,farcut=0.0f, tfracold,farpercold,ttemp, farlast ;
    int ifarp ;
    float *gthrout , *gthrH ;
+   int ntfp=0 , ntfp_all=0 ; float *tfs=NULL , *fps=NULL ;
 
    /*----- help me if you can (I'm feeling down) -----*/
 
@@ -1741,6 +1742,10 @@ int main( int argc , char *argv[] )
 
    nit33 = 1.0f/(niter+0.333f) ;
 
+   ntfp = 0 ; ntfp_all = 128 ;
+   tfs  = (float *)malloc(sizeof(float)*ntfp_all) ;
+   fps  = (float *)malloc(sizeof(float)*ntfp_all) ;
+
    farlast = farplist[0] ;
    for( ifarp=0 ; ifarp < numfarp ; ifarp++ ){ /* 23 Aug 2017 */
 
@@ -1754,9 +1759,21 @@ int main( int argc , char *argv[] )
      /* tfrac = FOM count fractional threshold;
                 will be adjusted to find the 5% FPR goal */
 
-     if( ifarp == 0 )                               /* first time thru */
-       tfrac = (5.0f+farp_goal)*0.00005f ;
-     else
+     if( ifarp == 0 ){                                     /* first time thru */
+       tfrac = (4.0f+farp_goal)*0.00005f ;
+     } else if( ntfp < 2 ){                  /* if only 1 earlier calculation */
+       tfrac *= 1.0666f * farp_goal / farlast ;     /* adjust previous result */
+     } else {
+       int jj, jd ; float adf, mdf ;         /* later: use closest in history */
+       mdf = fabsf(fps[0]-farp_goal) ; jd = 0 ;   /* to adjust starting point */
+       for( jj=1 ; jj < ntfp ; jj++ ){
+         adf = fabsf(fps[jj]-farp_goal) ;
+         if( adf < mdf ){ mdf = adf ; jd = jj ; }
+       }
+       tfrac = tfs[jd] * farp_goal / fps[jd] ;
+     }
+
+
 #if 0
        tfrac *= ( farp_goal / farplist[ifarp-1] ) ; /* adjust previous result */
 #else
@@ -1922,6 +1939,14 @@ FARP_LOOPBACK:
      farperc    = (100.0f*nfar)/(float)niter ; /* what we got this time */
      farlast    = farperc ;           /* save for next FPR goal, if any */
 
+     /* save results for later re-use [22 Feb 2018] */
+     if( ntfp == ntfp_all ){
+       ntfp_all += 128 ;
+       tfs = (float *)realloc(tfs,sizeof(float)*ntfp_all) ;
+       fps = (float *)realloc(tfs,sizeof(float)*ntfp_all) ;
+     }
+     tfs[ntfp] = tfrac ; fps[ntfp] = farperc ; ntfp++ ;
+
      /* farcut = precision desired for our FPR goal */
      farcut = 0.222f ;
      if( itrac > 2 ) farcut += (itrac-2)*0.04321f ;
@@ -1946,7 +1971,7 @@ FARP_LOOPBACK:
          fff = FG_GOAL/farperc ;
          if( fff > 2.222f ) fff = 2.222f ; else if( fff < 0.450f ) fff = 0.450f ;
          dtt  = (fff-1.0f)*tfrac ;        /* tfrac step */
-         dtt *= (0.9666f+0.2222f*itrac) ; /* accelerate it */
+         dtt *= (0.8666f+0.2222f*itrac) ; /* accelerate it */
          ttemp = tfrac ; tfrac += dtt ; 
        } else {                                      /* linear inverse interpolate */
          fff = (farperc-farpercold)/(tfrac-tfracold) ;
