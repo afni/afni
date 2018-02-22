@@ -1205,10 +1205,15 @@ void display_help_menu(void)
       " -prefix_clustsim cc = Use 'cc' for the prefix for the '-Clustsim' temporary\n"
       "                       files, rather than a randomly generated prefix.\n"
       "                       You might find this useful if scripting.\n"
+#if 0
       "                      ++ The default randomly generated prefix will start with\n"
       "                         'TT.' and be followed by 11 alphanumeric characters,\n"
       "                         as in 'TT.Sv0Ghrn4uVg'.  To mimic this, you might\n"
       "                         use something like '-prefix_clustsim TT.Zhark'.\n"
+#else
+      "                      ++ By default, the Clustsim (and ETAC) prefix will\n"
+      "                         be the same as that given by '-prefix'.\n"
+#endif
       "                  -->>++ If you use option '-Clustsim', then the simulations\n"
       "                         keep track of the maximum (in mask) voxelwise\n"
       "                         z-statistic, compute the threshold for 5%% global FPR,\n"
@@ -1218,8 +1223,7 @@ void display_help_menu(void)
       "                         threshold in the AFNI GUI will (presumably) give you\n"
       "                         a map with a 5%% chance of false positive WITHOUT\n"
       "                         clustering. Of course, these thresholds generally come\n"
-      "                         with a very stringent per-voxel\n"
-      "                         p-value.\n"
+      "                         with a VERY stringent per-voxel p-value.\n"
       "                        ** In one analysis, the 5%% 2-sided test FPR p-value was\n"
       "                           about 7e-6 for a mask of 43000 voxels, which is\n"
       "                           bigger (less strict) than the 1.2e-6 one would get\n"
@@ -1227,8 +1231,10 @@ void display_help_menu(void)
       "                           stringent for many purposes. This threshold value\n"
       "                           was also close to the threshold at which the FDR\n"
       "                           q=1/43000, which may not be a coincidence.\n"
+#if 0
       "                  -->>++ It is perfectly legal to use the same string here\n"
       "                         as given in the '-prefix' option.\n"
+#endif
       "                  -->>++ This file has been updated to give the voxel-wise\n"
       "                         statistic threshold for global FPRs from 1%% to 9%%.\n"
       "                         However, the name is still '.5percent.txt' for the\n"
@@ -2312,9 +2318,13 @@ int main( int argc , char *argv[] )
          ININFO_message("   where you replace the 'N' with the number of CPUs.") ;
        }
        if( prefix_clustsim == NULL ){
+#if 0
          uuu = UNIQ_idcode_11() ;
          prefix_clustsim = (char *)malloc(sizeof(char)*32) ;
          sprintf(prefix_clustsim,"TT.%s",uuu) ;
+#else
+         prefix_clustsim = strdup(prefix) ; /* 22 Feb 2018 */
+#endif
          ININFO_message("Default clustsim prefix set to '%s'",prefix_clustsim) ;
        }
        continue ;
