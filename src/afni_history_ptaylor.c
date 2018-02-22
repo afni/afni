@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 22, Feb , 2018 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
+   "Can now apply p-to-stat calcs for thresholding.",
+   "User gives p-value, which gets made to appropriate stat for thresh.\n"
+},
+
 { 13, Feb , 2018 , PT , "fat_proc_filter_dwis" , MINOR , TYPE_MODIFY,
    "Can now accept *multiple* selector strings that get merged.",
    "Multiple strings/files can be input, yay.\n"
