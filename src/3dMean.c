@@ -256,7 +256,7 @@ int main( int argc , char * argv[] )
             count = (int **) malloc( sizeof(int *)*nval ) ;    /* array of sub-bricks */
             for( kk=0 ; kk < nval ; kk++ ){
               count[kk] = (int *) malloc(sizeof(int)*nxyz) ;  /* kk-th sub-brick */
-              for( ii=0 ; ii < nxyz ; ii++ ) count[kk][ii] = 0.0f ;
+              for( ii=0 ; ii < nxyz ; ii++ ) count[kk][ii] = 0 ;
             }
          }
          outset = EDIT_empty_copy( inset ) ;
