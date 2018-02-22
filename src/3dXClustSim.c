@@ -1224,8 +1224,8 @@ int main( int argc , char *argv[] )
    /*--- STEP 1c: find the global distributions and min thresholds -----------*/
 
 #define GTHRESH_FAC 0.066666f /* factor for method 1 */
-#define GTHRESH_THA 0.022222f /* how far into clust table: method 1 (per %) */
-#define GTHRESH_THB 0.044444f /* how far into clust table: method 2 (per %) */
+#define GTHRESH_THA 0.021111f /* how far into clust table: method 1 (per %) */
+#define GTHRESH_THB 0.042222f /* how far into clust table: method 2 (per %) */
 
    { int nfom,jj,nfff; Xcluster **xcc;
      float a0,a1,f0,f1,fta,ftb , fmax , fg ;
@@ -1284,8 +1284,10 @@ int main( int argc , char *argv[] )
            fg  = farplist[ifarp] ;                  /* FPR goal in % */
 
            jj  = (int)rintf(GTHRESH_THA*nfff*fg) ;  /* method 1 */
+           if( jj >= nfom ) jj = nfom-1 ;           /* should be impossible */
            fta = GTHRESH_FAC*fomg0[jj] ;
            jj  = (int)rintf(GTHRESH_THB*nfff*fg) ;  /* method 2 */
+           if( jj >= nfom ) jj = nfom-1 ;           /* should be impossible */
            ftb = fomg0[jj] ;
            gthresh0[ifarp][qcase][qpthr] = (int)(fmax*MAX(fta,ftb)+(1.0f-fmax)*MIN(fta,ftb)) ;
            if( verb > 1 && do_hpow0 ){
@@ -1293,9 +1295,11 @@ int main( int argc , char *argv[] )
                             gthresh0[ifarp][qcase][qpthr],lcase[qcase],pthr[qpthr],fg) ;
            }
 
-           jj  = (int)rintf(GTHRESH_THA*nfff) ;
+           jj  = (int)rintf(GTHRESH_THA*nfff*fg) ;
+           if( jj >= nfom ) jj = nfom-1 ;           /* should be impossible */
            fta = GTHRESH_FAC*fomg1[jj] ;
-           jj  = (int)rintf(GTHRESH_THB*nfff) ;
+           jj  = (int)rintf(GTHRESH_THB*nfff*fg) ;
+           if( jj >= nfom ) jj = nfom-1 ;           /* should be impossible */
            ftb = fomg1[jj] ;
            gthresh1[ifarp][qcase][qpthr] = (fmax*MAX(fta,ftb)+(1.0f-fmax)*MIN(fta,ftb)) ;
            if( verb > 1 && do_hpow1 ){
@@ -1303,9 +1307,11 @@ int main( int argc , char *argv[] )
                             gthresh1[ifarp][qcase][qpthr],lcase[qcase],pthr[qpthr],fg) ;
            }
 
-           jj  = (int)rintf(GTHRESH_THA*nfff) ;
+           jj  = (int)rintf(GTHRESH_THA*nfff*fg) ;
+           if( jj >= nfom ) jj = nfom-1 ;           /* should be impossible */
            fta = GTHRESH_FAC*fomg2[jj] ;
-           jj  = (int)rintf(GTHRESH_THB*nfff) ;
+           jj  = (int)rintf(GTHRESH_THB*nfff*fg) ;
+           if( jj >= nfom ) jj = nfom-1 ;           /* should be impossible */
            ftb = fomg2[jj] ;
            gthresh2[ifarp][qcase][qpthr] = (fmax*MAX(fta,ftb)+(1.0f-fmax)*MIN(fta,ftb)) ;
            if( verb > 1 && do_hpow2 ){
