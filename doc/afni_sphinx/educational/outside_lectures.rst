@@ -20,7 +20,9 @@ other groups and kindly provided for public dissemination.
 
 *Note: The views and opinions expressed in videos linked here are
 those of the authors and do not necessarily reflect the official
-policy or position of AFNIland.*
+policy or position of AFNI-Land.*
+
+|
 
 FMRIF Summer Course
 ===================
