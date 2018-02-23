@@ -706,6 +706,7 @@ class SubjProcSream:
         # multi-echo vars
         self.dsets_me   = []            # afni_name dsets, echoes x runs
                                         # (dsets = dsets_me[fave_echo])
+        self.echo_times = []            # list of echo times
         self.num_echo   = 1             # applies regardless of have_me
         self.have_me    = 0             # do we have multi-echo data
         self.use_me     = 0             # use ME in current command (changes)
@@ -994,6 +995,8 @@ class SubjProcSream:
                         helpstr='anatomy to copy to results directory')
         self.valid_opts.add_opt('-copy_files', -1, [], okdash=0,
                         helpstr='list of files to copy to results directory')
+        self.valid_opts.add_opt('-echo_times', -1, [],
+                        helpstr='list of echo times, one per echo')
         self.valid_opts.add_opt('-execute', 0, [],
                         helpstr='execute script as suggested to user')
         self.valid_opts.add_opt('-exit_on_error', 1, [],
@@ -1720,6 +1723,7 @@ class SubjProcSream:
         if self.get_dsets(): return 1
 
         # if ME, then fill reg_echo via -reg_echo (registration echo)
+        # also, try to get echo times
         if self.have_me:
            oname = '-reg_echo'
            self.reg_echo = 2
@@ -1733,6 +1737,15 @@ class SubjProcSream:
               print("** %s: registration echo must be between 1 and %d" \
                     % (oname, self.num_echo))
               return 1
+
+           oname = '-echo_times'
+           elist, err = self.user_opts.get_type_list(float, oname)
+           if not err and elist != None:
+              self.echo_times = elist
+              if len(elist) != self.num_echo:
+                 errs += 1
+                 print("** have %d echoes, but %d echo times" \
+                       % (self.num_echo, len(elist)))
 
         # set view and dimensions based on dsets
 
@@ -2473,6 +2486,9 @@ class SubjProcSream:
                            % self.num_echo)
            self.write_text('set echo_list = (`count -digits 2 1 %d`)\n' \
                            % self.num_echo)
+           if len(self.echo_times) > 0:
+              etimes = ['%s' % et for et in self.echo_times]
+              self.write_text('set echo_times = ( %s )\n' % ' '.join(etimes))
            # self.regecho_var starts with '$', so strip it when assigning
            self.write_text("set %s = '%02d'\n\n" \
                             % (self.regecho_var[1:], self.reg_echo))
