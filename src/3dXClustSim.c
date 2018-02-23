@@ -1224,9 +1224,15 @@ int main( int argc , char *argv[] )
    /*=========================================================================*/
    /*--- STEP 1c: find the global distributions and min thresholds -----------*/
 
-#define GTHRESH_FAC 0.066666f /* factor for method 1 */
-#define GTHRESH_THA 0.021111f /* how far into clust table: method 1 (per %) */
-#define GTHRESH_THB 0.042222f /* how far into clust table: method 2 (per %) */
+#if 0
+# define GTHRESH_FAC 0.066666f /* factor for method 1 */
+# define GTHRESH_THA 0.021111f /* how far into clust table: method 1 (per %) */
+# define GTHRESH_THB 0.042222f /* how far into clust table: method 2 (per %) */
+#else
+# define GTHRESH_FAC 0.055555f /* factor for method 1 */
+# define GTHRESH_THA 0.012345f /* how far into clust table: method 1 (per %) */
+# define GTHRESH_THB 0.034567f /* how far into clust table: method 2 (per %) */
+#endif
 
    { int nfom,jj,nfff; Xcluster **xcc;
      float a0,a1,f0,f1,fta,ftb , fmax , fg ;
@@ -1772,13 +1778,6 @@ int main( int argc , char *argv[] )
        }
        tfrac = tfs[jd] * farp_goal / fps[jd] ;
      }
-
-
-#if 0
-       tfrac *= ( farp_goal / farplist[ifarp-1] ) ; /* adjust previous result */
-#else
-       tfrac *= 1.1111f * ( farp_goal / farlast ) ; /* adjust previous result */
-#endif
 
      itrac = 0 ;
      farpercold = farperc = 0.0f ; tfracold = tfrac ;
