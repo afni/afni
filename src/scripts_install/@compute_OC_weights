@@ -39,7 +39,7 @@ set VERSION = 0.3
 set prog = @compute_OC_weights
 
 
-set def_to_equal = 1
+set def_to_equal = 0
 set echo_dsets = ()
 set etimes_file = ''
 set prefix = OC_weights
@@ -280,8 +280,21 @@ end
 # make a product time series (for any <= 0 values, replace with 1)
 # TE_n * e^-(TE_n/T2*)
 # ** use 1/T2* here, so product is   TE_n * e^-(TE_n * t2s_inv)
-3dcalc -a s5.t2.star.inv$view -b $etimes_file \
-       -expr 'step(a)*b*exp(-b*a)' -prefix s6.prod
+# ** relatedly, apply $t2s_limit here too, so that as R2 goes to zero and
+#    negative, results converge to it, rather than jumping to a flat average
+#
+# if we default to equal weights, denote with zero in the prod/sum values
+# - the default default is, uh, what are we talking about?
+#   no wait, the default default is to use t2s_limit
+if ( $def_to_equal ) then
+   3dcalc -a s5.t2.star.inv$view -b $etimes_file        \
+          -expr "step(a)*b*exp(-b*a)"                   \
+          -prefix s6.prod
+else
+   3dcalc -a s5.t2.star.inv$view -b $etimes_file                           \
+          -expr "step(a)*b*exp(-b*a)+(1-step(a))*b*exp(-b/$t2s_limit)"     \
+          -prefix s6.prod
+endif
 
 # and sum for weight denominator
 3dTstat -sum -prefix s7.sum.te s6.prod$view
@@ -289,12 +302,12 @@ end
 # make a time series of weights per echo, which is now just prod/sum
 # (guard against truncation errors by limiting to 1)
 3dcalc -a s6.prod$view -b s7.sum.te$view -expr 'min(a/b,1)' \
-       -prefix s8.weight.orig
-set result_dset = s8.weight.orig
+       -prefix s8.weights.orig
+set result_dset = s8.weights.orig
 
 # as a safeguard, mask the weights by voxels with valid sums
 # (within 'tolerance' of 1)
-3dTstat -sum -prefix s9.sum.weights s8.weight.orig$view
+3dTstat -sum -prefix s9.sum.weights s8.weights.orig$view
 3dcalc -a s9.sum.weights$view -prefix s9.tolerance.fail \
        -expr "step(a)*(1-within(a,1-$tolerance,1+$tolerance))"
 3dcalc -a s9.sum.weights$view -prefix s9.tolerance.mask \
@@ -303,13 +316,12 @@ set result_dset = s8.weight.orig
 # if default is mean across echoes, insert into result
 if ( $def_to_equal ) then
    set wval = `ccalc 1/$necho`
-   3dcalc -a s8.weight.orig$view -b s9.tolerance.mask$view \
+   3dcalc -a s8.weights.orig$view -b s9.tolerance.mask$view \
           -expr "bool(b)*a+(1-bool(b))*$wval" -prefix s10.masked.weights
+   set result_dset = s10.masked.weights
 else
-   3dcalc -a s8.weight.orig$view -b s9.tolerance.mask$view \
-          -expr 'a*b' -prefix s10.masked.weights
+   set result_dset = s8.weights.orig
 endif
-set result_dset = s10.masked.weights
         
 
 # copy back to $prefix
@@ -368,7 +380,9 @@ $prog           - compute optimally combined weights dataset
    or
          abs(1-sum[weights]) > 'tolerance'
 
-   In such cases, the weights will default to 1/number_of_echoes.
+   In such cases, the weights will default to the result based on the maximum
+   T2* value (unless "-def_to_equal yes" is applied, in which case the default
+   is 1/number_of_echoes, which is equal weighting across echoes).
   
    ----------------------------------------------------------------------
 
@@ -390,12 +404,14 @@ $prog           - compute optimally combined weights dataset
    random babble:
 
       The T2* map is not actually used, but rather 1/T2* (to avoid repeated
-      division).  A negative result will lead to a zero T2* value and therefore
-      the default, equal weighting.
+      division).
 
-      For the actual T2* map (which is not used), T2* < 0 or T2* > 300
-      (or whatever the limit is, set via -t2_star_limit), will lead to applying
-      the T2* limit (300).
+      T2* is restricted to the range (0, T2S_LIMIT), where the default limit is
+      300 (see -t2_star_limit).
+
+      A "bad" T2* value (T2* <= 0 or T2* > T2S_LIMIT) will lead to use of the
+      limit T2S_LIMIT, so that as R2 descreases and goes negative, the results
+      converge.
 
       If the sum of the weights is not almost exactly 1.0 (see the option,
       -sum_weight_tolerance), the weights will also default to equal (see
@@ -419,21 +435,26 @@ $prog           - compute optimally combined weights dataset
    general options:
 
       -def_to_equal yes/no      - specify whether to default to equal weights
-                                  (default = yes)
+                                  (default = no)
 
         In the case where T2* seems huge or <= 0, or if the sum of the
         fractional weights is not close to 1 (see -tolerance), one might
         want to apply default weights equal to 1/num_echoes (so echoes
         are weighted equally).
 
+        Without this, the weighting for such 'bad' voxels is based on the
+        T2* limit.  See -t2_star_limit.
+
       -prefix PREFIX            - specify prefix of resulting OC weights dataset
 
            e.g. -prefix OC.weights.SUBJ
 
       -sum_weight_tolerance TOL - tolerance for summed weight diff from 1.0
-                                  (def = 0.001)
+                                  (default = 0.001)
 
            e.g. -sum_weight_tolerance 0.0001
+
+        This option only applies to the "-def_to_equal yes" case.
 
         If echo means (at some voxel) do not follow a decay curve, there
         could be truncation errors in weighting computation that lead to
@@ -443,12 +464,18 @@ $prog           - compute optimally combined weights dataset
         The default effect of this failure is to get equal weights across
         the echoes.
 
-      -t2_star_limit LIMIT      - specify limit for T2* values (default 300)
+      -t2_star_limit LIMIT      - specify limit for T2* values
+                                  (default = 300)
 
-        This is not too important, as bad T2* values should be handled by
-        -def_to_equal.
+        When the system of equations does not show a reasonably fast decay,
+        the slopes will be such that T2* is huge or possibly negative.  In such
+        cases, it is applied as the LIMIT from this option.
 
       -work_dir WDIR            - specify directory to compute results in
+
+        All the processing is done in a new sub-directory.  If this program
+        is to be applied one run at a time, it is important to specify such
+        working directores to keep the names unique.
 
       -verb                     - increase verbosity of output
 
