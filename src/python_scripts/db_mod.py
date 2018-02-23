@@ -2659,10 +2659,48 @@ def db_cmd_combine(proc, block):
    """combine all echoes
 
       This will grow to include options like:
-         ave    : simply average
+         ave    : simple average
          OC     : optimally combine
          meica  : run meica to get projection terms
                   possibly also use to combine echoes
+   """
+
+   if not proc.use_me:
+      print("** creating combine block, but no ME?")
+      return
+
+   ocmeth, rv = block.opts.get_string_opt('-combine_method', default='OC')
+   if rv: return
+
+   # write commands
+   cmd =  '# %s\n'                                \
+          '# combine multi-echo data, per run\n'  \
+          % block_header('combine')
+
+   if ocmeth == 'ave':
+      ccmd = cmd_combine_mean(proc, block)
+   elif ocmeth == 'OC':
+      ccmd = cmd_combine_OC(proc, block)
+   else:
+      print("** invalid combine method: %s" % ocmeth)
+      return ''
+
+   if ccmd == '': return ''
+
+   cmd += ccmd
+
+   # importantly, we are now done with ME processing
+   proc.use_me = 0
+
+   return cmd
+
+
+def cmd_combine_OC(proc, block):
+   """combine all echoes using OC via @compute_OC_weights
+
+      1. for each run, get weights (with run-specific prefix)
+      2. average those weights across runs (nzmean? not necessary?)
+      3. apply 
    """
 
    if not proc.use_me:
@@ -2674,21 +2712,45 @@ def db_cmd_combine(proc, block):
    cur_prefix = proc.prefix_form_run(block, eind=-9)
    prev_prefix = proc.prev_prefix_form_run(block, view=1, eind=-2)
 
-   # write commands
-   cmd =  '# %s\n'                                \
-          '# combine multi-echo data, per run\n'  \
-          % block_header('combine')
-
-   cmd += '# for now, just average across echo sets\n' \
+   cmd =  '# ----- optimally combine echoes -----\n\n' \
+          '# get weights for each run\n'               \
           'foreach run ( $runs )\n'                    \
-          '    3dMean -prefix %s %s\n'                 \
-          'end\n\n' % (cur_prefix, prev_prefix)
+          '    @compute_OC_weights -echo_times "$echo_times" \\\n' \
+          '        -echo_dsets %s   \\\n' \
+          '        -prefix oc.weights.r$run  \\\n' \
+          '        -work_dir oc.work.r$run\n' \
+          'end\n\n' % (prev_prefix)
 
-   # importantly, we are now done with ME processing
-   proc.use_me = 0
+   proc.OC_weightset = BASE.afni_name('oc.weights.$subj%s' % proc.view)
+   cmd += '# average weights across runs\n'         \
+          '    3dMean -prefix %s oc.weights.r*.HEAD\n' \
+          'end\n\n' % proc.OC_weightset.out_prefix()
+
+   cmd += '# apply weights to each run\n'           \
+          'foreach run ( $runs )\n'                    \
+          '    3dMean -weightset %s \\\n'           \
+          '           -prefix %s \\\n'          \
+          '           %s\n'                 \
+          'end\n\n' % (proc.OC_weightset.shortinput(), cur_prefix, prev_prefix)
 
    return cmd
 
+
+def cmd_combine_mean(proc, block):
+   """combine all echoes via simple mean
+   """
+
+   # input prefix has $run fixed, but uses a wildcard for echoes
+   # output prefix has $run fixed, but no echo var
+   cur_prefix = proc.prefix_form_run(block, eind=-9)
+   prev_prefix = proc.prev_prefix_form_run(block, view=1, eind=-2)
+
+   cmd = '# for now, just average across echo sets\n' \
+         'foreach run ( $runs )\n'                    \
+         '    3dMean -prefix %s %s\n'                 \
+         'end\n\n' % (cur_prefix, prev_prefix)
+
+   return cmd
 
 # --------------- motsim block ---------------
 
