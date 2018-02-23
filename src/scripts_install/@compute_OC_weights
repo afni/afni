@@ -106,6 +106,14 @@ while ( $ac <= $#argv )
       endif
       set etimes_file = $argv[$ac]
 
+   else if ( "$argv[$ac]" == "-echo_times" ) then
+      @ ac ++
+      if ( $ac > $#argv ) then
+         echo "** missing parameter for option '-echo_times'"
+         exit 1
+      endif
+      set etimes_list = ( $argv[$ac] )
+
    else if ( "$argv[$ac]" == "-prefix" ) then
       @ ac ++
       if ( $ac > $#argv ) then
@@ -147,32 +155,29 @@ while ( $ac <= $#argv )
    @ ac += 1
 end
 
-# maybe chat a little
-if ( $verb > 1 ) then
-   echo "++ have $#echo_dsets echo datasets"
-   echo "++ echo_times_file = $etimes_file"
-   echo "++ output prefix = $prefix"
-   echo "++ work_dir = $work_dir"
-   echo "++ t2_star_limit = $t2s_limit"
-   echo ""
-endif
+# ----------------------------------------------------------------------
+# check on the state of things, and try to make an echo list
 
-# check for required parameters
-if ( ! -f "$etimes_file" ) then
-   echo "** missing -echo_times_file $etimes_file"
-   exit 1
-endif
-
+# check for echo datasets
 if ( $#echo_dsets < 2 ) then
    echo "** must have at least 2 -echo_dsets files"
    exit 1
 endif
 
-# check for echo times, and compare against num EPI datasets
-set etimes_list = ( `1dcat $etimes_file` )
-set necho = `1dcat $etimes_file | wc -w`
+
+# if etimes_list is not already input, try to set from file
+if ( $#etimes_list == 0 ) then
+   if ( ! -f $etimes_file ) then
+      echo "** missing -echo_times_file $etimes_file"
+      exit 1
+   endif
+   set etimes_list = ( `1dcat $etimes_file` )
+endif
+
+# see if we have echo times at all now
+set necho = $#etimes_list
 if ( $necho == 0 ) then
-   echo "** missing -echo_times_file $etimes_file"
+   echo "** missing echo times from -echo_times_file or -echo_times"
    exit 1
 endif
 
@@ -189,6 +194,20 @@ if ( $necho != $#echo_dsets ) then
 endif
 
 
+# ----------------------------------------------------------------------
+# seem to have valid inputs, maybe chat a little
+if ( $verb ) then
+   echo ""
+   echo "++ num echo dsets = $#echo_dsets"
+   echo "++ echo times     = $etimes_list"
+   echo "++ weight prefix  = $prefix"
+   echo "++ work_dir       = $work_dir"
+   echo "++ T2*            = $t2s_limit"
+   echo ""
+endif
+
+
+
 # try to set the view
 set view = `3dinfo -av_space $echo_dsets[1]`
 if ( "$view" == "NO-DSET" || "$view" == "" ) then
@@ -201,12 +220,15 @@ if ( $verb == 2 ) echo "-- have view $view"
 
 set eind_list = ( `count -digits 1 1 $necho` )
 
+# ----------------------------------------------------------------------
+# make a new work directory and get to it
 if ( -d $work_dir ) then
    echo "** output dir $work_dir already exists, exiting..."
    exit 1
 endif
 
 mkdir $work_dir
+
 
 # ----------------------------------------------------------------------
 # get inputs or basic computations into working directory
@@ -219,8 +241,9 @@ end
 
 # create new echo times in working dir and adjust var
 # (echo times may have been converted to ms; times are verticle)
-set etimes_file = $etimes_file:t
+set etimes_file = echo_times.1D
 echo $etimes_list | tr ' ' '\n' > $work_dir/$etimes_file
+
 
 # ----------------------------------------------------------------------
 # enter results dir and proceed
@@ -424,12 +447,29 @@ $prog           - compute optimally combined weights dataset
 
    required parameters:
 
+      -echo_times "TE1 TE2 ..." - specify echo times
+                                  (use quotes to pass list as one parameter)
+
+           e.g. -echo_times "15 30.5 41"
+
+        Specify echo times as a list.
+
+        Use either -echo_times or -echo_times_files.
+
+
       -echo_times_file FILE     - specify file with echo times
                                   (e.g. it could contain 15 30.5 41)
 
+        Specify echo times from a text file.
+
+        Use either -echo_times or -echo_times_files.
+
+
       -echo_dsets D1 D2 D3      - specify one run of multi-echo EPI data, e.g.:
 
-         e.g. -echo_dsets pb03.SUBJ.r01.e*.volreg+tlrc.HEAD
+           e.g. -echo_dsets pb03.SUBJ.r01.e*.volreg+tlrc.HEAD
+
+        Provide the echo datasets for a single run of multi-echo EPI data.
 
 
    general options:
@@ -507,7 +547,7 @@ modification history for $prog :
                     - do not apply T2*, but leave as reciprocal
                     - help updates
    0.2  21 Feb 2018 : more babble; apply T2* < 0 as T2* limit
-                      (has no effect, but to make a prettier T2* map)
+   0.3  23 Feb 2018 : added -echo_times, to list on command line
 
 EOF
 exit
