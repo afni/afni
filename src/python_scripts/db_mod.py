@@ -2722,9 +2722,9 @@ def cmd_combine_OC(proc, block):
           'end\n\n' % (prev_prefix)
 
    proc.OC_weightset = BASE.afni_name('oc.weights.$subj%s' % proc.view)
-   cmd += '# average weights across runs\n'         \
-          '    3dMean -prefix %s oc.weights.r*.HEAD\n' \
-          'end\n\n' % proc.OC_weightset.out_prefix()
+   cmd += '# average weights across runs\n'          \
+          '3dMean -prefix %s oc.weights.r*.HEAD\n\n' \
+          % proc.OC_weightset.out_prefix()
 
    cmd += '# apply weights to each run\n'           \
           'foreach run ( $runs )\n'                    \
