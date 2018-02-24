@@ -347,12 +347,14 @@ int main( int argc , char * argv[] )
          /*-- more checks for a reasonable weight dataset --*/
 
          /* also, be sure any weightset has sufficient volumes */
-         if( weightset && nweights <= nsum )
-            ERROR_exit("-weightset has %d volumes, but there are more"
-                       " input datasets to sum", nweights);
-         ffac = DSET_BRICK_FACTOR(weightset,0);
-         if( ffac != 0.0 && ffac != 1.0 )
-            ERROR_exit("-weightset should not have BRIK factors");
+         if( weightset ) {
+            if( nweights <= nsum )
+               ERROR_exit("-weightset has %d volumes, but there are more"
+                          " input datasets to sum", nweights);
+            ffac = DSET_BRICK_FACTOR(weightset,0);
+            if( ffac != 0.0 && ffac != 1.0 )
+               ERROR_exit("-weightset should not have BRIK factors");
+         }
       }
 
       /* if weights, point to the current volume of them */
