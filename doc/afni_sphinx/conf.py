@@ -19,8 +19,10 @@ import os
 # CLOUD: import Cloud
 import cloud_sptheme as csp
 # requires (for me, using 'sudo'):  
-# $ pip install cloud_sptheme 
-
+# $ sudo pip install cloud_sptheme
+# $ sudo pip install pbr
+# $ sudo pip install sphinxcontrib-fulltoc
+# $ sudo pip install sphinxcontrib.programoutput
 
 
 
