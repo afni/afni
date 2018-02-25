@@ -585,12 +585,14 @@ g_history = """
         - this is a preliminary step, before running OC and ME-ICA
     6.04 Feb 16, 2018: compute epi_anat mask, intersecting the two
         - added -mask_epi_anat, to apply that in place of full_mask
+    6.05 Feb 23, 2018: added OC combine method
 """
 
-g_version = "version 6.04, February 16, 2018"
+g_version = "version 6.05, February 23, 2018"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
+      [ "23 Feb 2018",  "@compute_OC_weights -echo_times" ],
       [ "23 Sep 2016",  "1d_tool.py -select_runs" ],
       [  "1 Dec 2015",  "3dClustSim -ACF" ],
       [ "28 Oct 2015",  "3ddot -dodice" ],
