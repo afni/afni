@@ -832,7 +832,7 @@ ENTRY("THD_get_subdirs_bysub") ;
    /* get dirnames via piping from find */
 
    cmd = (char *)malloc(sizeof(char)*(128+strlen(dirname)+strlen(newsubid))) ;
-   sprintf( cmd, "find %s -name '%s' -type d -depth -9", dirname , newsubid ) ;
+   sprintf( cmd, "find %s -maxdepth 9 -type d -name '%s'", dirname , newsubid ) ;
 
    flist = THD_suck_pipe( cmd ) ;
 
