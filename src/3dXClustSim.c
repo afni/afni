@@ -1229,8 +1229,8 @@ int main( int argc , char *argv[] )
 # define GTHRESH_THA 0.021111f /* how far into clust table: method 1 (per %) */
 # define GTHRESH_THB 0.042222f /* how far into clust table: method 2 (per %) */
 #else
-# define GTHRESH_FAC 0.056789f /* factor for method 1 */
-# define GTHRESH_THA 0.007777f /* how far into clust table: method 1 (per %) */
+# define GTHRESH_FAC 0.199999f /* factor for method 1 */
+# define GTHRESH_THA 0.008888f /* how far into clust table: method 1 (per %) */
 # define GTHRESH_THB 0.013579f /* how far into clust table: method 2 (per %) */
 #endif
 
