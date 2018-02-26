@@ -56,6 +56,11 @@ afni_history_struct rickr_history[] = {
    "method, and therefore add other related names."
  } ,
 
+ { 23, Feb, 2018, RCR, "@compute_OC_weights", MINOR, TYPE_NEW_OPT,
+   "added option -echo_times, for convenient use by afni_proc.py",
+   NULL
+ } ,
+
  { 22, Feb, 2018, RCR, "3dMean", MINOR, TYPE_NEW_OPT,
    "add option -weightset to compute a weighted sum",
    "This N-volume weight dataset is used to apply voxelwise weights to the N\n"
