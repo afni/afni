@@ -1229,9 +1229,9 @@ int main( int argc , char *argv[] )
 # define GTHRESH_THA 0.021111f /* how far into clust table: method 1 (per %) */
 # define GTHRESH_THB 0.042222f /* how far into clust table: method 2 (per %) */
 #else
-# define GTHRESH_FAC 0.055555f /* factor for method 1 */
-# define GTHRESH_THA 0.005555f /* how far into clust table: method 1 (per %) */
-# define GTHRESH_THB 0.012345f /* how far into clust table: method 2 (per %) */
+# define GTHRESH_FAC 0.499999f /* factor for method 1 */
+# define GTHRESH_THA 0.008888f /* how far into clust table: method 1 (per %) */
+# define GTHRESH_THB 0.013579f /* how far into clust table: method 2 (per %) */
 #endif
 
    { int nfom,jj,nfff; Xcluster **xcc;
@@ -1279,7 +1279,7 @@ int main( int argc , char *argv[] )
          if( nfff > nfom ) nfff = nfom ; /* very very unlikely */
 
          fmax = AFNI_numenv("AFNI_XCLUSTSIM_FMAX") ;
-         if( fmax <= 0.01f || fmax > 1.0f ) fmax = 0.777f ;
+         if( fmax <= 0.01f || fmax > 1.0f ) fmax = 0.888f ;
 
          /* global threshold computed from tail of FOM distribution */
 
