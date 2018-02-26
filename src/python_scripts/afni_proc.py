@@ -586,9 +586,10 @@ g_history = """
     6.04 Feb 16, 2018: compute epi_anat mask, intersecting the two
         - added -mask_epi_anat, to apply that in place of full_mask
     6.05 Feb 23, 2018: added OC combine method
+    6.06 Feb 26, 2018: added -help_section option
 """
 
-g_version = "version 6.05, February 23, 2018"
+g_version = "version 6.06, February 26, 2018"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -925,6 +926,8 @@ class SubjProcSream:
         # terminal options
         self.valid_opts.add_opt('-help', 0, [],
                         helpstr="show this help")
+        self.valid_opts.add_opt('-help_section', 1, [],
+                        helpstr="show help from the given section")
         self.valid_opts.add_opt('-hist', 0, [],
                         helpstr="show revision history")
         self.valid_opts.add_opt('-requires_afni_version', 0, [],
@@ -1415,7 +1418,7 @@ class SubjProcSream:
         self.user_opts = read_options(self.argv, self.valid_opts)
         if self.user_opts == None: return 1     # error condition
         if len(self.user_opts.olist) == 0:      # no options: apply -help
-            print(g_help_string)
+            show_program_help()
             return 0
         if self.user_opts.trailers:
             opt = self.user_opts.find_opt('trailers')
@@ -1446,7 +1449,12 @@ class SubjProcSream:
         if opt != None: self.verb = int(opt.parlist[0])
 
         if opt_list.find_opt('-help'):     # just print help
-            print(g_help_string)
+            show_program_help()
+            return 0  # gentle termination
+        
+        if opt_list.find_opt('-help_section'):     # just print help
+            section, rv = opt_list.get_string_opt('-help_section')
+            show_program_help(section=section)
             return 0  # gentle termination
         
         if opt_list.find_opt('-hist'):     # print the history

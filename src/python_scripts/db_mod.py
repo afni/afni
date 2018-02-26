@@ -7107,6 +7107,30 @@ def block_header(hname, maxlen=74, hchar='=', endchar=''):
                                 endchar=endchar)
 
 # ----------------------------------------------------------------------
+# help strings
+
+def show_program_help(section=''):
+   # maybe print them all
+   if section == '':
+      print(g_help_string)
+      print(g_help_examples)
+      print(g_help_notes)
+      print(g_help_options)
+      print(g_help_trailer)
+
+      return 0
+
+   rv = 0
+   try:
+      shelp = eval('g_help_%s' % section)
+      print(shelp)
+   except:
+      print("** invalid help section: %s" % section)
+      rv = 1
+
+   return rv
+
+# ----------------------------------------------------------------------
 # global help string (see end global help string)
 # -- this is long, get it out of the main library
 
@@ -7285,7 +7309,8 @@ g_help_string = """
                   - output iresp curves for non-GAM/non-BLOCK regressors
 
         empty:    - do nothing (just copy the data using 3dTcat)
-
+"""
+g_help_examples = """
     ==================================================
     EXAMPLES (options can be provided in any order): ~1~
 
@@ -7965,6 +7990,8 @@ g_help_string = """
                         -regress_stim_labels ToolMovie HumanMovie       \\
                                              ToolPoint HumanPoint
 
+"""
+g_help_notes = """
     ==================================================
     Many NOTE sections: ~1~
     ==================================================
@@ -9264,6 +9291,8 @@ g_help_string = """
            example it would be 'output.SCRIPT'.  With this use of 'tee', all
            screen output will be duplicated in that text file.
 
+"""
+g_help_options = """
     ==================================================
     OPTIONS:  ~2~
 
@@ -10847,7 +10876,7 @@ g_help_string = """
             anat transformation.  In any case, a skull-stripped anat will exist.
 
             A 'group' anat mask will be created if the 'tlrc' block is used
-            (via the -block or -tlrc_anat options).  In such a case, the anat
+            (via the -blocks or -tlrc_anat options).  In such a case, the anat
             template will be made into a binary mask.
 
             This option makes -regress_apply_mask obsolete.
@@ -10870,6 +10899,20 @@ g_help_string = """
 
             Please see '3dAutomask -help' for more information.
             See also -mask_type.
+
+        -mask_epi_anat yes/no : apply epi_anat mask in place of EPI mask
+
+                e.g. -mask_epi_anat yes
+
+            An EPI mask might be applied to the data either for simple
+            computations (e.g. global brain correlation, GCOR), or actually
+            applied to the EPI data.  The EPI mask $full_mask is used for most
+            such computations, by default.
+
+            The mask_epi_anat dataset is an intersection of full_mask and
+            mask_anat, and might be better suited to such computations.
+
+            Use this option to apply mask_epi_anat in place of full_mask.
 
         -mask_import LABEL MSET : import a final grid mask with the given label
 
@@ -10996,6 +11039,19 @@ g_help_string = """
             This option allows one to disable such functionality.
 
             Please see '3dABoverlap -help' for more information.
+
+        -combine_method METHOD  : specify method for combining echoes
+
+                e.g. -combine_method OC
+                default: OC
+
+            When using the 'combine' block to combine echoes (for each run),
+            this option can be used to specify the method used.   Methods:
+
+                OC      : optimally combined (via @compute_OC_weights)
+                mean    : simple mean of echoes
+
+            Please see '@compute_OC_weights -help' for more information.
 
         -mask_type TYPE         : specify 'union' or 'intersection' mask type
 
@@ -12342,7 +12398,8 @@ g_help_string = """
 
             Please see '3dClustSim -help' for more information.
             See also -regress_run_clustsim.
-
+"""
+g_help_trailer = """
     - R Reynolds  Dec, 2006                             thanks to Z Saad
     ===========================================================================
 """
