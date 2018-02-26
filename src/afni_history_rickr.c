@@ -49,6 +49,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 23, Feb, 2018, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add option for running OC combine method, use '-combine_method OC'",
+   "This will run the current method implemented in @compute_OC_weights.\n"
+   "This is probably a bit of a test, as I expect to modify the base 'OC'\n"
+   "method, and therefore add other related names."
+ } ,
+
  { 22, Feb, 2018, RCR, "3dMean", MINOR, TYPE_NEW_OPT,
    "add option -weightset to compute a weighted sum",
    "This N-volume weight dataset is used to apply voxelwise weights to the N\n"
