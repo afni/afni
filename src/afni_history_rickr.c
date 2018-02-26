@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 26, Feb, 2018, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add option -help_section, and use it to add some missing option help",
+   NULL
+ } ,
+
  { 23, Feb, 2018, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "add option for running OC combine method, use '-combine_method OC'",
    "This will run the current method implemented in @compute_OC_weights.\n"
@@ -57,7 +62,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 23, Feb, 2018, RCR, "@compute_OC_weights", MINOR, TYPE_NEW_OPT,
-   "added option -echo_times, for convenient use by afni_proc.py",
+   "add option -echo_times, for convenient use by afni_proc.py",
    NULL
  } ,
 
