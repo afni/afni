@@ -7520,7 +7520,8 @@ g_help_examples = """
                 afni_proc.py -subj_id sb23.e6.align                        \\
                         -copy_anat sb23/sb23_mpra+orig                     \\
                         -dsets sb23/epi_r??+orig.HEAD                      \\
-                        -blocks tshift align tlrc volreg blur mask regress \\
+                        -blocks tshift align tlrc volreg blur mask         \\
+                                scale regress                              \\
                         -tcat_remove_first_trs 3                           \\
                         -align_opts_aea -cost lpc+ZZ                       \\
                         -tlrc_base MNI152_T1_2009c+tlrc                    \\
@@ -7594,7 +7595,8 @@ g_help_examples = """
 
                 afni_proc.py -subj_id sb23.e7.esoteric                     \\
                         -dsets sb23/epi_r??+orig.HEAD                      \\
-                        -blocks tshift align tlrc volreg blur mask regress \\
+                        -blocks tshift align tlrc volreg blur mask         \\
+                                scale regress                              \\
                         -copy_anat sb23/sb23_mpra+orig                     \\
                         -tcat_remove_first_trs 3                           \\
                         -align_opts_aea -cost lpc+ZZ                       \\
@@ -7972,6 +7974,21 @@ g_help_examples = """
             -echo_times     : specify echo times (if needed)
             -combine_method : specify method to combine echoes (if any)
 
+         An afni_proc.py command might be updated to include something like:
+
+            afni_proc.py ...                                     \\
+                -blocks tshift align tlrc volreg mask combine    \\
+                        blur scale regress                       \\
+                -dsets_me_echo epi_run*_echo_01.nii              \\
+                -dsets_me_echo epi_run*_echo_02.nii              \\
+                -dsets_me_echo epi_run*_echo_03.nii              \\
+                -echo_times 15 30.5 41                           \\
+                ...                                              \\
+                -mask_epi_anat yes                               \\
+                -combine_method OC                               \\
+                ...                                              \\
+
+
        Example 12a. Multi-echo data processing - very simple. ~2~
 
          Keep it simple and just focus on the basic ME options, plus a few
@@ -7987,7 +8004,7 @@ g_help_examples = """
             - Note that the 'regress' block is not valid for multiple echoes.
 
                 afni_proc.py -subj_id FT.12a.ME                 \\
-                  -blocks tshift align tlrc volreg blur mask    \\
+                  -blocks tshift align tlrc volreg mask blur    \\
                   -copy_anat FT_anat+orig                       \\
                   -dsets_me_run epi_run1_echo*.nii              \\
                   -reg_echo 2                                   \\
@@ -8022,6 +8039,7 @@ g_help_examples = """
                   -volreg_align_to MIN_OUTLIER                  \\
                   -volreg_align_e2a                             \\
                   -volreg_tlrc_warp                             \\
+                  -mask_epi_anat yes                            \\
                   -combine_method OC                            \\
                   -regress_motion_per_run                       \\
                   -regress_censor_motion 0.2                    \\
