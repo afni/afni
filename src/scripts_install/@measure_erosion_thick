@@ -401,7 +401,8 @@ endif
 
 echo "#\!/bin/tcsh" > @show_thick
 echo "setenv SUMA_Sym_I_Range NO" >> @show_thick
-echo "suma -i anat.gii -drive_com " '"-com surf_cont -load_dset erosion_thick_smooth.niml.dset \' >> @show_thick
+echo "suma -i anat.gii -drive_com " '"-com surf_cont -view_surf_cont y \' >> @show_thick
+echo '     -com surf_cont -load_dset erosion_thick_smooth.niml.dset \' >> @show_thick
 echo '     -com surf_cont -Dim 0.4 -com surf_cont -I_range 0 5 \' >> @show_thick
 echo '     -com viewer_cont -key b" &' >> @show_thick
 echo "To show surface with thickness map, use this command:"
