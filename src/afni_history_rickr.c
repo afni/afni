@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  1, Mar, 2018, RCR, "afni_proc.py", MICRO, TYPE_NEW_OPT,
+   "add -combine_method cases of OC_A and OC_B",
+   NULL
+ } ,
+
+ {  1, Mar, 2018, RCR, "@compute_OC_weights", MINOR, TYPE_NEW_OPT,
+   "changed default OC method; added -oc_method (OC_A, OC_B)",
+   "Compute T2* from full log() time series, rather than log(mean(TS))."
+ } ,
+
  { 26, Feb, 2018, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "add option -help_section, and use it to add some missing option help",
    NULL
@@ -87,7 +97,8 @@ afni_history_struct rickr_history[] = {
  { 16, Feb, 2018, RCR, "afni_proc.py", MAJOR, TYPE_NEW_OPT,
    "add combine block and ability to process multi-echo data",
    "Have new options -dsets_me_echo and -dsets_me_run for input.\n"
-   "Still need to implement OC and ME-ICA."
+   "Still need to implement OC and ME-ICA.\n"
+   "Thanks to L Atlas and J Gonzalez-Castillo."
  } ,
 
  { 15, Feb, 2018, RCR, "afni_util.py", MICRO, TYPE_NEW_OPT,

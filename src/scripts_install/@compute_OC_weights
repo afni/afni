@@ -20,6 +20,12 @@
 #   log(mean(S(TE_2))) ~= -mean(R2s(x))*TE_2 + log(So(x))
 #   log(mean(S(TE_3))) ~= -mean(R2s(x))*TE_3 + log(So(x))
 #
+#
+# New method: solve the same system of equations, but without taking means.
+#             So solve this across all time points.  To be efficient, demean
+#             each time point (across echoes), demean the TEs, and make a
+#             single regressor with the approriate resulting TE values.
+#
 # Then T2* = 1/mean(R2s(x)), and weights come from:
 #
 #                TE_n*e^-(TE_n/T2*)
@@ -42,6 +48,7 @@ set prog = @compute_OC_weights
 set def_to_equal = 0
 set echo_dsets = ()
 set etimes_file = ''
+set oc_method = 'OC_B'
 set prefix = OC_weights
 set t2s_limit = 300
 set tolerance = 0.001
@@ -114,6 +121,18 @@ while ( $ac <= $#argv )
       endif
       set etimes_list = ( $argv[$ac] )
 
+   else if ( "$argv[$ac]" == "-oc_method" ) then
+      @ ac ++
+      if ( $ac > $#argv ) then
+         echo "** missing parameter for option '-oc_method'"
+         exit 1
+      endif
+      set oc_method = $argv[$ac]
+      if ( $oc_method != OC_A && $oc_method != 'OC_B' ) then
+         echo "** invalid -oc_method = '$oc_method'"
+         exit 1
+      endif
+
    else if ( "$argv[$ac]" == "-prefix" ) then
       @ ac ++
       if ( $ac > $#argv ) then
@@ -129,13 +148,6 @@ while ( $ac <= $#argv )
          exit 1
       endif
       set tolerance = $argv[$ac]
-   else if ( "$argv[$ac]" == "-work_dir" ) then
-      @ ac ++
-      if ( $ac > $#argv ) then
-         echo "** missing parameter for option '-work_dir'"
-         exit 1
-      endif
-      set work_dir = $argv[$ac]
    else if ( "$argv[$ac]" == "-t2_star_limit" ) then
       @ ac ++
       if ( $ac > $#argv ) then
@@ -148,8 +160,16 @@ while ( $ac <= $#argv )
       if ( $verb > 2 ) then
          set echo
       endif
+   else if ( "$argv[$ac]" == "-work_dir" ) then
+      @ ac ++
+      if ( $ac > $#argv ) then
+         echo "** missing parameter for option '-work_dir'"
+         exit 1
+      endif
+      set work_dir = $argv[$ac]
    else
       echo "** bad option $ac : '$argv[$ac]'"
+      exit 1
    endif
 
    @ ac += 1
@@ -193,6 +213,8 @@ if ( $necho != $#echo_dsets ) then
    exit 1
 endif
 
+# and note nt
+set nt = `3dinfo -nt $echo_dsets[1]`
 
 # ----------------------------------------------------------------------
 # seem to have valid inputs, maybe chat a little
@@ -202,7 +224,8 @@ if ( $verb ) then
    echo "++ echo times     = $etimes_list"
    echo "++ weight prefix  = $prefix"
    echo "++ work_dir       = $work_dir"
-   echo "++ T2*            = $t2s_limit"
+   echo "++ T2* limit      = $t2s_limit"
+   echo "++ NT             = $nt"
    echo ""
 endif
 
@@ -232,12 +255,23 @@ mkdir $work_dir
 
 # ----------------------------------------------------------------------
 # get inputs or basic computations into working directory
-    echo "++ times seem to be in seconds, will scale to ms"
 
-# get means for each echo
-foreach eind ( $eind_list ) 
-   3dTstat -mean -prefix $work_dir/s1.mean.e$eind $echo_dsets[$eind]
-end
+if ( $oc_method == OC_A ) then
+   # get means for each echo
+   set cur_prefix = s1.mean
+   foreach eind ( $eind_list ) 
+      3dTstat -mean -prefix $work_dir/$cur_prefix.e$eind $echo_dsets[$eind]
+   end
+else if ( $oc_method == OC_B ) then
+   set cur_prefix = s1.log
+   foreach eind ( $eind_list ) 
+      3dcalc -a $echo_dsets[$eind] -expr 'log(a)' -float \
+             -prefix $work_dir/$cur_prefix.0.e$eind
+   end
+else
+   echo "** unknown oc_method $oc_method"
+   exit 1
+endif
 
 # create new echo times in working dir and adjust var
 # (echo times may have been converted to ms; times are verticle)
@@ -249,24 +283,60 @@ echo $etimes_list | tr ' ' '\n' > $work_dir/$etimes_file
 # enter results dir and proceed
 cd $work_dir
 
-# get means for each echo
-foreach eind ( $eind_list ) 
-   3dcalc -a s1.mean.e$eind$view -expr 'log(a)' -prefix s2.log.e$eind
-end
+if ( $oc_method == OC_A ) then
+   # get means for each echo
+   foreach eind ( $eind_list ) 
+      3dcalc -a $cur_prefix.e$eind$view -expr 'log(a)' -prefix s2.log.e$eind
+   end
 
-# "temporal" catenation
-3dTcat -TR 1 -prefix s3.tcat.logs s2.log.e*.HEAD
+   # "temporal" catenation
+   3dTcat -TR 1 -prefix s3.tcat.logs s2.log.e*.HEAD
 
 
-# regress to solve for R(x) and log(So(x))
-3dDeconvolve -input s3.tcat.logs$view   \
-        -polort 0                       \
-        -num_stimts 1                   \
-        -stim_file 1 $etimes_file       \
-        -x1D x.xmat.1D                  \
-        -fitts s4.fitts                 \
-        -bucket s4.bucket               \
-        -bout
+   # regress to solve for R(x) and log(So(x))
+   3dDeconvolve -input s3.tcat.logs$view   \
+           -polort 0                       \
+           -num_stimts 1                   \
+           -stim_file 1 $etimes_file       \
+           -x1D x.xmat.1D                  \
+           -fitts s4.fitts                 \
+           -bucket s4.bucket               \
+           -bout
+
+   # and create an R2 volume for the next step
+   3dbucket -prefix s4.R2 s4.bucket$view'[2]'
+
+else if ( $oc_method == OC_B ) then
+
+   # demean the log time series (remove the mean log at each time point)
+   3dMean -prefix $cur_prefix.1.mean $cur_prefix.0.e*$view.HEAD
+   foreach eind ( $eind_list ) 
+      3dcalc -a $cur_prefix.0.e$eind$view -b $cur_prefix.1.mean$view \
+             -expr a-b -prefix $cur_prefix.2.e$eind.demean
+   end
+
+   # demean echo times
+   set emean = `echo $etimes_list | 3dTstat -prefix - 1D:stdin\'`
+   set etimes_dem = ( `1deval -a $etimes_file -expr a-$emean` )
+   echo "++ demeaned echoes: $etimes_dem"
+
+   # now create echo regressor: NT TE1 vals, NT TE2 vals, etc
+   echo "-- creating regressor with $nt of each demeaned echo time"
+   set ereg_vals = ()
+   foreach eind ( $eind_list )
+      # set replist = ( `python -c "print('$etimes_dem[$eind] '*$nt)"` )
+      # use printf and sed instead of python, seems safter
+      set replist = ( `printf "%${nt}s" " " | sed "s/ /$etimes_dem[$eind] /g"` )
+      set ereg_vals = ( $ereg_vals $replist )
+   end
+   echo $ereg_vals | tr ' ' '\n' > reg_etimes_demean.1D
+   3dDeconvolve -input $cur_prefix.2.e*.demean$view.HEAD   \
+        -polort -1 -num_stimts 1                           \
+        -stim_file 1 reg_etimes_demean.1D -stim_label 1 R2 \
+        -x1D x.xmat.1D -tout -bucket s4.bucket
+   3dbucket -prefix s4.R2 s4.bucket$view'[1]'
+   
+endif
 
 # output volumes are:
 #    0 : full-F
@@ -286,18 +356,17 @@ end
 #           ==> for 0, use weight = 1/num_echoes
 
 # raw T2*: save a volume that has no applied limit, just for QC
-3dcalc -a s4.bucket$view'[2]' -expr "-1/a" -datum float -prefix s5.t2.star.raw
+3dcalc -a s4.R2$view -expr "-1/a" -datum float -prefix s5.t2.star.raw
 
 # limited: T2*, but $t2s_limit if T2* < 0 or T2* > $t2s_limit
-3dcalc -a s4.bucket$view'[2]'                                   \
+3dcalc -a s4.R2$view                                            \
        -expr "step(-a)*min(-1/a,$t2s_limit)+step(a)*$t2s_limit" \
        -datum float -prefix s5.t2.star
 
 # inverse: 1/T2*, to use multiplication rather than repeated division
 #          (so no t2s_limit?)
 #        * 1/T2* is actually applied, if positive
-3dcalc -a s4.bucket$view'[2]' -expr "-a*step(-a)" \
-       -datum float -prefix s5.t2.star.inv
+3dcalc -a s4.R2$view -expr "-a*step(-a)" -datum float -prefix s5.t2.star.inv
 
 # ---------------------------------------------------------------------------
 # make a product time series (for any <= 0 values, replace with 1)
@@ -433,14 +502,14 @@ $prog           - compute optimally combined weights dataset
       300 (see -t2_star_limit).
 
       A "bad" T2* value (T2* <= 0 or T2* > T2S_LIMIT) will lead to use of the
-      limit T2S_LIMIT, so that as R2 descreases and goes negative, the results
+      limit T2S_LIMIT, so that as R2 decreases and goes negative, the results
       converge.
 
       If the sum of the weights is not almost exactly 1.0 (see the option,
       -sum_weight_tolerance), the weights will also default to equal (see
       option -def_to_equal).
 
-      Basically, the program is designed such that either a reasonalbe T2*
+      Basically, the program is designed such that either a reasonable T2*
       is computed and applied, or the weighting result will be 1/num_echoes.
 
    ----------------------------------------------------------------------
@@ -485,6 +554,27 @@ $prog           - compute optimally combined weights dataset
         Without this, the weighting for such 'bad' voxels is based on the
         T2* limit.  See -t2_star_limit.
 
+      -oc_method METHOD         - specify which method to employ
+
+           e.g.     -oc_method OC_A
+           default: -oc_method OC_B
+
+        The default method was changed from solving for T2* using log(mean())
+        to solving log() over time, with the intention of being more accurate.
+        This is the new default, though the old method can be specified as
+        OC_A.
+
+           methods:
+
+              OC_A      : compute T2* from log(mean(time series))
+                          this is the original implementation
+
+              OC_B      : compute T2* from log(time series)
+                          this is the new default
+
+         * So far, testing has shown almost undetectable differences, so it
+           may be a moot point.
+
       -prefix PREFIX            - specify prefix of resulting OC weights dataset
 
            e.g. -prefix OC.weights.SUBJ
@@ -515,7 +605,7 @@ $prog           - compute optimally combined weights dataset
 
         All the processing is done in a new sub-directory.  If this program
         is to be applied one run at a time, it is important to specify such
-        working directores to keep the names unique.
+        working directories to keep the names unique.
 
       -verb                     - increase verbosity of output
 
