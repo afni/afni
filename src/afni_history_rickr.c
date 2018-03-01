@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  1, Mar, 2018, RCR, "@compute_OC_weights", MINOR, TYPE_NEW_OPT,
+   "changed default OC method; added -oc_method (OC_A, OC_B)",
+   "Compute T2* from full log() time series, rather than log(mean(TS))."
+ } ,
+
  { 26, Feb, 2018, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "add option -help_section, and use it to add some missing option help",
    NULL
