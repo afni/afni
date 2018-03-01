@@ -50,6 +50,11 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 28, JAN, 2018, DRG, "@measure_xxx surface object controllers",
+	MICRO, TYPE_BUG_FIX,
+	"keep surface object controllers open in the output suma scripts",
+	"Mac OS bug makes closing and reopening controllers crash"
+},
 { 18, JAN, 2018, DRG, "3dUndump cubes",
 	MICRO, TYPE_NEW_OPT,
 	"-cubes makes cubes instead of spheres"

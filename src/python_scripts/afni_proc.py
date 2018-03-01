@@ -587,9 +587,12 @@ g_history = """
         - added -mask_epi_anat, to apply that in place of full_mask
     6.05 Feb 23, 2018: added OC combine method
     6.06 Feb 26, 2018: added -help_section option
+    6.07 Feb 27, 2018: added help for a few option
+                       (some old, some new, some red, some blue)
+    6.08 Mar  1, 2018: added OC_methods OC_A and OC_B
 """
 
-g_version = "version 6.06, February 26, 2018"
+g_version = "version 6.08, March 1, 2018"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -603,8 +606,9 @@ g_requires_afni = [ \
 
 g_todo_str = """todo:
   - ME:
+     - ** write AP regression tests
      x do 'apply catenated xform'
-     - compare OC inputs with those from Lauren
+     x compare OC inputs with those from Lauren
      - test only vreg, w/anat, aff std space, NL, blip
      - test all blocks: despike, tshift, blur, mask, scale
      - test radial_correlate
@@ -1173,7 +1177,7 @@ class SubjProcSream:
                         helpstr='number of slices to pad by in volreg')
 
         self.valid_opts.add_opt('-combine_method', 1, [],
-                        acplist=['mean','OC'],
+                        acplist=['mean','OC', 'OC_A', 'OC_B'],
                         helpstr='specify method for combining echoes per run')
 
         self.valid_opts.add_opt('-blur_filter', 1, [],
