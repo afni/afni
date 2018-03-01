@@ -2679,8 +2679,8 @@ def db_cmd_combine(proc, block):
 
    if ocmeth == 'ave':
       ccmd = cmd_combine_mean(proc, block)
-   elif ocmeth == 'OC':
-      ccmd = cmd_combine_OC(proc, block)
+   elif ocmeth[0:2] == 'OC':
+      ccmd = cmd_combine_OC(proc, block, ocmeth)
    else:
       print("** invalid combine method: %s" % ocmeth)
       return ''
@@ -2695,12 +2695,18 @@ def db_cmd_combine(proc, block):
    return cmd
 
 
-def cmd_combine_OC(proc, block):
+def cmd_combine_OC(proc, block, method='OC'):
    """combine all echoes using OC via @compute_OC_weights
 
       1. for each run, get weights (with run-specific prefix)
       2. average those weights across runs (nzmean? not necessary?)
       3. apply 
+
+      method must currently be one of OC, OC_A, OC_B
+         OC     : default
+         OC_A   : from Javier's notes
+         OC_B   : regress from log() time series, rather than log(mean())
+                  (this is the default == OC)
    """
 
    if not proc.use_me:
@@ -2711,19 +2717,29 @@ def cmd_combine_OC(proc, block):
       print("** option -echo_times is required for 'OC' combine method")
       return
 
+   if method == 'OC':
+      mstr = ''
+   elif method == 'OC_A' or method == 'OC_B':
+      mstr = '        -oc_method %s   \\\n' % method
+   else:
+      print("** invalid OC combine method, %s" % method)
+      return
+     
+
    # input prefix has $run fixed, but uses a wildcard for echoes
    # output prefix has $run fixed, but no echo var
    cur_prefix = proc.prefix_form_run(block, eind=-9)
    prev_prefix = proc.prev_prefix_form_run(block, view=1, eind=-2)
 
-   cmd =  '# ----- optimally combine echoes -----\n\n' \
-          '# get weights for each run\n'               \
-          'foreach run ( $runs )\n'                    \
-          '    @compute_OC_weights -echo_times "$echo_times" \\\n' \
-          '        -echo_dsets %s   \\\n' \
-          '        -prefix oc.weights.r$run  \\\n' \
-          '        -work_dir oc.work.r$run\n' \
-          'end\n\n' % (prev_prefix)
+   cmd =  '# ----- optimally combine echoes -----\n\n'              \
+          '# get weights for each run\n'                            \
+          'foreach run ( $runs )\n'                                 \
+          '    @compute_OC_weights -echo_times "$echo_times" \\\n'  \
+          '%s'                                                      \
+          '        -echo_dsets %s   \\\n'                           \
+          '        -prefix oc.weights.r$run  \\\n'                  \
+          '        -work_dir oc.work.r$run\n'                       \
+          'end\n\n' % (mstr, prev_prefix)
 
    proc.OC_weightset = BASE.afni_name('oc.weights.$subj%s' % proc.view)
    cmd += '# average weights across runs\n'          \
@@ -11246,6 +11262,10 @@ g_help_options = """
             this option can be used to specify the method used.   Methods:
 
                 OC      : optimally combined (via @compute_OC_weights)
+                          (current default is OC_B)
+                OC_A    : original log(mean()) regression method
+                OC_B    : newer log() time teries regression method
+                          (there is little difference between OC_A and OC_B)
                 mean    : simple mean of echoes
 
             Please see '@compute_OC_weights -help' for more information.
