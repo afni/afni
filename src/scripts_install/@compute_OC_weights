@@ -20,6 +20,12 @@
 #   log(mean(S(TE_2))) ~= -mean(R2s(x))*TE_2 + log(So(x))
 #   log(mean(S(TE_3))) ~= -mean(R2s(x))*TE_3 + log(So(x))
 #
+#
+# New method: solve the same system of equations, but without taking means.
+#             So solve this across all time points.  To be efficient, demean
+#             each time point (across echoes), demean the TEs, and make a
+#             single regressor with the approriate resulting TE values.
+#
 # Then T2* = 1/mean(R2s(x)), and weights come from:
 #
 #                TE_n*e^-(TE_n/T2*)
@@ -496,14 +502,14 @@ $prog           - compute optimally combined weights dataset
       300 (see -t2_star_limit).
 
       A "bad" T2* value (T2* <= 0 or T2* > T2S_LIMIT) will lead to use of the
-      limit T2S_LIMIT, so that as R2 descreases and goes negative, the results
+      limit T2S_LIMIT, so that as R2 decreases and goes negative, the results
       converge.
 
       If the sum of the weights is not almost exactly 1.0 (see the option,
       -sum_weight_tolerance), the weights will also default to equal (see
       option -def_to_equal).
 
-      Basically, the program is designed such that either a reasonalbe T2*
+      Basically, the program is designed such that either a reasonable T2*
       is computed and applied, or the weighting result will be 1/num_echoes.
 
    ----------------------------------------------------------------------
@@ -548,6 +554,27 @@ $prog           - compute optimally combined weights dataset
         Without this, the weighting for such 'bad' voxels is based on the
         T2* limit.  See -t2_star_limit.
 
+      -oc_method METHOD         - specify which method to employ
+
+           e.g.     -oc_method OC_A
+           default: -oc_method OC_B
+
+        The default method was changed from solving for T2* using log(mean())
+        to solving log() over time, with the intention of being more accurate.
+        This is the new default, though the old method can be specified as
+        OC_A.
+
+           methods:
+
+              OC_A      : compute T2* from log(mean(time series))
+                          this is the original implementation
+
+              OC_B      : compute T2* from log(time series)
+                          this is the new default
+
+         * So far, testing has shown almost undetectable differences, so it
+           may be a moot point.
+
       -prefix PREFIX            - specify prefix of resulting OC weights dataset
 
            e.g. -prefix OC.weights.SUBJ
@@ -578,7 +605,7 @@ $prog           - compute optimally combined weights dataset
 
         All the processing is done in a new sub-directory.  If this program
         is to be applied one run at a time, it is important to specify such
-        working directores to keep the names unique.
+        working directories to keep the names unique.
 
       -verb                     - increase verbosity of output
 
