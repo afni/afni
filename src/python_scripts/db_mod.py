@@ -2679,13 +2679,13 @@ def db_cmd_combine(proc, block):
 
    if ocmeth == 'ave':
       ccmd = cmd_combine_mean(proc, block)
-   elif ocmeth == 'OC':
-      ccmd = cmd_combine_OC(proc, block)
+   elif ocmeth[0:2] == 'OC':
+      ccmd = cmd_combine_OC(proc, block, ocmeth)
    else:
       print("** invalid combine method: %s" % ocmeth)
       return ''
 
-   if ccmd == '': return ''
+   if ccmd == None: return
 
    cmd += ccmd
 
@@ -2695,31 +2695,51 @@ def db_cmd_combine(proc, block):
    return cmd
 
 
-def cmd_combine_OC(proc, block):
+def cmd_combine_OC(proc, block, method='OC'):
    """combine all echoes using OC via @compute_OC_weights
 
       1. for each run, get weights (with run-specific prefix)
       2. average those weights across runs (nzmean? not necessary?)
       3. apply 
+
+      method must currently be one of OC, OC_A, OC_B
+         OC     : default
+         OC_A   : from Javier's notes
+         OC_B   : regress from log() time series, rather than log(mean())
+                  (this is the default == OC)
    """
 
    if not proc.use_me:
       print("** creating combine block, but no ME?")
       return
 
+   if len(proc.echo_times) == 0:
+      print("** option -echo_times is required for 'OC' combine method")
+      return
+
+   if method == 'OC':
+      mstr = ''
+   elif method == 'OC_A' or method == 'OC_B':
+      mstr = '        -oc_method %s   \\\n' % method
+   else:
+      print("** invalid OC combine method, %s" % method)
+      return
+     
+
    # input prefix has $run fixed, but uses a wildcard for echoes
    # output prefix has $run fixed, but no echo var
    cur_prefix = proc.prefix_form_run(block, eind=-9)
    prev_prefix = proc.prev_prefix_form_run(block, view=1, eind=-2)
 
-   cmd =  '# ----- optimally combine echoes -----\n\n' \
-          '# get weights for each run\n'               \
-          'foreach run ( $runs )\n'                    \
-          '    @compute_OC_weights -echo_times "$echo_times" \\\n' \
-          '        -echo_dsets %s   \\\n' \
-          '        -prefix oc.weights.r$run  \\\n' \
-          '        -work_dir oc.work.r$run\n' \
-          'end\n\n' % (prev_prefix)
+   cmd =  '# ----- optimally combine echoes -----\n\n'              \
+          '# get weights for each run\n'                            \
+          'foreach run ( $runs )\n'                                 \
+          '    @compute_OC_weights -echo_times "$echo_times" \\\n'  \
+          '%s'                                                      \
+          '        -echo_dsets %s   \\\n'                           \
+          '        -prefix oc.weights.r$run  \\\n'                  \
+          '        -work_dir oc.work.r$run\n'                       \
+          'end\n\n' % (mstr, prev_prefix)
 
    proc.OC_weightset = BASE.afni_name('oc.weights.$subj%s' % proc.view)
    cmd += '# average weights across runs\n'          \
@@ -7520,7 +7540,8 @@ g_help_examples = """
                 afni_proc.py -subj_id sb23.e6.align                        \\
                         -copy_anat sb23/sb23_mpra+orig                     \\
                         -dsets sb23/epi_r??+orig.HEAD                      \\
-                        -blocks tshift align tlrc volreg blur mask regress \\
+                        -blocks tshift align tlrc volreg blur mask         \\
+                                scale regress                              \\
                         -tcat_remove_first_trs 3                           \\
                         -align_opts_aea -cost lpc+ZZ                       \\
                         -tlrc_base MNI152_T1_2009c+tlrc                    \\
@@ -7594,7 +7615,8 @@ g_help_examples = """
 
                 afni_proc.py -subj_id sb23.e7.esoteric                     \\
                         -dsets sb23/epi_r??+orig.HEAD                      \\
-                        -blocks tshift align tlrc volreg blur mask regress \\
+                        -blocks tshift align tlrc volreg blur mask         \\
+                                scale regress                              \\
                         -copy_anat sb23/sb23_mpra+orig                     \\
                         -tcat_remove_first_trs 3                           \\
                         -align_opts_aea -cost lpc+ZZ                       \\
@@ -7960,6 +7982,90 @@ g_help_examples = """
                   -regress_est_blur_epits                                    \\
                   -regress_est_blur_errts                                    \\
                   -regress_run_clustsim yes
+
+       Example 12 background: Multi-echo data processing. ~2~
+
+         Processing multi-echo data should be similar to single echo data,
+         except for perhaps:
+
+            combine         : the addition of a 'combine' block
+            -dsets_me_echo  : specify ME data, per echo
+            -dsets_me_run   : specify ME data, per run (alternative to _echo)
+            -echo_times     : specify echo times (if needed)
+            -combine_method : specify method to combine echoes (if any)
+
+         An afni_proc.py command might be updated to include something like:
+
+            afni_proc.py ...                                     \\
+                -blocks tshift align tlrc volreg mask combine    \\
+                        blur scale regress                       \\
+                -dsets_me_echo epi_run*_echo_01.nii              \\
+                -dsets_me_echo epi_run*_echo_02.nii              \\
+                -dsets_me_echo epi_run*_echo_03.nii              \\
+                -echo_times 15 30.5 41                           \\
+                ...                                              \\
+                -mask_epi_anat yes                               \\
+                -combine_method OC                               \\
+                ...                                              \\
+
+
+       Example 12a. Multi-echo data processing - very simple. ~2~
+
+         Keep it simple and just focus on the basic ME options, plus a few
+         for controlling registration.
+
+         o This example uses 3 echoes of data across just 1 run.
+            - so use a single -dsets_me_run option to input EPI datasets
+         o Echo 2 is used to drive registration for all echoes.
+            - That is the default, but it is good to be explicit.
+         o The echo times are not needed, as the echoes are never combined.
+         o The echo are never combined (in this example), so that there
+           are always 3 echoes, even until the end.
+            - Note that the 'regress' block is not valid for multiple echoes.
+
+                afni_proc.py -subj_id FT.12a.ME                 \\
+                  -blocks tshift align tlrc volreg mask blur    \\
+                  -copy_anat FT_anat+orig                       \\
+                  -dsets_me_run epi_run1_echo*.nii              \\
+                  -reg_echo 2                                   \\
+                  -tcat_remove_first_trs 2                      \\
+                  -volreg_align_to MIN_OUTLIER                  \\
+                  -volreg_align_e2a                             \\
+                  -volreg_tlrc_warp
+
+       Example 12b. Multi-echo data processing - OC resting state. ~2~
+
+         Still keep this simple, mostly focusing on ME options, plus standard
+         ones for resting state.
+
+         o This example uses 3 echoes of data across just 1 run.
+            - so use a single -dsets_me_run option to input EPI datasets
+         o Echo 2 is used to drive registration for all echoes.
+            - That is the default, but it is good to be explicit.
+         o The echoes are combined via the 'combine' block.
+         o So -echo_times is used to provided them.
+
+                afni_proc.py -subj_id FT.12a.ME                 \\
+                  -blocks tshift align tlrc volreg mask combine \\
+                          blur scale regress                    \\
+                  -copy_anat FT_anat+orig                       \\
+                  -dsets_me_run epi_run1_echo*.nii              \\
+                  -echo_times 15 30.5 41                        \\
+                  -reg_echo 2                                   \\
+                  -tcat_remove_first_trs 2                      \\
+                  -align_opts_aea -cost lpc+ZZ                  \\
+                  -tlrc_base MNI152_T1_2009c+tlrc               \\
+                  -tlrc_NL_warp                                 \\
+                  -volreg_align_to MIN_OUTLIER                  \\
+                  -volreg_align_e2a                             \\
+                  -volreg_tlrc_warp                             \\
+                  -mask_epi_anat yes                            \\
+                  -combine_method OC                            \\
+                  -regress_motion_per_run                       \\
+                  -regress_censor_motion 0.2                    \\
+                  -regress_censor_outliers 0.1                  \\
+                  -regress_apply_mot_types demean deriv         \\
+                  -regress_est_blur_epits                       \\
 
     --------------------------------------------------
     -ask_me EXAMPLES:  ** NOTE: -ask_me is antiquated ** ~2~
@@ -9239,9 +9345,9 @@ g_help_notes = """
 
            The -xef options are applied to tcsh and have the following effects:
 
-                -x : echo commands to screen before executing them
-                -e : exit (terminate) the processing on any errors
-                -f : do not process user's ~/.cshrc file
+                x : echo commands to screen before executing them
+                e : exit (terminate) the processing on any errors
+                f : do not process user's ~/.cshrc file
 
            The -x option is very useful so one see not just output from the
            programs, but the actual commands that produce the output.  It
@@ -9580,6 +9686,82 @@ g_help_options = """
             and .HEAD filenames on the command line (which would make it twice
             as many runs of data).
 
+        -dsets_me_echo dset1 dset2 ...  : specify ME datasets for one echo
+                                          (all runs with each option)
+
+           These examples might correspond to 3 echoes across 4 runs.
+
+                e.g. -dsets_me_echo epi_run*.echo_1+orig.HEAD
+                     -dsets_me_echo epi_run*.echo_2+orig.HEAD
+                     -dsets_me_echo epi_run*.echo_3+orig.HEAD
+
+                e.g. -dsets_me_echo r?.e1.nii
+                     -dsets_me_echo r?.e2.nii
+                     -dsets_me_echo r?.e3.nii
+
+                e.g. -dsets_me_echo r1.e1.nii r2.e1.nii r3.e1.nii r4.e1.nii
+                     -dsets_me_echo r1.e2.nii r2.e2.nii r3.e2.nii r4.e2.nii
+                     -dsets_me_echo r1.e3.nii r2.e3.nii r3.e3.nii r4.e3.nii
+
+            This option is convenient when there are more runs than echoes.
+
+            When providing multi-echo data to afni_proc.py, doing all echoes
+            of all runs at once seems messy and error prone.  So one must
+            provide either one echo at a time (easier if there are more runs)
+            or one run at a time (easier if there are fewer runs).
+
+            With this option:
+
+               - use one option per echo (as opposed to per run, below)
+               - each option use should list all run datasets for that echo
+
+            For example, if there are 7 runs and 3 echoes, use 3 options, one
+            per echo, and pass the 7 runs of data for that echo in each.
+
+            See also -dsets_me_run.
+            See also -echo_times and -reg_echo.
+
+        -dsets_me_run dset1 dset2 ...   : specify ME datasets for one run
+                                          (all echoes with each option)
+
+           These examples might correspond to 4 echoes across 2 runs.
+
+                e.g. -dsets_me_run epi_run1.echo_*+orig.HEAD
+                     -dsets_me_run epi_run2.echo_*+orig.HEAD
+
+                e.g. -dsets_me_run r1.e*.nii
+                     -dsets_me_run r2.e*.nii
+
+                e.g. -dsets_me_run r1.e1.nii r1.e2.nii r1.e3.nii r1.e4.nii
+                     -dsets_me_run r2.e1.nii r2.e2.nii r2.e3.nii r2.e4.nii
+
+            This option is convenient when there are more echoes than runs.
+
+            When providing multi-echo data to afni_proc.py, doing all echoes
+            of all runs at once seems messy and error prone.  So one must
+            provide either one echo at a time (easier if there are more runs)
+            or one run at a time (easier if there are fewer runs).
+
+            With this option:
+
+               - use one option per run (as opposed to per echo, above)
+               - each option use should list all echo datasets for that run
+
+            For example, if there are 2 runs and 4 echoes, use 2 options, one
+            per run, and pass the 4 echoes of data for that run in each.
+
+            See also -dsets_me_echo.
+            See also -echo_times and -reg_echo.
+
+        -echo_times TE1 TE2 TE3 ... : specify echo-times for ME data processing
+
+                e.g. -echo_times 20 30.5 41.2
+
+            Use this option to specify echo times, if they are needed for the
+            'combine' processing block (OC/ME-ICA/tedana).
+
+            See also -combine_method.
+
         -execute                : execute the created processing script
 
             If this option is applied, not only will the processing script be
@@ -9727,6 +9909,18 @@ g_help_options = """
                              maybe threshold = 0.9, maybe clusterize
 
             See "@radial_correlate -help" for details and a list of options.
+
+        -reg_echo ECHO_NUM  : specify 1-based echo for registration
+
+                e.g. -reg_echo 3
+                default: 2
+
+            Multi-echo data is registered based on a single echo, with the
+            resulting transformations being applied to all echoes.  Use this
+            option to specify the 1-based echo used to drive registration.
+
+            Note that the echo used for driving registration should have
+            reasonable tissue contrast.
 
         -remove_preproc_files   : delete pre-processed data
 
@@ -9966,6 +10160,25 @@ g_help_options = """
             applying the EPI mask to the regression.
 
             Please see '3dDespike -help' and '3dAutomask -help' for more
+            information.
+
+        -despike_new yes/no     : set whether to use new version of 3dDespike
+
+                e.g. -despike_new no
+                default: yes
+
+            There is a '-NEW' option/method in 3dDespike which runs a faster
+            method than the previous L1-norm method (Nov 2013).  The results
+            are similar but not identical (different fits).  The difference in
+            speed is more dramatic for long time series (> 500 time points).
+
+            Use this option to control whether to use the new version.
+
+            Sep 2016: in 3dDespike, -NEW is now the default if the input is
+                      longer than 500 time points.  In such a case -despike_new
+                      has no effect.
+
+            See also env var AFNI_3dDespike_NEW and '3dDespike -help' for more
             information.
 
         -despike_opts_3dDes OPTS... : specify additional options for 3dDespike
@@ -11049,6 +11262,10 @@ g_help_options = """
             this option can be used to specify the method used.   Methods:
 
                 OC      : optimally combined (via @compute_OC_weights)
+                          (current default is OC_B)
+                OC_A    : original log(mean()) regression method
+                OC_B    : newer log() time teries regression method
+                          (there is little difference between OC_A and OC_B)
                 mean    : simple mean of echoes
 
             Please see '@compute_OC_weights -help' for more information.
@@ -12091,6 +12308,18 @@ g_help_options = """
 
             See also -anat_follower, -anat_follower_ROI, -regress_ROI_erode,
             and -regress_ROI.
+
+        -regress_ROI_per_run LABEL ... : regress these ROIs per run
+
+                e.g. -regress_ROI_per_run vent
+                e.g. -regress_ROI_per_run vent WMe
+
+            Use this option to create the given ROI regressors per run.
+            Instead of creating one regressor spanning all runs, this option
+            leads to creating one regressor per run, akin to splitting the
+            long regressor across runs, and zero-padding to be the same length.
+
+            See also -regress_ROI_PC, -regress_ROI_PC_per_run.
 
         -regress_ROI_PC_per_run LABEL ... : regress these PCs per run
 
