@@ -2685,7 +2685,7 @@ def db_cmd_combine(proc, block):
       print("** invalid combine method: %s" % ocmeth)
       return ''
 
-   if ccmd == '': return ''
+   if ccmd == None: return
 
    cmd += ccmd
 
@@ -2705,6 +2705,10 @@ def cmd_combine_OC(proc, block):
 
    if not proc.use_me:
       print("** creating combine block, but no ME?")
+      return
+
+   if len(proc.echo_times) == 0:
+      print("** option -echo_times is required for 'OC' combine method")
       return
 
    # input prefix has $run fixed, but uses a wildcard for echoes
