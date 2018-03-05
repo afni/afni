@@ -17,7 +17,7 @@ import random
 ## locations of stuff
 afni_bin = subprocess.check_output("which afni",shell=True)
 afni_dir = os.path.dirname(afni_bin)
-HistProg = afni_dir+"/shiny/ClustExp_HistTable.py"
+HistProg = afni_dir+"/ClustExp_HistTable.py"
 ShinyFolder = afni_dir+"/shiny/ClustExp_ShinyTemplate"
 
 ########################################################################
@@ -219,8 +219,8 @@ optional.add_argument('-prefix',type=str,default="MyOutput",
                       help="Name for output (no path). [MyOutput]")
 optional.add_argument('-p',type=need_pos_float,default=0.005,metavar='PVAL',
                       help="Uncorrected p value for thresholding. [0.005]")
-optional.add_argument('-MinVox',type=min_vox_two,default=100,
-                      help="Minimum voxels in cluster. [100]")
+optional.add_argument('-MinVox',type=min_vox_two,default=20,
+                      help="Minimum voxels in cluster. [20]")
 optional.add_argument('-atlas',type=str,default="TT_Daemon",
                       help="Atlas name for lookup. (list at: whereami -help) [TT_Daemon]")
 optional.add_argument('-session',type=str,default="./",
@@ -254,12 +254,6 @@ MinVox = str(args.MinVox)
 atlas = str(args.atlas)
 session = os.path.abspath(args.session)
 NoShiny = args.NoShiny
-
-## if nothing, show help
-if args.help:
-    parser.print_help()
-    sys.exit(1)
-
 
 ########################################################################
 ## verify some stuff before continuing
