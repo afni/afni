@@ -1,4 +1,4 @@
-#!/bin/tcsh -e
+#!/bin/tcsh 
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
@@ -39,13 +39,17 @@
 #set version   = "1.8";  set rev_dat   = "Sep 04, 2017"
 #   + work with new @chauffeur*, -prefix only
 #
-set version   = "1.9";  set rev_dat   = "Sep 22, 2017"
+#set version   = "1.9";  set rev_dat   = "Sep 22, 2017"
 #   + for Mac compatability, apparently I need to wrap around 
 #     some for loops if a particular type of dset weren't input
 #     --> Thanks, Jiajia, for finding+noting.
 #   + also, movie $imtrx loop above, don't need to Unifize
 #     if the matrix is input directly: save time.
 #
+set version   = "2.0";    set rev_dat   = "Feb 15, 2018"
+#   + make QC dir for images
+#   + rename output QC files more succinctly
+# 
 # ---------------------------------------------------------------
 
 set this_prog = "fat_proc_map_to_dti"
@@ -91,7 +95,6 @@ set WDIR_EX  = "1"               # put opref on wdir (unless user names)
 set output_cmd = 1               # def: output copy of this command
 set cmd_file   = ""              # def: same name as viewer
 set qc_prefix  = ""              # def: autoname; user can enter
-set postfix    = "_"             # stick into name
 
 # ------------------- process options, a la rr ----------------------
 
@@ -374,6 +377,13 @@ if ( ! -e "$odir" ) then
     mkdir "$odir"
 endif
 
+set odirqc = "$odir/QC"
+if ( "$DO_VIEWER" == "1" ) then
+    if ( ! -e "$odirqc" ) then
+        mkdir "$odirqc"
+    endif
+endif
+
 # and put working directory as subdirectory.
 if ( "$WDIR_EX" == "1" ) then
     set wdir = $odir/${wdir}_$opref
@@ -653,11 +663,11 @@ if ( $DO_VIEWER == 1 ) then
         -input  $odir/$osrc
 
     if( $qc_prefix == "" ) then
-        set vpref0 = ${opref}${postfix}_qc00_base_u_esrc
-        set vpref1 = ${opref}${postfix}_qc01_base_u_src
+        set vpref0 = ${opref}_qc_base_srce
+        set vpref1 = ${opref}_qc_base_src
     else
-        set vpref0 = ${qc_prefix}${postfix}_qc00_base_u_esrc
-        set vpref1 = ${qc_prefix}${postfix}_qc01_base_u_src
+        set vpref0 = ${qc_prefix}_qc_base_srce
+        set vpref1 = ${qc_prefix}_qc_base_src
     endif
 
     echo "\n\n"
@@ -672,7 +682,7 @@ if ( $DO_VIEWER == 1 ) then
         -pbar_posonly                     \
         -cbar "red_monochrome"            \
         -opacity 6                        \
-        -prefix "$odir/$vpref0"           \
+        -prefix "$odirqc/$vpref0"         \
         -montx 5 -monty 3                 \
         -set_xhairs OFF                   \
         -label_mode 1 -label_size 3       \
@@ -688,7 +698,7 @@ if ( $DO_VIEWER == 1 ) then
         -olay "$odir/$osrc"               \
         -pbar_posonly                     \
         -opacity 4                        \
-        -prefix "$odir/$vpref1"           \
+        -prefix "$odirqc/$vpref1"         \
         -montx 5 -monty 3                 \
         -set_xhairs OFF                   \
         -label_mode 1 -label_size 3       \
@@ -710,9 +720,9 @@ if ( $DO_VIEWER == 1 ) then
         set ppp = `echo "$pp" | cut -c ${sss}-`
 
         if( $qc_prefix == "" ) then
-            set vprefnn = ${opref}${postfix}_qc_$ppp
+            set vprefnn = ${opref}_qc_$ppp
         else
-            set vprefnn = ${qc_prefix}${postfix}_qc_$ppp
+            set vprefnn = ${qc_prefix}_qc_$ppp
         endif
 
         echo "++ Make image for: $ff"
@@ -725,7 +735,7 @@ if ( $DO_VIEWER == 1 ) then
             -cbar "ROI_i256"                  \
             -func_range 256                   \
             -opacity 4                        \
-            -prefix "$odir/$vprefnn"          \
+            -prefix "$odirqc/$vprefnn"        \
             -montx 5 -monty 3                 \
             -set_xhairs OFF                   \
             -label_mode 1 -label_size 3       \
@@ -748,9 +758,9 @@ if ( $DO_VIEWER == 1 ) then
         set ppp = `echo "$pp" | cut -c ${sss}-`
 
         if( $qc_prefix == "" ) then
-            set vprefnn = ${opref}${postfix}_qc_$ppp
+            set vprefnn = ${opref}_qc_$ppp
         else
-            set vprefnn = ${qc_prefix}${postfix}_qc_$ppp
+            set vprefnn = ${qc_prefix}_qc_$ppp
         endif
 
         $my_viewer                            \
@@ -760,7 +770,7 @@ if ( $DO_VIEWER == 1 ) then
             -pbar_posonly                     \
             -cbar "Viridis"                   \
             -opacity 4                        \
-            -prefix "$odir/$vprefnn"          \
+            -prefix "$odirqc/$vprefnn"        \
             -montx 5 -monty 3                 \
             -set_xhairs OFF                   \
             -label_mode 1 -label_size 3       \
