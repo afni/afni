@@ -2,7 +2,7 @@
 .. _tutorial_FATCAT_matplot_main:
 
 
-**@FATCAT_matplot**
+**FATCAT_matplot**
 ========================================
 
 .. image:: media/FATCAT_matplot_main.png
@@ -27,13 +27,13 @@ Gotta get up to get down. [#f2]_
 
 | Launch FATCAT matplot from the terminal with:
 |
-| ``@FATCAT_matplot ~/my_Netcc_files``
+| ``FATCAT_matplot ~/my_Netcc_files``
 
 With "~/my_Netcc_files" being some folder with .netcc or .grid files.
 This will open your default web browser and read all valid datasets
 in "~/my_Netcc_files".
 
-@FATCAT_matplot can also read *non* FATCAT or 3dnetcorr formatted datasets if
+FATCAT_matplot can also read *non* FATCAT or 3dnetcorr formatted datasets if
 they are in the following format:
 
 * The data must be a symmetrical square matrix.
