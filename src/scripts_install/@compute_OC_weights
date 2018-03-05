@@ -48,7 +48,7 @@ set prog = @compute_OC_weights
 set def_to_equal = 0
 set echo_dsets = ()
 set etimes_file = ''
-set oc_method = 'OC_B'
+set oc_method = 'OC_A'
 set prefix = OC_weights
 set t2s_limit = 300
 set tolerance = 0.001
@@ -556,13 +556,11 @@ $prog           - compute optimally combined weights dataset
 
       -oc_method METHOD         - specify which method to employ
 
-           e.g.     -oc_method OC_A
-           default: -oc_method OC_B
+           e.g.     -oc_method OC_B
+           default: -oc_method OC_A
 
-        The default method was changed from solving for T2* using log(mean())
+        The OC_B method differs from OC_A by solving for T2* using log(mean())
         to solving log() over time, with the intention of being more accurate.
-        This is the new default, though the old method can be specified as
-        OC_A.
 
            methods:
 
@@ -570,7 +568,6 @@ $prog           - compute optimally combined weights dataset
                           this is the original implementation
 
               OC_B      : compute T2* from log(time series)
-                          this is the new default
 
          * So far, testing has shown almost undetectable differences, so it
            may be a moot point.
