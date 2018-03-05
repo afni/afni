@@ -1,4 +1,4 @@
-#!/bin/tcsh -e
+#!/bin/tcsh
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
@@ -62,11 +62,15 @@
 #   + for showing anat lines on DWI, allow anat lines to be clearer
 #     --> quickchange in how this is done: don't use -master.
 #
-set version   = "2.6";    set rev_dat   = "Feb 08, 2018"
+#set version   = "2.6";    set rev_dat   = "Feb 08, 2018"
 #   + fixed bug: wasn't resampling mask if input when the DWI was,
 #     which created an erroneous mismatch between them.  Sigh. Fixed
 #     now.  Thanks, Sandra H., for finding this!
 #
+set version   = "2.7";    set rev_dat   = "Feb 15, 2018"
+#   + make QC dir for images
+#   + rename output QC files more succinctly
+# 
 # ----------------------------------------------------------------
 
 set this_prog = "fat_proc_dwi_to_dt"
@@ -117,7 +121,6 @@ set qc_faunc_max = 0.05           # def: FA uncert stdev max
 set output_cmd  = 1               # def: output copy of this command
                                   # -> should expand to have all cmds
 set cmd_file    = ""              # def: same name as viewer
-set postfix     = "_"             # stick into name
 
 set DO_UNCERT   = 1
 set Niters      = 300
@@ -417,6 +420,13 @@ if ( ! -e "$odir" ) then
     mkdir "$odir"
 endif
 
+set odirqc = "$odir/QC"
+if ( "$DO_VIEWER" == "1" ) then
+    if ( ! -e "$odirqc" ) then
+        mkdir "$odirqc"
+    endif
+endif
+
 # and put working directory as subdirectory.
 if ( "$WDIR_EX" == "1" ) then
     set wdir = $odir/${wdir}_$opref
@@ -663,9 +673,9 @@ if ( "$iref" != "" ) then
         endif
 
         if( $qc_prefix == "" ) then
-            set vpref0 = ${opref}${postfix}_qc00_ref_$ffo
+            set vpref0 = ${opref}_qc_ref_$ffo
         else
-            set vpref0 = ${qc_prefix}${postfix}_qc00_ref_$ffo
+            set vpref0 = ${qc_prefix}_qc_ref_$ffo
         endif
 
         echo "\n\n"
@@ -678,7 +688,7 @@ if ( "$iref" != "" ) then
             -olay "$isetinref"                \
             -pbar_posonly                     \
             -opacity 4                        \
-            -prefix "$odir/$vpref0"           \
+            -prefix "$odirqc/$vpref0"         \
             -montx 5 -monty 3                 \
             -set_xhairs OFF                   \
             -label_mode 1 -label_size 3       \
@@ -797,9 +807,9 @@ if ( $DO_VIEWER ) then
             -input  $b0mskd
 
         if( $qc_prefix == "" ) then
-            set vpref0 = ${opref}${postfix}_qc01a_ref_eb0
+            set vpref0 = ${opref}_qc_ref_b0e
         else
-            set vpref0 = ${qc_prefix}${postfix}_qc01a_ref_eb0
+            set vpref0 = ${qc_prefix}_qc_ref_b0e
         endif
 
         echo "\n\n"
@@ -814,7 +824,7 @@ if ( $DO_VIEWER ) then
             -pbar_posonly                     \
             -cbar "red_monochrome"            \
             -opacity 6                        \
-            -prefix "$odir/$vpref0"           \
+            -prefix "$odirqc/$vpref0"         \
             -montx 5 -monty 3                 \
             -set_xhairs OFF                   \
             -label_mode 1 -label_size 3       \
@@ -847,9 +857,9 @@ if ( $DO_VIEWER ) then
 
             
         if( $qc_prefix == "" ) then
-            set vpref0b = ${opref}${postfix}_qc01b_b0_eref
+            set vpref0b = ${opref}_qc_b0_refe
         else
-            set vpref0b = ${qc_prefix}${postfix}_qc01b_b0_eref
+            set vpref0b = ${qc_prefix}_qc_b0_refe
         endif
 
         echo "\n\n"
@@ -864,7 +874,7 @@ if ( $DO_VIEWER ) then
             -pbar_posonly                     \
             -cbar "red_monochrome"            \
             -opacity 6                        \
-            -prefix "$odir/$vpref0b"          \
+            -prefix "$odirqc/$vpref0b"        \
             -montx 5 -monty 3                 \
             -set_xhairs OFF                   \
             -label_mode 1 -label_size 3       \
@@ -890,82 +900,18 @@ echo "++ Fitting tensor, estimating params and fit:  $odir/${dti_par}*"
     -bmatrix_FULL $odir/$omata         \
                   $odir/$odwi
 
-echo "++ Tensor par. uncertainty with $Niters iterations:  $odir/${dti_unc}*"
-
-if ( $DO_UNCERT ) then
-    3dDWUncert                             \
-        -echo_edu                          \
-        -overwrite                         \
-        -inset         $odir/$odwi         \
-        -input         $odir/$dtipref      \
-        -bmatrix_FULL  $odir/$omata        \
-        -mask          $odir/$omask        \
-        -prefix        $odir/$dti_unc      \
-        -iters         $Niters             \
-        $extra_unc_cmds
-
-    if ( $DO_VIEWER ) then
-
-        if( $qc_prefix == "" ) then
-            set vpref4 = ${opref}${postfix}_qc04_b0_uncV12
-            set vpref5 = ${opref}${postfix}_qc05_b0_uncFA
-        else
-            set vpref4 = ${qc_prefix}${postfix}_qc04_b0_uncV12
-            set vpref5 = ${qc_prefix}${postfix}_qc05_b0_uncFA
-        endif
-
-        echo "\n\n"
-        echo "++ QC image 04 (final output uncert-stdev of V1 on b0): $vpref4"
-        echo "   (olay colorbar is 'Viridis', with max value ${qc_v12unc_max})"
-        echo "\n\n"
-
-        $my_viewer                              \
-            -ulay "$odir/$odwi""[0]"            \
-            -ulay_range "2%" "98%"              \
-            -olay "$odir/${dtipref}_UNC.nii.gz""[1]"  \
-            -func_range $qc_v12unc_max          \
-            -pbar_posonly                       \
-            -cbar "Viridis"                     \
-            -opacity 6                          \
-            -prefix "$odir/$vpref4"             \
-            -montx 5 -monty 3                   \
-            -set_xhairs OFF                     \
-            -label_mode 1 -label_size 3         \
-            -do_clean    
-
-        echo "\n\n"
-        echo "++ QC image 05 (final output uncert-stdev of FA on b0): $vpref5"
-        echo "   (olay colorbar is 'Viridis', with max value ${qc_faunc_max})"
-        echo "\n\n"
-
-        $my_viewer                              \
-            -ulay "$odir/$odwi""[0]"            \
-            -ulay_range "2%" "98%"              \
-            -olay "$odir/${dtipref}_UNC.nii.gz""[5]"  \
-            -func_range $qc_faunc_max           \
-            -pbar_posonly                       \
-            -cbar "Viridis"                     \
-            -opacity 6                          \
-            -prefix "$odir/$vpref5"             \
-            -montx 5 -monty 3                   \
-            -set_xhairs OFF                     \
-            -label_mode 1 -label_size 3         \
-            -do_clean    
-    endif
-endif
-
 # ---------------------------- VIEWER ---------------------------------
-
+ 
 if ( $DO_VIEWER ) then
 
     echo "++ Making QC images."
 
     if( $qc_prefix == "" ) then
-        set vpref0 = ${opref}${postfix}_qc02_ref_b0
-        set vpref1 = ${opref}${postfix}_qc03_MD_FA_thr${qc_fa_thr}
+        set vpref0 = ${opref}_qc_ref_b0
+        set vpref1 = ${opref}_qc_MD_FA${qc_fa_thr:gas/.//}
     else
-        set vpref0 = ${qc_prefix}${postfix}_qc02_ref_b0
-        set vpref1 = ${qc_prefix}${postfix}_qc03_MD_FA_thr${qc_fa_thr}
+        set vpref0 = ${qc_prefix}_qc_ref_b0
+        set vpref1 = ${qc_prefix}_qc_MD_FA${qc_fa_thr:gas/.//}
     endif
 
     if( "$iref" != "" ) then
@@ -980,7 +926,7 @@ if ( $DO_VIEWER ) then
             -olay "$odir/${odwi}""[0]"        \
             -pbar_posonly                     \
             -opacity 4                        \
-            -prefix "$odir/$vpref0"           \
+            -prefix "$odirqc/$vpref0"         \
             -montx 5 -monty 3                 \
             -set_xhairs OFF                   \
             -label_mode 1 -label_size 3       \
@@ -1000,12 +946,76 @@ if ( $DO_VIEWER ) then
         -thr_olay $qc_fa_thr                \
         -pbar_posonly                       \
         -opacity 7                          \
-        -prefix "$odir/$vpref1"             \
+        -prefix "$odirqc/$vpref1"           \
         -montx 5 -monty 3                   \
         -set_xhairs OFF                     \
         -label_mode 1 -label_size 3         \
         -do_clean    
 
+endif
+
+echo "++ Tensor par. uncertainty with $Niters iterations:  $odir/${dti_unc}*"
+
+if ( $DO_UNCERT ) then
+    3dDWUncert                             \
+        -echo_edu                          \
+        -overwrite                         \
+        -inset         $odir/$odwi         \
+        -input         $odir/$dtipref      \
+        -bmatrix_FULL  $odir/$omata        \
+        -mask          $odir/$omask        \
+        -prefix        $odir/$dti_unc      \
+        -iters         $Niters             \
+        $extra_unc_cmds
+
+    if ( $DO_VIEWER ) then
+
+        if( $qc_prefix == "" ) then
+            set vpref4 = ${opref}_qc_b0_uncV12
+            set vpref5 = ${opref}_qc_b0_uncFA
+        else
+            set vpref4 = ${qc_prefix}_qc_b0_uncV12
+            set vpref5 = ${qc_prefix}_qc_b0_uncFA
+        endif
+
+        echo "\n\n"
+        echo "++ QC image 04 (final output uncert-stdev of V1 on b0): $vpref4"
+        echo "   (olay colorbar is 'Viridis', with max value ${qc_v12unc_max})"
+        echo "\n\n"
+
+        $my_viewer                              \
+            -ulay "$odir/$odwi""[0]"            \
+            -ulay_range "2%" "98%"              \
+            -olay "$odir/${dtipref}_UNC.nii.gz""[1]"  \
+            -func_range $qc_v12unc_max          \
+            -pbar_posonly                       \
+            -cbar "Viridis"                     \
+            -opacity 6                          \
+            -prefix "$odirqc/$vpref4"           \
+            -montx 5 -monty 3                   \
+            -set_xhairs OFF                     \
+            -label_mode 1 -label_size 3         \
+            -do_clean    
+
+        echo "\n\n"
+        echo "++ QC image 05 (final output uncert-stdev of FA on b0): $vpref5"
+        echo "   (olay colorbar is 'Viridis', with max value ${qc_faunc_max})"
+        echo "\n\n"
+
+        $my_viewer                              \
+            -ulay "$odir/$odwi""[0]"            \
+            -ulay_range "2%" "98%"              \
+            -olay "$odir/${dtipref}_UNC.nii.gz""[5]"  \
+            -func_range $qc_faunc_max           \
+            -pbar_posonly                       \
+            -cbar "Viridis"                     \
+            -opacity 6                          \
+            -prefix "$odirqc/$vpref5"           \
+            -montx 5 -monty 3                   \
+            -set_xhairs OFF                     \
+            -label_mode 1 -label_size 3         \
+            -do_clean    
+    endif
 endif
 
 # ------------------------- clean (y/n) -----------------------------
@@ -1022,6 +1032,9 @@ endif
 echo ""
 echo "++ The final DWI data are here:  $odir/${opref}*"
 echo "++ The final DTI data are here:  $odir/${dtipref}*"
+if ( "$DO_VIEWER" == "1") then
+    echo "++ The final QC images are here:  ${odirqc}/${opref}*"
+endif
 echo ""
 
 
