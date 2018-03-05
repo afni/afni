@@ -1,4 +1,4 @@
-#!/bin/tcsh -e
+#!/bin/tcsh
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
@@ -39,12 +39,15 @@
 #set version   = "1.8";    set rev_dat   = "Sep 04, 2017"
 #   + update to work with newer @chauffeur*, -prefix only
 #
-set version   = "1.9";    set rev_dat   = "Jan 12, 2018"
+#set version   = "1.9";    set rev_dat   = "Jan 12, 2018"
 #   + wt vol into working dir
 #
-set version   = "1.93";    set rev_dat   = "Feb 8, 2018"
+#set version   = "1.93";    set rev_dat   = "Feb 8, 2018"
 #   + new opt: can skullstrip intermediate t1w to help alignment, via
 #   -do_ss_tmp_t1w ... and that file stays in wdir
+#
+set version   = "1.0";    set rev_dat   = "Feb 19, 2018"
+#   + new filename output structure, no postfix, make QC dir
 #
 # ---------------------------------------------------------------
 
@@ -94,7 +97,6 @@ set WDIR_EX  = "1"               # put opref on wdir (unless user names)
 set output_cmd = 1               # def: output copy of this command
 set cmd_file   = ""              # def: same name as viewer
 set qc_prefix  = ""              # def: autoname; user can enter
-set postfix    = "_"             # stick into name
 set warp_opt   = "-warp shift_rotate" # default, but can be changed
 
 # ------------------- process options, a la rr ----------------------
@@ -233,11 +235,16 @@ else
 endif
 
 # check output directory, use input one if nothing given
-
-# default output dir, if nothing input.
 if ( ! -e "$odir" ) then
     echo "+* Output directory didn't exist.  Trying to make it now."
     mkdir "$odir"
+endif
+
+set odirqc = "$odir/QC"
+if ( "$DO_VIEWER" == "1" ) then
+    if ( ! -e "$odirqc" ) then
+        mkdir "$odirqc"
+    endif
 endif
 
 # and put working directory as subdirectory.
@@ -503,11 +510,11 @@ if ( $DO_VIEWER == 1 ) then
         -input  $odir/$ot1w
 
     if( $qc_prefix == "" ) then
-        set vpref0 = ${opref}${postfix}_qc00_t2w_u_et1w
-        set vpref1 = ${opref}${postfix}_qc01_t2w_u_t1w
+        set vpref0 = ${opref}_qc_t2w_t1wE
+        set vpref1 = ${opref}_qc_t2w_t1w
     else
-        set vpref0 = ${qc_prefix}${postfix}_qc00_t2w_u_et1w
-        set vpref1 = ${qc_prefix}${postfix}_qc01_t2w_u_t1w
+        set vpref0 = ${qc_prefix}_qc_t2w_t1wE
+        set vpref1 = ${qc_prefix}_qc_t2w_t1w
     endif
 
     echo "\n\n"
@@ -522,7 +529,7 @@ if ( $DO_VIEWER == 1 ) then
         -pbar_posonly                     \
         -cbar "red_monochrome"            \
         -opacity 6                        \
-        -prefix "$odir/$vpref0"           \
+        -prefix "$odirqc/$vpref0"         \
         -montx 5 -monty 3                 \
         -set_xhairs OFF                   \
         -label_mode 1 -label_size 3       \
@@ -538,7 +545,7 @@ if ( $DO_VIEWER == 1 ) then
         -olay "$odir/$ot1w"               \
         -pbar_posonly                     \
         -opacity 4                        \
-        -prefix "$odir/$vpref1"           \
+        -prefix "$odirqc/$vpref1"         \
         -montx 5 -monty 3                 \
         -set_xhairs OFF                   \
         -label_mode 1 -label_size 3       \
