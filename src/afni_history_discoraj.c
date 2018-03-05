@@ -51,6 +51,9 @@
 afni_history_struct discoraj_history[] = {
 
  /* can copy to and change one of the examples here */
+ { 5 , MAR , 2018 , JKR , "FATCAT_matplot" , MINOR , TYPE_GENERAL ,
+   "changed name of @FATCAT_heatmap_shiny to FATCAT_matplot"
+ } ,
  { 26 , JAN , 2018 , JKR , "dicom_hinfo" , MINOR , TYPE_GENERAL ,
    "add -full_entry" ,
    "prints out the full entry of a tag if there are more than one word"
