@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  6, Mar, 2018, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
+   "okay, if macos and no .bash_profile, source .bashrc from .bash_profile",
+   NULL
+ } ,
+
  {  1, Mar, 2018, RCR, "afni_proc.py", MICRO, TYPE_NEW_OPT,
    "add -combine_method cases of OC_A and OC_B",
    NULL
