@@ -62,7 +62,10 @@
 #set version = "3.3b"; set rev_dat = "Feb 15, 2018"
 #   + fixed output path for $ogoods
 #
-set version = "3.4"; set rev_dat = "Feb 20, 2018"
+#set version = "3.4"; set rev_dat = "Feb 20, 2018"
+#   + update QC snapshotting and output dir; file names/locs
+#
+set version = "3.5"; set rev_dat = "Mar 5, 2018"
 #   + update QC snapshotting and output dir; file names/locs
 #
 # ----------------------------------------------------------------
@@ -502,14 +505,18 @@ if ( 1 ) then
         echo "++ Make AP images."
         set img_pref = "${opref}"
 
+        if ( ! -e "$odir/QC" ) then
+            mkdir "$odir/QC"
+        endif
+
         $my_viewer_4d  \
             -inset  $odir/${opref}.nii.gz      \
-            -prefix "$odir/$img_pref" 
+            -prefix "$odir/QC/$img_pref" 
 
         if ( "$movie" != "" ) then
             $my_viewer_4d \
                 -inset  $odir/${opref}.nii.gz  \
-                -prefix "$odir/$img_pref"      \
+                -prefix "$odir/QC/$img_pref"      \
                 $movie
         endif
     endif
