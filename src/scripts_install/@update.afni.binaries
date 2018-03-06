@@ -1078,10 +1078,13 @@ if ( $do_dotfiles && -d $abin && $?USER ) then
       if ( -f $brcfile ) then
          \grep $abin:t $brcfile >& /dev/null
          if ( $status ) then
-            # not found, so append to file
+            # $abin not found, so append to file
             echo "++ adding $abin to PATH in $brcfile ..."
             echo 'export PATH=$PATH:'$abin >> $brcfile
          endif
+      else if ( $sysname == Darwin ) then
+         echo "++ will source .bashrc from newly created .bash_profile"
+         echo '. $HOME/.bashrc' > $brcfile
       endif
 
       # so... what about .profile?
