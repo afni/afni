@@ -2,75 +2,32 @@
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
-# !!! comment about movie/mpeg stuff! gifsicle, etc.
-
-# !!!? control loop speed?
-
-# written by PA Taylor (NIMH, NIH)
-# filter sets of acquired DWIs with accompanying bvals/vecs
+# written by PA Taylor (NIMH, NIH, USA)
+# started March, 2017
 
 # --------------------- revision history -------------------------
 #
-# Jan, 2017
-#   + rename
+#set version   = "1.0";    set rev_dat   = "March 29, 2017"
+#   + inception
 #
-# Jan 27, 2017
-#   + new opts
-#   + switch to 1dDW_Grad_o_Mat++
+#set version   = "1.1";    set rev_dat   = "Apr 15, 2017"
+#   + standardize I/O
 #
-#set version = "2.5"
-#set rev_dat = "Feb 20, 2017"
+#set version   = "1.2";    set rev_dat   = "Apr 15, 2017"
+#   + run with helpfile correctly for no inputs
+#
+#set version   = "1.3";    set rev_dat   = "Apr 27, 2017"
+#   + naming conventions corrected
+#
+#set version   = "1.4";    set rev_dat   = "Apr 28, 2017"
+#   + path stuff corrected, for arbitrary locations
+#
+set version   = "1.5";    set rev_dat   = "Sep 04, 2017"
+#   + update to use new @chauffeur* calling
+#
+# ---------------------------------------------------------------
 
-#   + add snapshotting with @djunct_*_imager
-#
-#set version = "2.6"; set rev_dat = "Feb 23, 2017"
-#   + add movie-making with @djunct_*_imager
-#
-#set version = "2.7"; set rev_dat = "Apr 17, 2017"
-#   + I/O standardization
-#   + cut back to just a single directory at once.  
-#     -> Simplifies life (for everyone, really, it's not just 
-#        laziness by the author (well, only *partially* the latter))
-#
-#set version = "2.8"; set rev_dat = "Apr 19, 2017"
-#   + more I/O work
-#   + more general outputting, when scaling/not scaling
-#
-#set version = "2.8"; set rev_dat = "Apr 19, 2017"
-#   + changed input notation
-#   + fixed help example
-#
-#set version = "2.9"; set rev_dat = "June 2, 2017"
-#   + changed output mat/vec/bval extensions from 'txt' -> 'dat';
-#     should me more uniform with other fat* funcs
-#
-#set version = "3.0"; set rev_dat = "July 27, 2017"
-#   + fixed some I/O issues with rowvecs and separate bvals
-#
-#set version = "3.1"; set rev_dat = "Sep 04, 2017"
-#   + work with new @chauffeur*, -prefix only
-#   + update help file format for more autoprompting of opts
-#
-#set version = "3.2"; set rev_dat = "Jan 09, 2018"
-#   + new -select_file option
-#   + whine if *no* selection string entered
-#
-#set version = "3.3"; set rev_dat = "Feb 13, 2018"
-#   + allow for *multiple* input files or strings after "-select ..."
-#     or "-select_file"
-#
-#set version = "3.3b"; set rev_dat = "Feb 15, 2018"
-#   + fixed output path for $ogoods
-#
-#set version = "3.4"; set rev_dat = "Feb 20, 2018"
-#   + update QC snapshotting and output dir; file names/locs
-#
-set version = "3.5"; set rev_dat = "Mar 5, 2018"
-#   + update QC snapshotting and output dir; file names/locs
-#
-# ----------------------------------------------------------------
- 
-set this_prog = "fat_proc_filter_dwis" 
+set this_prog = "fat_proc_select_vols"
 set tpname    = "${this_prog:gas/fat_proc_//}"
 set here      = $PWD
 
@@ -78,6 +35,7 @@ set here      = $PWD
 
 # find AFNI binaries directory and viewer location
 set adir      = ""
+set my_viewer = ""
 which afni >& /dev/null
 if ( $status ) then
     echo "** Cannot find 'afni' (?!)."
@@ -89,32 +47,30 @@ endif
 
 # default location of viewer: user could modify!
 set my_viewer    = "$adir/@chauffeur_afni"
+set my_selector  = "$adir/@djunct_dwi_selector.bash"
+set my_encoder   = "$adir/@djunct_select_str.py"
 set my_viewer_4d = "$adir/@djunct_4d_imager"
 
 # ----------------------- set defaults --------------------------
 
-set idwi     = ""                 # necessary input: DWI dset
-set invecmat = ( "" "" "" "" )    # switches+names for bvecs and bvals
-set outvecmat = ( "" "" "" "" )    # switches+names for bvecs and bvals
-set do_unit_mag = ""
-set opref    = ""
-set odir     = ""
-set KEEP     = "" 
-set KEEP3    = ""
-set ll2       = "{"               # for column selection (def guess)
-set rr2       = "}"               # for column selection (def guess)
-set ll4       = ""                # empty
-set rr4       = ""                # empty
+set idwi       = ""              # required input
+set iimg       = ""              # required input
+set obads      = ""              # NOT required input
 
-set DO_VIEWER = "1"
-set movie     = ""
+set odir       = ""
+set opref      = ""
+set DO_OUTVOL  = "0"               # don't apply to DWI by default
+
+set DO_VIEWER  = "1"             # def: do viewing
+set DO_CLEAN   = 1
 set output_cmd = 1               # def: output copy of this command
 set cmd_file   = ""              # def: same name as viewer
 set qc_prefix  = ""              # def: autoname; user can enter
 set postfix    = "_"             # stick into name
 
-set keepsel    = ()              # one or more strings of keepers
-
+set movie      = ""
+set wdir     = "__WORKING_$tpname"
+set WDIR_EX  = "1"               # put opref on wdir (unless user names)
 
 # ------------------- process options, a la rr ----------------------
 
@@ -130,151 +86,43 @@ while ( $ac <= $#argv )
         goto SHOW_VERSION
     endif
 
-    # -------------- input opts --------------------
-    # here, specify NIFTI *files*, not directories
+    # --------------- input dset(s) ----------------
+    # input dwi set
     if ( "$argv[$ac]" == "-in_dwi" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set idwi = "$argv[$ac]"
 
-#    else if ( "$argv[$ac]" == "-select" ) then
-#        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-#        @ ac += 1
-#        set KEEP = "$argv[$ac]"
-#
-#    # [PT: Jan 09, 2018] well, just take in a file directly
-#    else if ( "$argv[$ac]" == "-select_file" ) then
-#        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-#        @ ac += 1
-#        set KEEPfile = "$argv[$ac]"
-
-    # [PT: Feb 13, 2018] new input: can have multiple good lists to
-    # merge
-    else if ( "$argv[$ac]" == "-select" ) then
-        set i0 = $ac
-        # check that this ain't the end of argv[] entries
-        if ( $i0 == $#argv ) then
-            echo "** ERROR: need at least one dset after $argv[$ac]!"
-            goto BAD_EXIT
-        else 
-            # check that next argv[] member isn't a new option: shd be
-            # a dset
-            @ i0 += 1
-            set c0 = ""
-            while ( ( $i0 <= $#argv ) && ( "$c0" != "-" )  )
-                set keepsel = ( $keepsel "$argv[$i0]" )
-                @ ac += 1
-
-                @ i0 += 1
-                if ( $i0 <= $#argv ) then
-                    set c0 = `echo $argv[$i0] | awk '{print substr($0,1,1)}'`
-                endif
-            end
-
-            if ( $#keepsel == 0 ) then
-                echo "** ERROR: need at least one dset after $argv[$ac]!"
-                goto BAD_EXIT
-            else
-                echo "++ User has listed $#keepsel followers_NN dsets"
-            endif
-        endif
-
-    # [PT: Feb 13, 2018] new input: can have multiple good lists to
-    # merge; this is the file input version, just cat the file names
-    else if ( "$argv[$ac]" == "-select_file" ) then
-        set i0 = $ac
-        # check that this ain't the end of argv[] entries
-        if ( $i0 == $#argv ) then
-            echo "** ERROR: need at least one dset after $argv[$ac]!"
-            goto BAD_EXIT
-        else 
-            # check that next argv[] member isn't a new option: shd be
-            # a dset
-            @ i0 += 1
-            set c0 = ""
-            while ( ( $i0 <= $#argv ) && ( "$c0" != "-" )  )
-                set keepsel = ( $keepsel `cat "$argv[$i0]"` )
-                @ ac += 1
-
-                @ i0 += 1
-                if ( $i0 <= $#argv ) then
-                    set c0 = `echo $argv[$i0] | awk '{print substr($0,1,1)}'`
-                endif
-            end
-
-            if ( $#keepsel == 0 ) then
-                echo "** ERROR: need at least one dset after $argv[$ac]!"
-                goto BAD_EXIT
-            else
-                echo "++ User has listed $#keepsel followers_NN dsets"
-            endif
-        endif
-
-    # ------------- input vecmat and bval --------------
-    else if ( "$argv[$ac]" == "-in_col_matA" ) then
+    # input dwi set
+    else if ( "$argv[$ac]" == "-in_img" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-        set invecmat[1]  = $argv[$ac] 
         @ ac += 1
-        set invecmat[2]  = "$argv[$ac]"
-        # output postfix; [1] and [3] sorted out, below
-        set outvecmat[2] = "_matA.dat"
+        set iimg = "$argv[$ac]"
 
-    else if ( "$argv[$ac]" == "-in_col_matT" ) then
+    # can edit a pre-existing text file
+    else if ( "$argv[$ac]" == "-in_bads" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-        set invecmat[1]  = $argv[$ac] 
         @ ac += 1
-        set invecmat[2]  = "$argv[$ac]"
-        # output postfix; [1] and [3] sorted out, below
-        set outvecmat[2] = "_matT.dat"
+        set obads = "$argv[$ac]"
 
-    else if ( "$argv[$ac]" == "-in_col_vec" ) then
-        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-        set invecmat[1]  = $argv[$ac] 
-        @ ac += 1
-        set invecmat[2]  = "$argv[$ac]"
-        # output postfix; [1] and [3] sorted out, below
-        set outvecmat[2] = "_cvec.dat"
+    # ----------------- outputs ---------------------
 
-    else if ( "$argv[$ac]" == "-in_row_vec" ) then
-        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-        set invecmat[1]  = $argv[$ac] 
-        @ ac += 1
-        set invecmat[2]  = "$argv[$ac]"
-        # output postfix; [1] and [3] sorted out, below
-        set outvecmat[2] = "_rvec.dat"
-        set ll2       = "["
-        set rr2       = "]"
-
-    # not necessary; default is just empty
-    else if ( "$argv[$ac]" == "-in_bvals" ) then
-        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-        set invecmat[3]  = $argv[$ac] 
-        @ ac += 1
-        set invecmat[4]  = "$argv[$ac]"
-        # output postfix; [1] and [3] sorted out, below
-        set outvecmat[4] = "_bval.dat"
-        # ugh, have to see if this is row or col
-        set aa = `1d_tool.py -show_rows_cols -infile $invecmat[4]`
-        if ( ${aa[3]:gas/,//} < ${aa[6]:gas/,//} ) then
-            # -> is rows
-            set ll4 = "["
-            set rr4 = "]"
-            set outvecmat[3] = "-out_row_bval_sep"
-        else
-            # -> is cols
-            set ll4 = "{"
-            set rr4 = "}"
-            set outvecmat[3] = "-out_col_bval_sep"
-        endif
-
-    else if ( "$argv[$ac]" == "-unit_mag_out" ) then
-        set do_unit_mag = "-unit_mag_out"
-
-    # -------------- output opts --------------------
     else if ( "$argv[$ac]" == "-prefix" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set opref = "$argv[$ac]"
+
+    # ------------------- other opts ---------------
+
+    # ? make a flag to chop the input DWI if necessary?
+
+    else if ( "$argv[$ac]" == "-no_cmd_out" ) then
+        set output_cmd = 0
+
+    # --------------- apply to DWI and image ---------
+
+    else if ( "$argv[$ac]" == "-apply_to_vols" ) then
+        set DO_OUTVOL = "1"
 
     else if ( "$argv[$ac]" == "-do_movie" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
@@ -290,24 +138,20 @@ while ( $ac <= $#argv )
         # replace with both here for calling @dj*
         set movie = "-do_movie $movie"   
 
-    # -------------- qc stuff ----------------
-
-    else if ( "$argv[$ac]" == "-qc_prefix" ) then
-        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-        @ ac += 1
-        set qc_prefix = "$argv[$ac]"
-
     else if ( "$argv[$ac]" == "-no_qc_view" ) then
         set DO_VIEWER = "0"
 
-    else if ( "$argv[$ac]" == "-no_cmd_out" ) then
-        set output_cmd = 0
+    else if ( "$argv[$ac]" == "-workdir" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set wdir = "$argv[$ac]"
+        set WDIR_EX  = "0"
 
     else
         echo "** unexpected option #$ac = '$argv[$ac]'"
         goto BAD_EXIT
-    endif
 
+    endif
     @ ac += 1
 end
 
@@ -319,46 +163,24 @@ end
 
 echo "++ Start script version: $version"
 
-# NEED these two inputs
+# NEED this input
 if ( "$idwi" == "" ) then
-    echo "** ERROR: no DWI file input?!"
-    goto BAD_EXIT
-else if ( "$invecmat[2]" == "" ) then
-    echo "** ERROR: no gradient/matrix file input?!"
+    echo "** ERROR: no t1w file input?!"
     goto BAD_EXIT
 endif
 
-# make sure we can read DWI OK
-set check = `3dinfo "$idwi"`
-if ( "$#check" == "0" ) then
-    echo "** ERROR: can't find inset file:  $idwi !"
-    goto BAD_EXIT
-else
-    echo "++ Found inset DWI file:   $idwi"
-endif
+# make sure we can read volumes OK
+foreach ff ( "$idwi" )
+    set check = `3dinfo "$ff"`
+    if ( "$#check" == "0" ) then
+        echo "** ERROR: can't find input file:  $ff !"
+        goto BAD_EXIT
+    else
+        echo "++ Found input file:   $ff"
+    endif
+end
 
-# use this to combine string selector of "goods"
-set Ndwi = `3dinfo -nvi "$idwi"`
-
-# check for vec/mat file ???????????????/
-if ( 0 ) then
-if ( -f "$invecmat[2]" ) then
-    echo "++ Found input vec/mat file:  $invecmat[2]"
-else
-    echo "** ERROR: can't find entered vec/mat file $invecmat[2] !"
-    goto BAD_EXIT
-endif
-endif
-
-# -------------------------------
-
-if ( ( "$keepsel" == "" ) ) then
-    echo "** ERROR: need SOME selection string!"
-    echo "          Use either '-select ...' or '-select_file ...'"
-    goto BAD_EXIT
-endif
-
-# ========================= output/working dir ==========================
+# ========================= output dir ==========================
 
 if ( "$opref" == "" ) then
     echo "** ERROR: need '-prefix ...' option provided!"
@@ -383,53 +205,46 @@ if ( ! -e "$odir" ) then
     mkdir "$odir"
 endif
 
-if ( 0 ) then
-# and put working directory as subdirectory.
-set wdir = $odir/$wdir
+set odirqc = "$odir/QC"
+if ( "$DO_VIEWER" == "1" ) then
+    if ( ! -e "$odirqc" ) then
+        mkdir "$odirqc"
+    endif
+endif
 
-# make the working directory
-if ( ! -e $wdir ) then
-    echo "++ Making working directory: $wdir"
-    mkdir $wdir
+# ----> here, only need wdir if outputting imgs but no vol; see below
+
+# ========================= output fnames ==========================
+
+set ocmd   = "${opref}_cmd.txt"            # name for output command
+set ogoods = "$odir/${opref}_goods.txt"    # name 
+set ovol   = "${opref}.nii.gz"             # name 
+
+if ( "$obads" == "" ) then
+
+    # then need to glue on the odir in this case
+    set obads  = "$odir/${opref}_bads.txt"
+
+    if ( -e "$obads" ) then
+        echo ""
+        echo "** ERROR! File for listing 'bads' exists already: $odir/$obads"
+        echo "   ---> If you want to add to a list you started previously,"
+        echo "        you must use the '-in_bads ...' option."
+        echo "        (Sorry, but hopefully this prevents mistakenly"
+        echo "        appending to preexisting lists.)\n"
+        goto BAD_EXIT
+    else
+        echo "++ Setting up file for output: $obads"
+    endif
 else
-    echo "+* WARNING: Somehow found a premade working directory (?):"
-    echo "      $wdir"
-
-    # don't clean preexisting directories-- could be user mistake.
-    echo "   NB: will *not* clean it afterwards."
-    set DO_CLEAN = "0"
-endif
-endif
-
-# file names for lots of outputs
-set ocmd   = "${opref}_cmd.txt"         # name for output command
-set omata  = "${opref}_bmatA.dat"       # name for full afni bmatrix
-set omatt  = "${opref}_bmatT.dat"       # name for full afni bmatrix
-set obvec  = "${opref}_bvec.dat"        # name for full afni grads
-set obval  = "${opref}_bval.dat"        # name for full afni bvals
-set odwi   = "${opref}_dwi.nii.gz"      # name for dwis
-set ogoods = "${opref}_goodfinal.txt"   # name for output good list
-
-# file *types* for output (grad/matrix stuff); [2,4] are filled above
-set outvecmat[1] = ${invecmat[1]:gas/in/out/}
-# [PT: Jul, 2017]: now comes from inp ---> 
-#set outvecmat[3] = ${invecmat[3]:gas/in/out/} 
-set outvecmat[2] = "$odir/${opref}$outvecmat[2]"
-
-if ( "$outvecmat[4]" != "" ) then
-    set outvecmat[4] = "$odir/${opref}$outvecmat[4]"
-endif
-
-if ( "$invecmat[4]" != "" ) then
-    set KEEP3 = $KEEP
-endif
-
-# in case someone wants just unit-mag vec|mat, we don't want to lose
-# the bvalue info!
-if ( "$do_unit_mag" != "" ) then
-    if ( "$outvecmat[3]" == "" ) then
-        set outvecmat[3] = "-out_col_bval_sep"
-        set outvecmat[4] = "$odir/${opref}_bval.dat"
+    # in input by the user, then $obads shd be a full path, as needed, 
+    if ( -e "$obads" ) then
+        echo ""
+        echo "+* WARNING! Just so you know the file: $obads"
+        echo "   exists already!  I assume you know that you will append to"
+        echo "   it, and that you want to do so (because I assume all users"
+        echo "   read help files as much as *I* do!)"
+        echo "   Ooook, carrying on, then.\n"
     endif
 endif
 
@@ -452,7 +267,7 @@ endif
 # dump copy of command into workdir/..
 if ( $output_cmd == 1 ) then
     echo "++ Echoing the command to: $cmd_file"
- 
+
     set rec_afni_ver = `afni -ver`
     echo "### AFNI version:"  > $cmd_file
     echo "# $rec_afni_ver\n"            >> $cmd_file
@@ -463,65 +278,102 @@ if ( $output_cmd == 1 ) then
     echo "# $this_prog $argv"   >> $cmd_file
     echo "\n"                   >> $cmd_file
 endif
- 
-# =================== Combine all good lists ============================
 
-echo "++ User input $#keepsel selector strings to merge:"
-foreach ii ( `seq 1 1 $#keepsel` )
-    echo "       $keepsel[$ii]"
-end
+# --------------------- start proc ---------------------------
 
-# Combine all good lists
-@djunct_combine_str.py $odir/$ogoods $Ndwi $keepsel
+echo "++ Call selector:"
+echo "   $my_selector $idwi $iimg $obads\n"
 
-set KEEP = `cat "$odir/$ogoods"`
-echo "++ String selectors merged:\n\t $KEEP"
-echo "   and then saved into file:\n\t $odir/$ogoods"
+$my_selector "$idwi" "$iimg" "$obads"
 
-# ======================== convert dicoms ===============================
+set Nvols = `3dinfo -nv "$idwi"`
 
-if ( 1 ) then
+$my_encoder  "$obads" $Nvols "$ogoods"
 
-    # make grads ...
-    1dDW_Grad_o_Mat++                                     \
-        -overwrite                                        \
-        -echo_edu                                         \
-        "$invecmat[1]" "$invecmat[2]""$ll2""$KEEP""$rr2"  \
-        $do_unit_mag                                      \
-        "$outvecmat[1]" "$outvecmat[2]"                   \
-        "$outvecmat[3]" "$outvecmat[4]"                   \
-        "$invecmat[3]" "$invecmat[4]""$ll4""$KEEP3""$rr4"
-    # NB: the above works somewhat cheatingly by having the empty
-    # strings at the end of the function call.
+if ( "$DO_OUTVOL" == "1" ) then
 
-    3dcalc   -echo_edu                                           \
-        -a     $idwi"[${KEEP}]"                                  \
-        -expr "(a)"                                              \
-        -prefix $odir/${opref}.nii.gz                            \
-        -overwrite
+    set selstr = `cat $ogoods`
+    3dcalc                    \
+        -overwrite            \
+        -a "$idwi""[$selstr]" \
+        -expr 'a'             \
+        -prefix $odir/$ovol
 
-    # Feb,2017: take images!
     if ( "$DO_VIEWER" == "1" ) then
-        echo "++ Make AP images."
-        set img_pref = "${opref}"
 
-        if ( ! -e "$odir/QC" ) then
-            mkdir "$odir/QC"
-        endif
+        set img_pref = `basename $ovol     .gz`
+        set img_pref = `basename $img_pref .nii`
 
-        $my_viewer_4d  \
-            -inset  $odir/${opref}.nii.gz      \
-            -prefix "$odir/QC/$img_pref" 
+        $my_viewer_4d \
+            -inset  $odir/$ovol               \
+            -prefix "$odirqc/$img_pref"   
 
         if ( "$movie" != "" ) then
             $my_viewer_4d \
-                -inset  $odir/${opref}.nii.gz  \
-                -prefix "$odir/QC/$img_pref"      \
+                -inset  $odir/$ovol            \
+                -prefix "$odirqc/$img_pref"    \
                 $movie
         endif
     endif
+else
+    if ( "$DO_VIEWER" == "1" ) then
+        
+        # ---------- wdir ---------------------
+        # and put working directory as subdirectory.
+        if ( "$WDIR_EX" == "1" ) then
+            set wdir = $odir/${wdir}_$opref
+        else
+            set wdir = $odir/$wdir
+        endif
+
+        # make the working directory
+        if ( ! -e $wdir ) then
+            echo "++ Making working directory: $wdir"
+            mkdir $wdir
+        else
+            echo "+* WARNING: Somehow found a premade working directory (?):"
+            echo "     $wdir"
+
+            # don't clean preexisting directories-- could be user
+            # mistake.
+            echo "   NB: will *not* clean it afterwards."
+            set DO_CLEAN = "0"
+        endif
+
+        set selstr = `cat $ogoods`
+        set fout   = $wdir/$ovol
+        3dcalc                    \
+            -overwrite            \
+            -a "$idwi""[$selstr]" \
+            -expr 'a'             \
+            -prefix $fout
+
+        set img_pref = `basename $fout     .gz`
+        set img_pref = `basename $img_pref .nii`
+
+        $my_viewer_4d                    \
+            -inset  "$fout"              \
+            -prefix "$odirqc/$img_pref"   
+
+        if ( "$movie" != "" ) then
+            $my_viewer_4d                    \
+                -inset  "$fout"              \
+                -prefix "$odirqc/$img_pref"  \
+                $movie
+        endif
+
+        if ( "$DO_CLEAN" == "1" ) then
+            echo "\n++ Cleaning working directory!\n"
+            cd $here
+            \rm -rf $wdir
+        else
+            echo "\n++ NOT removing working directory '$wdir'.\n"
+        endif
+
+    endif
 endif
 
+# ---------------------------------------------------------------------
 goto GOOD_EXIT
 
 # ========================================================================
@@ -531,154 +383,112 @@ SHOW_HELP:
 cat << EOF
 # -----------------------------------------------------------------------
 
-    The purpose of this function is to help filter out user-found and
-    user-defined bad volumes from DWI data sets.  
+ This program is for building a selector string for AFNI subbricks
+ and/or 1D text files.  It makes use of J. Rajendra's
+ '@djunct_dwi_selector.sh' script to make a list of 'bad' volume
+ indices by clicking on individual volumes in a montage image.  Pretty
+ cool.
 
-    If a bad volume is found, then it should be removed from the 4D
-    dset, and it also has to be removed from the gradient list and
-    the bvalue list.  In addition, if the user is processing DWI data
-    that was acquired with two sets of phase encodings for EPI
-    distortion correction, then one wants to remove the same volume
-    *from both sets*.  This script is designed to help facilitate this
-    process in a scriptable manner (the script still has to be run twice,
-    but hopefully with easy enough syntax to avoid confusion/bugs).
+ In the end, a selector string of volumes *to keep* (i.e., the
+ complement of the set of indices chosen with clicks) is output to
+ screen as well as stored in a text file.
 
-    The user has to input 
+  Ver. $version (PA Taylor, ${rev_dat})
 
-        1) a 4D volumetric data sets of N DWIs (NAME.nii.gz),
+# ----------------------------------------------------------------------
 
-        2) and accompanying bvalue/bmatrix/bvector values that they
-           want to be parsed; this could be a unit-magn bvec file + a
-           file of bvalues, or it could be a single file of scaled
-           vector|matrix values.
+  OUTPUT:
 
-    The output will be in similar format to what was input (i.e., the
-    type of bvector|bmatrix files matching what was input), but with a
-    different prefix name and/or directory, and everything filtered in
-    a consistent manner *hopefully*.
+    + PPP_bads.txt: text file with AFNI-usable selector string, which
+                    can be put into either square brackets [] or curly
+                    brackets {}, whichever is appropriate for a given
+                    application.
 
-    Check out the function "fat_proc_select_vols" for a nice, GUI way
-    to select the bad DWIs you want to get rid of and to build a
-    selector nicely (courtesy of J. Rajendra).
+# ----------------------------------------------------------------------
 
-    REQUIRES: AFNI.
-
-    Ver. $version (PA Taylor, ${rev_dat})
-
-# -----------------------------------------------------------------------
-
-  RUNNING: 
+  RUNNING:
 
     $this_prog  \
-        -in_dwi    DDD                     \
-        -select   'SSS'                    \
-        {-select_file SF}                  \
-        -prefix   PPP                      \
-        {-in_col_matA|-in_col_matT|        \
-         -in_col_vec|-in_row_vec} FFF      \
-        {-in_bvals BBB}                    \
-        {-unit_mag_out}                    \
-        {-qc_prefix  QCPREF}               \
-        {-no_cmd_out}                      \
-        {-no_qc_view}                      \
-        {-do_movie AGIF|MPEG}
+        -in_dwi   DDD                  \
+        -in_img   IM2D                 \
+        {-in_bads TTT}                 \
+        -prefix  PPP                   \
+        {-apply_to_vols}               \
+        {-do_movie AGIF|MPEG}          \
+        {-workdir WWW}                 \
+        {-no_cmd_out} 
 
   where:
-  -in_dwi  DDD      :name of a 4D file of DWIs (required).
 
-  -in_col_matA |
-  -in_col_matT |
-  -in_col_vec  |
-  -in_row_vec  FFF  :one of these options must be used to input 
-                     a bvec/bmat file from the gradients. Required.
-                     Same type of output file is returned.
+   -in_dwi  DDD   :input DWI set (required).
+   -in_img  IM2D  :2d image of DDD, such as made by a fat_proc* 
+                   script, or @djunct_*imager directly (required).
+   -in_bads TTT   :(optional) a single column file of integers,
+                   such as made by a previous run of $this_prog.
+                   For example, if one has dual phase-encoded
+                   DWI data, then one might make a list of bads
+                   from the AP-acquired set and then add to it any
+                   bad indices from the PA-acquired set.
 
-  -in_bvals BBB     :if the bvec/bmat is a file of unit-magnitude values,
-                     then the bvalues can be input, as well (optional).
+   -prefix  PPP   :output prefix for files. Required.
 
-  -select 'SSS'     :a string of indices and index ranges for
-                     selecting which volumes/grads/bvals to *keep*.
-                     This is done in a generic form of the typical
-                     AFNI format, and index counting starts at 0 and
-                     the 'last' brick could be specified as '\$'.  An
-                     example for skipping the index-4 and index-6
-                     volumes in a data set: 
-                        '0..3,5,7..\$' 
-                     This string gets applied to the volume, bval|bvec|bmat
-                     files for an input set. Required.
-                     NB: there are neither square nor curly brackets used
-                     here!
-                     NB2: Always use the single quotes around the
-                     selector expression. 
-       or
-  -select_file SF   :where SF is a file name whose only contents are a nice 
-                     string of indices and index ranges for selecting which
-                     volumes/grads/bvals to *keep*.  Like, literally just
-                        0..3,5,7..\$
-                     sitting alone in a file-- no apostrophes needed/wanted.
+   -apply_to_vols :switch to apply the created selection of good 
+                   volumes to the DWI dset.  NB: if you are using 
+                   this function to select out bad volumes from 
+                   a dual phase encode set, then you *wouldn't* want 
+                   to use this option, because you want to apply
+                   the complete removal to *both* volumes.  Note also,
+                   that once you apply this selection to the volumes,
+                   you also need to apply it to any bval, bvec, bmatrix,
+                   etc. text files!
 
-  -prefix    PPP    :output prefix for all the volumes and text files.
-                     Required.
+    -do_movie AGIF | MPEG:
+                   when "-apply_to_vols" is used, static images are 
+                   output by default;  one can use this option with 
+                   either of the given arguments to output a movie of the
+                   newly created dset.  Only those arguments can be used
+                   at present.
 
-  -unit_mag_out     :if one wants to prevent an input bvalue file being
-                     applied to unit-magnitude gradients|vecs|matrices,
-                     or if one just wants to ensure that the output grad
-                     information is unit magnitude, use this option.  If
-                     this is used with just a vec/matrix file input, then
-                     a b-value file will also be output (so b-value info
-                     wouldn't be lost at this moment).  Optional.
+   -workdir WWW   :specify a working directory, which can be removed;
+                   (default name = '$wdir').
 
-  -qc_prefix QCPREF :can set the prefix of the QC image files separately
-                     (default is '$opref').
-   -no_qc_view      :can turn off generating QC image files (why?)
-   -no_cmd_out      :don't save the command line call of this program
-                     and the location where it was run (otherwise, it is
-                     saved by default in the ODIR/).
+   -no_cmd_out    :don't save the command line call of this program
+                   and the location where it was run (otherwise, it is
+                   saved by default in the ODIR/).                     
 
-    -do_movie AGIF | MPEG
-                    :one can use this option with either of the given
-                     arguments to output a movie of the newly created
-                     dset.  Only those arguments can be used at
-                     present.
+# ----------------------------------------------------------------------
 
-# -----------------------------------------------------------------------
+  EXAMPLE
 
-  EXAMPLES:
+    $this_prog    \
+        -in_dwi DWI.nii.gz               \
+        -in_img QC/DWI_sepscl.sag.png    \
+        -prefix DWI_trim
 
-    1) ... with selector via the command line (again, note the single
-       apostrophes around the selector!):
 
-        $this_prog  \
-            -in_dwi       UNFILT_AP/AP.nii.gz       \
-            -in_col_matT  UNFILT_AP/AP_bmatT.dat    \
-            -select       '0..5,8,20..\$'           \
-            -prefix       FILT_AP/AP 
-
-    
-    2) ... with selector via file contents (where there would *not* be
-       apostrophes in the string sitting in the file):
-
-        $this_prog  \
-            -in_dwi       UNFILT_AP/AP.nii.gz           \
-            -in_col_matT  UNFILT_AP/AP_bmatT.dat        \
-            -select_file  UNFILT_AP/dwi_sel_goods.txt   \
-            -prefix       FILT_AP/AP 
+    $this_prog    \
+        -in_dwi DWI_ap.nii.gz             \
+        -in_img QC/DWI_ap_sepscl.sag.png  \
+        -in_bads DWI_trim_bads.txt        \
+        -prefix DWI_trim_both 
 
 # -----------------------------------------------------------------------
 
 EOF
+
     goto GOOD_EXIT
 
 SHOW_VERSION:
-   echo "version  $version (${rev_dat})"
-   goto GOOD_EXIT
+    echo "version  $version (${rev_dat})"
+    goto GOOD_EXIT
 
 FAIL_MISSING_ARG:
     echo "** ERROR! Missing an argument after option flag: '$argv[$ac]'"
     goto BAD_EXIT
 
 BAD_EXIT:
-   exit 1
+    exit 1
 
+# send everyone here, in case there is any cleanup to do
 GOOD_EXIT:
-   exit 0
+    exit 0
