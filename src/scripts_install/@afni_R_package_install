@@ -99,12 +99,12 @@ SHOW_HELP:
 cat << EOF
 
    ----------------------------------------------------------------------------
-   $prog
+   $prog ~1~
            Helper script to install R packages for various afni-ish purposes.
            You must have R installed, and permissions for its package library.
 
    -----------------------------------------------------------------------------
-   options:
+   options: ~1~
 
       -afni   : Current list of packages for afni.
                 Similar to rPkgsInstall.
@@ -112,6 +112,9 @@ cat << EOF
                 afex phia snow nlme lme4 paran psych
 
       -shiny  : Current list of packages for afni based shiny apps.
+                May have trouble with openssl on some linux OS's.
+                Make sure the openssl OS package is installed with a
+                package manager (apt-get, yum, etc.).
                 Installs:
                 shiny shinydashboard plotly colourpicker data.table
                 gplots RColorBrewer
@@ -128,7 +131,7 @@ cat << EOF
       -help   : Show this help.
 
    -----------------------------------------------------------------------------
-   examples:
+   examples: ~1~
 
       $prog -afni
 
