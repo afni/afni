@@ -25,7 +25,7 @@ g_help_string = """
 afni_system_check.py    - perform various system checks
 
 This program is intended to be helpful for figuring out AFNI installation
-issues.  This is just a start.
+issues.
 
 examples
 
