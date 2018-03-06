@@ -66,6 +66,16 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 6, Mar , 2018 , PT , "fat_proc_convert_anat" , MINOR , TYPE_MODIFY,
+   "Default orientation for nifti files to be 'RAI' instead of 'RPI'.",
+   "This will be more in line with TORTOISE (and AFNI DICOM-coor default).\n"
+},
+
+{ 6, Mar , 2018 , PT , "fat_proc_convert_dwis" , MINOR , TYPE_MODIFY,
+   "Default orientation for nifti files to be 'RAI' instead of 'RPI'.",
+   "This will be more in line with TORTOISE (and AFNI DICOM-coor default).\n"
+},
+
 { 22, Feb , 2018 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
    "Can now apply p-to-stat calcs for thresholding.",
    "User gives p-value, which gets made to appropriate stat for thresh.\n"
