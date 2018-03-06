@@ -362,6 +362,9 @@ static char *tip[] = {
    "in the AFNI GUI, with color overlays, animations, and cutouts.\n"
    "(The SUMA GUI also has a volume rendering mode.)"
  ,
+  "Want your picture in the AFNI splash window at startup? Send us a JPEG\n"
+  "image, formatted to be square 128x128, and we can include it!\n"
+ ,
 
 /*-- tips below here are for non-GUI programs --*/
 
@@ -552,7 +555,7 @@ static char *tip[] = {
    "Want to create a 3D dataset from a table of numbers? This can be\n"
    "done with program 3dUndump."
  ,
-   "Want to slice up a dataset? Or glue them together?\n"
+   "Want to slice up a dataset? Or glue datasets together?\n"
    " * 3dZcutup  = cut a section of slices out of a dataset\n"
    " * 3dZcat    = glue datasets together in the slice direction\n"
    " * 3dXYZcat  = glue datasets together in any (spatial) direction\n"
@@ -567,6 +570,13 @@ static char *tip[] = {
    "Want to write an AFNI '3d' program? If you know C, the code 3dToyProg.c\n"
    "is a good starting point. It shows how to read, calculate, and write\n"
    "datasets, and is heavily commented."
+ ,
+  "Almost all AFNI command line programs take '-help' as an option; for example\n"
+  "  3dTstat -help\n"
+  "This method is how you can get the most up-to-date information about using\n"
+  "an AFNI program. All '-help' output are also formatted as Web pages and\n"
+  "are available here:\n"
+  "  https://afni.nimh.nih.gov/afni/doc/program_help/index.html\n"
 
 } ;
 
