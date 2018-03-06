@@ -1023,6 +1023,16 @@ static char *gby[] = {
      "Flying far off into a Limbo large and broad"                                       ,
      "Ascending by degrees magnificent"                                                  ,
 
+     /* adapted from Marcus Aurelius */
+
+     "Don't try to be in the majority, but try not to be in the ranks of the insane"       ,
+     "Everything we hear is an opinion, not a fact"                                        ,
+     "Everything we see is a perspective, not the truth"                                   ,
+     "The best revenge is not to be like your enemy"                                       ,
+     "The happiness of your life depends upon the quality of your thoughts"                ,
+     "How much more grievous are the consequences of anger than the causes of it"          ,
+     "We love ourselves more than others, but care more about their opinions than our own" ,
+
      /* From Phaedo, by Plato (a very Very VERY early AFNI user) */
 
      "Is not existence revealed to us in thought, if at all?"                            ,
