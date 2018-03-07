@@ -97,10 +97,8 @@ Copy+paste the following::
 Reboot
 ------
 
-Copy+paste (to reboot)::
+Please reboot your system.
 
-   reboot
-   
 **Purpose:** This deals with system updates, any change in login
 shell, and path updates.
 
