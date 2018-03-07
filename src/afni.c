@@ -6051,14 +6051,17 @@ END_OF_ID_LOOP:  /* for the bad news above [01 Feb 2018] */
       }
 
       /* add the catenated session list, if nontrivial */
+      /* only if do_css             7 Mar 2018 [rickr] */
 
-      if( num_css > 1 && GLOBAL_library.sslist->num_sess < THD_MAX_NUM_SESSION ){
-        GLOBAL_library.sslist->ssar[(GLOBAL_library.sslist->num_sess)++] = css ;
-        sprintf(str,"\n Catenated %d sessions = %s has %d datasets" ,
-                num_css , css->sessname , css->num_dsset ) ;
-        REPORT_PROGRESS(str) ;
-      } else {
-        myXtFree(css) ;
+      if( gss && do_css ) {
+         if( num_css > 1 && GLOBAL_library.sslist->num_sess < THD_MAX_NUM_SESSION ){
+           GLOBAL_library.sslist->ssar[(GLOBAL_library.sslist->num_sess)++] = css ;
+           sprintf(str,"\n Catenated %d sessions = %s has %d datasets" ,
+                   num_css , css->sessname , css->num_dsset ) ;
+           REPORT_PROGRESS(str) ;
+         } else {
+           myXtFree(css) ;
+         }
       }
 
       /** if nothing read at all, make up a dummy **/
