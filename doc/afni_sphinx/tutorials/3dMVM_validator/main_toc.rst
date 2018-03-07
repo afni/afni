@@ -12,3 +12,5 @@
    3dMVM_validator_overview
    3dMVM_validator_setup
    3dMVM_validator_model
+   3dMVM_validator_tabs
+   3dMVM_validator_GLT

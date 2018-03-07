@@ -1,17 +1,15 @@
 
 .. _tutorial_3dMVM_validator_overview:
 
-============
-**Overview**
-============
-
-| **THIS TUTORIAL IS NOT YET COMPLETE!!!**
+=============
+**Overview.**
+=============
 
 .. contents:: :local:
     :depth: 2
 
-Overkill [#f1]_
----------------
+Overkill. [#f1]_
+----------------
 
 The ``3dMVM_validator`` is a `shiny app <https://shiny.rstudio.com/>`_
 that can be used to help test a

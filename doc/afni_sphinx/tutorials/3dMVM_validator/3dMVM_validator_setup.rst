@@ -1,20 +1,14 @@
 
 .. _tutorial_3dMVM_validator_setup:
 
-.. =========
-.. **Setup**
-.. =========
-
-| **THIS TUTORIAL IS NOT YET COMPLETE!!!**
-
 .. contents:: :local:
     :depth: 2
 
 Walking in your footsteps. [#f4]_
---------------------------------
+---------------------------------
 
-Start Up
-++++++++
+Start Up.
++++++++++
 
 .. topic:: After everything opens, you should see something like this:
 
@@ -30,8 +24,8 @@ Start Up
     * The app will guess if there are within subject variables and give suggestions.
     * Same for the quantitative variables.
 
-Location location location
-++++++++++++++++++++++++++
+Location location location.
++++++++++++++++++++++++++++
 
 There are two ways to select a location from which to extract data.
 

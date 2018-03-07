@@ -62,7 +62,7 @@ Rudie Can't Fail. [#f9]_
 |    :align: left                                                      |
 +----------------------------------------------------------------------+
 
-.. note::
+.. warning::
 
     We don't care about the p value for this model!!!
     We only want to make sure it doesn't fail!!!
@@ -75,32 +75,16 @@ Rudie Can't Fail. [#f9]_
 .. |    :align: left                                       |
 .. +-------------------------------------------------------+
 
-And my script's been rearranged. [#f10]_
-++++++++++++++++++++++++++++++++++++++++
+|
+|
 
-+----------------------------------------------------------------------+
-| This tab shows the script that is created as you specify options.    |
-| Every change and addition you make will be updated live in the       |
-| script. You can download the finalized script here to run in the     |
-| terminal.                                                            |
-+----------------------------------------------------------------------+
-| .. figure:: media/3dMVM_validator_script.png                         |
-|    :width: 75%                                                       |
-|    :align: left                                                      |
-+----------------------------------------------------------------------+
+-----------
 
-+----------------------------------------------------------------------+
-| This tab shows the script extra options to be added to the script.   |
-| The options are explained in the help for 3dMVM.                     |
-| Selections here will also update on the script tab.                  |
-+----------------------------------------------------------------------+
-| .. figure:: media/3dMVM_validator_script_extras.png                  |
-|    :width: 75%                                                       |
-|    :align: left                                                      |
-+----------------------------------------------------------------------+
+:ref:`On to other tabs! <tutorial_3dMVM_validator_tabs>`
+========================================================
 
-More coming soon
-----------------
+|
+|
 
 .. rubric:: Footnotes
 
@@ -108,4 +92,4 @@ More coming soon
 .. [#f7] ABC
 .. [#f8] Everything Counts by Depeche Mode
 .. [#f9] The Clash
-.. [#f10] House of Pain by Faster Pussycat
+
