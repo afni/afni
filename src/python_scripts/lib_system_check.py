@@ -351,7 +351,9 @@ class SysInfo:
       # check for repositories
       nfound = self.check_for_progs(['fink', 'brew', 'port'], repos=1)
       if nfound == 0:
-         self.comments.append('consider installing fink')
+         # since we do not require PyQt4 during class, do not warn
+         # self.comments.append('consider installing fink')
+         print('** no package manager found (okay for bootcamp)')
       self.hunt_for_homebrew()
       if self.get_osx_ver() < 7:
          self.comments.append('OS X version might be old')
