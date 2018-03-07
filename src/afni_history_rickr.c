@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  7, Mar, 2018, RCR, "afni", MICRO, TYPE_BUG_FIX,
+   "add do_css check around css access for making catenated session list",
+   NULL
+ } ,
+
  {  6, Mar, 2018, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
    "okay, if macos and no .bash_profile, source .bashrc from .bash_profile",
    NULL
