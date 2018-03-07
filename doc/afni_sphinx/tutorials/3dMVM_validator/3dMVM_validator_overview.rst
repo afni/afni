@@ -77,6 +77,16 @@ subj0061 Drug      remit    0.8   subj.0061.nii.gz
 subj0075 Drug      remit    0.8   subj.0075.nii.gz
 ======== ========= ======== ===== ================
 
+|
+|
+
+-----------
+
+:ref:`On to setup! <tutorial_3dMVM_validator_setup>`
+====================================================
+
+|
+|
 
 .. rubric:: Footnotes
 

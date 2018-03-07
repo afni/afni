@@ -118,7 +118,9 @@ A test, a test, a test, no rest. [#f17]_
 .. note::
     You can add more GLTs to the list by just repeating the same procedure.
 
+|
 
+-----
 
 More coming soon
 ----------------
