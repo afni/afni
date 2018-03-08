@@ -5160,14 +5160,14 @@ int nifti_write_all_data(znzFile fp, nifti_image * nim,
 
    if( !NBL ){ /* just write one buffer and get out of here */
       if( nim->data == NULL ){
-         fprintf(stderr,"** NWAD: no image data to write\n");
+         fprintf(stderr,"** ERROR: NIfTI WRITE FAILURE: no image data to write\n");
          return -1;
       }
 
       ss = nifti_write_buffer(fp,nim->data,nim->nbyper * nim->nvox);
       if (ss < nim->nbyper * nim->nvox){
          fprintf(stderr,
-            "** ERROR: NWAD: wrote only %u of %u bytes to file\n",
+            "** ERROR: NIfTI WRITE FAILURE: wrote only %u of %u bytes to file\n",
             (unsigned)ss, (unsigned)(nim->nbyper * nim->nvox));
          return -1;
       }
@@ -5176,7 +5176,7 @@ int nifti_write_all_data(znzFile fp, nifti_image * nim,
          fprintf(stderr,"+d wrote single image of %u bytes\n", (unsigned)ss);
    } else {
       if( ! NBL->bricks || NBL->nbricks <= 0 || NBL->bsize <= 0 ){
-         fprintf(stderr,"** NWAD: no brick data to write (%p,%d,%u)\n",
+         fprintf(stderr,"** ERROR: NIfTI WRITE FAILURE: no brick data to write (%p,%d,%u)\n",
                  (void *)NBL->bricks, NBL->nbricks, (unsigned)NBL->bsize);
          return -1;
       }
@@ -5185,7 +5185,7 @@ int nifti_write_all_data(znzFile fp, nifti_image * nim,
          ss = nifti_write_buffer(fp, NBL->bricks[bnum], NBL->bsize);
          if( ss < NBL->bsize ){
             fprintf(stderr,
-              "** NWAD ERROR: wrote %u of %u bytes of brick %d of %d to file",
+              "** ERROR: NIfTI WRITE FAILURE: wrote %u of %u bytes of brick %d of %d to file",
                (unsigned)ss, (unsigned)NBL->bsize, bnum+1, NBL->nbricks);
             return -1;
          }
@@ -6394,7 +6394,7 @@ nifti_image *nifti_image_from_ascii( const char *str, int * bytes_read )
 
    /* scan for opening string */
 
-   spos = 0 ; 
+   spos = 0 ;
    ii = sscanf( str+spos , "%1023s%n" , lhs , &nn ) ; spos += nn ;
    if( ii == 0 || strcmp(lhs,"<nifti_image") != 0 ) return NULL ;
 
@@ -7531,5 +7531,3 @@ int nifti_disp_type_list( int which )
 
     return 0;
 }
-
-
