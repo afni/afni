@@ -1043,6 +1043,14 @@ static char *gby[] = {
      "How much more grievous are the consequences of anger than the causes of it"          ,
      "We love ourselves more than others, but care more about their opinions than our own" ,
 
+     /* From Seneca */
+
+     "Even the lowly can earn true praise; only the strong can receive false praise"  ,
+     "Luck is a matter of preparation meeting opportunity"                            ,
+     "If you don't know where you are sailing, no wind will be favorable"             ,
+     "The greatest remedy for anger is delay"                                         ,
+     "It is more fitting to laugh at life than to lament over it"                     ,
+
      /* From Phaedo, by Plato (a very Very VERY early AFNI user) */
 
      "Is not existence revealed to us in thought, if at all?"                            ,
