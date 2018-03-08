@@ -2160,7 +2160,8 @@ int main( int argc , char *argv[] )
 
    if( new_FALLback != NULL ){  /* if found any -XXX options, merge them */
      int qq,pp ;
-     xrdb_pg = THD_find_executable("xrdb") ;
+     if( ! AFNI_yesenv("AFNI_DONT_USE_XRDB") )
+       xrdb_pg = THD_find_executable("xrdb") ;
 
      /* can't find xrdb executable ==> merge FALLback strings */
 
