@@ -7,6 +7,8 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Usage: 3dUndump [options] infile ...
@@ -77,6 +79,9 @@
                        * If '-dimen' is used, then 'rrr' is in voxels.
                      *** For example: '-srad 7' means put a sphere of
                          radius 7 mm about each input point.
+    
+      -cubes       = Put cubes down instead of spheres. The "radius" then
+                       is half the length of a side.
     
       -orient code = Specifies the coordinate order used by -xyz.
                        The code must be 3 letters, one each from the pairs
@@ -213,4 +218,4 @@
     
     -- RWCox -- October 2000
     
-    ++ Compile date = Nov  9 2017 {AFNI_17.3.03:macosx_10.7_local}
+    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}

@@ -7,6 +7,8 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Usage: 3dDTtoDWI [options] gradient-file I0-dataset DT-dataset

@@ -7,6 +7,8 @@ whereami
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Usage: whereami [x y z [output_format]] [-lpi/-spm] [-atlas ATLAS] 
@@ -110,14 +112,14 @@ whereami
      -prefix PREFIX: Prefix for the output mask dataset
      -max_areas MAX_N: Set a limit on the number of distinct areas to report.
                  This option will override the value set by the environment
-                 variable AFNI_WHEREAMI_MAX_FIND, which is now set to 9
+                 variable AFNI_WHEREAMI_MAX_FIND, which is now set to 5
                  The variable  AFNI_WHEREAMI_MAX_FIND should be set in your
                  .afnirc file.
      -max_search_radius MAX_RAD: Set a limit on the maximum searching radius when
                          reporting results. This option will override the 
                          value set by the environment variable 
                          AFNI_WHEREAMI_MAX_SEARCH_RAD,
-                         which is now set to 3.330000 .
+                         which is now set to 7.500000 .
      -min_prob MIN_PROB: set minimum probability to consider in probabilistic
                  atlas output. This option will overrid the value set by the
                  environment variable AFNI_WHEREAMI_PROB_MIN (default is 1E-10)
@@ -315,6 +317,10 @@ whereami
                  needed to go from one space to another
      -calc_chain srcspace destspace : compute the chain of transformations
                  combining and inverting transformations where possible
+         examples: convert coordinates from TT_N27 to MNI or MNI anat space
+                 whereami -calc_chain TT_N27 MNI  -xform_xyz_quiet 10 20 30
+                 whereami -calc_chain TT_N27 MNI  -xform_xyz_quiet 0 0 0
+                 whereami -calc_chain TT_N27 MNIA -xform_xyz_quiet 0 0 0
      -xform_xyz : used with calc_chain, takes the x,y,z coordinates and 
                  applies the combined chain of transformations to compute
                  a new x,y,z coordinate
@@ -390,4 +396,4 @@ whereami
     
     Thanks to Kristina Simonyan for feedback and testing.
     
-    ++ Compile date = Nov  9 2017 {AFNI_17.3.03:macosx_10.7_local}
+    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}

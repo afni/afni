@@ -38,9 +38,10 @@ a. Copy+paste::
      sudo apt-get install -y gnome-terminal nautilus          \
                              gnome-icon-theme-symbolic
 
-   **Purpose:** Useful for improving termianl behavior (esp. if you
-   are following the* :ref:`BoUoW <install_steps_windows10>`
-   *instructions). This may take a little while to complete running.
+   **Purpose:** Useful for improving terminal behavior, especially if
+   you are following the Windowsy :ref:`WSL <install_steps_windows10>`
+   or (older) :ref:`BoUoW <install_steps_windows10_beta>`
+   instructions. This may take a little while to complete running.
 
 .. internal note/comment: at this moment, we are eschewing
    including 'mwm', which is the replacement for 'motif-clients'

@@ -270,6 +270,10 @@ The gedit program is a graphical text editor that works well across many Unix-li
       gedit my_script.txt
       gedit output.proc.subjFT.txt
 
+If gedit is not installed, one can ask AFNI to choose an editor using ``afni_open -e``, e.g.::
+
+      afni_open -e my_script.txt
+
 .. seealso::
 
    - :command:`man gedit`
@@ -657,4 +661,4 @@ This keystroke is often followed by ``bg`` (background: a built-in shell command
 todo::
 
    rcr - consider adding any of these over time...
-   *, ?, [], !, |, :, ~, %, (, {, <, > 
+   *, ?, [], !, |, :, ~, %, (, {, <, >, <<, >>

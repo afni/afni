@@ -7,6 +7,8 @@ FIRdesign
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Usage: FIRdesign [options] fbot ftop ntap

@@ -7,6 +7,8 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     This program performs a two-factor Analysis of Variance (ANOVA)
@@ -186,4 +188,4 @@
      https://afni.nimh.nih.gov/pub/dist/doc/program_help/common_options.html
      https://afni.nimh.nih.gov/pub/dist/doc/program_help/README.environment.html
     
-    ++ Compile date = Nov  9 2017 {AFNI_17.3.03:macosx_10.7_local}
+    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}

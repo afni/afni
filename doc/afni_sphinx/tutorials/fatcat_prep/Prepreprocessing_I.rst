@@ -428,10 +428,12 @@ life at present.
 "data_proc/SUBJ_001/anat_00/") and axializes it with respect to the
 reference dset (here, from the MNI 2009 templates, which was manually
 AC-PC aligned and regridded to have an even number of slices in all
-FOV planes as described :ref:`here <suppl_refsets_mni>`), with some
-extra weighting for the subcortical regions (via ``-extra_al_wtmask
-*``); and the output volume will match the grid of the input volume
-(``-out_match_ref``)::
+FOV planes as described :ref:`here <suppl_refsets_mni>` and
+downloadable from `here
+<https://afni.nimh.nih.gov/pub/dist/tgz/fatcat_proc_mni_ref.tgz>`_ on
+the AFNI website), with some extra weighting for the subcortical
+regions (via ``-extra_al_wtmask *``); and the output volume will match
+the grid of the input volume (``-out_match_ref``)::
 
   # I/O path, same as above; just need the "proc" dirs now
   set path_P_ss = data_proc/SUBJ_001

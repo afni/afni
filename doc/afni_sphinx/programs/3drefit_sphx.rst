@@ -7,9 +7,14 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
+
+Changes some of the information inside a 3D dataset's header.
+=============================================================
+
 .. code-block:: none
 
-    Changes some of the information inside a 3D dataset's header.
     Note that this program does NOT change the .BRIK file at all;
     the main purpose of 3drefit is to fix up errors made when
     using to3d.
@@ -20,8 +25,15 @@
     20 Jun 2006: 3drefit will now work on NIfTI datasets (but it will write
                  out the entire dataset, into the current working directory)
     
-    Usage: 3drefit [options] dataset ...
+
+Usage: 3drefit [options] dataset ...
+====================================
+
+.. code-block:: none
+
     where the options are
+      -quiet          Turn off the verbose progress messages
+    
       -orient code    Sets the orientation of the 3D volume(s) in the .BRIK.
                       The code must be 3 letters, one each from the
                       pairs {R,L} {A,P} {I,S}.  The first letter gives
@@ -80,12 +92,55 @@
       -TR time        Changes the TR time to a new value (see 'to3d -help').
                    ** You can also put the name of a dataset in for 'time', in
                       which case the TR for that dataset will be used.
+                   ** N.B.: If the dataset has slice time offsets, these will
+                      be scaled by the factor newTR/oldTR. This scaling does not
+                      apply if you use '-Tslices' in the same 3drefit run.
       -notoff         Removes the slice-dependent time-offsets.
       -Torg ttt       Set the time origin of the dataset to value 'ttt'.
                       (Time origins are set to 0 in to3d.)
                    ** WARNING: These 3 options apply only to 3D+time datasets.
                        **N.B.: Using '-TR' on a dataset without a time axis
                                will add a time axis to the dataset.
+    
+      -Tslices a b c d ...
+                      Reset the slice time offsets to be 'a', 'b', 'c', ...
+                      (in seconds). The number of values following '-Tslices'
+                      should be the same as the number of slices in the dataset,
+                      but 3drefit does NOT check that this is true.
+                   ** If any offset time is < 0 or >= TR, a warning will be
+                      printed (to stderr), but this is not illegal even though
+                      it is a bad idea.
+                   ** If the dataset does not have a TR set, then '-Tslices'
+                      will fail. You can use '-TR' to set the inter-volume time
+                      spacing in the same 3drefit command.
+                   ** If you have the slices times stored (e.g., from DICOM) in
+                      some other units, you can scale them to be in seconds by
+                      putting a scale factor after the '-Tslices' option as follows:
+                        -Tslices '*0.001' 300 600 900 ...
+                      which would be used to scale from milliseconds to seconds.
+                      The format is to start the scale factor with a '*' to tell
+                      3drefit that this number is not a slice offset but is to be
+                      used a a scale factor for the rest of the following values.
+                      Since '*' is a filename wildcard, it needs to be in quotes!
+                   ** The program stops looking for number values after '-Tslices'
+                      when it runs into something that does not look like a number.
+                      Here, 'look like a number' means a character string that:
+                        * starts with a digit 0..9
+                        * starts with a decimal point '.' followed by a digit
+                        * starts with a minus sign '-' followed by a digit
+                        * starts with '-.' followed by a digit
+                      So if the input dataset name starts with a digit, and the
+                      last command line option '-Tslices', 3drefit will think
+                      the filename is actually a number for a slice offset time.
+                      To avoid this problem, you can do one of these things:
+                        * Put in an option that is just the single character '-'
+                        * Don't use '-Tslices' as the last option
+                        * Put a directory name before the dataset name, as in
+                          './Galacticon.nii'
+                    ** If you have the slice time offsets stored in a text file
+                       as a list of values, then you can input these values on
+                       the command line using the Unix backquote operator, as in
+                         -Tslices `cat SliceTimes.1D`
     
       -newid          Changes the ID code of this dataset as well.
     
@@ -305,8 +360,13 @@
       -sublabel_prefix PP: Prefix each sub-brick's label with PP
       -sublabel_suffix SS: Suffix each sub-brick's label with SS
     
-    The options below allow you to attach auxiliary data to sub-bricks
-    in the dataset.  Each option may be used more than once so that
+
+The options below attach auxiliary data to sub-bricks in the dataset.
+=====================================================================
+
+.. code-block:: none
+
+    Each option may be used more than once so that
     multiple sub-bricks can be modified in a single run of 3drefit.
     
       -sublabel  n ll  Attach to sub-brick #n the label string 'll'.
@@ -318,6 +378,12 @@
                       Attach to sub-brick #n the statistical type and
                       the auxiliary parameters given by values 'v ...',
                       where 'type' is one of the following:
+
+Stat Types:
++++++++++++
+
+.. code-block:: none
+
              type  Description  PARAMETERS
              ----  -----------  ----------------------------------------
              fico  Cor          SAMPLES  FIT-PARAMETERS  ORT-PARAMETERS
@@ -337,7 +403,12 @@
      [combine these options to completely redo the sub-bricks, if needed.]
      [Option '-unSTAT' also implies that '-unFDR' will be carried out.   ]
     
-    The following options allow you to modify VOLREG fields:
+
+The following options allow you to modify VOLREG fields:
+========================================================
+
+.. code-block:: none
+
       -vr_mat val1 ... val12  Use these twelve values for VOLREG_MATVEC_index.
       -vr_mat_ind index       Index of VOLREG_MATVEC_index field to be modified.
                               Optional, default index is 0.
@@ -346,7 +417,12 @@
       -vr_center_base x y z   Use these 3 values for VOLREG_CENTER_BASE.
     
     
-    The following options let you modify the FDR curves stored in the header:
+
+The following options let you modify the FDR curves stored in the header:
+=========================================================================
+
+.. code-block:: none
+
     
      -addFDR = For each sub-brick marked with a statistical code, (re)compute
                the FDR curve of z(q) vs. statistic, and store in the dataset header
@@ -370,4 +446,4 @@
     
     ++ Last program update: 27 Mar 2009
     
-    ++ Compile date = Nov  9 2017 {AFNI_17.3.03:macosx_10.7_local}
+    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}

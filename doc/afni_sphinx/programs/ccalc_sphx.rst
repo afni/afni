@@ -7,6 +7,8 @@ ccalc
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Usage: ccalc [-form FORM] [-eval 'expr']

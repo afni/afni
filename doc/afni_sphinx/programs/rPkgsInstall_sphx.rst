@@ -7,6 +7,8 @@ rPkgsInstall
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     
@@ -29,14 +31,14 @@ rPkgsInstall
     Example 1 --- Install all the R packages that are currently required in 
     AFNI programs:
        rPkgsInstall -pkgs ALL
-       rPkgsInstall -pkgs ALL -site 'http://cran.case.edu/'
+       rPkgsInstall -pkgs ALL -site 'http://cran.us.r-project.org'
     
     
     --------------------------------
     Example 2 --- Install user-specified R packages:
        rPkgsInstall -pkgs 'gsl'
        rPkgsInstall -pkgs 'afex,phia,paran'
-       rPkgsInstall -pkgs 'snow,nlme,psych' -site 'http://cran.revolutionanalytics.com'
+       rPkgsInstall -pkgs 'snow,nlme,psych' -site 'http://cran.us.r-project.org'
     
     
     --------------------------------
@@ -85,7 +87,7 @@ rPkgsInstall
     
             http://cran.r-project.org/mirrors.html
     
-            The default is 'http://cran.mtu.edu/' at Michigan Technological
+            The default is 'http://cran.us.r-project.org'
             University, Houghton, MI.
     
        -update: This option indicates that all or the user-specified R packages in AFNI

@@ -7,6 +7,8 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Usage: 3dTstat [options] dataset
@@ -161,4 +163,4 @@
     option, then the output will be written into a NIML-formatted 1D
     dataset, which you might find slightly confusing (but still usable).
     
-    ++ Compile date = Nov  9 2017 {AFNI_17.3.03:macosx_10.7_local}
+    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}

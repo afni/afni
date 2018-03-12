@@ -7,6 +7,8 @@ quickspec
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     
@@ -69,7 +71,7 @@ quickspec
     
     
     Compile Date:
-       Nov  9 2017
+       Jan 29 2018
     
           Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov 
     		 Tue Dec 30

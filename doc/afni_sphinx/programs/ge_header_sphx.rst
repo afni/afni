@@ -7,6 +7,8 @@ ge_header
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Usage: ge_header [-verb] file ...

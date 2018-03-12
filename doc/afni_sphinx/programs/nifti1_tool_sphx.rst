@@ -7,6 +7,8 @@ nifti1_tool
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     nifti_tool
@@ -773,5 +775,5 @@ nifti1_tool
       ------------------------------
     
       R. Reynolds
-      compiled: Nov  9 2017
+      compiled: Jan 29 2018
       version 1.24 (September 26, 2012)

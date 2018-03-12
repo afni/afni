@@ -160,7 +160,7 @@ body <-  dashboardBody(
     tabPanel(
       'GLTs',icon=icon("snowflake-o"),br(),
       fluidRow(
-        box(width=12,title='Current model:',
+        box(width=12,title='Current model: (if you change the model, all GLTs will be erased!)',
             textOutput('glt_cur_mod') )
       ),
       fluidRow(

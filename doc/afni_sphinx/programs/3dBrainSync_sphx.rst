@@ -7,6 +7,8 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     
@@ -279,4 +281,4 @@
     * Thanks go to Anand Joshi for his clear exposition of BrainSync at OHBM 2017,
       and his encouragement about the development of this program.
     
-    ++ Compile date = Nov  9 2017 {AFNI_17.3.03:macosx_10.7_local}
+    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}

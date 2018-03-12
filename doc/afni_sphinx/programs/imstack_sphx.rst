@@ -7,6 +7,8 @@ imstack
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Usage: imstack [options] image_filenames ...

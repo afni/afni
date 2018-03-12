@@ -7,6 +7,8 @@ plugout_drive
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     
@@ -104,7 +106,7 @@ plugout_drive
                be sure the PORT_OFFSETS you use differ by about 50 or you may
                still have port conflicts. A BETTER approach is to use -npb below.
        -npq PORT_OFFSET: Like -np, but more quiet in the face of adversity.
-       -npb PORT_OFFSET_BLOC: Simliar to -np, except it is easier to use.
+       -npb PORT_OFFSET_BLOC: Similar to -np, except it is easier to use.
                               PORT_OFFSET_BLOC is an integer between 0 and
                               MAX_BLOC. MAX_BLOC is around 4000 for now, but
                               it might decrease as we use up more ports in AFNI.

@@ -7,6 +7,8 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     
@@ -187,4 +189,4 @@
        your C compiler, and (if needed) consult the AFNI message board, and
        https://afni.nimh.nih.gov/pub/dist/doc/misc/OpenMP.html
     
-    ++ Compile date = Nov  9 2017 {AFNI_17.3.03:macosx_10.7_local}
+    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}

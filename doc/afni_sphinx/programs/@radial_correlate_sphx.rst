@@ -7,6 +7,8 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     -----------------------------------------------------------------
@@ -59,8 +61,8 @@
             - increase the minimum cluster size (frac of mask) to 0.05
             - decrease the correlation sphere radius (from 20 mm) to 10 mm
     
-              @radial_correlate -do_clust yes                   \\
-                  -cthresh 0.7 -frac_limit 0.05 -sphere_rad 10  \\
+              @radial_correlate -do_clust yes                   \
+                  -cthresh 0.7 -frac_limit 0.05 -sphere_rad 10  \
                   pb00.FT.*.HEAD
     
     -----------------------------------------------------------------

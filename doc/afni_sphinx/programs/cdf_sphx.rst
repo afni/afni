@@ -7,6 +7,8 @@ cdf
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Usage 1: cdf [-v] -t2p statname t params

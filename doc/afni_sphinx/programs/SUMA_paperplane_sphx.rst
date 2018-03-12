@@ -7,6 +7,8 @@ SUMA_paperplane
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     A simple openGL test program using motif widgets.

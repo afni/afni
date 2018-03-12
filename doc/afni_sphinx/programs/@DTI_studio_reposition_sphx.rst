@@ -7,6 +7,8 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     @DTI_studio_reposition <DTI_Studio_volume> <AFNI_reference_volume>

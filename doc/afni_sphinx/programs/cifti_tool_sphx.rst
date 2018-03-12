@@ -7,6 +7,8 @@ cifti_tool
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     ct : short example of reading/writing CIFTI-2 datasets

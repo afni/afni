@@ -580,12 +580,23 @@ g_history = """
     6.00 Nov  7, 2017: python3 compatible
     6.01 Nov 15, 2017: fixed -despike_mask (by D Plunkett)
     6.02 Dec 12, 2017: added "sample analysis script" to help
+    6.03 Feb 12, 2018: can process multi-echo data
+        - added -dsets_me_echo/_run and 'combine' processing block
+        - this is a preliminary step, before running OC and ME-ICA
+    6.04 Feb 16, 2018: compute epi_anat mask, intersecting the two
+        - added -mask_epi_anat, to apply that in place of full_mask
+    6.05 Feb 23, 2018: added OC combine method
+    6.06 Feb 26, 2018: added -help_section option
+    6.07 Feb 27, 2018: added help for a few option
+                       (some old, some new, some red, some blue)
+    6.08 Mar  1, 2018: added OC_methods OC_A and OC_B
 """
 
-g_version = "version 6.02, December 12, 2017"
+g_version = "version 6.08, March 1, 2018"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
+      [ "23 Feb 2018",  "@compute_OC_weights -echo_times" ],
       [ "23 Sep 2016",  "1d_tool.py -select_runs" ],
       [  "1 Dec 2015",  "3dClustSim -ACF" ],
       [ "28 Oct 2015",  "3ddot -dodice" ],
@@ -594,6 +605,18 @@ g_requires_afni = [ \
       [  "1 Apr 2015",  "1d_tool.py uncensor from 1D" ] ]
 
 g_todo_str = """todo:
+  - ME:
+     - ** write AP regression tests
+     x do 'apply catenated xform'
+     x compare OC inputs with those from Lauren
+     - test only vreg, w/anat, aff std space, NL, blip
+     - test all blocks: despike, tshift, blur, mask, scale
+     - test radial_correlate
+     x implement for despike, tshift, blur, scale, mask (fave)
+     - implement for ricor
+     - implement case for volreg (without align or tlrc)
+        - sooo, initial 3dvolreg output will be changed to garbage?
+     x after OC/MEICA, clear use_me
   - be able to run simple forms of @Align_Centers
   - implement multi-echo OC and possibly meica functionality
   - improve on distortion correction via gentle NL alignment with anat
@@ -627,14 +650,14 @@ g_todo_str = """todo:
 # dictionary of block types and modification functions
 
 BlockLabels  = ['tcat', 'postdata', 'despike', 'ricor', 'tshift', 'blip',
-                'align', 'volreg', 'motsim', 'surf', 'blur', 'mask', 'scale',
-                'regress', 'tlrc', 'empty']
+                'align', 'volreg', 'combine', 'motsim', 'surf', 'blur',
+                'mask', 'scale', 'regress', 'tlrc', 'empty']
 BlockModFunc  = {'tcat'   : db_mod_tcat,     'postdata' : db_mod_postdata,
                  'despike': db_mod_despike,
                  'ricor'  : db_mod_ricor,    'tshift' : db_mod_tshift,
                  'blip'   : db_mod_blip,
                  'align'  : db_mod_align,    'volreg' : db_mod_volreg,
-                 'motsim' : db_mod_motsim,
+                 'combine': db_mod_combine,  'motsim' : db_mod_motsim,
                  'surf'   : db_mod_surf,     'blur'   : db_mod_blur,
                  'mask'   : db_mod_mask,     'scale'  : db_mod_scale,
                  'regress': db_mod_regress,  'tlrc'   : db_mod_tlrc,
@@ -644,7 +667,7 @@ BlockCmdFunc  = {'tcat'   : db_cmd_tcat,     'postdata' : db_cmd_postdata,
                  'ricor'  : db_cmd_ricor,    'tshift' : db_cmd_tshift,
                  'blip'   : db_cmd_blip,
                  'align'  : db_cmd_align,    'volreg' : db_cmd_volreg,
-                 'motsim' : db_cmd_motsim,
+                 'combine': db_cmd_combine,  'motsim' : db_cmd_motsim,
                  'surf'   : db_cmd_surf,     'blur'   : db_cmd_blur,
                  'mask'   : db_cmd_mask,     'scale'  : db_cmd_scale,
                  'regress': db_cmd_regress,  'tlrc'   : db_cmd_tlrc,
@@ -654,7 +677,7 @@ AllOptionStyles = ['cmd', 'file', 'gui', 'sdir']
 # default block labels, and other labels (along with the label they follow)
 DefLabels = ['tcat', 'tshift', 'volreg', 'blur', 'mask', 'scale', 'regress']
 OtherDefLabels = {'despike':'postdata', 'align':'postdata', 'ricor':'despike',
-                  'surf':'volreg'}
+                  'combine':'volreg', 'surf':'volreg'}
 OtherLabels    = ['empty']
 DefSurfLabs    = ['tcat','tshift','align','volreg','surf','blur',
                   'scale','regress']
@@ -679,12 +702,25 @@ class SubjProcSream:
 
         self.blocks     = []            # list of ProcessBlock elements
         self.dsets      = []            # list of afni_name elements
+
         self.check_rdir = 'yes'         # check for existence of results dir
         self.stims_orig = []            # orig list of stim files to apply
         self.stims      = []            # list of stim files to apply
         self.extra_stims_orig = []      # orig list of extra_stims
         self.extra_stims      = []      # extra -stim_file list
         self.extra_labs       = []      # labels for extra -stim_file list
+
+        # multi-echo vars
+        self.dsets_me   = []            # afni_name dsets, echoes x runs
+                                        # (dsets = dsets_me[fave_echo])
+        self.echo_times = []            # list of echo times
+        self.num_echo   = 1             # applies regardless of have_me
+        self.have_me    = 0             # do we have multi-echo data
+        self.use_me     = 0             # use ME in current command (changes)
+                                        # (clear this after any OC/MEICA step)
+        self.reg_echo   = 0             # 1-based, echo to use for registration 
+        self.echo_var   = '$eind'       # general echo var (e.g. '$eind')
+        self.regecho_var= ''            # var for reg_echo (e.g. '$fave_echo')
 
         # blip variables
         self.blip_in_for  = None        # afni_name: input: forward blip
@@ -806,6 +842,7 @@ class SubjProcSream:
         self.scaled     = -1            # if shorts, are they scaled?
         self.mask       = None          # mask dataset: one of the following
         self.mask_epi   = None          # mask dataset (from EPI)
+        self.mask_epi_anat = None       # mask dataset (EPI anat intersection)
         self.mask_anat  = None          # mask dataset (from subject anat)
         self.mask_group = None          # mask dataset (from tlrc base)
         self.mask_extents = None        # mask dataset (of EPI extents)
@@ -893,6 +930,8 @@ class SubjProcSream:
         # terminal options
         self.valid_opts.add_opt('-help', 0, [],
                         helpstr="show this help")
+        self.valid_opts.add_opt('-help_section', 1, [],
+                        helpstr="show help from the given section")
         self.valid_opts.add_opt('-hist', 0, [],
                         helpstr="show revision history")
         self.valid_opts.add_opt('-requires_afni_version', 0, [],
@@ -913,6 +952,10 @@ class SubjProcSream:
                         helpstr='add extra blocks to the default list')
         self.valid_opts.add_opt('-dsets', -1, [], okdash=0,
                         helpstr='EPI datasets to process, ordered by run')
+        self.valid_opts.add_opt('-dsets_me_echo', -1, [], okdash=0,
+                        helpstr='one echo, many runs of multi-echo data')
+        self.valid_opts.add_opt('-dsets_me_run', -1, [], okdash=0,
+                        helpstr='one run, many echoes of multi-echo data')
 
         self.valid_opts.add_opt('-out_dir', 1, [],
                         helpstr='result directory, where script is run')
@@ -961,6 +1004,8 @@ class SubjProcSream:
                         helpstr='anatomy to copy to results directory')
         self.valid_opts.add_opt('-copy_files', -1, [], okdash=0,
                         helpstr='list of files to copy to results directory')
+        self.valid_opts.add_opt('-echo_times', -1, [],
+                        helpstr='list of echo times, one per echo')
         self.valid_opts.add_opt('-execute', 0, [],
                         helpstr='execute script as suggested to user')
         self.valid_opts.add_opt('-exit_on_error', 1, [],
@@ -988,6 +1033,8 @@ class SubjProcSream:
         self.valid_opts.add_opt('-radial_correlate', 1, [],
                         acplist=['yes','no'],
                         helpstr="compute correlations with spherical averages")
+        self.valid_opts.add_opt('-reg_echo', 1, [],
+                        helpstr='specify echo to use for registration')
         self.valid_opts.add_opt('-remove_preproc_files', 0, [],
                         helpstr='remove pb0* preprocessing files')
         self.valid_opts.add_opt('-test_for_dsets', 1, [],
@@ -1129,6 +1176,10 @@ class SubjProcSream:
         self.valid_opts.add_opt('-volreg_zpad', 1, [],
                         helpstr='number of slices to pad by in volreg')
 
+        self.valid_opts.add_opt('-combine_method', 1, [],
+                        acplist=['mean','OC', 'OC_A', 'OC_B'],
+                        helpstr='specify method for combining echoes per run')
+
         self.valid_opts.add_opt('-blur_filter', 1, [],
                         helpstr='blurring filter option (def: -1blur_fwhm)')
         self.valid_opts.add_opt('-blur_in_mask', 1, [],
@@ -1152,6 +1203,9 @@ class SubjProcSream:
                         helpstr="select mask to apply in regression")
         self.valid_opts.add_opt('-mask_dilate', 1, [],
                         helpstr="dilation to be applied in automask")
+        self.valid_opts.add_opt('-mask_epi_anat', 1, [],
+                        acplist=['yes','no'],
+                        helpstr='use epi_anat rather than EPI mask (yes/no)')
         self.valid_opts.add_opt('-mask_import', 2, [],
                         helpstr="import mask as given label (label/mset)")
         self.valid_opts.add_opt('-mask_intersect', 3, [],
@@ -1368,7 +1422,7 @@ class SubjProcSream:
         self.user_opts = read_options(self.argv, self.valid_opts)
         if self.user_opts == None: return 1     # error condition
         if len(self.user_opts.olist) == 0:      # no options: apply -help
-            print(g_help_string)
+            show_program_help()
             return 0
         if self.user_opts.trailers:
             opt = self.user_opts.find_opt('trailers')
@@ -1399,7 +1453,12 @@ class SubjProcSream:
         if opt != None: self.verb = int(opt.parlist[0])
 
         if opt_list.find_opt('-help'):     # just print help
-            print(g_help_string)
+            show_program_help()
+            return 0  # gentle termination
+        
+        if opt_list.find_opt('-help_section'):     # just print help
+            section, rv = opt_list.get_string_opt('-help_section')
+            show_program_help(section=section)
             return 0  # gentle termination
         
         if opt_list.find_opt('-hist'):     # print the history
@@ -1523,42 +1582,214 @@ class SubjProcSream:
         if not opt or opt_is_yes(opt): self.test_stims = 1
         else:                          self.test_stims = 0
 
+    def _have_me(self):
+       """return 1 if we have multi-echo data, else 0"""
+       if len(self.dsets_me)    == 0: return 0
+       if len(self.dsets_me[0]) == 0: return 0
+       if self.reg_echo == 0:         return 0
+       if self.num_echo  < 2:         return 0
+
+       return 1
+
+    def get_dsets(self):
+        """get list of datasets
+        
+           if -dsets,         there should be one list of runs
+                              (populate self.dsets)
+           if -dsets_me_echo, there should be one option list of runs per echo
+                              (populate self.dsets_me, and other fields)
+           if -dsets_me_run,  there should be one option list of echoes per run
+                              (populate self.dsets_me, and other fields)
+
+           populate:
+             self.dsets       all, or of favorite echo
+             self.dsets_me    in echo-major order (dsets = dsets_me[fave])
+             self.num_echo
+             self.have_me, use_me
+
+           test:
+             some -dsets* option
+             dataset existence (if self.test_dsets)
+             rectangular list
+
+           return 0 on success, >0 on error
+        """
+
+        o0 = self.user_opts.find_opt('-dsets')
+        o1 = self.user_opts.find_opt('-dsets_me_echo')
+        o2 = self.user_opts.find_opt('-dsets_me_run')
+
+        errs = 0
+
+        # simple form: just populate (and check for other forms)
+        if o0:
+           if o1 or o2:
+              print("** cannot use -dsets_me_* with -dsets")
+              return 1
+           self.dsets = []
+           for rind, dset in enumerate(o0.parlist):
+              aname = afni_name(dset)
+              self.dsets.append(aname)
+              if self.test_dsets and not aname.exist():
+                 print("** missing run %d dataset: %s"%(rind+1, dset))
+                 errs += 1
+           return errs
+           
+        # now there should be some ME option
+
+        if o1 and o2:
+           print("** cannot use both -dsets_me_echo and -dsets_me_run")
+           return 1
+
+        if not o1 and not o2:
+           print("** missing input: some -dsets* option is required")
+           return 1
+
+        # okay, we have an ME condition
+
+        # populate dme as rectangular echo-major list of datasets
+        # (save tests for later, except to make sure it is rectangular)
+        dme = []
+
+        if o1:
+           oname = '-dsets_me_echo'
+           olist = self.user_opts.find_all_opts(oname)
+           nruns = len(olist[0].parlist)
+           for eind, opt in enumerate(olist):
+              nr = len(opt.parlist)
+              if nr != nruns:
+                 print("** echo 1 has %d runs, but echo %d has %d runs" \
+                       % (nruns, eind+1, nr))
+                 errs += 1
+
+              dsets = []
+              for rind, dset in enumerate(opt.parlist):
+                 dsets.append(afni_name(dset))
+              if len(dsets) == 0:
+                 print("** have echo %d option %s without any dataset list" \
+                       % (eind, oname))
+                 errs += 1
+
+              # and populate dme array, per echo, for now
+              dme.append(dsets)
+
+           # already echo-major order, no need to transpose
+
+        if o2:
+           # input is run-major order, will conver to echo-major at end
+           oname = '-dsets_me_run'
+           olist = self.user_opts.find_all_opts(oname)
+           necho = len(olist[0].parlist)
+           for rind, opt in enumerate(olist):
+              ne = len(opt.parlist)
+              if ne != necho:
+                 print("** run 1 has %d echoes, but run %d has %d echoes" \
+                       % (necho, rind+1, ne))
+                 errs += 1
+
+              dsets = []
+              for eind, dset in enumerate(opt.parlist):
+                 dsets.append(afni_name(dset))
+              if len(dsets) == 0:
+                 print("** have run %d option %s without any dataset list" \
+                       % (rind, oname))
+                 errs += 1
+
+              # and populate dme array, per echo, for now
+              dme.append(dsets)
+
+           # cannot transpose if not rectangular (errs > 0)
+           if errs: return 1
+
+           # now convert dme from run major order to echo major order
+           nruns = len(dme)
+           rlist = [[dme[rind][eind] for rind in range(nruns)] \
+                                     for eind in range(necho) ]
+           dme = rlist
+
+        # now check for existence
+        if self.test_dsets:
+           for eind, elist in enumerate(dme):
+              for rind, dset in enumerate(elist):
+                 if not dset.exist():
+                    print('** missing run %d echo %d dataset: %s' \
+                          % (rind+1, eind+1, dset.rpv()))
+                    errs += 1
+
+        # populate everything
+        self.dsets_me = dme
+        self.dsets = self.dsets_me[0]
+        self.have_me = 1
+        self.use_me = self.have_me
+        self.num_echo = len(dme)
+
+        # return the status
+        return errs
+
+    def init_dsets(self):
+        """process -dsets or -dsets_me* options
+
+           return 0 on success, 1 on error
+        """
+
+        # process any -dsets* option
+        # (populate self.dsets, self.dsets_me, self.num_echo, self.have_me)
+        if self.get_dsets(): return 1
+
+        # if ME, then fill reg_echo via -reg_echo (registration echo)
+        # also, try to get echo times
+        if self.have_me:
+           oname = '-reg_echo'
+           self.reg_echo = 2
+           self.regecho_var = '$fave_echo'
+           val, err = self.user_opts.get_type_opt(int, oname)
+           if err: errs += 1
+           if val != None:
+              self.reg_echo = val
+
+           if self.reg_echo < 1 or self.reg_echo > self.num_echo:
+              print("** %s: registration echo must be between 1 and %d" \
+                    % (oname, self.num_echo))
+              return 1
+
+           oname = '-echo_times'
+           elist, err = self.user_opts.get_type_list(float, oname)
+           if not err and elist != None:
+              self.echo_times = elist
+              if len(elist) != self.num_echo:
+                 errs += 1
+                 print("** have %d echoes, but %d echo times" \
+                       % (self.num_echo, len(elist)))
+
+        # set view and dimensions based on dsets
+
+        # init view
+        view = self.dsets[0].view
+        if view and view != self.view:
+           self.view = view
+           self.origview = view
+           if self.verb > 0: print('-- applying view as %s' % view)
+        elif not view:
+           view = dset_view(self.dsets[0].rel_input())
+           self.view = view
+           self.origview = view
+           if self.verb > 0: print('-- applying input view as %s' % view)
+
+
+        # get voxel dimensions
+        dims = UTIL.get_3dinfo_val_list(self.dsets[0].rel_input(),
+                                        'd3', float, verb=1)
+        if dims == None: return 1
+        self.orig_delta = dims
+        self.delta = dims
+
+        return 0
 
     # init blocks from command line options, then check for an
     # alternate source       rcr - will we use 'file' as source?
     def create_blocks(self):
         # first, note datasets
-        opt = self.user_opts.find_opt('-dsets')
-        if opt != None:
-            for dset in opt.parlist:
-                self.dsets.append(afni_name(dset))
-
-            # possibly verify that all of the input datasets exist
-            if self.test_dsets:
-                missing = 0
-                for dset in self.dsets:
-                    if not dset.exist():
-                        print('** missing dataset: %s' % dset.rpv())
-                        missing = 1
-                if missing: return 1
-
-            # and check for EPI view
-            if self.dsets[0].view and self.dsets[0].view != self.view:
-                self.view = self.dsets[0].view
-                self.origview = self.view
-                if self.verb > 0: print('-- applying view as %s' % self.view)
-            elif self.dsets[0].view == '':
-                view = dset_view(self.dsets[0].ppve())
-                self.view = view
-                self.origview = self.view
-                if self.verb>0: print('-- applying orig view as %s' % self.view)
-
-            # get voxel dimensions
-            dims = UTIL.get_3dinfo_val_list(self.dsets[0].rel_input(),
-                                            'd3', float, verb=1)
-            if dims == None: return 1
-            self.orig_delta = dims
-            self.delta = dims
+        if self.init_dsets(): return 1
 
         # next, check for -surf_anat, which defines whether to do volume
         # or surface analysis
@@ -1950,6 +2181,20 @@ class SubjProcSream:
                 print('** TR of %g != run #1 TR %g' % (tr, self.tr))
                 return 1
 
+        # check for consistency
+        if self.have_me:
+           for eind, esets in enumerate(self.dsets_me):
+               for rind, dset in enumerate(esets):
+                  err, reps, tr = get_dset_reps_tr(dset.rpve(), verb=self.verb)
+                  if err: return 1
+                  if reps != self.reps_all[rind]:
+                     print("run %d reps vary between echo 1 and echo %d" \
+                           (rind+1, eind+1))
+                     return 1
+                  if tr != self.tr:
+                      print('** TR of %g != run 1 echo 1 TR %g'%(tr, self.tr))
+                      return 1
+
         # note data type and whether data is scaled
         err, vlist = get_typed_dset_attr_list(dset, "BRICK_TYPES", int, verb=0)
         if not err and len(vlist) >= 1:
@@ -2250,6 +2495,18 @@ class SubjProcSream:
         self.write_text('set runs = (`count -digits %d 1 %d`)\n\n' \
                         % (digs,self.runs) )
 
+        if self.have_me:
+           self.write_text('# note %d echoes and registration echo index\n' \
+                           % self.num_echo)
+           self.write_text('set echo_list = (`count -digits 2 1 %d`)\n' \
+                           % self.num_echo)
+           if len(self.echo_times) > 0:
+              etimes = ['%s' % et for et in self.echo_times]
+              self.write_text('set echo_times = ( %s )\n' % ' '.join(etimes))
+           # self.regecho_var starts with '$', so strip it when assigning
+           self.write_text("set %s = '%02d'\n\n" \
+                            % (self.regecho_var[1:], self.reg_echo))
+
         self.write_text('# create results and stimuli directories\n')
         self.write_text('mkdir %s\nmkdir %s/stimuli\n%s\n' \
                         % (self.od_var, self.od_var, stat_inc))
@@ -2294,7 +2551,7 @@ class SubjProcSream:
             self.write_text("%s\n" % stat_inc)
 
             # further use should assume AFNI format
-            self.anat.to_afni(new_view=dset_view(self.anat.ppve()))
+            self.anat.to_afni(new_view=dset_view(self.anat.rel_input()))
             self.tlrcanat.to_afni()
             self.anat_final = self.anat
 
@@ -2989,78 +3246,152 @@ class SubjProcSream:
     # given a block, run, return a prefix of the form: pNN.SUBJ.rMM.BLABEL
     #    NN = block index, SUBJ = subj label, MM = run, BLABEL = block label
     # if surf_names: pbNN.SUBJ.rMM.BLABEL.HEMI.niml.dset
+    # if echo index eind  >  0,  use ...SUBJ.eEE.rRR...
+    #               eind == -1,  use .e$fave_echo
+    #               eind == -2,  use .e*          (wildcard)
+    #               eind == -9,  use ''           (nothing)
+    #    (else)     eind ==  0,  use .e$eind
     # (pass as 0/1, -1 for default)
-    def prefix_form(self, block, run, view=0, surf_names=-1):
+    def prefix_form(self, block, run, view=0, surf_names=-1, eind=0):
         if self.runs > 99: rstr = 'r%03d' % run
         else:              rstr = 'r%02d' % run
-        if view: vstr = self.view
+
+        # maybe we have an echo index
+        sstr = '' # if going wild (and not surf), need .HEAD suffix
+        estr = ''
+        if self.use_me:
+           if eind > 0:     estr = '%se%02d' % (self.sep_char, eind)
+           elif eind == -1: estr = '%se%s' % (self.sep_char, self.regecho_var)
+           elif eind == -2:
+                            sstr = '.HEAD'
+                            estr = '%se*'  % (self.sep_char)
+           elif eind == -9: estr = ''
+           else:            estr = '%se%s' % (self.sep_char, self.echo_var)
+
+        if view: vstr = '%s%s' % (self.view, sstr)
         else:    vstr = ''
+
         # if surface, change view to hemisphere and dataset suffix
         if surf_names == -1: surf_names = self.surf_names
         if surf_names:
            vstr = '.niml.dset'
            hstr = '%s%s' % (self.sep_char, self.surf_svi_ref)
+           sstr = '' # force no suffix
         else: hstr = ''
+
         s = self.sep_char
-        return 'pb%02d%s%s%s%s%s%s%s%s' %    \
-               (block.index, s, self.subj_label, hstr, s, rstr, s,
+        return 'pb%02d%s%s%s%s%s%s%s%s%s' %    \
+               (block.index, s, self.subj_label, hstr, s, rstr, estr, s,
                 block.label, vstr)
 
     # same, but leave run as a variable
-    def prefix_form_run(self, block, view=0, surf_names=-1):
-        if view: vstr = self.view
+    def prefix_form_run(self, block, view=0, surf_names=-1, eind=0):
+
+        # maybe we have an echo index
+        sstr = '' # if going wild (and not surf), need .HEAD suffix
+        estr = ''
+        if self.use_me:
+           if eind > 0:     estr = '%se%02d' % (self.sep_char, eind)
+           elif eind == -1: estr = '%se%s' % (self.sep_char, self.regecho_var)
+           elif eind == -2:
+                            sstr = '.HEAD'
+                            estr = '%se*'  % (self.sep_char)
+           elif eind == -9: estr = ''
+           else:            estr = '%se%s' % (self.sep_char, self.echo_var)
+
+        if view: vstr = '%s%s' % (self.view, sstr)
         else:    vstr = ''
+
         # if surface, change view to hemisphere and dataset suffix
         if surf_names == -1: surf_names = self.surf_names
         if surf_names:
            vstr = '.niml.dset'
            hstr = '%s%s' % (self.sep_char, self.surf_svi_ref)
+           sstr = '' # force no suffix
         else: hstr = ''
         if self.sep_char == '.': rvstr = '$run'
         else:                    rvstr = '${run}'
         s = self.sep_char
-        return 'pb%02d%s%s%s%sr%s%s%s%s' %    \
-            (block.index, s, self.subj_label, hstr, s, rvstr, s,
+        return 'pb%02d%s%s%s%sr%s%s%s%s%s' %    \
+            (block.index, s, self.subj_label, hstr, s, rvstr, estr, s,
              block.label, vstr)
 
     # same as prefix_form, but use previous block values (index and label)
     # (so we don't need the block)
     # if self.surf_names: pbNN.SUBJ.rMM.BLABEL.HEMI.niml.dset
-    def prev_prefix_form(self, run, block, view=0, surf_names=-1):
+    def prev_prefix_form(self, run, block, view=0, surf_names=-1, eind=0):
         if self.runs > 99: rstr = 'r%03d' % run
         else:              rstr = 'r%02d' % run
-        if view: vstr = self.view
+
+        # maybe we have an echo index
+        sstr = '' # if going wild (and not surf), need .HEAD suffix
+        estr = ''
+        if self.use_me:
+           if eind > 0:     estr = '%se%02d' % (self.sep_char, eind)
+           elif eind == -1: estr = '%se%s' % (self.sep_char, self.regecho_var)
+           elif eind == -2:
+                            sstr = '.HEAD'
+                            estr = '%se*'  % (self.sep_char)
+           elif eind == -9: estr = ''
+           else:            estr = '%se%s' % (self.sep_char, self.echo_var)
+
+        if view: vstr = '%s%s' % (self.view, sstr)
         else:    vstr = ''
+
         # if surface, change view to hemisphere and dataset suffix
         if surf_names == -1: surf_names = self.surf_names
         if surf_names:
            vstr = '.niml.dset'
            hstr = '%s%s' % (self.sep_char, self.surf_svi_ref)
+           sstr = '' # force no suffix
         else: hstr = ''
         s = self.sep_char
-        return 'pb%02d%s%s%s%s%s%s%s%s' %    \
-               (block.index-1, s, self.subj_label, hstr, s, rstr, s,
+        return 'pb%02d%s%s%s%s%s%s%s%s%s' %    \
+               (block.index-1, s, self.subj_label, hstr, s, rstr, estr, s,
                self.prev_lab(block), vstr)
 
     # same, but leave run as a variable
-    def prev_prefix_form_run(self, block, view=0, surf_names=-1):
-        if view: vstr = self.view
+    def prev_prefix_form_run(self, block, view=0, surf_names=-1, eind=0):
+        # maybe we have an echo index
+        sstr = '' # if going wild (and not surf), need .HEAD suffix
+        estr = ''
+        if self.use_me:
+           if eind > 0:     estr = '%se%02d' % (self.sep_char, eind)
+           elif eind == -1: estr = '%se%s' % (self.sep_char, self.regecho_var)
+           elif eind == -2:
+                            sstr = '.HEAD'
+                            estr = '%se*'  % (self.sep_char)
+           elif eind == -9: estr = ''
+           else:            estr = '%se%s' % (self.sep_char, self.echo_var)
+
+        if view: vstr = '%s%s' % (self.view, sstr)
         else:    vstr = ''
+
         # if surface, change view to hemisphere and dataset suffix
         if surf_names == -1: surf_names = self.surf_names
         if surf_names:
            vstr = '.niml.dset'
            hstr = '%s%s' % (self.sep_char, self.surf_svi_ref)
+           sstr = '' # force no suffix
         else: hstr = ''
         if self.sep_char == '.': rvstr = '$run'
         else:                    rvstr = '${run}'
         s = self.sep_char
-        return 'pb%02d%s%s%s%sr%s%s%s%s' %    \
-               (block.index-1, s, self.subj_label, hstr, s, rvstr, s,
+        return 'pb%02d%s%s%s%sr%s%s%s%s%s' %    \
+               (block.index-1, s, self.subj_label, hstr, s, rvstr, estr, s,
                self.prev_lab(block), vstr)
 
     # same, but leave run wild
-    def prev_dset_form_wild(self, block, view=0, surf_names=-1):
+    def prev_dset_form_wild(self, block, view=0, surf_names=-1, eind=0):
+        # maybe we have an echo index
+        estr = ''
+        if self.use_me:
+           if eind > 0:     estr = '%se%02d' % (self.sep_char, eind)
+           elif eind == -1: estr = '%se%s' % (self.sep_char, self.regecho_var)
+           elif eind == -2: estr = '%se*'  % (self.sep_char)
+           elif eind == -9: estr = ''
+           else:            estr = '%se%s' % (self.sep_char, self.echo_var)
+
         # if surface, change view to hemisphere and dataset suffix
         if surf_names == -1: surf_names = self.surf_names
         if surf_names:
@@ -3070,18 +3401,27 @@ class SubjProcSream:
            vstr = '%s.HEAD' % self.view
            hstr = ''
         s = self.sep_char
-        return 'pb%02d%s%s%s%sr*%s%s%s' %    \
-             (block.index-1, s, self.subj_label,hstr, s, s,
+        return 'pb%02d%s%s%s%sr*%s%s%s%s' %    \
+             (block.index-1, s, self.subj_label,hstr, s, estr, s,
              self.prev_lab(block), vstr)
 
     # like prefix, but list the whole dset form, in wildcard format
-    def dset_form_wild(self, blabel, view=None, surf_names=-1):
+    def dset_form_wild(self, blabel, view=None, surf_names=-1, eind=0):
         block = self.find_block(blabel)
         if not block:
             print("** DFW: failed to find block for label '%s'" % blabel)
             return ''
-
         bind = block.index
+
+        # maybe we have an echo index
+        estr = ''
+        if self.use_me:
+           if eind > 0:     estr = '%se%02d' % (self.sep_char, eind)
+           elif eind == -1: estr = '%se%s' % (self.sep_char, self.regecho_var)
+           elif eind == -2: estr = '%se*'  % (self.sep_char)
+           elif eind == -9: estr = ''
+           else:            estr = '%se%s' % (self.sep_char, self.echo_var)
+
         # if surface, change view to hemisphere and dataset suffix
         if surf_names == -1: surf_names = self.surf_names
         if surf_names:
@@ -3094,8 +3434,8 @@ class SubjProcSream:
            vstr = '%s.HEAD' % self.view
            hstr = ''
         s = self.sep_char
-        return 'pb%02d%s%s%s%sr*%s%s%s' %      \
-            (bind, s, self.subj_label, hstr, s, s, blabel, vstr)
+        return 'pb%02d%s%s%s%sr*%s%s%s%s' %      \
+            (bind, s, self.subj_label, hstr, s, estr, s, blabel, vstr)
 
 class ProcessBlock:
     def __init__(self, label, proc):

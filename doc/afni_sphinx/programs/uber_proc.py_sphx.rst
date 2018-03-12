@@ -7,8 +7,15 @@ uber_proc.py
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
-    Traceback (most recent call last):
-      File "/Users/discoraj/abin/uber_proc.py", line 4, in <module>
-        from PyQt4 import QtCore, QtGui
+    
+    help for uber_proc.py           - still a lot to do
+    
+    1. Run from the directory where you would like the results to be placed.
+       By default, a new 'uber_results' directory will be placed there, under
+       which might be 'subjects', 'group_results', etc.
+    
+    2. Panic into error.

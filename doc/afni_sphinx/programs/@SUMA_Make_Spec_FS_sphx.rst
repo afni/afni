@@ -7,6 +7,8 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     
@@ -84,13 +86,13 @@
                 negated and will no longer line up with the anatomy. 
                 Correcting such surfaces can be done with ConvertSurface
                 with the following command:
-                  ConvertSurface  -i lh.smoothwm.gii -o_gii lh.smoothwm \\
+                  ConvertSurface  -i lh.smoothwm.gii -o_gii lh.smoothwm \
                                   -overwrite -xmat_1D NegXY
                 or for an entire SUMA directory:
                   cd SUMA
                   tcsh
                   foreach ss (*.gii)
-                     ConvertSurface  -i $ss -o_gii $ss \\
+                     ConvertSurface  -i $ss -o_gii $ss \
                                      -overwrite -xmat_1D NegXY
                   end
     
@@ -132,8 +134,8 @@
                       SurfSmooth. INF controls the amount of smoothness
                       in the final image. It is the number of iterations
                       in the command such as: 
-                 SurfSmooth  -i lh.white.asc    -met NN_geom \\
-                        -Niter 200  -o_gii  -surf_out lh.inf_200 \\
+                 SurfSmooth  -i lh.white.asc    -met NN_geom \
+                        -Niter 200  -o_gii  -surf_out lh.inf_200 \
                         -match_vol 0.01
                       You can use multiple instances of -inflate to create
                       inflations of various levels.
@@ -163,7 +165,8 @@
       not attempt to use them for backward compatibility.
       Should you want to create standard mesh surfaces with node
       index correspondence across the hemispheres you will need to run
-      MapIcosahedron manually in the output SUMA/ directory. \n
+      MapIcosahedron manually in the output SUMA/ directory. 
+    
       For example:
           MapIcosahedron    -spec SUBJ_rh.spec -ld 60 \
                             -dset_map rh.thickness.gii.dset \

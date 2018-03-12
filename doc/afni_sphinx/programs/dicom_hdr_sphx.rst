@@ -7,6 +7,8 @@ dicom_hdr
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Usage: dicom_hdr [options] fname [...]

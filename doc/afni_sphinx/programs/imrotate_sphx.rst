@@ -7,6 +7,8 @@ imrotate
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Usage: imrotate [-linear | -Fourier] dx dy phi input_image output_image

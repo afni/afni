@@ -66,6 +66,41 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 6, Mar , 2018 , PT , "fat_proc_convert_anat" , MINOR , TYPE_MODIFY,
+   "Default orientation for nifti files to be 'RAI' instead of 'RPI'.",
+   "This will be more in line with TORTOISE (and AFNI DICOM-coor default).\n"
+},
+
+{ 6, Mar , 2018 , PT , "fat_proc_convert_dwis" , MINOR , TYPE_MODIFY,
+   "Default orientation for nifti files to be 'RAI' instead of 'RPI'.",
+   "This will be more in line with TORTOISE (and AFNI DICOM-coor default).\n"
+},
+
+{ 22, Feb , 2018 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
+   "Can now apply p-to-stat calcs for thresholding.",
+   "User gives p-value, which gets made to appropriate stat for thresh.\n"
+},
+
+{ 13, Feb , 2018 , PT , "fat_proc_filter_dwis" , MINOR , TYPE_MODIFY,
+   "Can now accept *multiple* selector strings that get merged.",
+   "Multiple strings/files can be input, yay.\n"
+},
+
+{ 8, Feb , 2018 , PT , "fat_proc_dwi_to_dt" , MINOR , TYPE_BUG_FIX,
+   "When a mask was input, it wasn't resampled if needed to be.",
+   "Now fixed, and added check that grid of mask is good. Good.\n"
+},
+
+{ 6, Feb , 2018 , PT , "fat_proc_axialize_anat" , MINOR , TYPE_NEW_OPT,
+   "Can put a ceiling on the final output volume: -do_ceil_out.",
+   "Reduce impact of tiny spikes (often at fringe) later on.\n"
+},
+
+{ 1, Feb , 2018 , PT , "@GradFlipTest" , MINOR , TYPE_MODIFY,
+   "Internal change to allow subset selection in text files.",
+   "Can now use subbrick selector notation with bvals/bvecs.\n"
+},
+
 { 12, Jan , 2018 , PT , "@djunct_select_str.py" , MINOR , TYPE_BUG_FIX,
    "Would return an error when *no* bad vols were selected.",
    "Now updated to work fine with that; just an intermed program.\n"

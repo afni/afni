@@ -7,6 +7,8 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     
@@ -861,7 +863,7 @@
           command line with the '-D' option.
     * How many threads are useful?  That varies with the program, and how well
        it was coded.  You'll have to experiment on your own systems!
-    * The number of CPUs on this particular computer system is ...... 8.
+    * The number of CPUs on this particular computer system is ...... 16.
     * The maximum number of CPUs that will be used is now set to .... 8.
     * Tests show that using more 10-12 CPUs with 3dQwarp doesn't help much.
       If you have more CPUs on one system, it's faster to run two or three

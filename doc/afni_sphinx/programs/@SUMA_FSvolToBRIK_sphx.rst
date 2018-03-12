@@ -7,6 +7,8 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Usage: @SUMA_FSvolToBRIK <FSvoldata> <Prefix>

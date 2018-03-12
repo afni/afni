@@ -6,7 +6,7 @@
 
 ************************************************
 * GPL AFNI: Analysis of Functional NeuroImages *
-*           Version AFNI_17.0.09       *
+*           Version AFNI_18.0.17       *
 *                                              *
 * Major portions are Copyright 1994-2000,      *
 *   Medical College of Wisconsin               *

@@ -7,6 +7,8 @@ images_equal
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Usage: images_equal [-all] fileA fileB

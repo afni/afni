@@ -7,6 +7,8 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Usage: @GetAfniView <Name> .....
@@ -18,4 +20,6 @@
     
     See also 3dinfo -space
     
-    Ziad Saad (saadz@mail.nih.gov)\012LBC/NIMH/ National Institutes of Health, Bethesda Maryland\012
+    Ziad Saad (saadz@mail.nih.gov)
+    LBC/NIMH/ National Institutes of Health, Bethesda Maryland
+    

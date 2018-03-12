@@ -7,6 +7,8 @@ file_tool
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     
@@ -343,4 +345,4 @@ file_tool
               If this option is used, then byte swapping is done on any
               multi-byte numbers read from or written to the file.
     
-      - R Reynolds, version: 3.18 (August 23, 2015), compiled: Nov  9 2017
+      - R Reynolds, version: 3.18 (August 23, 2015), compiled: Jan 29 2018

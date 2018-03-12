@@ -7,6 +7,8 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Usage: 3dAllineate [options] sourcedataset
@@ -303,6 +305,8 @@
                    may have to delete them manually. (TIM=Temporary IMage)
            **N.B.: If the program fails with a 'malloc failure' type of
                    message, then try '-usetemp' (malloc=memory allocator).
+           **N.B.: If you use '-verb', then memory usage is printed out
+                   at various points along the way.
      -nousetemp  = Don't use temporary workspace on disk [the default].
     
      -check hhh  = After cost functional optimization is done, start at the
@@ -1115,7 +1119,7 @@
           command line with the '-D' option.
     * How many threads are useful?  That varies with the program, and how well
        it was coded.  You'll have to experiment on your own systems!
-    * The number of CPUs on this particular computer system is ...... 8.
+    * The number of CPUs on this particular computer system is ...... 16.
     * The maximum number of CPUs that will be used is now set to .... 8.
     * OpenMP may or may not speed up the program significantly.  Limited
        tests show that it provides some benefit, particularly when using
@@ -1125,4 +1129,4 @@
        Probably because my parallelization efforts were pretty limited.
      =========================================================================
     
-    ++ Compile date = Nov  9 2017 {AFNI_17.3.03:macosx_10.7_local}
+    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}

@@ -94,6 +94,14 @@ Copy+paste the following::
 
             tcsh @update.afni.binaries -local_package macosx_10.7_local.tgz -do_extras
 
+Reboot
+------
+
+Please reboot your system.
+
+**Purpose:** This deals with system updates, any change in login
+shell, and path updates.
+
 Install R
 ---------
 

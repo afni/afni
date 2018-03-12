@@ -38,18 +38,25 @@ csv.files <- list_files_with_exts(cor.path,ext=ext.list)
 ## see if they are loadable and square
 file.list2 <- c()
 for(i in csv.files){
-
+  cat(paste0("\nLoading: ",basename(i),"\n"))
+  
   ## read in with with fread to take care of seps
   ## and data.frame for the row names
-  csv.df <- data.frame(fread(i,header=TRUE),row.names=1,check.names=FALSE)
-
-  ## check for square with same names
-  if(dim(csv.df)[1] == dim(csv.df)[2] &
-     identical(rownames(csv.df),colnames(csv.df))){
-    file.list2 <- rbind(file.list2,i)
-  } else {
-   print(paste(i,'is not a loadable matrix'))
-  }
+  tryCatch(
+    {
+      csv.df <- data.frame(fread(i,header=TRUE),row.names=1,check.names=FALSE)
+      ## check for square with same names
+      if(dim(csv.df)[1] == dim(csv.df)[2] &
+         identical(rownames(csv.df),colnames(csv.df))){
+        file.list2 <- rbind(file.list2,i)
+      } else {
+        cat(paste0("\n",basename(i),' is not a loadable matrix',"\n"))
+      }
+    }, 
+    error=function(cond) {
+      cat(paste0("\n",basename(i),' is not a loadable matrix',"\n"))
+    }
+  )
 }
 
 ## make sure that there is something there and name

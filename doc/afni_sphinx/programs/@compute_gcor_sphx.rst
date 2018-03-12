@@ -7,6 +7,8 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     
@@ -16,7 +18,7 @@
         usage : @compute_gcor [options] -input dataset
     
     This program computes the average correlation between every voxel
-    and ever other voxel, over any give mask.  This output GCOR value
+    and ever other voxel, over any given mask.  This output GCOR value
     is a single number.
     
     -----------------------------------------------------------------

@@ -7,6 +7,8 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     
@@ -34,7 +36,8 @@
        -head_mask: Create mask using 3dSkullStrip's -head option.
        -unmasked_uni: Do not apply masking to uniformized volume (default)
                       You can mask the output after you decide which mask
-                      is best. Here is an example with smask:\n
+                      is best. Here is an example with smask:
+    
                       3dcalc -a T1.uni+orig. -b smask+orig. \
                              -expr 'step(b)*a' -prefix T1.uni.m
        -masked_uni: Apply masking to uniformized volume

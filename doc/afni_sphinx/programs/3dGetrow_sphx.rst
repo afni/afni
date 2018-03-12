@@ -7,6 +7,8 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Program to extract 1 row from a dataset and write it as a .1D file
@@ -27,4 +29,4 @@
     N.B.: if the input dataset has more than one sub-brick, each
           sub-brick will appear as a separate column in the output file.
     
-    ++ Compile date = Nov  9 2017 {AFNI_17.3.03:macosx_10.7_local}
+    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}

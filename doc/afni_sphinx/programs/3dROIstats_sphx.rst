@@ -7,6 +7,8 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Usage: 3dROIstats -mask[n] mset [options] datasets
@@ -130,4 +132,4 @@
       '3dcalc( -a r1+orig -b r2+orig -expr 0.5*(a+b) )'  {calculation}
     For the gruesome details, see the output of 'afni -help'.
     
-    ++ Compile date = Nov  9 2017 {AFNI_17.3.03:macosx_10.7_local}
+    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}

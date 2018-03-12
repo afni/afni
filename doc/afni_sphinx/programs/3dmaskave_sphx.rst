@@ -7,6 +7,8 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Usage: 3dmaskave [options] inputdataset
@@ -15,7 +17,7 @@
     which satisfy the criterion in the options list.
     If no options are given, then all voxels are included.
     
-    ------------------------------------------------------------
+    ----------------------------------------------------------------
     Examples:
     
     1. compute the average timeseries in epi_r1+orig, over voxels
@@ -28,7 +30,12 @@
     
         3dmaskave -mask ROI+orig -quiet -mrange 3 4   \
                   epi_r1+orig > run1_roi_34.txt
-    ------------------------------------------------------------
+    
+    3. Extract the time series from a single voxel with given
+       spatial indexes (e.g., for use with 3dTcorr1D):
+    
+        3dmaskave -quiet -ibox 40 30 20 epi_r1+orig > r1_40_30_20.1D
+    ----------------------------------------------------------------
     
     Options:
       -mask mset   Means to use the dataset 'mset' as a mask:
@@ -135,4 +142,4 @@
       '3dcalc( -a r1+orig -b r2+orig -expr 0.5*(a+b) )'  {calculation}
     For the gruesome details, see the output of 'afni -help'.
     
-    ++ Compile date = Nov  9 2017 {AFNI_17.3.03:macosx_10.7_local}
+    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}

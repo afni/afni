@@ -7,6 +7,8 @@ apsearch
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     
@@ -105,7 +107,7 @@ apsearch
       -list_all_afni_dsets: List all datasets in AFNI's bin directory
       -list_all_afni_P_dsets: Same as -list_all_afni_dsets but with path
       -update_all_afni_help: Build/update -help output under directory:
-                         /Users/discoraj/.afni/help
+                         /home/ptaylor/.afni/help
                       If older help files differ by little they are deleted
                       Little differences would be the compile date or the
                       version number. See @clean_help_dir code for details.
@@ -185,7 +187,7 @@ apsearch
     -C_all_prog_opt_array : Output all program options as an array of C structs.
                             Debugging is output to stderr, the beef is in stdout.
                             Executables not found in the afni binaries directory 
-                            (now /Users/discoraj/abin/) will be ignored.
+                            (now /home/ptaylor/afni_src/linux_ubuntu_12_64/) will be ignored.
     -C_all_append_prog_opt_array: Keep programs already in C struct but no longer
                             in the new list of executables.
     -C_prog_opt_array PROG: Insert/update PROG's options in an array of C 
@@ -244,4 +246,4 @@ apsearch
     ===============
     
     
-    ++ Compile date = Nov  9 2017 {AFNI_17.3.03:macosx_10.7_local}
+    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}

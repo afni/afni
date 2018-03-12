@@ -7,6 +7,8 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     3dSeg segments brain volumes into tissue classes. The program allows

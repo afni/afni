@@ -7,6 +7,8 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Assigns a new ID code to a dataset; this is useful when making
@@ -54,4 +56,4 @@
        used.
     The source code is function UNIQ_idcode() in file niml_uuid.c
     
-    ++ Compile date = Nov  9 2017 {AFNI_17.3.03:macosx_10.7_local}
+    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}

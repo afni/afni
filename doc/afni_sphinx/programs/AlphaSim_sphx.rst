@@ -7,6 +7,8 @@ AlphaSim
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     This program performs alpha probability simulations; among other
@@ -178,6 +180,6 @@ AlphaSim
           command line with the '-D' option.
     * How many threads are useful?  That varies with the program, and how well
        it was coded.  You'll have to experiment on your own systems!
-    * The number of CPUs on this particular computer system is ...... 8.
+    * The number of CPUs on this particular computer system is ...... 16.
     * The maximum number of CPUs that will be used is now set to .... 8.
     * OpenMP compilation implies '-fast'

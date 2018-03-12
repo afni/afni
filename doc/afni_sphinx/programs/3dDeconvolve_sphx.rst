@@ -7,6 +7,8 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     
@@ -30,15 +32,18 @@
     * Program 3dREMLfit can be used to do Generalized Least Squares (GLSQ)  
       regression (AKA 'pre-whitened' least squares) combined with REML      
       estimation of an ARMA(1,1) temporal correlation structure:            
-        https://afni.nimh.nih.gov/pub/dist/doc/program_help/3dREMLfit.html   
+       https://afni.nimh.nih.gov/pub/dist/doc/program_help/3dREMLfit.html   
     * The input to 3dREMLfit is the .xmat.1D matrix file output by          
       3dDeconvolve, which also writes a 3dREMLfit command line to a file    
       to make it relatively easy to use the latter program.                 
+    * 3dREMLfit also allows for voxel-specific regressors, unlike           
+      3dDeconvolve. This feature is used with the '-fanaticor' option       
+      to afni_proc.py, for example.                                         
     * Nonlinear time series model fitting can be done with program 3dNLfim: 
-        https://afni.nimh.nih.gov/pub/dist/doc/program_help/3dNLfim.html     
+       https://afni.nimh.nih.gov/pub/dist/doc/program_help/3dNLfim.html     
     * Preprocessing of the time series input can be done with various AFNI  
       programs, or with the 'uber-script' afni_proc.py:                     
-        https://afni.nimh.nih.gov/pub/dist/doc/program_help/afni_proc.py.html
+       https://afni.nimh.nih.gov/pub/dist/doc/program_help/afni_proc.py.html
     ------------------------------------------------------------------------
     ------------------------------------------------------------------------
     ****  The recommended way to use 3dDeconvolve is via afni_proc.py,  ****
@@ -64,7 +69,7 @@
     a deconvolution problem (in either direction) with L1 or L2 regression, 
     and with sign constraints on the computed values (e.g., requiring that  
     the output S(t) or K(t) be non-negative):                               
-      https://afni.nimh.nih.gov/pub/dist/doc/program_help/3dTfitter.html     
+     https://afni.nimh.nih.gov/pub/dist/doc/program_help/3dTfitter.html     
     ------------------------------------------------------------------------
     The 'baseline model' in 3dDeconvolve (and 3dREMLfit) does not mean just 
     a constant (mean) level of the signal, or even just the slow drifts that
@@ -87,7 +92,7 @@
     against the full model with just that set of regressors removed.  If    
     this explanation or its consequences are unclear, you need to consult   
     with a statistician, or with the AFNI message board guru entities       
-    (when they can be lured down from the peak of Mt Taniquetil).           
+    (when they can be lured down from the peak of Mt Taniquetil or Kailash).
     ------------------------------------------------------------------------
     Regression Programs in the AFNI Package:                                
     * At its core, 3dDeconvolve solves a linear regression problem z = X b  
@@ -99,13 +104,14 @@
       Generalized Least Squares (GLSQ).                                     
     * If you want to solve a problem where some of the matrix columns in X  
       (the regressors) are different in different voxels (spatially variable),
-      then use program 3dTfitter, which uses OLSQ.                          
+      then use program 3dTfitter, which uses OLSQ, or used 3dREMLfit.       
     * 3dTfitter can also use L1 and LASSO regression, instead of OLSQ; if you
       want to use such 'robust' fitting methods, this program is your friend.
       It can also impose sign constraints (positivity or negativity) on the 
       parameters b, and can (as mentioned above) do deconvolution.          
-    * 3dBandpass can do a sequence of 'time series cleanup' operations,     
-      including regressing out (via OLSQ) a set of nuisance vectors.        
+    * 3dBandpass and 3dTproject can do a sequence of 'time series cleanup'  
+      operations, including 'regressing out' (via OLSQ) a set of nuisance   
+      vectors (columns).                                                    
     * 3dLSS can be used to solve -stim_times_IM systems using an alternative
       linear technique that gives biased results, but with smaller variance.
     ------------------------------------------------------------------------
@@ -113,7 +119,8 @@
     Usage Details:                                                         
     3dDeconvolve command-line-arguments ...
                                                                            
-    **** Input data and control options:                                   
+    **** Input data and control options ****                               
+    
     -input fname         fname = filename of 3D+time input dataset         
                            [more than  one filename  can  be  given]       
                            [here,   and  these  datasets  will   be]       
@@ -136,6 +143,7 @@
                        * You should use '-force_TR' to set the TR of       
                          the 1D 'dataset' if you use '-input' rather       
                          than '-input1D' [the default is 1.0 sec].         
+    
     -sat OR -trans     * 3dDeconvolve can check the dataset time series    
                          for initial saturation transients, which should   
                          normally have been excised before data analysis.  
@@ -143,6 +151,7 @@
                          consuming check, use the option '-sat'.           
                        * Or set environment variable AFNI_SKIP_SATCHECK to NO.
                        * Program 3dSatCheck does this check, also.         
+    
     [-noblock]           Normally, if you input multiple datasets with     
                          '-input', then the separate datasets are taken to 
                          be separate image runs that get separate baseline 
@@ -152,21 +161,27 @@
                          then this option is automatically invoked!        
                        * If the auto-catenation feature isn't used, then   
                          this option has no effect, no how, no way.        
+    
     [-force_TR TR]       Use this value of TR instead of the one in        
                          the -input dataset.                               
                          (It's better to fix the input using 3drefit.)     
+    
     [-input1D dname]     dname = filename of single (fMRI) .1D time series 
                                  where time run downs the column.          
+    
     [-TR_1D tr1d]        tr1d = TR for .1D time series [default 1.0 sec].  
                          This option has no effect without -input1D        
+    
     [-nodata [NT [TR]]   Evaluate experimental design only (no input data) 
                        * Optional, but highly recommended: follow the      
                          '-nodata' with two numbers, NT=number of time     
                          points, and TR=time spacing between points (sec)  
+    
     [-mask mname]        mname = filename of 3D mask dataset               
                           Only data time series from within the mask       
                           will be analyzed; results for voxels outside     
                           the mask will be set to zero.                    
+    
     [-automask]          Build a mask automatically from input data        
                           (will be slow for long time series datasets)     
                       ** If you don't specify ANY mask, the program will   
@@ -183,6 +198,7 @@
                        * To be precise, the above default masking only     
                           happens when you use '-input' to run the program 
                           with a 3D+time dataset; not with '-input1D'.     
+    
     [-STATmask sname]    Build a mask from file 'sname', and use this      
                            mask for the purpose of reporting truncation-to 
                            float issues AND for computing the FDR curves.  
@@ -193,12 +209,14 @@
                              purposes.  If neither of those is given, then 
                              the automatically generated mask described    
                              just above is used for these purposes.        
+    
     [-censor cname]      cname = filename of censor .1D time series        
                        * This is a file of 1s and 0s, indicating which     
                          time points are to be included (1) and which are  
                          to be excluded (0).                               
                        * Option '-censor' can only be used once!           
                        * The option below may be simpler to use!           
+    
     [-CENSORTR clist]    clist = list of strings that specify time indexes 
                            to be removed from the analysis.  Each string is
                            of one of the following forms:                  
@@ -216,16 +234,20 @@
                           +N.B.: 2:37,47 means index #37 in run #2 and     
                             global time index 47; it does NOT mean         
                             index #37 in run #2 AND index #47 in run #2.   
+    
     [-concat rname]      rname = filename for list of concatenated runs    
                           * 'rname' can be in the format                   
                               '1D: 0 100 200 300'                          
                             which indicates 4 runs, the first of which     
                             starts at time index=0, second at index=100,   
                             and so on.                                     
+    
     [-nfirst fnum]       fnum = number of first dataset image to use in the
                            deconvolution procedure. [default = max maxlag] 
+    
     [-nlast  lnum]       lnum = number of last dataset image to use in the 
                            deconvolution procedure. [default = last point] 
+    
     [-polort pnum]       pnum = degree of polynomial corresponding to the  
                            null hypothesis  [default: pnum = 1]            
                         ** For pnum > 2, this type of baseline detrending  
@@ -242,24 +264,32 @@
                         ** Use '-1' for pnum to specifically NOT include   
                            any polynomials in the baseline model.  Only    
                            do this if you know what this means!            
+    
     [-legendre]          use Legendre polynomials for null hypothesis      
                            (baseline model)                                
+    
     [-nolegendre]        use power polynomials for null hypotheses         
                            [default is -legendre]                          
                         ** Don't do this unless you are crazy!             
+    
     [-nodmbase]          don't de-mean baseline time series                
                            (i.e., polort>0 and -stim_base inputs)          
     [-dmbase]            de-mean baseline time series [default if polort>=0]
+    
     [-svd]               Use SVD instead of Gaussian elimination [default] 
     [-nosvd]             Use Gaussian elimination instead of SVD           
                            (only use for testing + backwards compatibility)
+    
     [-rmsmin r]          r = minimum rms error to reject reduced model     
                            (default = 0; don't use this option normally!)  
+    
     [-nocond]            DON'T calculate matrix condition number           
                           ** This value is NOT the same as Matlab!         
+    
     [-singvals]          Print out the matrix singular values              
                           (useful for some testing/debugging purposes)     
                           Also see program 1dsvd.                          
+    
     [-GOFORIT [g]]       Use this to proceed even if the matrix has        
                          bad problems (e.g., duplicate columns, large      
                          condition number, etc.).                          
@@ -276,11 +306,13 @@
                           That is, if you use -GOFORIT 7 and 9 '!!'        
                           matrix warnings appear, then the program will    
                           not run.  If 'g' is not present, 1 is used.      
+    
     [-allzero_OK]        Don't consider all zero matrix columns to be      
                           the type of error that -GOFORIT is needed to     
                           ignore.                                          
                          * Please know what you are doing when you use     
                            this option!                                    
+    
     [-Dname=val]       = Set environment variable 'name' to 'val' for this 
                          run of the program only.                          
                                                                            
@@ -397,18 +429,20 @@
        The response model is specified by the third argument after         
        '-stim_times' ('Rmodel'), and can be one of the following:          
         *** In the descriptions below, a '1 parameter' model has a fixed   
-            shape, and only the amplitude varies.                          
+            shape, and only the estimated amplitude ('Coef') varies:       
+              BLOCK GAM TWOGAM SPMG1 WAV MION                              
         *** Models with more than 1 parameter have multiple basis          
-            functions, and the parameters are their amplitudes.  The       
-            estimated shape of the response to a stimulus will be different
-            in different voxels.                                           
+            functions, and the estimated parameters ('Coef') are their     
+            amplitudes. The estimated shape of the response to a stimulus  
+            will be different in different voxels:                         
+              TENT CSPLIN SPMG2 SPMG3 POLY SIN EXPR                        
         *** Many models require the input of the start and stop times for  
             the response, 'b' and 'c'.  Normally, 'b' would be zero, but   
             in some cases, 'b' could be negative -- for example, if you    
             are concerned about anticipatory effects.  The stop time 'c'   
             should be based on how long you realistically expect the       
             hemodynamic response to last after the onset of the stimulus;  
-            e.g., the duration of the stimulus plus 14 seconds.            
+            e.g., the duration of the stimulus plus 14 seconds for BOLD.   
         *** If you use '-tout', each parameter will get a separate         
             t-statistic.  As mentioned far above, this is a marginal       
             statistic, measuring the impact of that model component on the 
@@ -423,10 +457,12 @@
             duration is a parameter you give (duration is NOT a parameter  
             that will be estimated).  Read the descriptions below carefully:
             not all functions are (or can be) convolved in this way:       
-            * ALWAYS convolved:      BLOCK  dmBLOCK  MION  MIONN           
-            * NEVER convolved:       TENT   CSPLIN   POLY  SIN   EXPR      
-            * OPTIONALLY convolved:  GAM    SPMGx    WAV                   
-                                                                           
+             * ALWAYS convolved:      BLOCK  dmBLOCK  MION  MIONN          
+             * OPTIONALLY convolved:  GAM    TWOGAM   SPMGx WAV            
+             * NEVER convolved:       TENT   CSPLIN   POLY  SIN   EXPR     
+            Convolution is specified by providing the duration parameter   
+            as described below for each particular model function.         
+    
          'BLOCK(d,p)'  = 1 parameter block stimulus of duration 'd'        
                         ** There are 2 variants of BLOCK:                  
                              BLOCK4 [the default] and BLOCK5               
@@ -454,6 +490,7 @@
                            amplitude goes to 1 as the duration gets large. 
                            If p > 0, 'UBLOCK(d,p)' and 'BLOCK(d,p)' are    
                            identical.                                      
+    
          'TENT(b,c,n)' = n parameter tent function expansion from times    
                            b..c after stimulus time [piecewise linear]     
                            [n must be at least 2; time step is (c-b)/(n-1)]
@@ -482,16 +519,61 @@
                             be continuous, since they will now be unable   
                             to suddenly rise up from 0 at t=b and/or drop  
                             down to 0 at t=c.                              
+    
          'GAM(p,q)'    = 1 parameter gamma variate                         
                              (t/(p*q))^p * exp(p-t/q)                      
                            Defaults: p=8.6 q=0.547 if only 'GAM' is used   
                          ** The peak of 'GAM(p,q)' is at time p*q after    
-                            the stimulus.  The FWHM is about 2.3*sqrt(p)*q.
+                            the stimulus.  The FWHM is about 2.3*sqrt(p)*q;
+                            this approximation is accurate for p > 0.3*q.  
                      ==> ** If you add a third argument 'd', then the GAM  
                             function is convolved with a square wave of    
                             duration 'd' seconds; for example:             
                               'GAM(8.6,.547,17)'                           
                             for a 17 second stimulus.  [09 Aug 2010]       
+         'GAMpw(K,W)'  = Same as 'GAM(p,q)' but where the shape parameters 
+                           are specified at time to peak 'K' and full      
+                           width at half max (FWHM) 'W'. You can also      
+                           add a third argument as the duration. The (K,W) 
+                           parameters are converted to (p,q) values for    
+                           the actual computations; the (p,q) parameters   
+                           are printed to the text (stderr) output.        
+                         ** Note that if you give weird values for K and W,
+                            weird things will happen: (tcsh syntax)        
+                             set pp = `ccalc 'gamp(2,8)'`                  
+                             set qq = `ccalc 'gamq(2,8)'`                  
+                             1deval -p=$pp -q=$qq -num 200 -del 0.1  \    
+                                    -expr '(t/p/q)^p*exp(p-t/q)'   | \    
+                                    1dplot -stdin -del 0.1                 
+                            Here, K is significantly smaller than W,       
+                            so a gamma variate that fits peak=2 width=8    
+                            must be weirdly shaped. [Also note use of the  
+                            'calc' functions gamp(K,W) and gamq(K,W) to    
+                            calculate p and q from K and W in the script.] 
+    
+         'TWOGAM(p1,q1,r,p2,q2)'                                           
+                       = 1 parameter (amplitude) model:                    
+                       = A combination of two 'GAM' functions:             
+                             GAM(p1,q1) - r*GAM(p2,q2)                     
+                           This model is intended to let you use a HRF     
+                           similar to BrainVoyager (e.g.). You can         
+                           add a sixth argument as the duration.           
+                         ** Note that a positive 'r' parameter means to    
+                            subtract the second GAM function (undershoot). 
+         'TWOGAMpw(K1,W1,r,K2,W2)'                                         
+                       = Same as above, but where the peaks and widths     
+                           of the 2 component gamma variates are given     
+                           instead of the less intuitive p and q.          
+                           For FMRI work, K2 > K1 is usual, as the         
+                           second (subtracted) function is intended        
+                           to model the 'undershoot' after the main        
+                           positive part of the model. You can also        
+                           add a sixth argument as the duration.           
+                         ** Example (no duration given):                   
+            3dDeconvolve -num_stimts 1 -polort -1 -nodata 81 0.5         \
+                         -stim_times 1 '1D: 0' 'TWOGAMpw(3,6,0.2,10,12)' \
+                         -x1D stdout: | 1dplot -stdin -THICK -del 0.5      
+    
          'SPMG1'       = 1 parameter SPM gamma variate basis function      
                              exp(-t)*(A1*t^P1-A2*t^P2) where               
                            A1 = 0.0083333333  P1 = 5  (main positive lobe) 
@@ -510,12 +592,15 @@
                          ** Note that 'SPMG1(0)' will produce the usual    
                             'SPMG1' wavefunction shape, but normalized to  
                             have peak value = 1 (for example).             
+    
          'POLY(b,c,n)' = n parameter Legendre polynomial expansion         
                            from times b..c after stimulus time             
                            [n can range from 1 (constant) to 20]           
+    
          'SIN(b,c,n)'  = n parameter sine series expansion                 
                            from times b..c after stimulus time             
                            [n must be at least 1]                          
+    
          'WAV(d)'      = 1 parameter block stimulus of duration 'd'.       
                           * This is the '-WAV' function from program waver!
                           * If you wish to set the shape parameters of the 
@@ -533,6 +618,7 @@
                           * If d > 0, the WAV(0) function is convolved with
                             a square wave of duration d to make the HRF,   
                             and the amplitude is scaled back down to 1.    
+    
          'EXPR(b,c) exp1 ... expn'                                         
                        = n parameter; arbitrary expressions from times     
                          b..c after stimulus time                          
@@ -553,6 +639,7 @@
                             sure of what your response model is, you should
                             plot the relevant columns from the matrix      
                             .xmat.1D output file.                          
+    
          'MION(d)'     = 1 parameter block stimulus of duration 'd',       
                          intended to model the response of MION.           
                          The zero-duration impulse response 'MION(0)' is   
@@ -560,7 +647,7 @@
                                               +0.330/ 4.5 * exp(-t/ 4.5)   
                                               +0.670/13.5 * exp(-t/13.5) ) 
                          which is adapted from the paper                   
-                          FP Leite, et al.  NeuroImage 16:283-294 (2002)   
+                          FP Leite, et al. NeuroImage 16:283-294 (2002)    
                           http://dx.doi.org/10.1006/nimg.2002.1110         
                       ** Note that this is a positive function, but MION   
                          produces a negative response to activation, so the
@@ -591,18 +678,25 @@
        regression, where the shape of the impulse response function is     
        fixed and only the magnitude/amplitude varies.  Models with more    
        free parameters have 'variable' shape impulse response functions.   
+    
+     * LINEAR regression means that each data time series (thought of as   
+       a single column of numbers = a vector) is fitted to a sum of the    
+       matrix columns, each one multiplied by an amplitude parameter to    
+       be calculated ('Coef'). The purpose of the various options          
+         '-stim_times', '-polort', '-ortvec', and/or '-stim_file'          
+       is to build the columns of the regression matrix.                   
                                                                            
      * If you want NONLINEAR regression, see program 3dNLfim.              
                                                                            
      * If you want LINEAR regression with allowance for non-white noise,   
        use program 3dREMLfit, after using 3dDeconvolve to set up the       
-       regression model.                                                   
+       regression model (in the form of a matrix file).                    
                                                                            
     ** When in any doubt about the shape of the response model you are   **
     *  asking for, you should plot the relevant columns from the X matrix *
     *  to help develop some understanding of the analysis.  The 'MION'    *
     *  example above can be used as a starting point for how to easily    *
-    *  setup a quick command pipeline to graph response models.  In this  *
+    *  setup a quick command pipeline to graph response models.  In that  *
     *  example, '-polort -1' is used to suppress the usual baseline model *
     *  since graphing that part of the matrix would just be confusing.    *
     *  Another example, for example, comparing the similar models         *
@@ -652,6 +746,7 @@
               for a 2 run 'tname' file to be used with -stim_times_*.      
            ** In such a case, you will also need the -allzero_OK option,   
               and probably -GOFORIT as well.                               
+    
     [-stim_times_AM2 k tname Rmodel]                                       
        Similar, but generates 2 response models: one with the mean         
        amplitude and one with the differences from the mean.               
@@ -792,7 +887,7 @@
                              has no meaning.                               
                                                                            
      I hope this clarifies things and makes your life simpler, happier,    
-     and more carefree.  (If not, please blame Gang Chen, not me.)         
+     and more carefree. (If not, please blame Gang Chen, not me.)          
                                                                            
      An example to clarify the difference between these cases:             
         3dDeconvolve -nodata 350 1 -polort -1 -num_stimts 3 \
@@ -1069,4 +1164,4 @@
     This version of the program has been compiled to use
     double precision arithmetic for most internal calculations.
     
-    ++ Compile date = Nov  9 2017 {AFNI_17.3.03:macosx_10.7_local}
+    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}

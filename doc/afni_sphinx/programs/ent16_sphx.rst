@@ -7,6 +7,8 @@ ent16
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Usage: ent16 [-%nn]

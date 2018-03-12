@@ -7,6 +7,8 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Usage: 1dnorm [options] infile outfile
@@ -25,4 +27,4 @@
      -demed  = Subtract each column's median before normalizing
                 [-demean and -demed are mutually exclusive!]
     
-    ++ Compile date = Nov  9 2017 {AFNI_17.3.03:macosx_10.7_local}
+    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}

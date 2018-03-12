@@ -7,6 +7,8 @@ rtfeedme
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Usage: rtfeedme [options] dataset [dataset ...]

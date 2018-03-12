@@ -7,6 +7,8 @@ afni
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
      **** Help for all AFNI programs can be found at the Web page
@@ -102,7 +104,7 @@ afni
                be sure the PORT_OFFSETS you use differ by about 50 or you may
                still have port conflicts. A BETTER approach is to use -npb below.
        -npq PORT_OFFSET: Like -np, but more quiet in the face of adversity.
-       -npb PORT_OFFSET_BLOC: Simliar to -np, except it is easier to use.
+       -npb PORT_OFFSET_BLOC: Similar to -np, except it is easier to use.
                               PORT_OFFSET_BLOC is an integer between 0 and
                               MAX_BLOC. MAX_BLOC is around 4000 for now, but
                               it might decrease as we use up more ports in AFNI.
@@ -397,6 +399,7 @@ afni
                       the default.
        -trace       Turns routine call tracing on, for debugging purposes.
        -TRACE       Turns even more verbose tracing on, for more debugging.
+       -nomall      Disables use of the mcw_malloc() library routines.
        -motif_ver   Show the applied motif version string.
        -no_detach   Do not detach from the terminal.
        -get_processed_env   Show applied AFNI/NIFTI environment varables.
@@ -404,6 +407,8 @@ afni
        -goodbye [n] Print a 'goodbye' message and exit (just for fun).
                     If an integer is supplied afterwards, will print that
                     many (random) goodbye messages.
+       -startup [n] Similar to '-goodbye', but for startup tips.
+                    [If you want REAL fun, use '-startup ALL'.]
        -ver         Print the current AFNI version and exit.
     
     N.B.: Many of these options, as well as the initial color set up,

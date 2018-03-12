@@ -1,4 +1,6 @@
-#!/bin/tcsh -e
+#!/bin/tcsh 
+
+@global_parse `basename $0` "$*" ; if ($status) exit 0
 
 # --------------------- revision history -------------------------
 # Sept, 2016
@@ -62,8 +64,18 @@
 #set version   = "3.5";  set rev_dat   = "May 25, 2017"
 #   + new option: input mask for early application
 #
-set version   = "3.6";  set rev_dat   = "Sep 04, 2017"
+#set version   = "3.6";  set rev_dat   = "Sep 04, 2017"
 #   + work with new @chauffeur, -prefix only
+#
+#set version   = "3.7";  set rev_dat   = "Feb 06, 2018"
+#   + add despiking/ceiling option
+#
+#set version   = "3.8";  set rev_dat   = "Feb 19, 2018"
+#   + change output snapshotting to be in a QC/ dir, and change
+#     names of output files
+#
+set version   = "3.8b";  set rev_dat   = "Mar 2, 2018"
+#   + update rel path loc of QC/ dir
 #
 # ----------------------------------------------------------------
 
@@ -103,6 +115,7 @@ set DO_CLEAN  = "1"                 # default: keep working dir
 set PRE_LR  = "1"
 set POST_LR = "0"
 set DO_CM   = "0"                   # initial center of mass calc
+set DO_CEIL = "0"
 
 set costfunc         = "lpa"        # in 3dAllin estimate
 set extra_allin_apps = ""           # could use to upsample?
@@ -121,7 +134,6 @@ set qc_prefix   = ""               # def: autoname; user can enter
 set output_cmd  = 1                # def: output copy of this command
                                    # -> should expand to have all cmds
 set cmd_file    = ""               # def: same name as viewer
-set postfix     = ""               # stick into name
   
 set defran  = -100000
 set frange1 = $defran              # for giving FUNC_RANGE value to
@@ -204,6 +216,9 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set INF_SLI = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-do_ceil_out" ) then
+        set DO_CEIL = "1"
 
     # can enter a weight mask emphasizing, e.g., subcort struct for
     # ACPC align
@@ -322,6 +337,14 @@ if ( ! -e "$odir" ) then
     mkdir "$odir"
 endif
 
+set odirqc = "$odir/QC"
+if ( "$DO_VIEWER" == "1" ) then
+    if ( ! -e "$odirqc" ) then
+        mkdir "$odirqc"
+    endif
+endif
+set odirqc_wdir = "../QC" # loc from $wdir
+
 # and put working directory as subdirectory.
 if ( "$WDIR_EX" == "1" ) then
     set wdir = $odir/${wdir}_$opref
@@ -354,7 +377,7 @@ echo "\n\nThis command:"
 echo "$this_prog $argv\n\n"
 
 if ( $cmd_file == "" ) then
-    set cmd_file = "$odir/${opref}${postfix}_cmd.txt"
+    set cmd_file = "$odir/${opref}_cmd.txt"
 endif
 
 # copy original command:
@@ -557,7 +580,7 @@ endif
 
 set v1 = `3dBrickStat -automask -percentile $valthr 1 $valthr "$fout"`
 set thr_t1 = "${v1[2]}"
-echo "\n\n++ Percentile for thresholding: ${thr_t1}\n"
+echo "\n\n++ Threshold value at ${valthr}%: ${thr_t1}\n"
 
 set iidx = `printf "%02d" $idx`
 set fin  = "$fout"
@@ -807,9 +830,33 @@ if ( $OutMatchRef == "0" ) then
 
 endif
 
+if ( $DO_CEIL == "1" ) then
+
+    set mmax  = `3dinfo -dmax "$fout"`
+    set v2    = `3dBrickStat -automask -percentile 50 48 98 "$fout"`
+    set mmean = "${v2[2]}"
+    set ttt   = "${v2[4]}"
+
+    echo "\n\n++ Ceiling for final output *on*: using 98%ile value."
+    echo "++ Value for final ceiling: ${ttt} (max. was $mmax; mean was $mmean)."
+    echo ""
+
+    set iidx = `printf "%02d" $idx`
+    set fin  = "$fout"
+    set fout = "${tpref}_${iidx}_ceil.nii"
+    3dcalc    -echo_edu                          \
+        -a      "$fin"                           \
+        -expr   "maxbelow(${ttt},a)"             \
+        -prefix "$fout"                          \
+        -overwrite
+    @ idx += 1
+
+endif
+
+
 # DONE, just copy endprod out!
 set fin  = $fout
-set fout = "${opref}${postfix}.nii.gz"
+set fout = "${opref}.nii.gz"
 # copy, preserve history
 3dcalc                        \
     -echo_edu                 \
@@ -825,17 +872,17 @@ if ( $DO_VIEWER ) then
     echo "++ Making QC images."
 
     if( $qc_prefix == "" ) then
-        set vpref1 = ${opref}${postfix}_qc00_fin
-        set vpref2 = ${opref}${postfix}_qc01_ref_u_inp
+        set vpref1 = ${opref}_qc_xlzd
+        set vpref2 = ${opref}_qc_ref_in
     else
-        set vpref1 = ${qc_prefix}${postfix}_qc00_fin
-        set vpref2 = ${qc_prefix}${postfix}_qc01_ref_u_inp
+        set vpref1 = ${qc_prefix}_qc_xlzd
+        set vpref2 = ${qc_prefix}_qc_ref_in
     endif
 
     #echo "++ Output QC #1: final olay on (essentially) original refset."
     echo "++ QC image 00 (final output ulay): $vpref1"
     $my_viewer      -ulay ../$fout                  \
-                    -prefix "../$vpref1"            \
+                    -prefix "${odirqc_wdir}/$vpref1"       \
                     -montx 3 -monty 3               \
                     -set_xhairs MULTI               \
                     -label_mode 1 -label_size 3     \
@@ -857,7 +904,7 @@ if ( $DO_VIEWER ) then
                     -pbar_posonly                   \
                     -cbar "red_monochrome"          \
                     -opacity 6                      \
-                    -prefix "../$vpref2"            \
+                    -prefix "${odirqc_wdir}/$vpref2" \
                     -montx 3 -monty 3               \
                     -set_xhairs MULTI               \
                     -label_mode 1 -label_size 3     \
@@ -936,6 +983,7 @@ cat << EOF
         -prefix PPP                           \
         {-workdir  WWW}                       \
         {-out_match_ref}                      \
+        {-do_ceil_out}                        \
         {-extra_al_wtmask WT }                \
         {-extra_al_cost CC}                   \
         {-extra_al_inps II}                   \
@@ -978,6 +1026,12 @@ cat << EOF
                     image with (human, adult) t1w-like contrast
                     has been input.
      NB ---> one of these 'mode_*' setting MUST be picked.
+
+  -do_ceil_out     :for the final output volume, apply a ceiling based
+                    on the 98%ile value from within an automasked volume
+                    of the dset.  This reduces the influence of (sometimes
+                    very) large spiky voxels.  Seems like it might be
+                    useful for later alignments.
 
   -extra_al_wtmask WT:
                     Axialization is generally based on an overall 

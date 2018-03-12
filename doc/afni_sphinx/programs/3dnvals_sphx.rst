@@ -7,6 +7,8 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Usage: 3dnvals [-all] [-verbose] dataset [dataset dataset ...]
@@ -16,4 +18,4 @@
     * If -verbose is used then the header name of the dataset is printed first.
     * The function of this simple program is to help in scripting.
     
-    ++ Compile date = Nov  9 2017 {AFNI_17.3.03:macosx_10.7_local}
+    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}

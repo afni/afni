@@ -17,7 +17,7 @@ import random
 ## locations of stuff
 afni_bin = subprocess.check_output("which afni",shell=True)
 afni_dir = os.path.dirname(afni_bin)
-HistProg = afni_dir+"/shiny/ClustExp_HistTable.py"
+HistProg = afni_dir+"/ClustExp_HistTable.py"
 ShinyFolder = afni_dir+"/shiny/ClustExp_ShinyTemplate"
 
 ########################################################################
@@ -107,9 +107,9 @@ parser = argparse.ArgumentParser(prog=str(sys.argv[0]),
                                  formatter_class=argparse.RawDescriptionHelpFormatter,
                                  description=textwrap.dedent('''\
 ------------------------------------------
-Caveats:  (something more helpful coming later)
+## Overview ~1~
 
-## Input data sets:
+## Input datasets ~2~
 All data must be in the same space and aligned to the same template.
 And must be +tlrc or .nii or .nii.gz, +orig should fail.
 For the master, you need the full path.
@@ -117,7 +117,7 @@ It does not have to be the same voxel size as the subject and stats data sets.
 This will resample the grid of the master to match the other data sets.
 I will add a lookup for the built ins later.
 
-## Subject table:
+## Subject table ~2~
 The -SubjTable needs to be 3 columns.
 1: Subject ID
 2: Data set and current location path.
@@ -128,6 +128,7 @@ If you put ./subjects/subj1.nii.gz[0] in the analysis, the -SubjTable
 must have the same exact string.
 This is to take care of paths like: ./subjects/subj1/data.nii.gz[0].
 
+## Caveats ~2~
 Statistics image must be DIRECTLY from 3dttest++ or 3dMVM.
 3dttest++ must have been run with no covariates.
 
@@ -140,6 +141,8 @@ you may not have the history information necessary for this process.
 
 Only outputs NIfTI images, as they are easier for the shiny app.
 ------------------------------------------
+
+## Outputs ~1~
 
 Outputs files named with your -prefix and some with the -p
 (as example -prefix disco -p 0.01):
@@ -179,6 +182,8 @@ disco_master.nii.gz:
 
 ------------------------------------------
 
+## Options ~1~
+
                                  '''),epilog=textwrap.dedent('''\
 ------------------------------------------
 Justin Rajendra circa 09/2017
@@ -214,8 +219,8 @@ optional.add_argument('-prefix',type=str,default="MyOutput",
                       help="Name for output (no path). [MyOutput]")
 optional.add_argument('-p',type=need_pos_float,default=0.005,metavar='PVAL',
                       help="Uncorrected p value for thresholding. [0.005]")
-optional.add_argument('-MinVox',type=min_vox_two,default=100,
-                      help="Minimum voxels in cluster. [100]")
+optional.add_argument('-MinVox',type=min_vox_two,default=20,
+                      help="Minimum voxels in cluster. [20]")
 optional.add_argument('-atlas',type=str,default="TT_Daemon",
                       help="Atlas name for lookup. (list at: whereami -help) [TT_Daemon]")
 optional.add_argument('-session',type=str,default="./",
@@ -225,6 +230,7 @@ optional.add_argument('-NoShiny',action="store_true", default=False,
                       help="Do not create shiny app.")
 optional.add_argument('-overwrite',action="store_true", default=False,
                       help="Remove previous folder with same PREFIX")
+parser.add_argument('-help',action='help',help='Show this help.')
 
 ## if nothing, show help
 if len(sys.argv) == 1:

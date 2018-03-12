@@ -7,6 +7,8 @@ fat_proc_align_anat_pair
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     # -----------------------------------------------------------------------
@@ -55,7 +57,7 @@ fat_proc_align_anat_pair
      use high resolution options for data acquired at higher resolution.
      Anyways, you can read more about that there.
     
-      Ver. 1.8 (PA Taylor, Sep 04, 2017)
+      Ver. 1.9 (PA Taylor, Jan 12, 2018)
     
     # ----------------------------------------------------------------------
     

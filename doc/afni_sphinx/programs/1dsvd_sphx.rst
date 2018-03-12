@@ -7,6 +7,8 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Usage: 1dsvd [options] 1Dfile 1Dfile ...
@@ -69,4 +71,4 @@
       http://en.wikipedia.org/wiki/Singular_value_decomposition
     * Author: Zhark the Algebraical (Linear).
     
-    ++ Compile date = Nov  9 2017 {AFNI_17.3.03:macosx_10.7_local}
+    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}

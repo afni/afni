@@ -7,6 +7,8 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     
@@ -20,7 +22,7 @@
        -help: this message
     
     Note that this script only modifies the contents of your .afnirc
-       file which is determined to be: /Users/discoraj/.afnirc
+       file which is determined to be: /home/ptaylor/.afnirc
     
     See also:
        apsearch -afni_rc_file

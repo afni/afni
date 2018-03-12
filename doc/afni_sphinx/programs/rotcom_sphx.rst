@@ -7,6 +7,8 @@ rotcom
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Usage: rotcom '-rotate aaI bbR ccA -ashift ddS eeL ffP' [dataset]

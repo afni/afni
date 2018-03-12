@@ -1961,7 +1961,6 @@ extern void AFNI_read_1D_CB( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_finalize_read_1D_CB( Widget , XtPointer , XtPointer ) ;
 
 extern int  DSET_in_global_session( THD_3dim_dataset * ) ;       /* 20 Dec 2001 */
-extern void AFNI_append_sessions( THD_session *, THD_session *); /* 20 Dec 2001 */
 
 extern void AFNI_read_Web_CB( Widget, XtPointer, XtPointer );    /* 26 Mar 2001 */
 extern void AFNI_finalize_read_Web_CB( Widget, XtPointer, MCW_choose_cbs * );
@@ -2403,6 +2402,10 @@ extern void AFNI_register_nD_func_init( int nd , generic_func *fin ) ;
 extern void AFNI_store_dset_index(int,int) ;  /* 18 May 2000 */
 extern int  AFNI_needs_dset_ijk(void) ;
 extern int  AFNI_needs_dset_tin(void) ;
+
+extern int AFNI_gcd( int m , int n ) ;
+extern int AFNI_find_relprime_random( int n ) ;
+extern int AFNI_find_relprime_fixed( int n ) ;
 
 /*-----------------------------------------------------------*/
 /*-----------------  initializations  -----------------------*/

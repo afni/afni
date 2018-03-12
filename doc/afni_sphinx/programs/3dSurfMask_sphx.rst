@@ -7,6 +7,8 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     
@@ -186,12 +188,12 @@
                    you want to use the FreeSurfer reconstructed surfaces from
                    the MNI_N27 volume, or TT_N27
                    Those templates must be installed under this directory:
-                     /Users/discoraj/.afni/data/
+                     /home/ptaylor/.afni/data/
                    If you have no surface templates there, download
                      http:afni.nimh.nih.gov:/pub/dist/tgz/suma_MNI_N27.tgz
                    and/or
                      http:afni.nimh.nih.gov:/pub/dist/tgz/suma_TT_N27.tgz
-                   and untar them under directory /Users/discoraj/.afni/data/
+                   and untar them under directory /home/ptaylor/.afni/data/
          DENSITY: Use if you want to load standard-mesh versions of the template
                   surfaces. Note that only ld20, ld60, ld120, and ld141 are in
                   the current distributed templates. You can create other 
@@ -207,7 +209,7 @@
          For template surfaces, the -sv option is provided automatically, so you
          can have SUMA talking to AFNI with something like:
                  suma -i l:MNI_N27:ld60:smooth &
-                 afni -niml /Users/discoraj/.afni/data/suma_MNI_N27 
+                 afni -niml /home/ptaylor/.afni/data/suma_MNI_N27 
     
      Specifying surfaces using -t* options: 
        -tn TYPE NAME: specify surface type and name.
@@ -247,12 +249,12 @@
                    you want surfaces from the MNI_N27 volume, or TT_N27
                    for the Talairach version.
                    Those templates must be installed under this directory:
-                     /Users/discoraj/.afni/data/
+                     /home/ptaylor/.afni/data/
                    If you have no surface templates there, download
                      http:afni.nimh.nih.gov:/pub/dist/tgz/suma_MNI_N27.tgz
                    and/or
                      http:afni.nimh.nih.gov:/pub/dist/tgz/suma_TT_N27.tgz
-                   and untar them under directory /Users/discoraj/.afni/data/
+                   and untar them under directory /home/ptaylor/.afni/data/
          DENSITY: Use if you want to load standard-mesh versions of the template
                   surfaces. Note that only ld20, ld60, ld120, and ld141 are in
                   the current distributed templates. You can create other 
@@ -264,7 +266,7 @@
          For template surfaces, the -sv option is provided automatically, so you
          can have SUMA talking to AFNI with something like:
                  suma -spec MNI_N27:ld60 &
-                 afni -niml /Users/discoraj/.afni/data/suma_MNI_N27 
+                 afni -niml /home/ptaylor/.afni/data/suma_MNI_N27 
     
      Specifying a surface using -surf_? method:
         -surf_A SURFACE: specify the name of the first

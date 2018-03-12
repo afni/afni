@@ -103,7 +103,7 @@ for ``@ClustExp_CatLab``.
 
 .. code-block:: tcsh
 
-    ClustExp_HistTable.py -input My_ANOVA.nii.gz -prefix My_Sharona
+    ClustExp_HistTable.py -StatDSET My_ANOVA.nii.gz -prefix My_Sharona
 
 For ``3dttest++`` the output table will look something like:
 

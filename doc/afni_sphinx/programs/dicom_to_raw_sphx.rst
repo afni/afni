@@ -7,6 +7,8 @@ dicom_to_raw
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Usage: dicom_to_raw fname ...

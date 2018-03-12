@@ -7,6 +7,8 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     
@@ -82,13 +84,13 @@
     
        -h_aspx: like -h_spx, with autolabeling
     
+       -help: this help message, in simple text.
+    
        -h_raw: this help message, as is in the code.
     
        -h_spx: this help message, in sphinx format
     
        -h_txt: this help message, in simple text
-    
-       -help: this help message, in simple text.
     
        -input DSET1                       \
           Specify the dataset to be scaled. Note that you can use

@@ -7,6 +7,8 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Usage: 3dFFT [options] dataset
@@ -94,4 +96,4 @@
      * Started a long time ago, but only finished in Aug 2009 at the
         request of John Butman, because he asked so nicely.  (Now pay up!)
     
-    ++ Compile date = Nov  9 2017 {AFNI_17.3.03:macosx_10.7_local}
+    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}

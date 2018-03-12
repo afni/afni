@@ -7,6 +7,8 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     
@@ -128,11 +130,11 @@
     
        -prefix PREFIX: Output prefix. See also -save. 
     
-       -row.name NAME1 [NAME2 ...]: Name of each row in -input. 
-            For the moment, this is only used with -matplot
-    
        -rowcol.name NAME1 [NAME2 ...]: Names of rows, same as name of columns.
             For the moment, this is only used with -matplot.
+    
+       -row.name NAME1 [NAME2 ...]: Name of each row in -input. 
+            For the moment, this is only used with -matplot
     
        -run_examples: Run all examples, one after the other.
     

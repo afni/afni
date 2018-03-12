@@ -7,6 +7,8 @@ fat_proc_connec_vis
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     # -----------------------------------------------------------------------
@@ -20,7 +22,7 @@ fat_proc_connec_vis
      This program creates surface-ized views of the separate WMCs which can
      be viewed simultaneously in 3D with SUMA. 
     
-      Ver. 1.21 (PA Taylor, Oct 25, 2017)
+      Ver. 1.23 (PA Taylor, Dec 22, 2017)
     
     -------------------------------------------------------------------------
     
@@ -29,11 +31,14 @@ fat_proc_connec_vis
       fat_proc_connec_vis  \
         -in_rois       NETROIS       \
         -prefix        PPP           \
+       {-prefix_file   FFF}          \
        {-tsmoo_kpb     KPB}          \
        {-tsmoo_niter   NITER}        \
        {-iso_opt       ISO_OPT}      \
-       {-wdir          WWW}          \
        {-trackid_no_or}              \
+       {-output_tcat}                \
+       {-output_tstat}               \
+       {-wdir          WWW}          \
        {-no_clean}
     
     
@@ -42,8 +47,20 @@ fat_proc_connec_vis
         -in_rois NETROIS   :list of separate files, each with single ROI
                             volume mask; can include wildcards, etc. to specify
                             the list
-        -prefix      PPP   :output prefix for the outputs: *cmd.txt and surface
-                            files such as *.gii and *.niml.dset
+    
+        -prefix      PPP   :directory to contain the output files: *cmd.txt and 
+                            surface files such as *.gii and *.niml.dset; the
+                            namebase of files within this directory will be the 
+                            default for the program, "wmc".  The value PPP
+                            can contain parts of a path in it. 
+             or
+        -prefix_file FFF   :prefix for the output files: *cmd.txt and surface
+                            files such as *.gii and *.niml.dset; can include
+                            path steps; and can make one level of a new directory.
+                            For example, if FFF were "A/B", then the program
+                            could make a new directory called "A" if it didn't
+                            exist already and populate it with individual files
+                            having the same prefix "B".
     
         -tsmoo_kpb   KPB   :"KPB" parameter in IsoSurface program;  default
                             value is 0.01.
@@ -61,6 +78,16 @@ fat_proc_connec_vis
                             the OR-logic ROIs, including only the AND-logic (AKA
                             pairwise) connections.  This is mainly useful when 
                             wildcard expressions are using for '-in_rois NETROIS'.
+    
+        -output_tcat       :flag to output the multibrick file of concatenated
+                            ROI masks; note that the [0]th brick will be all
+                            zeros (it is just a place holder).  So, if there are
+                            N ROI maps concatenated, there will be N+1 bricks
+                            in the output dset, which has name PPP_tcat.nii.gz.
+        -output_tstat      :flag to output the single brick file from the 3dTstat
+                            operation on the tcat dset.  If there were N ROI maps
+                            concatenated, then the largest value should be N.
+                            The output file's name will be PPP_tstat.nii.gz.
     
         -wdir    WWW       :"__WDIR_connec_vis_PPP", where PPP is the input 
                             prefix.

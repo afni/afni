@@ -145,7 +145,7 @@ static MRI_IMAGE *imtemplate = NULL ;
 #define PSMALL 1.e-15
 
 #define FARP_GOAL 5.00f    /* 5 percent */
-#define FGFAC     0.98f    /* fudge factor (1 = no fudge for you) */
+#define FGFAC     1.00f    /* fudge factor (1 = no fudge for you) */
 
 static float fgfac     = FGFAC ;
 static float farp_goal = FARP_GOAL ;
@@ -160,7 +160,7 @@ static int numfarp = 1 ;
 static char *abcd[NFARP]     = { "a", "b", "c", "d", "e", "f", "g", "h" } ;
 
 #define FG_GOAL  (farp_goal*fgfac)
-#define MAXITE   13
+#define MAXITE   11
 
 /*----------------------------------------------------------------------------*/
 /*! Threshold for upper tail probability of N(0,1) = 1-inverseCDF(pval) */
@@ -965,8 +965,10 @@ int main( int argc , char *argv[] )
    float     ***car0 =NULL , ***car1 =NULL , ***car2 =NULL , **carHP ;
    float *farar=NULL ;
    int nfomkeep , nfar , itrac , ithresh , hp,ibr, ithresh_list[MAXITE] ;
-   float tfrac=0.0006f , farperc=0.0f,farcut , tfracold,farpercold,ttemp ;
+   float tfrac=0.0006f, farperc=0.0f,farcut=0.0f, tfracold,farpercold,ttemp, farlast ;
    int ifarp ;
+   float *gthrout , *gthrH ;
+   int ntfp=0 , ntfp_all=0 ; float *tfs=NULL , *fps=NULL ;
 
    /*----- help me if you can (I'm feeling down) -----*/
 
@@ -1222,9 +1224,15 @@ int main( int argc , char *argv[] )
    /*=========================================================================*/
    /*--- STEP 1c: find the global distributions and min thresholds -----------*/
 
-#define GTHRESH_FAC 0.066666f /* factor for method 1 */
-#define GTHRESH_THA 0.011111f /* how far into clust table: method 1 (per %) */
-#define GTHRESH_THB 0.033333f /* how far into clust table: method 2 (per %) */
+#if 0
+# define GTHRESH_FAC 0.066666f /* factor for method 1 */
+# define GTHRESH_THA 0.021111f /* how far into clust table: method 1 (per %) */
+# define GTHRESH_THB 0.042222f /* how far into clust table: method 2 (per %) */
+#else
+# define GTHRESH_FAC 0.799999f /* factor for method 1 */
+# define GTHRESH_THA 0.008888f /* how far into clust table: method 1 (per %) */
+# define GTHRESH_THB 0.013579f /* how far into clust table: method 2 (per %) */
+#endif
 
    { int nfom,jj,nfff; Xcluster **xcc;
      float a0,a1,f0,f1,fta,ftb , fmax , fg ;
@@ -1283,8 +1291,10 @@ int main( int argc , char *argv[] )
            fg  = farplist[ifarp] ;                  /* FPR goal in % */
 
            jj  = (int)rintf(GTHRESH_THA*nfff*fg) ;  /* method 1 */
+           if( jj >= nfom ) jj = nfom-1 ;           /* should be impossible */
            fta = GTHRESH_FAC*fomg0[jj] ;
            jj  = (int)rintf(GTHRESH_THB*nfff*fg) ;  /* method 2 */
+           if( jj >= nfom ) jj = nfom-1 ;           /* should be impossible */
            ftb = fomg0[jj] ;
            gthresh0[ifarp][qcase][qpthr] = (int)(fmax*MAX(fta,ftb)+(1.0f-fmax)*MIN(fta,ftb)) ;
            if( verb > 1 && do_hpow0 ){
@@ -1292,9 +1302,11 @@ int main( int argc , char *argv[] )
                             gthresh0[ifarp][qcase][qpthr],lcase[qcase],pthr[qpthr],fg) ;
            }
 
-           jj  = (int)rintf(GTHRESH_THA*nfff) ;
+           jj  = (int)rintf(GTHRESH_THA*nfff*fg) ;
+           if( jj >= nfom ) jj = nfom-1 ;           /* should be impossible */
            fta = GTHRESH_FAC*fomg1[jj] ;
-           jj  = (int)rintf(GTHRESH_THB*nfff) ;
+           jj  = (int)rintf(GTHRESH_THB*nfff*fg) ;
+           if( jj >= nfom ) jj = nfom-1 ;           /* should be impossible */
            ftb = fomg1[jj] ;
            gthresh1[ifarp][qcase][qpthr] = (fmax*MAX(fta,ftb)+(1.0f-fmax)*MIN(fta,ftb)) ;
            if( verb > 1 && do_hpow1 ){
@@ -1302,9 +1314,11 @@ int main( int argc , char *argv[] )
                             gthresh1[ifarp][qcase][qpthr],lcase[qcase],pthr[qpthr],fg) ;
            }
 
-           jj  = (int)rintf(GTHRESH_THA*nfff) ;
+           jj  = (int)rintf(GTHRESH_THA*nfff*fg) ;
+           if( jj >= nfom ) jj = nfom-1 ;           /* should be impossible */
            fta = GTHRESH_FAC*fomg2[jj] ;
-           jj  = (int)rintf(GTHRESH_THB*nfff) ;
+           jj  = (int)rintf(GTHRESH_THB*nfff*fg) ;
+           if( jj >= nfom ) jj = nfom-1 ;           /* should be impossible */
            ftb = fomg2[jj] ;
            gthresh2[ifarp][qcase][qpthr] = (fmax*MAX(fta,ftb)+(1.0f-fmax)*MIN(fta,ftb)) ;
            if( verb > 1 && do_hpow2 ){
@@ -1505,7 +1519,7 @@ int main( int argc , char *argv[] )
      }
    }
 
-#define TOPFRAC 0.12345678f
+#define TOPFRAC 0.2468f
    nfomkeep = (int)(TOPFRAC*niter) ; /* max number of FOMs to keep at 1 voxel */
 
    for( qcase=0 ; qcase < ncase ; qcase++ ){ /* loop over cases */
@@ -1734,6 +1748,11 @@ int main( int argc , char *argv[] )
 
    nit33 = 1.0f/(niter+0.333f) ;
 
+   ntfp = 0 ; ntfp_all = 128 ;
+   tfs  = (float *)malloc(sizeof(float)*ntfp_all) ;
+   fps  = (float *)malloc(sizeof(float)*ntfp_all) ;
+
+   farlast = farplist[0] ;
    for( ifarp=0 ; ifarp < numfarp ; ifarp++ ){ /* 23 Aug 2017 */
 
      farp_goal = farplist[ifarp] ;
@@ -1746,10 +1765,19 @@ int main( int argc , char *argv[] )
      /* tfrac = FOM count fractional threshold;
                 will be adjusted to find the 5% FPR goal */
 
-     if( ifarp == 0 )                               /* first time thru */
-       tfrac = (5.0f+farp_goal)*0.00005f ;
-     else
-       tfrac *= ( farp_goal / farplist[ifarp-1] ) ; /* adjust previous result */
+     if( ifarp == 0 ){                                     /* first time thru */
+       tfrac = (4.0f+farp_goal)*0.00005f ;
+     } else if( ntfp < 2 ){                  /* if only 1 earlier calculation */
+       tfrac *= 1.0666f * farp_goal / farlast ;     /* adjust previous result */
+     } else {
+       int jj, jd ; float adf, mdf ;         /* later: use closest in history */
+       mdf = fabsf(fps[0]-farp_goal) ; jd = 0 ;   /* to adjust starting point */
+       for( jj=1 ; jj < ntfp ; jj++ ){
+         adf = fabsf(fps[jj]-farp_goal) ;
+         if( adf < mdf ){ mdf = adf ; jd = jj ; }
+       }
+       tfrac = tfs[jd] * farp_goal / fps[jd] ;
+     }
 
      itrac = 0 ;
      farpercold = farperc = 0.0f ; tfracold = tfrac ;
@@ -1758,12 +1786,12 @@ int main( int argc , char *argv[] )
 
 FARP_LOOPBACK:
      {
-       float min_tfrac ; int nedge,nmin ;
+       float min_tfrac ; int nedge,nmin,ntest ;
        min_tfrac = 6.0f / niter ; if( min_tfrac > 0.0001f ) min_tfrac = 0.0001f ;
 
        itrac++ ;                                      /* number of iterations */
        nfar = 0 ;                                          /* total FAR count */
-       nedge = nmin = 0 ;                             /* number of edge cases */
+       nedge = nmin = ntest = 0 ;                     /* number of edge cases */
 
          /* we take ithresh-th largest FOM at each voxel as its FOM threshold */
 #if 0
@@ -1834,8 +1862,8 @@ FARP_LOOPBACK:
            npt = fomsortH[ipthr][iv]->npt ;  /* how many FOM values here */
            jthresh = ithresh ;            /* default index of FOM thresh */
 
-           if( jthresh > (int)(0.222f*npt) ){  /* edge case: */
-             jthresh = (int)(0.222f*npt) ;     /* not many FOM values here */
+           if( jthresh > (int)(0.666f*npt) ){  /* edge case: */
+             jthresh = (int)(0.666f*npt) ;     /* not many FOM values here */
 #pragma omp atomic
              nedge++ ;
            }
@@ -1850,6 +1878,9 @@ FARP_LOOPBACK:
            f0 = fomsortH[ipthr][iv]->far[jthresh] ;
            f1 = fomsortH[ipthr][iv]->far[jthresh+1] ;
            ft = inverse_interp_extreme( a0,a1,tfrac , f0,f1 ) ;
+
+#pragma omp atomic                      /* total number of tests */
+           ntest++ ;
 
            if( ft < gthreshH[ipthr] ){  /* min case: */
              ft = gthreshH[ipthr] ;     /* threshold falls below global */
@@ -1905,27 +1936,47 @@ FARP_LOOPBACK:
 
      farpercold = farperc ;               /* save what we got last time */
      farperc    = (100.0f*nfar)/(float)niter ; /* what we got this time */
+     farlast    = farperc ;           /* save for next FPR goal, if any */
+
+     /* save results for later re-use [22 Feb 2018] */
+     if( ntfp == ntfp_all ){
+       ntfp_all += 128 ;
+       tfs = (float *)realloc(tfs,sizeof(float)*ntfp_all) ;
+       fps = (float *)realloc(tfs,sizeof(float)*ntfp_all) ;
+     }
+     tfs[ntfp] = tfrac ; fps[ntfp] = farperc ; ntfp++ ;
+
+     /* farcut = precision desired for our FPR goal */
+     farcut = 0.222f ;
+     if( itrac > 2 ) farcut += (itrac-2)*0.04321f ;
+
      if( verb )
-       ININFO_message("         FPR = %.2f%%", farperc/fgfac ) ;
+       ININFO_message("         FPR=%.2f%%  farcut=%.2f%%  nedge=%d  nmin=%d ntest=%d",
+                      farperc,farcut,nedge,nmin,ntest ) ;
      MEMORY_CHECK(" ") ;
 
-     /* do we need to try another tfrac to get closer to our goal? */
+     /* if no substantial progress, quit */
 
-          if( itrac < 5 ) farcut = 0.222f ; /* precision of goal meeting */
-     else if( itrac < 7 ) farcut = 0.333f ;
-     else if( itrac < 9 ) farcut = 0.444f ;
-     else                 farcut = 0.555f ; /* despair */
+     if( itrac > 2 && fabsf(farperc-farpercold) < 0.0222f ){
+       ININFO_message("         ((Progress too slow - breaking out **))") ;
+       goto FARP_BREAKOUT ;
+     }
+
+     /* try another tfrac to get closer to our goal? */
+
      if( itrac < MAXITE && fabsf(farperc-FG_GOAL) > farcut ){
-       float fff ;
-       if( itrac == 1 || (farperc-FG_GOAL)*(farpercold-FG_GOAL) > 0.0f ){ /* scale */
+       float fff , dtt ;
+       if( itrac == 1 || (farperc-FG_GOAL)*(farpercold-FG_GOAL) > 0.1f ){ /* scale */
          fff = FG_GOAL/farperc ;
          if( fff > 2.222f ) fff = 2.222f ; else if( fff < 0.450f ) fff = 0.450f ;
-         ttemp = tfrac ; tfrac *= fff ;
+         dtt  = (fff-1.0f)*tfrac ;        /* tfrac step */
+         dtt *= (0.8666f+0.2222f*itrac) ; /* accelerate it */
+         ttemp = tfrac ; tfrac += dtt ; 
        } else {                                      /* linear inverse interpolate */
          fff = (farperc-farpercold)/(tfrac-tfracold) ;
          ttemp = tfrac ; tfrac = tfracold + (FG_GOAL-farpercold)/fff ;
        }
-#define TFTOP (0.555f*TOPFRAC)
+#define TFTOP (0.666f*TOPFRAC)
        tfracold = ttemp ;
             if( tfrac < min_tfrac ) tfrac = min_tfrac ;
        else if( tfrac > TFTOP     ) tfrac = TFTOP ;
@@ -1937,6 +1988,8 @@ FARP_BREAKOUT: ; /*nada*/
 
      /*=====================================================*/
      /*--- Write stuff out, then this farp_goal is done ---*/
+
+     gthrout = (float *)malloc(sizeof(float)*npthr*nhpow) ;
 
      for( qcase=0 ; qcase < ncase ; qcase++ ){ /* one dataset per case */
 
@@ -1954,31 +2007,41 @@ FARP_BREAKOUT: ; /*nada*/
 
        for( ibr=0,qpthr=0 ; qpthr < npthr ; qpthr++ ){
         for( hp=0 ; hp < 3 ; hp++ ){
-         if( hp==0 ){ if( !do_hpow0 ) continue ; else carHP = car0[qcase] ; }
-         if( hp==1 ){ if( !do_hpow1 ) continue ; else carHP = car1[qcase] ; }
-         if( hp==2 ){ if( !do_hpow2 ) continue ; else carHP = car2[qcase] ; }
+         if( hp==0 ){ if( !do_hpow0 ) continue;
+                      else { carHP=car0[qcase]; gthrH=gthresh0[ifarp][qcase]; }}
+         if( hp==1 ){ if( !do_hpow1 ) continue;
+                      else { carHP=car1[qcase]; gthrH=gthresh1[ifarp][qcase]; }}
+         if( hp==2 ){ if( !do_hpow2 ) continue;
+                      else { carHP=car2[qcase]; gthrH=gthresh2[ifarp][qcase]; }}
          EDIT_substitute_brick( qset , ibr , MRI_float , NULL ) ;
          qar = DSET_ARRAY(qset,ibr) ;
          AAmemcpy( qar , carHP[qpthr] , sizeof(float)*nxyz ) ;
          sprintf(qpr,"Mth:%.4f:h=%d",pthr[qpthr],hp) ;
-         EDIT_BRICK_LABEL(qset,ibr,qpr) ; ibr++ ;
+         EDIT_BRICK_LABEL(qset,ibr,qpr) ;
+         gthrout[ibr] = gthrH[qpthr] ;
+         ibr++ ;
        }}
 
        /* attach an attribute describing the multi-threshold setup */
 
        { float *afl=malloc(sizeof(float)*(npthr+5)) ;
-         afl[0] = (float)nnlev ;
-         afl[1] = (float)nnsid ;
-         afl[2] = (float)qpthr ;
-         afl[3] = (float)(do_hpow0 + 2*do_hpow1 + 4*do_hpow2) ;
-         for( qpthr=0 ; qpthr < npthr ; qpthr++ )
+         afl[0] = (float)nnlev ;                                       /* NN */
+         afl[1] = (float)nnsid ;                      /* sidedness of t-test */
+         afl[2] = (float)npthr ;                   /* number of z-thresholds */
+         afl[3] = (float)(do_hpow0 + 2*do_hpow1 + 4*do_hpow2) ; /* hpow bits */
+         for( qpthr=0 ; qpthr < npthr ; qpthr++ )    /* and the z-thresholds */
            afl[qpthr+4] = zthr_used[qpthr] ;
 
-         afl[npthr+4] = (float)min_clust ; /* 21 Sep 2017 */
+         afl[npthr+4] = (float)min_clust ; /* min cluster size [21 Sep 2017] */
 
          THD_set_float_atr( qset->dblk ,
                             "MULTI_THRESHOLDS" , npthr+5 , afl ) ;
          free(afl) ;
+
+         /* attribute for the minimum thresholds per brick [20 Feb 2018] */
+
+         THD_set_float_atr( qset->dblk ,
+                            "MULTI_THRESHOLDS_MIN" , npthr*nhpow , gthrout ) ;
        }
 
        /* output dataset */

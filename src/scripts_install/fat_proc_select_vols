@@ -1,4 +1,6 @@
-#!/bin/tcsh -e
+#!/bin/tcsh
+
+@global_parse `basename $0` "$*" ; if ($status) exit 0
 
 # written by PA Taylor (NIMH, NIH, USA)
 # started March, 2017
@@ -203,6 +205,13 @@ if ( ! -e "$odir" ) then
     mkdir "$odir"
 endif
 
+set odirqc = "$odir/QC"
+if ( "$DO_VIEWER" == "1" ) then
+    if ( ! -e "$odirqc" ) then
+        mkdir "$odirqc"
+    endif
+endif
+
 # ----> here, only need wdir if outputting imgs but no vol; see below
 
 # ========================= output fnames ==========================
@@ -297,12 +306,12 @@ if ( "$DO_OUTVOL" == "1" ) then
 
         $my_viewer_4d \
             -inset  $odir/$ovol               \
-            -prefix "$odir/$img_pref"   
+            -prefix "$odirqc/$img_pref"   
 
         if ( "$movie" != "" ) then
             $my_viewer_4d \
-                -inset  $odir/$ovol          \
-                -prefix "$odir/$img_pref"    \
+                -inset  $odir/$ovol            \
+                -prefix "$odirqc/$img_pref"    \
                 $movie
         endif
     endif
@@ -342,23 +351,14 @@ else
         set img_pref = `basename $fout     .gz`
         set img_pref = `basename $img_pref .nii`
 
-#        $my_viewer_4d \
-#            -inset  "$fout"        \
-#            -outdir "$odir"                   \
-#            -prefix "$img_pref"   
-        $my_viewer_4d \
+        $my_viewer_4d                    \
             -inset  "$fout"              \
-            -prefix "$odir/$img_pref"   
+            -prefix "$odirqc/$img_pref"   
 
         if ( "$movie" != "" ) then
-#            $my_viewer_4d \
-#                -inset  "$fout"        \
-#                -outdir "$odir"                   \
-#                -prefix "$img_pref"         \
-#                $movie
-            $my_viewer_4d \
+            $my_viewer_4d                    \
                 -inset  "$fout"              \
-                -prefix "$odir/$img_pref"    \
+                -prefix "$odirqc/$img_pref"  \
                 $movie
         endif
 
@@ -462,14 +462,14 @@ cat << EOF
 
     $this_prog    \
         -in_dwi DWI.nii.gz               \
-        -in_img DWI_sepscl.sag.png       \
+        -in_img QC/DWI_sepscl.sag.png    \
         -prefix DWI_trim
 
 
     $this_prog    \
-        -in_dwi DWI_ap.nii.gz            \
-        -in_img DWI_ap_sepscl.sag.png    \
-        -in_bads DWI_trim_bads.txt       \
+        -in_dwi DWI_ap.nii.gz             \
+        -in_img QC/DWI_ap_sepscl.sag.png  \
+        -in_bads DWI_trim_bads.txt        \
         -prefix DWI_trim_both 
 
 # -----------------------------------------------------------------------

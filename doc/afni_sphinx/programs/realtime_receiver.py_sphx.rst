@@ -7,6 +7,8 @@ realtime_receiver.py
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     
@@ -26,9 +28,19 @@ realtime_receiver.py
     
        Examples:
     
-         1. Run in test mode to just display data on the terminal window.
+         1a. Run in test mode to display verbose data on the terminal window.
     
-            realtime_receiver.py -show_data
+            realtime_receiver.py -show_data yes
+    
+         1b. Run in test mode to just display motion to the terminal.
+    
+            realtime_receiver.py -write_text_data stdout
+    
+         1c. Write all 'extra' parameters to file my_data.txt, one set
+             per line.
+    
+            realtime_receiver.py -write_text_data my_data.txt \
+                                 -data_choice all_extras
     
          2. Provide a serial port, sending the Euclidean norm of the motion params.
     
@@ -167,6 +179,7 @@ realtime_receiver.py
           -swap                     : swap bytes incoming data
           -tcp_port PORT            : specify TCP port for incoming connections
           -verb LEVEL               : set the verbosity level
+          -write_text_data FNAME    : write data to text file 'FNAME'
     
     -----------------------------------------------------------------------------
     R Reynolds    July 2009

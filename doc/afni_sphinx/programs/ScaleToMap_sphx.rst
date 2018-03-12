@@ -7,6 +7,8 @@ ScaleToMap
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     
@@ -201,7 +203,7 @@ ScaleToMap
     
     
     Compile Date:
-       Nov  9 2017
+       Jan 29 2018
     
         Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov 
           July 31/02 

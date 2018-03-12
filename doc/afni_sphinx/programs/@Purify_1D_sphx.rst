@@ -7,6 +7,8 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Usage: @Purify_1D [<-sub SUB_STRING>] dset1 dset2 ...

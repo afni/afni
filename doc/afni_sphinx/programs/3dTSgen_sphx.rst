@@ -7,6 +7,8 @@
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     This program generates an AFNI 3d+time data set.  The time series for 
@@ -49,4 +51,4 @@
     [-brick m scoef k label]   kth signal parameter regression coefficient
     [-brick m ncoef k label]   kth noise parameter regression coefficient 
     
-    ++ Compile date = Nov  9 2017 {AFNI_17.3.03:macosx_10.7_local}
+    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}

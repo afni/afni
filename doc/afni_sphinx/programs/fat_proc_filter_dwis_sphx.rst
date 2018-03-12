@@ -7,6 +7,8 @@ fat_proc_filter_dwis
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     # -----------------------------------------------------------------------
@@ -43,7 +45,7 @@ fat_proc_filter_dwis
     
         REQUIRES: AFNI.
     
-        Ver. 3.1 (PA Taylor, Sep 04, 2017)
+        Ver. 3.2 (PA Taylor, Jan 09, 2019)
     
     # -----------------------------------------------------------------------
     
@@ -52,6 +54,7 @@ fat_proc_filter_dwis
         fat_proc_filter_dwis  \
             -in_dwi    DDD                     \
             -select   'SSS'                    \
+            {-select_file SF}                  \
             -prefix   PPP                      \
             {-in_col_matA|-in_col_matT|        \
              -in_col_vec|-in_row_vec} FFF      \
@@ -89,6 +92,12 @@ fat_proc_filter_dwis
                          here!
                          NB2: Always use the single quotes around the
                          selector expression. 
+           or
+      -select_file SF   :where SF is a file name whose only contents are a nice 
+                         string of indices and index ranges for selecting which
+                         volumes/grads/bvals to *keep*.  Like, literally just
+                            0..3,5,7..$
+                         sitting alone in a file-- no apostrophes needed/wanted.
     
       -prefix    PPP    :output prefix for all the volumes and text files.
                          Required.
@@ -116,12 +125,25 @@ fat_proc_filter_dwis
     
     # -----------------------------------------------------------------------
     
-      EXAMPLE (again, note the single apostrophes around the selector!):
+      EXAMPLES:
     
-        fat_proc_filter_dwis  \
-            -in_dwi       UNFILT_AP/AP.nii.gz       \
-            -in_col_matT  UNFILT_AP/AP_bmatT.dat    \
-            -select       '0..5,8,20..$'           \
-            -prefix       FILT_AP/AP 
+        1) ... with selector via the command line (again, note the single
+           apostrophes around the selector!):
+    
+            fat_proc_filter_dwis  \
+                -in_dwi       UNFILT_AP/AP.nii.gz       \
+                -in_col_matT  UNFILT_AP/AP_bmatT.dat    \
+                -select       '0..5,8,20..$'           \
+                -prefix       FILT_AP/AP 
+    
+        
+        2) ... with selector via file contents (where there would *not* be
+           apostrophes in the string sitting in the file):
+    
+            fat_proc_filter_dwis  \
+                -in_dwi       UNFILT_AP/AP.nii.gz           \
+                -in_col_matT  UNFILT_AP/AP_bmatT.dat        \
+                -select_file  UNFILT_AP/dwi_sel_goods.txt   \
+                -prefix       FILT_AP/AP 
     
     # -----------------------------------------------------------------------

@@ -7,6 +7,8 @@ nifti1_test
 .. contents:: 
     :depth: 4 
 
+| 
+
 .. code-block:: none
 
     Usage: nifti1_test [-n2|-n1|-na|-a2] infile [prefix]
