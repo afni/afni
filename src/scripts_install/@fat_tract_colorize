@@ -1,5 +1,7 @@
 #!/bin/tcsh
 
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+
 # ====================================================================
 # A script to visualize probabilistic (PROB) tracking results from
 # 3dTrackID using SUMA.  Default behavior is to open AFNI and talk, as

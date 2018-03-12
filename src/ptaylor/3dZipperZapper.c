@@ -34,6 +34,13 @@ int find_bad_slices_drop( float **slipar,
                           float MIN_DROP_DIFF,
                           float MIN_DROP_FRAC );
 
+int find_bad_slices_corr( float **slicorr,
+                          int *Nmskd,
+                          int **slibad,
+                          int *Dim,
+                          int MIN_CORR_LEN,
+                          float MIN_CORR_CORR );
+
 int make_goodstring_from_badlist( char *goodstring,
                                   int *volbad,
                                   int Nvolgood,
@@ -189,7 +196,7 @@ void usage_ZipperZapper(int detail)
 
 int main(int argc, char *argv[]) {
    int i,j,k,m,n,mm;
-   int idx=0;
+   int idx=0, imsk=0;
    int iarg;
 
    THD_3dim_dataset *insetA = NULL;
@@ -198,6 +205,7 @@ int main(int argc, char *argv[]) {
    char prefix[THD_MAX_PREFIX];
    char tprefixx[THD_MAX_PREFIX];
    char tprefixy[THD_MAX_PREFIX];
+   char tprefixc[THD_MAX_PREFIX];
    char bprefix[THD_MAX_PREFIX];
    char lprefix[THD_MAX_PREFIX];
    char sprefix[THD_MAX_PREFIX];
@@ -207,7 +215,7 @@ int main(int argc, char *argv[]) {
 
    // char in_name[300];
 
-   FILE *fout0, *fout1;
+   FILE *fout0, *fout1, *fout2;
 
    int Nvox=-1;   // tot number vox
    int *Dim=NULL;
@@ -217,36 +225,43 @@ int main(int argc, char *argv[]) {
    int TEST_OK = 0;
    double checksum = 0.;
 
-   int *Nmskd=NULL;                            // num of vox in slice inp mask
-   int *Nmskd2=NULL;                           // num of vox in slice dil mask
-   int MIN_NMSKD = -1;                         // calc how many vox/sli
-                                             // are needed for calc
-   int mink = -1, maxk = -1, upk = -1, delsli = -1;     // some loop pars
+   int *Nmskd=NULL;                // num of vox in slice inp mask
+   int *Nmskd2=NULL;               // num of vox in slice dil mask
+   int MIN_NMSKD = -1;             // calc how many vox/sli
+                                   // are needed for calc
+   int mink = -1, maxk = -1;
+   int upk = -1, delsli = -1;      // some loop pars
    
    // for vox counting and fracs
-   float **slipar=NULL;      // per sli, per vol par
-   int **slinvox=NULL;       // per sli, per vol count
+   float **slipar=NULL;            // per sli, per vol par
+   float **slicorr=NULL;           // per sli, per vol par
+   int **slinvox=NULL;             // per sli, per vol count
    // for entropy/zipping
-   //float **slient=NULL;        // per sli, per vol par
+   //float **slient=NULL;          // per sli, per vol par
 
-   int **slibad=NULL;        // per sli, badness marker
-   int *volbad=NULL;         // per vol, badness marker
+   int **slibad=NULL;              // per sli, badness marker
+   int *volbad=NULL;               // per vol, badness marker
    int Nvolbad=0, Nvolgood=-1;
-   int   MIN_STREAK_LEN  = 4;           // alternating streak
+
+   int   MIN_STREAK_LEN  = 4;      // alternating streak
    float MIN_STREAK_WARN = 0.3;    // seq of diffs of this mag -> BAD
    float MIN_DROP_DIFF   = 0.7;    // any diff of this mag -> BAD 
    float MIN_DROP_FRAC   = 0.05;   // any frac outside this edge -> BAD
-   THD_3dim_dataset *baddset=NULL;          // output dset of diffs
+   int   MIN_CORR_LEN    = 4;      //
+   float MIN_CORR_CORR   = 0.3;
 
+   double *xx=NULL, *yy=NULL;      // tmp arrs for corr calc
+
+   THD_3dim_dataset *baddset=NULL;          // output dset of diffs
    float **diffarr=NULL;
-   THD_3dim_dataset *diffdset=NULL;          // output dset of diffs
+   THD_3dim_dataset *diffdset=NULL;         // output dset of diffs
 
 	char dset_or[4] = "RAI";
 	THD_3dim_dataset *dsetn=NULL;
 
    int DO_OUT_SLIPAR=0;                   // output slice param map
    int DO_OUT_BADMASK=1;                  // output slice mask 
-   int DO_OUT_TEXTVALS=1;                // output text files 
+   int DO_OUT_TEXTVALS=1;                 // output text files 
 
    char A_ori[4], A_ori2[4];
 
@@ -258,7 +273,7 @@ int main(int argc, char *argv[]) {
    // ****************************************************************
    // ****************************************************************
 
-   INFO_message("version: 2018_01_11");
+   INFO_message("version: 2018_02_06");
 	
    /** scan args **/
    if (argc == 1) { usage_ZipperZapper(1); exit(0); }
@@ -571,6 +586,38 @@ int main(int argc, char *argv[]) {
             idx++;
          }
    
+   // ---------------- Calc corr of diff values ------------------
+
+   xx = (double *)calloc( delsli, sizeof(double) ); 
+   yy = (double *)calloc( delsli, sizeof(double) ); 
+   slicorr = calloc( Dim[3], sizeof(slicorr) );
+   for(i=0 ; i<Dim[3] ; i++) 
+      slicorr[i] = calloc( Dim[2], sizeof(float) );
+
+   if( (xx == NULL) || (yy == NULL) || (slicorr == NULL) ) { 
+      fprintf(stderr, "\n\n MemAlloc failure (arrs).\n\n");
+      exit(13);
+   }
+
+   // Single pass through.  
+   for( m=0 ; m<Dim[3] ; m++ ) {
+      idx = 0;
+      for( k=0 ; k<maxk ; k++ ) {
+         imsk = 0; // count voxels *in* mask in this slice
+         for( j=0 ; j<Dim[1] ; j++ ) 
+            for( i=0 ; i<Dim[0] ; i++ ) {
+               if( mskd2[idx] ) {
+                  upk = idx + delsli; // index one slice up                  
+                  xx[imsk] = diffarr[m][idx];
+                  yy[imsk] = diffarr[m][upk];
+                  imsk++;
+               }
+               idx++;
+            }
+         slicorr[m][k] = CORR_FUN(xx,yy,imsk);
+      }
+   }
+
    // ---------------- counts of slice vals ------------------
 
    // Count 'em
@@ -625,7 +672,14 @@ int main(int argc, char *argv[]) {
                              Dim,
                              MIN_DROP_DIFF,
                              MIN_DROP_FRAC );
-   
+
+   i = find_bad_slices_corr( slicorr,
+                             Nmskd,
+                             slibad,
+                             Dim,
+                             MIN_CORR_LEN,
+                             MIN_CORR_CORR );
+
    // keep track of badness
    for( m=0 ; m<Dim[3] ; m++ ) {
       for( k=0 ; k<maxk ; k++) 
@@ -651,7 +705,8 @@ int main(int argc, char *argv[]) {
 
       sprintf(tprefixx,"%s_sli.1D", prefix);
       sprintf(tprefixy,"%s_param.1D", prefix);
-      
+      sprintf(tprefixc,"%s_parcorr.1D", prefix);
+
       if( (fout0 = fopen(tprefixx, "w")) == NULL) {
          fprintf(stderr, "Error opening file %s.", tprefixx);
          exit(19);
@@ -660,21 +715,29 @@ int main(int argc, char *argv[]) {
          fprintf(stderr, "Error opening file %s.", tprefixy);
          exit(19);
       }
-      
+      if( (fout2 = fopen(tprefixc, "w")) == NULL) {
+         fprintf(stderr, "Error opening file %s.", tprefixc);
+         exit(19);
+      }
+
       for( k=0 ; k<maxk ; k++) {
          if (Nmskd[k]) {
             fprintf(fout0, " %5d\n", k);
             for( m=0 ; m<Dim[3] ; m++) {
                fprintf(fout1, " %8.5f ", fabs(slipar[m][k]-slipar[m][k+1]));
+               fprintf(fout2, " %8.5f ",  -slicorr[m][k]); // !!!!!!!!!!!!!!!!
                //fprintf(fout1, " %8.5f ", slipar[m][k]); // ORIG!
             }
             fprintf(fout1, "\n");
+            fprintf(fout2, "\n");
          }
       }
       fclose(fout0);
       fclose(fout1);
-      INFO_message("!Wrote text file:    %s", tprefixx);
-      INFO_message("!Wrote text file:    %s", tprefixy);
+      fclose(fout2);
+      INFO_message("--> Wrote text file:    %s", tprefixx);
+      INFO_message("--> Wrote text file:    %s", tprefixy);
+      INFO_message("--> Wrote text file:    %s", tprefixc);
    }
 
    if ( DO_OUT_SLIPAR ) {
@@ -716,12 +779,13 @@ int main(int argc, char *argv[]) {
          ERROR_exit("Can't overwrite existing dataset '%s'",
                     DSET_HEADNAME(diffdset));
       THD_write_3dim_dataset(NULL, NULL, diffdset, True);
-      INFO_message("!Wrote dataset:    %s\n", DSET_BRIKNAME(diffdset));
+      INFO_message("--> Wrote dataset:    %s\n", DSET_BRIKNAME(diffdset));
    }
 
 
-   // !!! maybe just temp:  output map of badness
-   if ( DO_OUT_BADMASK ) {
+   // !!! maybe just temp: output map of badness, *if* there are bad
+   // !!! vols
+   if ( DO_OUT_BADMASK && Nvolbad ) {
       
       byte **badarr=NULL;
 
@@ -785,7 +849,7 @@ int main(int argc, char *argv[]) {
          ERROR_exit("Can't overwrite existing dataset '%s'",
                     DSET_HEADNAME(baddset));
       THD_write_3dim_dataset(NULL, NULL, baddset, True);
-      INFO_message("!Wrote dataset:    %s\n", DSET_BRIKNAME(baddset));
+      INFO_message("--> Wrote dataset:    %s\n", DSET_BRIKNAME(baddset));
       
       if(badarr) {
          for( i=0 ; i<Dim[3] ; i++) 
@@ -820,7 +884,7 @@ int main(int argc, char *argv[]) {
                    gprefix);
    }
    else if( !Nvolgood )
-      WARNING_message("Hey, *no* uncorrupted vols were found??");
+      WARNING_message("Hey, *no* UNcorrupted vols were found??");
    else
       ERROR_message("Hey, a *negative* number of good vols were found???");
 
@@ -831,6 +895,7 @@ int main(int argc, char *argv[]) {
       fprintf(stderr, "Error opening file %s.", lprefix);
       exit(19);
    }
+
 
    fprintf(stderr, "++ The following %d vols were identified as bad:\n",
            Nvolbad);
@@ -843,6 +908,9 @@ int main(int argc, char *argv[]) {
       }
    }
    fclose(fout0);
+
+   if( !Nvolbad )
+      fprintf(stderr, "%15s %15s\n", "(None!)", "(zilch!)");
 
    INFO_message("Wrote text file listing bads:    %s", lprefix);
 
@@ -891,12 +959,17 @@ int main(int argc, char *argv[]) {
       free(slipar[i]);
       free(slinvox[i]);
       free(slibad[i]);
+      free(slicorr[i]);
       // free(slient[i]);
    }
    free(slipar);
    free(slinvox);
    free(slibad);
+   free(slicorr);
    // free(slient);
+
+   free(xx);
+   free(yy);
 
    free(volbad);
       
@@ -944,6 +1017,70 @@ int check_orient_xyz( THD_3dim_dataset *A )
 
    return 0;
 }
+
+
+
+
+
+
+
+
+
+// ---------------------------------------------------------
+int find_bad_slices_corr( float **slicorr,
+                          int   *Nmskd,
+                          int   **slibad,
+                          int   *Dim,
+                          int   MIN_CORR_LEN,
+                          float MIN_CORR_CORR )
+{
+   int k,m,i;
+   int topk = Dim[2] - MIN_CORR_LEN; // max sli to check iteratively
+   int THIS_SLI = 1;                 // switch to check or not
+   int IS_BAD = 0;
+
+   float xx[Dim[0]*Dim[1]];  // arrs to populate for corr
+   float yy[Dim[0]*Dim[1]];
+
+
+   for( m=0 ; m<Dim[3] ; m++ ) 
+      for( k=0 ; k<topk ; k++ ) {
+
+         // long enough streak to check?
+         THIS_SLI = 1;
+         for( i=0 ; i<MIN_CORR_LEN ; i++ )
+            if ( Nmskd[k+i] == 0 ) {
+               THIS_SLI = 0;
+               break;
+            }
+         if( THIS_SLI ) {
+            IS_BAD = 1;
+            for( i=0 ; i<MIN_CORR_LEN ; i++ )
+               // look for signed correlation stuff
+               if( -slicorr[m][k+i] < MIN_CORR_CORR )
+                  IS_BAD = 0; // -> the streak is broken
+            if( IS_BAD ) 
+               for( i=0 ; i<MIN_CORR_LEN ; i++ ) {
+                  slibad[m][k+i]+=1001;
+               }
+         }
+      }
+   
+   return 0;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // ---------------------------------------------------------
 int find_bad_slices_streak( float **slipar,

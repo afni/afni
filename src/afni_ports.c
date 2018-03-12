@@ -1,7 +1,7 @@
 #include "mrilib.h"
 #include <stdio.h>
 #include <string.h>
-#include <afni_environ.h>
+#include "afni_environ.h"
 #include <stdlib.h>
 
 /*************************************************************************/

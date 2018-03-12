@@ -8,6 +8,8 @@ endif
 
 set stat = 0
 set idir = $PWD
+# allow surface format to change
+set stype = .asc
 
 goto PARSE
 RET_PARSE:
@@ -364,6 +366,9 @@ set DemoSide = 'NADA'
 set DemoEcc = 'NADA'
 foreach sd ($sides)
    @ sdc ++ 
+   # determine surface type in spec file
+   set stype = `grep smoothwm\.  ${specs[$sdc]} | \
+			 grep "SurfaceName ="| awk -F. '{print $NF}'`
    VOL2SURFTS:
       if ($SurfInput == 0) then
          #Now map time series to surfaces
@@ -375,8 +380,8 @@ foreach sd ($sides)
                echo "Mapping $s to surface to create {$p}.${sd}.niml.dset"
                3dVol2Surf     $eu -spec          ${specs[$sdc]} \
                               -sv            SVol@Epi+orig   \
-                              -surf_A        ${sd}.smoothwm.asc \
-                              -surf_B        ${sd}.pial.asc  \
+                              -surf_A        ${sd}.smoothwm.${stype} \
+                              -surf_B        ${sd}.pial.${stype}  \
                               -grid_parent   $s \
                               -map_func      ave   \
                               -f_index       nodes \
@@ -444,7 +449,7 @@ foreach sd ($sides)
             if (  ! -f $class.sm.SmPar.1D ) then
          echo "Smoothing $dset to $sfwhm mm FWHM and creating $class.sm.SmPar.1D"
                SurfSmooth  -spec          ${specs[$sdc]} \
-                           -surf_A        ${sd}.smoothwm.asc \
+                           -surf_A        ${sd}.smoothwm.${stype} \
                            -input         $dset \
                            -met           HEAT_07   \
                            -target_fwhm   $sfwhm        \
@@ -460,7 +465,7 @@ foreach sd ($sides)
          echo "Smoothing $dset to $sfwhm mm FWHM per $class.sm.SmPar.1D"
                set pars = `1dcat $class.sm.SmPar.1D`
                SurfSmooth  $eu -spec          ${specs[$sdc]} \
-                           -surf_A        ${sd}.smoothwm.asc \
+                           -surf_A        ${sd}.smoothwm.${stype} \
                            -input         $dset \
                            -met           HEAT_07   \
                            -Niter         $pars[1]\

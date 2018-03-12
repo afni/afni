@@ -509,11 +509,11 @@ AllSubj.MEMA <- function (subjLab) {
 greeting.MEMA <- function ()
    return( "#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
           ================== Welcome to 3dMEMA.R ==================          
-             AFNI Mixed-Effects Meta-Analysis Modeling Package!
+             Mixed-Effects Multilevel-Analysis Modeling!
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.1, Dec 21, 2016
+Version 1.0.2, Jan 19, 2018
 Author: Gang Chen (gangchen@mail.nih.gov)
-Website - https://afni.nimh.nih.gov/sscc/gangc/MEMA.html
+Website - https://afni.nimh.nih.gov/MEMA
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
       )
@@ -1417,7 +1417,8 @@ process.MEMA.opts <- function (lop, verb = 0) {
          
          if(lop$centerType2 == 1 | lop$centerType2 == 3) { # different slope
             if(dim(lop$covData)[1]==1) lop$covData <- cbind(t(lop$covData), t(lop$covData)*lop$xMat[,2, drop=F]) else
-            lop$covData <- cbind(lop$covData, lop$covData*lop$xMat[,2, drop=F])  
+            #lop$covData <- cbind(lop$covData, lop$covData*lop$xMat[,2, drop=F])
+            lop$covData <- cbind(lop$covData, apply(lop$covData, 2, '*', lop$xMat[,2, drop=F]))
                                  # add one column per covariate for interaction
             lop$nCov <- 2*lop$nCov 
                               # double number of covariates due to interactions

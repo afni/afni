@@ -254,8 +254,8 @@ ENTRY("THD_write_3dim_dataset") ;
 
    /*------ 28 Jun 2006: use the .niml.dset format -----*/
 
-   /* if(STRING_HAS_SUFFIX(ppp,".niml.dset") || DSET_IS_NI_SURF_DSET(dset)){ */
-   if( is_nsd ){  /* already determined                  03 Jul 2006 [rickr] */
+   /* if(STRING_HAS_SUFFIX(ppp,".niml.dset") || DSET_IS_NI_SURF_DSET(dset)) */
+   if( is_nsd ){  /* already determined                 03 Jul 2006 [rickr] */
      if( is_gifti ) bb = THD_write_gifti( dset, write_brick, 0 ) ;
      else           bb = THD_write_niml( dset, write_brick ) ;
      if( bb == False ) error_count++ ;

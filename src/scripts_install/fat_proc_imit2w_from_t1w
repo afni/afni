@@ -1,4 +1,6 @@
-#!/bin/tcsh -e
+#!/bin/tcsh
+
+@global_parse `basename $0` "$*" ; if ($status) exit 0
 
 # --------------------- revision history -------------------------
 # Jan, 2017
@@ -32,8 +34,15 @@
 #   + added help note about DR-BUDDI option that seems recommendable
 #     at present
 #
-set version   = "1.9";  set rev_dat   = "Sep 04, 2017"
+#set version   = "1.9";  set rev_dat   = "Sep 04, 2017"
 #   + work with new @chauffeur*, -prefix only
+#
+#set version   = "2.0";  set rev_dat   = "Feb 19, 2018"
+#   + odirqc, and snapshotting output
+#
+set version   = "2.2";  set rev_dat   = "Mar 1, 2018"
+#   + blur control available in SS
+#   + unifize GM, too
 #
 # ----------------------------------------------------------------
 
@@ -71,10 +80,10 @@ set wdir       = "__WORKING_$tpname"
 set WDIR_EX    = "1"             # put opref on wdir (unless user names)
 set output_cmd = 1               # def: output copy of this command
 set cmd_file   = ""              # def: same name as viewer
+set ss_blur    = "2"             # def: blur during 3dSS
 
 set qc_prefix = ""
 set DO_VIEWER = 1                 # def: do QC image visualization
-set postfix   = "_"               # stick into name
 
 # ------------------- process options, a la rr ----------------------
 
@@ -116,6 +125,11 @@ while ( $ac <= $#argv )
 
     else if ( "$argv[$ac]" == "-no_clean" ) then
         set DO_CLEAN = "0"
+
+    else if ( "$argv[$ac]" == "-ss_blur_fwhm" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set ss_blur = "$argv[$ac]"
 
     else if ( "$argv[$ac]" == "-no_qc_view" ) then
         set DO_VIEWER = 0
@@ -179,6 +193,14 @@ if ( ! -e "$odir" ) then
     echo "+* Output directory didn't exist.  Trying to make it now."
     mkdir "$odir"
 endif
+
+set odirqc = "$odir/QC"
+if ( "$DO_VIEWER" == "1" ) then
+    if ( ! -e "$odirqc" ) then
+        mkdir "$odirqc"
+    endif
+endif
+set odirqc_wdir = "../QC" # loc from $wdir
 
 # and put working directory as subdirectory.
 if ( "$WDIR_EX" == "1" ) then
@@ -311,7 +333,7 @@ if ( $imask == "" ) then
     3dSkullStrip -echo_edu               \
         -input $fin                      \
         -prefix $fout                    \
-        -blur_fwhm 2                     \
+        -blur_fwhm "$ss_blur"            \
         -orig_vol                        \
         -overwrite
     @ idx += 1
@@ -344,6 +366,7 @@ set fout = "${tpref}_${idx}_uni.nii.gz"
 3dUnifize                    \
     -echo_edu                \
     -prefix $fout            \
+    -GM                      \
     -input $fin              \
     -overwrite
 @ idx += 1
@@ -400,27 +423,27 @@ if ( $DO_VIEWER ) then
     echo "++ Making QC images."
 
     if( $qc_prefix == "" ) then
-        set vpref1 = ${opref}${postfix}_qc1_origss
-        set vpref2 = ${opref}${postfix}_qc2_imit2w
+        set vpref1 = ${opref}_qc_t1wss
+        set vpref2 = ${opref}_qc_imt2w
     else
-        set vpref1 = ${qc_prefix}${postfix}_qc1_origss
-        set vpref2 = ${qc_prefix}${postfix}_qc2_imit2w
+        set vpref1 = ${qc_prefix}_qc_t1wss
+        set vpref2 = ${qc_prefix}_qc_imt2w
     endif
 
     echo "++ QC image #1 (intermed T1w skullstripped ulay): $vpref1"
-    $my_viewer      -ulay ../$t1ss                  \
-                    -prefix ../$vpref1              \
-                    -montx 5 -monty 3               \
-                    -set_xhairs OFF                 \
-                    -label_mode 1 -label_size 3     \
+    $my_viewer      -ulay ../$t1ss                   \
+                    -prefix "${odirqc_wdir}/$vpref1" \
+                    -montx 5 -monty 3                \
+                    -set_xhairs OFF                  \
+                    -label_mode 1 -label_size 3      \
                     -do_clean
 
     echo "++ QC image #2 (final output ulay): $vpref2"
-    $my_viewer      -ulay ../$t2out                 \
-                    -prefix ../$vpref2              \
-                    -montx 5 -monty 3               \
-                    -set_xhairs OFF                 \
-                    -label_mode 1 -label_size 3     \
+    $my_viewer      -ulay ../$t2out                  \
+                    -prefix "${odirqc_wdir}/$vpref2" \
+                    -montx 5 -monty 3                \
+                    -set_xhairs OFF                  \
+                    -label_mode 1 -label_size 3      \
                     -do_clean
 endif
 
@@ -463,10 +486,10 @@ cat << EOF
   axial, sagittal and coronal views of the final T2w volume are saved
   by default in the same location as the output volumes.
 
-  NB: if you use a volume made this way as a reference in TORTOISE,
+  *NB: if you use a volume made this way as a reference in TORTOISE,
   then at least for ~adult-human-like (imitation) t2w volumes, at
-  present it seems like you should use the option:
-    --enforce_deformation_antisymmetry 1
+  present it seems like you should use the following option when:
+  running DR_BUDDI:  --enforce_deformation_antisymmetry 1.
   This seems to improve registration.
 
 
@@ -492,6 +515,7 @@ cat << EOF
         -prefix PPP                           \
         {-workdir WWW}                        \
         {-mask    MASK}                       \
+        {-ss_blur_fwhm BBB}                   \
         {-no_clean}                           \
         {-no_qc_view}                         \
         {-qc_prefix QCP}
@@ -507,6 +531,9 @@ cat << EOF
                     options in this script ain't getting the job done
                     and other ones have to be done (skullstripping is
                     probably the slowest part of this set of steps).
+
+ -ss_blur_fwhm BBB :optional, can add in blurring during the 3dSkullStrip
+                    part of this program, in units of mm (default FWHM: 2).
 
   -workdir WWW     :specify a working directory, which can be removed;
                     (default name = '$wdir')
@@ -533,7 +560,7 @@ cat << EOF
                            and noise outside the brain.
     PREFIX_orig_ss.nii.gz :a skull-stripped version of PREFIX_t1w.nii.gz.
 
-    PREFIX${postfix}_qc*
+    PREFIX_qc*
                           :QC images of the skull-stripped T1w volume
                            and of the final imitation-T2w volume.
 
@@ -541,14 +568,14 @@ cat << EOF
 
   EXAMPLE:
     
-    $this_prog  \
-        -inset T1.nii.gz                        \
+    $this_prog   \
+        -inset T1.nii.gz               \
         -prefix imit2w
   or
 
-    $this_prog  \
-        -inset T1.nii.gz                        \
-        -mask  mask_WB.nii.gz                   \
+    $this_prog   \
+        -inset T1.nii.gz               \
+        -mask  mask_WB.nii.gz          \
         -prefix imit2w
         -no_clean
 

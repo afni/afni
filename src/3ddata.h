@@ -403,7 +403,6 @@ typedef struct {
  do{ if (SARR_find_string(name, str, 0)<0) ADDTO_SARR(name,str);   \
    } while(0)
 
-
 /*! Remove the ijk-th string from dynamic string array "name". */
 
 #define REMOVEFROM_SARR(name,ijk)                \
@@ -3809,7 +3808,8 @@ extern float THD_fdrcurve_zqtot( THD_3dim_dataset *dset , int iv , float zval ) 
 
     Won't do anything if the dataset is locked into memory
 */
-#define DSET_unload(ds) THD_purge_datablock( (ds)->dblk , DATABLOCK_MEM_ANY )
+#define DSET_unload(ds) THD_purge_datablock( (ds)?(ds)->dblk:NULL , DATABLOCK_MEM_ANY )
+
 
 /*! Unload sub-brick iv in dataset ds from memory.
 
@@ -4089,6 +4089,8 @@ typedef struct {
       int su_nummask ;          /*!< Number of SUMA masks (moveable surfaces) */
       SUMA_mask **su_mask ;     /*!< array of pointers to SUMA masks */
 
+      int is_collection ;       /*!< If a collection rather than a directory */
+
       XtPointer parent ;        /*!< generic pointer to "owner" of session */
 } THD_session ;
 
@@ -4124,6 +4126,8 @@ extern int get_nspaces(void);
 
 #define ISVALID_SESSION(ss) ( (ss) != NULL && (ss)->type == SESSION_TYPE )
 
+#define IS_COLLECTION(ss) ( ISVALID_SESSION(ss) && (ss)->is_collection != 0 )
+
 /*! Initialize THD_session ss to hold nothing at all. */
 
 #define BLANK_SESSION(ss)                                                     \
@@ -4133,6 +4137,7 @@ extern int get_nspaces(void);
       (ss)->su_num    = 0 ; (ss)->su_surf = NULL ;                            \
       (ss)->su_nummask= 0 ; (ss)->su_mask = NULL ;                            \
       (ss)->su_numgroup = 0 ; (ss)->su_surfgroup = NULL ;                     \
+      (ss)->is_collection = 0 ;                                               \
       (ss)->warptable = NULL ; (ss)->dsrow = NULL;                            \
       for( id=0 ; id < THD_MAX_SESSION_SIZE ; id++ )                          \
         for( vv=0 ; vv < get_nspaces() ; vv++ )                               \
@@ -4419,7 +4424,7 @@ extern char * THD_dataset_headname( char * , char * , int ) ;
 
 extern NI_element * THD_simple_table_read( char *fname ) ; /* 19 May 2010 */
 extern NI_element * THD_mixed_table_read ( char *fname ) ; /* 26 Jul 2010 */
-extern NI_element * THD_string_table_read( char *fname ) ;    /* Apr 2013 */
+extern NI_element * THD_string_table_read( char *fname , int flags ) ;
 
 extern MRI_IMARR * THD_get_all_timeseries( char * ) ;
 extern MRI_IMARR * THD_get_many_timeseries( THD_string_array * ) ;
@@ -4491,6 +4496,12 @@ extern XtPointer_array * THD_init_alldir_datablocks( char * ) ;
 
 extern THD_session * THD_init_session( char * ) ;
 extern void          THD_order_session( THD_session * ) ;   /* 29 Jul 2003 */
+extern void THD_append_sessions( THD_session *, THD_session *); /* 20 Dec 2001 */
+
+extern char * THD_suck_pipe( char *cmd ) ;                  /* 01 Feb 2018 */
+extern NI_str_array * THD_get_subdirs_bysub( char *dirname , char *subid ) ;
+extern THD_session * THD_init_session_bysub( char *dirname , char *subid ) ;
+extern THD_session * THD_init_session_recursive( char *dirname ) ;
 
 extern char * Add_plausible_path(char *fname);              /* ZSS:Aug. 08 */
 extern THD_3dim_dataset * THD_open_one_dataset( char * ) ;
@@ -5838,9 +5849,9 @@ extern double THD_eta_squared_masked(int,float *,float *,byte *);/* 16 Jun'11 */
 extern float THD_dice_coef_f_masked(int,float *,float *,byte *);/* 28 Jul'15 */
 // orig- Apr. 2014;  updated- Jan. 2017, as part of some attempted saBobtage:
 extern THD_3dim_dataset * THD_Tcorr1D(THD_3dim_dataset *xset,
-                              byte *mask, int nmask,
-                              MRI_IMAGE *ysim,
-                              char *smethod, char *prefix,int do_short,int do_atanh);
+               byte *mask, int nmask, MRI_IMAGE *ysim,
+               char *smethod, char *prefix,int do_short,int do_atanh);
+
 extern float THD_quantile_corr( int,float *,float *) ;  /* 10 May 2012 */
 extern float quantile_corr( int n , float *x , float rv , float *r ) ;
 extern void THD_quantile_corr_setup( int ) ;

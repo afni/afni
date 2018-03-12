@@ -1239,9 +1239,10 @@ g_history = """
           -multi_show_duration_stats for TSV files
    3.00 Nov  9, 2017 - python3 compatible
    3.01 Dec 22, 2017 - added -select_runs and -mplaces
+   3.02 Jan 31, 2018 - in MT2_event_list, if 'part' and no events in run, '* *'
 """
 
-g_version = "timing_tool.py version 3.01, December 22, 2017"
+g_version = "timing_tool.py version 3.02, January 31, 2018"
 
 
 
@@ -2147,6 +2148,7 @@ class ATInterface:
             etlist.append(self.make_s1d_ehdr_list(s1d_type))
 
          # and output
+         nrevents = 0   # count events in this run; if 0 output * *
          for eind, event in enumerate(allevents):
             cind = event[3]
             # track previous class and event times
@@ -2170,9 +2172,14 @@ class ATInterface:
                   print('** run %d, event %d: class %d preceded by class %s' \
                         % (rind, eind, cind, cprev))
                fp.write('%s ' % cprev)
+               nrevents += 1
             else:
                print('** invalid style %s' % style)
                return 1
+
+         # if no events, write as empty run
+         if style == 'part' and nrevents == 0:
+            fp.write('* *')
 
          # done with current run, print global events, if we have them
          # (could join() them, but they vary in width)

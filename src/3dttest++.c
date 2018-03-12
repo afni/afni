@@ -1205,10 +1205,15 @@ void display_help_menu(void)
       " -prefix_clustsim cc = Use 'cc' for the prefix for the '-Clustsim' temporary\n"
       "                       files, rather than a randomly generated prefix.\n"
       "                       You might find this useful if scripting.\n"
+#if 0
       "                      ++ The default randomly generated prefix will start with\n"
       "                         'TT.' and be followed by 11 alphanumeric characters,\n"
       "                         as in 'TT.Sv0Ghrn4uVg'.  To mimic this, you might\n"
       "                         use something like '-prefix_clustsim TT.Zhark'.\n"
+#else
+      "                      ++ By default, the Clustsim (and ETAC) prefix will\n"
+      "                         be the same as that given by '-prefix'.\n"
+#endif
       "                  -->>++ If you use option '-Clustsim', then the simulations\n"
       "                         keep track of the maximum (in mask) voxelwise\n"
       "                         z-statistic, compute the threshold for 5%% global FPR,\n"
@@ -1218,8 +1223,7 @@ void display_help_menu(void)
       "                         threshold in the AFNI GUI will (presumably) give you\n"
       "                         a map with a 5%% chance of false positive WITHOUT\n"
       "                         clustering. Of course, these thresholds generally come\n"
-      "                         with a very stringent per-voxel\n"
-      "                         p-value.\n"
+      "                         with a VERY stringent per-voxel p-value.\n"
       "                        ** In one analysis, the 5%% 2-sided test FPR p-value was\n"
       "                           about 7e-6 for a mask of 43000 voxels, which is\n"
       "                           bigger (less strict) than the 1.2e-6 one would get\n"
@@ -1227,8 +1231,10 @@ void display_help_menu(void)
       "                           stringent for many purposes. This threshold value\n"
       "                           was also close to the threshold at which the FDR\n"
       "                           q=1/43000, which may not be a coincidence.\n"
+#if 0
       "                  -->>++ It is perfectly legal to use the same string here\n"
       "                         as given in the '-prefix' option.\n"
+#endif
       "                  -->>++ This file has been updated to give the voxel-wise\n"
       "                         statistic threshold for global FPRs from 1%% to 9%%.\n"
       "                         However, the name is still '.5percent.txt' for the\n"
@@ -1412,7 +1418,7 @@ void display_help_menu(void)
       "                    NN=1 or NN=2 or NN=3 } spatial connectivity for clustering\n"
       "                    sid=1 or sid=2       } 1-sided or 2-sided t-tests\n"
       "                    pthr=p1,p2,...       } list of p-values to use\n"
-      "                    hpow=h1,h2,...       } list of H powers to use\n"
+      "                    hpow=h1,h2,...       } list of H powers (0, 1, and/or 2)\n"
       "                    fpr=value            } FPR goal, between 2 and 9 (percent)\n"
       "                                         } - must be an integer\n"
       "                                         } - or the word 'ALL' to output\n"
@@ -2312,9 +2318,13 @@ int main( int argc , char *argv[] )
          ININFO_message("   where you replace the 'N' with the number of CPUs.") ;
        }
        if( prefix_clustsim == NULL ){
+#if 0
          uuu = UNIQ_idcode_11() ;
          prefix_clustsim = (char *)malloc(sizeof(char)*32) ;
          sprintf(prefix_clustsim,"TT.%s",uuu) ;
+#else
+         prefix_clustsim = strdup(prefix) ; /* 22 Feb 2018 */
+#endif
          ININFO_message("Default clustsim prefix set to '%s'",prefix_clustsim) ;
        }
        continue ;
@@ -4053,10 +4063,14 @@ LABELS_ARE_DONE:  /* target for goto above */
    vstep = (nmask_hits > 6666) ? nmask_hits/50 : 0 ;
    if( brickwise_num > 1 ){
      vstep = 0 ; bstep = brickwise_num/50 ; if( bstep == 0 ) bstep = 1 ;
-     if( do_randomsign )
-       fprintf(stderr,"++ t-test randomsign:") ;
-     else
+     if( do_randomsign ){
+       if( do_permute )
+         fprintf(stderr,"++ t-test randomsign/permute:") ;
+       else
+         fprintf(stderr,"++ t-test randomsign:") ;
+     } else {
        fprintf(stderr,"++ t-test brickwise:") ;
+     }
    } else {
      bstep =0 ;
    }
@@ -4759,6 +4773,9 @@ LABELS_ARE_DONE:  /* target for goto above */
 
              sprintf(fname,"%s.%s.5percent.txt",prefix_clustsim,clab[icase]) ;
              fp = fopen(fname,"w") ;
+             if( fp == NULL ){
+               ERROR_message("Unable to open '%s' for output :(",fname) ;
+             }
              INFO_message("3dttest++ ----- Global %% FPR points for simulated z-stats:") ;
 
              for( ipp=9 ; ipp > 0 ; ipp-- ){
@@ -4781,8 +4798,10 @@ LABELS_ARE_DONE:  /* target for goto above */
                  WARNING_message("   [for some reason, unable to write above results to a file]") ;
                }
              }
-             fclose(fp) ;
-             ININFO_message("    [above results also in file %s]",fname) ;
+             if( fp != NULL ){
+               fclose(fp) ;
+               ININFO_message("    [above results also in file %s]",fname) ;
+             }
              mri_free(allim) ;
            }
          }

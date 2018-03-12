@@ -59,10 +59,6 @@
 #include <omp.h>
 #endif
 
-#ifdef USE_OMP
-#include "3dNetCorr.c"
-#endif
-
 #define MAX_PARAMS (4) // CC, FZ, PC, PCB right now
 
 
