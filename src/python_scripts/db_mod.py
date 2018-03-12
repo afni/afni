@@ -124,25 +124,42 @@ def apply_catenated_warps(proc, warp_list, base='', source='', prefix='',
       return 1, ''
 
    if NL:
+      if base: mstr = ' -master %s' % base
+      else:    mstr = ''
       if dim > 0: dimstr = ' -dxyz %g' % dim
       else:       dimstr = ''
 
-      clist = ['3dNwarpApply -master %s%s \\\n' % (base, dimstr),
+      clist = ['3dNwarpApply%s%s \\\n' % (mstr, dimstr),
                '             -source %s \\\n'   % source,
                '             -nwarp %s \\\n'    % wstr]
+
       if NLinterp: clist.append('             -interp %s \\\n' % NLinterp)
       if NN:       clist.append('             -ainterp NN -quiet \\\n')
       clist.append('             -prefix %s\n' % prefix)
 
    else: # affine
+      if base: mstr = ' -base %s' % base
+      else:    mstr = ''
+      if dim > 0: dimstr = ' -mast_dxyz %g' % dim
+      else:       dimstr = ''
       if NN: nstr = ' -final NN -quiet'
       else:  nstr = ''
 
-      clist = ['3dAllineate -base %s \\\n'           % base,
+      if dimstr or nstr:
+         mastline = '            -mast_dxyz %g%s \\\n' % (dim, nstr)
+      else:
+         mastline = ''
+
+      clist = ['3dAllineate%s\\\n'                   % mstr,
                '            -input %s \\\n'          % source,
                '            -1Dmatrix_apply %s \\\n' % wstr,
-               '            -mast_dxyz %g%s \\\n'    % (dim, nstr),
-               '            -prefix %s\n'            % prefix]
+              ]
+
+      # separate, since we cannot include empty lines
+      if dimstr or nstr:
+         clist.append(mastline)
+
+      clist.append('            -prefix %s\n'            % prefix)
 
    cmd = istr + istr.join(clist)
 
@@ -161,15 +178,15 @@ def db_mod_tcat(block, proc, user_opts):
     uopt = user_opts.find_opt('-tcat_remove_first_trs')
     bopt = block.opts.find_opt('-tcat_remove_first_trs')
     if uopt and bopt:
-        try: bopt.parlist = [int(param) for param in uopt.parlist]
-        except:
-            print("** ERROR: %s: invalid as integers: %s"   \
-                  % (uopt.name, ' '.join(uopt.parlist)))
-            errs += 1
-        if errs == 0 and bopt.parlist[0] > 0:
-          print('** warning: removing first %d TRs from beginning of each run\n' \
-            '   --> the stimulus timing files must reflect the '             \
-                    'removal of these TRs' % bopt.parlist[0])
+      try: bopt.parlist = [int(param) for param in uopt.parlist]
+      except:
+          print("** ERROR: %s: invalid as integers: %s"   \
+                % (uopt.name, ' '.join(uopt.parlist)))
+          errs += 1
+      if errs == 0 and bopt.parlist[0] > 0:
+        print('** warning: removing first %d TRs from beginning of each run\n'\
+              '   --> the stimulus timing files must reflect the '            \
+              'removal of these TRs' % bopt.parlist[0])
 
     apply_uopt_to_block('-tcat_remove_last_trs', user_opts, block)
     apply_uopt_to_block('-tcat_preSS_warn_limit', user_opts, block)
@@ -208,11 +225,21 @@ def db_cmd_tcat(proc, block):
     if val == None: rmlast = 0
     else: rmlast = val
 
-    cmd = cmd + "# %s\n"                                                      \
-                "# apply 3dTcat to copy input dsets to results dir, while\n"  \
-                "# removing the first %d TRs\n"                               \
+    cmd = cmd + "# %s\n"                                                \
+                "# apply 3dTcat to copy input dsets to results dir,\n"  \
+                "# while removing the first %d TRs\n"                   \
                 % (block_header('auto block: tcat'), first)
-    for run in range(proc.runs):
+
+    # we might need to process multiple echoes
+    for eind in range(proc.num_echo):
+      if proc.have_me:
+         if (eind+1) == proc.reg_echo:
+            estr = '(fave_echo = registration driver)'
+         else:
+            estr = '(registration follower)'
+         cmd += '\n# EPI runs for echo %d %s\n' % (eind+1, estr)
+
+      for run in range(proc.runs):
         if rmlast == 0: final = '$'
         else:
             reps = proc.reps_all[run]
@@ -220,12 +247,24 @@ def db_cmd_tcat(proc, block):
             if reps-rmlast-1 < 0:
                 print('** run %d: have %d reps, cannot remove %d!' \
                       % (run+1, reps, rmlast))
+                return 1, ''
+        # ME: set output name
+        if proc.have_me: pre_form = proc.prefix_form(block,run+1,eind=(eind+1))
+        else:            pre_form = proc.prefix_form(block,run+1)
+        # ME: set input name
+        if proc.have_me: dset = proc.dsets_me[eind][run]
+        else:            dset = proc.dsets[run]
+
         cmd = cmd + "3dTcat -prefix %s/%s %s'[%d..%s]'\n" %              \
-                    (proc.od_var, proc.prefix_form(block,run+1),
-                     proc.dsets[run].rel_input(), flist[run], final)
+                    (proc.od_var, pre_form, dset.rel_input(), flist[run], final)
+      if proc.have_me: cmd += '\n'
 
     proc.reps   -= first+rmlast # update reps to account for removed TRs
-    if proc.verb > 0: print("-- %s: reps is now %d" % (block.label, proc.reps))
+    if proc.verb > 0:
+       print("-- %s: reps is now %d" % (block.label, proc.reps))
+       if proc.have_me:
+          print("-- multi-echo data: have %d echoes across %d run(s)" \
+                % (len(proc.dsets_me), len(proc.dsets)))
 
     for run in range(len(proc.reps_all)):
        proc.reps_all[run] -= (flist[run] + rmlast)
@@ -584,7 +623,7 @@ def make_outlier_commands(proc, block):
     if not opt or OL.opt_is_yes(opt): lstr = ' -legendre'
     else:                             lstr = ''
 
-    prev_prefix = proc.prev_prefix_form_run(block, view=1)
+    prev_prefix = proc.prev_prefix_form_run(block, view=1, eind=-1)
     ofile = 'outcount.r$run.1D'
     warn  = '** TR #0 outliers: possible pre-steady state TRs in run $run'
     proc.out_wfile = 'out.pre_ss_warn.txt'
@@ -626,7 +665,7 @@ def run_radial_correlate(proc, block):
         other_opts = '%8s%s \\\n' % (' ', ' '.join(olist))
     else: other_opts = ''
 
-    prev_dsets = proc.prev_dset_form_wild(block, view=1)
+    prev_dsets = proc.prev_dset_form_wild(block, view=1, eind=-1)
     rdir = 'corr_test.results.%s' % block.label
 
     cmd  = '# %s\n'                                                       \
@@ -694,7 +733,12 @@ def db_mod_blip(block, proc, user_opts):
       if proc.verb > 2:
          print('-- have blip forward dset %s' \
                % proc.blip_in_for.shortinput(sel=1))
-      fblip_oblset = proc.dsets[0]
+      fblip_oblset = proc.blip_in_for
+   # ME: both forward and reverse are required
+   elif proc.use_me:
+      print("** when using multi-echo data and distortion correction,\n"
+            "   -blip_reverse_dset requires corresponding -blip_forward_dset")
+      return
 
    proc.blip_obl_for = dset_is_oblique(fblip_oblset, proc.verb)
    proc.blip_obl_rev = dset_is_oblique(proc.blip_in_rev, proc.verb)
@@ -831,19 +875,32 @@ def db_cmd_blip(proc, block):
    else:    oblset = None
    cmd += blip_warp_command(proc, warp_rev.shortinput(), mmedr.shortinput(),
                     '%s_masked'%rev_prefix, oblset=roblset, interp=blip_interp)
-
    cmd += '\n'
 
-   # apply forward mid-warp to EPI
-   inform = proc.prev_prefix_form_run(block, view=1)
-   outform = proc.prefix_form_run(block)
+   # -----------------------------------------------------------------
+   # main result (besides actual xform): apply forward mid-warp to EPI
+   inform = proc.prev_prefix_form_run(block, view=1, eind=0)
+   outform = proc.prefix_form_run(block, eind=0)
    bstr = blip_warp_command(proc, warp_for.shortinput(), inform, outform,
            interp=blip_interp, oblset=foblset, indent='    ')
-   cmd += '# warp EPI time series data\n'       \
-          'foreach run ( $runs )\n'             \
-          '%s' \
-          'end\n\n'                             \
-          % (bstr)
+   cmd += '# warp EPI time series data\n' \
+          'foreach run ( $runs )\n'
+
+   # ME: prepare to loop across echoes
+   indent = ''
+   if proc.use_me:
+      indent = '    '
+      cmd += '%sforeach %s ( $echo_list )\n' % (indent, proc.echo_var[1:])
+
+   # main loop
+   cmd += '%s%s'                    \
+          '%send\n'                 \
+          % (indent, bstr, indent)
+
+   if proc.use_me:
+      cmd += 'end\n'
+
+   cmd += '\n'
 
    return cmd
 
@@ -1086,12 +1143,23 @@ def db_cmd_despike(proc, block):
     else:                                      newstr = ' -NEW'
 
     # write commands
-    cmd = cmd + '# %s\n'                                \
-                '# apply 3dDespike to each run\n' % block_header('despike')
-    cmd = cmd + 'foreach run ( $runs )\n'               \
-                '    3dDespike%s%s%s -prefix %s %s\n'   \
-                'end\n\n' %                             \
-                (newstr, other_opts, mstr, prefix, prev)
+    cmd = cmd + '# %s\n'                            \
+                '# apply 3dDespike to each run\n'   \
+                'foreach run ( $runs )\n'           \
+                % block_header('despike')
+
+    indent = ''
+    if proc.use_me:
+       indent = '    '
+       cmd += '%sforeach %s ( $echo_list )\n' % (indent, proc.echo_var[1:])
+
+    cmd = cmd + '%s    3dDespike%s%s%s -prefix %s %s\n'   \
+                '%send\n' %                               \
+                (indent, newstr, other_opts, mstr, prefix, prev, indent)
+
+    if proc.use_me:
+       cmd += 'end\n'
+    cmd += '\n'
 
     return cmd
 
@@ -1197,6 +1265,12 @@ def db_cmd_ricor(proc, block):
         print('** ERROR: have %d runs but %d slice-base ricor regressors' % \
               (proc.runs, len(proc.ricor_regs)))
         return
+
+    # ME: implement multi-echo once someone wants it...
+    if proc.use_me:
+       print("** ricor block is not yet allowed on ME data")
+       print("   (please request on AFNI message board)")
+       return
 
     # get datum, if set
     rdatum, err = block.opts.get_string_opt('-ricor_datum')
@@ -1519,21 +1593,34 @@ def db_cmd_tshift(proc, block):
     cur_prefix = proc.prefix_form_run(block)
     prev_prefix = proc.prev_prefix_form_run(block, view=1)
 
+    # ME updates
+    if proc.use_me: indent = '    '
+    else:           indent = ''
+
     # maybe there are extra options to append to the command
     opt = block.opts.find_opt('-tshift_opts_ts')
     if not opt or not opt.parlist: other_opts = ''
-    else: other_opts = '             %s \\\n' % ' '.join(opt.parlist)
+    else: other_opts = '%s             %s \\\n' % (indent,' '.join(opt.parlist))
 
     # write commands
     cmd = cmd + '# %s\n'                                                \
                 '# time shift data so all slice timing is the same \n'  \
+                'foreach run ( $runs )\n'                               \
                 % block_header('tshift')
-    cmd = cmd + 'foreach run ( $runs )\n'                               \
-                '    3dTshift %s %s -prefix %s \\\n'                    \
-                '%s'                                                    \
-                '             %s\n'                                     \
-                'end\n\n'                                               \
-                % (align_to, resam, cur_prefix, other_opts, prev_prefix)
+
+    if proc.use_me:
+       cmd += '%sforeach eind ( $echo_list )\n' % indent
+
+    cmd += '%s    3dTshift %s %s -prefix %s \\\n'                  \
+           '%s'                                                    \
+           '%s             %s\n'                                   \
+           '%send\n'                                               \
+           % (indent, align_to, resam, cur_prefix, other_opts,
+              indent, prev_prefix, indent)
+
+    if proc.use_me: cmd += 'end\n'
+
+    cmd += '\n'
 
     return cmd
 
@@ -1584,11 +1671,15 @@ def set_vr_int_name(block, proc, prefix='', inset='', runstr='', trstr=''):
    # already set?
    if proc.vr_int_name != '': return 0
 
+   # handle ME data
+   if proc.use_me: estr = '.e%s' % proc.regecho_var
+   else:           estr = ''
+
    if inset != '':
       proc.vr_int_name = inset
    else:
-      proc.vr_int_name = 'pb%02d.$subj.r%s.%s%s%s' \
-                         % (block.index-1, runstr, proc.prev_lab(block),
+      proc.vr_int_name = 'pb%02d.$subj.r%s%s.%s%s%s' \
+                         % (block.index-1, runstr, estr, proc.prev_lab(block),
                             proc.view, trstr)
    proc.vr_ext_pre = prefix
 
@@ -1827,10 +1918,11 @@ def db_cmd_volreg(proc, block):
     else:                                             do_extents = 0
     if block.opts.find_opt('-volreg_no_extent_mask'): do_extents = 0
 
-    cur_prefix = proc.prefix_form_run(block)
+    cur_prefix = proc.prefix_form_run(block, eind=-1)
+    cur_prefix_me = proc.prefix_form_run(block, eind=0)
     proc.volreg_prefix = cur_prefix
     cstr   = '' # appended to comment string
-    if dowarp or doe2a or doblip:
+    if dowarp or doe2a or doblip or proc.use_me:
         # verify that we have someplace to warp to
         if dowarp and not proc.tlrcanat:
             print('** cannot warp, need -tlrc_anat or -copy_anat with tlrc')
@@ -1838,7 +1930,12 @@ def db_cmd_volreg(proc, block):
         if doe2a and not proc.a2e_mat:
             print("** cannot align e2a at volreg, need mat from 'align' block")
             return
-        prefix = 'rm.epi.volreg.r$run'
+
+        # if ME, use registration echo
+        if proc.use_me: estr = '.e%s' % proc.regecho_var
+        else:           estr = ''
+
+        prefix = 'rm.epi.volreg.r$run%s' % estr
         proc.have_rm = 1            # rm.* files exist
         matstr = '%*s-1Dmatrix_save mat.r$run.vr.aff12.1D \\\n' % (13,' ')
         if doblip: cstr = cstr + ', blip warp'
@@ -1848,7 +1945,8 @@ def db_cmd_volreg(proc, block):
         if doadwarp: cstr = cstr + ', adwarp to tlrc space'
         prefix = cur_prefix
         matstr = ''
-    prev_prefix = proc.prev_prefix_form_run(block, view=1)
+
+    prev_prefix = proc.prev_prefix_form_run(block, view=1, eind=-1)
 
     if doblip: cstr += '\n# (final warp input is same as blip input)'
     cmd = cmd + "# %s\n" \
@@ -1870,15 +1968,22 @@ def db_cmd_volreg(proc, block):
 
         if dowarp or do_extents: cmd = cmd + '# register and warp\n'
 
+    if proc.use_me:
+       mestr =  '    # (registration is driven by %s)\n' % proc.regecho_var
+    else:
+       mestr = ''
+
     cmd = cmd + "foreach run ( $runs )\n"                                     \
-                "    # register each volume to the base\n"                    \
+                "    # register each volume to the base image\n"              \
+                "%s"                                                          \
                 "    3dvolreg -verbose -zpad %d -base %s \\\n"                \
                 "             -1Dfile dfile.r$run.1D -prefix %s \\\n"         \
                 "             %s \\\n"                                        \
                 "%s"                                                          \
                 "%s"                                                          \
                 "             %s\n" %                                         \
-                (zpad, bstr, prefix, resam, other_opts, matstr, prev_prefix)
+                (mestr, zpad, bstr, prefix, resam,
+                 other_opts, matstr, prev_prefix)
 
     if do_extents:
        all1_input = BASE.afni_name('rm.epi.all1'+proc.view)
@@ -1908,21 +2013,23 @@ def db_cmd_volreg(proc, block):
 
     # if warping, multiply matrices and apply
     # (store cat_matvec entries in case of later use)
-    if dowarp or doe2a or doblip:
+    if dowarp or doe2a or doblip or proc.use_me:
         # warn the user of output grid change
         pstr = '++ volreg: applying '
         cary = []
         cstr = ''
         if doblip: cary.append('blip')
         cary.append('volreg')
+
         if doe2a: cary.append('epi2anat')
         if dowarp: cary.append('tlrc')
+
         cstr = '/'.join(cary)
 
         pstr += (cstr + ' xforms')
         if dowarp or doe2a: pstr += (' to isotropic %g mm' % dim)
         if dowarp: pstr += ' tlrc'
-        pstr += ' voxels'
+        if dowarp or doe2a: pstr += ' voxels'
 
         cmd = cmd + '\n'                        \
             '    # catenate %s xforms\n'        \
@@ -1941,22 +2048,41 @@ def db_cmd_volreg(proc, block):
             cmd = cmd + '               %s \\\n' % wstr
             proc.e2final_mv.append(wstr)
 
+        # if ME, alter prev_prefix before applying catendated warp
+        if proc.use_me:
+           prev_prefix = proc.prev_prefix_form_run(block, view=1, eind=0)
+
         # if blip, input (prev_prefix) is from prior to blip block
         if doblip:
            bblock = proc.find_block('blip')
-           if bblock: prev_prefix = proc.prev_prefix_form_run(bblock, view=1)
+           if bblock:
+              if proc.use_me:
+                 prev_prefix = proc.prev_prefix_form_run(bblock,view=1,eind=0)
+              else:
+                 prev_prefix = proc.prev_prefix_form_run(bblock,view=1,eind=-1)
 
         # if tlrc, use that for 3dAllineate base and change view
         if dowarp:
             allinbase = proc.tlrcanat.pv()
             proc.view = '+tlrc'
-        else: allinbase = proc.anat.pv()
+        elif doe2a:
+            allinbase = proc.anat.pv()
+        else:
+            allinbase = ''
 
         runwarpmat = 'mat.r$run.warp.aff12.1D'
         cmd += '               mat.r$run.vr.aff12.1D > %s\n' % runwarpmat
 
-        if do_extents: wprefix = "rm.epi.nomask.r$run"
-        else:          wprefix = cur_prefix
+        if do_extents:
+           if proc.use_me:
+              wprefix = "rm.epi.nomask.r$run.e%s" % proc.echo_var
+           else:
+              wprefix = "rm.epi.nomask.r$run"
+        else:
+           if proc.use_me:
+              wprefix = cur_prefix_me
+           else:
+              wprefix = cur_prefix
 
         # first outer is any NL std space warp
         if dowarp and proc.nlw_aff_mat != '':
@@ -1968,20 +2094,35 @@ def db_cmd_volreg(proc, block):
         # most inner is blip (all1 warp need not include blip)
         all1_warps = epi_warps[:]
         if doblip:
-           cstr += '/NLtlrc'
            blipinput = proc.blip_dset_warp.shortinput()
            epi_warps.append(warp_item('blip', 'NL', blipinput))
+
+        if dowarp and proc.nlw_NL_mat:
+           cstr += '/NLtlrc'
 
         indent = '    '
         wcmd = '\n%s# apply catenated xform: %s\n' % (indent, cstr)
         # rcr - remove:
-        if doblip or proc.nlw_aff_mat:
+        if dowarp and proc.nlw_aff_mat:
            wcmd += '%s# then apply non-linear standard-space warp\n' % indent
 
+        # if ME, wrap per echo
+        ime = ''
+        if proc.use_me:
+           mcmd = '%s# (apply warps per echo - warps are fixed, per run)\n' \
+                  '%sforeach %s ( $echo_list )\n' \
+                  % (indent, indent, proc.echo_var[1:])
+           ime = '   ' # ME extra indent
+           wcmd += mcmd
+
         st, wtmp = apply_catenated_warps(proc, epi_warps, base=allinbase,
-                      source=prev_prefix, prefix=wprefix, dim=dim, istr=indent)
+                      source=prev_prefix, prefix=wprefix, dim=dim,
+                      istr=(indent+ime))
         if st: return
         wcmd += wtmp
+
+        if proc.use_me:
+           wcmd += '%send\n' % indent
 
         if do_extents:
            all1_prefix = 'rm.epi.1.r$run'
@@ -2019,7 +2160,7 @@ def db_cmd_volreg(proc, block):
            cmd = cmd +                                                      \
                "1d_tool.py -infile %s \\\n"                                 \
                "           -set_run_lengths %s \\\n"                        \
-               "           -derivative  -collapse_cols euclidean_norm \\\n" \
+               "           -derivative -collapse_cols euclidean_norm \\\n"  \
                "           -write %s\n\n"                                   \
                % (proc.mot_file, UTIL.int_list_string(proc.reps_all),
                   proc.mot_enorm)
@@ -2055,10 +2196,26 @@ def db_cmd_volreg(proc, block):
         cmd = cmd +                                             \
             "# and apply the extents mask to the EPI data \n"   \
             "# (delete any time series with missing data)\n"    \
-            "foreach run ( $runs )\n"                           \
-            "    3dcalc -a rm.epi.nomask.r$run%s -b %s \\\n"    \
-            "           -expr 'a*b' -prefix %s\n"               \
-            "end\n\n" % (proc.view, proc.mask_extents.pv(), cur_prefix)
+            "foreach run ( $runs )\n"
+
+        # ME updates
+        if proc.use_me:
+           indent = '    '
+           estr = '.e%s' % proc.echo_var
+           cmd += '%sforeach %s ( $echo_list )\n' % (indent, proc.echo_var[1:])
+        else:
+           indent = ''
+           estr = ''
+
+        cmd = cmd +                                               \
+            "%s    3dcalc -a rm.epi.nomask.r$run%s%s -b %s \\\n"  \
+            "%s           -expr 'a*b' -prefix %s\n"               \
+            "%send\n" % (indent, estr, proc.view,
+                         proc.mask_extents.pv(), indent, cur_prefix_me, indent)
+
+        if proc.use_me: cmd += 'end\n'
+
+        cmd += '\n'
 
     # ---------------
     # next, see if we want to apply a (manual) warp to tlrc space
@@ -2225,8 +2382,10 @@ def warp_anat_followers(proc, block, anat_aname, epi_aname=None, prevepi=0):
    if len(proc.afollowers) < 1: return 0, None
 
    if epi_aname == None:
-      if prevepi: epi_aname = BASE.afni_name(proc.prev_prefix_form(1, block))
-      else:       epi_aname = BASE.afni_name(proc.prefix_form(block, 1))
+      if prevepi:
+         epi_aname = BASE.afni_name(proc.prev_prefix_form(1, block, eind=-1))
+      else:
+         epi_aname = BASE.afni_name(proc.prefix_form(block, 1, eind=-1))
       epi_aname.new_view(proc.view)
 
    warps = proc.anat_warps[:]
@@ -2481,6 +2640,138 @@ def db_cmd_volreg_tsnr(proc, block, emask=''):
            signal, signal, proc.view, mask=emask,
            name_qual='.vreg.r01',detrend=1)
 
+# --------------- combine block ---------------
+
+def db_mod_combine(block, proc, user_opts):
+   """ponder...
+
+   """
+
+   if not proc.use_me:
+      print("** have combine block, but no ME?")
+      return 1
+
+   apply_uopt_to_block('-combine_method', user_opts, block)
+
+   block.valid = 1
+
+def db_cmd_combine(proc, block):
+   """combine all echoes
+
+      This will grow to include options like:
+         ave    : simple average
+         OC     : optimally combine
+         meica  : run meica to get projection terms
+                  possibly also use to combine echoes
+   """
+
+   if not proc.use_me:
+      print("** creating combine block, but no ME?")
+      return
+
+   ocmeth, rv = block.opts.get_string_opt('-combine_method', default='OC')
+   if rv: return
+
+   # write commands
+   cmd =  '# %s\n'                                \
+          '# combine multi-echo data, per run\n'  \
+          % block_header('combine')
+
+   if ocmeth == 'ave':
+      ccmd = cmd_combine_mean(proc, block)
+   elif ocmeth[0:2] == 'OC':
+      ccmd = cmd_combine_OC(proc, block, ocmeth)
+   else:
+      print("** invalid combine method: %s" % ocmeth)
+      return ''
+
+   if ccmd == None: return
+
+   cmd += ccmd
+
+   # importantly, we are now done with ME processing
+   proc.use_me = 0
+
+   return cmd
+
+
+def cmd_combine_OC(proc, block, method='OC'):
+   """combine all echoes using OC via @compute_OC_weights
+
+      1. for each run, get weights (with run-specific prefix)
+      2. average those weights across runs (nzmean? not necessary?)
+      3. apply 
+
+      method must currently be one of OC, OC_A, OC_B
+         OC     : default
+         OC_A   : from Javier's notes
+         OC_B   : regress from log() time series, rather than log(mean())
+                  (this is the default == OC)
+   """
+
+   if not proc.use_me:
+      print("** creating combine block, but no ME?")
+      return
+
+   if len(proc.echo_times) == 0:
+      print("** option -echo_times is required for 'OC' combine method")
+      return
+
+   if method == 'OC':
+      mstr = ''
+   elif method == 'OC_A' or method == 'OC_B':
+      mstr = '        -oc_method %s   \\\n' % method
+   else:
+      print("** invalid OC combine method, %s" % method)
+      return
+     
+
+   # input prefix has $run fixed, but uses a wildcard for echoes
+   # output prefix has $run fixed, but no echo var
+   cur_prefix = proc.prefix_form_run(block, eind=-9)
+   prev_prefix = proc.prev_prefix_form_run(block, view=1, eind=-2)
+
+   cmd =  '# ----- optimally combine echoes -----\n\n'              \
+          '# get weights for each run\n'                            \
+          'foreach run ( $runs )\n'                                 \
+          '    @compute_OC_weights -echo_times "$echo_times" \\\n'  \
+          '%s'                                                      \
+          '        -echo_dsets %s   \\\n'                           \
+          '        -prefix oc.weights.r$run  \\\n'                  \
+          '        -work_dir oc.work.r$run\n'                       \
+          'end\n\n' % (mstr, prev_prefix)
+
+   proc.OC_weightset = BASE.afni_name('oc.weights.$subj%s' % proc.view)
+   cmd += '# average weights across runs\n'          \
+          '3dMean -prefix %s oc.weights.r*.HEAD\n\n' \
+          % proc.OC_weightset.out_prefix()
+
+   cmd += '# apply weights to each run\n'           \
+          'foreach run ( $runs )\n'                    \
+          '    3dMean -weightset %s \\\n'           \
+          '           -prefix %s \\\n'          \
+          '           %s\n'                 \
+          'end\n\n' % (proc.OC_weightset.shortinput(), cur_prefix, prev_prefix)
+
+   return cmd
+
+
+def cmd_combine_mean(proc, block):
+   """combine all echoes via simple mean
+   """
+
+   # input prefix has $run fixed, but uses a wildcard for echoes
+   # output prefix has $run fixed, but no echo var
+   cur_prefix = proc.prefix_form_run(block, eind=-9)
+   prev_prefix = proc.prev_prefix_form_run(block, view=1, eind=-2)
+
+   cmd = '# for now, just average across echo sets\n' \
+         'foreach run ( $runs )\n'                    \
+         '    3dMean -prefix %s %s\n'                 \
+         'end\n\n' % (cur_prefix, prev_prefix)
+
+   return cmd
+
 # --------------- motsim block ---------------
 
 def db_mod_motsim(block, proc, user_opts):
@@ -2520,7 +2811,8 @@ def db_mod_motsim(block, proc, user_opts):
    # #PCs will be added to the afni_name object before db_cmd_regress
 
    if proc.verb > 2:
-      print('-- will create motsim dset types: %s' % ', '.join(list(mdsets.keys())))
+      print('-- will create motsim dset types: %s' \
+            % ', '.join(list(mdsets.keys())))
 
    block.valid = 1
 
@@ -2869,9 +3161,9 @@ def db_cmd_blur(proc, block):
     # handle surface data separately
     if proc.surf_anat: return cmd_blur_surf(proc, block)
 
-    opt    = block.opts.find_opt('-blur_filter')
-    filter = opt.parlist[0]
-    opt    = block.opts.find_opt('-blur_size')
+    opt      = block.opts.find_opt('-blur_filter')
+    filtname = opt.parlist[0]
+    opt      = block.opts.find_opt('-blur_size')
     if opt:
         size = opt.parlist[0]
         havesize = 1
@@ -2889,6 +3181,12 @@ def db_cmd_blur(proc, block):
 
     other_opts = ''
 
+    # ME: might need to indent everything...
+    if proc.use_me:
+       indent = '    '
+    else:
+       indent = ''
+
     # if -blur_in_mask, use 3dBlurInMask (requires 1blur_fwhm)
     bopt = block.opts.find_opt('-blur_to_fwhm')
     if bopt:
@@ -2898,7 +3196,7 @@ def db_cmd_blur(proc, block):
 
        # set any mask option
        if block.opts.find_opt('-blur_in_automask'):
-           mopt = ' -automask'
+          mopt = ' -automask'
        else:
           mopt = ''
           mask = proc.mask
@@ -2911,23 +3209,24 @@ def db_cmd_blur(proc, block):
        # any last request?
        opt = block.opts.find_opt('-blur_opts_B2FW')
        if not opt or not opt.parlist: other_opts = ''
-       else: other_opts = '                 %s \\\n' % ' '.join(opt.parlist)
+       else: other_opts = '%s                 %s \\\n' \
+                          % (indent, ' '.join(opt.parlist))
 
        # make command string
-       cstr = "    3dBlurToFWHM -FWHM %s%s \\\n"        \
+       cstr = "%s    3dBlurToFWHM -FWHM %s%s \\\n"        \
               "%s"                                      \
-              "                 -input %s \\\n"         \
-              "                 -prefix %s \n"          \
-              % (size, mopt, other_opts, prev, prefix)
+              "%s                 -input %s \\\n"         \
+              "%s                 -prefix %s \n"          \
+              % (indent, size, mopt, other_opts, indent, prev, indent, prefix)
 
     # if -blur_in_mask, use 3dBlurInMask (requires 1blur_fwhm)
     elif OL.opt_is_yes(block.opts.find_opt('-blur_in_mask')) or \
         block.opts.find_opt('-blur_in_automask'):
 
        # verify FWHM filter
-       if filter != '-1blur_fwhm' and filter != '-FWHM':
+       if filtname != '-1blur_fwhm' and filtname != '-FWHM':
           print("** error: 3dBlurInMask requires FWHM filter, have '%s'\n" \
-                "   (consider scale of 1.36 for RMS->FWHM)" % (filter))
+                "   (consider scale of 1.36 for RMS->FWHM)" % (filtname))
           return
 
        # set any mask option
@@ -2944,20 +3243,23 @@ def db_cmd_blur(proc, block):
        # any last request?
        opt = block.opts.find_opt('-blur_opts_BIM')
        if not opt or not opt.parlist: other_opts = ''
-       else: other_opts = '             %s \\\n' % ' '.join(opt.parlist)
+       else: other_opts = '%s             %s \\\n' \
+                          % (indent, ' '.join(opt.parlist))
 
        # make command string
-       cstr = "    3dBlurInMask -preserve -FWHM %s%s \\\n"      \
-              "                 -prefix %s \\\n"                \
+       cstr = "%s    3dBlurInMask -preserve -FWHM %s%s \\\n"    \
+              "%s                 -prefix %s \\\n"              \
               "%s"                                              \
-              "                 %s\n"                           \
-              % (str(size),mopt,prefix, other_opts, prev)
+              "%s                 %s\n"                         \
+              % (indent, str(size), mopt, indent, prefix,
+                 other_opts, indent, prev)
 
     else: # default: use 3dmerge for blur
        # maybe there are extra options to append to the command
        opt = block.opts.find_opt('-blur_opts_merge')
        if not opt or not opt.parlist: other_opts = ''
-       else: other_opts = '             %s \\\n' % ' '.join(opt.parlist)
+       else: other_opts = '%s             %s \\\n' \
+                          % (indent, ' '.join(opt.parlist))
 
        # if we have an extents mask, apply it if no scale block
        do_mask = proc.mask_extents != None and \
@@ -2966,24 +3268,33 @@ def db_cmd_blur(proc, block):
        if do_mask: tprefix = 'rm.%s' % prefix
        else:       tprefix = prefix
 
-       cstr = "    3dmerge %s %s -doall -prefix %s \\\n"       \
+       cstr = "%s    3dmerge %s %s -doall -prefix %s \\\n"     \
               "%s"                                             \
-              "            %s\n"                               \
-              % (filter, str(size), tprefix, other_opts, prev)
+              "%s            %s\n"                             \
+              % (indent, filtname, str(size), tprefix, other_opts, indent,prev)
 
        if do_mask:
-          cstr += "\n"                                                   \
-                  "    # and apply extents mask, since no scale block\n" \
-                  "    3dcalc -a %s%s -b %s \\\n"                        \
-                  "           -expr 'a*b' -prefix %s\n"                  \
-                  % (tprefix, proc.view, proc.mask_extents.shortinput(), prefix)
+          cstr += "\n"                                                     \
+                  "%s    # and apply extents mask, since no scale block\n" \
+                  "%s    3dcalc -a %s%s -b %s \\\n"                        \
+                  "%s           -expr 'a*b' -prefix %s\n"                  \
+                  % (indent, indent, tprefix, proc.view,
+                     proc.mask_extents.shortinput(), indent, prefix)
 
-    cmd = "# %s\n" % block_header('blur')
+    cmd = "# %s\n"                              \
+          "# blur each volume of each run\n"    \
+          "foreach run ( $runs )\n" % block_header('blur')
 
-    cmd = cmd + "# blur each volume of each run\n"      \
-                "foreach run ( $runs )\n"               \
-                "%s"                                    \
-                "end\n\n" % (cstr)
+    if proc.use_me:
+       indent = '    '
+       cmd += '%sforeach %s ( $echo_list )\n' % (indent, proc.echo_var[1:])
+
+    cmd += cstr
+
+    if proc.use_me:
+       cmd += '%send\n' % indent
+
+    cmd += "end\n\n"
 
     return cmd
 
@@ -3069,6 +3380,7 @@ def db_mod_mask(block, proc, user_opts):
             return 1
 
     apply_uopt_to_block('-mask_apply',        user_opts, block)
+    apply_uopt_to_block('-mask_epi_anat',     user_opts, block)
     apply_uopt_to_block('-mask_rm_segsy',     user_opts, block)
     apply_uopt_to_block('-mask_segment_anat', user_opts, block)
     apply_uopt_to_block('-mask_segment_erode',user_opts, block)
@@ -3153,7 +3465,7 @@ def db_cmd_mask(proc, block):
     nsteps = opt.parlist[0]
 
     prev = proc.prev_dset_form_wild(block)
-    prev = proc.prev_prefix_form_run(block, view=1)
+    prev = proc.prev_prefix_form_run(block, view=1, eind=-1)
     cmd = cmd + "# %s\n"                                                \
                 "# create 'full_mask' dataset (%s mask)\n"              \
                 "foreach run ( $runs )\n"                               \
@@ -3518,6 +3830,19 @@ def anat_mask_command(proc, block):
                 "            -prefix %s\n\n"                                \
                 % (tanat.pv(), proc.mask_anat.prefix)
 
+    # computed tightened EPI mask, by intersecting with anat mask
+    if proc.mask_epi and proc.mask_anat:
+       proc.mask_epi_anat = proc.mask_epi.new('mask_epi_anat.$subj')
+       if block.opts.have_yes_opt('-mask_epi_anat'):
+           if proc.verb: print("++ mask: use epi_anat mask in place of EPI one")
+           proc.mask = proc.mask_epi_anat
+       rcmd = "# compute tighter EPI mask by intersecting with anat mask\n" \
+              "3dmask_tool -input %s %s \\\n"                               \
+              "            -inter -prefix %s\n\n"                           \
+              % (proc.mask_epi.shortinput(), proc.mask_anat.shortinput(),
+                 proc.mask_epi_anat.out_prefix())
+       cmd += rcmd
+
     if block.opts.have_yes_opt('-mask_test_overlap', default=1):
         if proc.mask_epi and proc.mask_anat:
             rcmd = "# compute overlaps between anat and EPI masks\n"  \
@@ -3604,6 +3929,11 @@ def db_cmd_scale(proc, block):
         bstr = ''
         mean_pre = "rm.mean"
 
+    if proc.use_me:
+        estr = '.e%s' % proc.echo_var
+    else:
+        estr = ''
+
     # choose a mask: either passed, extents, or none
     mset = None
     if   proc.surf_anat:              mset = None       # no mask on surface
@@ -3630,6 +3960,7 @@ def db_cmd_scale(proc, block):
            "%s" % maxstr
 
     # if stype is grand_mean, compute the mean now, across runs
+    # (rcr - actually write this)
     if stype == 'grand_mean':
        if not proc.mask:
           print('** no EPI mask for -scale_type %s' % stype)
@@ -3646,12 +3977,18 @@ def db_cmd_scale(proc, block):
 
     cmd += "%sforeach run ( $runs )\n" % istr
 
+    # ME:
+    if proc.use_me:
+       iprev = istr
+       istr += ' '*4
+       cmd += '%sforeach %s ( $echo_list )\n' % (istr, proc.echo_var[1:])
+
     # per run loop
-    cmd += "%s    3dTstat -prefix %s_r$run%s %s\n"                      \
-           "%s    3dcalc -a %s %s-b %s_r$run%s \\\n"                    \
+    cmd += "%s    3dTstat -prefix %s_r$run%s%s %s\n"                    \
+           "%s    3dcalc -a %s %s-b %s_r$run%s%s \\\n"                  \
            "%s"                                                         \
-           % (istr, mean_pre, suff, prev,
-              istr, prev, bstr, mean_pre, vsuff, mask_str)
+           % (istr, mean_pre, estr, suff, prev,
+              istr, prev, bstr, mean_pre, estr, vsuff, mask_str)
 
     cmd += "%s           -expr '%s' \\\n"                               \
            "%s           -prefix %s\n"                                  \
@@ -3659,6 +3996,12 @@ def db_cmd_scale(proc, block):
 
     # end per run loop, and possibly per hemisphere one
     cmd += "%send\n" % istr
+
+    # ME:
+    if proc.use_me:
+       istr = iprev
+       cmd += "%send\n" % istr
+
     cmd += feh_end + '\n'
 
     proc.have_rm = 1            # rm.* files exist
@@ -4237,6 +4580,11 @@ def db_cmd_regress(proc, block):
     if proc.ricor_nreg > 0:
        opt = block.opts.find_opt('-regress_apply_ricor')
        if OL.opt_is_yes(opt): proc.ricor_apply = 'yes'
+
+    # ME: multi-echo is not allowed in the regression block
+    if proc.use_me:
+       print("** regression is not allowed on ME data, combine first")
+       return
 
     # maybe we want a special prefix (do not test stims in this case)
     if proc.script_3dD:
@@ -6729,13 +7077,23 @@ def db_cmd_gen_review(proc):
     tblk = proc.find_block('tcat')
 
     # get dataset names, but be sure not to get the surface form
-    dstr = proc.dset_form_wild('tcat', proc.origview, surf_names=0)
+    # (if ME, force it here, and get all echoes)
+    use_me = proc.use_me
+    proc.use_me = proc.have_me
+    dstr = proc.dset_form_wild('tcat', proc.origview, surf_names=0, eind=-2)
+    proc.use_me = use_me
+    if proc.have_me:
+       mestr = "# (all echoes of all runs)\n"
+    else:
+       mestr = ''
+
     cmd = "# %s\n\n"                                                    \
           "# generate a review script for the unprocessed EPI data\n"   \
+          "%s"                                                          \
           "gen_epi_review.py -script %s \\\n"                           \
           "    -dsets %s\n\n"                                           \
           % (block_header('auto block: generate review scripts'),
-             proc.epi_review, dstr)
+             mestr, proc.epi_review, dstr)
 
     # if no regress block, skip gen_ss_review_scripts.py
     if not proc.find_block('regress'):
@@ -6767,6 +7125,30 @@ def block_header(hname, maxlen=74, hchar='=', endchar=''):
 
     return UTIL.section_divider(hname=hname, maxlen=maxlen, hchar=hchar,
                                 endchar=endchar)
+
+# ----------------------------------------------------------------------
+# help strings
+
+def show_program_help(section=''):
+   # maybe print them all
+   if section == '':
+      print(g_help_string)
+      print(g_help_examples)
+      print(g_help_notes)
+      print(g_help_options)
+      print(g_help_trailer)
+
+      return 0
+
+   rv = 0
+   try:
+      shelp = eval('g_help_%s' % section)
+      print(shelp)
+   except:
+      print("** invalid help section: %s" % section)
+      rv = 1
+
+   return rv
 
 # ----------------------------------------------------------------------
 # global help string (see end global help string)
@@ -6947,7 +7329,8 @@ g_help_string = """
                   - output iresp curves for non-GAM/non-BLOCK regressors
 
         empty:    - do nothing (just copy the data using 3dTcat)
-
+"""
+g_help_examples = """
     ==================================================
     EXAMPLES (options can be provided in any order): ~1~
 
@@ -6985,7 +7368,7 @@ g_help_string = """
                         -regress_stim_times sb23/stim_files/blk_times.*.1D \\
                         -regress_basis 'BLOCK(30,1)'
 
-        Example 3. The current class example.  This may change of course. ~2~
+        Example 3. (no longer) The current class example.  ~2~
 
            Copy the anatomy into the results directory, register EPI data to
            the last TR, specify stimulus labels, compute blur estimates, and
@@ -7011,7 +7394,7 @@ g_help_string = """
                         -regress_est_blur_epits                            \\
                         -regress_est_blur_errts
 
-        Example 4. Similar to the class example, but specify the processing blocks. ~2~
+        Example 4. Similar to 3, but specify the processing blocks. ~2~
 
            Adding despike and tlrc, and removing tshift.  Note that
            the tlrc block is to run @auto_tlrc on the anat.  Ignore the GLTs.
@@ -7088,7 +7471,7 @@ g_help_string = """
 
            Also consider adding -regress_bandpass.
 
-        Example 5c. RETROICOR (modern): with censoring and bandpass filtering. ~2~
+        Example 5c. RETROICOR (modern): censor and band pass. ~2~
 
            This is an example of how we might currently suggest analyzing
            resting state data.  If no RICOR regressors exist, see example 9
@@ -7157,7 +7540,8 @@ g_help_string = """
                 afni_proc.py -subj_id sb23.e6.align                        \\
                         -copy_anat sb23/sb23_mpra+orig                     \\
                         -dsets sb23/epi_r??+orig.HEAD                      \\
-                        -blocks tshift align tlrc volreg blur mask regress \\
+                        -blocks tshift align tlrc volreg blur mask         \\
+                                scale regress                              \\
                         -tcat_remove_first_trs 3                           \\
                         -align_opts_aea -cost lpc+ZZ                       \\
                         -tlrc_base MNI152_T1_2009c+tlrc                    \\
@@ -7231,7 +7615,8 @@ g_help_string = """
 
                 afni_proc.py -subj_id sb23.e7.esoteric                     \\
                         -dsets sb23/epi_r??+orig.HEAD                      \\
-                        -blocks tshift align tlrc volreg blur mask regress \\
+                        -blocks tshift align tlrc volreg blur mask         \\
+                                scale regress                              \\
                         -copy_anat sb23/sb23_mpra+orig                     \\
                         -tcat_remove_first_trs 3                           \\
                         -align_opts_aea -cost lpc+ZZ                       \\
@@ -7452,12 +7837,14 @@ g_help_string = """
                   -regress_est_blur_epits                                    \\
                   -regress_est_blur_errts
 
-       Example 10b. Resting state analysis, tissue-based regressors and 3dRSFC. ~2~
+       Example 10b. Resting state analysis, as 10a with 3dRSFC. ~2~
 
-            (for bandpassing and computation of ALFF, etc)
+            This is for band passing and computation of ALFF, etc.
+
+          * This will soon use a modified 3dRSFC.
 
             Like example #10, but add -regress_RSFC to bandpass via 3dRSFC.
-            Skip censoring and regression bandpassing because of the bandpass
+            Skip censoring and regression band passing because of the bandpass
             operation in 3dRSFC.
 
             To correspond to common tractography, this example stays in orig
@@ -7481,7 +7868,7 @@ g_help_string = """
                   -regress_run_clustsim no                                   \\
                   -regress_est_blur_errts
 
-       Example 11. Resting state analysis (now even more moderner :). ~2~
+       Example 11. Resting state analysis (now even more modern :). ~2~
 
          o Yes, censor (outliers and motion) and despike.
          o Align the anatomy and EPI using the lpc+ZZ cost function, rather
@@ -7596,6 +7983,90 @@ g_help_string = """
                   -regress_est_blur_errts                                    \\
                   -regress_run_clustsim yes
 
+       Example 12 background: Multi-echo data processing. ~2~
+
+         Processing multi-echo data should be similar to single echo data,
+         except for perhaps:
+
+            combine         : the addition of a 'combine' block
+            -dsets_me_echo  : specify ME data, per echo
+            -dsets_me_run   : specify ME data, per run (alternative to _echo)
+            -echo_times     : specify echo times (if needed)
+            -combine_method : specify method to combine echoes (if any)
+
+         An afni_proc.py command might be updated to include something like:
+
+            afni_proc.py ...                                     \\
+                -blocks tshift align tlrc volreg mask combine    \\
+                        blur scale regress                       \\
+                -dsets_me_echo epi_run*_echo_01.nii              \\
+                -dsets_me_echo epi_run*_echo_02.nii              \\
+                -dsets_me_echo epi_run*_echo_03.nii              \\
+                -echo_times 15 30.5 41                           \\
+                ...                                              \\
+                -mask_epi_anat yes                               \\
+                -combine_method OC                               \\
+                ...                                              \\
+
+
+       Example 12a. Multi-echo data processing - very simple. ~2~
+
+         Keep it simple and just focus on the basic ME options, plus a few
+         for controlling registration.
+
+         o This example uses 3 echoes of data across just 1 run.
+            - so use a single -dsets_me_run option to input EPI datasets
+         o Echo 2 is used to drive registration for all echoes.
+            - That is the default, but it is good to be explicit.
+         o The echo times are not needed, as the echoes are never combined.
+         o The echo are never combined (in this example), so that there
+           are always 3 echoes, even until the end.
+            - Note that the 'regress' block is not valid for multiple echoes.
+
+                afni_proc.py -subj_id FT.12a.ME                 \\
+                  -blocks tshift align tlrc volreg mask blur    \\
+                  -copy_anat FT_anat+orig                       \\
+                  -dsets_me_run epi_run1_echo*.nii              \\
+                  -reg_echo 2                                   \\
+                  -tcat_remove_first_trs 2                      \\
+                  -volreg_align_to MIN_OUTLIER                  \\
+                  -volreg_align_e2a                             \\
+                  -volreg_tlrc_warp
+
+       Example 12b. Multi-echo data processing - OC resting state. ~2~
+
+         Still keep this simple, mostly focusing on ME options, plus standard
+         ones for resting state.
+
+         o This example uses 3 echoes of data across just 1 run.
+            - so use a single -dsets_me_run option to input EPI datasets
+         o Echo 2 is used to drive registration for all echoes.
+            - That is the default, but it is good to be explicit.
+         o The echoes are combined via the 'combine' block.
+         o So -echo_times is used to provided them.
+
+                afni_proc.py -subj_id FT.12a.ME                 \\
+                  -blocks tshift align tlrc volreg mask combine \\
+                          blur scale regress                    \\
+                  -copy_anat FT_anat+orig                       \\
+                  -dsets_me_run epi_run1_echo*.nii              \\
+                  -echo_times 15 30.5 41                        \\
+                  -reg_echo 2                                   \\
+                  -tcat_remove_first_trs 2                      \\
+                  -align_opts_aea -cost lpc+ZZ                  \\
+                  -tlrc_base MNI152_T1_2009c+tlrc               \\
+                  -tlrc_NL_warp                                 \\
+                  -volreg_align_to MIN_OUTLIER                  \\
+                  -volreg_align_e2a                             \\
+                  -volreg_tlrc_warp                             \\
+                  -mask_epi_anat yes                            \\
+                  -combine_method OC                            \\
+                  -regress_motion_per_run                       \\
+                  -regress_censor_motion 0.2                    \\
+                  -regress_censor_outliers 0.1                  \\
+                  -regress_apply_mot_types demean deriv         \\
+                  -regress_est_blur_epits                       \\
+
     --------------------------------------------------
     -ask_me EXAMPLES:  ** NOTE: -ask_me is antiquated ** ~2~
 
@@ -7625,6 +8096,8 @@ g_help_string = """
                         -regress_stim_labels ToolMovie HumanMovie       \\
                                              ToolPoint HumanPoint
 
+"""
+g_help_notes = """
     ==================================================
     Many NOTE sections: ~1~
     ==================================================
@@ -8872,9 +9345,9 @@ g_help_string = """
 
            The -xef options are applied to tcsh and have the following effects:
 
-                -x : echo commands to screen before executing them
-                -e : exit (terminate) the processing on any errors
-                -f : do not process user's ~/.cshrc file
+                x : echo commands to screen before executing them
+                e : exit (terminate) the processing on any errors
+                f : do not process user's ~/.cshrc file
 
            The -x option is very useful so one see not just output from the
            programs, but the actual commands that produce the output.  It
@@ -8924,10 +9397,13 @@ g_help_string = """
            example it would be 'output.SCRIPT'.  With this use of 'tee', all
            screen output will be duplicated in that text file.
 
+"""
+g_help_options = """
     ==================================================
-    ALL OPTIONS:  ~2~
-        (information options, general options, block options)
-        (block options are ordered by block)
+    OPTIONS:  ~2~
+
+        Informational options, general options, and block options.
+        Block options are ordered by block.
 
         -----------------------------------------------------------------
         Informational/terminal options  ~3~
@@ -9210,6 +9686,82 @@ g_help_string = """
             and .HEAD filenames on the command line (which would make it twice
             as many runs of data).
 
+        -dsets_me_echo dset1 dset2 ...  : specify ME datasets for one echo
+                                          (all runs with each option)
+
+           These examples might correspond to 3 echoes across 4 runs.
+
+                e.g. -dsets_me_echo epi_run*.echo_1+orig.HEAD
+                     -dsets_me_echo epi_run*.echo_2+orig.HEAD
+                     -dsets_me_echo epi_run*.echo_3+orig.HEAD
+
+                e.g. -dsets_me_echo r?.e1.nii
+                     -dsets_me_echo r?.e2.nii
+                     -dsets_me_echo r?.e3.nii
+
+                e.g. -dsets_me_echo r1.e1.nii r2.e1.nii r3.e1.nii r4.e1.nii
+                     -dsets_me_echo r1.e2.nii r2.e2.nii r3.e2.nii r4.e2.nii
+                     -dsets_me_echo r1.e3.nii r2.e3.nii r3.e3.nii r4.e3.nii
+
+            This option is convenient when there are more runs than echoes.
+
+            When providing multi-echo data to afni_proc.py, doing all echoes
+            of all runs at once seems messy and error prone.  So one must
+            provide either one echo at a time (easier if there are more runs)
+            or one run at a time (easier if there are fewer runs).
+
+            With this option:
+
+               - use one option per echo (as opposed to per run, below)
+               - each option use should list all run datasets for that echo
+
+            For example, if there are 7 runs and 3 echoes, use 3 options, one
+            per echo, and pass the 7 runs of data for that echo in each.
+
+            See also -dsets_me_run.
+            See also -echo_times and -reg_echo.
+
+        -dsets_me_run dset1 dset2 ...   : specify ME datasets for one run
+                                          (all echoes with each option)
+
+           These examples might correspond to 4 echoes across 2 runs.
+
+                e.g. -dsets_me_run epi_run1.echo_*+orig.HEAD
+                     -dsets_me_run epi_run2.echo_*+orig.HEAD
+
+                e.g. -dsets_me_run r1.e*.nii
+                     -dsets_me_run r2.e*.nii
+
+                e.g. -dsets_me_run r1.e1.nii r1.e2.nii r1.e3.nii r1.e4.nii
+                     -dsets_me_run r2.e1.nii r2.e2.nii r2.e3.nii r2.e4.nii
+
+            This option is convenient when there are more echoes than runs.
+
+            When providing multi-echo data to afni_proc.py, doing all echoes
+            of all runs at once seems messy and error prone.  So one must
+            provide either one echo at a time (easier if there are more runs)
+            or one run at a time (easier if there are fewer runs).
+
+            With this option:
+
+               - use one option per run (as opposed to per echo, above)
+               - each option use should list all echo datasets for that run
+
+            For example, if there are 2 runs and 4 echoes, use 2 options, one
+            per run, and pass the 4 echoes of data for that run in each.
+
+            See also -dsets_me_echo.
+            See also -echo_times and -reg_echo.
+
+        -echo_times TE1 TE2 TE3 ... : specify echo-times for ME data processing
+
+                e.g. -echo_times 20 30.5 41.2
+
+            Use this option to specify echo times, if they are needed for the
+            'combine' processing block (OC/ME-ICA/tedana).
+
+            See also -combine_method.
+
         -execute                : execute the created processing script
 
             If this option is applied, not only will the processing script be
@@ -9357,6 +9909,18 @@ g_help_string = """
                              maybe threshold = 0.9, maybe clusterize
 
             See "@radial_correlate -help" for details and a list of options.
+
+        -reg_echo ECHO_NUM  : specify 1-based echo for registration
+
+                e.g. -reg_echo 3
+                default: 2
+
+            Multi-echo data is registered based on a single echo, with the
+            resulting transformations being applied to all echoes.  Use this
+            option to specify the 1-based echo used to drive registration.
+
+            Note that the echo used for driving registration should have
+            reasonable tissue contrast.
 
         -remove_preproc_files   : delete pre-processed data
 
@@ -9596,6 +10160,25 @@ g_help_string = """
             applying the EPI mask to the regression.
 
             Please see '3dDespike -help' and '3dAutomask -help' for more
+            information.
+
+        -despike_new yes/no     : set whether to use new version of 3dDespike
+
+                e.g. -despike_new no
+                default: yes
+
+            There is a '-NEW' option/method in 3dDespike which runs a faster
+            method than the previous L1-norm method (Nov 2013).  The results
+            are similar but not identical (different fits).  The difference in
+            speed is more dramatic for long time series (> 500 time points).
+
+            Use this option to control whether to use the new version.
+
+            Sep 2016: in 3dDespike, -NEW is now the default if the input is
+                      longer than 500 time points.  In such a case -despike_new
+                      has no effect.
+
+            See also env var AFNI_3dDespike_NEW and '3dDespike -help' for more
             information.
 
         -despike_opts_3dDes OPTS... : specify additional options for 3dDespike
@@ -10506,7 +11089,7 @@ g_help_string = """
             anat transformation.  In any case, a skull-stripped anat will exist.
 
             A 'group' anat mask will be created if the 'tlrc' block is used
-            (via the -block or -tlrc_anat options).  In such a case, the anat
+            (via the -blocks or -tlrc_anat options).  In such a case, the anat
             template will be made into a binary mask.
 
             This option makes -regress_apply_mask obsolete.
@@ -10529,6 +11112,20 @@ g_help_string = """
 
             Please see '3dAutomask -help' for more information.
             See also -mask_type.
+
+        -mask_epi_anat yes/no : apply epi_anat mask in place of EPI mask
+
+                e.g. -mask_epi_anat yes
+
+            An EPI mask might be applied to the data either for simple
+            computations (e.g. global brain correlation, GCOR), or actually
+            applied to the EPI data.  The EPI mask $full_mask is used for most
+            such computations, by default.
+
+            The mask_epi_anat dataset is an intersection of full_mask and
+            mask_anat, and might be better suited to such computations.
+
+            Use this option to apply mask_epi_anat in place of full_mask.
 
         -mask_import LABEL MSET : import a final grid mask with the given label
 
@@ -10655,6 +11252,23 @@ g_help_string = """
             This option allows one to disable such functionality.
 
             Please see '3dABoverlap -help' for more information.
+
+        -combine_method METHOD  : specify method for combining echoes
+
+                e.g. -combine_method OC
+                default: OC
+
+            When using the 'combine' block to combine echoes (for each run),
+            this option can be used to specify the method used.   Methods:
+
+                OC      : optimally combined (via @compute_OC_weights)
+                          (current default is OC_B)
+                OC_A    : original log(mean()) regression method
+                OC_B    : newer log() time teries regression method
+                          (there is little difference between OC_A and OC_B)
+                mean    : simple mean of echoes
+
+            Please see '@compute_OC_weights -help' for more information.
 
         -mask_type TYPE         : specify 'union' or 'intersection' mask type
 
@@ -11695,6 +12309,18 @@ g_help_string = """
             See also -anat_follower, -anat_follower_ROI, -regress_ROI_erode,
             and -regress_ROI.
 
+        -regress_ROI_per_run LABEL ... : regress these ROIs per run
+
+                e.g. -regress_ROI_per_run vent
+                e.g. -regress_ROI_per_run vent WMe
+
+            Use this option to create the given ROI regressors per run.
+            Instead of creating one regressor spanning all runs, this option
+            leads to creating one regressor per run, akin to splitting the
+            long regressor across runs, and zero-padding to be the same length.
+
+            See also -regress_ROI_PC, -regress_ROI_PC_per_run.
+
         -regress_ROI_PC_per_run LABEL ... : regress these PCs per run
 
                 e.g. -regress_ROI_PC_per_run vent
@@ -12001,7 +12627,8 @@ g_help_string = """
 
             Please see '3dClustSim -help' for more information.
             See also -regress_run_clustsim.
-
+"""
+g_help_trailer = """
     - R Reynolds  Dec, 2006                             thanks to Z Saad
     ===========================================================================
 """

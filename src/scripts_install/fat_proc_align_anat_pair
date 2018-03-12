@@ -1,4 +1,6 @@
-#!/bin/tcsh -e
+#!/bin/tcsh
+
+@global_parse `basename $0` "$*" ; if ($status) exit 0
 
 # !!!!!?   Why use f00*, f01*, f02*, etc.? is iidx instead?
 
@@ -37,8 +39,15 @@
 #set version   = "1.8";    set rev_dat   = "Sep 04, 2017"
 #   + update to work with newer @chauffeur*, -prefix only
 #
-set version   = "1.9";    set rev_dat   = "Jan 12, 2018"
+#set version   = "1.9";    set rev_dat   = "Jan 12, 2018"
 #   + wt vol into working dir
+#
+#set version   = "1.93";    set rev_dat   = "Feb 8, 2018"
+#   + new opt: can skullstrip intermediate t1w to help alignment, via
+#   -do_ss_tmp_t1w ... and that file stays in wdir
+#
+set version   = "1.0";    set rev_dat   = "Feb 19, 2018"
+#   + new filename output structure, no postfix, make QC dir
 #
 # ---------------------------------------------------------------
 
@@ -73,6 +82,7 @@ set it2w_mask  = ""
 # def: do prep t1w for freesurfing -> matrix has even numbered dims ->
 # 1mm iso voxels, or other iso
 set DO_PREP_FS = 1               
+set DO_SS_T1W  = 0
 
 set RES        = ""              # def: 1mm output res, or smallest vox dim
 set OUT_T2W_GRID = 0
@@ -87,7 +97,6 @@ set WDIR_EX  = "1"               # put opref on wdir (unless user names)
 set output_cmd = 1               # def: output copy of this command
 set cmd_file   = ""              # def: same name as viewer
 set qc_prefix  = ""              # def: autoname; user can enter
-set postfix    = "_"             # stick into name
 set warp_opt   = "-warp shift_rotate" # default, but can be changed
 
 # ------------------- process options, a la rr ----------------------
@@ -158,6 +167,9 @@ while ( $ac <= $#argv )
         @ ac += 1
         set RES = "$argv[$ac]"
 
+    else if ( "$argv[$ac]" == "-do_ss_tmp_t1w" ) then
+        set DO_SS_T1W = "1"
+
     # set output resolution by using t2w grid
     else if ( "$argv[$ac]" == "-out_t2w_grid" ) then
         set OUT_T2W_GRID = 1
@@ -223,11 +235,16 @@ else
 endif
 
 # check output directory, use input one if nothing given
-
-# default output dir, if nothing input.
 if ( ! -e "$odir" ) then
     echo "+* Output directory didn't exist.  Trying to make it now."
     mkdir "$odir"
+endif
+
+set odirqc = "$odir/QC"
+if ( "$DO_VIEWER" == "1" ) then
+    if ( ! -e "$odirqc" ) then
+        mkdir "$odirqc"
+    endif
 endif
 
 # and put working directory as subdirectory.
@@ -351,6 +368,20 @@ if ( "$imtrx" == "" ) then
     set mt_t1_t2 = $wdir/map_t1w_to_t2w.aff12.1D
 
     set imtrx = $wdir/map_to_t2w.aff12.1D
+    
+
+    # [PT: Feb 7, 2018] might need if T1w has lots of non-brain stuff
+    if ( "$DO_SS_T1W" == "1" ) then
+
+        3dSkullStrip                           \
+            -overwrite                         \
+            -orig_vol                          \
+            -prefix $wdir/f03_t1w_ss.nii.gz    \
+            -input "$t1thr"
+
+        set t1thr = "$wdir/f03_t1w_ss.nii.gz"
+
+    endif
 
     if ( "$it2w_mask" == "" ) then
         set it2w_mask = "-source_automask"
@@ -479,11 +510,11 @@ if ( $DO_VIEWER == 1 ) then
         -input  $odir/$ot1w
 
     if( $qc_prefix == "" ) then
-        set vpref0 = ${opref}${postfix}_qc00_t2w_u_et1w
-        set vpref1 = ${opref}${postfix}_qc01_t2w_u_t1w
+        set vpref0 = ${opref}_qc_t2w_t1wE
+        set vpref1 = ${opref}_qc_t2w_t1w
     else
-        set vpref0 = ${qc_prefix}${postfix}_qc00_t2w_u_et1w
-        set vpref1 = ${qc_prefix}${postfix}_qc01_t2w_u_t1w
+        set vpref0 = ${qc_prefix}_qc_t2w_t1wE
+        set vpref1 = ${qc_prefix}_qc_t2w_t1w
     endif
 
     echo "\n\n"
@@ -498,7 +529,7 @@ if ( $DO_VIEWER == 1 ) then
         -pbar_posonly                     \
         -cbar "red_monochrome"            \
         -opacity 6                        \
-        -prefix "$odir/$vpref0"           \
+        -prefix "$odirqc/$vpref0"         \
         -montx 5 -monty 3                 \
         -set_xhairs OFF                   \
         -label_mode 1 -label_size 3       \
@@ -514,7 +545,7 @@ if ( $DO_VIEWER == 1 ) then
         -olay "$odir/$ot1w"               \
         -pbar_posonly                     \
         -opacity 4                        \
-        -prefix "$odir/$vpref1"           \
+        -prefix "$odirqc/$vpref1"         \
         -montx 5 -monty 3                 \
         -set_xhairs OFF                   \
         -label_mode 1 -label_size 3       \
@@ -614,6 +645,7 @@ cat << EOF
       {-newgrid RES}                        \
       {-out_t2w_grid}                       \
       {-in_t2w_mask MASK_T2W}               \
+      {-do_ss_tmp_t1w}                      \
       {-matrix MMM}                         \
       {-workdir WWW}                        \
       {-no_fs_prep}                         \
@@ -644,6 +676,11 @@ cat << EOF
                   :can input a mask to apply to the t2w volume for
                    alignment purposes; might help in times of aligning 
                    hardship.
+
+   -do_ss_tmp_t1w :during an intermediate step, apply skullstripping
+                   to the T1w volume-- final output is *not*
+                   skullstripped.  This might be useful if there is
+                   lots of non-brain tissue still in the T1w volume.
 
    -warp WAR      :can choose which of the possible affine degrees of freedom
                    are employed in the warping, selecting them in the same

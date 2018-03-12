@@ -11,7 +11,7 @@
 int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *xset=NULL , *cset ;
-   int nopt=1, datum=MRI_float, nvals;
+   int nopt=1, datum=MRI_float, nvals, ii;
    MRI_IMAGE *ysim=NULL ;
    char *prefix = "Tcorr1D", *smethod="pearson";
    char *xnam=NULL , *ynam=NULL ;
@@ -37,11 +37,15 @@ int main( int argc , char *argv[] )
              "  -ktaub    = Correlation is Kendall's tau_b coefficient.\n"
              "              ++ For 'continuous' or finely-discretized data, tau_b and\n"
              "                 rank correlation are nearly equivalent (but not equal).\n"
+             "  -dot      = Doesn't actually compute a correlation coefficient; just\n"
+             "                calculates the dot product between the y1D vector(s)\n"
+             "                and the dataset time series.\n"
              "\n"
              "  -Fisher   = Apply the 'Fisher' (inverse hyperbolic tangent) transformation\n"
              "                to the results.\n"
              "              ++ It does not make sense to use this with '-ktaub', but if\n"
              "                 you want to do it, the program will not stop you.\n"
+             "              ++ Cannot be used with '-dot'!\n"
              "\n"
              "  -prefix p = Save output into dataset with prefix 'p'\n"
              "               [default prefix is 'Tcorr1D'].\n"
@@ -52,6 +56,7 @@ int main( int argc , char *argv[] )
              "\n"
              "  -float    = Save results in float format [the default format].\n"
              "  -short    = Save results in scaled short format [to save disk space].\n"
+             "              ++ Cannot be used with '-dot'!\n"
              "\n"
              "NOTES:\n"
              "* The output dataset is functional bucket type, with one sub-brick\n"
@@ -111,6 +116,11 @@ int main( int argc , char *argv[] )
         smethod = "pearson" ; nopt++ ; continue ;
       }
 
+      if( strcasecmp(argv[nopt],"-dot") == 0 ){
+        smethod = "dot" ; nopt++ ; continue ;
+      }
+
+
       if( strcasecmp(argv[nopt],"-spearman") == 0 || strcasecmp(argv[nopt],"-rank") == 0 ){
         smethod = "spearman" ; nopt++ ; continue ;
       }
@@ -167,9 +177,9 @@ int main( int argc , char *argv[] )
    }
 
    nvals = DSET_NVALS(xset) ;  /* number of time points */
-
-   if( nvals < 3 )
-     ERROR_exit("Input dataset %s length is less than 3?!",xnam) ;
+   ii    = (strcmp(smethod,"dot")==0) ? 2 : 3 ;
+   if( nvals < ii )
+     ERROR_exit("Input dataset %s length is less than ii?!",xnam,ii) ;
 
    if( ysim->nx < nvals )
      ERROR_exit("1D file %s has %d time points, but dataset has %d values",
@@ -184,6 +194,13 @@ int main( int argc , char *argv[] )
    if( ysim->ny > 1 )
      INFO_message("1D file %s has %d columns: correlating with ALL of them!",
                    ynam,ysim->ny) ;
+
+   if( strcmp(smethod,"dot") == 0 && do_atanh ){
+     WARNING_message("'-dot' turns off '-Fisher'") ; do_atanh = 0 ;
+   }
+   if( strcmp(smethod,"dot") == 0 && datum == MRI_short ){
+     WARNING_message("'-dot' turns off '-short'") ; datum = MRI_float ;
+   }
 
    cset = THD_Tcorr1D( xset, mask, nmask, ysim, smethod,
                        prefix, (datum==MRI_short) , do_atanh );

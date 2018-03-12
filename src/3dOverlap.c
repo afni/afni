@@ -15,7 +15,7 @@ int main( int argc , char * argv[] )
              "Output = count of number of voxels that are nonzero in ALL\n"
              "         of the input dataset sub-bricks\n"
              "The result is simply a number printed to stdout.  (If a single\n"
-             "brick was input, this is just the count of the number of nonzero\n"
+             "brick was input, this is just the count of number of nonzero\n"
              "voxels in that brick.)\n"
              "Options:\n"
              "  -save ppp = Save the count of overlaps at each voxel into a\n"
@@ -24,6 +24,8 @@ int main( int argc , char * argv[] )
              "Example:\n"
              "  3dOverlap -save abcnum a+orig b+orig c+orig\n"
              "  3dmaskave -mask 'abcnum+orig<3..3>' a+orig\n"
+             "\n"
+             "Also see program 3dABoverlap :)\n"
             ) ;
       PRINT_COMPILE_DATE ; exit(0) ;
    }

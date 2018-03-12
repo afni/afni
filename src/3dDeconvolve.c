@@ -1279,8 +1279,14 @@ void display_help_menu(int detail)
     "                         (t/(p*q))^p * exp(p-t/q)                      \n"
     "                       Defaults: p=8.6 q=0.547 if only 'GAM' is used   \n"
     "                     ** The peak of 'GAM(p,q)' is at time p*q after    \n"
-    "                        the stimulus.  The FWHM is about 2.3*sqrt(p)*q;\n"
+    "                        the stimulus.  The FWHM is about 2.35*sqrt(p)*q;\n"
     "                        this approximation is accurate for p > 0.3*q.  \n"
+    "                     ** To check this approximation, try the command   \n"
+    "               1deval -num 100 -del 0.02 -xzero 0.02   \\\n"
+    "                      -expr 'sqrt(gamp(x,1))/2.35/x' | \\\n"
+    "               1dplot -stdin -del 0.02 -xzero 0.02 -yaxis 1:1.4:4:10   \n"
+    "                        If the two functions gamp(x,1) and 2.35*x      \n"
+    "                        were equal, the plot would be constant y=1.    \n"
     "                 ==> ** If you add a third argument 'd', then the GAM  \n"
     "                        function is convolved with a square wave of    \n"
     "                        duration 'd' seconds; for example:             \n"
@@ -1297,8 +1303,8 @@ void display_help_menu(int detail)
     "                        weird things will happen: (tcsh syntax)        \n"
     "                         set pp = `ccalc 'gamp(2,8)'`                  \n"
     "                         set qq = `ccalc 'gamq(2,8)'`                  \n"
-    "                         1deval -p=$pp -q=$qq -num 200 -del 0.1  \\    \n"
-    "                                -expr '(t/p/q)^p*exp(p-t/q)'   | \\    \n"
+    "                         1deval -p=$pp -q=$qq -num 200 -del 0.1  \\\n"
+    "                                -expr '(t/p/q)^p*exp(p-t/q)'   | \\\n"
     "                                1dplot -stdin -del 0.1                 \n"
     "                        Here, K is significantly smaller than W,       \n"
     "                        so a gamma variate that fits peak=2 width=8    \n"
@@ -5401,9 +5407,13 @@ void check_for_valid_inputs
   ININFO_message("Number of parameters:  %d [%d baseline ; %d signal]",p,q,p-q) ;
 
   /*----- Check for sufficient data -----*/
-  if (N == 0)  DC_error ("No usable time points?");
+  if (N == 0)  DC_error ("No usable time points? :(");
   if (N <= p)
     {
+       if( nt > p )  /* Better grieving when death happens [13 Feb 2018] */
+         ERROR_message(" *** Censoring has made regression impossible :( ***") ;
+       else
+         ERROR_message("Regression model has too many parameters for dataset length :(") ;
        sprintf (message,  "Insufficient data (%d) for estimating %d parameters", N,p);
        DC_error (message);
    }
@@ -10591,7 +10601,7 @@ static float_pair gam_peak_fwhm_convert( float peak , float fwhm )
    pq = gam_find_pq( (double)peak , (double)fwhm ) ; /* cs_gamfit.c */
    p = pq.a ; q = pq.b ;
 #else
-   p = (2.3f*peak/fwhm) ; p = p*p ; q = peak/p ;
+   p = (2.35f*peak/fwhm) ; p = p*p ; q = peak/p ;
 #endif
 
    INFO_message("GAM conversion: peak=%g fwhm=%g -> p=%g q=%g",peak,fwhm,p,q) ;
@@ -11348,7 +11358,7 @@ ENTRY("basis_parser") ;
        }
        if( dur < 0.0f ){   /* the olden way: no duration given */
          be->bfunc[0].a = bot ;    /* t_peak = bot*top */
-         be->bfunc[0].b = top ;    /* FWHM   = 2.3*sqrt(bot)*top */
+         be->bfunc[0].b = top ;    /* FWHM   = 2.35*sqrt(bot)*top */
          be->bfunc[0].c = bot*top + 9.9f*sqrtf(bot)*top ;  /* long enough */
          be->bfunc[0].f = basis_gam ;
          be->tbot = 0.0f ; be->ttop = be->bfunc[0].c ;
@@ -11801,7 +11811,7 @@ ENTRY("basis_parser") ;
        if( num_block == 0 ){
          first_block_peakval = bot ;
          first_block_peaksym = strdup(sym) ;
-       } else if( FLDIF(bot,first_block_peakval) ){
+       } else if( FLDIF(bot,first_block_peakval) > 0.002f ){
          WARNING_message(
           "%s has different peak value than first %s\n"
           "            We hope you know what you are doing!" ,
@@ -11812,7 +11822,7 @@ ENTRY("basis_parser") ;
          if( first_len_pkzero == 0.0f ){
            first_len_pkzero = top ;
            first_sym_pkzero = strdup(sym) ;
-         } else if( FLDIF(top,first_len_pkzero) ){
+         } else if( FLDIF(top,first_len_pkzero) > 0.002f ){
            WARNING_message(
             "%s has different duration than first %s\n"
             "       ==> Amplitudes will differ.  We hope you know what you are doing!" ,
@@ -11872,7 +11882,7 @@ ENTRY("basis_parser") ;
        if( num_block == 0 ){
          first_block_peakval = bot ;
          first_block_peaksym = strdup(sym) ;
-       } else if( FLDIF(bot,first_block_peakval) ){
+       } else if( FLDIF(bot,first_block_peakval) > 0.002f ){
          WARNING_message(
           "%s has different peak value than first %s\n"
           "            We hope you know what you are doing!" ,
@@ -11883,7 +11893,7 @@ ENTRY("basis_parser") ;
          if( first_len_pkzero == 0.0f ){
            first_len_pkzero = top ;
            first_sym_pkzero = strdup(sym) ;
-         } else if( FLDIF(top,first_len_pkzero) ){
+         } else if( FLDIF(top,first_len_pkzero) > 0.002f ){
            WARNING_message(
             "%s has different duration than first %s\n"
             "       ==> Amplitudes will differ.  We hope you know what you are doing!" ,

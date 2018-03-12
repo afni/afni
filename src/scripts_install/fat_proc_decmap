@@ -1,4 +1,6 @@
-#!/bin/tcsh -e
+#!/bin/tcsh 
+
+@global_parse `basename $0` "$*" ; if ($status) exit 0
 
 # --------------------- revision history -------------------------
 # Sept, 2016
@@ -25,8 +27,14 @@
 #set version   = "3.0"; set rev_dat   = "Apr 26, 2017"
 #   + wdir naming
 #
-set version   = "3.1"; set rev_dat   = "Sep 04, 2017"
+#set version   = "3.1"; set rev_dat   = "Sep 04, 2017"
 #   + work with new @chauffeur*, -prefix only
+#
+#set version   = "3.2"; set rev_dat   = "Feb 16, 2018"
+#   + new images names
+#
+set version   = "3.2b"; set rev_dat   = "Mar 2, 2018"
+#   + update rel path loc of QC/ dir
 #
 # ----------------------------------------------------------------
 
@@ -72,7 +80,6 @@ set DO_VIEWER  = 1                # def: do QC image visualization
 
 set sca_fa    = "0.7"            # optional user scaling for a brighter img
 
-set postfix   = "_"               
 set postfix0  = "_dec"            # stick into name
 set postfix1  = "_dec_unwt_thr"   # stick into name: unwtd, but thresholded
 set postfix2  = "_dec_sca"        # stick into name: unwtd, but thresholded
@@ -198,6 +205,12 @@ if ( ! -e "$odir" ) then
     mkdir "$odir"
 endif
 
+set odirqc = "$odir/QC"
+if ( ! -e "$odirqc" ) then
+    mkdir "$odirqc"
+endif
+set odirqc_wdir = "../QC" # loc from $wdir
+
 # and put working directory as subdirectory.
 if ( "$WDIR_EX" == "1" ) then
     set wdir = $odir/${wdir}_$opref
@@ -217,6 +230,9 @@ else
     echo "   NB: will *not* clean it afterwards."
     set DO_CLEAN = "0"
 endif
+
+set p_sca_fa = "${sca_fa:gas/.//}"
+set p_thr_fa = "${thr_fa:gas/.//}"
 
 set ocmd   = "${opref}_cmd.txt"      # name for output command
 
@@ -324,7 +340,7 @@ set fout_uwtd = "${tpref}_uwtd.nii"
 
 if ( $sca_fa != "" ) then
     # weighted, but not thresholded, by FA PLUS scaled by userval
-    set fout_sca = "${tpref}_sca.nii"
+    set fout_sca = "${tpref}_sca${p_sca_fa}.nii"
     3dcalc                                   \
         -echo_edu                            \
         -overwrite                           \
@@ -340,7 +356,7 @@ cd $wdir
 
 # "classical" dec map
 set fin0  = "$fout_wtd"
-set fout0 = "${opref}${postfix0}.nii"
+set fout0 = "${opref}${postfix0}.nii.gz"
 3dThreetoRGB                             \
     -echo_edu                            \
     -overwrite                           \
@@ -351,7 +367,7 @@ set fout0 = "${opref}${postfix0}.nii"
 
 # "other" dec map
 set fin1  = "$fout_uwtd"
-set fout1 = "${opref}${postfix1}.nii"
+set fout1 = "${opref}${postfix1}${p_thr_fa}.nii.gz"
 3dThreetoRGB                             \
     -echo_edu                            \
     -overwrite                           \
@@ -363,7 +379,7 @@ set fout1 = "${opref}${postfix1}.nii"
 if ( $sca_fa != "" ) then
     # "other" dec map
     set fin2  = "$fout_sca"
-    set fout2 = "${opref}${postfix2}.nii"
+    set fout2 = "${opref}${postfix2}${p_sca_fa}.nii.gz"
     3dThreetoRGB                             \
         -echo_edu                            \
         -overwrite                           \
@@ -377,18 +393,18 @@ if ( $DO_VIEWER ) then
 
     echo "++ Making QC images."
     if( $qc_prefix == "" ) then
-        set vpref0 = ${opref}${postfix}_qc0${postfix0}
-        set vpref1 = ${opref}${postfix}_qc1${postfix1}_"$thr_fa"
-        set vpref2 = ${opref}${postfix}_qc2${postfix2}_"$sca_fa"
+        set vpref0 = ${opref}_qc${postfix0}
+        set vpref1 = ${opref}_qc${postfix1}"$p_thr_fa"
+        set vpref2 = ${opref}_qc${postfix2}"$p_sca_fa"
     else
-        set vpref0 = ${qc_prefix}${postfix}_qc0${postfix0}
-        set vpref1 = ${qc_prefix}${postfix}_qc1${postfix1}_"$thr_fa"
-        set vpref2 = ${qc_prefix}${postfix}_qc2${postfix2}_"$sca_fa"
+        set vpref0 = ${qc_prefix}_qc${postfix0}
+        set vpref1 = ${qc_prefix}_qc${postfix1}"$p_thr_fa"
+        set vpref2 = ${qc_prefix}_qc${postfix2}"$p_sca_fa"
     endif
 
     echo "++ QC image #0 (weighted+unthresholded dec): $vpref0"
     $my_viewer      -ulay ../$fout0                 \
-                    -prefix "../$vpref0"            \
+                    -prefix "${odirqc_wdir}/$vpref0" \
                     -montx 5 -monty 3               \
                     -set_xhairs OFF                 \
                     -label_mode 1 -label_size 3     \
@@ -397,7 +413,7 @@ if ( $DO_VIEWER ) then
 
     echo "++ QC image #1 (ulay FA, olay unweighted+thresholded dec): $vpref1"
     $my_viewer      -ulay ../$fout1                 \
-                    -prefix "../$vpref1"            \
+                    -prefix "${odirqc_wdir}/$vpref1" \
                     -montx 5 -monty 3               \
                     -set_xhairs OFF                 \
                     -label_mode 1 -label_size 3     \
@@ -408,7 +424,7 @@ if ( $DO_VIEWER ) then
         echo "++ QC image #2 (weighted+unthresholded+scaled dec): $vpref2"
         echo "     --> scaling value = $sca_fa"
         $my_viewer      -ulay ../$fout2                 \
-                        -prefix "../$vpref2"            \
+                        -prefix "${odirqc_wdir}/$vpref2" \
                         -montx 5 -monty 3               \
                         -set_xhairs OFF                 \
                         -label_mode 1 -label_size 3     \
@@ -551,15 +567,15 @@ cat << EOF
         scaled by a value (such as 0.7; see "-sca_fa SSS" option
         above); this can 'brighten' the DEC map for clarity.
 
-    PREFIX${postfix0}_qc0*.png
+    PREFIX_qc${postfix0}*.png
         a set cor, axi and sag images (each a 5x3 montage) of the 
         PREFIX${postfix0}.nii.gz data set.
 
-    PREFIX${postfix1}_qc1*.png
+    PREFIX_qc${postfix1}x*.png
         a set cor, axi and sag images (each a 5x3 montage) of the 
         PREFIX${postfix1}.nii.gz data set.
 
-    PREFIX${postfix2}*_qc2*.png
+    PREFIX_qc${postfix2}*.png
         a set cor, axi and sag images (each a 5x3 montage) of the 
         PREFIX${postfix2}.nii.gz data set.
 

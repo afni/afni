@@ -858,6 +858,7 @@ extern int         mri_siemens_slice_times( int *, int *, float ** );
 extern int         mri_sst_get_verb( void );
 extern int         mri_sst_set_verb( int );
 extern char *      mri_dicom_hdrinfo( char *fname, int natt, char **att , int nposn ) ;
+extern char *      mri_dicom_hdrinfo_full( char *fname, int natt, char **att , int nposn ) ;
 
 /*! Set the data pointer in an MRI_IMAGE to NULL. */
 

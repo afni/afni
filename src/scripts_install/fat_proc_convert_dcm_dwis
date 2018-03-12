@@ -1,4 +1,6 @@
-#!/bin/tcsh -e
+#!/bin/tcsh
+
+@global_parse `basename $0` "$*" ; if ($status) exit 0
 
 # written by PA Taylor (NIMH, NIH)
 # convert dicoms to nifti, while "niceifying" several properties.
@@ -45,8 +47,11 @@
 #set version = "3.1"; set rev_dat = "Apr 26, 2017"
 #   + important: fixed matT -> matA error
 #
-set version = "3.2"; set rev_dat = "Sep 04, 2017"
+#set version = "3.2"; set rev_dat = "Sep 04, 2017"
 #   + work with new @chauffeur*, '-prefix ...' only
+#
+set version = "3.3"; set rev_dat = "Feb 20, 2018"
+#   + output QC dir for images
 #
 # ----------------------------------------------------------------
 
@@ -85,7 +90,7 @@ endif
 set idir  = ""
 set odir  = ""
 set opref    = ""          # default file output prefix
-set ori_new  = "RPI"       # default file output orientation
+set ori_new  = "RAI"       # default file output orientation
 set doflip   = ""          # default: no flip of grads
 set DO_REORI = 1
 set DO_CLEAN = "1"
@@ -93,7 +98,6 @@ set DO_VIEWER = "1"
 set output_cmd = 1               # def: output copy of this command
 set cmd_file   = ""              # def: same name as viewer
 set qc_prefix  = ""              # def: autoname; user can enter
-set postfix    = "_"             # stick into name
 
 set movie     = ""
 
@@ -280,6 +284,14 @@ if ( ! -e "$odir" ) then
     echo "+* Output directory didn't exist.  Trying to make it now."
     mkdir "$odir"
 endif
+
+set odirqc = "$odir/QC"
+if ( "$DO_VIEWER" == "1" ) then
+    if ( ! -e "$odirqc" ) then
+        mkdir "$odirqc"
+    endif
+endif
+set odirqc_wdir = "../QC" # loc from $wdir
 
 # and put working directory as subdirectory.
 if ( "$WDIR_EX" == "1" ) then
@@ -529,14 +541,14 @@ endif
 # Feb,2017: take images!
 if ( "$DO_VIEWER" == "1" ) then
 
-    $my_viewer_4d \
-        -inset  ../$fin_vols              \
-        -prefix "../${opref}"
+    $my_viewer_4d                              \
+        -inset  ../$fin_vols                   \
+        -prefix "${odirqc_wdir}/${opref}"
 
     if ( "$movie" != "" ) then
-        $my_viewer_4d \
-            -inset  ../$fin_vols          \
-            -prefix "../${opref}"         \
+        $my_viewer_4d                          \
+            -inset  ../$fin_vols               \
+            -prefix "${odirqc_wdir}/${opref}"  \
             $movie
     endif
 endif
