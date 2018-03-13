@@ -1353,7 +1353,7 @@ STATUS("copy atlas_space") ;
      MCW_strncpy( qset->atlas_space , bset->atlas_space , THD_MAX_NAME ) ;
   }
 STATUS("write warp") ;
-   DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ;
+   DSET_write(qset) ; fprintf(stderr,"[%s]",DSET_PREFIX(qset)) ; DSET_delete(qset) ;
    if( tarp != hwarp ) IW3D_destroy(tarp) ;
    EXRETURN ;
 }
@@ -1369,7 +1369,7 @@ STATUS("write warp") ;
 
 int main( int argc , char *argv[] )
 {
-   THD_3dim_dataset *bset=NULL , *sset=NULL , *oset , *iwset=NULL , *sstrue=NULL ;
+   THD_3dim_dataset *sset=NULL , *oset , *iwset=NULL , *sstrue=NULL ;
    char *bsname=NULL , *iwname=NULL , *ssname=NULL , *esname=NULL ;
    MRI_IMAGE *bim=NULL , *wbim=NULL , *sim=NULL , *oim=NULL ; float bmin,smin ;
    IndexWarp3D *oww=NULL , *owwi=NULL ; Image_plus_Warp *oiw=NULL ;
@@ -1401,8 +1401,6 @@ int main( int argc , char *argv[] )
    AFNI_SETUP_OMP(0) ;  /* 24 Jun 2013 */
 
    if( argc == 1 ) { Qhelp(); exit(0); }
-
-   saved_argc = argc ; saved_argv = argv ; /* 13 Mar 2018 */
 
    /*---------- startup bureaucracy --------*/
 
@@ -1438,6 +1436,8 @@ int main( int argc , char *argv[] )
 
    LOAD_IDENT_MAT44(allin_matrix);        /* Just to quiet initialization warning */
    LOAD_IDENT_MAT44(allin_adjust_matrix); /* Just to quiet initialization warning */
+
+   saved_argc = argc ; saved_argv = argv ; /* 13 Mar 2018 */
 
    /*------------- scan for and parse options -------------*/
 

@@ -11339,6 +11339,11 @@ ENTRY("IW3D_warpomatic") ;
 
      /* print some summary of what happened at this level */
 
+     if( Hsave_allwarps ){           /* 02 Jan 2015 */
+       sprintf(warplab,"%04dx%04dx%04d",xwid,ywid,zwid) ;
+       HSAVE_ADDTO(Haawarp,warplab) ;
+     }
+
      if( Hcostbeg > 666.0f ) Hcostbeg = Hfirstcost ;
      if( Hverb == 1 ){
        if( Hdone > 0 )
@@ -11347,11 +11352,6 @@ ENTRY("IW3D_warpomatic") ;
          fprintf(stderr," done [cost:%.5f ; all patches skipped]\n",Hcost) ;
      }
      Hcostbeg = Hcost ;
-
-     if( Hsave_allwarps ){           /* 02 Jan 2015 */
-       sprintf(warplab,"%04dx%04dx%04d",xwid,ywid,zwid) ;
-       HSAVE_ADDTO(Haawarp,warplab) ;
-     }
 
    } /*-- end of loop over levels of refinement --*/
 
