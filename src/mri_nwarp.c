@@ -7707,7 +7707,7 @@ if( verb_nww > 1 && ii > 0 ) ININFO_message("Reduced catlist by %d steps",ii) ;
     MRI_IMAGEs as the inputs, not datasets.
 
     3dQwarp is *supposed* to work with 2D images (nz=1), and there is code
-    to allow for that case -- but it has never been tested!
+    to allow for that case -- but it has never been tested! (OK, once.)
 
     The INCOR_* functions are in thd_incorrelate.c (which is #include-d far
     far above), and handle "incomplete correlation" calculations, where part
@@ -7906,6 +7906,9 @@ static int           Hsave_allwarps = 0 ;    /* 02 Jan 2015 */
 static int           Hsave_num      = 0 ;
 static IndexWarp3D **Hsave_iwarp    = NULL ;
 static char        **Hsave_iname    = NULL ;
+
+static void (*Hsave_callback_func)(IndexWarp3D * , char *) = NULL ;  /* 13 Mar 2018 */
+
 #define HSAVE_DESTROY                                                         \
  do{ if( Hsave_num > 0 ){                                                     \
        if( Hsave_iwarp != NULL ){                                             \
@@ -7915,11 +7918,15 @@ static char        **Hsave_iname    = NULL ;
        }                                                                      \
        Hsave_num = 0 ;                                                        \
      } } while(0)
-#define HSAVE_ADDTO(iww,inn)                                                                   \
- do{ Hsave_iwarp = (IndexWarp3D **)realloc(Hsave_iwarp,sizeof(IndexWarp3D *)*(Hsave_num+1)) ;  \
-     Hsave_iname = (char        **)realloc(Hsave_iname,sizeof(char        *)*(Hsave_num+1)) ;  \
-     Hsave_iwarp[Hsave_num] = IW3D_copy(iww,1.0f) ;                                            \
-     Hsave_iname[Hsave_num] = strdup(inn) ; Hsave_num++ ;                                      \
+#define HSAVE_ADDTO(iww,inn)                                                                     \
+ do{ if( Hsave_callback_func != NULL ){                                                          \
+       Hsave_callback_func(iww,inn) ;                                                            \
+     } else {                                                                                    \
+       Hsave_iwarp = (IndexWarp3D **)realloc(Hsave_iwarp,sizeof(IndexWarp3D *)*(Hsave_num+1)) ;  \
+       Hsave_iname = (char        **)realloc(Hsave_iname,sizeof(char        *)*(Hsave_num+1)) ;  \
+       Hsave_iwarp[Hsave_num] = IW3D_copy(iww,1.0f) ;                                            \
+       Hsave_iname[Hsave_num] = strdup(inn) ; Hsave_num++ ;                                      \
+     }                                                                                           \
  } while(0)
 
 static int   Hfirsttime = 0 ;    /* for fun only (to print stuff out in cost func) */
