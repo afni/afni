@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 13 , MAR , 2018 , RWC , "3dQwarp" , MICRO , TYPE_ENHANCE ,
+   "-saveall option now writes out as it progresses, not at end" ,
+   "So if 3dQwarp crashes or stalls, the latest saved warp could be used to\n"
+   "re-start the damn thing." } ,
+
  { 16 , FEB , 2018 , RWC , "3dTcorr1D" , MICRO , TYPE_NEW_OPT ,
    "New -dot option (dot product)" ,
    NULL } ,
