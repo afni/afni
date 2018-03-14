@@ -40,6 +40,7 @@
 #define ALLOW_QMODE                /* allows -Qfinal and -Qonly options */
 #define ALLOW_PLUSMINUS            /* allows -plusminus option */
 #undef  USE_PLUSMINUS_INITIALWARP  /* don't do this! doesn't work well! */
+#define USE_NEW_HSAVE              /* 13 Mar 2018 */
 
 #include "mri_nwarp.c"             /* all the real work is done in here */
 
@@ -374,6 +375,11 @@ void Qhelp(void)
     "       run the program to a larger minimum patch size, then\n"
     "       re-start the warping process from the last saved warp,\n"
     "       using '-inilev' and '-iniwarp'.\n"
+#ifdef USE_NEW_HSAVE
+    "       Using the '-allsave' option would also let you re-start the warping\n"
+    "       from the end of the last completed level, since that option saves\n"
+    "       the computed warp as each level finishes before starting the next.\n"
+#endif
     "    -- Also, the use of '-verb' will cause 3dQwarp to print a\n"
     "       report for every patch, which will usually make it obvious\n"
     "       when the program freezes up.\n"
@@ -926,7 +932,8 @@ void Qhelp(void)
 #else
     "               * The saved warps are written out at the end of each level,\n"
     "                 before the next level starts computation. Thus, they could\n"
-    "                 be used to re-start the computation if the program crashed.\n"
+    "                 be used to re-start the computation if the program crashed\n"
+    "                 (by using options '-inilev' and '-iniwarp').\n"
 #endif
 
 #if defined(USE_OMP) && defined(__GNU_C__) /* I forget why this was here - getting old :( */
@@ -1318,8 +1325,6 @@ static THD_3dim_dataset *adset=NULL , *bset=NULL ;
 static char *prefix = "Qwarp" ;
 static int saved_argc=0 ; static char **saved_argv=NULL ;
 
-#define USE_NEW_HSAVE
-
 #ifdef USE_NEW_HSAVE
 void save_intermediate_warp( IndexWarp3D *hwarp , char *nam )
 {
@@ -1353,7 +1358,7 @@ STATUS("copy atlas_space") ;
      MCW_strncpy( qset->atlas_space , bset->atlas_space , THD_MAX_NAME ) ;
   }
 STATUS("write warp") ;
-   DSET_write(qset) ; fprintf(stderr,"[%s]",DSET_PREFIX(qset)) ; DSET_delete(qset) ;
+   DSET_write(qset) ; fprintf(stderr,"[%s]",DSET_BRIKNAME(qset)) ; DSET_delete(qset) ;
    if( tarp != hwarp ) IW3D_destroy(tarp) ;
    EXRETURN ;
 }
