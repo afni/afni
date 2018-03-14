@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 14, Mar , 2018 , PT , "fat_proc_dwi_to_dt" , MINOR , TYPE_BUG_FIX,
+   "Crashed no ref dset was used in mapping.",
+   "Crashes no more under such circumstance.\n"
+},
+
 { 14, Mar , 2018 , PT , "fat_proc_filter_dwis" , MINOR , TYPE_BUG_FIX,
    "Crashed when b-value file was input.",
    "Crashes no more under such circumstance.\n"
