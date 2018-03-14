@@ -4242,7 +4242,7 @@ STATUS("zeropad weight dataset") ;
      if( verb > 1 )
        INFO_message("========== sub-brick #%d ========== [total CPU to here=%.1f s]",
                     kk , COX_cpu_time() ) ;
-     else if ( verb ) {
+     else if ( verb && DSET_NVALS(dset_targ) > 1 ) {
        if( kk == 0 ) fprintf(stderr,"volume 0");
        else          fprintf(stderr,"..%d", kk);
        if( kk == DSET_NVALS(dset_targ)-1 ) fputc('\n', stderr);
