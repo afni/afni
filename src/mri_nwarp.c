@@ -11051,7 +11051,7 @@ ENTRY("IW3D_warpomatic") ;
      if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
 #endif
      if( Hsave_allwarps ){           /* 02 Jan 2015 */
-       sprintf(warplab,"%04dx%04dx%04d",ittt-ibbb+1,jttt-jbbb+1,kttt-kbbb+1) ;
+       sprintf(warplab,"Lev0.%04dx%04dx%04d",ittt-ibbb+1,jttt-jbbb+1,kttt-kbbb+1) ;
        HSAVE_ADDTO(Haawarp,warplab) ;
      }
      if( Hverb == 1 ) fprintf(stderr," done [cost:%.5f==>%.5f]\n",Hfirstcost,Hcost) ;
@@ -11340,7 +11340,7 @@ ENTRY("IW3D_warpomatic") ;
      /* print some summary of what happened at this level */
 
      if( Hsave_allwarps ){           /* 02 Jan 2015 */
-       sprintf(warplab,"%04dx%04dx%04d",xwid,ywid,zwid) ;
+       sprintf(warplab,"Lev%d.%04dx%04dx%04d",lev,xwid,ywid,zwid) ;
        HSAVE_ADDTO(Haawarp,warplab) ;
      }
 
