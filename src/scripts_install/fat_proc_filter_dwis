@@ -65,8 +65,13 @@
 #set version = "3.4"; set rev_dat = "Feb 20, 2018"
 #   + update QC snapshotting and output dir; file names/locs
 #
-set version = "3.5"; set rev_dat = "Mar 5, 2018"
+#set version = "3.5"; set rev_dat = "Mar 5, 2018"
 #   + update QC snapshotting and output dir; file names/locs
+#
+set version = "3.6"; set rev_dat = "Mar 14, 2018"
+#   + bug fix: program would crash if bval was used, because the
+#     selector wasn't being copied in the correct location; thanks for
+#     finding, G. Cabras!
 #
 # ----------------------------------------------------------------
  
@@ -420,10 +425,6 @@ if ( "$outvecmat[4]" != "" ) then
     set outvecmat[4] = "$odir/${opref}$outvecmat[4]"
 endif
 
-if ( "$invecmat[4]" != "" ) then
-    set KEEP3 = $KEEP
-endif
-
 # in case someone wants just unit-mag vec|mat, we don't want to lose
 # the bvalue info!
 if ( "$do_unit_mag" != "" ) then
@@ -477,6 +478,11 @@ end
 set KEEP = `cat "$odir/$ogoods"`
 echo "++ String selectors merged:\n\t $KEEP"
 echo "   and then saved into file:\n\t $odir/$ogoods"
+
+# and use it again
+if ( "$invecmat[4]" != "" ) then
+    set KEEP3 = "$KEEP"
+endif
 
 # ======================== convert dicoms ===============================
 
