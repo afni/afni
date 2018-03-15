@@ -36,10 +36,7 @@ please see* :ref:`HERE <install_steps_mac>`.
 Take the File and Run [#f2]_
 ---------------------------
 
-* `Download .dmg Version <https://afni.nimh.nih.gov/pub/dist/bin/misc/afni_macOS_install_BETA.dmg>`_
-* `Download .zip Version <https://afni.nimh.nih.gov/pub/dist/bin/misc/afni_macOS_install_BETA.dmg>`_
-
-There is no difference in the versions. The .dmg is just more apple-ish.
+* `Download .zip Version <https://afni.nimh.nih.gov/pub/dist/bin/misc/afni_macOS_install_BETA.zip>`_
 
 Break It Down Again [#f3]_
 --------------------------
