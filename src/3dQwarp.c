@@ -615,6 +615,9 @@ void Qhelp(void)
     "                 then the -resample option will be ignored.\n"
     "               * You CAN use -resample with these 3dQwarp options:\n"
     "                   -plusminus  -inilev  -iniwarp  -duplo\n"
+    "                 In particular, '-iniwarp' and '-resample' will work\n"
+    "                 together if you need to re-start a warp job from the\n"
+    "                 output of '-allsave'.\n"
     "               * Unless you are in a hurry, '-allineate' is better.\n"
     "\n"
     " -nowarp      = Do not save the _WARP file.\n"
@@ -839,7 +842,10 @@ void Qhelp(void)
     "                 warp via the string \"IDENT(base_dataset) matrix_file.aff12.1D\".\n"
     "               * You CANNOT use this option with -duplo !!\n"
     "               * -iniwarp is usually used with -inilev to re-start 3dQwarp from\n"
-    "                 a previous stopping point.\n"
+    "                 a previous stopping point, or from the output of '-allsave'.\n"
+    "               * In particular, '-iniwarp' and '-resample' will work\n"
+    "                 together if you need to re-start a warp job from the\n"
+    "                 output of '-allsave'.\n"
 #if 0
     "               * Special cases allow the creation of an initial affine 'warp'\n"
     "                 from a list of 12 numbers:\n"
@@ -1357,6 +1363,13 @@ STATUS("make new history") ;
 STATUS("copy atlas_space") ;
      MCW_strncpy( qset->atlas_space , bset->atlas_space , THD_MAX_NAME ) ;
   }
+  if( do_allin ){  /* save copy of 3dAllineate matrix into header */
+    float qar[12] ;
+    UNLOAD_MAT44(allin_matrix,qar[0],qar[1],qar[ 2],qar[ 3],
+                              qar[4],qar[5],qar[ 6],qar[ 7],
+                              qar[8],qar[9],qar[10],qar[11] ) ;
+    THD_set_float_atr( qset->dblk , "QWARP_ALLIN_MATRIX" , 12 , qar ) ;
+  }
 STATUS("write warp") ;
    DSET_write(qset) ; fprintf(stderr,"[%s]",DSET_BRIKNAME(qset)) ; DSET_delete(qset) ;
    if( tarp != hwarp ) IW3D_destroy(tarp) ;
@@ -1385,7 +1398,7 @@ int main( int argc , char *argv[] )
    int do_awarp=0 ; /* 21 Dec 2016 */
    int duplo=0 , qsave=0 , minpatch=0 , nx,ny,nz , ct , nnn , noneg=0 ;
    float dx,dy,dz ;
-   float dxal=0.0f,dyal=0.0f,dzal=0.0f ;
+   float dxal=0.0f,dyal=0.0f,dzal=0.0f ; int have_dxyzal=0 ;
    int do_resam=0 ; int keep_allin=1 ;
    int flags=0 , nbad=0 ;
    double cput=0.0 ;
@@ -2448,7 +2461,7 @@ STATUS("3dAllineate coming up next") ;
                                qar[4],qar[5],qar[ 6],qar[ 7],
                                qar[8],qar[9],qar[10],qar[11] ) ;
          /* save the magnitude of the shifts (needed for zero pad guesstimate */
-       dxal = fabsf(qar[3]) ; dyal = fabsf(qar[7]) ; dzal = fabsf(qar[11]) ;
+       dxal = fabsf(qar[3]); dyal = fabsf(qar[7]); dzal = fabsf(qar[11]); have_dxyzal = 1;
        if( !keep_allin ){
          remove(qs) ;           /* erase the 3dAllineate matrix file from disk */
          if( Hverb ) ININFO_message("3dAllineate output files have been deleted");
@@ -2493,6 +2506,15 @@ STATUS("construct initial warp") ;
        ERROR_exit("Cannot open -iniwarp %s",iwname) ;
      if( DSET_NVALS(iwset) < 3 || DSET_BRICK_TYPE(iwset,0) != MRI_float )
        ERROR_exit("-iniwarp %s is not in the right format :-(",argv[nopt]) ;
+
+     /* check for previous -allin matrix [16 Mar 2018] */
+
+     { ATR_float *afl = THD_find_float_atr( iwset->dblk , "QWARP_ALLIN_MATRIX" ) ;
+       if( afl != NULL && afl->nfl > 11 ){
+         float *qar = afl->fl ;
+         dxal = fabsf(qar[3]); dyal = fabsf(qar[7]); dzal = fabsf(qar[11]); have_dxyzal = 1;
+       }
+     }
 
      /* compute how much bset must be padded to fit the iniwarp [11 Apr 2014] */
 
@@ -2614,10 +2636,11 @@ STATUS("load datasets") ; /*--------------------------------------------------*/
      pad_ym = MIN(bpad_ym,spad_ym) ; pad_yp = MAX(bpad_yp,spad_yp) ;
      pad_zm = MIN(bpad_zm,spad_zm) ; pad_zp = MAX(bpad_zp,spad_zp) ;
 
-     if( do_allin ){                              /* extend pad size for */
+     if( have_dxyzal ){                           /* extend pad size for */
        float dm = MIN(dx,dy) ; dm = MIN(dm,dz) ;  /* 3dAllineate shifts? */
        dxal /= dm ; dyal /= dm ; dzal /= dm ;
        dm = MAX(dxal,dyal); dm = MAX(dm,dzal); mpad_min += (int)rintf(1.0111f*dm);
+       /* INFO_message("dxyzal => mpad_min = %d",mpad_min) ; */
      }
 
      /* define minimum padding for each direction */
@@ -2689,7 +2712,9 @@ STATUS("load datasets") ; /*--------------------------------------------------*/
          WARNING_message(
            "At least one padding is more than 50%% of dataset grid size!" ) ;
          WARNING_message(
-           "Computation time might be tremendously long :(") ;
+           "  Computation time might be tremendously long :(") ;
+         WARNING_message(
+           "  Preliminary alignment of dataset centers might help a LOT.") ;
        }
 
        /*-- replace base image --*/
@@ -3242,6 +3267,13 @@ INFO_message("warp dataset origin: %g %g %g",DSET_XORG(qset),DSET_YORG(qset),DSE
      tross_Copy_History( bset , qset ) ;
      tross_Make_History( "3dQwarp" , argc,argv , qset ) ;
      MCW_strncpy( qset->atlas_space , bset->atlas_space , THD_MAX_NAME ) ;
+     if( do_allin ){  /* save copy of 3dAllineate matrix into header */
+       float qar[12] ;
+       UNLOAD_MAT44(allin_matrix,qar[0],qar[1],qar[ 2],qar[ 3],
+                                 qar[4],qar[5],qar[ 6],qar[ 7],
+                                 qar[8],qar[9],qar[10],qar[11] ) ;
+       THD_set_float_atr( qset->dblk , "QWARP_ALLIN_MATRIX" , 12 , qar ) ;
+     }
      DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ; qset=NULL ;
 
      if( do_plusminus && qiw != NULL ){
