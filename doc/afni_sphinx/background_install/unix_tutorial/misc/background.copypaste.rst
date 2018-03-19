@@ -1,5 +1,5 @@
 
-.. _U_misc_bg2:
+.. _U_misc_copypaste:
 
 ******************
 Copy and Paste with Terminals
@@ -10,13 +10,14 @@ example when following the AFNI install instructions.  This helps
 avoid many mistakes that can occur with typing (tyypos, mistaking "O"
 and "0", etc.).  
 
-On many computer systems, outside of the terminal one copies by
-highlighting text and typing "Ctrl+c", and can paste at the cursor
-location by typing "Ctrl+v".  (On a Mac, these would be done with
-"Apple+c" and "Apple+v", respectively.)
+On many operating systems and in many applications, copying is done by
+highlighting text and typing "Ctrl+c", and pasting to the cursor
+location is done by typing "Ctrl+v".  (On a Mac, these would be done
+with "Apple+c" and "Apple+v", respectively.)
 
 In all cases below, text is pasted at the location of the cursor
-within the terminal (not at the location of where the mouse is.)
+within the terminal (and not necessarily at the location of the
+mouse.)
 
 Linux Terminals (non-Windows)
 -----------------------------
