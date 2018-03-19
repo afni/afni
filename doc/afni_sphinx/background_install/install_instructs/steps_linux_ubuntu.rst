@@ -26,12 +26,12 @@ Install prerequisite packages
     sudo apt-get install -y tcsh libxp6 xfonts-base python-qt4             \
                             libmotif4 libmotif-dev motif-clients           \
                             gsl-bin netpbm xvfb gnome-tweak-tool           \
-                            libjpeg62 xterm
+                            libjpeg62 xterm gedit evince
     sudo apt-get update
 
 * *For version 15.10*, copy+paste::
    
-    sudo apt-get install -y tcsh xfonts-base python-qt4                    \
+    sudo apt-get install -y tcsh xfonts-base python-qt4 gedit evince       \
                             libmotif4 libmotif-dev motif-clients           \
                             gsl-bin netpbm xvfb gnome-tweak-tool libjpeg62
     sudo apt-get update
