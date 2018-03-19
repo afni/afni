@@ -29,7 +29,6 @@ Install prerequisite: Getting Linux
   <https://docs.microsoft.com/en-us/windows/wsl/install-win10>`_
 
 
-
 .. _install_windows_VcXsrv:
 
 Install prerequisite: VcXsrv Windows X Server
@@ -50,10 +49,12 @@ a. | Click on the following link to start automatic download:
 #. To enable copy+paste ability in Ubuntu terminal, right-click on the
    toolbar at the top of the Ubuntu terminal, and select "Properties";
    in the Options tab, make sure the box next to "QuickEdit Mode" is
-   selected.  You should then be able to paste into a terminal by
-   either right-clicking or hitting the "Enter" key.  (To "copy" text
-   that is *in* the terminal, just highlight it, and then you should
-   be able to right-click to paste; to "copy" text from *outside* the
+   selected.  
+
+   You should then be able to paste into a terminal by either
+   right-clicking or hitting the "Enter" key.  (To "copy" text that is
+   *in* the terminal, just highlight it, and then you should be able
+   to right-click to paste; to "copy" text from *outside* the
    terminal, you probably need to highlight it and hit "Ctrl+c".)
 
 #. To set the DISPLAY properly, copy+paste the following into the
