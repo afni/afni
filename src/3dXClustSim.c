@@ -1225,13 +1225,13 @@ int main( int argc , char *argv[] )
    /*--- STEP 1c: find the global distributions and min thresholds -----------*/
 
 #if 0
-# define GTHRESH_FAC 0.066666f /* factor for method 1 */
-# define GTHRESH_THA 0.021111f /* how far into clust table: method 1 (per %) */
-# define GTHRESH_THB 0.042222f /* how far into clust table: method 2 (per %) */
-#else
 # define GTHRESH_FAC 0.799999f /* factor for method 1 */
 # define GTHRESH_THA 0.008888f /* how far into clust table: method 1 (per %) */
 # define GTHRESH_THB 0.013579f /* how far into clust table: method 2 (per %) */
+#else
+# define GTHRESH_FAC 0.135799f /* factor for method 1 */
+# define GTHRESH_THA 0.011111f /* how far into clust table: method 1 (per %) */
+# define GTHRESH_THB 0.044444f /* how far into clust table: method 2 (per %) */
 #endif
 
    { int nfom,jj,nfff; Xcluster **xcc;
