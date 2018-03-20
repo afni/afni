@@ -22,7 +22,10 @@ int main( int argc , char * argv[] )
        do_zskip++ ; iarg++ ; continue ;
      }
      if( strcasecmp(argv[iarg],"-perbin") == 0 ){
-       do_perbin++ ; iarg++ ; continue ;
+       do_perbin = 1 ; do_permax = 0 ; iarg++ ; continue ;
+     }
+     if( strcasecmp(argv[iarg],"-permax") == 0 ){
+       do_perbin = 0 ; do_permax = 1 ; iarg++ ; continue ;
      }
      ERROR_exit("Unknown option '%s'") ; exit(1) ;
    }
