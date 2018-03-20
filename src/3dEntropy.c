@@ -24,6 +24,7 @@ int main( int argc , char * argv[] )
      if( strcasecmp(argv[iarg],"-perbin") == 0 ){
        do_perbin++ ; iarg++ ; continue ;
      }
+     ERROR_exit("Unknown option '%s'") ; exit(1) ;
    }
 
    for( ; iarg < argc ; iarg++ ){
