@@ -17,8 +17,13 @@ int main( int argc , char * argv[] )
       PRINT_COMPILE_DATE ; exit(0) ;
    }
 
-   if( strcasecmp(argv[iarg],"-zskip") == 0 ){
-     do_zskip++ ; iarg++ ;
+   while( iarg < argc && argv[iarg][0] == '-' ){
+     if( strcasecmp(argv[iarg],"-zskip") == 0 ){
+       do_zskip++ ; iarg++ ; continue ;
+     }
+     if( strcasecmp(argv[iarg],"-perbin") == 0 ){
+       do_perbin++ ; iarg++ ; continue ;
+     }
    }
 
    for( ; iarg < argc ; iarg++ ){
