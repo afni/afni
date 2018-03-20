@@ -15,7 +15,8 @@ Welcome to AFNI's documentation!
    background_install/main_toc
    educational/main_toc
    pub_trawl/main_toc
-   .. AFNI/main_toc
+   .. 
+      AFNI/main_toc
    SUMA/main_toc
    FATCAT/main_toc
    STATISTICS/main_toc
