@@ -74,9 +74,10 @@ static int perc_val = -666;
 #define METH_TSNR          42 /* JKR 10 April 2017 */
 
 #define METH_MEAN_SSD      43 /* 19 Mar 2018 */
-#define METH_MEDIAN_ASD    44
+#define METH_MEAN_SSDQ     44
+#define METH_MEDIAN_ASD    45
 
-#define MAX_NUM_OF_METHS   45
+#define MAX_NUM_OF_METHS   46
 
 /* allow single inputs for some methods (test as we care to add) */
 #define NUM_1_INPUT_METHODS 12
@@ -107,7 +108,7 @@ static char *meth_names[] = {
    "CVarInv"       , "CvarInv (NOD)", "ZeroCount"     , "NZ Median"   ,
    "Signed Absmax" , "L2 Norm"      , "NonZero Count" , "NZ Stdev"    ,
    "Percentile %d" , "FirstValue"   , "TSNR"          , "MSSD"        ,
-   "MASD"
+   "MSSDsqrt"      , "MASD"
 };
 
 static void STATS_tsfunc( double tzero , double tdelta ,
@@ -163,8 +164,9 @@ void usage_3dTstat(int detail)
  "                [the value comparable to the standard deviation output]\n"
  " -MSSD      = Von Neumann's Mean of Successive Squared Differences\n"
  "               = average of sum of squares of first time difference\n"
+ " -MSSDsqrt  = Sqrt(MSSD)\n"
  " -MASD      = Median of absolute values of first time differences\n"
- "               = a robust alternative to MSSD\n"
+ "               = a robust alternative to MSSDsqrt\n"
  " -min       = compute minimum of input voxels [undetrended]\n"
  " -max       = compute maximum of input voxels [undetrended]\n"
  " -absmax    = compute absolute maximum of input voxels [undetrended]\n"
@@ -406,6 +408,12 @@ int main( int argc , char *argv[] )
 
       if( strcasecmp(argv[nopt],"-MSSD") == 0 ){  /* 19 Mar 2018 */
          meth[nmeths++] = METH_MEAN_SSD ;
+         nbriks++ ;
+         nopt++ ; continue ;
+      }
+      if( strcasecmp(argv[nopt],"-MSSDQ")    == 0 ||
+          strcasecmp(argv[nopt],"-MSSDsqrt") == 0 ){  /* 20 Mar 2018 */
+         meth[nmeths++] = METH_MEAN_SSDQ ;
          nbriks++ ;
          nopt++ ; continue ;
       }
@@ -1036,8 +1044,11 @@ static void STATS_tsfunc( double tzero, double tdelta ,
       }
       break ;
 
+      case METH_MEAN_SSDQ:
       case METH_MEAN_SSD:{  /* 19 Mar 2018 */
         val[out_index] = cs_mean_square_sd( npts , ts ) ;
+        if( meth[meth_index] == METH_MEAN_SSDQ )
+          val[out_index] = sqrtf( MAX(val[out_index],0.0f) ) ;
       }
       break ;
 
