@@ -2681,6 +2681,8 @@ def db_cmd_combine(proc, block):
       ccmd = cmd_combine_mean(proc, block)
    elif ocmeth[0:2] == 'OC':
       ccmd = cmd_combine_OC(proc, block, ocmeth)
+   elif ocmeth[0:6] == 'tedana':
+      ccmd = cmd_combine_tedana(proc, block, ocmeth)
    else:
       print("** invalid combine method: %s" % ocmeth)
       return ''
@@ -2691,6 +2693,65 @@ def db_cmd_combine(proc, block):
 
    # importantly, we are now done with ME processing
    proc.use_me = 0
+
+   return cmd
+
+
+def cmd_combine_tedana(proc, block, method='tedana'):
+   """combine all echoes using the tedana.py wrapper, tedana_hammer.py
+
+      1. for each run, get weights (with run-specific prefix)
+      2. average those weights across runs (nzmean? not necessary?)
+      3. apply 
+
+      method must currently be one of the following
+         tedana             : default - run tedana_hammer.py, collect output
+         tedana_proj_all    : get projection matrix from both rejected lists
+                              (rejected.txt and midk_rejected.txt)
+         tedana_proj_rej    : just get projection matrix from rejected.txt
+   """
+
+   if not proc.use_me:
+      print("** creating combine block, but no ME?")
+      return
+
+   if len(proc.echo_times) == 0:
+      print("** option -echo_times is required for 'OC' combine method")
+      return
+
+   if method == 'tedana':
+      mstr = ''
+   else:
+      print("** invalid OC (tedana) combine method, %s" % method)
+      return
+     
+
+   # input prefix has $run fixed, but uses a wildcard for echoes
+   # output prefix has $run fixed, but no echo var
+   cur_prefix = proc.prefix_form_run(block, eind=-9)
+   prev_prefix = proc.prev_prefix_form_run(block, view=1, eind=-2)
+
+   cmd =  '# ----- optimally combine echoes -----\n\n'              \
+          '# get weights for each run\n'                            \
+          'foreach run ( $runs )\n'                                 \
+          '    @compute_OC_weights -echo_times "$echo_times" \\\n'  \
+          '%s'                                                      \
+          '        -echo_dsets %s   \\\n'                           \
+          '        -prefix oc.weights.r$run  \\\n'                  \
+          '        -work_dir oc.work.r$run\n'                       \
+          'end\n\n' % (mstr, prev_prefix)
+
+   proc.OC_weightset = BASE.afni_name('oc.weights.$subj%s' % proc.view)
+   cmd += '# average weights across runs\n'          \
+          '3dMean -prefix %s oc.weights.r*.HEAD\n\n' \
+          % proc.OC_weightset.out_prefix()
+
+   cmd += '# apply weights to each run\n'           \
+          'foreach run ( $runs )\n'                    \
+          '    3dMean -weightset %s \\\n'           \
+          '           -prefix %s \\\n'          \
+          '           %s\n'                 \
+          'end\n\n' % (proc.OC_weightset.shortinput(), cur_prefix, prev_prefix)
 
    return cmd
 
