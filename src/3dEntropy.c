@@ -9,7 +9,12 @@ int main( int argc , char * argv[] )
    double eset ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
-      printf("Usage: 3dEntropy [-zskip] dataset ...\n") ; PRINT_COMPILE_DATE ; exit(0) ;
+      printf("\n") ;
+      printf("Usage: 3dEntropy [-zskip] dataset ...\n\n") ;
+      printf(" * Datasets must be stored as 16 bit shorts.\n") ;
+      printf(" * -zskip option means to skip 0 values in the computation.\n") ;
+      printf(" * This program is not very useful :) :(\n") ;
+      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    if( strcasecmp(argv[iarg],"-zskip") == 0 ){
