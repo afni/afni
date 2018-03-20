@@ -11,6 +11,7 @@ static int64_t  snum=0 ;       /* total number of unsigned shorts processed */
 
 static int do_zskip  = 0 ;     /* skip zero? */
 static int do_perbin = 0 ;
+static int do_permax = 0 ;
 
 /*-----------------------------------------------------------------------*/
 
@@ -66,6 +67,10 @@ double ENTROPY_compute(void)
      int64_t nbin = 0 ;
      for( ii=0 ; ii < SNUM ; ii++ ){ if( scount[ii] > 0 ) nbin++ ; }
      if( nbin > 1 ) bfac = 1.0 / log((double)nbin) ;
+   } else if( do_permax ){
+     int64_t nmax = 0 ;
+     for( ii=0 ; ii < SNUM ; ii++ ){ if( scount[ii] > 0 ) nmax = ii ; }
+     if( nmax > 1 ) bfac = 1.0 / log((double)nmax) ;
    }
 
    sum = -bfac * (sum - snum*log((double)snum)) / ( log(2.0) * snum ) ;
