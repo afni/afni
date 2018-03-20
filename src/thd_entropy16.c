@@ -9,6 +9,8 @@
 static int64_t *scount=NULL ;  /* holds count of unsigned shorts */
 static int64_t  snum=0 ;       /* total number of unsigned shorts processed */
 
+static int do_zskip = 0 ;      /* skip zero? */
+
 /*-----------------------------------------------------------------------*/
 
 void ENTROPY_setup(void)
@@ -34,8 +36,14 @@ void ENTROPY_accumulate( int64_t nbytes , void * var )
 
    if( scount == NULL ) ENTROPY_setup() ;
 
-   for( ii=0 ; ii < nn ; ii++ ) scount[sar[ii]]++ ;
-   snum += nn ;
+   if( do_zskip )
+     for( ii=0 ; ii < nn ; ii++ ){
+       if( sar[ii] != 0 ){ scount[sar[ii]]++ ; snum++ ; }
+   } else {
+     for( ii=0 ; ii < nn ; ii++ ) scount[sar[ii]]++ ;
+     snum += nn ;
+   }
+   return ;
 }
 
 /*-----------------------------------------------------------------------
