@@ -1,5 +1,7 @@
 #include "mrilib.h"
 
+#include "thd_entropy16.c"
+
 int main( int argc , char * argv[] )
 {
    int iarg=1 ;
@@ -8,6 +10,10 @@ int main( int argc , char * argv[] )
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dEntropy dataset ...\n") ; PRINT_COMPILE_DATE ; exit(0) ;
+   }
+
+   if( strcasecmp(argv[iarg],"-zskip") == 0 ){
+     do_zskip++ ; iarg++ ;
    }
 
    for( ; iarg < argc ; iarg++ ){
