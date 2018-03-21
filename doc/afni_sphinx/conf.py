@@ -165,6 +165,7 @@ html_theme_options = {
     "codetrimcolor": "#00C957",
     "codebgcolor": "#E0EEE0",
     "highlightcolor": "#FFEC8B",
+    "sectionbgcolor" : "#800000", #"#FFEC8B", #"#f5dd4e", #"#F2D41E",
     "headtextcolor": "#8B0000",
     "headlinkcolor": "#8B0000",
     "rubricbgcolor": "#8B0000",
