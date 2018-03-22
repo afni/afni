@@ -37,7 +37,7 @@ fat_proc_map_to_dti
      caveat emptor (even more than usual!).  This would *not* be
      recommended for aligning brains that aren't from the same subject.
     
-      Ver. 1.9 (PA Taylor, Sep 22, 2017)
+      Ver. 2.0 (PA Taylor, Feb 15, 2018)
     
     # ----------------------------------------------------------------------
     

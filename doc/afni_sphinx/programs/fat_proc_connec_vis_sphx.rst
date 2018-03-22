@@ -22,7 +22,7 @@ fat_proc_connec_vis
      This program creates surface-ized views of the separate WMCs which can
      be viewed simultaneously in 3D with SUMA. 
     
-      Ver. 1.23 (PA Taylor, Dec 22, 2017)
+      Ver. 1.3 (PA Taylor, Mar 5, 2018)
     
     -------------------------------------------------------------------------
     

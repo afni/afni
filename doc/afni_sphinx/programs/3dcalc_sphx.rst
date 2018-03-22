@@ -933,4 +933,4 @@ EXPRESSIONS:
        compiling on an array processor hooked up to a VAX. (It's a mess, but
        it works - somewhat slowly - but hey, computers are fast these days.)
     
-    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}
+    ++ Compile date = Mar  7 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

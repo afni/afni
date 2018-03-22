@@ -797,7 +797,7 @@
     * For implementation and compilation details, please see
        https://afni.nimh.nih.gov/pub/dist/doc/misc/OpenMP.html
     * The number of CPU threads used will default to the maximum number on
-       your system.  You can control this value by setting environment variable
+       your system. You can control this value by setting environment variable
        OMP_NUM_THREADS to some smaller value (including 1).
     * Un-setting OMP_NUM_THREADS resets OpenMP back to its default state of
        using all CPUs available.
@@ -809,10 +809,10 @@
        since OpenMP queries this variable BEFORE the program actually starts.
        ++ You can't usefully set this variable in your ~/.afnirc file or on the
           command line with the '-D' option.
-    * How many threads are useful?  That varies with the program, and how well
-       it was coded.  You'll have to experiment on your own systems!
+    * How many threads are useful? That varies with the program, and how well
+       it was coded. You'll have to experiment on your own systems!
     * The number of CPUs on this particular computer system is ...... 16.
-    * The maximum number of CPUs that will be used is now set to .... 8.
+    * The maximum number of CPUs that will be used is now set to .... 12.
     * The REML matrix setup and REML voxel ARMA(1,1) estimation loops are
        parallelized, across (a,b) parameter sets and across voxels, respectively.
     * The GLSQ and OLSQ loops are not parallelized. They are usually much
@@ -824,4 +824,4 @@
        you want it), you'll need a lot of RAM.
      =========================================================================
     
-    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}
+    ++ Compile date = Mar  7 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

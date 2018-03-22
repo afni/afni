@@ -95,14 +95,34 @@
                          while the cor and axi spacing would be automatically 
                          calculated.
     
-    -thr_olay  THR     :threshold the olay dset at THR (def: 0, or 
-                        unthreshold). (See DR: SET_THRESHNEW)
+    -thr_olay THR      :threshold the olay dset at THR (def: 0, or
+                        unthreshold). If you are thresholding a statistic
+                        brick, then you should see the "-thr_olay_p2stat ..."
+                        option, below. (See DR: SET_THRESHNEW)
     -thrflag   'fff'   :further control of how the THR value is interpreted 
                         (def: "*"). (See DR: SET_THRESHNEW)
+    -thr_olay_p2stat PP :an alternative way to specify a voxelwise
+                        threshold (i.e., instead of "-thr_olay ..."), when
+                        thresholding based on a statistic; you can specify
+                        the p-value you want, and using internal header
+                        information, the appropriate value for whatever
+                        statistic is in the statistic brick will be
+                        calculated and applied; you likely need to use
+                        "-set_subbricks i j k" with this, where 'k' would
+                        be the index of the statistic brick (and likely
+                        'j' would be the index of the associated
+                        coefficient/beta brick; 'i' would be the brick of
+                        the underlay volume, and if there is only a single
+                        volume there, it could just be either '0' or
+                        '-1').
     
     -set_subbricks i j k :specify subbricks being viewed in the ulay, olay
                         and threshold dsets (def: "-1 -1 -1", which means
-                        ignore these values). (See DR: SET_SUBBRICKS)
+                        ignore these values).  This is the way to specify 
+                        different overlay and threshold subbricks for 
+                        displaying, such as using the "beta" or "coefficient"
+                        for color and the "statistic" as the threshold level.
+                        (See DR: SET_SUBBRICKS)
     
     -func_range FR     :specify upper value FR of the olay dset to be
                         matched to top of colorbar (def: calc 98%ile value
@@ -249,5 +269,25 @@
             -set_xhairs OFF                   \
             -label_mode 1 -label_size 3       \
             -do_clean 
+    
+    
+        # 3) Make a 3x5 montage of an overlayed data set that shows the
+        #    beta coefficients stored in brick [1] while thresholding the
+        #    associated statistic stored in brick [2] at voxelwise p=0.001, 
+        #    overlayed on the anatomical volume.
+        @chauffeur_afni                       \
+            -ulay  anat.nii.gz                \
+            -olay  stats.nii.gz               \
+            -cbar Plasma                      \
+            -func_range 3                     \
+            -thr_olay_p2stat 0.001            \
+            -set_subbricks -1 1 2             \
+            -opacity 4                        \
+            -prefix   STAT_MAP                \
+            -montx 5 -monty 3                 \
+            -set_xhairs OFF                   \
+            -label_mode 1 -label_size 3       \
+            -do_clean 
+    
     
     # -------------------------------------------------------------------

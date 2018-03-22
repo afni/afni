@@ -19,7 +19,7 @@
     
     This script is designed to run from the directory where the famed RT image directories are copied to.
     If the data were copied from fim3T-adw using @RTcp, this directory should be something like:
-    /mnt/arena/03/users/sdc-nfs/Data/RTime/2018.01.31/<PID>/<Exam #>/
+    /mnt/arena/03/users/sdc-nfs/Data/RTime/2018.03.22/<PID>/<Exam #>/
     
     <Dir #> : (eg: 3) The directory number where the first image of the series is stored.
     <First Image #> : (eg: 19) The number of the first image in the series.

@@ -24,7 +24,7 @@ fat_proc_convert_dcm_anat
         REQUIRES: AFNI (which should now contain dcm2niix_afni, the
         version of dcm2niix [by C. Rorden] distributed in AFNI).
     
-        Ver. 3.2 (PA Taylor, Sep 04, 2017)
+        Ver. 3.3 (PA Taylor, Feb 20, 2018)
     
     -------------------------------------------------------------------------
     
@@ -51,7 +51,7 @@ fat_proc_convert_dcm_anat
                          (default name = '__WORKING_convert_dcm_anat').
     
         -orient  ORIENT :optional chance to reset orientation of the volume
-                         files (default is currently 'RPI').
+                         files (default is currently 'RAI').
       -reorig_reorient_off
                         :switch to turn of the nicety of putting (0, 0, 0)
                          at brain's center of mass (-> 'reorigin' calc) and to

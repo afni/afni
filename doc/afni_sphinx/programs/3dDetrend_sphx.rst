@@ -116,4 +116,4 @@
       3dDetrend -DAFNI_1D_TRANOUT=YES -prefix - -vector G1.1D -polort 3 G5.1D\' > Q.1D
     
     
-    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}
+    ++ Compile date = Mar  7 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

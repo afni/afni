@@ -12,14 +12,14 @@
 .. code-block:: none
 
     Installs and sets up AFNI's ClustScat demo archive
-    After setup, read file /home/ptaylor/AFNI_ClustScatDemo/AAA_README.txt
+    After setup, read file /home/ptaylor/AFNI/doc/afni_sphinx/AFNI_ClustScatDemo/AAA_README.txt
     for further instructions.
     *****************
     
     The instructions for interactive graphing of
     Clusterize ROI averages vs. an external 1D
     file (e.g., a subject-level covariate) are
-    in file /home/ptaylor/AFNI_ClustScatDemo/AAA_README.txt
+    in file /home/ptaylor/AFNI/doc/afni_sphinx/AFNI_ClustScatDemo/AAA_README.txt
     
     *****************
     

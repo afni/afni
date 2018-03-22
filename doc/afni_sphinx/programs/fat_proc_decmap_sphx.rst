@@ -32,7 +32,7 @@ fat_proc_decmap
     
       REQUIRES: AFNI.
     
-      Ver. 3.1 (PA Taylor, Sep 04, 2017)
+      Ver. 3.2b (PA Taylor, Mar 2, 2018)
     
     -------------------------------------------------------------------------
     
@@ -116,15 +116,15 @@ fat_proc_decmap
             scaled by a value (such as 0.7; see "-sca_fa SSS" option
             above); this can 'brighten' the DEC map for clarity.
     
-        PREFIX_dec_qc0*.png
+        PREFIX_qc_dec*.png
             a set cor, axi and sag images (each a 5x3 montage) of the 
             PREFIX_dec.nii.gz data set.
     
-        PREFIX_dec_unwt_thr_qc1*.png
+        PREFIX_qc_dec_unwt_thrx*.png
             a set cor, axi and sag images (each a 5x3 montage) of the 
             PREFIX_dec_unwt_thr.nii.gz data set.
     
-        PREFIX_dec_sca*_qc2*.png
+        PREFIX_qc_dec_sca*.png
             a set cor, axi and sag images (each a 5x3 montage) of the 
             PREFIX_dec_sca.nii.gz data set.
     

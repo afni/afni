@@ -36,7 +36,7 @@ fat_proc_imit2w_from_t1w
     
       REQUIRES: AFNI.
     
-      Ver. 1.9 (PA Taylor, Sep 04, 2017)
+      Ver. 2.2 (PA Taylor, Mar 1, 2018)
     
       For use, example images, and citation, see (esp. Appendix A):
          Taylor PA, Alhamud A, van der Kouwe AJ, Saleh MG, Laughton B,
@@ -56,6 +56,7 @@ fat_proc_imit2w_from_t1w
             -prefix PPP                           \
             {-workdir WWW}                        \
             {-mask    MASK}                       \
+            {-ss_blur_fwhm BBB}                   \
             {-no_clean}                           \
             {-no_qc_view}                         \
             {-qc_prefix QCP}
@@ -71,6 +72,9 @@ fat_proc_imit2w_from_t1w
                         options in this script ain't getting the job done
                         and other ones have to be done (skullstripping is
                         probably the slowest part of this set of steps).
+    
+     -ss_blur_fwhm BBB :optional, can add in blurring during the 3dSkullStrip
+                        part of this program, in units of mm (default FWHM: 2).
     
       -workdir WWW     :specify a working directory, which can be removed;
                         (default name = '__WORKING_imit2w_from_t1w')
@@ -97,7 +101,7 @@ fat_proc_imit2w_from_t1w
                                and noise outside the brain.
         PREFIX_orig_ss.nii.gz :a skull-stripped version of PREFIX_t1w.nii.gz.
     
-        PREFIX__qc*
+        PREFIX_qc*
                               :QC images of the skull-stripped T1w volume
                                and of the final imitation-T2w volume.
     
@@ -105,14 +109,14 @@ fat_proc_imit2w_from_t1w
     
       EXAMPLE:
         
-        fat_proc_imit2w_from_t1w  \
-            -inset T1.nii.gz                        \
+        fat_proc_imit2w_from_t1w   \
+            -inset T1.nii.gz               \
             -prefix imit2w
       or
     
-        fat_proc_imit2w_from_t1w  \
-            -inset T1.nii.gz                        \
-            -mask  mask_WB.nii.gz                   \
+        fat_proc_imit2w_from_t1w   \
+            -inset T1.nii.gz               \
+            -mask  mask_WB.nii.gz          \
             -prefix imit2w
             -no_clean
     

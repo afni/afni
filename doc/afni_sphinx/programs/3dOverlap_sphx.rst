@@ -15,7 +15,7 @@
     Output = count of number of voxels that are nonzero in ALL
              of the input dataset sub-bricks
     The result is simply a number printed to stdout.  (If a single
-    brick was input, this is just the count of the number of nonzero
+    brick was input, this is just the count of number of nonzero
     voxels in that brick.)
     Options:
       -save ppp = Save the count of overlaps at each voxel into a
@@ -25,4 +25,6 @@
       3dOverlap -save abcnum a+orig b+orig c+orig
       3dmaskave -mask 'abcnum+orig<3..3>' a+orig
     
-    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}
+    Also see program 3dABoverlap :)
+    
+    ++ Compile date = Mar  7 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

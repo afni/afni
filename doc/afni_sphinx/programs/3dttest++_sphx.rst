@@ -794,10 +794,8 @@
      -prefix_clustsim cc = Use 'cc' for the prefix for the '-Clustsim' temporary
                            files, rather than a randomly generated prefix.
                            You might find this useful if scripting.
-                          ++ The default randomly generated prefix will start with
-                             'TT.' and be followed by 11 alphanumeric characters,
-                             as in 'TT.Sv0Ghrn4uVg'.  To mimic this, you might
-                             use something like '-prefix_clustsim TT.Zhark'.
+                          ++ By default, the Clustsim (and ETAC) prefix will
+                             be the same as that given by '-prefix'.
                       -->>++ If you use option '-Clustsim', then the simulations
                              keep track of the maximum (in mask) voxelwise
                              z-statistic, compute the threshold for 5% global FPR,
@@ -807,8 +805,7 @@
                              threshold in the AFNI GUI will (presumably) give you
                              a map with a 5% chance of false positive WITHOUT
                              clustering. Of course, these thresholds generally come
-                             with a very stringent per-voxel
-                             p-value.
+                             with a VERY stringent per-voxel p-value.
                             ** In one analysis, the 5% 2-sided test FPR p-value was
                                about 7e-6 for a mask of 43000 voxels, which is
                                bigger (less strict) than the 1.2e-6 one would get
@@ -816,8 +813,6 @@
                                stringent for many purposes. This threshold value
                                was also close to the threshold at which the FDR
                                q=1/43000, which may not be a coincidence.
-                      -->>++ It is perfectly legal to use the same string here
-                             as given in the '-prefix' option.
                       -->>++ This file has been updated to give the voxel-wise
                              statistic threshold for global FPRs from 1% to 9%.
                              However, the name is still '.5percent.txt' for the
@@ -997,7 +992,7 @@
                         NN=1 or NN=2 or NN=3 } spatial connectivity for clustering
                         sid=1 or sid=2       } 1-sided or 2-sided t-tests
                         pthr=p1,p2,...       } list of p-values to use
-                        hpow=h1,h2,...       } list of H powers to use
+                        hpow=h1,h2,...       } list of H powers (0, 1, and/or 2)
                         fpr=value            } FPR goal, between 2 and 9 (percent)
                                              } - must be an integer
                                              } - or the word 'ALL' to output
@@ -1511,4 +1506,4 @@
     AUTHOR -- RW Cox -- don't whine TO me; wine WITH me (e.g., a nice Pinot Noir)
     ---------------------------------------------------
     
-    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}
+    ++ Compile date = Mar  7 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

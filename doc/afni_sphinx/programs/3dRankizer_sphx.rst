@@ -34,4 +34,4 @@
     
     Author: RW Cox  [[a quick hack for his own purposes]]
     
-    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}
+    ++ Compile date = Mar  7 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

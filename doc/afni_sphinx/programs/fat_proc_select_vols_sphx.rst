@@ -92,14 +92,14 @@ fat_proc_select_vols
     
         fat_proc_select_vols    \
             -in_dwi DWI.nii.gz               \
-            -in_img DWI_sepscl.sag.png       \
+            -in_img QC/DWI_sepscl.sag.png    \
             -prefix DWI_trim
     
     
         fat_proc_select_vols    \
-            -in_dwi DWI_ap.nii.gz            \
-            -in_img DWI_ap_sepscl.sag.png    \
-            -in_bads DWI_trim_bads.txt       \
+            -in_dwi DWI_ap.nii.gz             \
+            -in_img QC/DWI_ap_sepscl.sag.png  \
+            -in_bads DWI_trim_bads.txt        \
             -prefix DWI_trim_both 
     
     # -----------------------------------------------------------------------

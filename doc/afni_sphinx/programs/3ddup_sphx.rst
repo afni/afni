@@ -28,4 +28,4 @@
     N.B.: Even if the new dataset is anatomical, it will not contain
           any markers, duplicated from the original, or otherwise.
     
-    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}
+    ++ Compile date = Mar  7 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

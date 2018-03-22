@@ -19,6 +19,64 @@ afni
     ----------------------------------------------------------------
        afni [options] [session_directory ...]
     
+       -bysub       This new [01 Feb 2018] option allows you to have 'sessions'
+                      made up from files scattered across multiple directories.
+                      The purpose of this option is to gather all the datasets
+                      corresponding to a single subject identifier, as is done
+                      in the BIDS file hierarchy -- http://bids.neuroimaging.io/
+                   ** After '-bysub' you put one or more subject identifiers,
+                      which are of the form 'sub-XXX' where 'XXX' is some
+                      subject code (it does not have to be exactly 3 characters).
+                   ** If an identifier does NOT start with 'sub-', then that
+                      4 letter string will be added to the front. This allows
+                      you to specify your subjects by their numbers 'XXX' alone.
+                   ** The list of subject identifiers ends when an argument
+                      on the command line starts with the '-' character.
+                      That would be another option, or the '-' character
+                      by itself if the next things on the command line
+                      are the list of directories to scan for datasets.
+                   ** Each directory on the command line (after all options)
+                      will be scanned recursively (down the file tree) for
+                      subdirectories whose name matches the 'sub-XXX' identifier
+                      exactly. All such subdirectories will have all their
+                      datasets read in (recursively down the file tree) and
+                      put into a single session for viewing in AFNI.
+                   ** Remember: if no directories are given on the command
+                      line after the various options, then the current working
+                      directory ('.' or 'echo $cwd') is used.
+                   ** If a directory on the command line does NOT have any
+                      subdirectories that match any of the '-bysub' identifiers,
+                      then that directory will be read in the normal way, with
+                      all the datasets in that particular directory (but not
+                      subdirectories) read into the session.
+                   ** Please note that '-bysub' sessions will NOT be rescanned
+                      for new datasets that might get placed there after the
+                      AFNI GUI starts, unlike normal (single directory) sessions.
+                   ** Example:
+                        afni -bysub 10506 50073 - ~/data/OpenFMRI/ds000030
+                      This will open the data for subjects 10506 and 50073 from
+                      the data at the specified directory -- presumably the
+                      data downloaded from https://openfmri.org/dataset/ds000030/
+                   ** If directory sub-10506 is found and has (say) sub-directories
+                        anat beh dwi func
+                      all AFNI-readable datasets from these sub-directories will
+                      be input and collected into one session, to be easily
+                      viewed together. In addition, if a sub-directory named
+                        derivatives/sub-10506
+                      is found underneath ~/data/OpenFMRI/ds000030, all the
+                      datasets found underneath that will also be put into the
+                      same session, so they can be viewed with the 'raw' data.
+                   ** In this context, 'dataset' also means .png and .jpg files
+                      found in the sub-XXX directories. These images can be
+                      opened in the AFNI GUI using the Axial image viewer.
+                      (You might want to turn the AFNI crosshairs off!)
+                   ** If you do NOT want .png and .jpg files read into AFNI,
+                      set UNIX environment variable AFNI_IMAGE_DATASETS to 'NO'.
+                   ** You can put multiple subject IDs after '-bysub', as
+                      in the example above. You can also use the '-bysub' option
+                      more than once, if you like. Each distinct subect ID will
+                      get a distinct AFNI session.
+    
        -purge       Conserve memory by purging data to disk.
                       [Use this if you run out of memory when running AFNI.]
                       [This will slow the code down, so use only if needed.]
@@ -562,7 +620,7 @@ afni
         to refer to the AFNI package as a whole.
       * https://afni.nimh.nih.gov/sscc/rwcox/papers/CBM_1996.pdf
     ----------------------------------------------------------------------------
-    RW Cox, A Jesmanowicz, and JS Hyde.
+    RW Cox, A Jesmanowicz, JS Hyde.
       Real-time functional magnetic resonance imaging.
       Magnetic Resonance in Medicine, 33: 230-236, 1995.
     
@@ -570,13 +628,13 @@ afni
         in the realtime plugin for time series regression analysis.
       * https://afni.nimh.nih.gov/sscc/rwcox/papers/Realtime_FMRI.pdf
     ----------------------------------------------------------------------------
-    RW Cox and JS Hyde.
+    RW Cox, JS Hyde.
       Software tools for analysis and visualization of FMRI Data.
       NMR in Biomedicine, 10: 171-178, 1997.
     
       * A second paper about AFNI and design issues for FMRI software tools.
     ----------------------------------------------------------------------------
-    RW Cox and A Jesmanowicz.
+    RW Cox, A Jesmanowicz.
       Real-time 3D image registration for functional MRI.
       Magnetic Resonance in Medicine, 42: 1014-1018, 1999.
     
@@ -586,7 +644,7 @@ afni
         registration running on a standard workstation (not a supercomputer).
       * https://afni.nimh.nih.gov/sscc/rwcox/papers/RealtimeRegistration.pdf
     ----------------------------------------------------------------------------
-    ZS Saad, KM Ropella, RW Cox, and EA DeYoe.
+    ZS Saad, KM Ropella, RW Cox, EA DeYoe.
       Analysis and use of FMRI response delays.
       Human Brain Mapping, 13: 74-93, 2001.
     
@@ -603,7 +661,8 @@ afni
       * https://afni.nimh.nih.gov/sscc/rwcox/papers/SUMA2004paper.pdf
     ----------------------------------------------------------------------------
     ZS Saad, G Chen, RC Reynolds, PP Christidis, KR Hammett, PSF Bellgowan,
-      and RW Cox.  FIAC Analysis According to AFNI and SUMA.
+      RW Cox.
+      FIAC Analysis According to AFNI and SUMA.
       Human Brain Mapping, 27: 417-424, 2006.
     
       * Describes how we used AFNI to analyze the FIAC contest data.
@@ -628,7 +687,7 @@ afni
       * http://dx.doi.org/10.1016/j.neuroimage.2008.09.037
       * https://afni.nimh.nih.gov/sscc/rwcox/papers/LocalPearson2009.pdf
     ----------------------------------------------------------------------------
-    H Sarin, AS Kanevsky, SH Fung, JA Butman, RW Cox, D Glen, R Reynolds, and S Auh.
+    H Sarin, AS Kanevsky, SH Fung, JA Butman, RW Cox, D Glen, R Reynolds, S Auh.
       Metabolically stable bradykinin B2 receptor agonists enhance transvascular
       drug delivery into malignant brain tumors by increasing drug half-life.
       Journal of Translational Medicine, 7: #33, 2009.
@@ -638,7 +697,7 @@ afni
       * http://www.ncbi.nlm.nih.gov/pmc/articles/PMC2689161/
       * http://dx.doi.org/10.1186/1479-5876-7-33
     ----------------------------------------------------------------------------
-    HJ Jo, ZS Saad, WK Simmons, LA Milbury, and RW Cox.
+    HJ Jo, ZS Saad, WK Simmons, LA Milbury, RW Cox.
       Mapping sources of correlation in resting state FMRI, with artifact detection
       and removal.  NeuroImage, 52: 571-582, 2010.
     
@@ -646,7 +705,7 @@ afni
       * http://www.ncbi.nlm.nih.gov/pmc/articles/PMC2897154/
       * http://dx.doi.org/10.1016/j.neuroimage.2010.04.246
     ----------------------------------------------------------------------------
-    A Vovk, RW Cox, J Stare, D Suput, and ZS Saad.
+    A Vovk, RW Cox, J Stare, D Suput, ZS Saad.
       Segmentation Priors From Local Image Properties: Without Using Bias Field
       Correction, Location-based Templates, or Registration.
       Neuroimage, 55: 142-152, 2011.
@@ -655,7 +714,7 @@ afni
       * http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3031751/
       * http://dx.doi.org/10.1016/j.neuroimage.2010.11.082
     ----------------------------------------------------------------------------
-    G Chen, ZS Saad, DR Glen, JP Hamilton, ME Thomason, IH Gotlib, and RW Cox.
+    G Chen, ZS Saad, DR Glen, JP Hamilton, ME Thomason, IH Gotlib, RW Cox.
       Vector Autoregression, Structural Equation Modeling, and Their Synthesis in
       Neuroimaging Data Analysis.
       Computers in Biology and Medicine, 41: 1142-1155, 2011.
@@ -671,14 +730,14 @@ afni
       * http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3246532/
       * http://dx.doi.org/10.1016/j.neuroimage.2011.08.056
     ----------------------------------------------------------------------------
-    ZS Saad and RC Reynolds.
+    ZS Saad, RC Reynolds.
       SUMA.  Neuroimage. 62: 768-773, 2012.
     
       * The biography of SUMA.
       * http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3260385/
       * http://dx.doi.org/10.1016/j.neuroimage.2011.09.016
     ----------------------------------------------------------------------------
-    G Chen, ZS Saad, AR Nath, MS Beauchamp, and RW Cox.
+    G Chen, ZS Saad, AR Nath, MS Beauchamp, RW Cox.
       FMRI Group Analysis Combining Effect Estimates and Their Variances.
       Neuroimage, 60: 747-765, 2012.
     
@@ -686,9 +745,9 @@ afni
       * http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3404516/
       * http://dx.doi.org/10.1016/j.neuroimage.2011.12.060
     ----------------------------------------------------------------------------
-    ZS Saad, SJ Gotts, K Murphy, G Chen, HJ Jo, A Martin, and RW Cox.
-      Trouble at Rest: How Correlation Patterns and Group Differences Become Distorted
-      After Global Signal Regression.
+    ZS Saad, SJ Gotts, K Murphy, G Chen, HJ Jo, A Martin, RW Cox.
+      Trouble at Rest: How Correlation Patterns and Group Differences Become
+      Distorted After Global Signal Regression.
       Brain Connectivity, 2: 25-32, 2012.
     
       * Our first paper on why Global Signal Regression in resting state FMRI is
@@ -696,7 +755,7 @@ afni
       * http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3484684/
       * http://dx.doi.org/10.1089/brain.2012.0080
     ----------------------------------------------------------------------------
-    SJ Gotts, WK Simmons, LA Milbury, GL Wallace, RW Cox, and A Martin.
+    SJ Gotts, WK Simmons, LA Milbury, GL Wallace, RW Cox, A Martin.
       Fractionation of Social Brain Circuits in Autism Spectrum Disorders.
       Brain, 135: 2711-2725, 2012.
     
@@ -705,7 +764,7 @@ afni
       * http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3437021/
       * http://dx.doi.org/10.1093/brain/aws160
     ----------------------------------------------------------------------------
-    HJ Jo, ZS Saad, SJ Gotts, A Martin, and RW Cox.
+    HJ Jo, ZS Saad, SJ Gotts, A Martin, RW Cox.
       Quantifying Agreement between Anatomical and Functional Interhemispheric
       Correspondences in the Resting Brain.
       PLoS ONE, 7: art.no. e48847, 2012.
@@ -714,7 +773,7 @@ afni
       * http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3493608/
       * http://dx.doi.org/10.1371/journal.pone.0048847
     ----------------------------------------------------------------------------
-    ZS Saad, SJ Gotts, K Murphy, G Chen, HJ Jo, A Martin, and RW Cox.
+    ZS Saad, SJ Gotts, K Murphy, G Chen, HJ Jo, A Martin, RW Cox.
       Trouble at Rest: How Correlation Patterns and Group Differences Become
       Distorted After Global Signal Regression.  Brain Connectivity, 2012: 25-32.
     
@@ -722,7 +781,7 @@ afni
       * http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3484684/
       * http://dx.doi.org/10.1089/brain.2012.0080
     ----------------------------------------------------------------------------
-    G Chen, ZS Saad, JC Britton, DS Pine, and RW Cox
+    G Chen, ZS Saad, JC Britton, DS Pine, RW Cox
       Linear mixed-effects modeling approach to FMRI group analysis.
       NeuroImage, 73: 176-190, 2013.
     
@@ -730,7 +789,7 @@ afni
       * http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3404516/
       * http://dx.doi.org/10.1016/j.neuroimage.2011.12.060
     ----------------------------------------------------------------------------
-    SJ Gotts, ZS Saad, HJ Jo, GL Wallace, RW Cox, and A Martin.
+    SJ Gotts, ZS Saad, HJ Jo, GL Wallace, RW Cox, A Martin.
       The perils of global signal regression for group comparisons: A case study
       of Autism Spectrum Disorders.
       Frontiers in Human Neuroscience: art.no. 356, 2013.
@@ -739,7 +798,7 @@ afni
       * http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3709423/
       * http://dx.doi.org/10.3389/fnhum.2013.00356
     ----------------------------------------------------------------------------
-    HJ Jo, SJ Gotts, RC Reynolds, PA Bandettini, A Martin, RW Cox, and ZS Saad.
+    HJ Jo, SJ Gotts, RC Reynolds, PA Bandettini, A Martin, RW Cox, ZS Saad.
       Effective preprocessing procedures virtually eliminate distance-dependent
       motion artifacts in resting state FMRI.
       Journal of Applied Mathematics:  art.no. 935154, 2013.
@@ -749,7 +808,7 @@ afni
       * http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3886863/
       * http://dx.doi.org/10.1155/2013/935154
     ----------------------------------------------------------------------------
-    SJ Gotts, HJ Jo, GL Wallace, ZS Saad, RW Cox, and A Martin.
+    SJ Gotts, HJ Jo, GL Wallace, ZS Saad, RW Cox, A Martin.
       Two distinct forms of functional lateralization in the human brain.
       PNAS, 110: E3435-E3444, 2013.
     
@@ -757,7 +816,7 @@ afni
       * http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3767540/
       * http://dx.doi.org/10.1073/pnas.1302581110
     ----------------------------------------------------------------------------
-    ZS Saad, RC Reynolds, HJ Jo, SJ Gotts, G Chen, A Martin, and RW Cox.
+    ZS Saad, RC Reynolds, HJ Jo, SJ Gotts, G Chen, A Martin, RW Cox.
       Correcting Brain-Wide Correlation Differences in Resting-State FMRI.
       Brain Connectivity, 2013: 339-352.
     
@@ -768,7 +827,7 @@ afni
       * http://dx.doi.org/10.1089/brain.2013.0156
     ----------------------------------------------------------------------------
     P Kundu, ND Brenowitz, V Voon, Y Worbe, PE Vertes, SJ Inati, ZS Saad,
-    PA Bandettini, and ET Bullmore.
+      PA Bandettini, ET Bullmore.
       Integrated strategy for improving functional connectivity mapping using
       multiecho fMRI.  PNAS 110: 16187-16192, 2013.
     
@@ -776,7 +835,7 @@ afni
       * http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3791700/
       * http://dx.doi.org/10.1073/pnas.1301725110
     ----------------------------------------------------------------------------
-    PA Taylor and ZS Saad.
+    PA Taylor, ZS Saad.
       FATCAT: (An Efficient) Functional And Tractographic Connectivity Analysis
       Toolbox.  Brain Connectivity 3:523-535, 2013.
     
@@ -786,12 +845,12 @@ afni
       * http://www.ncbi.nlm.nih.gov/pubmed/23980912
       * http://dx.doi.org/10.1089/brain.2013.0154
     ----------------------------------------------------------------------------
-    G Chen, NE Adleman, ZS Saad, E Leibenluft, and RW Cox.
+    G Chen, NE Adleman, ZS Saad, E Leibenluft, RW Cox.
       Applications of multivariate modeling to neuroimaging group analysis:
       A comprehensive alternative to univariate general linear model.
       NeuroImage 99:571-588, 2014.
     
-      * The fun stuff behind 3dMVM -- more complex linear modeling for groups.
+      * The fun stuff behind 3dMVM == more complex linear modeling for groups.
       * http://dx.doi.org/10.1016/j.neuroimage.2014.06.027
       * https://afni.nimh.nih.gov/pub/dist/doc/papers/3dMVM_2014.pdf
     ----------------------------------------------------------------------------
@@ -838,6 +897,26 @@ afni
         AFNI in early 2017.
       * https://arxiv.org/abs/1702.04845
       * https://doi.org/10.1089/brain.2016.0475
+    ----------------------------------------------------------------------------
+    S Song, RPH Bokkers, MA Edwardson, T Brown, S Shah, RW Cox, ZS Saad,
+      RC Reynolds, DR Glen, LG Cohen LG, LL Latour.
+      Temporal similarity perfusion mapping: A standardized and model-free method
+      for detecting perfusion deficits in stroke.
+      PLoS ONE 12, Article number e0185552, 2017.
+    
+      * Applying AFNI's InstaCorr module to stroke perfusion mapping.
+      * https://doi.org/10.1371/journal.pone.0185552
+      * https://www.ncbi.nlm.nih.gov/pubmed/28973000
+    ----------------------------------------------------------------------------
+    G Chen, PA Taylor, SP Haller, K Kircanski, J Stoddard, DS Pine, E Leibenluft,
+      Brotman MA, RW Cox.
+      Intraclass correlation: Improved modeling approaches and applications for
+      neuroimaging.
+      Human Brain Mapping, 39:1187-1206 2018.
+    
+      * Discussion of ICC methods, and distinctions among them.
+      * https://www.biorxiv.org/content/early/2017/07/16/164327
+      * https://doi.org/10.1002/hbm.23909
     ----------------------------------------------------------------------------
     
     POSTERS on varied subjects from the AFNI development group can be found at

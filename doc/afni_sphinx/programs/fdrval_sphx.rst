@@ -65,4 +65,4 @@ fdrval
     -- Quick re-hack to add '-qinput' option -- 20 Dec 2011 -- RWCox
     -- Re-re-hack to make super-small '-qinput' values work right -- 14 Mar 2014
     
-    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}
+    ++ Compile date = Mar  7 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

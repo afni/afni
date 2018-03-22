@@ -84,4 +84,4 @@
      [[ considers you only slightly better than those lowly Emacs users. ]]
      [[ And do NOT ever even mention 'nedit' in Zhark's august presence! ]]
     
-    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}
+    ++ Compile date = Mar  7 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

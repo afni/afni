@@ -163,4 +163,4 @@
     option, then the output will be written into a NIML-formatted 1D
     dataset, which you might find slightly confusing (but still usable).
     
-    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}
+    ++ Compile date = Mar  7 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

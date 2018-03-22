@@ -40,7 +40,7 @@ fat_proc_axialize_anat
     
       REQUIRES: AFNI.
     
-      Ver. 3.6 (PA Taylor, Sep 04, 2017)
+      Ver. 3.8b (PA Taylor, Mar 2, 2018)
     
     -------------------------------------------------------------------------
     
@@ -56,6 +56,7 @@ fat_proc_axialize_anat
             -prefix PPP                           \
             {-workdir  WWW}                       \
             {-out_match_ref}                      \
+            {-do_ceil_out}                        \
             {-extra_al_wtmask WT }                \
             {-extra_al_cost CC}                   \
             {-extra_al_inps II}                   \
@@ -98,6 +99,12 @@ fat_proc_axialize_anat
                         image with (human, adult) t1w-like contrast
                         has been input.
          NB ---> one of these 'mode_*' setting MUST be picked.
+    
+      -do_ceil_out     :for the final output volume, apply a ceiling based
+                        on the 98%ile value from within an automasked volume
+                        of the dset.  This reduces the influence of (sometimes
+                        very) large spiky voxels.  Seems like it might be
+                        useful for later alignments.
     
       -extra_al_wtmask WT:
                         Axialization is generally based on an overall 

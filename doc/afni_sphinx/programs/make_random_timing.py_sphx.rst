@@ -483,6 +483,7 @@ make_random_timing.py
     
         -help                       : display this help
         -help_advanced              : display help for advanced usage
+        -help_concerns              : display general concerns for timing
         -help_todo                  : display list of things to do
         -hist                       : display the modification history
         -show_valid_opts            : display all valid options (short format)
@@ -493,6 +494,7 @@ make_random_timing.py
     
         -help_advanced              : display help for advanced usage
         -help_decay_fixed           : display background on decay_fixed dist type
+        -help_concerns              : display general concerns for timing
         -help_todo                  : "to do" list is mostly for advanced things
     
         -add_timing_class           : create a new timing class (stim or rest)
@@ -1029,6 +1031,7 @@ make_random_timing.py
     options (specific to the advanced usage):
     
         -help_advanced              : display help for advanced usage
+        -help_concerns              : display general concerns for timing
         -help_decay_fixed           : display background on decay_fixed dist type
         -help_todo                  : "to do" list is mostly for advanced things
     
@@ -1040,4 +1043,22 @@ make_random_timing.py
     
     ----------------------------------------------------------------------
     R Reynolds  Jan 20, 2017          motivated by K Kircanski and A Stringaris
+    ===========================================================================
+    
+    
+    ===========================================================================
+    general concerns regarding random timing (to be expanded)
+    
+       (some of this only applies to the advanced usage)
+    
+       - should pre-steady state time be included in these timing files
+          - see -pre_stim_rest
+       - otherwise, one might prefer pre-stim rest = 0 (default in advanced)
+       - it is nice to have some minimum post-stim at the end of the run
+          - else the last event is wasted 
+          - consider 6-10 s
+          - see -post_stim_rest
+       - it may be nice to have only post-stim rest, but not any extra random
+         rest attached to the final event
+          - consider "-rand_post_stim_rest no"
     ===========================================================================

@@ -524,8 +524,14 @@
                              (t/(p*q))^p * exp(p-t/q)                      
                            Defaults: p=8.6 q=0.547 if only 'GAM' is used   
                          ** The peak of 'GAM(p,q)' is at time p*q after    
-                            the stimulus.  The FWHM is about 2.3*sqrt(p)*q;
+                            the stimulus.  The FWHM is about 2.35*sqrt(p)*q;
                             this approximation is accurate for p > 0.3*q.  
+                         ** To check this approximation, try the command   
+                   1deval -num 100 -del 0.02 -xzero 0.02   \
+                          -expr 'sqrt(gamp(x,1))/2.35/x' | \
+                   1dplot -stdin -del 0.02 -xzero 0.02 -yaxis 1:1.4:4:10   
+                            If the two functions gamp(x,1) and 2.35*x      
+                            were equal, the plot would be constant y=1.    
                      ==> ** If you add a third argument 'd', then the GAM  
                             function is convolved with a square wave of    
                             duration 'd' seconds; for example:             
@@ -542,8 +548,8 @@
                             weird things will happen: (tcsh syntax)        
                              set pp = `ccalc 'gamp(2,8)'`                  
                              set qq = `ccalc 'gamq(2,8)'`                  
-                             1deval -p=$pp -q=$qq -num 200 -del 0.1  \    
-                                    -expr '(t/p/q)^p*exp(p-t/q)'   | \    
+                             1deval -p=$pp -q=$qq -num 200 -del 0.1  \
+                                    -expr '(t/p/q)^p*exp(p-t/q)'   | \
                                     1dplot -stdin -del 0.1                 
                             Here, K is significantly smaller than W,       
                             so a gamma variate that fits peak=2 width=8    
@@ -1164,4 +1170,4 @@
     This version of the program has been compiled to use
     double precision arithmetic for most internal calculations.
     
-    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}
+    ++ Compile date = Mar  7 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

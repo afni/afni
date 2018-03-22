@@ -513,4 +513,4 @@ to3d
        -xtwarns     turn on display of Xt warning messages
        -quit_on_err Do not launch interactive to3d mode if input has errors.
     
-    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}
+    ++ Compile date = Mar  7 2018 {AFNI_18.0.25:linux_ubuntu_12_64}
