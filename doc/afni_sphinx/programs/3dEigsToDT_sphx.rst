@@ -2,7 +2,7 @@
 3dEigsToDT
 **********
 
-.. _3dEigsToDT:
+.. _ahelp_3dEigsToDT:
 
 .. contents:: 
     :depth: 4 

@@ -2,7 +2,7 @@
 timing_tool.py
 **************
 
-.. _timing_tool.py:
+.. _ahelp_timing_tool.py:
 
 .. contents:: 
     :depth: 4 

@@ -2,7 +2,7 @@
 @auto_tlrc
 **********
 
-.. _@auto_tlrc:
+.. _ahelp_@auto_tlrc:
 
 .. contents:: 
     :depth: 4 

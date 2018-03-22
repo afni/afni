@@ -2,7 +2,7 @@
 ConvertSurface
 **************
 
-.. _ConvertSurface:
+.. _ahelp_ConvertSurface:
 
 .. contents:: 
     :depth: 4 

@@ -2,7 +2,7 @@
 imdump
 ******
 
-.. _imdump:
+.. _ahelp_imdump:
 
 .. contents:: 
     :depth: 4 

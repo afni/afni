@@ -2,7 +2,7 @@
 3dConvolve
 **********
 
-.. _3dConvolve:
+.. _ahelp_3dConvolve:
 
 .. contents:: 
     :depth: 4 

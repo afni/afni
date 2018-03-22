@@ -2,7 +2,7 @@
 @Install_InstaCorr_Demo
 ***********************
 
-.. _@Install_InstaCorr_Demo:
+.. _ahelp_@Install_InstaCorr_Demo:
 
 .. contents:: 
     :depth: 4 

@@ -2,7 +2,7 @@
 @ROI_Corr_Mat
 *************
 
-.. _@ROI_Corr_Mat:
+.. _ahelp_@ROI_Corr_Mat:
 
 .. contents:: 
     :depth: 4 

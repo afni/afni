@@ -2,7 +2,7 @@
 @Install_FATMVM_DEMO
 ********************
 
-.. _@Install_FATMVM_DEMO:
+.. _ahelp_@Install_FATMVM_DEMO:
 
 .. contents:: 
     :depth: 4 

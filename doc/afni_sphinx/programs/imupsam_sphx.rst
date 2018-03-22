@@ -2,7 +2,7 @@
 imupsam
 *******
 
-.. _imupsam:
+.. _ahelp_imupsam:
 
 .. contents:: 
     :depth: 4 

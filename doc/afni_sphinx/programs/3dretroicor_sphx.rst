@@ -2,7 +2,7 @@
 3dretroicor
 ***********
 
-.. _3dretroicor:
+.. _ahelp_3dretroicor:
 
 .. contents:: 
     :depth: 4 

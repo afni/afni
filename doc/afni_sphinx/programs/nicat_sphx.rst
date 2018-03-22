@@ -2,7 +2,7 @@
 nicat
 *****
 
-.. _nicat:
+.. _ahelp_nicat:
 
 .. contents:: 
     :depth: 4 

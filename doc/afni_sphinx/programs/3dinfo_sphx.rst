@@ -2,7 +2,7 @@
 3dinfo
 ******
 
-.. _3dinfo:
+.. _ahelp_3dinfo:
 
 .. contents:: 
     :depth: 4 

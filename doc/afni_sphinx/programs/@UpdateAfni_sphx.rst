@@ -2,7 +2,7 @@
 @UpdateAfni
 ***********
 
-.. _@UpdateAfni:
+.. _ahelp_@UpdateAfni:
 
 .. contents:: 
     :depth: 4 

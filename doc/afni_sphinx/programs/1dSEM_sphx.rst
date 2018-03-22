@@ -2,7 +2,7 @@
 1dSEM
 *****
 
-.. _1dSEM:
+.. _ahelp_1dSEM:
 
 .. contents:: 
     :depth: 4 

@@ -2,7 +2,7 @@
 1dsum
 *****
 
-.. _1dsum:
+.. _ahelp_1dsum:
 
 .. contents:: 
     :depth: 4 

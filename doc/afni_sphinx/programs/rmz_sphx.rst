@@ -2,7 +2,7 @@
 rmz
 ***
 
-.. _rmz:
+.. _ahelp_rmz:
 
 .. contents:: 
     :depth: 4 

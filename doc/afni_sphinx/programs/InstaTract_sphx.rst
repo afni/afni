@@ -2,7 +2,7 @@
 InstaTract
 **********
 
-.. _InstaTract:
+.. _ahelp_InstaTract:
 
 .. contents:: 
     :depth: 4 

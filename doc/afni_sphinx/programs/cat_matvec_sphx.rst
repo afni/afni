@@ -2,7 +2,7 @@
 cat_matvec
 **********
 
-.. _cat_matvec:
+.. _ahelp_cat_matvec:
 
 .. contents:: 
     :depth: 4 

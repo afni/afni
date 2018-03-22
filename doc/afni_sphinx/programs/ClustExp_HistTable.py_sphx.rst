@@ -2,7 +2,7 @@
 ClustExp_HistTable.py
 *********************
 
-.. _ClustExp_HistTable.py:
+.. _ahelp_ClustExp_HistTable.py:
 
 .. contents:: 
     :depth: 4 

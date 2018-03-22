@@ -2,7 +2,7 @@
 4swap
 *****
 
-.. _4swap:
+.. _ahelp_4swap:
 
 .. contents:: 
     :depth: 4 

@@ -2,7 +2,7 @@
 3dhistog
 ********
 
-.. _3dhistog:
+.. _ahelp_3dhistog:
 
 .. contents:: 
     :depth: 4 

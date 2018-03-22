@@ -2,7 +2,7 @@
 @float_fix
 **********
 
-.. _@float_fix:
+.. _ahelp_@float_fix:
 
 .. contents:: 
     :depth: 4 

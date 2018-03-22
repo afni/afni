@@ -2,7 +2,7 @@
 @ExamineGenFeatDists
 ********************
 
-.. _@ExamineGenFeatDists:
+.. _ahelp_@ExamineGenFeatDists:
 
 .. contents:: 
     :depth: 4 

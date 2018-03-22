@@ -2,7 +2,7 @@
 file_tool
 *********
 
-.. _file_tool:
+.. _ahelp_file_tool:
 
 .. contents:: 
     :depth: 4 

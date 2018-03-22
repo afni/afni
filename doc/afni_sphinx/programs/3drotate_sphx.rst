@@ -2,7 +2,7 @@
 3drotate
 ********
 
-.. _3drotate:
+.. _ahelp_3drotate:
 
 .. contents:: 
     :depth: 4 

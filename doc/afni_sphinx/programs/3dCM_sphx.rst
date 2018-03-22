@@ -2,7 +2,7 @@
 3dCM
 ****
 
-.. _3dCM:
+.. _ahelp_3dCM:
 
 .. contents:: 
     :depth: 4 

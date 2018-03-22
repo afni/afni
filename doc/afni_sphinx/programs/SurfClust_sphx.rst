@@ -2,7 +2,7 @@
 SurfClust
 *********
 
-.. _SurfClust:
+.. _ahelp_SurfClust:
 
 .. contents:: 
     :depth: 4 

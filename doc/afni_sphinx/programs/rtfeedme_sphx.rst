@@ -2,7 +2,7 @@
 rtfeedme
 ********
 
-.. _rtfeedme:
+.. _ahelp_rtfeedme:
 
 .. contents:: 
     :depth: 4 

@@ -2,7 +2,7 @@
 inspec
 ******
 
-.. _inspec:
+.. _ahelp_inspec:
 
 .. contents:: 
     :depth: 4 

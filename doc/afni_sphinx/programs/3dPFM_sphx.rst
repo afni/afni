@@ -2,7 +2,7 @@
 3dPFM
 *****
 
-.. _3dPFM:
+.. _ahelp_3dPFM:
 
 .. contents:: 
     :depth: 4 

@@ -12,7 +12,8 @@ import sys, os, glob, subprocess, csv, re, shutil, argparse, signal, textwrap
 sys.path.insert(0, "../../src/python_scripts")
 from afni_util import exec_tcsh_command
 
-
+## [PT: Mar 22, 2018] Make the reference for each help in the "All
+## Help" section be ".. _ahelp_PROGNAME"
 
 ## possible codes as characters
 hdr_codes = ['1','2','3','4']
@@ -137,9 +138,9 @@ main_toc = open(toc_file,"w")
 ## write out the header
 main_toc.write(":tocdepth: 2\n\n")
 main_toc.write(".. _programs_main:\n\n")
-main_toc.write("############\n")
-main_toc.write("Help Us All\n")
-main_toc.write("############\n\n")
+main_toc.write("##################\n")
+main_toc.write("All Programs Helps\n")
+main_toc.write("##################\n\n")
 main_toc.write(".. csv-table::\n\n")
 
 ########################################################################
@@ -170,13 +171,13 @@ for afni_prog in prog_list:
 
     ## add to main_toc as a 3 column csv
     if csv_index == 1:
-        csv_line = "   :ref:`"+afni_prog+" <"+afni_prog+">`,"
+        csv_line = "   :ref:`"+afni_prog+" <ahelp_"+afni_prog+">`,"
         csv_index = 2
     elif csv_index == 2:
-        csv_line = csv_line+":ref:`"+afni_prog+" <"+afni_prog+">`,"
+        csv_line = csv_line+":ref:`"+afni_prog+" <ahelp_"+afni_prog+">`,"
         csv_index = 3
     elif csv_index == 3:
-        csv_line = csv_line+":ref:`"+afni_prog+" <"+afni_prog+">`"
+        csv_line = csv_line+":ref:`"+afni_prog+" <ahelp_"+afni_prog+">`"
         main_toc.write("   "+csv_line+"\n")
         csv_index = 1
 
@@ -191,7 +192,7 @@ for afni_prog in prog_list:
 
     ## table of contents and a blank to remove the indentation for the
     ## next line
-    sphinx_out.write(".. _"+afni_prog+":\n\n")
+    sphinx_out.write(".. _ahelp_"+afni_prog+":\n\n")
     sphinx_out.write(".. contents:: \n")
     sphinx_out.write("    :depth: 4 \n\n")
     sphinx_out.write("| \n\n")
@@ -264,7 +265,7 @@ for afni_prog in prog_list:
         sphinx_out.write((str("*") * len(afni_prog))+"\n\n")
 
         ## table of contents
-        sphinx_out.write(".. _"+afni_prog+":\n\n")
+        sphinx_out.write(".. _ahelp_"+afni_prog+":\n\n")
         sphinx_out.write(".. contents:: \n")
         sphinx_out.write("    :depth: 4 \n\n")
         sphinx_out.write("| \n\n")

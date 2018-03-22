@@ -2,7 +2,7 @@
 3dDTtoDWI
 *********
 
-.. _3dDTtoDWI:
+.. _ahelp_3dDTtoDWI:
 
 .. contents:: 
     :depth: 4 

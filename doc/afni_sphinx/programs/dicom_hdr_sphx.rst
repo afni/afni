@@ -2,7 +2,7 @@
 dicom_hdr
 *********
 
-.. _dicom_hdr:
+.. _ahelp_dicom_hdr:
 
 .. contents:: 
     :depth: 4 

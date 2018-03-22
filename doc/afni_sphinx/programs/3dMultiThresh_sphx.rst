@@ -2,7 +2,7 @@
 3dMultiThresh
 *************
 
-.. _3dMultiThresh:
+.. _ahelp_3dMultiThresh:
 
 .. contents:: 
     :depth: 4 

@@ -2,7 +2,7 @@
 3dTsort
 *******
 
-.. _3dTsort:
+.. _ahelp_3dTsort:
 
 .. contents:: 
     :depth: 4 

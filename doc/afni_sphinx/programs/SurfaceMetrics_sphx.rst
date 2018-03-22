@@ -2,7 +2,7 @@
 SurfaceMetrics
 **************
 
-.. _SurfaceMetrics:
+.. _ahelp_SurfaceMetrics:
 
 .. contents:: 
     :depth: 4 

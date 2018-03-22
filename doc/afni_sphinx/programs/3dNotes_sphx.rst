@@ -2,7 +2,7 @@
 3dNotes
 *******
 
-.. _3dNotes:
+.. _ahelp_3dNotes:
 
 .. contents:: 
     :depth: 4 

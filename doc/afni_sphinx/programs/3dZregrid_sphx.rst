@@ -2,7 +2,7 @@
 3dZregrid
 *********
 
-.. _3dZregrid:
+.. _ahelp_3dZregrid:
 
 .. contents:: 
     :depth: 4 

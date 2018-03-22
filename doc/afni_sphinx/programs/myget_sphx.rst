@@ -2,7 +2,7 @@
 myget
 *****
 
-.. _myget:
+.. _ahelp_myget:
 
 .. contents:: 
     :depth: 4 

@@ -2,7 +2,7 @@
 make_pq_script.py
 *****************
 
-.. _make_pq_script.py:
+.. _ahelp_make_pq_script.py:
 
 .. contents:: 
     :depth: 4 

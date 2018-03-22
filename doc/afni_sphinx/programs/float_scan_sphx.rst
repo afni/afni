@@ -2,7 +2,7 @@
 float_scan
 **********
 
-.. _float_scan:
+.. _ahelp_float_scan:
 
 .. contents:: 
     :depth: 4 

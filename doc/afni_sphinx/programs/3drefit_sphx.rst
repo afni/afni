@@ -2,7 +2,7 @@
 3drefit
 *******
 
-.. _3drefit:
+.. _ahelp_3drefit:
 
 .. contents:: 
     :depth: 4 

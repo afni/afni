@@ -2,7 +2,7 @@
 3dTfitter
 *********
 
-.. _3dTfitter:
+.. _ahelp_3dTfitter:
 
 .. contents:: 
     :depth: 4 

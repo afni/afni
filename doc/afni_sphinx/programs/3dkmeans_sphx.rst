@@ -2,7 +2,7 @@
 3dkmeans
 ********
 
-.. _3dkmeans:
+.. _ahelp_3dkmeans:
 
 .. contents:: 
     :depth: 4 

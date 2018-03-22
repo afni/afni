@@ -2,7 +2,7 @@
 @AfniOrientSign
 ***************
 
-.. _@AfniOrientSign:
+.. _ahelp_@AfniOrientSign:
 
 .. contents:: 
     :depth: 4 

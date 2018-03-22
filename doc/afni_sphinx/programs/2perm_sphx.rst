@@ -2,7 +2,7 @@
 2perm
 *****
 
-.. _2perm:
+.. _ahelp_2perm:
 
 .. contents:: 
     :depth: 4 

@@ -2,7 +2,7 @@
 @chauffeur_afni
 ***************
 
-.. _@chauffeur_afni:
+.. _ahelp_@chauffeur_afni:
 
 .. contents:: 
     :depth: 4 

@@ -2,7 +2,7 @@
 3dThreetoRGB
 ************
 
-.. _3dThreetoRGB:
+.. _ahelp_3dThreetoRGB:
 
 .. contents:: 
     :depth: 4 

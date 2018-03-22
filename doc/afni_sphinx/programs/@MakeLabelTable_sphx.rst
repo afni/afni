@@ -2,7 +2,7 @@
 @MakeLabelTable
 ***************
 
-.. _@MakeLabelTable:
+.. _ahelp_@MakeLabelTable:
 
 .. contents:: 
     :depth: 4 

@@ -2,7 +2,7 @@
 1dfft
 *****
 
-.. _1dfft:
+.. _ahelp_1dfft:
 
 .. contents:: 
     :depth: 4 

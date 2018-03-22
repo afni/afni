@@ -2,7 +2,7 @@
 3dTqual
 *******
 
-.. _3dTqual:
+.. _ahelp_3dTqual:
 
 .. contents:: 
     :depth: 4 

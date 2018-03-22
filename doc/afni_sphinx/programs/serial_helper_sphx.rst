@@ -2,7 +2,7 @@
 serial_helper
 *************
 
-.. _serial_helper:
+.. _ahelp_serial_helper:
 
 .. contents:: 
     :depth: 4 

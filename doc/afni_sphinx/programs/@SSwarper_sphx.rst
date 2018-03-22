@@ -2,7 +2,7 @@
 @SSwarper
 *********
 
-.. _@SSwarper:
+.. _ahelp_@SSwarper:
 
 .. contents:: 
     :depth: 4 

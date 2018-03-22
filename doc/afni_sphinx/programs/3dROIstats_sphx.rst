@@ -2,7 +2,7 @@
 3dROIstats
 **********
 
-.. _3dROIstats:
+.. _ahelp_3dROIstats:
 
 .. contents:: 
     :depth: 4 

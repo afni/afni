@@ -2,7 +2,7 @@
 imcalc
 ******
 
-.. _imcalc:
+.. _ahelp_imcalc:
 
 .. contents:: 
     :depth: 4 

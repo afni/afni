@@ -2,7 +2,7 @@
 SUMA_paperplane
 ***************
 
-.. _SUMA_paperplane:
+.. _ahelp_SUMA_paperplane:
 
 .. contents:: 
     :depth: 4 

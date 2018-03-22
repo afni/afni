@@ -2,7 +2,7 @@
 1dcat
 *****
 
-.. _1dcat:
+.. _ahelp_1dcat:
 
 .. contents:: 
     :depth: 4 

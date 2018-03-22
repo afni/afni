@@ -2,7 +2,7 @@
 3dsvm_linpredict
 ****************
 
-.. _3dsvm_linpredict:
+.. _ahelp_3dsvm_linpredict:
 
 .. contents:: 
     :depth: 4 

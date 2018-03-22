@@ -2,7 +2,7 @@
 mycat
 *****
 
-.. _mycat:
+.. _ahelp_mycat:
 
 .. contents:: 
     :depth: 4 

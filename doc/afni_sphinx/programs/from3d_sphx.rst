@@ -2,7 +2,7 @@
 from3d
 ******
 
-.. _from3d:
+.. _ahelp_from3d:
 
 .. contents:: 
     :depth: 4 

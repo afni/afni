@@ -2,7 +2,7 @@
 immask
 ******
 
-.. _immask:
+.. _ahelp_immask:
 
 .. contents:: 
     :depth: 4 

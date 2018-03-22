@@ -2,7 +2,7 @@
 3dproject
 *********
 
-.. _3dproject:
+.. _ahelp_3dproject:
 
 .. contents:: 
     :depth: 4 

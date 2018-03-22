@@ -2,7 +2,7 @@
 3dTcorr1D
 *********
 
-.. _3dTcorr1D:
+.. _ahelp_3dTcorr1D:
 
 .. contents:: 
     :depth: 4 

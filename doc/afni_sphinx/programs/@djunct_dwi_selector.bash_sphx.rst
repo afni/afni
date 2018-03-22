@@ -2,7 +2,7 @@
 @djunct_dwi_selector.bash
 *************************
 
-.. _@djunct_dwi_selector.bash:
+.. _ahelp_@djunct_dwi_selector.bash:
 
 .. contents:: 
     :depth: 4 

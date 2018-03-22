@@ -2,7 +2,7 @@
 3dFWHMx
 *******
 
-.. _3dFWHMx:
+.. _ahelp_3dFWHMx:
 
 .. contents:: 
     :depth: 4 

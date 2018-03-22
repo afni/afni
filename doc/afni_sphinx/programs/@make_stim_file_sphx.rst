@@ -2,7 +2,7 @@
 @make_stim_file
 ***************
 
-.. _@make_stim_file:
+.. _ahelp_@make_stim_file:
 
 .. contents:: 
     :depth: 4 

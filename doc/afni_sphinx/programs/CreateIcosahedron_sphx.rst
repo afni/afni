@@ -2,7 +2,7 @@
 CreateIcosahedron
 *****************
 
-.. _CreateIcosahedron:
+.. _ahelp_CreateIcosahedron:
 
 .. contents:: 
     :depth: 4 

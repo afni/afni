@@ -2,7 +2,7 @@
 SurfQual
 ********
 
-.. _SurfQual:
+.. _ahelp_SurfQual:
 
 .. contents:: 
     :depth: 4 

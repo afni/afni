@@ -2,7 +2,7 @@
 3dAutoTcorrelate
 ****************
 
-.. _3dAutoTcorrelate:
+.. _ahelp_3dAutoTcorrelate:
 
 .. contents:: 
     :depth: 4 

@@ -2,7 +2,7 @@
 imrotate
 ********
 
-.. _imrotate:
+.. _ahelp_imrotate:
 
 .. contents:: 
     :depth: 4 

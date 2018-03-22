@@ -2,7 +2,7 @@
 3dREMLfit
 *********
 
-.. _3dREMLfit:
+.. _ahelp_3dREMLfit:
 
 .. contents:: 
     :depth: 4 

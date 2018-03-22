@@ -2,7 +2,7 @@
 3dTstat
 *******
 
-.. _3dTstat:
+.. _ahelp_3dTstat:
 
 .. contents:: 
     :depth: 4 

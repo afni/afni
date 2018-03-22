@@ -2,7 +2,7 @@
 HalloSuma
 *********
 
-.. _HalloSuma:
+.. _ahelp_HalloSuma:
 
 .. contents:: 
     :depth: 4 

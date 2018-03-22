@@ -2,7 +2,7 @@
 SUMA_glxdino
 ************
 
-.. _SUMA_glxdino:
+.. _ahelp_SUMA_glxdino:
 
 .. contents:: 
     :depth: 4 

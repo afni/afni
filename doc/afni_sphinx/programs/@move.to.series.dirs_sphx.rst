@@ -2,7 +2,7 @@
 @move.to.series.dirs
 ********************
 
-.. _@move.to.series.dirs:
+.. _ahelp_@move.to.series.dirs:
 
 .. contents:: 
     :depth: 4 

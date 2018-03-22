@@ -2,7 +2,7 @@
 suma
 ****
 
-.. _suma:
+.. _ahelp_suma:
 
 .. contents:: 
     :depth: 4 

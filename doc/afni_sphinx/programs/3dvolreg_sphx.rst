@@ -2,7 +2,7 @@
 3dvolreg
 ********
 
-.. _3dvolreg:
+.. _ahelp_3dvolreg:
 
 .. contents:: 
     :depth: 4 

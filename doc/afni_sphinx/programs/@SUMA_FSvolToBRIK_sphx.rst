@@ -2,7 +2,7 @@
 @SUMA_FSvolToBRIK
 *****************
 
-.. _@SUMA_FSvolToBRIK:
+.. _ahelp_@SUMA_FSvolToBRIK:
 
 .. contents:: 
     :depth: 4 

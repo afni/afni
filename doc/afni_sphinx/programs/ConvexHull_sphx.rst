@@ -2,7 +2,7 @@
 ConvexHull
 **********
 
-.. _ConvexHull:
+.. _ahelp_ConvexHull:
 
 .. contents:: 
     :depth: 4 

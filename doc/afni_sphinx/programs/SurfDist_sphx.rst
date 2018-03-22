@@ -2,7 +2,7 @@
 SurfDist
 ********
 
-.. _SurfDist:
+.. _ahelp_SurfDist:
 
 .. contents:: 
     :depth: 4 

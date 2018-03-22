@@ -2,7 +2,7 @@
 @fat_tract_colorize
 *******************
 
-.. _@fat_tract_colorize:
+.. _ahelp_@fat_tract_colorize:
 
 .. contents:: 
     :depth: 4 

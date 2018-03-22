@@ -2,7 +2,7 @@
 ScaleToMap
 **********
 
-.. _ScaleToMap:
+.. _ahelp_ScaleToMap:
 
 .. contents:: 
     :depth: 4 

@@ -2,7 +2,7 @@
 3dmask_tool
 ***********
 
-.. _3dmask_tool:
+.. _ahelp_3dmask_tool:
 
 .. contents:: 
     :depth: 4 

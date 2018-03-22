@@ -2,7 +2,7 @@
 3dLocalBistat
 *************
 
-.. _3dLocalBistat:
+.. _ahelp_3dLocalBistat:
 
 .. contents:: 
     :depth: 4 

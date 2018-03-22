@@ -2,7 +2,7 @@
 3dLME
 *****
 
-.. _3dLME:
+.. _ahelp_3dLME:
 
 .. contents:: 
     :depth: 4 

@@ -2,7 +2,7 @@
 meica.py
 ********
 
-.. _meica.py:
+.. _ahelp_meica.py:
 
 .. contents:: 
     :depth: 4 

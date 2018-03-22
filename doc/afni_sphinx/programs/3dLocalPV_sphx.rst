@@ -2,7 +2,7 @@
 3dLocalPV
 *********
 
-.. _3dLocalPV:
+.. _ahelp_3dLocalPV:
 
 .. contents:: 
     :depth: 4 

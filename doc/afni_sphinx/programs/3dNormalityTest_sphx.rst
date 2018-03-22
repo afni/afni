@@ -2,7 +2,7 @@
 3dNormalityTest
 ***************
 
-.. _3dNormalityTest:
+.. _ahelp_3dNormalityTest:
 
 .. contents:: 
     :depth: 4 

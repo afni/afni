@@ -2,7 +2,7 @@
 3dMatch
 *******
 
-.. _3dMatch:
+.. _ahelp_3dMatch:
 
 .. contents:: 
     :depth: 4 

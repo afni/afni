@@ -2,7 +2,7 @@
 imstack
 *******
 
-.. _imstack:
+.. _ahelp_imstack:
 
 .. contents:: 
     :depth: 4 

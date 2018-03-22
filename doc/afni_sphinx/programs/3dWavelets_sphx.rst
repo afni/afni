@@ -2,7 +2,7 @@
 3dWavelets
 **********
 
-.. _3dWavelets:
+.. _ahelp_3dWavelets:
 
 .. contents:: 
     :depth: 4 

@@ -2,7 +2,7 @@
 3dFriedman
 **********
 
-.. _3dFriedman:
+.. _ahelp_3dFriedman:
 
 .. contents:: 
     :depth: 4 

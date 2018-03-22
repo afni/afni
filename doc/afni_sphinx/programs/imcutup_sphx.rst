@@ -2,7 +2,7 @@
 imcutup
 *******
 
-.. _imcutup:
+.. _ahelp_imcutup:
 
 .. contents:: 
     :depth: 4 

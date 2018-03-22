@@ -2,7 +2,7 @@
 3dAnhist
 ********
 
-.. _3dAnhist:
+.. _ahelp_3dAnhist:
 
 .. contents:: 
     :depth: 4 

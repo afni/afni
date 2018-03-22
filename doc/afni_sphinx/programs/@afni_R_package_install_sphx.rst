@@ -2,7 +2,7 @@
 @afni_R_package_install
 ***********************
 
-.. _@afni_R_package_install:
+.. _ahelp_@afni_R_package_install:
 
 .. contents:: 
     :depth: 4 

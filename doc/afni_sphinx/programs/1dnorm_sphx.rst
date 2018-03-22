@@ -2,7 +2,7 @@
 1dnorm
 ******
 
-.. _1dnorm:
+.. _ahelp_1dnorm:
 
 .. contents:: 
     :depth: 4 

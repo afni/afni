@@ -2,7 +2,7 @@
 1dplot
 ******
 
-.. _1dplot:
+.. _ahelp_1dplot:
 
 .. contents:: 
     :depth: 4 

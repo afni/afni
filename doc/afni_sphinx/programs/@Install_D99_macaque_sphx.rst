@@ -2,7 +2,7 @@
 @Install_D99_macaque
 ********************
 
-.. _@Install_D99_macaque:
+.. _ahelp_@Install_D99_macaque:
 
 .. contents:: 
     :depth: 4 

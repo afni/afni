@@ -2,7 +2,7 @@
 align_epi_anat.py
 *****************
 
-.. _align_epi_anat.py:
+.. _ahelp_align_epi_anat.py:
 
 .. contents:: 
     :depth: 4 

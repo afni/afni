@@ -2,7 +2,7 @@
 3dAFNItoNIFTI
 *************
 
-.. _3dAFNItoNIFTI:
+.. _ahelp_3dAFNItoNIFTI:
 
 .. contents:: 
     :depth: 4 

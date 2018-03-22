@@ -2,7 +2,7 @@
 @DiceMetric
 ***********
 
-.. _@DiceMetric:
+.. _ahelp_@DiceMetric:
 
 .. contents:: 
     :depth: 4 

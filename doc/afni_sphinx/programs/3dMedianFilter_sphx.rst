@@ -2,7 +2,7 @@
 3dMedianFilter
 **************
 
-.. _3dMedianFilter:
+.. _ahelp_3dMedianFilter:
 
 .. contents:: 
     :depth: 4 

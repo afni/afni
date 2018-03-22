@@ -2,7 +2,7 @@
 make_stim_times.py
 ******************
 
-.. _make_stim_times.py:
+.. _ahelp_make_stim_times.py:
 
 .. contents:: 
     :depth: 4 

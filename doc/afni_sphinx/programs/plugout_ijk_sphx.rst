@@ -2,7 +2,7 @@
 plugout_ijk
 ***********
 
-.. _plugout_ijk:
+.. _ahelp_plugout_ijk:
 
 .. contents:: 
     :depth: 4 

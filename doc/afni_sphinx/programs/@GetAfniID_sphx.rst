@@ -2,7 +2,7 @@
 @GetAfniID
 **********
 
-.. _@GetAfniID:
+.. _ahelp_@GetAfniID:
 
 .. contents:: 
     :depth: 4 

@@ -2,7 +2,7 @@
 Dimon
 *****
 
-.. _Dimon:
+.. _ahelp_Dimon:
 
 .. contents:: 
     :depth: 4 

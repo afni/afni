@@ -2,7 +2,7 @@
 3dttest
 *******
 
-.. _3dttest:
+.. _ahelp_3dttest:
 
 .. contents:: 
     :depth: 4 

@@ -2,7 +2,7 @@
 @demo_prompt
 ************
 
-.. _@demo_prompt:
+.. _ahelp_@demo_prompt:
 
 .. contents:: 
     :depth: 4 

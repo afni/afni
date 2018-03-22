@@ -2,7 +2,7 @@
 3dECM
 *****
 
-.. _3dECM:
+.. _ahelp_3dECM:
 
 .. contents:: 
     :depth: 4 

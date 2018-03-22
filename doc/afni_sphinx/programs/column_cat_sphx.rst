@@ -2,7 +2,7 @@
 column_cat
 **********
 
-.. _column_cat:
+.. _ahelp_column_cat:
 
 .. contents:: 
     :depth: 4 

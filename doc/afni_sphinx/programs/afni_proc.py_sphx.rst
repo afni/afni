@@ -2,7 +2,7 @@
 afni_proc.py
 ************
 
-.. _afni_proc.py:
+.. _ahelp_afni_proc.py:
 
 .. contents:: 
     :depth: 4 

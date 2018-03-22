@@ -2,7 +2,7 @@
 3dKruskalWallis
 ***************
 
-.. _3dKruskalWallis:
+.. _ahelp_3dKruskalWallis:
 
 .. contents:: 
     :depth: 4 

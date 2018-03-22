@@ -2,7 +2,7 @@
 SUMA_pixmap2eps
 ***************
 
-.. _SUMA_pixmap2eps:
+.. _ahelp_SUMA_pixmap2eps:
 
 .. contents:: 
     :depth: 4 

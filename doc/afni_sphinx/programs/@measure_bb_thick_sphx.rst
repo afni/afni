@@ -2,7 +2,7 @@
 @measure_bb_thick
 *****************
 
-.. _@measure_bb_thick:
+.. _ahelp_@measure_bb_thick:
 
 .. contents:: 
     :depth: 4 

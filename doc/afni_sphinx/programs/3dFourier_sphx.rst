@@ -2,7 +2,7 @@
 3dFourier
 *********
 
-.. _3dFourier:
+.. _ahelp_3dFourier:
 
 .. contents:: 
     :depth: 4 

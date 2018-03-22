@@ -2,7 +2,7 @@
 @DriveSuma
 **********
 
-.. _@DriveSuma:
+.. _ahelp_@DriveSuma:
 
 .. contents:: 
     :depth: 4 
@@ -11,7 +11,7 @@
 
 .. code-block:: none
 
-    ¸ÞÌUñUsage: @DriveSuma 
+    ¸np›eUsage: @DriveSuma 
     
     A script to demonstrate how to drive suma from the command line.
     The script pops messages explaining what will happen in the next command

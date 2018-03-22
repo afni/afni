@@ -2,7 +2,7 @@
 afni_system_check.py
 ********************
 
-.. _afni_system_check.py:
+.. _ahelp_afni_system_check.py:
 
 .. contents:: 
     :depth: 4 

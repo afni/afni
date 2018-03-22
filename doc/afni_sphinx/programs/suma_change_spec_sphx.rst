@@ -2,7 +2,7 @@
 suma_change_spec
 ****************
 
-.. _suma_change_spec:
+.. _ahelp_suma_change_spec:
 
 .. contents:: 
     :depth: 4 

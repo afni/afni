@@ -2,7 +2,7 @@
 @Purify_1D
 **********
 
-.. _@Purify_1D:
+.. _ahelp_@Purify_1D:
 
 .. contents:: 
     :depth: 4 

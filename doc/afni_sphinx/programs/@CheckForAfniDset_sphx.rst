@@ -2,7 +2,7 @@
 @CheckForAfniDset
 *****************
 
-.. _@CheckForAfniDset:
+.. _ahelp_@CheckForAfniDset:
 
 .. contents:: 
     :depth: 4 

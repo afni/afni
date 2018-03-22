@@ -2,7 +2,7 @@
 strblast
 ********
 
-.. _strblast:
+.. _ahelp_strblast:
 
 .. contents:: 
     :depth: 4 

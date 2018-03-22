@@ -2,7 +2,7 @@
 3dConformist
 ************
 
-.. _3dConformist:
+.. _ahelp_3dConformist:
 
 .. contents:: 
     :depth: 4 

@@ -2,7 +2,7 @@
 3dnvals
 *******
 
-.. _3dnvals:
+.. _ahelp_3dnvals:
 
 .. contents:: 
     :depth: 4 

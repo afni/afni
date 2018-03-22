@@ -2,7 +2,7 @@
 @GetAfniView
 ************
 
-.. _@GetAfniView:
+.. _ahelp_@GetAfniView:
 
 .. contents:: 
     :depth: 4 

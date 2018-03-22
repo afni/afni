@@ -2,7 +2,7 @@
 @Spharm.examples
 ****************
 
-.. _@Spharm.examples:
+.. _ahelp_@Spharm.examples:
 
 .. contents:: 
     :depth: 4 

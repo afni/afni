@@ -2,7 +2,7 @@
 lpc_align.py
 ************
 
-.. _lpc_align.py:
+.. _ahelp_lpc_align.py:
 
 .. contents:: 
     :depth: 4 

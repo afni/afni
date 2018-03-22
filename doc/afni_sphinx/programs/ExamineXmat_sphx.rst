@@ -2,7 +2,7 @@
 ExamineXmat
 ***********
 
-.. _ExamineXmat:
+.. _ahelp_ExamineXmat:
 
 .. contents:: 
     :depth: 4 

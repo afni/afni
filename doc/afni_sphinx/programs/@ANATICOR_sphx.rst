@@ -2,7 +2,7 @@
 @ANATICOR
 *********
 
-.. _@ANATICOR:
+.. _ahelp_@ANATICOR:
 
 .. contents:: 
     :depth: 4 

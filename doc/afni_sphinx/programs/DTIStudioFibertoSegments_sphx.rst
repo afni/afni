@@ -2,7 +2,7 @@
 DTIStudioFibertoSegments
 ************************
 
-.. _DTIStudioFibertoSegments:
+.. _ahelp_DTIStudioFibertoSegments:
 
 .. contents:: 
     :depth: 4 

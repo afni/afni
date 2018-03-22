@@ -2,7 +2,7 @@
 @parse_name
 ***********
 
-.. _@parse_name:
+.. _ahelp_@parse_name:
 
 .. contents:: 
     :depth: 4 

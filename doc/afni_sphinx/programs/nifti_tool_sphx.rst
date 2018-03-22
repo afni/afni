@@ -2,7 +2,7 @@
 nifti_tool
 **********
 
-.. _nifti_tool:
+.. _ahelp_nifti_tool:
 
 .. contents:: 
     :depth: 4 

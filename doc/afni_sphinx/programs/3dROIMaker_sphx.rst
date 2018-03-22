@@ -2,7 +2,7 @@
 3dROIMaker
 **********
 
-.. _3dROIMaker:
+.. _ahelp_3dROIMaker:
 
 .. contents:: 
     :depth: 4 

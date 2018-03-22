@@ -2,7 +2,7 @@
 3dnewid
 *******
 
-.. _3dnewid:
+.. _ahelp_3dnewid:
 
 .. contents:: 
     :depth: 4 

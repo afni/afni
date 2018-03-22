@@ -2,7 +2,7 @@
 @diff.files
 ***********
 
-.. _@diff.files:
+.. _ahelp_@diff.files:
 
 .. contents:: 
     :depth: 4 

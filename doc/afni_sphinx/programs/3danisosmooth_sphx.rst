@@ -2,7 +2,7 @@
 3danisosmooth
 *************
 
-.. _3danisosmooth:
+.. _ahelp_3danisosmooth:
 
 .. contents:: 
     :depth: 4 

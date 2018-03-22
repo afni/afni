@@ -2,7 +2,7 @@
 1dTsort
 *******
 
-.. _1dTsort:
+.. _ahelp_1dTsort:
 
 .. contents:: 
     :depth: 4 

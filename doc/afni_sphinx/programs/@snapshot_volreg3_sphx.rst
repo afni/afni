@@ -2,7 +2,7 @@
 @snapshot_volreg3
 *****************
 
-.. _@snapshot_volreg3:
+.. _ahelp_@snapshot_volreg3:
 
 .. contents:: 
     :depth: 4 

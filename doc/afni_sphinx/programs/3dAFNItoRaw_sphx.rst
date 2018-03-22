@@ -2,7 +2,7 @@
 3dAFNItoRaw
 ***********
 
-.. _3dAFNItoRaw:
+.. _ahelp_3dAFNItoRaw:
 
 .. contents:: 
     :depth: 4 

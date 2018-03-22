@@ -2,7 +2,7 @@
 3dMaskToASCII
 *************
 
-.. _3dMaskToASCII:
+.. _ahelp_3dMaskToASCII:
 
 .. contents:: 
     :depth: 4 

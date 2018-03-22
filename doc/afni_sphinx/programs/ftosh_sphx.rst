@@ -2,7 +2,7 @@
 ftosh
 *****
 
-.. _ftosh:
+.. _ahelp_ftosh:
 
 .. contents:: 
     :depth: 4 

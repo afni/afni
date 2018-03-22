@@ -2,7 +2,7 @@
 @afni.run.me
 ************
 
-.. _@afni.run.me:
+.. _ahelp_@afni.run.me:
 
 .. contents:: 
     :depth: 4 

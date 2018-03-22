@@ -2,7 +2,7 @@
 3dEntropy
 *********
 
-.. _3dEntropy:
+.. _ahelp_3dEntropy:
 
 .. contents:: 
     :depth: 4 

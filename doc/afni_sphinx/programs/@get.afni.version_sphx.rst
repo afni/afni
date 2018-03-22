@@ -2,7 +2,7 @@
 @get.afni.version
 *****************
 
-.. _@get.afni.version:
+.. _ahelp_@get.afni.version:
 
 .. contents:: 
     :depth: 4 

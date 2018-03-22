@@ -2,7 +2,7 @@
 3dErrtsCormat
 *************
 
-.. _3dErrtsCormat:
+.. _ahelp_3dErrtsCormat:
 
 .. contents:: 
     :depth: 4 

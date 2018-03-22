@@ -2,7 +2,7 @@
 @ElectroGrid
 ************
 
-.. _@ElectroGrid:
+.. _ahelp_@ElectroGrid:
 
 .. contents:: 
     :depth: 4 

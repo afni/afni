@@ -2,7 +2,7 @@
 neuro_deconvolve.py
 *******************
 
-.. _neuro_deconvolve.py:
+.. _ahelp_neuro_deconvolve.py:
 
 .. contents:: 
     :depth: 4 

@@ -2,7 +2,7 @@
 Surf2VolCoord
 *************
 
-.. _Surf2VolCoord:
+.. _ahelp_Surf2VolCoord:
 
 .. contents:: 
     :depth: 4 

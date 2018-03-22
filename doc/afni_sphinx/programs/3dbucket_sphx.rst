@@ -2,7 +2,7 @@
 3dbucket
 ********
 
-.. _3dbucket:
+.. _ahelp_3dbucket:
 
 .. contents:: 
     :depth: 4 

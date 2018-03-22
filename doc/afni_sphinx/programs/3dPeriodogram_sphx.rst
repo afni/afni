@@ -2,7 +2,7 @@
 3dPeriodogram
 *************
 
-.. _3dPeriodogram:
+.. _ahelp_3dPeriodogram:
 
 .. contents:: 
     :depth: 4 

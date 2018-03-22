@@ -2,7 +2,7 @@
 1dNLfit
 *******
 
-.. _1dNLfit:
+.. _ahelp_1dNLfit:
 
 .. contents:: 
     :depth: 4 

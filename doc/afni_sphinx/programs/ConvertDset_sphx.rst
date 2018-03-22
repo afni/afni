@@ -2,7 +2,7 @@
 ConvertDset
 ***********
 
-.. _ConvertDset:
+.. _ahelp_ConvertDset:
 
 .. contents:: 
     :depth: 4 

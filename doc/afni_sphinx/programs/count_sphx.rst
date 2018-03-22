@@ -2,7 +2,7 @@
 count
 *****
 
-.. _count:
+.. _ahelp_count:
 
 .. contents:: 
     :depth: 4 

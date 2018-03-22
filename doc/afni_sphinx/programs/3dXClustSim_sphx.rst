@@ -2,7 +2,7 @@
 3dXClustSim
 ***********
 
-.. _3dXClustSim:
+.. _ahelp_3dXClustSim:
 
 .. contents:: 
     :depth: 4 

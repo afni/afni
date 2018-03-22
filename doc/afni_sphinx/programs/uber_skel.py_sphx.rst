@@ -2,7 +2,7 @@
 uber_skel.py
 ************
 
-.. _uber_skel.py:
+.. _ahelp_uber_skel.py:
 
 .. contents:: 
     :depth: 4 

@@ -2,7 +2,7 @@
 prompt_user
 ***********
 
-.. _prompt_user:
+.. _ahelp_prompt_user:
 
 .. contents:: 
     :depth: 4 

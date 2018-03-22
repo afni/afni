@@ -2,7 +2,7 @@
 @fast_roi
 *********
 
-.. _@fast_roi:
+.. _ahelp_@fast_roi:
 
 .. contents:: 
     :depth: 4 

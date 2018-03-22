@@ -2,7 +2,7 @@
 3dClustCount
 ************
 
-.. _3dClustCount:
+.. _ahelp_3dClustCount:
 
 .. contents:: 
     :depth: 4 

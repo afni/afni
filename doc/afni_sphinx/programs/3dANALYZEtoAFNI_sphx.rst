@@ -2,7 +2,7 @@
 3dANALYZEtoAFNI
 ***************
 
-.. _3dANALYZEtoAFNI:
+.. _ahelp_3dANALYZEtoAFNI:
 
 .. contents:: 
     :depth: 4 

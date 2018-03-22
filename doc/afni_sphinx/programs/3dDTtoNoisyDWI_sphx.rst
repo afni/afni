@@ -2,7 +2,7 @@
 3dDTtoNoisyDWI
 **************
 
-.. _3dDTtoNoisyDWI:
+.. _ahelp_3dDTtoNoisyDWI:
 
 .. contents:: 
     :depth: 4 

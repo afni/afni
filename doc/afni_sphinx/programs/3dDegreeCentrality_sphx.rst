@@ -2,7 +2,7 @@
 3dDegreeCentrality
 ******************
 
-.. _3dDegreeCentrality:
+.. _ahelp_3dDegreeCentrality:
 
 .. contents:: 
     :depth: 4 

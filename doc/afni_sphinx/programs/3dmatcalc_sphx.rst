@@ -2,7 +2,7 @@
 3dmatcalc
 *********
 
-.. _3dmatcalc:
+.. _ahelp_3dmatcalc:
 
 .. contents:: 
     :depth: 4 

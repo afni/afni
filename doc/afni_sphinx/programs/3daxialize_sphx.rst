@@ -2,7 +2,7 @@
 3daxialize
 **********
 
-.. _3daxialize:
+.. _ahelp_3daxialize:
 
 .. contents:: 
     :depth: 4 

@@ -2,7 +2,7 @@
 niml_feedme
 ***********
 
-.. _niml_feedme:
+.. _ahelp_niml_feedme:
 
 .. contents:: 
     :depth: 4 

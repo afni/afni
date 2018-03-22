@@ -2,7 +2,7 @@
 quickspec
 *********
 
-.. _quickspec:
+.. _ahelp_quickspec:
 
 .. contents:: 
     :depth: 4 

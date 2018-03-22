@@ -2,7 +2,7 @@
 @GetAfniBin
 ***********
 
-.. _@GetAfniBin:
+.. _ahelp_@GetAfniBin:
 
 .. contents:: 
     :depth: 4 

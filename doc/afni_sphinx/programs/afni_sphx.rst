@@ -2,7 +2,7 @@
 afni
 ****
 
-.. _afni:
+.. _ahelp_afni:
 
 .. contents:: 
     :depth: 4 

@@ -2,7 +2,7 @@
 rotcom
 ******
 
-.. _rotcom:
+.. _ahelp_rotcom:
 
 .. contents:: 
     :depth: 4 

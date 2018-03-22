@@ -2,7 +2,7 @@
 SurfSmooth
 **********
 
-.. _SurfSmooth:
+.. _ahelp_SurfSmooth:
 
 .. contents:: 
     :depth: 4 

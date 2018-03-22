@@ -2,7 +2,7 @@
 ROIgrow
 *******
 
-.. _ROIgrow:
+.. _ahelp_ROIgrow:
 
 .. contents:: 
     :depth: 4 

@@ -2,7 +2,7 @@
 @Install_MEICA_Demo
 *******************
 
-.. _@Install_MEICA_Demo:
+.. _ahelp_@Install_MEICA_Demo:
 
 .. contents:: 
     :depth: 4 

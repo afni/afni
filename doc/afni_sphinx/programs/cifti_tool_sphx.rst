@@ -2,7 +2,7 @@
 cifti_tool
 **********
 
-.. _cifti_tool:
+.. _ahelp_cifti_tool:
 
 .. contents:: 
     :depth: 4 

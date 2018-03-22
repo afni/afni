@@ -2,7 +2,7 @@
 afni_history
 ************
 
-.. _afni_history:
+.. _ahelp_afni_history:
 
 .. contents:: 
     :depth: 4 

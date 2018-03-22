@@ -2,7 +2,7 @@
 @np
 ***
 
-.. _@np:
+.. _ahelp_@np:
 
 .. contents:: 
     :depth: 4 

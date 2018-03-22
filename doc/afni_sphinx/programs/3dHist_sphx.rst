@@ -2,7 +2,7 @@
 3dHist
 ******
 
-.. _3dHist:
+.. _ahelp_3dHist:
 
 .. contents:: 
     :depth: 4 

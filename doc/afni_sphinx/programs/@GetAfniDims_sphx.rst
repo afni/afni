@@ -2,7 +2,7 @@
 @GetAfniDims
 ************
 
-.. _@GetAfniDims:
+.. _ahelp_@GetAfniDims:
 
 .. contents:: 
     :depth: 4 

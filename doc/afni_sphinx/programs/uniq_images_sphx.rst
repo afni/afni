@@ -2,7 +2,7 @@
 uniq_images
 ***********
 
-.. _uniq_images:
+.. _ahelp_uniq_images:
 
 .. contents:: 
     :depth: 4 

@@ -2,7 +2,7 @@
 @NoisySkullStrip
 ****************
 
-.. _@NoisySkullStrip:
+.. _ahelp_@NoisySkullStrip:
 
 .. contents:: 
     :depth: 4 

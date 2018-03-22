@@ -2,7 +2,7 @@
 3dmerge
 *******
 
-.. _3dmerge:
+.. _ahelp_3dmerge:
 
 .. contents:: 
     :depth: 4 

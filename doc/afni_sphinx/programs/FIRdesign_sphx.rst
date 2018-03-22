@@ -2,7 +2,7 @@
 FIRdesign
 *********
 
-.. _FIRdesign:
+.. _ahelp_FIRdesign:
 
 .. contents:: 
     :depth: 4 

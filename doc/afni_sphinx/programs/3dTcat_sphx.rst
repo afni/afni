@@ -2,7 +2,7 @@
 3dTcat
 ******
 
-.. _3dTcat:
+.. _ahelp_3dTcat:
 
 .. contents:: 
     :depth: 4 

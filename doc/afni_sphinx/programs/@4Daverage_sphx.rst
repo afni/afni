@@ -2,7 +2,7 @@
 @4Daverage
 **********
 
-.. _@4Daverage:
+.. _ahelp_@4Daverage:
 
 .. contents:: 
     :depth: 4 

@@ -2,7 +2,7 @@
 3dDeconvolve_f
 **************
 
-.. _3dDeconvolve_f:
+.. _ahelp_3dDeconvolve_f:
 
 .. contents:: 
     :depth: 4 

@@ -2,7 +2,7 @@
 @DriveAfni
 **********
 
-.. _@DriveAfni:
+.. _ahelp_@DriveAfni:
 
 .. contents:: 
     :depth: 4 

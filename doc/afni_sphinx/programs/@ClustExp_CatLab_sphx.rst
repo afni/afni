@@ -2,7 +2,7 @@
 @ClustExp_CatLab
 ****************
 
-.. _@ClustExp_CatLab:
+.. _ahelp_@ClustExp_CatLab:
 
 .. contents:: 
     :depth: 4 

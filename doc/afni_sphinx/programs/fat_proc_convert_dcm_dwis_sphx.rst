@@ -2,7 +2,7 @@
 fat_proc_convert_dcm_dwis
 *************************
 
-.. _fat_proc_convert_dcm_dwis:
+.. _ahelp_fat_proc_convert_dcm_dwis:
 
 .. contents:: 
     :depth: 4 

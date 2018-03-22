@@ -2,7 +2,7 @@
 3dcopy
 ******
 
-.. _3dcopy:
+.. _ahelp_3dcopy:
 
 .. contents:: 
     :depth: 4 

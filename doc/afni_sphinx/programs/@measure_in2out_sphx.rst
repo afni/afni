@@ -2,7 +2,7 @@
 @measure_in2out
 ***************
 
-.. _@measure_in2out:
+.. _ahelp_@measure_in2out:
 
 .. contents:: 
     :depth: 4 

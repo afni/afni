@@ -2,7 +2,7 @@
 tfim
 ****
 
-.. _tfim:
+.. _ahelp_tfim:
 
 .. contents:: 
     :depth: 4 

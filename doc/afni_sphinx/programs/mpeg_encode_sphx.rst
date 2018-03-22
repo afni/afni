@@ -2,7 +2,7 @@
 mpeg_encode
 ***********
 
-.. _mpeg_encode:
+.. _ahelp_mpeg_encode:
 
 .. contents:: 
     :depth: 4 

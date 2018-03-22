@@ -2,7 +2,7 @@
 cdf
 ***
 
-.. _cdf:
+.. _ahelp_cdf:
 
 .. contents:: 
     :depth: 4 

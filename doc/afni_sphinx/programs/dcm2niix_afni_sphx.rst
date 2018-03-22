@@ -2,7 +2,7 @@
 dcm2niix_afni
 *************
 
-.. _dcm2niix_afni:
+.. _ahelp_dcm2niix_afni:
 
 .. contents:: 
     :depth: 4 

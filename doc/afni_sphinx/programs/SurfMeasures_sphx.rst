@@ -2,7 +2,7 @@
 SurfMeasures
 ************
 
-.. _SurfMeasures:
+.. _ahelp_SurfMeasures:
 
 .. contents:: 
     :depth: 4 

@@ -2,7 +2,7 @@
 @suma_reprefixize_spec
 **********************
 
-.. _@suma_reprefixize_spec:
+.. _ahelp_@suma_reprefixize_spec:
 
 .. contents:: 
     :depth: 4 

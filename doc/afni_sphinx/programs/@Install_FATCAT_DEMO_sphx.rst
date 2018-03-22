@@ -2,7 +2,7 @@
 @Install_FATCAT_DEMO
 ********************
 
-.. _@Install_FATCAT_DEMO:
+.. _ahelp_@Install_FATCAT_DEMO:
 
 .. contents:: 
     :depth: 4 

@@ -2,7 +2,7 @@
 3dfractionize
 *************
 
-.. _3dfractionize:
+.. _ahelp_3dfractionize:
 
 .. contents:: 
     :depth: 4 

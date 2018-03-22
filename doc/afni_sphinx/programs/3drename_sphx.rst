@@ -2,7 +2,7 @@
 3drename
 ********
 
-.. _3drename:
+.. _ahelp_3drename:
 
 .. contents:: 
     :depth: 4 

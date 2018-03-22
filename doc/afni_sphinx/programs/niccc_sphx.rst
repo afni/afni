@@ -2,7 +2,7 @@
 niccc
 *****
 
-.. _niccc:
+.. _ahelp_niccc:
 
 .. contents:: 
     :depth: 4 

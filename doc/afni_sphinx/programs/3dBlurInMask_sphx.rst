@@ -2,7 +2,7 @@
 3dBlurInMask
 ************
 
-.. _3dBlurInMask:
+.. _ahelp_3dBlurInMask:
 
 .. contents:: 
     :depth: 4 

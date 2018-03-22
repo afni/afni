@@ -2,7 +2,7 @@
 3dLocalHistog
 *************
 
-.. _3dLocalHistog:
+.. _ahelp_3dLocalHistog:
 
 .. contents:: 
     :depth: 4 

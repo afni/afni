@@ -2,7 +2,7 @@
 @SUMA_AlignToExperiment
 ***********************
 
-.. _@SUMA_AlignToExperiment:
+.. _ahelp_@SUMA_AlignToExperiment:
 
 .. contents:: 
     :depth: 4 

@@ -2,7 +2,7 @@
 nsize
 *****
 
-.. _nsize:
+.. _ahelp_nsize:
 
 .. contents:: 
     :depth: 4 

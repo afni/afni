@@ -2,7 +2,7 @@
 3dBandpass
 **********
 
-.. _3dBandpass:
+.. _ahelp_3dBandpass:
 
 .. contents:: 
     :depth: 4 

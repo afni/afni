@@ -2,7 +2,7 @@
 @isOblique
 **********
 
-.. _@isOblique:
+.. _ahelp_@isOblique:
 
 .. contents:: 
     :depth: 4 

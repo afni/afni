@@ -2,7 +2,7 @@
 sqwave
 ******
 
-.. _sqwave:
+.. _ahelp_sqwave:
 
 .. contents:: 
     :depth: 4 

@@ -2,7 +2,7 @@
 3dMVM
 *****
 
-.. _3dMVM:
+.. _ahelp_3dMVM:
 
 .. contents:: 
     :depth: 4 

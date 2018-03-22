@@ -2,7 +2,7 @@
 3dfim+
 ******
 
-.. _3dfim+:
+.. _ahelp_3dfim+:
 
 .. contents:: 
     :depth: 4 

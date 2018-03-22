@@ -2,7 +2,7 @@
 @global_parse
 *************
 
-.. _@global_parse:
+.. _ahelp_@global_parse:
 
 .. contents:: 
     :depth: 4 

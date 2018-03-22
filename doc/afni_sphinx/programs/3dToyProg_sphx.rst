@@ -2,7 +2,7 @@
 3dToyProg
 *********
 
-.. _3dToyProg:
+.. _ahelp_3dToyProg:
 
 .. contents:: 
     :depth: 4 

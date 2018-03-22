@@ -2,7 +2,7 @@
 dicom_to_raw
 ************
 
-.. _dicom_to_raw:
+.. _ahelp_dicom_to_raw:
 
 .. contents:: 
     :depth: 4 

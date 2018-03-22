@@ -2,7 +2,7 @@
 3dGenPriors
 ***********
 
-.. _3dGenPriors:
+.. _ahelp_3dGenPriors:
 
 .. contents:: 
     :depth: 4 

@@ -2,7 +2,7 @@
 3dSkullStrip
 ************
 
-.. _3dSkullStrip:
+.. _ahelp_3dSkullStrip:
 
 .. contents:: 
     :depth: 4 

@@ -2,7 +2,7 @@
 @fix_FSsphere
 *************
 
-.. _@fix_FSsphere:
+.. _ahelp_@fix_FSsphere:
 
 .. contents:: 
     :depth: 4 

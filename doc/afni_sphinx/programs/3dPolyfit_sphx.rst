@@ -2,7 +2,7 @@
 3dPolyfit
 *********
 
-.. _3dPolyfit:
+.. _ahelp_3dPolyfit:
 
 .. contents:: 
     :depth: 4 

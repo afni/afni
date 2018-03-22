@@ -2,7 +2,7 @@
 stimband
 ********
 
-.. _stimband:
+.. _ahelp_stimband:
 
 .. contents:: 
     :depth: 4 

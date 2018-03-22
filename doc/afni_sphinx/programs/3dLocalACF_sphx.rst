@@ -2,7 +2,7 @@
 3dLocalACF
 **********
 
-.. _3dLocalACF:
+.. _ahelp_3dLocalACF:
 
 .. contents:: 
     :depth: 4 

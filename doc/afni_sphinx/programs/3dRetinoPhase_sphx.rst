@@ -2,7 +2,7 @@
 3dRetinoPhase
 *************
 
-.. _3dRetinoPhase:
+.. _ahelp_3dRetinoPhase:
 
 .. contents:: 
     :depth: 4 

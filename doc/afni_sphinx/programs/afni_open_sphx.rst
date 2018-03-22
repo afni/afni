@@ -2,7 +2,7 @@
 afni_open
 *********
 
-.. _afni_open:
+.. _ahelp_afni_open:
 
 .. contents:: 
     :depth: 4 

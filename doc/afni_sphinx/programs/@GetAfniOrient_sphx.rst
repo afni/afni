@@ -2,7 +2,7 @@
 @GetAfniOrient
 **************
 
-.. _@GetAfniOrient:
+.. _ahelp_@GetAfniOrient:
 
 .. contents:: 
     :depth: 4 

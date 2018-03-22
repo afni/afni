@@ -2,7 +2,7 @@
 24swap
 ******
 
-.. _24swap:
+.. _ahelp_24swap:
 
 .. contents:: 
     :depth: 4 

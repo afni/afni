@@ -2,7 +2,7 @@
 3dInvFMRI
 *********
 
-.. _3dInvFMRI:
+.. _ahelp_3dInvFMRI:
 
 .. contents:: 
     :depth: 4 

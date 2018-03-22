@@ -2,7 +2,7 @@
 3dPval
 ******
 
-.. _3dPval:
+.. _ahelp_3dPval:
 
 .. contents:: 
     :depth: 4 

@@ -2,7 +2,7 @@
 AnalyzeTrace
 ************
 
-.. _AnalyzeTrace:
+.. _ahelp_AnalyzeTrace:
 
 .. contents:: 
     :depth: 4 

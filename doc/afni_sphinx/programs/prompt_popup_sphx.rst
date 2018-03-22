@@ -2,7 +2,7 @@
 prompt_popup
 ************
 
-.. _prompt_popup:
+.. _ahelp_prompt_popup:
 
 .. contents:: 
     :depth: 4 

@@ -2,7 +2,7 @@
 djpeg
 *****
 
-.. _djpeg:
+.. _ahelp_djpeg:
 
 .. contents:: 
     :depth: 4 

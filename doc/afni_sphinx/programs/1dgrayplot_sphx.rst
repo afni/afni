@@ -2,7 +2,7 @@
 1dgrayplot
 **********
 
-.. _1dgrayplot:
+.. _ahelp_1dgrayplot:
 
 .. contents:: 
     :depth: 4 

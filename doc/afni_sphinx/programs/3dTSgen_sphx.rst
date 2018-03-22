@@ -2,7 +2,7 @@
 3dTSgen
 *******
 
-.. _3dTSgen:
+.. _ahelp_3dTSgen:
 
 .. contents:: 
     :depth: 4 

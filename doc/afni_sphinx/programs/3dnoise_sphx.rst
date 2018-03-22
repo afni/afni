@@ -2,7 +2,7 @@
 3dnoise
 *******
 
-.. _3dnoise:
+.. _ahelp_3dnoise:
 
 .. contents:: 
     :depth: 4 

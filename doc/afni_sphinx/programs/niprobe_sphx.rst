@@ -2,7 +2,7 @@
 niprobe
 *******
 
-.. _niprobe:
+.. _ahelp_niprobe:
 
 .. contents:: 
     :depth: 4 

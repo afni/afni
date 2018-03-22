@@ -2,7 +2,7 @@
 @update.afni.binaries
 *********************
 
-.. _@update.afni.binaries:
+.. _ahelp_@update.afni.binaries:
 
 .. contents:: 
     :depth: 4 

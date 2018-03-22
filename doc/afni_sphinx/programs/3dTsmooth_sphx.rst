@@ -2,7 +2,7 @@
 3dTsmooth
 *********
 
-.. _3dTsmooth:
+.. _ahelp_3dTsmooth:
 
 .. contents:: 
     :depth: 4 

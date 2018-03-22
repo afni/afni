@@ -2,7 +2,7 @@
 CompareSurfaces
 ***************
 
-.. _CompareSurfaces:
+.. _ahelp_CompareSurfaces:
 
 .. contents:: 
     :depth: 4 

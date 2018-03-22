@@ -2,7 +2,7 @@
 images_equal
 ************
 
-.. _images_equal:
+.. _ahelp_images_equal:
 
 .. contents:: 
     :depth: 4 

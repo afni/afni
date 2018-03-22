@@ -2,7 +2,7 @@
 3dAllineate
 ***********
 
-.. _3dAllineate:
+.. _ahelp_3dAllineate:
 
 .. contents:: 
     :depth: 4 

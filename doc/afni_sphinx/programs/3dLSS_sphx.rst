@@ -2,7 +2,7 @@
 3dLSS
 *****
 
-.. _3dLSS:
+.. _ahelp_3dLSS:
 
 .. contents:: 
     :depth: 4 

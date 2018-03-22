@@ -2,7 +2,7 @@
 help_format
 ***********
 
-.. _help_format:
+.. _ahelp_help_format:
 
 .. contents:: 
     :depth: 4 

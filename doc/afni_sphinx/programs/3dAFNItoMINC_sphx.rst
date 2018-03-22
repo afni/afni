@@ -2,7 +2,7 @@
 3dAFNItoMINC
 ************
 
-.. _3dAFNItoMINC:
+.. _ahelp_3dAFNItoMINC:
 
 .. contents:: 
     :depth: 4 

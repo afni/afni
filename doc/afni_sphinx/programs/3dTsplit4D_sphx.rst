@@ -2,7 +2,7 @@
 3dTsplit4D
 **********
 
-.. _3dTsplit4D:
+.. _ahelp_3dTsplit4D:
 
 .. contents:: 
     :depth: 4 

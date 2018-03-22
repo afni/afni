@@ -2,7 +2,7 @@
 3dclust
 *******
 
-.. _3dclust:
+.. _ahelp_3dclust:
 
 .. contents:: 
     :depth: 4 

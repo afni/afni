@@ -2,7 +2,7 @@
 python_module_test.py
 *********************
 
-.. _python_module_test.py:
+.. _ahelp_python_module_test.py:
 
 .. contents:: 
     :depth: 4 

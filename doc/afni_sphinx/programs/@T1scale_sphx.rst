@@ -2,7 +2,7 @@
 @T1scale
 ********
 
-.. _@T1scale:
+.. _ahelp_@T1scale:
 
 .. contents:: 
     :depth: 4 

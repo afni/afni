@@ -2,7 +2,7 @@
 3ddup
 *****
 
-.. _3ddup:
+.. _ahelp_3ddup:
 
 .. contents:: 
     :depth: 4 

@@ -2,7 +2,7 @@
 @FS_roi_label
 *************
 
-.. _@FS_roi_label:
+.. _ahelp_@FS_roi_label:
 
 .. contents:: 
     :depth: 4 

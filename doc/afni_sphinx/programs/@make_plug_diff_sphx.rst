@@ -2,7 +2,7 @@
 @make_plug_diff
 ***************
 
-.. _@make_plug_diff:
+.. _ahelp_@make_plug_diff:
 
 .. contents:: 
     :depth: 4 

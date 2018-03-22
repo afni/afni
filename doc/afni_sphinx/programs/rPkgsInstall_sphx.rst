@@ -2,7 +2,7 @@
 rPkgsInstall
 ************
 
-.. _rPkgsInstall:
+.. _ahelp_rPkgsInstall:
 
 .. contents:: 
     :depth: 4 

@@ -2,7 +2,7 @@
 whereami
 ********
 
-.. _whereami:
+.. _ahelp_whereami:
 
 .. contents:: 
     :depth: 4 

@@ -2,7 +2,7 @@
 3dmatmult
 *********
 
-.. _3dmatmult:
+.. _ahelp_3dmatmult:
 
 .. contents:: 
     :depth: 4 

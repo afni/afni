@@ -2,7 +2,7 @@
 3dNwarpFuncs
 ************
 
-.. _3dNwarpFuncs:
+.. _ahelp_3dNwarpFuncs:
 
 .. contents:: 
     :depth: 4 

@@ -2,7 +2,7 @@
 @statauxcode
 ************
 
-.. _@statauxcode:
+.. _ahelp_@statauxcode:
 
 .. contents:: 
     :depth: 4 

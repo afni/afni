@@ -2,7 +2,7 @@
 @RenamePanga
 ************
 
-.. _@RenamePanga:
+.. _ahelp_@RenamePanga:
 
 .. contents:: 
     :depth: 4 

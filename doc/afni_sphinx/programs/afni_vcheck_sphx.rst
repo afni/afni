@@ -2,7 +2,7 @@
 afni_vcheck
 ***********
 
-.. _afni_vcheck:
+.. _ahelp_afni_vcheck:
 
 .. contents:: 
     :depth: 4 

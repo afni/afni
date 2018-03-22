@@ -2,7 +2,7 @@
 3dcalc
 ******
 
-.. _3dcalc:
+.. _ahelp_3dcalc:
 
 .. contents:: 
     :depth: 4 

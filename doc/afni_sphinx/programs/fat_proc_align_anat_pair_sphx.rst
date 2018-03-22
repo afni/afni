@@ -2,7 +2,7 @@
 fat_proc_align_anat_pair
 ************************
 
-.. _fat_proc_align_anat_pair:
+.. _ahelp_fat_proc_align_anat_pair:
 
 .. contents:: 
     :depth: 4 

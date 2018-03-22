@@ -2,7 +2,7 @@
 3dPAR2AFNI.pl
 *************
 
-.. _3dPAR2AFNI.pl:
+.. _ahelp_3dPAR2AFNI.pl:
 
 .. contents:: 
     :depth: 4 

@@ -2,7 +2,7 @@
 1dCorrelate
 ***********
 
-.. _1dCorrelate:
+.. _ahelp_1dCorrelate:
 
 .. contents:: 
     :depth: 4 

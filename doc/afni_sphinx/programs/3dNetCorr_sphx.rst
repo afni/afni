@@ -2,7 +2,7 @@
 3dNetCorr
 *********
 
-.. _3dNetCorr:
+.. _ahelp_3dNetCorr:
 
 .. contents:: 
     :depth: 4 
