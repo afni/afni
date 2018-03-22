@@ -9,7 +9,7 @@ import sys, os, glob, subprocess, csv, re, shutil, argparse, signal, textwrap
 
 ## [PT: Mar 22, 2018] So that we can leave the help2*py file here, but
 ## use afni_util;  should always be relatively related like this:
-sys.path.insert(0, "../../src/python_scripts")
+sys.path.insert(0, "../../../src/python_scripts")
 from afni_util import exec_tcsh_command
 
 ## [PT: Mar 22, 2018] Make the reference for each help in the "All

@@ -19,9 +19,18 @@ echo "Backup directory called: $backup_dir"
 
 ### Make preliminary stuff from helpfiles: will open both AFNI and SUMA
 ### this way
-tcsh @gen_all -phelp -suma -afni
+#tcsh @gen_all -phelp -suma -afni
 
-help2sphinx.py -OutFolder ./programs
+#python_help_scripts/help2sphinx.py -OutFolder ../programs
+
+set pdir = python_help_scripts
+$pdir/convert_list_to_fields_pandas.py  \
+    $pdir/list_AFNI_PROGS_classed.txt   \
+    $pdir/list_STYLED_NEW.txt
+
+$pdir/convert_fields_to_rst.py          \
+    $pdir/list_STYLED_NEW.txt           \
+    educational/classified_progs.rst
 
 ### Build Sphinx.
 make html
