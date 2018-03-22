@@ -26,4 +26,4 @@
     * The TR recorded in MINC files is often incorrect.  You may
        need to fix this (or other parameters) using 3drefit.
     
-    ++ Compile date = Mar  7 2018 {AFNI_18.0.25:linux_ubuntu_12_64}
+    ++ Compile date = Mar 22 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

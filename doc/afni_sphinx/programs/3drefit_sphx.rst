@@ -1,8 +1,8 @@
+.. _ahelp_3drefit:
+
 *******
 3drefit
 *******
-
-.. _ahelp_3drefit:
 
 .. contents:: 
     :depth: 4 
@@ -446,4 +446,4 @@ The following options let you modify the FDR curves stored in the header:
     
     ++ Last program update: 27 Mar 2009
     
-    ++ Compile date = Mar  7 2018 {AFNI_18.0.25:linux_ubuntu_12_64}
+    ++ Compile date = Mar 22 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

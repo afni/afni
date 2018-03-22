@@ -51,4 +51,4 @@
     * Also see program 3dXYZcat for a version that can catenate along
         the x and y axes as well (with some limitations).
     
-    ++ Compile date = Mar  7 2018 {AFNI_18.0.25:linux_ubuntu_12_64}
+    ++ Compile date = Mar 22 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

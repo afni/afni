@@ -450,7 +450,8 @@
 1 :: 3dFourier
 1 :: 3dDFT                         :: FFT along time axis
 1 :: 3dFFT                         :: FFT along spatial axis
-1 :: 3dLombScargle                 :: Even better FFT along time axis with missing time points
+1 :: 3dLombScargle                 :: Calculate amp/pow spectrum (like FFT) along time axis with missing time points
+1 :: 3dAmpToRSFC                   :: Calculate RSFC parameters (ALFF, fALFF, RSFA, etc.) from 3dLombScargle output
 1 :: 1dBandpass
 1 :: 3dBandpass
 1 :: 3dRSFC                        :: Calculate RSFC parameters (ALFF, fALFF, RSFA, etc.) for uncensored time series
@@ -571,9 +572,11 @@
 ++ 3 :: Resting state FMRI parameters
 1 :: 3dRSFC              :: Calculate RSFC parameters (ALFF, fALFF, RSFA, etc.) for uncensored time series
 1 :: 3dReHo              :: Calculate ReHo (Kendall's coefficient of concordance) for time series
+1 :: 3dLombScargle       :: Calculate amp/pow spectrum (like FFT) along time axis with missing time points
+1 :: 3dAmpToRSFC         :: Calculate RSFC parameters (ALFF, fALFF, RSFA, etc.) from 3dLombScargle output
 
 
-++ 1 :: Supplemental/underlying AFNI+SUMA programs and functions (descrip not needed)
+++ 1 :: Supplemental/underlying programs (no desc needed)
 1 :: @global_parse   
 1 :: lib_afni1D.py
 1 :: afni_util.py
@@ -732,7 +735,6 @@
 1 :: 1dRplot
 1 :: 1dRplot.R
 1 :: 1dSVAR.R
-1 :: 3dAmpToRSFC
 1 :: 3dAOV.R
 1 :: 3dGC.R
 1 :: 3dICA.R

@@ -1,8 +1,8 @@
-*********************
-@FATCAT_matplot_shiny
-*********************
+**************
+FATCAT_matplot
+**************
 
-.. _@FATCAT_matplot_shiny:
+.. _ahelp_FATCAT_matplot:
 
 .. contents:: 
     :depth: 4 
@@ -13,7 +13,7 @@
 
     
        ----------------------------------------------------------------------------
-       @FATCAT_matplot_shiny
+       FATCAT_matplot
           Launch a shiny app to visualize .netcc and/or .grid files.
           Takes one argument, a path to a folder with said files.
           That path MUST be the last argument!
@@ -26,7 +26,7 @@
     
        -----------------------------------------------------------------------------
        examples:
-          @FATCAT_matplot_shiny ~/disco_netcc_folder
+          FATCAT_matplot ~/disco_netcc_folder
     
        -----------------------------------------------------------------------------
        Justin Rajendra 11/2017

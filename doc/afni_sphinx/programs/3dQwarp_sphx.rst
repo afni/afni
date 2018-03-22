@@ -363,6 +363,9 @@
                      then the -resample option will be ignored.
                    * You CAN use -resample with these 3dQwarp options:
                        -plusminus  -inilev  -iniwarp  -duplo
+                     In particular, '-iniwarp' and '-resample' will work
+                     together if you need to re-start a warp job from the
+                     output of '-allsave'.
                    * Unless you are in a hurry, '-allineate' is better.
     
      -nowarp      = Do not save the _WARP file.
@@ -558,7 +561,10 @@
                      warp via the string "IDENT(base_dataset) matrix_file.aff12.1D".
                    * You CANNOT use this option with -duplo !!
                    * -iniwarp is usually used with -inilev to re-start 3dQwarp from
-                     a previous stopping point.
+                     a previous stopping point, or from the output of '-allsave'.
+                   * In particular, '-iniwarp' and '-resample' will work
+                     together if you need to re-start a warp job from the
+                     output of '-allsave'.
     
      -inilev lv   = 'lv' is the initial refinement 'level' at which to start.
                    * Usually used with -iniwarp; CANNOT be used with -duplo.
@@ -620,9 +626,13 @@
      -allsave     = This option lets you save the output warps from each level
        *OR*         of the refinement process. Mostly used for experimenting.
      -saveall      * Cannot be used with -nopadWARP, -duplo, or -plusminus.
-                   * Will only save all the outputs if the program terminates
-                     normally -- if it crashes, or freezes, then all these
-                     warps are lost.
+                   * You could use the saved warps to create different versions
+                     of the warped source datasets (using 3dNwarpApply), to help
+                     you visualize how the warping process makes progress.
+                   * The saved warps are written out at the end of each level,
+                     before the next level starts computation. Thus, they could
+                     be used to re-start the computation if the program crashed
+                     (by using options '-inilev' and '-iniwarp').
     
      -duplo       = Start off with 1/2 scale versions of the volumes,
                     for getting a speedy coarse first alignment.

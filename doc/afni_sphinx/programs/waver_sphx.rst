@@ -168,4 +168,4 @@ waver
       waveforms internally, markedly reducing the need for this program.
     * If a square wave is desired, see the 'sqwave' program.
     
-    ++ Compile date = Mar  7 2018 {AFNI_18.0.25:linux_ubuntu_12_64}
+    ++ Compile date = Mar 22 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

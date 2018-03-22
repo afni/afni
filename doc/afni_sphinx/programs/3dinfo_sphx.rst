@@ -1,8 +1,8 @@
+.. _ahelp_3dinfo:
+
 ******
 3dinfo
 ******
-
-.. _ahelp_3dinfo:
 
 .. contents:: 
     :depth: 4 
@@ -235,4 +235,4 @@ Examples with csh syntax using datasets in your afni binaries directory
     
     
     
-    ++ Compile date = Mar  7 2018 {AFNI_18.0.25:linux_ubuntu_12_64}
+    ++ Compile date = Mar 22 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

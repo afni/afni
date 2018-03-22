@@ -150,8 +150,13 @@
        LABL_K    is the label for the Kth input dataset name, whose name follows.
        BETA_DSET is the name of the dataset of the beta coefficient or GLT.
                  ++ only 1 sub-brick can be specified here!
-       Note that the labels 'SETNAME' and 'LABL_K' are limited to 12
-       characters -- any more will be thrown away without warning.
+        ** Note that the label 'SETNAME' is limited to 12 characters,
+           and the labels 'LABL_K' are limited to 256 characters
+           -- any more will be thrown away without warning.
+        ** Only the first 12 characters of the covariate labels can be
+           used in the sub-brick labels, due to limitations in the AFNI
+           dataset structure and AFNI GUI. Any covariate labels longer than
+           this will be truncated when put into the output dataset :(
     
          ** The program determines if you are using the short form or long **
          ** form to specify the input datasets based on the first argument **
@@ -1506,4 +1511,4 @@
     AUTHOR -- RW Cox -- don't whine TO me; wine WITH me (e.g., a nice Pinot Noir)
     ---------------------------------------------------
     
-    ++ Compile date = Mar  7 2018 {AFNI_18.0.25:linux_ubuntu_12_64}
+    ++ Compile date = Mar 22 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

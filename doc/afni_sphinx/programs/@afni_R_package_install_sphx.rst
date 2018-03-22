@@ -1,8 +1,8 @@
+.. _ahelp_@afni_R_package_install:
+
 ***********************
 @afni_R_package_install
 ***********************
-
-.. _ahelp_@afni_R_package_install:
 
 .. contents:: 
     :depth: 4 

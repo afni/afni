@@ -40,4 +40,4 @@
     Goal:
      * Mostly to test the functions in thd_bandpass.c -- RWCox -- May 2009
     
-    ++ Compile date = Mar  7 2018 {AFNI_18.0.25:linux_ubuntu_12_64}
+    ++ Compile date = Mar 22 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

@@ -535,4 +535,4 @@
          you are actually using a thresholding operation.)
      ** -1dindex and -1tindex apply to all input datasets.
     
-    ++ Compile date = Mar  7 2018 {AFNI_18.0.25:linux_ubuntu_12_64}
+    ++ Compile date = Mar 22 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

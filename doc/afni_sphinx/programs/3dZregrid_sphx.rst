@@ -62,4 +62,4 @@
       3dZregrid -dz 1.2 -prefix ElvisZZ Elvis2+orig
       3dvolreg -base Elvis1+orig -prefix Elvis2reg ElvisZZ+orig
     
-    ++ Compile date = Mar  7 2018 {AFNI_18.0.25:linux_ubuntu_12_64}
+    ++ Compile date = Mar 22 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

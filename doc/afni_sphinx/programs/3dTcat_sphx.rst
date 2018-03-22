@@ -172,4 +172,4 @@
      ++ If you want to see the filename expansion results, run 3dTcat
         with the option '-DAFNI_GLOB_DEBUG=YES'
     
-    ++ Compile date = Mar  7 2018 {AFNI_18.0.25:linux_ubuntu_12_64}
+    ++ Compile date = Mar 22 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

@@ -10,7 +10,7 @@ import sys, os, glob, subprocess, csv, re, shutil, argparse, signal, textwrap
 ## [PT: Mar 22, 2018] So that we can leave the help2*py file here, but
 ## use afni_util;  should always be relatively related like this:
 sys.path.insert(0, "../../../src/python_scripts")
-from afni_util import exec_tcsh_command
+import afni_util as au
 
 ## [PT: Mar 22, 2018] Make the reference for each help in the "All
 ## Help" section be ".. _ahelp_PROGNAME"
@@ -123,7 +123,7 @@ if not os.path.exists(OutFolder):
 ########################################################################
 ## get list of afni files or use the one provided
 if prog_list == "nothing":
-    stat,prog_list = exec_tcsh_command("apsearch -list_all_afni_progs",
+    stat,prog_list = au.exec_tcsh_command("apsearch -list_all_afni_progs",
                                        lines=1,noblank=0)
 else:
     prog_list = [prog_list]
@@ -157,7 +157,7 @@ for afni_prog in prog_list:
         continue
 
     ## read in the help file
-    stat,help_in = exec_tcsh_command(afni_prog+' -help',
+    stat,help_in = au.exec_tcsh_command(afni_prog+' -help',
                                      lines=1,
                                      noblank=0)
 
@@ -186,13 +186,13 @@ for afni_prog in prog_list:
     sphinx_out = open(out_file,"w")
 
     ## main header as the prog name
+    sphinx_out.write(".. _ahelp_"+afni_prog+":\n\n")
     sphinx_out.write((str("*") * len(afni_prog))+"\n")
     sphinx_out.write(afni_prog+"\n")
     sphinx_out.write((str("*") * len(afni_prog))+"\n\n")
 
     ## table of contents and a blank to remove the indentation for the
     ## next line
-    sphinx_out.write(".. _ahelp_"+afni_prog+":\n\n")
     sphinx_out.write(".. contents:: \n")
     sphinx_out.write("    :depth: 4 \n\n")
     sphinx_out.write("| \n\n")

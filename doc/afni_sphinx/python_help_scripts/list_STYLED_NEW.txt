@@ -213,6 +213,8 @@ Simple calculations on datasets (making new datasets)        ::  3 :: 3dmatcalc 
 Simple calculations on datasets (making new datasets)        ::  3 :: 3dmatmult                           ::  1 :: Multiply datasets as matrices 
 Resting state FMRI parameters                                ::  3 :: 3dRSFC                              ::  1 :: Calculate RSFC parameters (ALFF, fALFF, RSFA, etc.) for uncensored time series
 Resting state FMRI parameters                                ::  3 :: 3dReHo                              ::  1 :: Calculate ReHo (Kendall's coefficient of concordance) for time series
+Resting state FMRI parameters                                ::  3 :: 3dLombScargle                       ::  1 :: Calculate amp/pow spectrum (like FFT) along time axis with missing time points
+Resting state FMRI parameters                                ::  3 :: 3dAmpToRSFC                         ::  1 :: Calculate RSFC parameters (ALFF, fALFF, RSFA, etc.) from 3dLombScargle output
 Programs for dealing with 1D time series                     ::  3 :: 1d_tool.py                          ::  4 :: Perform various manipulations of 1D data
 Programs for dealing with 1D time series                     ::  3 :: 1dplot                              ::  4 :: Graph values from columns in a file
 Programs for dealing with 1D time series                     ::  3 :: 1dtranspose                         ::  3 :: Transpose 1D files (interchange rows and columns)
@@ -381,7 +383,8 @@ Get/install demos                                            ::  2 :: @Install_T
 Fourier related, time series/freq                            ::  2 :: 3dFourier                           ::  1 ::                               
 Fourier related, time series/freq                            ::  2 :: 3dDFT                               ::  1 :: FFT along time axis           
 Fourier related, time series/freq                            ::  2 :: 3dFFT                               ::  1 :: FFT along spatial axis        
-Fourier related, time series/freq                            ::  2 :: 3dLombScargle                       ::  1 :: Even better FFT along time axis with missing time points
+Fourier related, time series/freq                            ::  2 :: 3dLombScargle                       ::  1 :: Calculate amp/pow spectrum (like FFT) along time axis with missing time points
+Fourier related, time series/freq                            ::  2 :: 3dAmpToRSFC                         ::  1 :: Calculate RSFC parameters (ALFF, fALFF, RSFA, etc.) from 3dLombScargle output
 Fourier related, time series/freq                            ::  2 :: 1dBandpass                          ::  1 ::                               
 Fourier related, time series/freq                            ::  2 :: 3dBandpass                          ::  1 ::                               
 Fourier related, time series/freq                            ::  2 :: 3dRSFC                              ::  1 :: Calculate RSFC parameters (ALFF, fALFF, RSFA, etc.) for uncensored time series
@@ -435,10 +438,10 @@ Supplementary/open programs included in AFNI                 ::  1 :: cjpeg     
 Supplementary/open programs included in AFNI                 ::  1 :: djpeg                               ::  1 :: decompress a JPEG file to an image file
 Supplementary/open programs included in AFNI                 ::  1 :: mpeg_encode                         ::  1 :: convert sequence of images into MPEG movie
 Supplementary/open programs included in AFNI                 ::  1 :: whirlgif                            ::  1 :: concatenate series of GIFs into a single one
-Supplemental/underlying AFNI+SUMA programs and functions (descrip not needed) ::  1 :: @global_parse                       ::  1 ::                               
-Supplemental/underlying AFNI+SUMA programs and functions (descrip not needed) ::  1 :: lib_afni1D.py                       ::  1 ::                               
-Supplemental/underlying AFNI+SUMA programs and functions (descrip not needed) ::  1 :: afni_util.py                        ::  1 ::                               
-Supplemental/underlying AFNI+SUMA programs and functions (descrip not needed) ::  1 :: 3dToyProg                           ::  1 ::                               
+Supplemental/underlying programs (no desc needed)            ::  1 :: @global_parse                       ::  1 ::                               
+Supplemental/underlying programs (no desc needed)            ::  1 :: lib_afni1D.py                       ::  1 ::                               
+Supplemental/underlying programs (no desc needed)            ::  1 :: afni_util.py                        ::  1 ::                               
+Supplemental/underlying programs (no desc needed)            ::  1 :: 3dToyProg                           ::  1 ::                               
 Simulated dataset generators                                 ::  1 :: 3dTSgen                             ::  1 :: Generate 3D+time dataset from 1D model and noise
 Simulated dataset generators                                 ::  1 :: 3dClustSim                          ::  1 :: Simulate datasets and estimate statistical power
 Simulated dataset generators                                 ::  1 :: slow_surf_clustsim.py               ::  1 :: Like 3dClustSim, but for surface data.
@@ -606,7 +609,6 @@ R programs (in R; called by others)                          ::  0 :: 1dGC.R    
 R programs (in R; called by others)                          ::  0 :: 1dRplot                             ::  1 ::                               
 R programs (in R; called by others)                          ::  0 :: 1dRplot.R                           ::  1 ::                               
 R programs (in R; called by others)                          ::  0 :: 1dSVAR.R                            ::  1 ::                               
-R programs (in R; called by others)                          ::  0 :: 3dAmpToRSFC                         ::  1 ::                               
 R programs (in R; called by others)                          ::  0 :: 3dAOV.R                             ::  1 ::                               
 R programs (in R; called by others)                          ::  0 :: 3dGC.R                              ::  1 ::                               
 R programs (in R; called by others)                          ::  0 :: 3dICA.R                             ::  1 ::                               

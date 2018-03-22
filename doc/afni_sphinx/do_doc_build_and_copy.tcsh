@@ -21,19 +21,25 @@ echo "Backup directory called: $backup_dir"
 ### this way
 #tcsh @gen_all -phelp -suma -afni
 
-#python_help_scripts/help2sphinx.py -OutFolder ../programs
+# ---------------------------------
+cd python_help_scripts
 
-set pdir = python_help_scripts
-$pdir/convert_list_to_fields_pandas.py  \
-    $pdir/list_AFNI_PROGS_classed.txt   \
-    $pdir/list_STYLED_NEW.txt
+# Make list of All Program Helps
+python help2sphinx.py -OutFolder ../programs
 
-$pdir/convert_fields_to_rst.py          \
-    $pdir/list_STYLED_NEW.txt           \
-    educational/classified_progs.rst
+# Make classified/groupings stuff
+set fieldfile = list_STYLED_NEW.txt
+python convert_list_to_fields_pandas.py        \
+    list_AFNI_PROGS_classed.txt                \
+    $fieldfile
+python convert_fields_to_rst.py                \
+    $fieldfile                                 \
+    ../educational/classified_progs.rst
+cd ..
+# ---------------------------------
 
 ### Build Sphinx.
-make html
+sudo make html
 
 ### move old documentation to a backupdir
 #mv  /mnt/afni/var/www/html/pub/dist/doc/htmldoc     \
@@ -42,7 +48,7 @@ make html
 
 
 ### new documentation ----> slow to RSYNC!
-rsync -av --delete _build/html/                              \
+sudo rsync -av --delete _build/html/                              \
     /mnt/afni/pub/dist/doc/htmldoc
 
 # OLD

@@ -38,4 +38,4 @@
        and the list of points exceeding the motion bounds listed being
        intercalated on normal (non-comment) lines.
     
-    ++ Compile date = Mar  7 2018 {AFNI_18.0.25:linux_ubuntu_12_64}
+    ++ Compile date = Mar 22 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

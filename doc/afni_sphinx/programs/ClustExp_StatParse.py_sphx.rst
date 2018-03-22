@@ -1,8 +1,8 @@
+.. _ahelp_ClustExp_StatParse.py:
+
 *********************
 ClustExp_StatParse.py
 *********************
-
-.. _ahelp_ClustExp_StatParse.py:
 
 .. contents:: 
     :depth: 4 

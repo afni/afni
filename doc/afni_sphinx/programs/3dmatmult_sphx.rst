@@ -77,4 +77,4 @@
     R. Reynolds    (requested by W. Gaggl)
     
     3dmatmult version 0.0, 29 September 2008
-    compiled: Mar  7 2018
+    compiled: Mar 22 2018

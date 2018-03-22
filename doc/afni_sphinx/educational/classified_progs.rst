@@ -799,6 +799,12 @@ Note that a given program may appear in more than one group.
    * - 1
      - :ref:`3dReHo <ahelp_3dReHo>`
      - Calculate ReHo (Kendall's coefficient of concordance) for time series
+   * - 1
+     - :ref:`3dLombScargle <ahelp_3dLombScargle>`
+     - Calculate amp/pow spectrum (like FFT) along time axis with missing time points
+   * - 1
+     - :ref:`3dAmpToRSFC <ahelp_3dAmpToRSFC>`
+     - Calculate RSFC parameters (ALFF, fALFF, RSFA, etc.) from 3dLombScargle output
 
 
 **Programs for dealing with 1D time series**
@@ -1458,7 +1464,10 @@ Note that a given program may appear in more than one group.
      - FFT along spatial axis
    * - 1
      - :ref:`3dLombScargle <ahelp_3dLombScargle>`
-     - Even better FFT along time axis with missing time points
+     - Calculate amp/pow spectrum (like FFT) along time axis with missing time points
+   * - 1
+     - :ref:`3dAmpToRSFC <ahelp_3dAmpToRSFC>`
+     - Calculate RSFC parameters (ALFF, fALFF, RSFA, etc.) from 3dLombScargle output
    * - 1
      - :ref:`1dBandpass <ahelp_1dBandpass>`
      - 
@@ -1665,7 +1674,7 @@ Note that a given program may appear in more than one group.
      - concatenate series of GIFs into a single one
 
 
-**Supplemental/underlying AFNI+SUMA programs and functions (descrip not needed)**
+**Supplemental/underlying programs (no desc needed)**
 ==============
 
 .. list-table:: 
@@ -2229,9 +2238,6 @@ Note that a given program may appear in more than one group.
      - 
    * - 1
      - :ref:`1dSVAR.R <ahelp_1dSVAR.R>`
-     - 
-   * - 1
-     - :ref:`3dAmpToRSFC <ahelp_3dAmpToRSFC>`
      - 
    * - 1
      - :ref:`3dAOV.R <ahelp_3dAOV.R>`
