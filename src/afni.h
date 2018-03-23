@@ -761,6 +761,8 @@ typedef struct {
 
       Widget gicor_rowcol , gicor_pb , gicor_label ; /* 22 Dec 2009 */
 
+      Widget tstat_rowcol , tstat_pb , tstat_label ; /* 22 Mar 2018 */
+
       Widget        buck_frame , buck_rowcol ;
       MCW_arrowval *anat_buck_av , *fim_buck_av , *thr_buck_av ;  /* 30 Nov 1997 */
 
@@ -1302,8 +1304,9 @@ extern void CLU_setup_alpha_tables( Three_D_View * ) ; /* Jul 2010 */
 
 #define VEDIT_INSTACORR  0
 #define VEDIT_INSTACALC  1
-#define VEDIT_GRINCORR   2
-#define VEDIT_LAST_VALUE 2
+#define VEDIT_TSTAT      2
+#define VEDIT_GRINCORR   3
+#define VEDIT_LAST_VALUE 3
 
 #define INSTACORR_LABEL_ON(iq)                                          \
  do{ MCW_set_widget_label((iq)->vwid->func->icor_label,"** Ready **") ; \
@@ -1433,6 +1436,24 @@ extern void CLU_setup_alpha_tables( Three_D_View * ) ; /* Jul 2010 */
 #define DISABLE_INSTACALC(iq)                                            \
  do{ INSTACALC_LABEL_OFF(iq) ;                                           \
      if( (iq)->icalc_setup != NULL ) (iq)->icalc_setup->is_good = 0 ;    \
+     if( (iq)->vwid->func->iwid != NULL )                                \
+       XtUnmapWidget((iq)->vwid->func->iwid->wtop) ;                     \
+ } while(0)
+
+/** Tstat stuff [22 Mar 2018] **/
+
+#define TSTAT_LABEL_ON(iq)                                               \
+ do{ MCW_set_widget_label((iq)->vwid->func->tstat_label,"*Computed!*") ; \
+     MCW_set_widget_bg   ((iq)->vwid->func->tstat_label,GO_COLOR,0   ) ; \
+ } while(0)
+
+#define TSTAT_LABEL_OFF(iq)                                              \
+ do{ MCW_set_widget_label((iq)->vwid->func->tstat_label,"*NOT Ready*") ; \
+     MCW_set_widget_bg   ((iq)->vwid->func->tstat_label,STOP_COLOR,0 ) ; \
+ } while(0)
+
+#define DISABLE_TSTAT(iq)                                                \
+ do{ TSTAT_LABEL_OFF(iq) ;                                               \
      if( (iq)->vwid->func->iwid != NULL )                                \
        XtUnmapWidget((iq)->vwid->func->iwid->wtop) ;                     \
  } while(0)
@@ -1575,6 +1596,7 @@ extern "C" {
    extern PLUGIN_interface * F1D_init(void) ;            /* 08 Aug 2001 */
    extern PLUGIN_interface * ICOR_init(char *);          /* 29 Apr 2009 */
    extern PLUGIN_interface * GICOR_init(char *);         /* 22 Dec 2009 */
+   extern PLUGIN_interface * TSTAT_init(char *);         /* 22 Mar 2018 */
 #endif
 
 extern void ENV_globalrange_view( char *vname );
@@ -1584,7 +1606,6 @@ extern void GICOR_setup_func(NI_stream, NI_element *) ;        /* 22 Dec 2009 */
 extern void GICOR_process_dataset( NI_element *nel, int ct ) ; /* 23 Dec 2009 */
 extern void GICOR_process_message( NI_element *nel ) ;            /* Apr 2013 */
 extern void process_NIML_textmessage( NI_element * ) ;            /* Apr 2013 */
-
 
 extern void ICALC_make_widgets( Three_D_View *im3d ) ;   /* 18 Sep 2009 */
 
@@ -1990,6 +2011,7 @@ extern void   AFNI_resam_av_CB     ( MCW_arrowval * , XtPointer ) ;
 
 extern void   AFNI_bucket_CB      ( MCW_arrowval * , XtPointer ) ; /* 30 Nov 1997 */
 extern char * AFNI_bucket_label_CB( MCW_arrowval * , XtPointer ) ;
+extern void AFNI_force_bucket_label_resize( int ) ;                /* 23 Mar 2018 */
 
 extern void   AFNI_vedit_CB       ( MCW_arrowval * , XtPointer ) ; /* 05 May 2009 */
 extern int    AFNI_icor_setref    ( Three_D_View *im3d ) ;

@@ -6484,6 +6484,9 @@ ENTRY("AFNI_bucket_CB") ;
     21 Jun 2004: modified to allow label length to be different from 14.
 ----------------------------------------------------------------------------*/
 
+static int force_label_resize = 0 ;
+void AFNI_force_bucket_label_resize( int ff ){ force_label_resize = ff ; }
+
 char * AFNI_bucket_label_CB( MCW_arrowval *av , XtPointer cd )
 {
    static THD_3dim_dataset *dset_last = NULL ;
@@ -6498,7 +6501,7 @@ ENTRY("AFNI_bucket_label_CB") ;
 
    /** 04 May 2005: customize width to this dataset **/
 
-   if( dset != dset_last && ISVALID_DSET(dset) ){
+   if( dset != dset_last && ISVALID_DSET(dset) || force_label_resize ){
      int nvals,kk,blw,mblw=4 ; char *lab ;
      dset_last = dset ;
      nvals = DSET_NVALS(dset) ;
@@ -7208,6 +7211,68 @@ STATUS("got func info") ;
      XtMapWidget(wtop) ; RWC_visibilize_widget( wtop ) ;
      XRaiseWindow( XtDisplay(wtop) , XtWindow(wtop) ) ;
      im3d->vwid->func->iwid->is_open = 1 ;
+   }
+
+   /*.........................................................*/
+
+   else if( w == im3d->vwid->func->tstat_pb ){ /* 22 Mar 2018 */
+      static PLUGIN_interface *plint[MAX_CONTROLLERS] ; static int first=1 ;
+      Widget wpop ;
+      char title[64] , *lc=AFNI_controller_label(im3d) ;
+
+      if( first ){  /* initialize */
+        int ii ;
+        for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ ) plint[ii] = NULL ;
+        first = 0 ;
+      }
+
+      /* first time in for this controller: create interface like a plugin */
+
+      if( plint[ic] == NULL ){
+         plint[ic] = TSTAT_init(lc) ;
+         if( plint[ic] == NULL ){ BEEPIT; WARNING_message("WTF?!"); EXRETURN; }
+         PLUG_setup_widgets( plint[ic] , GLOBAL_library.dc ) ;
+         plint[ic]->im3d = im3d ;
+      }
+
+      if( cbs == NULL ){  /* synthetic call */
+         XtUnmapWidget(plint[ic]->wid->shell) ; EXRETURN ;
+      }
+
+      /* code below is from PLUG_startup_plugin_CB() in afni_plugin.c */
+
+      plint[ic]->im3d = im3d ;
+      sprintf(title,"%sAFNI Tstat Computations",lc) ;
+      XtVaSetValues( plint[ic]->wid->shell ,
+                      XmNtitle     , title       , /* top of window */
+                      XmNiconName  , "InstaCorr" , /* label on icon */
+                     NULL ) ;
+      PLUTO_cursorize( plint[ic]->wid->shell ) ;
+
+      /*-- if possible, find where this popup should go --*/
+
+      wpop = plint[ic]->wid->shell ;
+
+      if( cbs->event != NULL && cbs->event->type == ButtonRelease ){
+
+         XButtonEvent *xev = (XButtonEvent *)cbs->event ;
+         int xx = (int)xev->x_root , yy = (int)xev->y_root ;
+         int ww,hh , sw,sh ;
+
+         MCW_widget_geom( wpop , &ww,&hh , NULL,NULL ) ;
+         sw = WidthOfScreen (XtScreen(wpop)) ;
+         sh = HeightOfScreen(XtScreen(wpop)) ;
+
+         if( xx+ww+3 >= sw && ww <= sw ) xx = sw-ww ;
+         if( yy+hh+3 >= sh && hh <= sh ) yy = sh-hh ;
+
+         XtVaSetValues( wpop , XmNx , xx , XmNy , yy , NULL ) ;
+      }
+
+      /*-- popup widgets --*/
+
+      XtMapWidget( wpop ) ;  /* after this, is up to user */
+      RWC_visibilize_widget( wpop ) ;
    }
 
    /*.........................................................*/
