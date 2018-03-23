@@ -1,8 +1,8 @@
+.. _ahelp_help_format:
+
 ***********
 help_format
 ***********
-
-.. _help_format:
 
 .. contents:: 
     :depth: 4 

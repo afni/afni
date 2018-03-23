@@ -1,8 +1,8 @@
+.. _ahelp_1dsvd:
+
 *****
 1dsvd
 *****
-
-.. _1dsvd:
 
 .. contents:: 
     :depth: 4 
@@ -71,4 +71,4 @@
       http://en.wikipedia.org/wiki/Singular_value_decomposition
     * Author: Zhark the Algebraical (Linear).
     
-    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}
+    ++ Compile date = Mar 22 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

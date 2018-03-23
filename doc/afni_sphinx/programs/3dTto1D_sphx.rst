@@ -1,8 +1,8 @@
+.. _ahelp_3dTto1D:
+
 *******
 3dTto1D
 *******
-
-.. _3dTto1D:
 
 .. contents:: 
     :depth: 4 
@@ -24,6 +24,9 @@
         shift_srms      : srms shifted by the global mean
         mdiff           : mean abs(diff)
         smdiff          : mdiff scaled down by global mean
+        4095_count      : count voxels with max of exactly 4095
+        4095_frac       : fraction of masked voxels with max of exactly 4095
+        4095_warn       : warn if short datum and max of exactly 4095
     
     More details are provided after the examples.
     
@@ -49,6 +52,10 @@
         applied by appending an escaped ' to the -input dataset.
     
            3dTto1D -input dfile.r01.1D\' -method enorm -prefix enorm.r01.1D
+    
+    E4. warn if short data and max is 4095
+    
+           3dTto1D -input epi+orig -method 4095_warn
     
     --------------------------------------------------
     methods:
@@ -124,6 +131,20 @@
     
           This is the mean diff scaled by the global mean.
     
+       method 4095_count
+    
+          At each time point, output the number of (masked) voxels that are
+          exactly 4095.
+    
+       method 4095_frac
+    
+          At each time point, output the fraction of (masked) voxels that
+          are exactly 4095.
+    
+       method 4095_warn
+    
+          Simply warn whether the maximum is exactly 4095 (so no -prefix).
+    
     --------------------------------------------------
     informational command arguments:
     
@@ -173,6 +194,14 @@
              smdiff     : mdiff scaled by grand mean
                           = mdiff/mean
     
+             4095_count : count of voxels that are exactly 4095
+    
+             4095_frac  : fraction of voxels that are exactly 4095
+                          = 4095_count/(mask size)
+    
+             4095_warn  : state whether global max is exactly 4095
+                          (no 1D output)
+    
     --------------------------------------------------
     optional command arguments:
     
@@ -188,5 +217,5 @@
     --------------------------------------------------
     R Reynolds  July, 2017
     -------------------------------------------------------------------------
-    3dTto1D version 1.1, 18 August 2017
-    compiled: Jan 29 2018
+    3dTto1D version 1.2, 1 February 2018
+    compiled: Mar 22 2018

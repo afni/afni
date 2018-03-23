@@ -1,8 +1,8 @@
+.. _ahelp_3dAFNItoANALYZE:
+
 ***************
 3dAFNItoANALYZE
 ***************
-
-.. _3dAFNItoANALYZE:
 
 .. contents:: 
     :depth: 4 
@@ -65,4 +65,4 @@
         display, AFNI assumes the LPI orientation, unless you
         set environment variable AFNI_ANALYZE_ORIENT.
     
-    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}
+    ++ Compile date = Mar 22 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

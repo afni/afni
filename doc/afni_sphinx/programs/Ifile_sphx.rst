@@ -1,8 +1,8 @@
+.. _ahelp_Ifile:
+
 *****
 Ifile
 *****
-
-.. _Ifile:
 
 .. contents:: 
     :depth: 4 

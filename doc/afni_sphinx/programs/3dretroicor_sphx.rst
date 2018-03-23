@@ -1,8 +1,8 @@
+.. _ahelp_3dretroicor:
+
 ***********
 3dretroicor
 ***********
-
-.. _3dretroicor:
 
 .. contents:: 
     :depth: 4 

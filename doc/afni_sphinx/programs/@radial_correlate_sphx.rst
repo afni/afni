@@ -1,8 +1,8 @@
+.. _ahelp_@radial_correlate:
+
 *****************
 @radial_correlate
 *****************
-
-.. _@radial_correlate:
 
 .. contents:: 
     :depth: 4 

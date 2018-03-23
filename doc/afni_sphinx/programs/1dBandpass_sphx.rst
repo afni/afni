@@ -1,8 +1,8 @@
+.. _ahelp_1dBandpass:
+
 **********
 1dBandpass
 **********
-
-.. _1dBandpass:
 
 .. contents:: 
     :depth: 4 
@@ -40,4 +40,4 @@
     Goal:
      * Mostly to test the functions in thd_bandpass.c -- RWCox -- May 2009
     
-    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}
+    ++ Compile date = Mar 22 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

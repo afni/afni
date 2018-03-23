@@ -1,8 +1,8 @@
+.. _ahelp_nifti1_tool:
+
 ***********
 nifti1_tool
 ***********
-
-.. _nifti1_tool:
 
 .. contents:: 
     :depth: 4 
@@ -775,5 +775,5 @@ nifti1_tool
       ------------------------------
     
       R. Reynolds
-      compiled: Jan 29 2018
+      compiled: Mar 22 2018
       version 1.24 (September 26, 2012)

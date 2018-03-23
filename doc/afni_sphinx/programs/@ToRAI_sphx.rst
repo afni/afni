@@ -1,8 +1,8 @@
+.. _ahelp_@ToRAI:
+
 ******
 @ToRAI
 ******
-
-.. _@ToRAI:
 
 .. contents:: 
     :depth: 4 

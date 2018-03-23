@@ -1,8 +1,8 @@
+.. _ahelp_fat_proc_dwi_to_dt:
+
 ******************
 fat_proc_dwi_to_dt
 ******************
-
-.. _fat_proc_dwi_to_dt:
 
 .. contents:: 
     :depth: 4 
@@ -16,7 +16,7 @@ fat_proc_dwi_to_dt
      This program is for doing tensor and DT parameter fitting, as well as
      the uncertainty of DT parameters that are needed for tractography.
     
-      Ver. 2.5b (PA Taylor, Sep 06, 2017)
+      Ver. 2.8 (PA Taylor, Mar 14, 2018)
     
     -------------------------------------------------------------------------
     

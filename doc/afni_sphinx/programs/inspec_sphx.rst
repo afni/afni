@@ -1,8 +1,8 @@
+.. _ahelp_inspec:
+
 ******
 inspec
 ******
-
-.. _inspec:
 
 .. contents:: 
     :depth: 4 
@@ -30,7 +30,7 @@ inspec
         -h or -help: This message here.
     
     Compile Date:
-       Jan 29 2018
+       Mar 22 2018
     
           Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov 
          Dec 2 03

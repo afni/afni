@@ -1,8 +1,8 @@
+.. _ahelp_fim2:
+
 ****
 fim2
 ****
-
-.. _fim2:
 
 .. contents:: 
     :depth: 4 

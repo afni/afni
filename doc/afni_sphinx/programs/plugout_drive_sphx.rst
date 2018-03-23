@@ -1,8 +1,8 @@
+.. _ahelp_plugout_drive:
+
 *************
 plugout_drive
 *************
-
-.. _plugout_drive:
 
 .. contents:: 
     :depth: 4 

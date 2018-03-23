@@ -1,8 +1,8 @@
+.. _ahelp_3dAmpToRSFC:
+
 ***********
 3dAmpToRSFC
 ***********
-
-.. _3dAmpToRSFC:
 
 .. contents:: 
     :depth: 4 

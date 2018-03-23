@@ -1,8 +1,8 @@
+.. _ahelp_3dDWItoDT:
+
 *********
 3dDWItoDT
 *********
-
-.. _3dDWItoDT:
 
 .. contents:: 
     :depth: 4 

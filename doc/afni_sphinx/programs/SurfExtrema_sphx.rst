@@ -1,8 +1,8 @@
+.. _ahelp_SurfExtrema:
+
 ***********
 SurfExtrema
 ***********
-
-.. _SurfExtrema:
 
 .. contents:: 
     :depth: 4 

@@ -1,8 +1,8 @@
+.. _ahelp_3dGetrow:
+
 ********
 3dGetrow
 ********
-
-.. _3dGetrow:
 
 .. contents:: 
     :depth: 4 
@@ -29,4 +29,4 @@
     N.B.: if the input dataset has more than one sub-brick, each
           sub-brick will appear as a separate column in the output file.
     
-    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}
+    ++ Compile date = Mar 22 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

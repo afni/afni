@@ -1,8 +1,8 @@
+.. _ahelp_@ScaleVolume:
+
 ************
 @ScaleVolume
 ************
-
-.. _@ScaleVolume:
 
 .. contents:: 
     :depth: 4 

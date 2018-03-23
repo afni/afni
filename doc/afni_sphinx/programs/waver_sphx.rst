@@ -1,8 +1,8 @@
+.. _ahelp_waver:
+
 *****
 waver
 *****
-
-.. _waver:
 
 .. contents:: 
     :depth: 4 
@@ -168,4 +168,4 @@ waver
       waveforms internally, markedly reducing the need for this program.
     * If a square wave is desired, see the 'sqwave' program.
     
-    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}
+    ++ Compile date = Mar 22 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

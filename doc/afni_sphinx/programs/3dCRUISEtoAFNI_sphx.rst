@@ -1,8 +1,8 @@
+.. _ahelp_3dCRUISEtoAFNI:
+
 **************
 3dCRUISEtoAFNI
 **************
-
-.. _3dCRUISEtoAFNI:
 
 .. contents:: 
     :depth: 4 
@@ -62,5 +62,5 @@
     
     
     Compile Date:
-       Jan 29 2018
+       Mar 22 2018
     

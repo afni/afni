@@ -1,8 +1,8 @@
+.. _ahelp_ClustExp_StatParse.py:
+
 *********************
 ClustExp_StatParse.py
 *********************
-
-.. _ClustExp_StatParse.py:
 
 .. contents:: 
     :depth: 4 
@@ -131,7 +131,7 @@ ClustExp_StatParse.py
     optional:
       -prefix PREFIX        Name for output (no path). [MyOutput]
       -p PVAL               Uncorrected p value for thresholding. [0.005]
-      -MinVox MINVOX        Minimum voxels in cluster. [100]
+      -MinVox MINVOX        Minimum voxels in cluster. [20]
       -atlas ATLAS          Atlas name for lookup. (list at: whereami -help)
                             [TT_Daemon]
       -session SESSION      Output parent folder if you don't want the current

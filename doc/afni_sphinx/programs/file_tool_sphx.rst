@@ -1,8 +1,8 @@
+.. _ahelp_file_tool:
+
 *********
 file_tool
 *********
-
-.. _file_tool:
 
 .. contents:: 
     :depth: 4 
@@ -345,4 +345,4 @@ file_tool
               If this option is used, then byte swapping is done on any
               multi-byte numbers read from or written to the file.
     
-      - R Reynolds, version: 3.18 (August 23, 2015), compiled: Jan 29 2018
+      - R Reynolds, version: 3.18 (August 23, 2015), compiled: Mar 22 2018

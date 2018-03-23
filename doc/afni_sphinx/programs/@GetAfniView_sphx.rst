@@ -1,8 +1,8 @@
+.. _ahelp_@GetAfniView:
+
 ************
 @GetAfniView
 ************
-
-.. _@GetAfniView:
 
 .. contents:: 
     :depth: 4 

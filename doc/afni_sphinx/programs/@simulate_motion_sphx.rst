@@ -1,8 +1,8 @@
+.. _ahelp_@simulate_motion:
+
 ****************
 @simulate_motion
 ****************
-
-.. _@simulate_motion:
 
 .. contents:: 
     :depth: 4 

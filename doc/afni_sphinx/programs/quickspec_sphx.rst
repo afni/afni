@@ -1,8 +1,8 @@
+.. _ahelp_quickspec:
+
 *********
 quickspec
 *********
-
-.. _quickspec:
 
 .. contents:: 
     :depth: 4 
@@ -71,7 +71,7 @@ quickspec
     
     
     Compile Date:
-       Jan 29 2018
+       Mar 22 2018
     
           Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov 
     		 Tue Dec 30

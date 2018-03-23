@@ -1,8 +1,8 @@
+.. _ahelp_@TimeDiff:
+
 *********
 @TimeDiff
 *********
-
-.. _@TimeDiff:
 
 .. contents:: 
     :depth: 4 

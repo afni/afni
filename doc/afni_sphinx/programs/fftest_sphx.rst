@@ -1,8 +1,8 @@
+.. _ahelp_fftest:
+
 ******
 fftest
 ******
-
-.. _fftest:
 
 .. contents:: 
     :depth: 4 

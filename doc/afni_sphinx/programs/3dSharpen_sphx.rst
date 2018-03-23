@@ -1,8 +1,8 @@
+.. _ahelp_3dSharpen:
+
 *********
 3dSharpen
 *********
-
-.. _3dSharpen:
 
 .. contents:: 
     :depth: 4 

@@ -1,8 +1,8 @@
+.. _ahelp_3dNormalityTest:
+
 ***************
 3dNormalityTest
 ***************
-
-.. _3dNormalityTest:
 
 .. contents:: 
     :depth: 4 
@@ -69,4 +69,4 @@
     
     ++ March 2012 -- by The Ghost of Carl Friedrich Gauss
     
-    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}
+    ++ Compile date = Mar 22 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

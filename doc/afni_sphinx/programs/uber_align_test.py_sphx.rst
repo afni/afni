@@ -1,8 +1,8 @@
+.. _ahelp_uber_align_test.py:
+
 ******************
 uber_align_test.py
 ******************
-
-.. _uber_align_test.py:
 
 .. contents:: 
     :depth: 4 

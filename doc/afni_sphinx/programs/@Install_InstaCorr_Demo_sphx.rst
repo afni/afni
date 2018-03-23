@@ -1,8 +1,8 @@
+.. _ahelp_@Install_InstaCorr_Demo:
+
 ***********************
 @Install_InstaCorr_Demo
 ***********************
-
-.. _@Install_InstaCorr_Demo:
 
 .. contents:: 
     :depth: 4 
@@ -17,15 +17,15 @@
     *****************
     
     For Volume-based 3dGroupInCorr run:
-    cd /home/ptaylor//vol
+    cd /home/ptaylor/AFNI/doc/afni_sphinx/python_help_scripts//vol
     tcsh ./@RunVolGroupInCorr 
     
     For Surface-based 3dGroupInCorr run:
-    cd /home/ptaylor//srf
+    cd /home/ptaylor/AFNI/doc/afni_sphinx/python_help_scripts//srf
     tcsh ./@RunSurfGroupInCorr 
     
     For Surface-based Single-Subject InstaCorr run:
-    cd /home/ptaylor//srf
+    cd /home/ptaylor/AFNI/doc/afni_sphinx/python_help_scripts//srf
     tcsh ./@RunSingleSurfInstaCorr 
     
     *****************

@@ -1,8 +1,8 @@
+.. _ahelp_@Center_Distance:
+
 ****************
 @Center_Distance
 ****************
-
-.. _@Center_Distance:
 
 .. contents:: 
     :depth: 4 

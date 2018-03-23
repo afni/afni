@@ -1,8 +1,8 @@
+.. _ahelp_SampBias:
+
 ********
 SampBias
 ********
-
-.. _SampBias:
 
 .. contents:: 
     :depth: 4 

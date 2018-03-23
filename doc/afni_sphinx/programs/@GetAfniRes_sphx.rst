@@ -1,8 +1,8 @@
+.. _ahelp_@GetAfniRes:
+
 ***********
 @GetAfniRes
 ***********
-
-.. _@GetAfniRes:
 
 .. contents:: 
     :depth: 4 

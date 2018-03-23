@@ -1,8 +1,8 @@
+.. _ahelp_@ExamineGenFeatDists:
+
 ********************
 @ExamineGenFeatDists
 ********************
-
-.. _@ExamineGenFeatDists:
 
 .. contents:: 
     :depth: 4 

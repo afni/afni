@@ -1,8 +1,8 @@
+.. _ahelp_3dTfitter:
+
 *********
 3dTfitter
 *********
-
-.. _3dTfitter:
 
 .. contents:: 
     :depth: 4 
@@ -676,4 +676,4 @@
     ** But might be useful for some other well-meaning souls out there     **
     *************************************************************************
     
-    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}
+    ++ Compile date = Mar 22 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

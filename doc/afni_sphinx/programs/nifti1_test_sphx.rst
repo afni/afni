@@ -1,8 +1,8 @@
+.. _ahelp_nifti1_test:
+
 ***********
 nifti1_test
 ***********
-
-.. _nifti1_test:
 
 .. contents:: 
     :depth: 4 

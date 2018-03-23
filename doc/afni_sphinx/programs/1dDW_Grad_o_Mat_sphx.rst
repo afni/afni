@@ -1,8 +1,8 @@
+.. _ahelp_1dDW_Grad_o_Mat:
+
 ***************
 1dDW_Grad_o_Mat
 ***************
-
-.. _1dDW_Grad_o_Mat:
 
 .. contents:: 
     :depth: 4 

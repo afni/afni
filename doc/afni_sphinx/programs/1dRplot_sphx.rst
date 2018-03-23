@@ -1,8 +1,8 @@
+.. _ahelp_1dRplot:
+
 *******
 1dRplot
 *******
-
-.. _1dRplot:
 
 .. contents:: 
     :depth: 4 

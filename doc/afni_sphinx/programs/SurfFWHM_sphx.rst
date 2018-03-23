@@ -1,8 +1,8 @@
+.. _ahelp_SurfFWHM:
+
 ********
 SurfFWHM
 ********
-
-.. _SurfFWHM:
 
 .. contents:: 
     :depth: 4 
@@ -490,5 +490,5 @@ SurfFWHM
     
     
     Compile Date:
-       Jan 29 2018
+       Mar 22 2018
     

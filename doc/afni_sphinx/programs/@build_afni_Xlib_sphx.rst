@@ -1,8 +1,8 @@
+.. _ahelp_@build_afni_Xlib:
+
 ****************
 @build_afni_Xlib
 ****************
-
-.. _@build_afni_Xlib:
 
 .. contents:: 
     :depth: 4 

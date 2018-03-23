@@ -1,8 +1,8 @@
+.. _ahelp_SpharmDeco:
+
 **********
 SpharmDeco
 **********
-
-.. _SpharmDeco:
 
 .. contents:: 
     :depth: 4 
@@ -428,5 +428,5 @@ SpharmDeco
     
     
     Compile Date:
-       Jan 29 2018
+       Mar 22 2018
     

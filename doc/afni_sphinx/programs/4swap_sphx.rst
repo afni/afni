@@ -1,8 +1,8 @@
+.. _ahelp_4swap:
+
 *****
 4swap
 *****
-
-.. _4swap:
 
 .. contents:: 
     :depth: 4 

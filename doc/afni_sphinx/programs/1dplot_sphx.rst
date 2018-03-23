@@ -1,8 +1,8 @@
+.. _ahelp_1dplot:
+
 ******
 1dplot
 ******
-
-.. _1dplot:
 
 .. contents:: 
     :depth: 4 
@@ -454,4 +454,4 @@
     used directly on the command line, via the backquote `...` operator.
     
     
-    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}
+    ++ Compile date = Mar 22 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

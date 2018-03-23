@@ -1,8 +1,8 @@
+.. _ahelp_3dFDR:
+
 *****
 3dFDR
 *****
-
-.. _3dFDR:
 
 .. contents:: 
     :depth: 4 
@@ -167,4 +167,4 @@
     * cf. C implementation in mri_fdrize.c                  [trust in the Source]
     * cf. https://afni.nimh.nih.gov/pub/dist/doc/misc/FDR/FDR_Jan2008.pdf
     
-    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}
+    ++ Compile date = Mar 22 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

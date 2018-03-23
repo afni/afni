@@ -1,8 +1,8 @@
+.. _ahelp_imstack:
+
 *******
 imstack
 *******
-
-.. _imstack:
 
 .. contents:: 
     :depth: 4 

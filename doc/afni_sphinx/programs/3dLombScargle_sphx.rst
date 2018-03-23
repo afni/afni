@@ -1,8 +1,8 @@
+.. _ahelp_3dLombScargle:
+
 *************
 3dLombScargle
 *************
-
-.. _3dLombScargle:
 
 .. contents:: 
     :depth: 4 

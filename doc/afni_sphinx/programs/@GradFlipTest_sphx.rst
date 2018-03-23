@@ -1,8 +1,8 @@
+.. _ahelp_@GradFlipTest:
+
 *************
 @GradFlipTest
 *************
-
-.. _@GradFlipTest:
 
 .. contents:: 
     :depth: 4 
@@ -26,7 +26,7 @@
         sure to look at the results in SUMA when prompted at the end, to
         make sure that everything makes sense!
     
-        ver 2.93; revision date Oct 12, 2017.
+        ver 2.94; revision date Feb 1 2018.
         Written by PA Taylor (NIH).
        
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

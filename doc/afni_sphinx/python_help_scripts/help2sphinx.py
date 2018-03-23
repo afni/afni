@@ -6,9 +6,14 @@
 
 ## system libraries
 import sys, os, glob, subprocess, csv, re, shutil, argparse, signal, textwrap
-from afni_util import exec_tcsh_command
 
+## [PT: Mar 22, 2018] So that we can leave the help2*py file here, but
+## use afni_util;  should always be relatively related like this:
+sys.path.insert(0, "../../../src/python_scripts")
+import afni_util as au
 
+## [PT: Mar 22, 2018] Make the reference for each help in the "All
+## Help" section be ".. _ahelp_PROGNAME"
 
 ## possible codes as characters
 hdr_codes = ['1','2','3','4']
@@ -59,10 +64,11 @@ parser = argparse.ArgumentParser(prog=str(sys.argv[0]),
                                  description=textwrap.dedent('''\
 Overview ~1~
 
-Parse the help output of all AFNI programs (or just one) to create a sphinxy version.
+Parse the help output of all AFNI programs (or just one) to create a
+sphinxy version.
 
-This program will look for codes in the help output and use those to make
-sphinx headers and tables of contents.
+This program will look for codes in the help output and use those to
+make sphinx headers and tables of contents.
 
 The codes are 3 characters at the end of a line of the help output:
 ~1~ = Main section
@@ -72,11 +78,12 @@ The codes are 3 characters at the end of a line of the help output:
 
 Caveats ~1~
 
-If there are no codes, this program will create a code-block of the help output.
-It will also create a table of contents with all programs listed in a 3 column table.
+If there are no codes, this program will create a code-block of the
+help output.  It will also create a table of contents with all
+programs listed in a 3 column table.
 
-If you use the -prog option, you will break the main_toc as it will be overwritten
-with just one entry. Use this option for testing only!
+If you use the -prog option, you will break the main_toc as it will be
+overwritten with just one entry. Use this option for testing only!
 
                                  '''),epilog=textwrap.dedent('''\
 ------------------------------------------
@@ -91,9 +98,13 @@ parser._action_groups.pop()
 required = parser.add_argument_group('required')
 optional = parser.add_argument_group('optional')
 
-required.add_argument('-OutFolder',type=str,help='Where do you want the .rst files to go?',
+required.add_argument('-OutFolder',
+                      type=str,
+                      help='Where do you want the .rst files to go?',
                       required=True)
-optional.add_argument('-prog',type=str,default="nothing",
+optional.add_argument('-prog',
+                      type=str,
+                      default="nothing",
                       help="Single AFNI program to sphinxify. (For testing only. Will break main_toc.)")
 parser.add_argument('-help',action='help',help='Show this help.')
 
@@ -112,7 +123,7 @@ if not os.path.exists(OutFolder):
 ########################################################################
 ## get list of afni files or use the one provided
 if prog_list == "nothing":
-    stat,prog_list = exec_tcsh_command("apsearch -list_all_afni_progs",
+    stat,prog_list = au.exec_tcsh_command("apsearch -list_all_afni_progs",
                                        lines=1,noblank=0)
 else:
     prog_list = [prog_list]
@@ -127,9 +138,9 @@ main_toc = open(toc_file,"w")
 ## write out the header
 main_toc.write(":tocdepth: 2\n\n")
 main_toc.write(".. _programs_main:\n\n")
-main_toc.write("############\n")
-main_toc.write("Help Us All\n")
-main_toc.write("############\n\n")
+main_toc.write("##################\n")
+main_toc.write("All Programs Helps\n")
+main_toc.write("##################\n\n")
 main_toc.write(".. csv-table::\n\n")
 
 ########################################################################
@@ -146,7 +157,9 @@ for afni_prog in prog_list:
         continue
 
     ## read in the help file
-    stat,help_in = exec_tcsh_command(afni_prog+' -help',lines=1,noblank=0)
+    stat,help_in = au.exec_tcsh_command(afni_prog+' -help',
+                                     lines=1,
+                                     noblank=0)
 
     ## check to see if there was a help
     if len(help_in) < 1:
@@ -158,13 +171,13 @@ for afni_prog in prog_list:
 
     ## add to main_toc as a 3 column csv
     if csv_index == 1:
-        csv_line = "   :ref:`"+afni_prog+" <"+afni_prog+">`,"
+        csv_line = "   :ref:`"+afni_prog+" <ahelp_"+afni_prog+">`,"
         csv_index = 2
     elif csv_index == 2:
-        csv_line = csv_line+":ref:`"+afni_prog+" <"+afni_prog+">`,"
+        csv_line = csv_line+":ref:`"+afni_prog+" <ahelp_"+afni_prog+">`,"
         csv_index = 3
     elif csv_index == 3:
-        csv_line = csv_line+":ref:`"+afni_prog+" <"+afni_prog+">`"
+        csv_line = csv_line+":ref:`"+afni_prog+" <ahelp_"+afni_prog+">`"
         main_toc.write("   "+csv_line+"\n")
         csv_index = 1
 
@@ -173,12 +186,13 @@ for afni_prog in prog_list:
     sphinx_out = open(out_file,"w")
 
     ## main header as the prog name
+    sphinx_out.write(".. _ahelp_"+afni_prog+":\n\n")
     sphinx_out.write((str("*") * len(afni_prog))+"\n")
     sphinx_out.write(afni_prog+"\n")
     sphinx_out.write((str("*") * len(afni_prog))+"\n\n")
 
-    ## table of contents and a blank to remove the indentation for the next line
-    sphinx_out.write(".. _"+afni_prog+":\n\n")
+    ## table of contents and a blank to remove the indentation for the
+    ## next line
     sphinx_out.write(".. contents:: \n")
     sphinx_out.write("    :depth: 4 \n\n")
     sphinx_out.write("| \n\n")
@@ -206,7 +220,8 @@ for afni_prog in prog_list:
             ## strip the current line
             cur_line = help_in[l].rstrip().lstrip()[0:-4]
 
-            ## give the appropriate header punctuation and the header line
+            ## give the appropriate header punctuation and the header
+            ## line
             if code == '1':
                 sphinx_out.write("\n"+cur_line+"\n")
                 sphinx_out.write((str("=") * len(cur_line))+"\n\n")
@@ -236,20 +251,21 @@ for afni_prog in prog_list:
     ## close the sphinx out
     sphinx_out.close()
 
-    ########################################################################
+    ###############################################################
     ## if no has codes
     if has_codes == 0:
 
         ## open file for writing
         sphinx_out = open(out_file,"w")
 
-        ## table of contents and a blank to remove the indentation for the next line
+        ## table of contents and a blank to remove the indentation for
+        ## the next line
+        sphinx_out.write(".. _ahelp_"+afni_prog+":\n\n")
         sphinx_out.write((str("*") * len(afni_prog))+"\n")
         sphinx_out.write(afni_prog+"\n")
         sphinx_out.write((str("*") * len(afni_prog))+"\n\n")
 
         ## table of contents
-        sphinx_out.write(".. _"+afni_prog+":\n\n")
         sphinx_out.write(".. contents:: \n")
         sphinx_out.write("    :depth: 4 \n\n")
         sphinx_out.write("| \n\n")

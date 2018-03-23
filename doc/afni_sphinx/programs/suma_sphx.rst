@@ -1,8 +1,8 @@
+.. _ahelp_suma:
+
 ****
 suma
 ****
-
-.. _suma:
 
 .. contents:: 
     :depth: 4 
@@ -430,7 +430,7 @@ suma
     
        
     Compile Date:
-       Jan 29 2018
+       Mar 22 2018
     
     
     

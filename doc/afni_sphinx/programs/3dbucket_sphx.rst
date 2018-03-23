@@ -1,8 +1,8 @@
+.. _ahelp_3dbucket:
+
 ********
 3dbucket
 ********
-
-.. _3dbucket:
 
 .. contents:: 
     :depth: 4 
@@ -108,4 +108,4 @@ WARNING:
              Do NOT do this!  Very few AFNI programs will work correctly
              with such datasets!
     
-    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}
+    ++ Compile date = Mar 22 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

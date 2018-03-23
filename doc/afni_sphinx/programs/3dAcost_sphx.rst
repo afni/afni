@@ -1,8 +1,8 @@
+.. _ahelp_3dAcost:
+
 *******
 3dAcost
 *******
-
-.. _3dAcost:
 
 .. contents:: 
     :depth: 4 

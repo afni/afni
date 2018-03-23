@@ -1,8 +1,8 @@
+.. _ahelp_gen_group_command.py:
+
 ********************
 gen_group_command.py
 ********************
-
-.. _gen_group_command.py:
 
 .. contents:: 
     :depth: 4 

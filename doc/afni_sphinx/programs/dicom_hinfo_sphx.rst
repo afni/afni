@@ -1,8 +1,8 @@
+.. _ahelp_dicom_hinfo:
+
 ***********
 dicom_hinfo
 ***********
-
-.. _dicom_hinfo:
 
 .. contents:: 
     :depth: 4 

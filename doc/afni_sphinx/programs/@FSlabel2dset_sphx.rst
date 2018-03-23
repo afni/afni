@@ -1,8 +1,8 @@
+.. _ahelp_@FSlabel2dset:
+
 *************
 @FSlabel2dset
 *************
-
-.. _@FSlabel2dset:
 
 .. contents:: 
     :depth: 4 

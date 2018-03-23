@@ -1,8 +1,8 @@
+.. _ahelp_3dfractionize:
+
 *************
 3dfractionize
 *************
-
-.. _3dfractionize:
 
 .. contents:: 
     :depth: 4 
@@ -123,4 +123,4 @@
     -- RWCox - February 1999
              - October 1999: added -warp and -preserve options
     
-    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}
+    ++ Compile date = Mar 22 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

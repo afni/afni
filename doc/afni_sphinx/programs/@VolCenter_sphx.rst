@@ -1,8 +1,8 @@
+.. _ahelp_@VolCenter:
+
 **********
 @VolCenter
 **********
-
-.. _@VolCenter:
 
 .. contents:: 
     :depth: 4 

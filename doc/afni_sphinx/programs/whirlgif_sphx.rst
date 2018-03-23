@@ -1,8 +1,8 @@
+.. _ahelp_whirlgif:
+
 ********
 whirlgif
 ********
-
-.. _whirlgif:
 
 .. contents:: 
     :depth: 4 

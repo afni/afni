@@ -1,8 +1,8 @@
+.. _ahelp_@AfniOrientSign:
+
 ***************
 @AfniOrientSign
 ***************
-
-.. _@AfniOrientSign:
 
 .. contents:: 
     :depth: 4 

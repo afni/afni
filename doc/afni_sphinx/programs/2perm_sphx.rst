@@ -1,8 +1,8 @@
+.. _ahelp_2perm:
+
 *****
 2perm
 *****
-
-.. _2perm:
 
 .. contents:: 
     :depth: 4 
@@ -57,4 +57,4 @@
     
     AUTHOR: (no one want to admit they wrote this trivial code).
     
-    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}
+    ++ Compile date = Mar 22 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

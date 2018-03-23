@@ -1,8 +1,8 @@
+.. _ahelp_@NoPound:
+
 ********
 @NoPound
 ********
-
-.. _@NoPound:
 
 .. contents:: 
     :depth: 4 

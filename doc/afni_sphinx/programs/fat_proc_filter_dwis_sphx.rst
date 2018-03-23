@@ -1,8 +1,8 @@
+.. _ahelp_fat_proc_filter_dwis:
+
 ********************
 fat_proc_filter_dwis
 ********************
-
-.. _fat_proc_filter_dwis:
 
 .. contents:: 
     :depth: 4 
@@ -45,7 +45,7 @@ fat_proc_filter_dwis
     
         REQUIRES: AFNI.
     
-        Ver. 3.2 (PA Taylor, Jan 09, 2019)
+        Ver. 3.6 (PA Taylor, Mar 14, 2018)
     
     # -----------------------------------------------------------------------
     

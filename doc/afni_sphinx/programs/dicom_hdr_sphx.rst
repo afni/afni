@@ -1,8 +1,8 @@
+.. _ahelp_dicom_hdr:
+
 *********
 dicom_hdr
 *********
-
-.. _dicom_hdr:
 
 .. contents:: 
     :depth: 4 

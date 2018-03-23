@@ -1,8 +1,8 @@
+.. _ahelp_SurfDsetInfo:
+
 ************
 SurfDsetInfo
 ************
-
-.. _SurfDsetInfo:
 
 .. contents:: 
     :depth: 4 
@@ -88,5 +88,5 @@ SurfDsetInfo
     
     
     Compile Date:
-       Jan 29 2018
+       Mar 22 2018
     

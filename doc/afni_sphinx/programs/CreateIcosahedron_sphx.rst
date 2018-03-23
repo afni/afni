@@ -1,8 +1,8 @@
+.. _ahelp_CreateIcosahedron:
+
 *****************
 CreateIcosahedron
 *****************
-
-.. _CreateIcosahedron:
 
 .. contents:: 
     :depth: 4 
@@ -57,7 +57,7 @@ CreateIcosahedron
     
     
     Compile Date:
-       Jan 29 2018
+       Mar 22 2018
     
     
            Brenna D. Argall LBC/NIMH/NIH bargall@codon.nih.gov 

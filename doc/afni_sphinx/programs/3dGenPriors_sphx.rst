@@ -1,8 +1,8 @@
+.. _ahelp_3dGenPriors:
+
 ***********
 3dGenPriors
 ***********
-
-.. _3dGenPriors:
 
 .. contents:: 
     :depth: 4 

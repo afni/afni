@@ -1,8 +1,8 @@
 :tocdepth: 2
 
 
-Pub trawl
-=========
+Public. code
+============
 
 Below is an archive of "larger" AFNI commands that have been used in
 published work, largely grouped by category of processing.  We thank

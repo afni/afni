@@ -1,8 +1,8 @@
+.. _ahelp_1dMarry:
+
 *******
 1dMarry
 *******
-
-.. _1dMarry:
 
 .. contents:: 
     :depth: 4 
@@ -48,4 +48,4 @@
     -- RWCox -- written hastily in March 2007 -- hope I don't repent
              -- modified to deal with multiple marriages -- December 2008
     
-    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}
+    ++ Compile date = Mar 22 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

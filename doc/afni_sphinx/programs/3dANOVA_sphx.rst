@@ -1,8 +1,8 @@
+.. _ahelp_3dANOVA:
+
 *******
 3dANOVA
 *******
-
-.. _3dANOVA:
 
 .. contents:: 
     :depth: 4 
@@ -146,4 +146,4 @@
      https://afni.nimh.nih.gov/pub/dist/doc/program_help/common_options.html
      https://afni.nimh.nih.gov/pub/dist/doc/program_help/README.environment.html
     
-    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}
+    ++ Compile date = Mar 22 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

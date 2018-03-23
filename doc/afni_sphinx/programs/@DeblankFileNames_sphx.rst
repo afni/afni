@@ -1,8 +1,8 @@
+.. _ahelp_@DeblankFileNames:
+
 *****************
 @DeblankFileNames
 *****************
-
-.. _@DeblankFileNames:
 
 .. contents:: 
     :depth: 4 

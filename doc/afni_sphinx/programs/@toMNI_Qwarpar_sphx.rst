@@ -1,8 +1,8 @@
+.. _ahelp_@toMNI_Qwarpar:
+
 **************
 @toMNI_Qwarpar
 **************
-
-.. _@toMNI_Qwarpar:
 
 .. contents:: 
     :depth: 4 

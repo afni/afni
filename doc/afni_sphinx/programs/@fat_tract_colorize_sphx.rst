@@ -1,8 +1,8 @@
+.. _ahelp_@fat_tract_colorize:
+
 *******************
 @fat_tract_colorize
 *******************
-
-.. _@fat_tract_colorize:
 
 .. contents:: 
     :depth: 4 

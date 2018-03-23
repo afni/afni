@@ -1,8 +1,8 @@
+.. _ahelp_@SUMA_Make_Spec_SF:
+
 ******************
 @SUMA_Make_Spec_SF
 ******************
-
-.. _@SUMA_Make_Spec_SF:
 
 .. contents:: 
     :depth: 4 

@@ -1,8 +1,8 @@
+.. _ahelp_@DriveSuma:
+
 **********
 @DriveSuma
 **********
-
-.. _@DriveSuma:
 
 .. contents:: 
     :depth: 4 
@@ -11,7 +11,7 @@
 
 .. code-block:: none
 
-    Usage: @DriveSuma 
+    ¸žz`WUsage: @DriveSuma 
     
     A script to demonstrate how to drive suma from the command line.
     The script pops messages explaining what will happen in the next command
@@ -38,4 +38,3 @@
        -h_raw: Raw help string
        -h_txt: Text formatted help string
        -h_spx: Sphinx formatted help string
-       -h_aspx: Sphinx formatted help string with auto tagging of options    

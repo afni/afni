@@ -1,8 +1,8 @@
+.. _ahelp_imand:
+
 *****
 imand
 *****
-
-.. _imand:
 
 .. contents:: 
     :depth: 4 

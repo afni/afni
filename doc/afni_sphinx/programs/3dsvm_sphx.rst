@@ -1,8 +1,8 @@
+.. _ahelp_3dsvm:
+
 *****
 3dsvm
 *****
-
-.. _3dsvm:
 
 .. contents:: 
     :depth: 4 

@@ -1,8 +1,8 @@
+.. _ahelp_3dABoverlap:
+
 ***********
 3dABoverlap
 ***********
-
-.. _3dABoverlap:
 
 .. contents:: 
     :depth: 4 
@@ -50,4 +50,4 @@
        sub-brick, then this program assumes it is already an automask-
        generated dataset and the automask operation will be skipped.
     
-    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}
+    ++ Compile date = Mar 22 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

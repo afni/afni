@@ -1,8 +1,8 @@
+.. _ahelp_AFNI_Batch_R:
+
 ************
 AFNI_Batch_R
 ************
-
-.. _AFNI_Batch_R:
 
 .. contents:: 
     :depth: 4 

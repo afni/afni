@@ -1,8 +1,8 @@
+.. _ahelp_byteorder:
+
 *********
 byteorder
 *********
-
-.. _byteorder:
 
 .. contents:: 
     :depth: 4 

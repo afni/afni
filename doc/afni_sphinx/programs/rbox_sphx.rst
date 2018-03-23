@@ -1,8 +1,8 @@
+.. _ahelp_rbox:
+
 ****
 rbox
 ****
-
-.. _rbox:
 
 .. contents:: 
     :depth: 4 

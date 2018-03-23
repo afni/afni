@@ -1,8 +1,8 @@
+.. _ahelp_SurfSmooth:
+
 **********
 SurfSmooth
 **********
-
-.. _SurfSmooth:
 
 .. contents:: 
     :depth: 4 
@@ -735,5 +735,5 @@ SurfSmooth
     
     
     Compile Date:
-       Jan 29 2018
+       Mar 22 2018
     

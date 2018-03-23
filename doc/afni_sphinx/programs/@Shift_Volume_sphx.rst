@@ -1,8 +1,8 @@
+.. _ahelp_@Shift_Volume:
+
 *************
 @Shift_Volume
 *************
-
-.. _@Shift_Volume:
 
 .. contents:: 
     :depth: 4 

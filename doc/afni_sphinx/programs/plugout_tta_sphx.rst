@@ -1,8 +1,8 @@
+.. _ahelp_plugout_tta:
+
 ***********
 plugout_tta
 ***********
-
-.. _plugout_tta:
 
 .. contents:: 
     :depth: 4 

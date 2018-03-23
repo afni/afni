@@ -1,8 +1,8 @@
+.. _ahelp_3drotate:
+
 ********
 3drotate
 ********
-
-.. _3drotate:
 
 .. contents:: 
     :depth: 4 
@@ -197,4 +197,4 @@
       '3dcalc( -a r1+orig -b r2+orig -expr 0.5*(a+b) )'  {calculation}
     For the gruesome details, see the output of 'afni -help'.
     
-    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}
+    ++ Compile date = Mar 22 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

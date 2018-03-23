@@ -1,8 +1,8 @@
+.. _ahelp_rotcom:
+
 ******
 rotcom
 ******
-
-.. _rotcom:
 
 .. contents:: 
     :depth: 4 

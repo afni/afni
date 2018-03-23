@@ -1,8 +1,8 @@
+.. _ahelp_quick.alpha.vals.py:
+
 *******************
 quick.alpha.vals.py
 *******************
-
-.. _quick.alpha.vals.py:
 
 .. contents:: 
     :depth: 4 

@@ -1,8 +1,8 @@
+.. _ahelp_fat_proc_convert_dcm_dwis:
+
 *************************
 fat_proc_convert_dcm_dwis
 *************************
-
-.. _fat_proc_convert_dcm_dwis:
 
 .. contents:: 
     :depth: 4 
@@ -33,7 +33,7 @@ fat_proc_convert_dcm_dwis
         REQUIRES: AFNI (which should now contain dcm2niix_afni, the
         version of dcm2niix [by C. Rorden] distributed in AFNI).
     
-        Ver. 3.2 (PA Taylor, Sep 04, 2017)
+        Ver. 3.3 (PA Taylor, Feb 20, 2018)
     
     -------------------------------------------------------------------------
     
@@ -67,7 +67,7 @@ fat_proc_convert_dcm_dwis
                          for the *.nii.gz, *.bvec and *.bval files. Required.
     
         -orient  ORIENT :optional chance to reset orientation of the volume
-                         files (default is currently 'RPI').
+                         files (default is currently 'RAI').
     
         -origin_xyz X0 Y0 Z0
                         :by default, dset will be given an origin value

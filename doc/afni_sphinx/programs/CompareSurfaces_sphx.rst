@@ -1,8 +1,8 @@
+.. _ahelp_CompareSurfaces:
+
 ***************
 CompareSurfaces
 ***************
-
-.. _CompareSurfaces:
 
 .. contents:: 
     :depth: 4 
@@ -94,7 +94,7 @@ CompareSurfaces
        If you can't get help here, please get help somewhere.
     
     Compile Date:
-       Jan 29 2018
+       Mar 22 2018
     
     
         Shruti Japee LBC/NIMH/NIH shruti@codon.nih.gov Ziad S. Saad SSSC/NIMH/NIH saadz@mail.nih.gov 

@@ -1,8 +1,8 @@
+.. _ahelp_3dNwarpFuncs:
+
 ************
 3dNwarpFuncs
 ************
-
-.. _3dNwarpFuncs:
 
 .. contents:: 
     :depth: 4 
@@ -61,4 +61,4 @@
     * The penalty used in 3dQwarp is a combination of the bulk, shear,
       and vorticity functions.
     
-    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}
+    ++ Compile date = Mar 22 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

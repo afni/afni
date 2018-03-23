@@ -1,8 +1,8 @@
+.. _ahelp_@ScriptCheck:
+
 ************
 @ScriptCheck
 ************
-
-.. _@ScriptCheck:
 
 .. contents:: 
     :depth: 4 

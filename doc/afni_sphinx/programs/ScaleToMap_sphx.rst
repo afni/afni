@@ -1,8 +1,8 @@
+.. _ahelp_ScaleToMap:
+
 **********
 ScaleToMap
 **********
-
-.. _ScaleToMap:
 
 .. contents:: 
     :depth: 4 
@@ -203,7 +203,7 @@ ScaleToMap
     
     
     Compile Date:
-       Jan 29 2018
+       Mar 22 2018
     
         Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov 
           July 31/02 

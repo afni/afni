@@ -1,8 +1,8 @@
+.. _ahelp_@ElectroGrid:
+
 ************
 @ElectroGrid
 ************
-
-.. _@ElectroGrid:
 
 .. contents:: 
     :depth: 4 

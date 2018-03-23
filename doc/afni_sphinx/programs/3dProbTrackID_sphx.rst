@@ -1,8 +1,8 @@
+.. _ahelp_3dProbTrackID:
+
 *************
 3dProbTrackID
 *************
-
-.. _3dProbTrackID:
 
 .. contents:: 
     :depth: 4 

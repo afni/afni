@@ -1,8 +1,8 @@
+.. _ahelp_3dRprogDemo:
+
 ***********
 3dRprogDemo
 ***********
-
-.. _3dRprogDemo:
 
 .. contents:: 
     :depth: 4 
@@ -11,7 +11,7 @@
 
 .. code-block:: none
 
-    
+    ¸®gÄM
     Usage:
     ------ 
      3dRprogDemo is a template program to help users write their own R

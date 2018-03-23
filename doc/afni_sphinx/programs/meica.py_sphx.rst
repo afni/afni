@@ -1,8 +1,8 @@
+.. _ahelp_meica.py:
+
 ********
 meica.py
 ********
-
-.. _meica.py:
 
 .. contents:: 
     :depth: 4 
