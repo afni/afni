@@ -4,10 +4,6 @@
 Classified Program list
 ***********************
 
-.. contents:: :local:
-
- 
-
 All AFNI programs, great and small, are listed here and classified
 based on functionality.  That is, they are grouped into some general
 categories that we made up and given short bios.
@@ -23,6 +19,10 @@ the text for keywords of interest, such as "ROI", "mask", "diffusion",
 "align", "model", etc.  Clicking on the name of the program will bring
 you its online help documentation, referenced from :ref:`this page of
 all AFNI "helps"<programs_main>`.
+
+.. contents:: :local:
+
+|
 
 
 

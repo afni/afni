@@ -6,7 +6,9 @@
 All Programs Helps
 ##################
 
-For reference, please also see the "classified" list of helps :ref:`HERE <edu_class_prog>`, which loosely groups programs by topic and functionality, and includes a brief description of each.
+This is a list of all AFNI programs.  Click on any name to see the help for that program.
+
+For additional reference, please also see the "classified" list of helps :ref:`HERE<edu_class_prog>`\, where programs are loosely grouped by topic and functionality, with a brief description of each provided.
 
 .. csv-table::
 
