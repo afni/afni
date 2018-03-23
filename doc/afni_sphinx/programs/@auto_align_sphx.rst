@@ -1,8 +1,8 @@
+.. _ahelp_@auto_align:
+
 ***********
 @auto_align
 ***********
-
-.. _ahelp_@auto_align:
 
 .. contents:: 
     :depth: 4 

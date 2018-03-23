@@ -1,8 +1,8 @@
+.. _ahelp_@suma_reprefixize_spec:
+
 **********************
 @suma_reprefixize_spec
 **********************
-
-.. _ahelp_@suma_reprefixize_spec:
 
 .. contents:: 
     :depth: 4 

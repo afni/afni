@@ -1,8 +1,8 @@
+.. _ahelp_SurfInfo:
+
 ********
 SurfInfo
 ********
-
-.. _ahelp_SurfInfo:
 
 .. contents:: 
     :depth: 4 

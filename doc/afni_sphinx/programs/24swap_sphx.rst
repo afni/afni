@@ -1,8 +1,8 @@
+.. _ahelp_24swap:
+
 ******
 24swap
 ******
-
-.. _ahelp_24swap:
 
 .. contents:: 
     :depth: 4 

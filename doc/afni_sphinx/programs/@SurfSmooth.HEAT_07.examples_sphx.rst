@@ -1,8 +1,8 @@
+.. _ahelp_@SurfSmooth.HEAT_07.examples:
+
 ****************************
 @SurfSmooth.HEAT_07.examples
 ****************************
-
-.. _ahelp_@SurfSmooth.HEAT_07.examples:
 
 .. contents:: 
     :depth: 4 

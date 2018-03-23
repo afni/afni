@@ -1,8 +1,8 @@
+.. _ahelp_3dTagalign:
+
 **********
 3dTagalign
 **********
-
-.. _ahelp_3dTagalign:
 
 .. contents:: 
     :depth: 4 

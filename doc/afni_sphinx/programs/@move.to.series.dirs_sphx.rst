@@ -1,8 +1,8 @@
+.. _ahelp_@move.to.series.dirs:
+
 ********************
 @move.to.series.dirs
 ********************
-
-.. _ahelp_@move.to.series.dirs:
 
 .. contents:: 
     :depth: 4 

@@ -1,8 +1,8 @@
+.. _ahelp_mritopgm:
+
 ********
 mritopgm
 ********
-
-.. _ahelp_mritopgm:
 
 .. contents:: 
     :depth: 4 

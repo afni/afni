@@ -1,8 +1,8 @@
+.. _ahelp_3dSynthesize:
+
 ************
 3dSynthesize
 ************
-
-.. _ahelp_3dSynthesize:
 
 .. contents:: 
     :depth: 4 

@@ -1,8 +1,8 @@
+.. _ahelp_1dMarry:
+
 *******
 1dMarry
 *******
-
-.. _ahelp_1dMarry:
 
 .. contents:: 
     :depth: 4 

@@ -1,8 +1,8 @@
+.. _ahelp_imupsam:
+
 *******
 imupsam
 *******
-
-.. _ahelp_imupsam:
 
 .. contents:: 
     :depth: 4 

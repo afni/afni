@@ -1,8 +1,8 @@
+.. _ahelp_3dROIstats:
+
 **********
 3dROIstats
 **********
-
-.. _ahelp_3dROIstats:
 
 .. contents:: 
     :depth: 4 

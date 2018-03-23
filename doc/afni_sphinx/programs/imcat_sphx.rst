@@ -1,8 +1,8 @@
+.. _ahelp_imcat:
+
 *****
 imcat
 *****
-
-.. _ahelp_imcat:
 
 .. contents:: 
     :depth: 4 

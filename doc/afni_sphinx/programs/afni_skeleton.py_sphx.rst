@@ -1,8 +1,8 @@
+.. _ahelp_afni_skeleton.py:
+
 ****************
 afni_skeleton.py
 ****************
-
-.. _ahelp_afni_skeleton.py:
 
 .. contents:: 
     :depth: 4 

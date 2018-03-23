@@ -1,8 +1,8 @@
+.. _ahelp_3dSetupGroupInCorr:
+
 ******************
 3dSetupGroupInCorr
 ******************
-
-.. _ahelp_3dSetupGroupInCorr:
 
 .. contents:: 
     :depth: 4 

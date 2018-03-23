@@ -1,8 +1,8 @@
+.. _ahelp_python_module_test.py:
+
 *********************
 python_module_test.py
 *********************
-
-.. _ahelp_python_module_test.py:
 
 .. contents:: 
     :depth: 4 

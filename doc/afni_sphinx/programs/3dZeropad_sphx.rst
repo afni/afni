@@ -1,8 +1,8 @@
+.. _ahelp_3dZeropad:
+
 *********
 3dZeropad
 *********
-
-.. _ahelp_3dZeropad:
 
 .. contents:: 
     :depth: 4 

@@ -1,8 +1,8 @@
+.. _ahelp_3dInvFMRI:
+
 *********
 3dInvFMRI
 *********
-
-.. _ahelp_3dInvFMRI:
 
 .. contents:: 
     :depth: 4 

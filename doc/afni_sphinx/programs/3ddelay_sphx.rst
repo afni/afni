@@ -1,8 +1,8 @@
+.. _ahelp_3ddelay:
+
 *******
 3ddelay
 *******
-
-.. _ahelp_3ddelay:
 
 .. contents:: 
     :depth: 4 

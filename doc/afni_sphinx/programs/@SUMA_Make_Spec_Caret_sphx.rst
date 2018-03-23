@@ -1,8 +1,8 @@
+.. _ahelp_@SUMA_Make_Spec_Caret:
+
 *********************
 @SUMA_Make_Spec_Caret
 *********************
-
-.. _ahelp_@SUMA_Make_Spec_Caret:
 
 .. contents:: 
     :depth: 4 

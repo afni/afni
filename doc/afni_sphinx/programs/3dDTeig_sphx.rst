@@ -1,8 +1,8 @@
+.. _ahelp_3dDTeig:
+
 *******
 3dDTeig
 *******
-
-.. _ahelp_3dDTeig:
 
 .. contents:: 
     :depth: 4 

@@ -1,8 +1,8 @@
+.. _ahelp_gifti_tool:
+
 **********
 gifti_tool
 **********
-
-.. _ahelp_gifti_tool:
 
 .. contents:: 
     :depth: 4 

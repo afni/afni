@@ -1,8 +1,8 @@
+.. _ahelp_1dCorrelate:
+
 ***********
 1dCorrelate
 ***********
-
-.. _ahelp_1dCorrelate:
 
 .. contents:: 
     :depth: 4 

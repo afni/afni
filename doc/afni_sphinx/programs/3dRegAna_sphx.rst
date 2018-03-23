@@ -1,8 +1,8 @@
+.. _ahelp_3dRegAna:
+
 ********
 3dRegAna
 ********
-
-.. _ahelp_3dRegAna:
 
 .. contents:: 
     :depth: 4 

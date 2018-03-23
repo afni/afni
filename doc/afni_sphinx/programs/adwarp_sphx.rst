@@ -1,8 +1,8 @@
+.. _ahelp_adwarp:
+
 ******
 adwarp
 ******
-
-.. _ahelp_adwarp:
 
 .. contents:: 
     :depth: 4 

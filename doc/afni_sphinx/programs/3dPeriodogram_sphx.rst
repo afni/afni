@@ -1,8 +1,8 @@
+.. _ahelp_3dPeriodogram:
+
 *************
 3dPeriodogram
 *************
-
-.. _ahelp_3dPeriodogram:
 
 .. contents:: 
     :depth: 4 

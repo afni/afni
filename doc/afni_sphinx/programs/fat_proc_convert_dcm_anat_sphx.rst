@@ -1,8 +1,8 @@
+.. _ahelp_fat_proc_convert_dcm_anat:
+
 *************************
 fat_proc_convert_dcm_anat
 *************************
-
-.. _ahelp_fat_proc_convert_dcm_anat:
 
 .. contents:: 
     :depth: 4 

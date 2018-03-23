@@ -1,8 +1,8 @@
+.. _ahelp_3dVecRGB_to_HSL:
+
 ***************
 3dVecRGB_to_HSL
 ***************
-
-.. _ahelp_3dVecRGB_to_HSL:
 
 .. contents:: 
     :depth: 4 

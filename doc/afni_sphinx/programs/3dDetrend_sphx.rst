@@ -1,8 +1,8 @@
+.. _ahelp_3dDetrend:
+
 *********
 3dDetrend
 *********
-
-.. _ahelp_3dDetrend:
 
 .. contents:: 
     :depth: 4 

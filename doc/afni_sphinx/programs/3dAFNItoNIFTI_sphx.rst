@@ -1,8 +1,8 @@
+.. _ahelp_3dAFNItoNIFTI:
+
 *************
 3dAFNItoNIFTI
 *************
-
-.. _ahelp_3dAFNItoNIFTI:
 
 .. contents:: 
     :depth: 4 

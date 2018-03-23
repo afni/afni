@@ -1,8 +1,8 @@
+.. _ahelp_3dfim+:
+
 ******
 3dfim+
 ******
-
-.. _ahelp_3dfim+:
 
 .. contents:: 
     :depth: 4 

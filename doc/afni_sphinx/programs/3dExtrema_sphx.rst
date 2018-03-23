@@ -1,8 +1,8 @@
+.. _ahelp_3dExtrema:
+
 *********
 3dExtrema
 *********
-
-.. _ahelp_3dExtrema:
 
 .. contents:: 
     :depth: 4 

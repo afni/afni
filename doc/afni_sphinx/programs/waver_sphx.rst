@@ -1,8 +1,8 @@
+.. _ahelp_waver:
+
 *****
 waver
 *****
-
-.. _ahelp_waver:
 
 .. contents:: 
     :depth: 4 

@@ -1,8 +1,8 @@
+.. _ahelp_3dClipLevel:
+
 ***********
 3dClipLevel
 ***********
-
-.. _ahelp_3dClipLevel:
 
 .. contents:: 
     :depth: 4 

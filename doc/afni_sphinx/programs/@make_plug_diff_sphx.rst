@@ -1,8 +1,8 @@
+.. _ahelp_@make_plug_diff:
+
 ***************
 @make_plug_diff
 ***************
-
-.. _ahelp_@make_plug_diff:
 
 .. contents:: 
     :depth: 4 

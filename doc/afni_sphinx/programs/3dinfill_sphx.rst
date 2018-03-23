@@ -1,8 +1,8 @@
+.. _ahelp_3dinfill:
+
 ********
 3dinfill
 ********
-
-.. _ahelp_3dinfill:
 
 .. contents:: 
     :depth: 4 

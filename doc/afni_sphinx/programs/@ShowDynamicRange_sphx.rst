@@ -1,8 +1,8 @@
+.. _ahelp_@ShowDynamicRange:
+
 *****************
 @ShowDynamicRange
 *****************
-
-.. _ahelp_@ShowDynamicRange:
 
 .. contents:: 
     :depth: 4 

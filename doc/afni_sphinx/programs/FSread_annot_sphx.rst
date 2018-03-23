@@ -1,8 +1,8 @@
+.. _ahelp_FSread_annot:
+
 ************
 FSread_annot
 ************
-
-.. _ahelp_FSread_annot:
 
 .. contents:: 
     :depth: 4 

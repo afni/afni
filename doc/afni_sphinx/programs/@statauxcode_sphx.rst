@@ -1,8 +1,8 @@
+.. _ahelp_@statauxcode:
+
 ************
 @statauxcode
 ************
-
-.. _ahelp_@statauxcode:
 
 .. contents:: 
     :depth: 4 

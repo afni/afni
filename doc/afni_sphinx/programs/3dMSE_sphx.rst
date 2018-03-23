@@ -1,8 +1,8 @@
+.. _ahelp_3dMSE:
+
 *****
 3dMSE
 *****
-
-.. _ahelp_3dMSE:
 
 .. contents:: 
     :depth: 4 

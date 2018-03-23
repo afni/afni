@@ -1,8 +1,8 @@
+.. _ahelp_3dMINCtoAFNI:
+
 ************
 3dMINCtoAFNI
 ************
-
-.. _ahelp_3dMINCtoAFNI:
 
 .. contents:: 
     :depth: 4 

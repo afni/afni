@@ -1,8 +1,8 @@
+.. _ahelp_file_tool:
+
 *********
 file_tool
 *********
-
-.. _ahelp_file_tool:
 
 .. contents:: 
     :depth: 4 

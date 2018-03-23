@@ -1,8 +1,8 @@
+.. _ahelp_3dToutcount:
+
 ***********
 3dToutcount
 ***********
-
-.. _ahelp_3dToutcount:
 
 .. contents:: 
     :depth: 4 

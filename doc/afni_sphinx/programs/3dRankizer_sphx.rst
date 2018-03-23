@@ -1,8 +1,8 @@
+.. _ahelp_3dRankizer:
+
 **********
 3dRankizer
 **********
-
-.. _ahelp_3dRankizer:
 
 .. contents:: 
     :depth: 4 

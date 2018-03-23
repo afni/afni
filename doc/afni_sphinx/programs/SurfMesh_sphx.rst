@@ -1,8 +1,8 @@
+.. _ahelp_SurfMesh:
+
 ********
 SurfMesh
 ********
-
-.. _ahelp_SurfMesh:
 
 .. contents:: 
     :depth: 4 

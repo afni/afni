@@ -1,8 +1,8 @@
+.. _ahelp_3dMVM_validator:
+
 ***************
 3dMVM_validator
 ***************
-
-.. _ahelp_3dMVM_validator:
 
 .. contents:: 
     :depth: 4 

@@ -1,8 +1,8 @@
+.. _ahelp_@Install_DBSproc:
+
 ****************
 @Install_DBSproc
 ****************
-
-.. _ahelp_@Install_DBSproc:
 
 .. contents:: 
     :depth: 4 

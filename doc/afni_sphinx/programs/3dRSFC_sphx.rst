@@ -1,8 +1,8 @@
+.. _ahelp_3dRSFC:
+
 ******
 3dRSFC
 ******
-
-.. _ahelp_3dRSFC:
 
 .. contents:: 
     :depth: 4 

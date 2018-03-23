@@ -1,8 +1,8 @@
+.. _ahelp_SurfPatch:
+
 *********
 SurfPatch
 *********
-
-.. _ahelp_SurfPatch:
 
 .. contents:: 
     :depth: 4 

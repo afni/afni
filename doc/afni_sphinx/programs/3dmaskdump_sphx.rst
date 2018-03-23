@@ -1,8 +1,8 @@
+.. _ahelp_3dmaskdump:
+
 **********
 3dmaskdump
 **********
-
-.. _ahelp_3dmaskdump:
 
 .. contents:: 
     :depth: 4 

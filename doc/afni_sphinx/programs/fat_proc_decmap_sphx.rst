@@ -1,8 +1,8 @@
+.. _ahelp_fat_proc_decmap:
+
 ***************
 fat_proc_decmap
 ***************
-
-.. _ahelp_fat_proc_decmap:
 
 .. contents:: 
     :depth: 4 

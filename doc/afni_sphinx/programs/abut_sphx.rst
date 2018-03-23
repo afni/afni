@@ -1,8 +1,8 @@
+.. _ahelp_abut:
+
 ****
 abut
 ****
-
-.. _ahelp_abut:
 
 .. contents:: 
     :depth: 4 

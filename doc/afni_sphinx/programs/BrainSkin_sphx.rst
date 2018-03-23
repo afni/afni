@@ -1,8 +1,8 @@
+.. _ahelp_BrainSkin:
+
 *********
 BrainSkin
 *********
-
-.. _ahelp_BrainSkin:
 
 .. contents:: 
     :depth: 4 

@@ -1,8 +1,8 @@
+.. _ahelp_InstaTract:
+
 **********
 InstaTract
 **********
-
-.. _ahelp_InstaTract:
 
 .. contents:: 
     :depth: 4 

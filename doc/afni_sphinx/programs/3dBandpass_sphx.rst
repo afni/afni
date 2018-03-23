@@ -1,8 +1,8 @@
+.. _ahelp_3dBandpass:
+
 **********
 3dBandpass
 **********
-
-.. _ahelp_3dBandpass:
 
 .. contents:: 
     :depth: 4 

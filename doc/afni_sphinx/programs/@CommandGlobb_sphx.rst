@@ -1,8 +1,8 @@
+.. _ahelp_@CommandGlobb:
+
 *************
 @CommandGlobb
 *************
-
-.. _ahelp_@CommandGlobb:
 
 .. contents:: 
     :depth: 4 

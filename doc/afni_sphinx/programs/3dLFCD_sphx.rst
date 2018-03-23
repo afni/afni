@@ -1,8 +1,8 @@
+.. _ahelp_3dLFCD:
+
 ******
 3dLFCD
 ******
-
-.. _ahelp_3dLFCD:
 
 .. contents:: 
     :depth: 4 

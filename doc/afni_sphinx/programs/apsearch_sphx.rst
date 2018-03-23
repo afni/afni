@@ -1,8 +1,8 @@
+.. _ahelp_apsearch:
+
 ********
 apsearch
 ********
-
-.. _ahelp_apsearch:
 
 .. contents:: 
     :depth: 4 

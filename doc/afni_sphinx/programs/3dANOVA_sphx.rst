@@ -1,8 +1,8 @@
+.. _ahelp_3dANOVA:
+
 *******
 3dANOVA
 *******
-
-.. _ahelp_3dANOVA:
 
 .. contents:: 
     :depth: 4 

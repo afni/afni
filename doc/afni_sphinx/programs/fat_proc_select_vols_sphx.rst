@@ -1,8 +1,8 @@
+.. _ahelp_fat_proc_select_vols:
+
 ********************
 fat_proc_select_vols
 ********************
-
-.. _ahelp_fat_proc_select_vols:
 
 .. contents:: 
     :depth: 4 

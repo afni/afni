@@ -1,8 +1,8 @@
+.. _ahelp_@GetAfniBin:
+
 ***********
 @GetAfniBin
 ***********
-
-.. _ahelp_@GetAfniBin:
 
 .. contents:: 
     :depth: 4 

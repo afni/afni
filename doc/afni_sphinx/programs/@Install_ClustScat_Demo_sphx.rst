@@ -1,8 +1,8 @@
+.. _ahelp_@Install_ClustScat_Demo:
+
 ***********************
 @Install_ClustScat_Demo
 ***********************
-
-.. _ahelp_@Install_ClustScat_Demo:
 
 .. contents:: 
     :depth: 4 

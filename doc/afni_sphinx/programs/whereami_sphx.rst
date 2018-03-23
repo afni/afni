@@ -1,8 +1,8 @@
+.. _ahelp_whereami:
+
 ********
 whereami
 ********
-
-.. _ahelp_whereami:
 
 .. contents:: 
     :depth: 4 

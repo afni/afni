@@ -1,8 +1,8 @@
+.. _ahelp_3dLocalstat:
+
 ***********
 3dLocalstat
 ***********
-
-.. _ahelp_3dLocalstat:
 
 .. contents:: 
     :depth: 4 

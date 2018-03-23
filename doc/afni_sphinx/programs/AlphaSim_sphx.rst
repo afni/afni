@@ -1,8 +1,8 @@
+.. _ahelp_AlphaSim:
+
 ********
 AlphaSim
 ********
-
-.. _ahelp_AlphaSim:
 
 .. contents:: 
     :depth: 4 

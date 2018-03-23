@@ -1,8 +1,8 @@
+.. _ahelp_cdf:
+
 ***
 cdf
 ***
-
-.. _ahelp_cdf:
 
 .. contents:: 
     :depth: 4 

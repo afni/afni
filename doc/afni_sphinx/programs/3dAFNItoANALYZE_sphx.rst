@@ -1,8 +1,8 @@
+.. _ahelp_3dAFNItoANALYZE:
+
 ***************
 3dAFNItoANALYZE
 ***************
-
-.. _ahelp_3dAFNItoANALYZE:
 
 .. contents:: 
     :depth: 4 

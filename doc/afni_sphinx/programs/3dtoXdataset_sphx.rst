@@ -1,8 +1,8 @@
+.. _ahelp_3dtoXdataset:
+
 ************
 3dtoXdataset
 ************
-
-.. _ahelp_3dtoXdataset:
 
 .. contents:: 
     :depth: 4 

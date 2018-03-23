@@ -1,8 +1,8 @@
+.. _ahelp_3dAttribute:
+
 ***********
 3dAttribute
 ***********
-
-.. _ahelp_3dAttribute:
 
 .. contents:: 
     :depth: 4 

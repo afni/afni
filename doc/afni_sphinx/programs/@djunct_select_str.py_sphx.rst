@@ -1,8 +1,8 @@
+.. _ahelp_@djunct_select_str.py:
+
 *********************
 @djunct_select_str.py
 *********************
-
-.. _ahelp_@djunct_select_str.py:
 
 .. contents:: 
     :depth: 4 

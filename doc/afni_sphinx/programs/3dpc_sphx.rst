@@ -1,8 +1,8 @@
+.. _ahelp_3dpc:
+
 ****
 3dpc
 ****
-
-.. _ahelp_3dpc:
 
 .. contents:: 
     :depth: 4 

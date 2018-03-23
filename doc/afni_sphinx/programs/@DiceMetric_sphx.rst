@@ -1,8 +1,8 @@
+.. _ahelp_@DiceMetric:
+
 ***********
 @DiceMetric
 ***********
-
-.. _ahelp_@DiceMetric:
 
 .. contents:: 
     :depth: 4 

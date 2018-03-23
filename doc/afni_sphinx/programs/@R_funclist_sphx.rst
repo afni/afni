@@ -1,8 +1,8 @@
+.. _ahelp_@R_funclist:
+
 ***********
 @R_funclist
 ***********
-
-.. _ahelp_@R_funclist:
 
 .. contents:: 
     :depth: 4 

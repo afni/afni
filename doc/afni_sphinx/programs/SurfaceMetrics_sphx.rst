@@ -1,8 +1,8 @@
+.. _ahelp_SurfaceMetrics:
+
 **************
 SurfaceMetrics
 **************
-
-.. _ahelp_SurfaceMetrics:
 
 .. contents:: 
     :depth: 4 

@@ -1,8 +1,8 @@
+.. _ahelp_3dedge3:
+
 *******
 3dedge3
 *******
-
-.. _ahelp_3dedge3:
 
 .. contents:: 
     :depth: 4 

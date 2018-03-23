@@ -1,8 +1,8 @@
+.. _ahelp_3dFriedman:
+
 **********
 3dFriedman
 **********
-
-.. _ahelp_3dFriedman:
 
 .. contents:: 
     :depth: 4 

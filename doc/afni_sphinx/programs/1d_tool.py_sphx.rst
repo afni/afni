@@ -1,8 +1,8 @@
+.. _ahelp_1d_tool.py:
+
 **********
 1d_tool.py
 **********
-
-.. _ahelp_1d_tool.py:
 
 .. contents:: 
     :depth: 4 

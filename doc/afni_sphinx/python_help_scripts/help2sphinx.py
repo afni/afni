@@ -260,12 +260,12 @@ for afni_prog in prog_list:
 
         ## table of contents and a blank to remove the indentation for
         ## the next line
+        sphinx_out.write(".. _ahelp_"+afni_prog+":\n\n")
         sphinx_out.write((str("*") * len(afni_prog))+"\n")
         sphinx_out.write(afni_prog+"\n")
         sphinx_out.write((str("*") * len(afni_prog))+"\n\n")
 
         ## table of contents
-        sphinx_out.write(".. _ahelp_"+afni_prog+":\n\n")
         sphinx_out.write(".. contents:: \n")
         sphinx_out.write("    :depth: 4 \n\n")
         sphinx_out.write("| \n\n")

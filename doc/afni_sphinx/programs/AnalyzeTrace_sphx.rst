@@ -1,8 +1,8 @@
+.. _ahelp_AnalyzeTrace:
+
 ************
 AnalyzeTrace
 ************
-
-.. _ahelp_AnalyzeTrace:
 
 .. contents:: 
     :depth: 4 

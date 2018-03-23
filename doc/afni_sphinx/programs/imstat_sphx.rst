@@ -1,8 +1,8 @@
+.. _ahelp_imstat:
+
 ******
 imstat
 ******
-
-.. _ahelp_imstat:
 
 .. contents:: 
     :depth: 4 

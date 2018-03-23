@@ -1,8 +1,8 @@
+.. _ahelp_niccc:
+
 *****
 niccc
 *****
-
-.. _ahelp_niccc:
 
 .. contents:: 
     :depth: 4 

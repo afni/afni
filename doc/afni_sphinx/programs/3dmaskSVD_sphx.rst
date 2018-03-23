@@ -1,8 +1,8 @@
+.. _ahelp_3dmaskSVD:
+
 *********
 3dmaskSVD
 *********
-
-.. _ahelp_3dmaskSVD:
 
 .. contents:: 
     :depth: 4 

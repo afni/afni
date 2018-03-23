@@ -1,8 +1,8 @@
+.. _ahelp_@FindAfniDsetPath:
+
 *****************
 @FindAfniDsetPath
 *****************
-
-.. _ahelp_@FindAfniDsetPath:
 
 .. contents:: 
     :depth: 4 

@@ -1,8 +1,8 @@
+.. _ahelp_3dNwarpFuncs:
+
 ************
 3dNwarpFuncs
 ************
-
-.. _ahelp_3dNwarpFuncs:
 
 .. contents:: 
     :depth: 4 

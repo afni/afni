@@ -1,8 +1,8 @@
+.. _ahelp_3dMaskToASCII:
+
 *************
 3dMaskToASCII
 *************
-
-.. _ahelp_3dMaskToASCII:
 
 .. contents:: 
     :depth: 4 

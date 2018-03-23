@@ -1,8 +1,8 @@
+.. _ahelp_@djunct_4d_imager:
+
 *****************
 @djunct_4d_imager
 *****************
-
-.. _ahelp_@djunct_4d_imager:
 
 .. contents:: 
     :depth: 4 

@@ -1,8 +1,8 @@
+.. _ahelp_@ROI_Corr_Mat:
+
 *************
 @ROI_Corr_Mat
 *************
-
-.. _ahelp_@ROI_Corr_Mat:
 
 .. contents:: 
     :depth: 4 

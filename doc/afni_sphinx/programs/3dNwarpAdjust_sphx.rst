@@ -1,8 +1,8 @@
+.. _ahelp_3dNwarpAdjust:
+
 *************
 3dNwarpAdjust
 *************
-
-.. _ahelp_3dNwarpAdjust:
 
 .. contents:: 
     :depth: 4 

@@ -1,8 +1,8 @@
+.. _ahelp_3dvolreg:
+
 ********
 3dvolreg
 ********
-
-.. _ahelp_3dvolreg:
 
 .. contents:: 
     :depth: 4 

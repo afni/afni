@@ -1,8 +1,8 @@
+.. _ahelp_3dFFT:
+
 *****
 3dFFT
 *****
-
-.. _ahelp_3dFFT:
 
 .. contents:: 
     :depth: 4 

@@ -1,8 +1,8 @@
+.. _ahelp_niml_feedme:
+
 ***********
 niml_feedme
 ***********
-
-.. _ahelp_niml_feedme:
 
 .. contents:: 
     :depth: 4 

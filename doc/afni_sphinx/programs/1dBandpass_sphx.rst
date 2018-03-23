@@ -1,8 +1,8 @@
+.. _ahelp_1dBandpass:
+
 **********
 1dBandpass
 **********
-
-.. _ahelp_1dBandpass:
 
 .. contents:: 
     :depth: 4 

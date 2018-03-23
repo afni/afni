@@ -1,8 +1,8 @@
+.. _ahelp_1dmatcalc:
+
 *********
 1dmatcalc
 *********
-
-.. _ahelp_1dmatcalc:
 
 .. contents:: 
     :depth: 4 

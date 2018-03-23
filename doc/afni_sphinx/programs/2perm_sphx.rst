@@ -1,8 +1,8 @@
+.. _ahelp_2perm:
+
 *****
 2perm
 *****
-
-.. _ahelp_2perm:
 
 .. contents:: 
     :depth: 4 

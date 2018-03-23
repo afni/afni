@@ -1,8 +1,8 @@
+.. _ahelp_3dTnorm:
+
 *******
 3dTnorm
 *******
-
-.. _ahelp_3dTnorm:
 
 .. contents:: 
     :depth: 4 

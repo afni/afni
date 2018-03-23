@@ -1,8 +1,8 @@
+.. _ahelp_ROI2dataset:
+
 ***********
 ROI2dataset
 ***********
-
-.. _ahelp_ROI2dataset:
 
 .. contents:: 
     :depth: 4 

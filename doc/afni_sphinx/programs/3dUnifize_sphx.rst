@@ -1,8 +1,8 @@
+.. _ahelp_3dUnifize:
+
 *********
 3dUnifize
 *********
-
-.. _ahelp_3dUnifize:
 
 .. contents:: 
     :depth: 4 

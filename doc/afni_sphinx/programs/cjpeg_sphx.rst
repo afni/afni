@@ -1,8 +1,8 @@
+.. _ahelp_cjpeg:
+
 *****
 cjpeg
 *****
-
-.. _ahelp_cjpeg:
 
 .. contents:: 
     :depth: 4 

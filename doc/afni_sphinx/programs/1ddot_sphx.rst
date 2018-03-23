@@ -1,8 +1,8 @@
+.. _ahelp_1ddot:
+
 *****
 1ddot
 *****
-
-.. _ahelp_1ddot:
 
 .. contents:: 
     :depth: 4 

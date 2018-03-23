@@ -1,8 +1,8 @@
+.. _ahelp_make_random_timing.py:
+
 *********************
 make_random_timing.py
 *********************
-
-.. _ahelp_make_random_timing.py:
 
 .. contents:: 
     :depth: 4 

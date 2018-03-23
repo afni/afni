@@ -1,8 +1,8 @@
+.. _ahelp_3dThreetoRGB:
+
 ************
 3dThreetoRGB
 ************
-
-.. _ahelp_3dThreetoRGB:
 
 .. contents:: 
     :depth: 4 

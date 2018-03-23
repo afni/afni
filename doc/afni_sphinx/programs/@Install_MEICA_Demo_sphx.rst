@@ -1,8 +1,8 @@
+.. _ahelp_@Install_MEICA_Demo:
+
 *******************
 @Install_MEICA_Demo
 *******************
-
-.. _ahelp_@Install_MEICA_Demo:
 
 .. contents:: 
     :depth: 4 

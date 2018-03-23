@@ -1,8 +1,8 @@
+.. _ahelp_3dnvals:
+
 *******
 3dnvals
 *******
-
-.. _ahelp_3dnvals:
 
 .. contents:: 
     :depth: 4 

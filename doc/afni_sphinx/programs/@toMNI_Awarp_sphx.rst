@@ -1,8 +1,8 @@
+.. _ahelp_@toMNI_Awarp:
+
 ************
 @toMNI_Awarp
 ************
-
-.. _ahelp_@toMNI_Awarp:
 
 .. contents:: 
     :depth: 4 

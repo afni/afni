@@ -1,8 +1,8 @@
+.. _ahelp_3dSpaceTimeCorr:
+
 ***************
 3dSpaceTimeCorr
 ***************
-
-.. _ahelp_3dSpaceTimeCorr:
 
 .. contents:: 
     :depth: 4 

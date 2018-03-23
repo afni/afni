@@ -1,8 +1,8 @@
+.. _ahelp_3dWilcoxon:
+
 **********
 3dWilcoxon
 **********
-
-.. _ahelp_3dWilcoxon:
 
 .. contents:: 
     :depth: 4 

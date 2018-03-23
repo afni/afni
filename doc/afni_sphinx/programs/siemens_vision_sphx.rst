@@ -1,8 +1,8 @@
+.. _ahelp_siemens_vision:
+
 **************
 siemens_vision
 **************
-
-.. _ahelp_siemens_vision:
 
 .. contents:: 
     :depth: 4 

@@ -1,8 +1,8 @@
+.. _ahelp_3dConformist:
+
 ************
 3dConformist
 ************
-
-.. _ahelp_3dConformist:
 
 .. contents:: 
     :depth: 4 

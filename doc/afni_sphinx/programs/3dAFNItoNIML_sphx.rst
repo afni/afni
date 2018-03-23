@@ -1,8 +1,8 @@
+.. _ahelp_3dAFNItoNIML:
+
 ************
 3dAFNItoNIML
 ************
-
-.. _ahelp_3dAFNItoNIML:
 
 .. contents:: 
     :depth: 4 

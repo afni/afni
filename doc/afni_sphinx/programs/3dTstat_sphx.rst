@@ -1,8 +1,8 @@
+.. _ahelp_3dTstat:
+
 *******
 3dTstat
 *******
-
-.. _ahelp_3dTstat:
 
 .. contents:: 
     :depth: 4 

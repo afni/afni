@@ -1,8 +1,8 @@
+.. _ahelp_prompt_popup:
+
 ************
 prompt_popup
 ************
-
-.. _ahelp_prompt_popup:
 
 .. contents:: 
     :depth: 4 

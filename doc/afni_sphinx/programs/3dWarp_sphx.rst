@@ -1,8 +1,8 @@
+.. _ahelp_3dWarp:
+
 ******
 3dWarp
 ******
-
-.. _ahelp_3dWarp:
 
 .. contents:: 
     :depth: 4 

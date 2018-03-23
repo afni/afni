@@ -1,8 +1,8 @@
+.. _ahelp_fat_proc_axialize_anat:
+
 **********************
 fat_proc_axialize_anat
 **********************
-
-.. _ahelp_fat_proc_axialize_anat:
 
 .. contents:: 
     :depth: 4 

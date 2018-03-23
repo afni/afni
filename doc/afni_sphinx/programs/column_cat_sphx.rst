@@ -1,8 +1,8 @@
+.. _ahelp_column_cat:
+
 **********
 column_cat
 **********
-
-.. _ahelp_column_cat:
 
 .. contents:: 
     :depth: 4 

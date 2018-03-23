@@ -1,8 +1,8 @@
+.. _ahelp_3dIntracranial:
+
 **************
 3dIntracranial
 **************
-
-.. _ahelp_3dIntracranial:
 
 .. contents:: 
     :depth: 4 

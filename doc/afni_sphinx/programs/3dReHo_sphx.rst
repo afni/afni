@@ -1,8 +1,8 @@
+.. _ahelp_3dReHo:
+
 ******
 3dReHo
 ******
-
-.. _ahelp_3dReHo:
 
 .. contents:: 
     :depth: 4 

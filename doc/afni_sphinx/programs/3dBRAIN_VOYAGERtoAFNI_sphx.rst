@@ -1,8 +1,8 @@
+.. _ahelp_3dBRAIN_VOYAGERtoAFNI:
+
 *********************
 3dBRAIN_VOYAGERtoAFNI
 *********************
-
-.. _ahelp_3dBRAIN_VOYAGERtoAFNI:
 
 .. contents:: 
     :depth: 4 

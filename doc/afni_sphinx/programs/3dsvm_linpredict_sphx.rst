@@ -1,8 +1,8 @@
+.. _ahelp_3dsvm_linpredict:
+
 ****************
 3dsvm_linpredict
 ****************
-
-.. _ahelp_3dsvm_linpredict:
 
 .. contents:: 
     :depth: 4 

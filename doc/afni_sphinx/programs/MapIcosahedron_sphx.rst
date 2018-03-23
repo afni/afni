@@ -1,8 +1,8 @@
+.. _ahelp_MapIcosahedron:
+
 **************
 MapIcosahedron
 **************
-
-.. _ahelp_MapIcosahedron:
 
 .. contents:: 
     :depth: 4 

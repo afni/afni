@@ -1,8 +1,8 @@
+.. _ahelp_@djunct_calc_mont_dims.py:
+
 *************************
 @djunct_calc_mont_dims.py
 *************************
-
-.. _ahelp_@djunct_calc_mont_dims.py:
 
 .. contents:: 
     :depth: 4 

@@ -1,8 +1,8 @@
+.. _ahelp_GLTsymtest:
+
 **********
 GLTsymtest
 **********
-
-.. _ahelp_GLTsymtest:
 
 .. contents:: 
     :depth: 4 

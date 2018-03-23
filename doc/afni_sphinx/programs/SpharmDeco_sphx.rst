@@ -1,8 +1,8 @@
+.. _ahelp_SpharmDeco:
+
 **********
 SpharmDeco
 **********
-
-.. _ahelp_SpharmDeco:
 
 .. contents:: 
     :depth: 4 

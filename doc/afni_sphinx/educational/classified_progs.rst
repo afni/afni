@@ -34,6 +34,9 @@ Note that a given program may appear in more than one group.
    * - 5
      - :ref:`suma <ahelp_suma>`
      - GUI-based viewer for exploring data in 3D: surfaces, tracts, graph nodes, and volume slices
+   * - 1
+     - :ref:`aiv <ahelp_aiv>`
+     - AFNI Image Viewer program
 
 
 **Voxelwise calcs, esp. stats and tests**
@@ -138,7 +141,82 @@ Note that a given program may appear in more than one group.
      - Tests the input values at each voxel for normality, using the Anderson-Darling method
 
 
-**Spatial alignment/registration/warping/axialization**
+**Get info/stats within ROIs**
+==============
+
+.. list-table:: 
+   :header-rows: 0
+   :widths: 5 20 70
+
+   * - 5
+     - :ref:`whereami <ahelp_whereami>`
+     - Get atlas region name for coordinates
+   * - 4
+     - :ref:`3dROIstats <ahelp_3dROIstats>`
+     - Calculate dataset values from multiple ROIs
+   * - 4
+     - :ref:`3dmaskave <ahelp_3dmaskave>`
+     - Calculate dataset values averaged over a ROI
+   * - 4
+     - :ref:`3dBrickStat <ahelp_3dBrickStat>`
+     - calculate percentile values within dsets
+   * - 3
+     - :ref:`3dUndump <ahelp_3dUndump>`
+     - Create dataset from text (inverse of 3dmaskdump)
+   * - 1
+     - :ref:`3dmaskdump <ahelp_3dmaskdump>`
+     - Output all dataset values in a ROI
+   * - 1
+     - :ref:`3dMax <ahelp_3dMax>`
+     - (obsolete -> use 3dBrickStat)
+   * - 1
+     - :ref:`3dOverlap <ahelp_3dOverlap>`
+     - Create mask that is overlap of nonzero voxels from multiple datasets
+   * - 1
+     - :ref:`3dfractionize <ahelp_3dfractionize>`
+     - Resample a mask dataset to a different resolution
+   * - 1
+     - :ref:`3dTto1D <ahelp_3dTto1D>`
+     - Collapse 4D data to 1D in various ways
+   * - 1
+     - :ref:`@Atlasize <ahelp_@Atlasize>`
+     - Make an atlas from a dataset and label text files
+   * - 1
+     - :ref:`@MakeLabelTable <ahelp_@MakeLabelTable>`
+     - Assign labels to values
+   * - 1
+     - :ref:`AFNI_atlas_spaces.niml <ahelp_AFNI_atlas_spaces.niml>`
+     - space, atlas, transformations definitions file
+
+
+**Build FMRI pipelines**
+==============
+
+.. list-table:: 
+   :header-rows: 0
+   :widths: 5 20 70
+
+   * - 5
+     - :ref:`afni_proc.py <ahelp_afni_proc.py>`
+     - Generate tcsh script for processing single subject FMRI data
+   * - 4
+     - :ref:`gen_ss_review_scripts.py <ahelp_gen_ss_review_scripts.py>`
+     - Generate QC review scripts
+   * - 1
+     - :ref:`uber_proc.py <ahelp_uber_proc.py>`
+     - 
+   * - 1
+     - :ref:`uber_subject.py <ahelp_uber_subject.py>`
+     - Graphical interface to help set up an afni_proc.py command
+   * - 1
+     - :ref:`gen_group_command.py <ahelp_gen_group_command.py>`
+     - Generate group analysis scripts
+   * - 1
+     - :ref:`afni_restproc.py <ahelp_afni_restproc.py>`
+     - (obsolete -> use afni_proc.py)
+
+
+**Align/register/warp/axialize spatially**
 ==============
 
 .. list-table:: 
@@ -264,112 +342,7 @@ Note that a given program may appear in more than one group.
      - Move origin of dataset by specified amount or shift between MNI and MNI_ANAT
 
 
-**Getting info/stats from within ROIs**
-==============
-
-.. list-table:: 
-   :header-rows: 0
-   :widths: 5 20 70
-
-   * - 5
-     - :ref:`whereami <ahelp_whereami>`
-     - Get atlas region name for coordinates
-   * - 4
-     - :ref:`3dROIstats <ahelp_3dROIstats>`
-     - Calculate dataset values from multiple ROIs
-   * - 4
-     - :ref:`3dmaskave <ahelp_3dmaskave>`
-     - Calculate dataset values averaged over a ROI
-   * - 4
-     - :ref:`3dBrickStat <ahelp_3dBrickStat>`
-     - calculate percentile values within dsets
-   * - 3
-     - :ref:`3dUndump <ahelp_3dUndump>`
-     - Create dataset from text (inverse of 3dmaskdump)
-   * - 1
-     - :ref:`3dmaskdump <ahelp_3dmaskdump>`
-     - Output all dataset values in a ROI
-   * - 1
-     - :ref:`3dMax <ahelp_3dMax>`
-     - (obsolete -> use 3dBrickStat)
-   * - 1
-     - :ref:`3dOverlap <ahelp_3dOverlap>`
-     - Create mask that is overlap of nonzero voxels from multiple datasets
-   * - 1
-     - :ref:`3dfractionize <ahelp_3dfractionize>`
-     - Resample a mask dataset to a different resolution
-   * - 1
-     - :ref:`3dTto1D <ahelp_3dTto1D>`
-     - Collapse 4D data to 1D in various ways
-   * - 1
-     - :ref:`@Atlasize <ahelp_@Atlasize>`
-     - Make an atlas from a dataset and label text files
-   * - 1
-     - :ref:`@MakeLabelTable <ahelp_@MakeLabelTable>`
-     - Assign labels to values
-   * - 1
-     - :ref:`AFNI_atlas_spaces.niml <ahelp_AFNI_atlas_spaces.niml>`
-     - space, atlas, transformations definitions file
-
-
-**Build FMRI pipelines**
-==============
-
-.. list-table:: 
-   :header-rows: 0
-   :widths: 5 20 70
-
-   * - 5
-     - :ref:`afni_proc.py <ahelp_afni_proc.py>`
-     - Generate tcsh script for processing single subject FMRI data
-   * - 4
-     - :ref:`gen_ss_review_scripts.py <ahelp_gen_ss_review_scripts.py>`
-     - Generate QC review scripts
-   * - 1
-     - :ref:`uber_proc.py <ahelp_uber_proc.py>`
-     - 
-   * - 1
-     - :ref:`uber_subject.py <ahelp_uber_subject.py>`
-     - Graphical interface to help set up an afni_proc.py command
-   * - 1
-     - :ref:`gen_group_command.py <ahelp_gen_group_command.py>`
-     - Generate group analysis scripts
-   * - 1
-     - :ref:`afni_restproc.py <ahelp_afni_restproc.py>`
-     - (obsolete -> use afni_proc.py)
-
-
-**Stimulus timing file functionality (make, edit, evaluate)**
-==============
-
-.. list-table:: 
-   :header-rows: 0
-   :widths: 5 20 70
-
-   * - 4
-     - :ref:`make_random_timing.py <ahelp_make_random_timing.py>`
-     - Generate random stimulus times files
-   * - 4
-     - :ref:`timing_tool.py <ahelp_timing_tool.py>`
-     - Edit stimulus timing files
-   * - 1
-     - :ref:`1dMarry <ahelp_1dMarry>`
-     - Combine ragged 1D files for use with 3dDeconvolve's -stim_times_AM2 option
-   * - 1
-     - :ref:`make_stim_times.py <ahelp_make_stim_times.py>`
-     - Convert 0/1 stim file format to stim times format
-   * - 1
-     - :ref:`RSFgen <ahelp_RSFgen>`
-     - (obsolete -> use make_random_timing.py)
-   * - 1
-     - :ref:`@make_stim_file <ahelp_@make_stim_file>`
-     - (obsolete/esoteric/do not use; use what???); make stim files for 3dDeconvolve
-   * - 1
-     - :ref:`stimband <ahelp_stimband>`
-     - 
-
-
-**SUMA surface calculations, file manipulation, viewing**
+**SUMA surface calculations, formats and viewing**
 ==============
 
 .. list-table:: 
@@ -486,7 +459,76 @@ Note that a given program may appear in more than one group.
      - Make afni and suma colormaps
 
 
-**Programs for manipulating information in the dataset header**
+**Mask/skull-strip/segment**
+==============
+
+.. list-table:: 
+   :header-rows: 0
+   :widths: 5 20 70
+
+   * - 5
+     - :ref:`3dAutomask <ahelp_3dAutomask>`
+     - Generate a brain and skull-only mask
+   * - 5
+     - :ref:`3dSkullStrip <ahelp_3dSkullStrip>`
+     - Enhanced skull stripping
+   * - 1
+     - :ref:`plugin(Draw Dataset) <ahelp_plugin(Draw Dataset)>`
+     - Manually draw ROI mask datasets
+   * - 1
+     - :ref:`@NoisySkullStrip <ahelp_@NoisySkullStrip>`
+     - Strips the skull of anatomical datasets with low SNR
+   * - 1
+     - :ref:`3dinfill <ahelp_3dinfill>`
+     - well, for editing masks
+   * - 1
+     - :ref:`3dmask_tool <ahelp_3dmask_tool>`
+     - for combining/dilating/eroding/filling masks
+   * - 1
+     - :ref:`3dIntracranial <ahelp_3dIntracranial>`
+     - Strip off outside-the-brain voxels
+   * - 1
+     - :ref:`plugin(Gyrus Finder) <ahelp_plugin(Gyrus Finder)>`
+     - Interactively segment gray and white matter
+   * - 1
+     - :ref:`3dClipLevel <ahelp_3dClipLevel>`
+     - Find value to threshold off outside-the-brain voxels
+   * - 1
+     - :ref:`3dSeg <ahelp_3dSeg>`
+     - Segment anatomical (t1w) volume into major brain tissue types
+
+
+**Make/edit/evaluate stimulus timing files**
+==============
+
+.. list-table:: 
+   :header-rows: 0
+   :widths: 5 20 70
+
+   * - 4
+     - :ref:`make_random_timing.py <ahelp_make_random_timing.py>`
+     - Generate random stimulus times files
+   * - 4
+     - :ref:`timing_tool.py <ahelp_timing_tool.py>`
+     - Edit stimulus timing files
+   * - 1
+     - :ref:`1dMarry <ahelp_1dMarry>`
+     - Combine ragged 1D files for use with 3dDeconvolve's -stim_times_AM2 option
+   * - 1
+     - :ref:`make_stim_times.py <ahelp_make_stim_times.py>`
+     - Convert 0/1 stim file format to stim times format
+   * - 1
+     - :ref:`RSFgen <ahelp_RSFgen>`
+     - (obsolete -> use make_random_timing.py)
+   * - 1
+     - :ref:`@make_stim_file <ahelp_@make_stim_file>`
+     - (obsolete/esoteric/do not use; use what???); make stim files for 3dDeconvolve
+   * - 1
+     - :ref:`stimband <ahelp_stimband>`
+     - 
+
+
+**Edit dset headers**
 ==============
 
 .. list-table:: 
@@ -585,46 +627,7 @@ Note that a given program may appear in more than one group.
      - Move origin of dataset by specified amount or shift between MNI and MNI_ANAT
 
 
-**Masking/skull-stripping/segmentation**
-==============
-
-.. list-table:: 
-   :header-rows: 0
-   :widths: 5 20 70
-
-   * - 5
-     - :ref:`3dAutomask <ahelp_3dAutomask>`
-     - Generate a brain and skull-only mask
-   * - 5
-     - :ref:`3dSkullStrip <ahelp_3dSkullStrip>`
-     - Enhanced skull stripping
-   * - 1
-     - :ref:`plugin(Draw Dataset) <ahelp_plugin(Draw Dataset)>`
-     - Manually draw ROI mask datasets
-   * - 1
-     - :ref:`@NoisySkullStrip <ahelp_@NoisySkullStrip>`
-     - Strips the skull of anatomical datasets with low SNR
-   * - 1
-     - :ref:`3dinfill <ahelp_3dinfill>`
-     - well, for editing masks
-   * - 1
-     - :ref:`3dmask_tool <ahelp_3dmask_tool>`
-     - for combining/dilating/eroding/filling masks
-   * - 1
-     - :ref:`3dIntracranial <ahelp_3dIntracranial>`
-     - Strip off outside-the-brain voxels
-   * - 1
-     - :ref:`plugin(Gyrus Finder) <ahelp_plugin(Gyrus Finder)>`
-     - Interactively segment gray and white matter
-   * - 1
-     - :ref:`3dClipLevel <ahelp_3dClipLevel>`
-     - Find value to threshold off outside-the-brain voxels
-   * - 1
-     - :ref:`3dSeg <ahelp_3dSeg>`
-     - Segment anatomical (t1w) volume into major brain tissue types
-
-
-**Computation of various numbers from datasets**
+**Compute various numbers from datasets**
 ==============
 
 .. list-table:: 
@@ -654,7 +657,7 @@ Note that a given program may appear in more than one group.
      - (obsolete -> use 3dFWHMx)
 
 
-**Blurring and smoothing datasets**
+**Blur and smooth dsets**
 ==============
 
 .. list-table:: 
@@ -702,7 +705,7 @@ Note that a given program may appear in more than one group.
      - 3D sharpening filter applied to a dataset (to clean up a template)
 
 
-**Updating AFNI, install softwares (not demos)**
+**Update AFNI, install software (not demos)**
 ==============
 
 .. list-table:: 
@@ -729,7 +732,7 @@ Note that a given program may appear in more than one group.
      - check if update needed (compare present and available version numbers)
 
 
-**Simple calculations on datasets (making new datasets)**
+**Simple dset calcs (-> make new dsets)**
 ==============
 
 .. list-table:: 
@@ -807,7 +810,7 @@ Note that a given program may appear in more than one group.
      - Calculate RSFC parameters (ALFF, fALFF, RSFA, etc.) from 3dLombScargle output
 
 
-**Programs for dealing with 1D time series**
+**Make/edit correlation matrices**
 ==============
 
 .. list-table:: 
@@ -815,44 +818,17 @@ Note that a given program may appear in more than one group.
    :widths: 5 20 70
 
    * - 4
-     - :ref:`1d_tool.py <ahelp_1d_tool.py>`
-     - Perform various manipulations of 1D data
-   * - 4
-     - :ref:`1dplot <ahelp_1dplot>`
-     - Graph values from columns in a file
-   * - 3
-     - :ref:`1dtranspose <ahelp_1dtranspose>`
-     - Transpose 1D files (interchange rows and columns)
+     - :ref:`3dNetCorr <ahelp_3dNetCorr>`
+     - Calculate correlation matrix of a set of ROIs, as well as WB maps of each
    * - 1
-     - :ref:`1dCorrelate <ahelp_1dCorrelate>`
-     - Calculate correlation coefficients between 1D columns, with confidence intervals
+     - :ref:`@ROI_Corr_Mat <ahelp_@ROI_Corr_Mat>`
+     - Make an NxN ROI correlation matrix of N ROIs (consider 3dNetCorr instead)
    * - 1
-     - :ref:`1deval <ahelp_1deval>`
-     - 1D calculator (like 3dcalc for 1D files)
+     - :ref:`fat_mat_sel.py <ahelp_fat_mat_sel.py>`
+     - Visualize functional correlation (*.netcc files) or tracted-WM property (*.grid file) matrices
    * - 1
-     - :ref:`1dcat <ahelp_1dcat>`
-     - Catenate 1D files horizontally (use system program cat for vertical combining)
-   * - 1
-     - :ref:`1dgrayplot <ahelp_1dgrayplot>`
-     - Show values from columns in a file as bands of gray levels
-   * - 1
-     - :ref:`1dmatcalc <ahelp_1dmatcalc>`
-     - Matrix calculator for 1D files
-   * - 1
-     - :ref:`1dsum <ahelp_1dsum>`
-     - Add up all numbers in columns of a 1D file (can also do means)
-   * - 1
-     - :ref:`1dTsort <ahelp_1dTsort>`
-     - Sort each column of the input 1D file (separately)
-   * - 1
-     - :ref:`1dsvd <ahelp_1dsvd>`
-     - Compute the Singular Value Decomposition of a matrix (including PCA)
-   * - 1
-     - :ref:`1dUpsample <ahelp_1dUpsample>`
-     - Interpolate columns of a 1D file to a finer grid
-   * - 1
-     - :ref:`column_cat <ahelp_column_cat>`
-     - Catenate data horizontally
+     - :ref:`3dErrtsCormat <ahelp_3dErrtsCormat>`
+     - Compute the correlation matrix for the residual (or error) time series in a dataset
 
 
 **Make/edit ROIs and clusters, resample**
@@ -891,7 +867,7 @@ Note that a given program may appear in more than one group.
      - 
 
 
-**Dset concatenation, splitting, slice add/remove**
+**Edit dsets: concatenate, split, add/remove slices**
 ==============
 
 .. list-table:: 
@@ -924,7 +900,7 @@ Note that a given program may appear in more than one group.
      - Interpolate a dataset to a different slice thickness
 
 
-**Driving AFNI/SUMA, image-making and snapshotting**
+**Drive AFNI/SUMA, make images/snapshots/montages**
 ==============
 
 .. list-table:: 
@@ -993,7 +969,55 @@ Note that a given program may appear in more than one group.
      - Get and set AFNI environment variables
 
 
-**DWI/DTI/Diffusion specific**
+**Deal with 1D time series**
+==============
+
+.. list-table:: 
+   :header-rows: 0
+   :widths: 5 20 70
+
+   * - 4
+     - :ref:`1d_tool.py <ahelp_1d_tool.py>`
+     - Perform various manipulations of 1D data
+   * - 4
+     - :ref:`1dplot <ahelp_1dplot>`
+     - Graph values from columns in a file
+   * - 3
+     - :ref:`1dtranspose <ahelp_1dtranspose>`
+     - Transpose 1D files (interchange rows and columns)
+   * - 1
+     - :ref:`1dCorrelate <ahelp_1dCorrelate>`
+     - Calculate correlation coefficients between 1D columns, with confidence intervals
+   * - 1
+     - :ref:`1deval <ahelp_1deval>`
+     - 1D calculator (like 3dcalc for 1D files)
+   * - 1
+     - :ref:`1dcat <ahelp_1dcat>`
+     - Catenate 1D files horizontally (use system program cat for vertical combining)
+   * - 1
+     - :ref:`1dgrayplot <ahelp_1dgrayplot>`
+     - Show values from columns in a file as bands of gray levels
+   * - 1
+     - :ref:`1dmatcalc <ahelp_1dmatcalc>`
+     - Matrix calculator for 1D files
+   * - 1
+     - :ref:`1dsum <ahelp_1dsum>`
+     - Add up all numbers in columns of a 1D file (can also do means)
+   * - 1
+     - :ref:`1dTsort <ahelp_1dTsort>`
+     - Sort each column of the input 1D file (separately)
+   * - 1
+     - :ref:`1dsvd <ahelp_1dsvd>`
+     - Compute the Singular Value Decomposition of a matrix (including PCA)
+   * - 1
+     - :ref:`1dUpsample <ahelp_1dUpsample>`
+     - Interpolate columns of a 1D file to a finer grid
+   * - 1
+     - :ref:`column_cat <ahelp_column_cat>`
+     - Catenate data horizontally
+
+
+**DWI/DTI/diffusion-related**
 ==============
 
 .. list-table:: 
@@ -1083,27 +1107,6 @@ Note that a given program may appear in more than one group.
      - (obsolete -> use 1dDW_Grad_o_Mat++)
 
 
-**Correlation matrix creation/manipulation**
-==============
-
-.. list-table:: 
-   :header-rows: 0
-   :widths: 5 20 70
-
-   * - 4
-     - :ref:`3dNetCorr <ahelp_3dNetCorr>`
-     - Calculate correlation matrix of a set of ROIs, as well as WB maps of each
-   * - 1
-     - :ref:`@ROI_Corr_Mat <ahelp_@ROI_Corr_Mat>`
-     - Make an NxN ROI correlation matrix of N ROIs (consider 3dNetCorr instead)
-   * - 1
-     - :ref:`fat_mat_sel.py <ahelp_fat_mat_sel.py>`
-     - Visualize functional correlation (*.netcc files) or tracted-WM property (*.grid file) matrices
-   * - 1
-     - :ref:`3dErrtsCormat <ahelp_3dErrtsCormat>`
-     - Compute the correlation matrix for the residual (or error) time series in a dataset
-
-
 **Convert surfaces from other software**
 ==============
 
@@ -1143,7 +1146,7 @@ Note that a given program may appear in more than one group.
      - Parse FreeSurfer region labels to get indices
 
 
-**Comparing data set volumes (masks or valued)**
+**Compare dset volumes (masks or valued)**
 ==============
 
 .. list-table:: 
@@ -1170,7 +1173,7 @@ Note that a given program may appear in more than one group.
      - Count overlaps between 2 datasets (union, intersection, etc.)
 
 
-**Time series pre-processing programs**
+**Time series pre-processing**
 ==============
 
 .. list-table:: 
@@ -1206,7 +1209,7 @@ Note that a given program may appear in more than one group.
      - Generate slicewise physiological regressors
 
 
-**Time series analysis programs**
+**Time series analysis**
 ==============
 
 .. list-table:: 
@@ -1290,48 +1293,6 @@ Note that a given program may appear in more than one group.
      - (obsolete -> use 3dToutcount)
 
 
-**Programs for changing dataset spatial structure**
-==============
-
-.. list-table:: 
-   :header-rows: 0
-   :widths: 5 20 70
-
-   * - 3
-     - :ref:`3dLRflip <ahelp_3dLRflip>`
-     - Flip dataset contents Left <-> Right
-   * - 3
-     - :ref:`fat_proc_axialize_anat <ahelp_fat_proc_axialize_anat>`
-     - rotate brain to have standard viewing planes along slices
-   * - 1
-     - :ref:`3daxialize <ahelp_3daxialize>`
-     - Rewrite dataset with slices in different direction
-   * - 1
-     - :ref:`3dresample <ahelp_3dresample>`
-     - Rewrite dataset in new orientation, with new voxel size
-
-
-**Model 1D Time Series Generators**
-==============
-
-.. list-table:: 
-   :header-rows: 0
-   :widths: 5 20 70
-
-   * - 1
-     - :ref:`3dDeconvolve <ahelp_3dDeconvolve>`
-     - Generate hemodynamic responses for stimulus timing files
-   * - 1
-     - :ref:`1dBport <ahelp_1dBport>`
-     - Generate columns of sines and cosines for bandpassing
-   * - 1
-     - :ref:`sqwave <ahelp_sqwave>`
-     - Generate a square wave (a very old program)
-   * - 1
-     - :ref:`waver <ahelp_waver>`
-     - Generate hemodynamic responses to stimulus time series
-
-
 **Miscellaneous file manipulations**
 ==============
 
@@ -1374,7 +1335,7 @@ Note that a given program may appear in more than one group.
      - Generate new prefix given some base prefix
 
 
-**Matrix-plus-MVM modelling (for correlation or structural props)**
+**MVM modelling of (correlational or structural) matrices**
 ==============
 
 .. list-table:: 
@@ -1401,7 +1362,7 @@ Note that a given program may appear in more than one group.
      - Read in a data table file (esp. from fat_mvm_prep.py) and build 3dMVM command
 
 
-**Get/install demos**
+**Generate model 1D time series**
 ==============
 
 .. list-table:: 
@@ -1409,41 +1370,17 @@ Note that a given program may appear in more than one group.
    :widths: 5 20 70
 
    * - 1
-     - :ref:`@Install_3dPFM_Demo <ahelp_@Install_3dPFM_Demo>`
-     - 
+     - :ref:`3dDeconvolve <ahelp_3dDeconvolve>`
+     - Generate hemodynamic responses for stimulus timing files
    * - 1
-     - :ref:`@Install_AfniRetinoDemo <ahelp_@Install_AfniRetinoDemo>`
-     - 
+     - :ref:`1dBport <ahelp_1dBport>`
+     - Generate columns of sines and cosines for bandpassing
    * - 1
-     - :ref:`@Install_ClustScat_Demo <ahelp_@Install_ClustScat_Demo>`
-     - 
+     - :ref:`sqwave <ahelp_sqwave>`
+     - Generate a square wave (a very old program)
    * - 1
-     - :ref:`@Install_D99_macaque <ahelp_@Install_D99_macaque>`
-     - Install Saleem D99 macaque atlas and template
-   * - 1
-     - :ref:`@Install_DBSproc <ahelp_@Install_DBSproc>`
-     - Install DBS processing pipeline script
-   * - 1
-     - :ref:`@Install_FATCAT_DEMO <ahelp_@Install_FATCAT_DEMO>`
-     - Install original FATCAT Demo for DTI + some FMRI processing
-   * - 1
-     - :ref:`@Install_FATMVM_DEMO <ahelp_@Install_FATMVM_DEMO>`
-     - Install FATCAT+MVM statistical modeling demo
-   * - 1
-     - :ref:`@Install_InstaCorr_Demo <ahelp_@Install_InstaCorr_Demo>`
-     - Install demo data for InstaCorr, instant correlation
-   * - 1
-     - :ref:`@Install_MEICA_Demo <ahelp_@Install_MEICA_Demo>`
-     - 
-   * - 1
-     - :ref:`@Install_NIH_Marmoset <ahelp_@Install_NIH_Marmoset>`
-     - Install NIH Marmoset atlas and template
-   * - 1
-     - :ref:`@Install_RSFMRI_Motion_Group_Demo <ahelp_@Install_RSFMRI_Motion_Group_Demo>`
-     - 
-   * - 1
-     - :ref:`@Install_TSrestMovieDemo <ahelp_@Install_TSrestMovieDemo>`
-     - 
+     - :ref:`waver <ahelp_waver>`
+     - Generate hemodynamic responses to stimulus time series
 
 
 **Fourier related, time series/freq**
@@ -1488,7 +1425,7 @@ Note that a given program may appear in more than one group.
      - 
 
 
-**Dataset histograms**
+**Dset histograms**
 ==============
 
 .. list-table:: 
@@ -1510,6 +1447,114 @@ Note that a given program may appear in more than one group.
    * - 1
      - :ref:`3dHist <ahelp_3dHist>`
      - Compute histograms using functions for generating priors
+
+
+**Download/install demos**
+==============
+
+.. list-table:: 
+   :header-rows: 0
+   :widths: 5 20 70
+
+   * - 1
+     - :ref:`@Install_3dPFM_Demo <ahelp_@Install_3dPFM_Demo>`
+     - 
+   * - 1
+     - :ref:`@Install_AfniRetinoDemo <ahelp_@Install_AfniRetinoDemo>`
+     - 
+   * - 1
+     - :ref:`@Install_ClustScat_Demo <ahelp_@Install_ClustScat_Demo>`
+     - 
+   * - 1
+     - :ref:`@Install_D99_macaque <ahelp_@Install_D99_macaque>`
+     - Install Saleem D99 macaque atlas and template
+   * - 1
+     - :ref:`@Install_DBSproc <ahelp_@Install_DBSproc>`
+     - Install DBS processing pipeline script
+   * - 1
+     - :ref:`@Install_FATCAT_DEMO <ahelp_@Install_FATCAT_DEMO>`
+     - Install original FATCAT Demo for DTI + some FMRI processing
+   * - 1
+     - :ref:`@Install_FATMVM_DEMO <ahelp_@Install_FATMVM_DEMO>`
+     - Install FATCAT+MVM statistical modeling demo
+   * - 1
+     - :ref:`@Install_InstaCorr_Demo <ahelp_@Install_InstaCorr_Demo>`
+     - Install demo data for InstaCorr, instant correlation
+   * - 1
+     - :ref:`@Install_MEICA_Demo <ahelp_@Install_MEICA_Demo>`
+     - 
+   * - 1
+     - :ref:`@Install_NIH_Marmoset <ahelp_@Install_NIH_Marmoset>`
+     - Install NIH Marmoset atlas and template
+   * - 1
+     - :ref:`@Install_RSFMRI_Motion_Group_Demo <ahelp_@Install_RSFMRI_Motion_Group_Demo>`
+     - 
+   * - 1
+     - :ref:`@Install_TSrestMovieDemo <ahelp_@Install_TSrestMovieDemo>`
+     - 
+
+
+**DICOM info and conversion**
+==============
+
+.. list-table:: 
+   :header-rows: 0
+   :widths: 5 20 70
+
+   * - 5
+     - :ref:`Dimon <ahelp_Dimon>`
+     - Read DICOM files on disk or as they are created
+   * - 5
+     - :ref:`dcm2niix_afni <ahelp_dcm2niix_afni>`
+     - Primary choice for converting DCM files of DWI dsets (and possibly FMRI)
+   * - 2
+     - :ref:`to3d <ahelp_to3d>`
+     - Read image files, write AFNI format datasets (not usually directly used)
+   * - 2
+     - :ref:`from3d <ahelp_from3d>`
+     - Write dataset slices into image files
+   * - 1
+     - :ref:`dicom_hdr <ahelp_dicom_hdr>`
+     - Print out information from one DICOM header
+   * - 1
+     - :ref:`dicom_hinfo <ahelp_dicom_hinfo>`
+     - Print out selected information from a number of DICOM headers
+   * - 1
+     - :ref:`dicom_to_raw <ahelp_dicom_to_raw>`
+     - For extracting only the binary image data from a DICOM file
+   * - 1
+     - :ref:`@move.to.series.dirs <ahelp_@move.to.series.dirs>`
+     - Partition DICOM images into run directectories
+   * - 1
+     - :ref:`Ifile <ahelp_Ifile>`
+     - Read GE realtime EPI files and runs to3d
+   * - 1
+     - :ref:`Imon <ahelp_Imon>`
+     - (obs - use Dimon); Read GE realtime EPI files as they are created
+   * - 1
+     - :ref:`rtfeedme <ahelp_rtfeedme>`
+     - Dissect one dataset, sends images to AFNI realtime plugin
+   * - 1
+     - :ref:`plugin(RT Options) <ahelp_plugin(RT Options)>`
+     - Control options for AFNI realtime image input
+   * - 1
+     - :ref:`abut <ahelp_abut>`
+     - Create zero-filled slices to put into dataset gaps
+   * - 1
+     - :ref:`dicom_hdr <ahelp_dicom_hdr>`
+     - Print information from a DICOM file
+   * - 1
+     - :ref:`ge_header <ahelp_ge_header>`
+     - Print information from a GE I. file
+   * - 1
+     - :ref:`mayo_analyze <ahelp_mayo_analyze>`
+     - Print information froman ANALYZE .hdr file
+   * - 1
+     - :ref:`siemens_vision <ahelp_siemens_vision>`
+     - Print information from a Siemens Vision .ima file
+   * - 1
+     - :ref:`Dimon1 <ahelp_Dimon1>`
+     - (obsolete -> use Dimon)
 
 
 **Copy/convert/manipulate dsets**
@@ -1578,70 +1623,28 @@ Note that a given program may appear in more than one group.
      - 
 
 
-**Convert DICOMS to data sets, get info about dicoms**
+**Changing dset spatial structure**
 ==============
 
 .. list-table:: 
    :header-rows: 0
    :widths: 5 20 70
 
-   * - 5
-     - :ref:`Dimon <ahelp_Dimon>`
-     - Read DICOM files on disk or as they are created
-   * - 5
-     - :ref:`dcm2niix_afni <ahelp_dcm2niix_afni>`
-     - Primary choice for converting DCM files of DWI dsets (and possibly FMRI)
-   * - 2
-     - :ref:`to3d <ahelp_to3d>`
-     - Read image files, write AFNI format datasets (not usually directly used)
-   * - 2
-     - :ref:`from3d <ahelp_from3d>`
-     - Write dataset slices into image files
+   * - 3
+     - :ref:`3dLRflip <ahelp_3dLRflip>`
+     - Flip dataset contents Left <-> Right
+   * - 3
+     - :ref:`fat_proc_axialize_anat <ahelp_fat_proc_axialize_anat>`
+     - rotate brain to have standard viewing planes along slices
    * - 1
-     - :ref:`dicom_hdr <ahelp_dicom_hdr>`
-     - Print out information from one DICOM header
+     - :ref:`3daxialize <ahelp_3daxialize>`
+     - Rewrite dataset with slices in different direction
    * - 1
-     - :ref:`dicom_hinfo <ahelp_dicom_hinfo>`
-     - Print out selected information from a number of DICOM headers
-   * - 1
-     - :ref:`dicom_to_raw <ahelp_dicom_to_raw>`
-     - For extracting only the binary image data from a DICOM file
-   * - 1
-     - :ref:`@move.to.series.dirs <ahelp_@move.to.series.dirs>`
-     - Partition DICOM images into run directectories
-   * - 1
-     - :ref:`Ifile <ahelp_Ifile>`
-     - Read GE realtime EPI files and runs to3d
-   * - 1
-     - :ref:`Imon <ahelp_Imon>`
-     - (obs - use Dimon); Read GE realtime EPI files as they are created
-   * - 1
-     - :ref:`rtfeedme <ahelp_rtfeedme>`
-     - Dissect one dataset, sends images to AFNI realtime plugin
-   * - 1
-     - :ref:`plugin(RT Options) <ahelp_plugin(RT Options)>`
-     - Control options for AFNI realtime image input
-   * - 1
-     - :ref:`abut <ahelp_abut>`
-     - Create zero-filled slices to put into dataset gaps
-   * - 1
-     - :ref:`dicom_hdr <ahelp_dicom_hdr>`
-     - Print information from a DICOM file
-   * - 1
-     - :ref:`ge_header <ahelp_ge_header>`
-     - Print information from a GE I. file
-   * - 1
-     - :ref:`mayo_analyze <ahelp_mayo_analyze>`
-     - Print information froman ANALYZE .hdr file
-   * - 1
-     - :ref:`siemens_vision <ahelp_siemens_vision>`
-     - Print information from a Siemens Vision .ima file
-   * - 1
-     - :ref:`Dimon1 <ahelp_Dimon1>`
-     - (obsolete -> use Dimon)
+     - :ref:`3dresample <ahelp_3dresample>`
+     - Rewrite dataset in new orientation, with new voxel size
 
 
-**Changing dataset temporal structure**
+**Change dset temporal structure**
 ==============
 
 .. list-table:: 
@@ -1695,7 +1698,7 @@ Note that a given program may appear in more than one group.
      - 
 
 
-**Simulated dataset generators**
+**Simulate/generate dsets**
 ==============
 
 .. list-table:: 

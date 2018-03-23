@@ -1,8 +1,8 @@
+.. _ahelp_@DriveAfni:
+
 **********
 @DriveAfni
 **********
-
-.. _ahelp_@DriveAfni:
 
 .. contents:: 
     :depth: 4 

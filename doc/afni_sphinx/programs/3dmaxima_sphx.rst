@@ -1,8 +1,8 @@
+.. _ahelp_3dmaxima:
+
 ********
 3dmaxima
 ********
-
-.. _ahelp_3dmaxima:
 
 .. contents:: 
     :depth: 4 

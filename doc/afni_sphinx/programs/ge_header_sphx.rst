@@ -1,8 +1,8 @@
+.. _ahelp_ge_header:
+
 *********
 ge_header
 *********
-
-.. _ahelp_ge_header:
 
 .. contents:: 
     :depth: 4 

@@ -1,8 +1,8 @@
+.. _ahelp_FIRdesign:
+
 *********
 FIRdesign
 *********
-
-.. _ahelp_FIRdesign:
 
 .. contents:: 
     :depth: 4 

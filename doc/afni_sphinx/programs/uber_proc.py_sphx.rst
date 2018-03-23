@@ -1,8 +1,8 @@
+.. _ahelp_uber_proc.py:
+
 ************
 uber_proc.py
 ************
-
-.. _ahelp_uber_proc.py:
 
 .. contents:: 
     :depth: 4 

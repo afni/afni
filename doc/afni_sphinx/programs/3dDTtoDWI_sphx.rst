@@ -1,8 +1,8 @@
+.. _ahelp_3dDTtoDWI:
+
 *********
 3dDTtoDWI
 *********
-
-.. _ahelp_3dDTtoDWI:
 
 .. contents:: 
     :depth: 4 

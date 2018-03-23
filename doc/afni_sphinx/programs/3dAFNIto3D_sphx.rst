@@ -1,8 +1,8 @@
+.. _ahelp_3dAFNIto3D:
+
 **********
 3dAFNIto3D
 **********
-
-.. _ahelp_3dAFNIto3D:
 
 .. contents:: 
     :depth: 4 

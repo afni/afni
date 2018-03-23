@@ -1,8 +1,8 @@
+.. _ahelp_@AfniEnv:
+
 ********
 @AfniEnv
 ********
-
-.. _ahelp_@AfniEnv:
 
 .. contents:: 
     :depth: 4 

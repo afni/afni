@@ -1,8 +1,8 @@
+.. _ahelp_@GradFlipTest:
+
 *************
 @GradFlipTest
 *************
-
-.. _ahelp_@GradFlipTest:
 
 .. contents:: 
     :depth: 4 

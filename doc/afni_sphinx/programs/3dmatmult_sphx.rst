@@ -1,8 +1,8 @@
+.. _ahelp_3dmatmult:
+
 *********
 3dmatmult
 *********
-
-.. _ahelp_3dmatmult:
 
 .. contents:: 
     :depth: 4 

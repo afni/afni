@@ -1,8 +1,8 @@
+.. _ahelp_CreateIcosahedron:
+
 *****************
 CreateIcosahedron
 *****************
-
-.. _ahelp_CreateIcosahedron:
 
 .. contents:: 
     :depth: 4 

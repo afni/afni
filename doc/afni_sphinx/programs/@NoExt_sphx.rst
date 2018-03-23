@@ -1,8 +1,8 @@
+.. _ahelp_@NoExt:
+
 ******
 @NoExt
 ******
-
-.. _ahelp_@NoExt:
 
 .. contents:: 
     :depth: 4 

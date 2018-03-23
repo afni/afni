@@ -1,8 +1,8 @@
+.. _ahelp_3ddot:
+
 *****
 3ddot
 *****
-
-.. _ahelp_3ddot:
 
 .. contents:: 
     :depth: 4 

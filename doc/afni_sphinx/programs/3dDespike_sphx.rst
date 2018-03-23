@@ -1,8 +1,8 @@
+.. _ahelp_3dDespike:
+
 *********
 3dDespike
 *********
-
-.. _ahelp_3dDespike:
 
 .. contents:: 
     :depth: 4 

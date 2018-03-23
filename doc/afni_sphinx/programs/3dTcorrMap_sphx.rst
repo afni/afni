@@ -1,8 +1,8 @@
+.. _ahelp_3dTcorrMap:
+
 **********
 3dTcorrMap
 **********
-
-.. _ahelp_3dTcorrMap:
 
 .. contents:: 
     :depth: 4 

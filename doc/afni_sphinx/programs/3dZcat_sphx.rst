@@ -1,8 +1,8 @@
+.. _ahelp_3dZcat:
+
 ******
 3dZcat
 ******
-
-.. _ahelp_3dZcat:
 
 .. contents:: 
     :depth: 4 

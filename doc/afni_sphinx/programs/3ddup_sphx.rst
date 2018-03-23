@@ -1,8 +1,8 @@
+.. _ahelp_3ddup:
+
 *****
 3ddup
 *****
-
-.. _ahelp_3ddup:
 
 .. contents:: 
     :depth: 4 

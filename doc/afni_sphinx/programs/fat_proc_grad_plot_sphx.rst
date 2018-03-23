@@ -1,8 +1,8 @@
+.. _ahelp_fat_proc_grad_plot:
+
 ******************
 fat_proc_grad_plot
 ******************
-
-.. _ahelp_fat_proc_grad_plot:
 
 .. contents:: 
     :depth: 4 

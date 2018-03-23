@@ -1,8 +1,8 @@
+.. _ahelp_tfim:
+
 ****
 tfim
 ****
-
-.. _ahelp_tfim:
 
 .. contents:: 
     :depth: 4 

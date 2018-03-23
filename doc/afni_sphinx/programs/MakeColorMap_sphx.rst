@@ -1,8 +1,8 @@
+.. _ahelp_MakeColorMap:
+
 ************
 MakeColorMap
 ************
-
-.. _ahelp_MakeColorMap:
 
 .. contents:: 
     :depth: 4 

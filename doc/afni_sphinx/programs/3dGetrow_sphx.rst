@@ -1,8 +1,8 @@
+.. _ahelp_3dGetrow:
+
 ********
 3dGetrow
 ********
-
-.. _ahelp_3dGetrow:
 
 .. contents:: 
     :depth: 4 

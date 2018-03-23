@@ -1,8 +1,8 @@
+.. _ahelp_1dnorm:
+
 ******
 1dnorm
 ******
-
-.. _ahelp_1dnorm:
 
 .. contents:: 
     :depth: 4 

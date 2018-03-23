@@ -1,8 +1,8 @@
+.. _ahelp_3dEmpty:
+
 *******
 3dEmpty
 *******
-
-.. _ahelp_3dEmpty:
 
 .. contents:: 
     :depth: 4 

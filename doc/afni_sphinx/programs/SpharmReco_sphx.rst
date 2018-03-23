@@ -1,8 +1,8 @@
+.. _ahelp_SpharmReco:
+
 **********
 SpharmReco
 **********
-
-.. _ahelp_SpharmReco:
 
 .. contents:: 
     :depth: 4 

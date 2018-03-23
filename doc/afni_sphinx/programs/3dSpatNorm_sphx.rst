@@ -1,8 +1,8 @@
+.. _ahelp_3dSpatNorm:
+
 **********
 3dSpatNorm
 **********
-
-.. _ahelp_3dSpatNorm:
 
 .. contents:: 
     :depth: 4 

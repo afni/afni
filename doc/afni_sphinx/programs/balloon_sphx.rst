@@ -1,8 +1,8 @@
+.. _ahelp_balloon:
+
 *******
 balloon
 *******
-
-.. _ahelp_balloon:
 
 .. contents:: 
     :depth: 4 

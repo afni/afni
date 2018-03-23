@@ -1,8 +1,8 @@
+.. _ahelp_to3d:
+
 ****
 to3d
 ****
-
-.. _ahelp_to3d:
 
 .. contents:: 
     :depth: 4 

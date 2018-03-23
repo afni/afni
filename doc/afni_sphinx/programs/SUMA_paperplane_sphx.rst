@@ -1,8 +1,8 @@
+.. _ahelp_SUMA_paperplane:
+
 ***************
 SUMA_paperplane
 ***************
-
-.. _ahelp_SUMA_paperplane:
 
 .. contents:: 
     :depth: 4 

@@ -1,8 +1,8 @@
+.. _ahelp_3dTcat:
+
 ******
 3dTcat
 ******
-
-.. _ahelp_3dTcat:
 
 .. contents:: 
     :depth: 4 

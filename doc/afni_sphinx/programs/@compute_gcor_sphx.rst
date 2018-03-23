@@ -1,8 +1,8 @@
+.. _ahelp_@compute_gcor:
+
 *************
 @compute_gcor
 *************
-
-.. _ahelp_@compute_gcor:
 
 .. contents:: 
     :depth: 4 

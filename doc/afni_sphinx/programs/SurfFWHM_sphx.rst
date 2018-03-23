@@ -1,8 +1,8 @@
+.. _ahelp_SurfFWHM:
+
 ********
 SurfFWHM
 ********
-
-.. _ahelp_SurfFWHM:
 
 .. contents:: 
     :depth: 4 

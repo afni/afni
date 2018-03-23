@@ -1,8 +1,8 @@
+.. _ahelp_1dFlagMotion:
+
 ************
 1dFlagMotion
 ************
-
-.. _ahelp_1dFlagMotion:
 
 .. contents:: 
     :depth: 4 

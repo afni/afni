@@ -1,8 +1,8 @@
+.. _ahelp_@clip_volume:
+
 ************
 @clip_volume
 ************
-
-.. _ahelp_@clip_volume:
 
 .. contents:: 
     :depth: 4 

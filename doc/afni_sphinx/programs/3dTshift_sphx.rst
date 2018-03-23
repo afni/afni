@@ -1,8 +1,8 @@
+.. _ahelp_3dTshift:
+
 ********
 3dTshift
 ********
-
-.. _ahelp_3dTshift:
 
 .. contents:: 
     :depth: 4 

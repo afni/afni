@@ -1,8 +1,8 @@
+.. _ahelp_ent16:
+
 *****
 ent16
 *****
-
-.. _ahelp_ent16:
 
 .. contents:: 
     :depth: 4 

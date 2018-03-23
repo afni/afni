@@ -1,8 +1,8 @@
+.. _ahelp_@Reorder:
+
 ********
 @Reorder
 ********
-
-.. _ahelp_@Reorder:
 
 .. contents:: 
     :depth: 4 

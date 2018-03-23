@@ -1,8 +1,8 @@
+.. _ahelp_gen_ss_review_scripts.py:
+
 ************************
 gen_ss_review_scripts.py
 ************************
-
-.. _ahelp_gen_ss_review_scripts.py:
 
 .. contents:: 
     :depth: 4 

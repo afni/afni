@@ -1,8 +1,8 @@
+.. _ahelp_RetroTS.py:
+
 **********
 RetroTS.py
 **********
-
-.. _ahelp_RetroTS.py:
 
 .. contents:: 
     :depth: 4 

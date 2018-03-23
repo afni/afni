@@ -1,8 +1,8 @@
+.. _ahelp_fat_proc_map_to_dti:
+
 *******************
 fat_proc_map_to_dti
 *******************
-
-.. _ahelp_fat_proc_map_to_dti:
 
 .. contents:: 
     :depth: 4 

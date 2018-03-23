@@ -1,8 +1,8 @@
+.. _ahelp_@SUMA_FSvolToBRIK:
+
 *****************
 @SUMA_FSvolToBRIK
 *****************
-
-.. _ahelp_@SUMA_FSvolToBRIK:
 
 .. contents:: 
     :depth: 4 

@@ -1,8 +1,8 @@
+.. _ahelp_@FromRAI:
+
 ********
 @FromRAI
 ********
-
-.. _ahelp_@FromRAI:
 
 .. contents:: 
     :depth: 4 

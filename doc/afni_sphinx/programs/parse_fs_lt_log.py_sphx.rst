@@ -1,8 +1,8 @@
+.. _ahelp_parse_fs_lt_log.py:
+
 ******************
 parse_fs_lt_log.py
 ******************
-
-.. _ahelp_parse_fs_lt_log.py:
 
 .. contents:: 
     :depth: 4 

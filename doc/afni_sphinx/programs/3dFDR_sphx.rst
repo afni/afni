@@ -1,8 +1,8 @@
+.. _ahelp_3dFDR:
+
 *****
 3dFDR
 *****
-
-.. _ahelp_3dFDR:
 
 .. contents:: 
     :depth: 4 

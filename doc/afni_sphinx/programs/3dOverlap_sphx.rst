@@ -1,8 +1,8 @@
+.. _ahelp_3dOverlap:
+
 *********
 3dOverlap
 *********
-
-.. _ahelp_3dOverlap:
 
 .. contents:: 
     :depth: 4 

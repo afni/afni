@@ -1,8 +1,8 @@
+.. _ahelp_@help.AFNI:
+
 **********
 @help.AFNI
 **********
-
-.. _ahelp_@help.AFNI:
 
 .. contents:: 
     :depth: 4 

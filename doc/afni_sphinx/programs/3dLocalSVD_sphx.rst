@@ -1,8 +1,8 @@
+.. _ahelp_3dLocalSVD:
+
 **********
 3dLocalSVD
 **********
-
-.. _ahelp_3dLocalSVD:
 
 .. contents:: 
     :depth: 4 

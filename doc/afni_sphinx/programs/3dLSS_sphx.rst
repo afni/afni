@@ -1,8 +1,8 @@
+.. _ahelp_3dLSS:
+
 *****
 3dLSS
 *****
-
-.. _ahelp_3dLSS:
 
 .. contents:: 
     :depth: 4 

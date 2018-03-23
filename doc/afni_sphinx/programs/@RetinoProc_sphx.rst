@@ -1,8 +1,8 @@
+.. _ahelp_@RetinoProc:
+
 ***********
 @RetinoProc
 ***********
-
-.. _ahelp_@RetinoProc:
 
 .. contents:: 
     :depth: 4 

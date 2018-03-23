@@ -1,8 +1,8 @@
+.. _ahelp_xmat_tool.py:
+
 ************
 xmat_tool.py
 ************
-
-.. _ahelp_xmat_tool.py:
 
 .. contents:: 
     :depth: 4 

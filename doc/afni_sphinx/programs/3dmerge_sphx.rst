@@ -1,8 +1,8 @@
+.. _ahelp_3dmerge:
+
 *******
 3dmerge
 *******
-
-.. _ahelp_3dmerge:
 
 .. contents:: 
     :depth: 4 

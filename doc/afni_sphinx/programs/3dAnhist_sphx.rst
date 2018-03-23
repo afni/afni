@@ -1,8 +1,8 @@
+.. _ahelp_3dAnhist:
+
 ********
 3dAnhist
 ********
-
-.. _ahelp_3dAnhist:
 
 .. contents:: 
     :depth: 4 

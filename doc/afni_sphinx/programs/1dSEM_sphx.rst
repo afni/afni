@@ -1,8 +1,8 @@
+.. _ahelp_1dSEM:
+
 *****
 1dSEM
 *****
-
-.. _ahelp_1dSEM:
 
 .. contents:: 
     :depth: 4 

@@ -1,8 +1,8 @@
+.. _ahelp_@djunct_combine_str.py:
+
 **********************
 @djunct_combine_str.py
 **********************
-
-.. _ahelp_@djunct_combine_str.py:
 
 .. contents:: 
     :depth: 4 

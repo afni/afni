@@ -1,6 +1,7 @@
 ++ 6 :: Interactive viewer GUIs
 5 :: afni                :: GUI-based viewer for exploring data primarily as slices
 5 :: suma                :: GUI-based viewer for exploring data in 3D: surfaces, tracts, graph nodes, and volume slices
+1 :: aiv                 :: AFNI Image Viewer program
 
 
 ++ 3 :: Make/edit ROIs and clusters, resample
@@ -15,7 +16,7 @@
 1 :: 3dClustCount
 
 
-++ 3 :: Simple calculations on datasets (making new datasets)
+++ 3 :: Simple dset calcs (-> make new dsets)
 5 :: 3dcalc              :: Voxel-by-voxel general purpose calculator
 5 :: 3dmerge             :: Various spatial filters, thresholds, and averaging
 5 :: 3dTstat             :: Various statistics of multi-brick datasets, voxel-by-voxel
@@ -34,7 +35,7 @@
 1 :: 3dmatmult           :: Multiply datasets as matrices
 
 
-++ 4 :: Computation of various numbers from datasets
+++ 4 :: Compute various numbers from datasets
 1 :: 3dBrickStat         :: Simple statistics (max, min, mean) for scripts
 1 :: 3dExtrema           :: Find local maxima (or minima) of datasets
 4 :: 3dFWHMx             :: Estimate FWHM for all sub-bricks of dataset
@@ -44,7 +45,7 @@
 1 :: 3dFWHM              :: (obsolete -> use 3dFWHMx)
 
 
-++ 1 :: Simulated dataset generators
+++ 1 :: Simulate/generate dsets
 1 :: 3dTSgen              :: Generate 3D+time dataset from 1D model and noise
 1 :: 3dClustSim           :: Simulate datasets and estimate statistical power
 1 :: slow_surf_clustsim.py  :: Like 3dClustSim, but for surface data.
@@ -55,7 +56,7 @@
 1 :: 1dgenARMA11          :: generate synthetic ARMA(1,1) correlated time series, to test 3dREMLfit
 
 
-++ 3 :: Programs for dealing with 1D time series
+++ 3 :: Deal with 1D time series
 1 :: 1dCorrelate          :: Calculate correlation coefficients between 1D columns, with confidence intervals
 1 :: 1deval               :: 1D calculator (like 3dcalc for 1D files)
 4 :: 1d_tool.py           :: Perform various manipulations of 1D data
@@ -71,7 +72,7 @@
 1 :: column_cat           :: Catenate data horizontally
 
 
-++ 4 :: Blurring and smoothing datasets
+++ 4 :: Blur and smooth dsets
 5 :: 3dmerge              :: Process (e.g., blur) and optionally combine datasets
 1 :: 3dBlurInMask         :: Blur a dataset, but only inside a mask (or masks)
 1 :: 3dBlurToFWHM         :: Blur a dataset to a given level of smoothness (for inter-site studies)
@@ -79,7 +80,7 @@
 1 :: 3dMedianFilter       :: Smooth a 3D volume using a median filter
 
 
-++ 5 :: Getting info/stats from within ROIs
+++ 5 :: Get info/stats within ROIs
 4 :: 3dROIstats              :: Calculate dataset values from multiple ROIs
 4 :: 3dmaskave               :: Calculate dataset values averaged over a ROI
 1 :: 3dmaskdump              :: Output all dataset values in a ROI
@@ -129,7 +130,7 @@
 1 :: 3dNormalityTest     :: Tests the input values at each voxel for normality, using the Anderson-Darling method
 
 
-++ 5 :: Spatial alignment/registration/warping/axialization
+++ 5 :: Align/register/warp/axialize spatially
 5 :: 3dvolreg                  :: Volumetric registration (rigid body in 3D, 6DOF linear)
 5 :: align_epi_anat.py      :: Align 2 volumes (e.g. anat and EPI)
 1 :: auto_warp.py             :: wrapper for nonlinear warping with 3dQwarp
@@ -171,7 +172,7 @@
 1 :: @Shift_Volume            :: Move origin of dataset by specified amount or shift between MNI and MNI_ANAT
 
 
-++ 3 :: Updating AFNI, install softwares (not demos)
+++ 3 :: Update AFNI, install software (not demos)
 1 :: @UpdateAfni                  :: (obsolete -> use @update.afni.binaries)
 5 :: @update.afni.binaries       :: update current AFNI binaries
 4 :: rPkgsInstall                 :: get+install all necessary R packages
@@ -202,7 +203,7 @@
 1 :: 3dMaskToASCII
 
 
-++ 2 :: Convert DICOMS to data sets, get info about dicoms
+++ 2 :: DICOM info and conversion
 5 :: Dimon           :: Read DICOM files on disk or as they are created
 5 :: dcm2niix_afni   :: Primary choice for converting DCM files of DWI dsets (and possibly FMRI)
 2 :: to3d              :: Read image files, write AFNI format datasets (not usually directly used)
@@ -233,7 +234,7 @@
 1 :: 3dCountSpikes     :: (obsolete -> use 3dToutcount)
 
 
-++ 2 :: Time series pre-processing programs
+++ 2 :: Time series pre-processing 
 4 :: 3dTshift           :: Shift slices to a common time origin (temporal interpolation)
 1 :: 3dDespike          :: Remove spikes from voxel time series
 1 :: 3dDetrend          :: Remove trends from voxel time series
@@ -245,7 +246,7 @@
 1 :: RetroTS.py         :: Generate slicewise physiological regressors
 
 
-++ 2 :: Time series analysis programs
+++ 2 :: Time series analysis 
 1 :: 3dDeconvolve      :: Multiple linear regression and deconvolution (ordinary least squares)
 1 :: 3dREMLfit         :: Multiple linear regression (generalized least squares)
 1 :: 3dNLfim           :: Nonlinear regression
@@ -263,14 +264,14 @@
 1 :: 1dNLfit            :: Fit a general model to a vector of data
 
 
-++ 2 :: Model 1D Time Series Generators
+++ 2 :: Generate model 1D time series
 1 :: 3dDeconvolve       :: Generate hemodynamic responses for stimulus timing files
 1 :: 1dBport            :: Generate columns of sines and cosines for bandpassing
 1 :: sqwave             :: Generate a square wave (a very old program)
 1 :: waver              :: Generate hemodynamic responses to stimulus time series
 
 
-++ 3 :: Comparing data set volumes (masks or valued)
+++ 3 :: Compare dset volumes (masks or valued)
 1 :: @DiceMetric      :: Computes Dice Coefficient between two datasets
 1 :: 3dMatch            :: Find pairs of similar-looking subbricks between two groups of dsets
 1 :: 3ddot              :: Calculate correlation coefficients between sub-brick pairs in a 4D dset
@@ -288,7 +289,7 @@
 1 :: afni_restproc.py          :: (obsolete -> use afni_proc.py)
 
 
-++ 4 :: SUMA surface calculations, file manipulation, viewing
+++ 4 :: SUMA surface calculations, formats and viewing
 1 :: Surf2VolCoord
 1 :: SurfaceMetrics            :: Provides information on surface mesh
 1 :: SurfClust                 :: Find clusters on surfaces
@@ -327,14 +328,14 @@
 1 :: MakeColorMap               :: Make afni and suma colormaps
 
 
-++ 3 :: Correlation matrix creation/manipulation
+++ 3 :: Make/edit correlation matrices
 1 :: @ROI_Corr_Mat           :: Make an NxN ROI correlation matrix of N ROIs (consider 3dNetCorr instead)
 4 :: 3dNetCorr               :: Calculate correlation matrix of a set of ROIs, as well as WB maps of each
 1 :: fat_mat_sel.py           :: Visualize functional correlation (*.netcc files) or tracted-WM property (*.grid file) matrices
 1 :: 3dErrtsCormat            :: Compute the correlation matrix for the residual (or error) time series in a dataset
 
 
-++ 4 :: Masking/skull-stripping/segmentation
+++ 4 :: Mask/skull-strip/segment
 5 :: 3dAutomask              :: Generate a brain and skull-only mask
 1 :: plugin(Draw Dataset)    :: Manually draw ROI mask datasets
 1 :: @NoisySkullStrip        :: Strips the skull of anatomical datasets with low SNR
@@ -347,7 +348,7 @@
 1 :: 3dSeg                   :: Segment anatomical (t1w) volume into major brain tissue types
 
 
-++ 2 :: Dataset histograms
+++ 2 :: Dset histograms
 1 :: 3dAnhist                :: Create and plot histogram of dataset, print peaks
 1 :: 3dhistog                :: Create histogram of dataset to a file
 1 :: plugin(Histogram)       :: Interactively graphs histogram of a dataset (or ROI)
@@ -355,7 +356,7 @@
 1 :: 3dHist                  :: Compute histograms using functions for generating priors
 
 
-++ 4 :: Programs for manipulating information in the dataset header
+++ 4 :: Edit dset headers
 5 :: 3dinfo                  :: Print out information from the header
 1 :: 3dAttribute             :: Print out a single header attribute
 1 :: 3dnvals             :: Print out the number of sub-bricks (3D volumes) in a dataset
@@ -388,14 +389,14 @@
 1 :: @Shift_Volume            :: Move origin of dataset by specified amount or shift between MNI and MNI_ANAT
 
 
-++ 2 :: Programs for changing dataset spatial structure
+++ 2 :: Changing dset spatial structure
 1 :: 3daxialize               :: Rewrite dataset with slices in different direction
 1 :: 3dresample               :: Rewrite dataset in new orientation, with new voxel size
 3 :: 3dLRflip                 :: Flip dataset contents Left <-> Right
 3 :: fat_proc_axialize_anat   :: rotate brain to have standard viewing planes along slices
 
 
-++ 2 :: Changing dataset temporal structure
+++ 2 :: Change dset temporal structure
 1 :: 3dUpsample           :: Upsample in time (to a shorter TR)
 
 
@@ -407,7 +408,7 @@
 1 :: 3dSharpen              :: 3D sharpening filter applied to a dataset (to clean up a template)
 
 
-++ 3 :: DWI/DTI/Diffusion specific
+++ 3 :: DWI/DTI/diffusion-related
 1 :: 3dDTeig                :: Computes eigenvalues and eigenvectors for an input DT set
 1 :: 3dDTtoDWI              :: Calculate 'ideal' DWIs for each grad, from DT+b0+gradient files 
 1 :: 3dDTtoNoisyDWI         :: Make a simulated DWI set with random noise, from DT+gradient information
@@ -437,7 +438,7 @@
 5 :: 1dDW_Grad_o_Mat++    :: Perform calculations and conversions of DWI gradients and matrices
 
 
-++ 2 :: Matrix-plus-MVM modelling (for correlation or structural props)
+++ 2 :: MVM modelling of (correlational or structural) matrices
 1 :: fat_lat_csv.py        :: Make latent variables for CSV file data using factor analysis; esp for fat_mvm* usage
 1 :: fat_mat_sel.py        :: Plot matrices from 3dNetcorr (*.netcc) or 3dTrackID (*.grid) files
 1 :: fat_mvm_gridconv.py   :: Convert ooold 3dTrackID output *.grid files; should be unnecessary now
@@ -460,7 +461,7 @@
 1 :: stimband
 
 
-++ 3 :: Driving AFNI/SUMA, image-making and snapshotting
+++ 3 :: Drive AFNI/SUMA, make images/snapshots/montages
 1 :: @DriveAfni                    :: Example script to drive afni GUI with class data
 4 :: DriveSuma                    :: Drive suma from external program
 1 :: HalloSuma
@@ -483,7 +484,7 @@
 1 :: @AfniEnv                       :: Get and set AFNI environment variables
 
 
-++ 2 :: Get/install demos
+++ 2 :: Download/install demos
 1 :: @Install_3dPFM_Demo
 1 :: @Install_AfniRetinoDemo
 1 :: @Install_ClustScat_Demo
@@ -511,7 +512,7 @@
 1 :: parse_fs_lt_log.py          :: Parse FreeSurfer region labels to get indices
 
 
-++ 3 :: Dset concatenation, splitting, slice add/remove
+++ 3 :: Edit dsets: concatenate, split, add/remove slices
 1 :: 3dbucket          :: Assemble a bucket dataset from multiple input sub-bricks3dTcat
 1 :: 3dZeropad         :: Add zero slices around the edges of a dataset
 1 :: 3dTsplit4D        :: Convert a 3D+time dataset into multiple 3D single-brick files
@@ -522,7 +523,7 @@
 1 :: 3dZregrid         :: Interpolate a dataset to a different slice thickness
 
 
-++ 4 :: Stimulus timing file functionality (make, edit, evaluate)
+++ 4 :: Make/edit/evaluate stimulus timing files
 4 :: make_random_timing.py    :: Generate random stimulus times files
 4 :: timing_tool.py           :: Edit stimulus timing files
 1 :: 1dMarry                   :: Combine ragged 1D files for use with 3dDeconvolve's -stim_times_AM2 option

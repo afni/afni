@@ -1,8 +1,8 @@
+.. _ahelp_HalloSuma:
+
 *********
 HalloSuma
 *********
-
-.. _ahelp_HalloSuma:
 
 .. contents:: 
     :depth: 4 

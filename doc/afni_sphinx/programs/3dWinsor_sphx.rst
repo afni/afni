@@ -1,8 +1,8 @@
+.. _ahelp_3dWinsor:
+
 ********
 3dWinsor
 ********
-
-.. _ahelp_3dWinsor:
 
 .. contents:: 
     :depth: 4 

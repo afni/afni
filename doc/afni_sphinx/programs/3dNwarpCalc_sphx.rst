@@ -1,8 +1,8 @@
+.. _ahelp_3dNwarpCalc:
+
 ***********
 3dNwarpCalc
 ***********
-
-.. _ahelp_3dNwarpCalc:
 
 .. contents:: 
     :depth: 4 

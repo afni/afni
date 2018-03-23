@@ -1,8 +1,8 @@
+.. _ahelp_3dMannWhitney:
+
 *************
 3dMannWhitney
 *************
-
-.. _ahelp_3dMannWhitney:
 
 .. contents:: 
     :depth: 4 

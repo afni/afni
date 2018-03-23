@@ -1,8 +1,8 @@
+.. _ahelp_@Purify_1D:
+
 **********
 @Purify_1D
 **********
-
-.. _ahelp_@Purify_1D:
 
 .. contents:: 
     :depth: 4 

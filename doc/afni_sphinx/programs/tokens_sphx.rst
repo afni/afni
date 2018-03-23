@@ -1,8 +1,8 @@
+.. _ahelp_tokens:
+
 ******
 tokens
 ******
-
-.. _ahelp_tokens:
 
 .. contents:: 
     :depth: 4 

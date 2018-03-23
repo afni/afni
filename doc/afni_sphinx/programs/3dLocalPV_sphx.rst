@@ -1,8 +1,8 @@
+.. _ahelp_3dLocalPV:
+
 *********
 3dLocalPV
 *********
-
-.. _ahelp_3dLocalPV:
 
 .. contents:: 
     :depth: 4 

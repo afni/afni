@@ -1,8 +1,8 @@
+.. _ahelp_FATCAT_matplot:
+
 **************
 FATCAT_matplot
 **************
-
-.. _ahelp_FATCAT_matplot:
 
 .. contents:: 
     :depth: 4 

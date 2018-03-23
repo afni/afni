@@ -1,8 +1,8 @@
+.. _ahelp_SurfMeasures:
+
 ************
 SurfMeasures
 ************
-
-.. _ahelp_SurfMeasures:
 
 .. contents:: 
     :depth: 4 

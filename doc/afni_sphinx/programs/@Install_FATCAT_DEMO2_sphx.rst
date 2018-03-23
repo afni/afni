@@ -1,8 +1,8 @@
+.. _ahelp_@Install_FATCAT_DEMO2:
+
 *********************
 @Install_FATCAT_DEMO2
 *********************
-
-.. _ahelp_@Install_FATCAT_DEMO2:
 
 .. contents:: 
     :depth: 4 

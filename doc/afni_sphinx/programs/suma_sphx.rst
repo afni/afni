@@ -1,8 +1,8 @@
+.. _ahelp_suma:
+
 ****
 suma
 ****
-
-.. _ahelp_suma:
 
 .. contents:: 
     :depth: 4 

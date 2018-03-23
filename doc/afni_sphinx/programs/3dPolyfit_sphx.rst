@@ -1,8 +1,8 @@
+.. _ahelp_3dPolyfit:
+
 *********
 3dPolyfit
 *********
-
-.. _ahelp_3dPolyfit:
 
 .. contents:: 
     :depth: 4 

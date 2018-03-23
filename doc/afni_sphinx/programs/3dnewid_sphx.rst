@@ -1,8 +1,8 @@
+.. _ahelp_3dnewid:
+
 *******
 3dnewid
 *******
-
-.. _ahelp_3dnewid:
 
 .. contents:: 
     :depth: 4 

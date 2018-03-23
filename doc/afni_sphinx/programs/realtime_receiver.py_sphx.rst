@@ -1,8 +1,8 @@
+.. _ahelp_realtime_receiver.py:
+
 ********************
 realtime_receiver.py
 ********************
-
-.. _ahelp_realtime_receiver.py:
 
 .. contents:: 
     :depth: 4 

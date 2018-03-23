@@ -1,8 +1,8 @@
+.. _ahelp_@escape-:
+
 ********
 @escape-
 ********
-
-.. _ahelp_@escape-:
 
 .. contents:: 
     :depth: 4 

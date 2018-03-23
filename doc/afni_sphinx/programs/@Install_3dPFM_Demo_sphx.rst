@@ -1,8 +1,8 @@
+.. _ahelp_@Install_3dPFM_Demo:
+
 *******************
 @Install_3dPFM_Demo
 *******************
-
-.. _ahelp_@Install_3dPFM_Demo:
 
 .. contents:: 
     :depth: 4 

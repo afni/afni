@@ -1,8 +1,8 @@
+.. _ahelp_3dXClustSim:
+
 ***********
 3dXClustSim
 ***********
-
-.. _ahelp_3dXClustSim:
 
 .. contents:: 
     :depth: 4 

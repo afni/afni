@@ -1,8 +1,8 @@
+.. _ahelp_afni_open:
+
 *********
 afni_open
 *********
-
-.. _ahelp_afni_open:
 
 .. contents:: 
     :depth: 4 

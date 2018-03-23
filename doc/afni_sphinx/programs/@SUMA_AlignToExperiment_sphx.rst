@@ -1,8 +1,8 @@
+.. _ahelp_@SUMA_AlignToExperiment:
+
 ***********************
 @SUMA_AlignToExperiment
 ***********************
-
-.. _ahelp_@SUMA_AlignToExperiment:
 
 .. contents:: 
     :depth: 4 

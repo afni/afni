@@ -1,8 +1,8 @@
+.. _ahelp_fat_mvm_prep.py:
+
 ***************
 fat_mvm_prep.py
 ***************
-
-.. _ahelp_fat_mvm_prep.py:
 
 .. contents:: 
     :depth: 4 

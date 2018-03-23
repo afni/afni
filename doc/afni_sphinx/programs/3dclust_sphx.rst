@@ -1,8 +1,8 @@
+.. _ahelp_3dclust:
+
 *******
 3dclust
 *******
-
-.. _ahelp_3dclust:
 
 .. contents:: 
     :depth: 4 

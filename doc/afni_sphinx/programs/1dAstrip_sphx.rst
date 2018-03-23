@@ -1,8 +1,8 @@
+.. _ahelp_1dAstrip:
+
 ********
 1dAstrip
 ********
-
-.. _ahelp_1dAstrip:
 
 .. contents:: 
     :depth: 4 

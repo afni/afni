@@ -1,8 +1,8 @@
+.. _ahelp_@align_partial_oblique:
+
 **********************
 @align_partial_oblique
 **********************
-
-.. _ahelp_@align_partial_oblique:
 
 .. contents:: 
     :depth: 4 

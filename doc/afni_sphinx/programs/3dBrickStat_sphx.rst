@@ -1,8 +1,8 @@
+.. _ahelp_3dBrickStat:
+
 ***********
 3dBrickStat
 ***********
-
-.. _ahelp_3dBrickStat:
 
 .. contents:: 
     :depth: 4 

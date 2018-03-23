@@ -1,8 +1,8 @@
+.. _ahelp_3dNwarpXYZ:
+
 **********
 3dNwarpXYZ
 **********
-
-.. _ahelp_3dNwarpXYZ:
 
 .. contents:: 
     :depth: 4 

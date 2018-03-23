@@ -1,8 +1,8 @@
+.. _ahelp_ConvertSurface:
+
 **************
 ConvertSurface
 **************
-
-.. _ahelp_ConvertSurface:
 
 .. contents:: 
     :depth: 4 

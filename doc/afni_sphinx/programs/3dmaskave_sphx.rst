@@ -1,8 +1,8 @@
+.. _ahelp_3dmaskave:
+
 *********
 3dmaskave
 *********
-
-.. _ahelp_3dmaskave:
 
 .. contents:: 
     :depth: 4 

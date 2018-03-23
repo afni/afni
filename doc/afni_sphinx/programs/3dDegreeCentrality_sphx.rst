@@ -1,8 +1,8 @@
+.. _ahelp_3dDegreeCentrality:
+
 ******************
 3dDegreeCentrality
 ******************
-
-.. _ahelp_3dDegreeCentrality:
 
 .. contents:: 
     :depth: 4 

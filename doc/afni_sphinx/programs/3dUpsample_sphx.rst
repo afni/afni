@@ -1,8 +1,8 @@
+.. _ahelp_3dUpsample:
+
 **********
 3dUpsample
 **********
-
-.. _ahelp_3dUpsample:
 
 .. contents:: 
     :depth: 4 

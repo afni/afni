@@ -1,8 +1,8 @@
+.. _ahelp_3dNotes:
+
 *******
 3dNotes
 *******
-
-.. _ahelp_3dNotes:
 
 .. contents:: 
     :depth: 4 

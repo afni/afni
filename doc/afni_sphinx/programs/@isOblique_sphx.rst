@@ -1,8 +1,8 @@
+.. _ahelp_@isOblique:
+
 **********
 @isOblique
 **********
-
-.. _ahelp_@isOblique:
 
 .. contents:: 
     :depth: 4 

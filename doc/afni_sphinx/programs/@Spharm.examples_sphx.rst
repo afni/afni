@@ -1,8 +1,8 @@
+.. _ahelp_@Spharm.examples:
+
 ****************
 @Spharm.examples
 ****************
-
-.. _ahelp_@Spharm.examples:
 
 .. contents:: 
     :depth: 4 

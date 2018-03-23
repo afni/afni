@@ -1,8 +1,8 @@
+.. _ahelp_3dXYZcat:
+
 ********
 3dXYZcat
 ********
-
-.. _ahelp_3dXYZcat:
 
 .. contents:: 
     :depth: 4 

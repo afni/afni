@@ -1,8 +1,8 @@
+.. _ahelp_3dTwotoComplex:
+
 **************
 3dTwotoComplex
 **************
-
-.. _ahelp_3dTwotoComplex:
 
 .. contents:: 
     :depth: 4 

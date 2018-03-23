@@ -1,8 +1,8 @@
+.. _ahelp_3dTORTOISEtoHere:
+
 ****************
 3dTORTOISEtoHere
 ****************
-
-.. _ahelp_3dTORTOISEtoHere:
 
 .. contents:: 
     :depth: 4 

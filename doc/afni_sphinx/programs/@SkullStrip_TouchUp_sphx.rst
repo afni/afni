@@ -1,8 +1,8 @@
+.. _ahelp_@SkullStrip_TouchUp:
+
 *******************
 @SkullStrip_TouchUp
 *******************
-
-.. _ahelp_@SkullStrip_TouchUp:
 
 .. contents:: 
     :depth: 4 

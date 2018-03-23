@@ -1,8 +1,8 @@
+.. _ahelp_@compute_OC_weights:
+
 *******************
 @compute_OC_weights
 *******************
-
-.. _ahelp_@compute_OC_weights:
 
 .. contents:: 
     :depth: 4 

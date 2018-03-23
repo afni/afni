@@ -1,8 +1,8 @@
+.. _ahelp_from3d:
+
 ******
 from3d
 ******
-
-.. _ahelp_from3d:
 
 .. contents:: 
     :depth: 4 

@@ -1,8 +1,8 @@
+.. _ahelp_3dZcutup:
+
 ********
 3dZcutup
 ********
-
-.. _ahelp_3dZcutup:
 
 .. contents:: 
     :depth: 4 

@@ -1,8 +1,8 @@
+.. _ahelp_1dcat:
+
 *****
 1dcat
 *****
-
-.. _ahelp_1dcat:
 
 .. contents:: 
     :depth: 4 

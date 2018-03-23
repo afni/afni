@@ -1,8 +1,8 @@
+.. _ahelp_3dRowFillin:
+
 ***********
 3dRowFillin
 ***********
-
-.. _ahelp_3dRowFillin:
 
 .. contents:: 
     :depth: 4 

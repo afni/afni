@@ -1,8 +1,8 @@
+.. _ahelp_3dAutobox:
+
 *********
 3dAutobox
 *********
-
-.. _ahelp_3dAutobox:
 
 .. contents:: 
     :depth: 4 

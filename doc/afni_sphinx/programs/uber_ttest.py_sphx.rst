@@ -1,8 +1,8 @@
+.. _ahelp_uber_ttest.py:
+
 *************
 uber_ttest.py
 *************
-
-.. _ahelp_uber_ttest.py:
 
 .. contents:: 
     :depth: 4 

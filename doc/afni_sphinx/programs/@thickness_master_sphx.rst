@@ -1,8 +1,8 @@
+.. _ahelp_@thickness_master:
+
 *****************
 @thickness_master
 *****************
-
-.. _ahelp_@thickness_master:
 
 .. contents:: 
     :depth: 4 

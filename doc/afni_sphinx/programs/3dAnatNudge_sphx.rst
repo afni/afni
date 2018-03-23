@@ -1,8 +1,8 @@
+.. _ahelp_3dAnatNudge:
+
 ***********
 3dAnatNudge
 ***********
-
-.. _ahelp_3dAnatNudge:
 
 .. contents:: 
     :depth: 4 

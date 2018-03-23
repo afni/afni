@@ -1,8 +1,8 @@
+.. _ahelp_@Atlasize:
+
 *********
 @Atlasize
 *********
-
-.. _ahelp_@Atlasize:
 
 .. contents:: 
     :depth: 4 

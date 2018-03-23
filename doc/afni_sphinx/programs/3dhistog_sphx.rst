@@ -1,8 +1,8 @@
+.. _ahelp_3dhistog:
+
 ********
 3dhistog
 ********
-
-.. _ahelp_3dhistog:
 
 .. contents:: 
     :depth: 4 

@@ -1,8 +1,8 @@
+.. _ahelp_sfim:
+
 ****
 sfim
 ****
-
-.. _ahelp_sfim:
 
 .. contents:: 
     :depth: 4 

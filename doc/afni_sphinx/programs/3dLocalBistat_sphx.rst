@@ -1,8 +1,8 @@
+.. _ahelp_3dLocalBistat:
+
 *************
 3dLocalBistat
 *************
-
-.. _ahelp_3dLocalBistat:
 
 .. contents:: 
     :depth: 4 

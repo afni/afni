@@ -1,8 +1,8 @@
+.. _ahelp_3dDWUncert:
+
 **********
 3dDWUncert
 **********
-
-.. _ahelp_3dDWUncert:
 
 .. contents:: 
     :depth: 4 

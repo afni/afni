@@ -1,8 +1,8 @@
+.. _ahelp_Vecwarp:
+
 *******
 Vecwarp
 *******
-
-.. _ahelp_Vecwarp:
 
 .. contents:: 
     :depth: 4 

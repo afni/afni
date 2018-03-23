@@ -1,8 +1,8 @@
+.. _ahelp_3dGroupInCorr:
+
 *************
 3dGroupInCorr
 *************
-
-.. _ahelp_3dGroupInCorr:
 
 .. contents:: 
     :depth: 4 

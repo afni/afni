@@ -1,8 +1,8 @@
+.. _ahelp_3dStatClust:
+
 ***********
 3dStatClust
 ***********
-
-.. _ahelp_3dStatClust:
 
 .. contents:: 
     :depth: 4 

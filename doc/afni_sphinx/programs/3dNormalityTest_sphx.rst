@@ -1,8 +1,8 @@
+.. _ahelp_3dNormalityTest:
+
 ***************
 3dNormalityTest
 ***************
-
-.. _ahelp_3dNormalityTest:
 
 .. contents:: 
     :depth: 4 

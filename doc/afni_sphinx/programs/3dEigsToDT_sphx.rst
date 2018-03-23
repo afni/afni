@@ -1,8 +1,8 @@
+.. _ahelp_3dEigsToDT:
+
 **********
 3dEigsToDT
 **********
-
-.. _ahelp_3dEigsToDT:
 
 .. contents:: 
     :depth: 4 

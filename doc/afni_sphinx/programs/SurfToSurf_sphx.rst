@@ -1,8 +1,8 @@
+.. _ahelp_SurfToSurf:
+
 **********
 SurfToSurf
 **********
-
-.. _ahelp_SurfToSurf:
 
 .. contents:: 
     :depth: 4 

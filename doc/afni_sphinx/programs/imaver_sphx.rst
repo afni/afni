@@ -1,8 +1,8 @@
+.. _ahelp_imaver:
+
 ******
 imaver
 ******
-
-.. _ahelp_imaver:
 
 .. contents:: 
     :depth: 4 

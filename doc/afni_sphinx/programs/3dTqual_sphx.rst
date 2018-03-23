@@ -1,8 +1,8 @@
+.. _ahelp_3dTqual:
+
 *******
 3dTqual
 *******
-
-.. _ahelp_3dTqual:
 
 .. contents:: 
     :depth: 4 

@@ -1,8 +1,8 @@
+.. _ahelp_@parse_afni_name:
+
 ****************
 @parse_afni_name
 ****************
-
-.. _ahelp_@parse_afni_name:
 
 .. contents:: 
     :depth: 4 

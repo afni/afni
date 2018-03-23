@@ -1,8 +1,8 @@
+.. _ahelp_fat_proc_dwi_to_dt:
+
 ******************
 fat_proc_dwi_to_dt
 ******************
-
-.. _ahelp_fat_proc_dwi_to_dt:
 
 .. contents:: 
     :depth: 4 

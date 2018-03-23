@@ -1,8 +1,8 @@
+.. _ahelp_@float_fix:
+
 **********
 @float_fix
 **********
-
-.. _ahelp_@float_fix:
 
 .. contents:: 
     :depth: 4 

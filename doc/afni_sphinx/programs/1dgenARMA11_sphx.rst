@@ -1,8 +1,8 @@
+.. _ahelp_1dgenARMA11:
+
 ***********
 1dgenARMA11
 ***********
-
-.. _ahelp_1dgenARMA11:
 
 .. contents:: 
     :depth: 4 

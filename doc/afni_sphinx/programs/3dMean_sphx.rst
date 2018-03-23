@@ -1,8 +1,8 @@
+.. _ahelp_3dMean:
+
 ******
 3dMean
 ******
-
-.. _ahelp_3dMean:
 
 .. contents:: 
     :depth: 4 

@@ -1,8 +1,8 @@
+.. _ahelp_@1dDiffMag:
+
 **********
 @1dDiffMag
 **********
-
-.. _ahelp_@1dDiffMag:
 
 .. contents:: 
     :depth: 4 

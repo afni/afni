@@ -1,8 +1,8 @@
+.. _ahelp_3dLRflip:
+
 ********
 3dLRflip
 ********
-
-.. _ahelp_3dLRflip:
 
 .. contents:: 
     :depth: 4 

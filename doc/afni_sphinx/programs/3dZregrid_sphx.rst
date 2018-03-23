@@ -1,8 +1,8 @@
+.. _ahelp_3dZregrid:
+
 *********
 3dZregrid
 *********
-
-.. _ahelp_3dZregrid:
 
 .. contents:: 
     :depth: 4 

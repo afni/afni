@@ -1,8 +1,8 @@
+.. _ahelp_fdrval:
+
 ******
 fdrval
 ******
-
-.. _ahelp_fdrval:
 
 .. contents:: 
     :depth: 4 

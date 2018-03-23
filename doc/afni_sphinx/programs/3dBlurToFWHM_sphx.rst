@@ -1,8 +1,8 @@
+.. _ahelp_3dBlurToFWHM:
+
 ************
 3dBlurToFWHM
 ************
-
-.. _ahelp_3dBlurToFWHM:
 
 .. contents:: 
     :depth: 4 

@@ -1,8 +1,8 @@
+.. _ahelp_3dECM:
+
 *****
 3dECM
 *****
-
-.. _ahelp_3dECM:
 
 .. contents:: 
     :depth: 4 

@@ -1,8 +1,8 @@
+.. _ahelp_3dRank:
+
 ******
 3dRank
 ******
-
-.. _ahelp_3dRank:
 
 .. contents:: 
     :depth: 4 

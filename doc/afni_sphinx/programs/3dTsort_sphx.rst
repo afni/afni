@@ -1,8 +1,8 @@
+.. _ahelp_3dTsort:
+
 *******
 3dTsort
 *******
-
-.. _ahelp_3dTsort:
 
 .. contents:: 
     :depth: 4 

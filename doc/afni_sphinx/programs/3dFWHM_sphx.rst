@@ -1,8 +1,8 @@
+.. _ahelp_3dFWHM:
+
 ******
 3dFWHM
 ******
-
-.. _ahelp_3dFWHM:
 
 .. contents:: 
     :depth: 4 

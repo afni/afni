@@ -1,8 +1,8 @@
+.. _ahelp_3dTfitter:
+
 *********
 3dTfitter
 *********
-
-.. _ahelp_3dTfitter:
 
 .. contents:: 
     :depth: 4 

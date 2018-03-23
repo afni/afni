@@ -1,8 +1,8 @@
+.. _ahelp_im2niml:
+
 *******
 im2niml
 *******
-
-.. _ahelp_im2niml:
 
 .. contents:: 
     :depth: 4 

@@ -1,8 +1,8 @@
+.. _ahelp_3dAutomask:
+
 **********
 3dAutomask
 **********
-
-.. _ahelp_3dAutomask:
 
 .. contents:: 
     :depth: 4 

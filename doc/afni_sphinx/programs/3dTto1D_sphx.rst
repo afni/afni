@@ -1,8 +1,8 @@
+.. _ahelp_3dTto1D:
+
 *******
 3dTto1D
 *******
-
-.. _ahelp_3dTto1D:
 
 .. contents:: 
     :depth: 4 

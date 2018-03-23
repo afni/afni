@@ -1,8 +1,8 @@
+.. _ahelp_SurfRetinoMap:
+
 *************
 SurfRetinoMap
 *************
-
-.. _ahelp_SurfRetinoMap:
 
 .. contents:: 
     :depth: 4 

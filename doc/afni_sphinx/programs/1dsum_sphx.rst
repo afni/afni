@@ -1,8 +1,8 @@
+.. _ahelp_1dsum:
+
 *****
 1dsum
 *****
-
-.. _ahelp_1dsum:
 
 .. contents:: 
     :depth: 4 

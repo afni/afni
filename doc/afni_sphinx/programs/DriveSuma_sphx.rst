@@ -1,8 +1,8 @@
+.. _ahelp_DriveSuma:
+
 *********
 DriveSuma
 *********
-
-.. _ahelp_DriveSuma:
 
 .. contents:: 
     :depth: 4 

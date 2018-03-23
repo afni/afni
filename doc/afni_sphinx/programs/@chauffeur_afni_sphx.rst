@@ -1,8 +1,8 @@
+.. _ahelp_@chauffeur_afni:
+
 ***************
 @chauffeur_afni
 ***************
-
-.. _ahelp_@chauffeur_afni:
 
 .. contents:: 
     :depth: 4 

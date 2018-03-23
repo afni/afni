@@ -1,8 +1,8 @@
+.. _ahelp_fat_mvm_scripter.py:
+
 *******************
 fat_mvm_scripter.py
 *******************
-
-.. _ahelp_fat_mvm_scripter.py:
 
 .. contents:: 
     :depth: 4 

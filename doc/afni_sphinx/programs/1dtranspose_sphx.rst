@@ -1,8 +1,8 @@
+.. _ahelp_1dtranspose:
+
 ***********
 1dtranspose
 ***********
-
-.. _ahelp_1dtranspose:
 
 .. contents:: 
     :depth: 4 

@@ -1,8 +1,8 @@
+.. _ahelp_3dWarpDrive:
+
 ***********
 3dWarpDrive
 ***********
-
-.. _ahelp_3dWarpDrive:
 
 .. contents:: 
     :depth: 4 

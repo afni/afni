@@ -1,8 +1,8 @@
+.. _ahelp_3dBrainSync:
+
 ***********
 3dBrainSync
 ***********
-
-.. _ahelp_3dBrainSync:
 
 .. contents:: 
     :depth: 4 

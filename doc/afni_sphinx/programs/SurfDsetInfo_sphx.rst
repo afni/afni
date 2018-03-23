@@ -1,8 +1,8 @@
+.. _ahelp_SurfDsetInfo:
+
 ************
 SurfDsetInfo
 ************
-
-.. _ahelp_SurfDsetInfo:
 
 .. contents:: 
     :depth: 4 

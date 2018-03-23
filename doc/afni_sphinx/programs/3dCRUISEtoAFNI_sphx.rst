@@ -1,8 +1,8 @@
+.. _ahelp_3dCRUISEtoAFNI:
+
 **************
 3dCRUISEtoAFNI
 **************
-
-.. _ahelp_3dCRUISEtoAFNI:
 
 .. contents:: 
     :depth: 4 

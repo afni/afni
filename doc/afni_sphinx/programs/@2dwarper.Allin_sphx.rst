@@ -1,8 +1,8 @@
+.. _ahelp_@2dwarper.Allin:
+
 ***************
 @2dwarper.Allin
 ***************
-
-.. _ahelp_@2dwarper.Allin:
 
 .. contents:: 
     :depth: 4 

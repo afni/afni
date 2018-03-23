@@ -1,8 +1,8 @@
+.. _ahelp_myget:
+
 *****
 myget
 *****
-
-.. _ahelp_myget:
 
 .. contents:: 
     :depth: 4 

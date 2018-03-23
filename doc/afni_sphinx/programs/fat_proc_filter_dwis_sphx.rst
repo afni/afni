@@ -1,8 +1,8 @@
+.. _ahelp_fat_proc_filter_dwis:
+
 ********************
 fat_proc_filter_dwis
 ********************
-
-.. _ahelp_fat_proc_filter_dwis:
 
 .. contents:: 
     :depth: 4 

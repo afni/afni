@@ -1,8 +1,8 @@
+.. _ahelp_@ANATICOR:
+
 *********
 @ANATICOR
 *********
-
-.. _ahelp_@ANATICOR:
 
 .. contents:: 
     :depth: 4 

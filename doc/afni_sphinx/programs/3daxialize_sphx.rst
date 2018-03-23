@@ -1,8 +1,8 @@
+.. _ahelp_3daxialize:
+
 **********
 3daxialize
 **********
-
-.. _ahelp_3daxialize:
 
 .. contents:: 
     :depth: 4 

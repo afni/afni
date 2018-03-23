@@ -1,8 +1,8 @@
+.. _ahelp_3dTcorrelate:
+
 ************
 3dTcorrelate
 ************
-
-.. _ahelp_3dTcorrelate:
 
 .. contents:: 
     :depth: 4 

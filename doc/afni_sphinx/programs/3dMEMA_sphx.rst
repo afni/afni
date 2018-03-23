@@ -1,8 +1,8 @@
+.. _ahelp_3dMEMA:
+
 ******
 3dMEMA
 ******
-
-.. _ahelp_3dMEMA:
 
 .. contents:: 
     :depth: 4 

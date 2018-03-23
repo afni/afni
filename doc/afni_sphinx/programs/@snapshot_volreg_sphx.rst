@@ -1,8 +1,8 @@
+.. _ahelp_@snapshot_volreg:
+
 ****************
 @snapshot_volreg
 ****************
-
-.. _ahelp_@snapshot_volreg:
 
 .. contents:: 
     :depth: 4 

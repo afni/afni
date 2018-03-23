@@ -1,8 +1,8 @@
+.. _ahelp_3dUniformize:
+
 ************
 3dUniformize
 ************
-
-.. _ahelp_3dUniformize:
 
 .. contents:: 
     :depth: 4 

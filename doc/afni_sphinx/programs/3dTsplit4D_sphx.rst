@@ -1,8 +1,8 @@
+.. _ahelp_3dTsplit4D:
+
 **********
 3dTsplit4D
 **********
-
-.. _ahelp_3dTsplit4D:
 
 .. contents:: 
     :depth: 4 

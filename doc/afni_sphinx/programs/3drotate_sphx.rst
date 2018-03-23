@@ -1,8 +1,8 @@
+.. _ahelp_3drotate:
+
 ********
 3drotate
 ********
-
-.. _ahelp_3drotate:
 
 .. contents:: 
     :depth: 4 

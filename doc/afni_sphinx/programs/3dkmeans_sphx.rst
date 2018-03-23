@@ -1,8 +1,8 @@
+.. _ahelp_3dkmeans:
+
 ********
 3dkmeans
 ********
-
-.. _ahelp_3dkmeans:
 
 .. contents:: 
     :depth: 4 

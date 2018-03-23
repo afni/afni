@@ -1,8 +1,8 @@
+.. _ahelp_@SUMA_renumber_FS:
+
 *****************
 @SUMA_renumber_FS
 *****************
-
-.. _ahelp_@SUMA_renumber_FS:
 
 .. contents:: 
     :depth: 4 

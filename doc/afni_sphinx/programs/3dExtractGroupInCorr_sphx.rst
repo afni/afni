@@ -1,8 +1,8 @@
+.. _ahelp_3dExtractGroupInCorr:
+
 ********************
 3dExtractGroupInCorr
 ********************
-
-.. _ahelp_3dExtractGroupInCorr:
 
 .. contents:: 
     :depth: 4 

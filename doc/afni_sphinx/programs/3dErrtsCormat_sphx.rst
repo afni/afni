@@ -1,8 +1,8 @@
+.. _ahelp_3dErrtsCormat:
+
 *************
 3dErrtsCormat
 *************
-
-.. _ahelp_3dErrtsCormat:
 
 .. contents:: 
     :depth: 4 

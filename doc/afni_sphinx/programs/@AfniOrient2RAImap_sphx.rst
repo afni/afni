@@ -1,8 +1,8 @@
+.. _ahelp_@AfniOrient2RAImap:
+
 ******************
 @AfniOrient2RAImap
 ******************
-
-.. _ahelp_@AfniOrient2RAImap:
 
 .. contents:: 
     :depth: 4 

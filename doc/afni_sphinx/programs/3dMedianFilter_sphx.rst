@@ -1,8 +1,8 @@
+.. _ahelp_3dMedianFilter:
+
 **************
 3dMedianFilter
 **************
-
-.. _ahelp_3dMedianFilter:
 
 .. contents:: 
     :depth: 4 

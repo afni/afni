@@ -1,8 +1,8 @@
+.. _ahelp_ScaleToMap:
+
 **********
 ScaleToMap
 **********
-
-.. _ahelp_ScaleToMap:
 
 .. contents:: 
     :depth: 4 
