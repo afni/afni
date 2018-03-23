@@ -1177,7 +1177,8 @@ class SubjProcSream:
                         helpstr='number of slices to pad by in volreg')
 
         self.valid_opts.add_opt('-combine_method', 1, [],
-                        acplist=['mean','OC', 'OC_A', 'OC_B'],
+                        acplist=['mean','OC', 'OC_A', 'OC_B',
+                                 'tedana'],
                         helpstr='specify method for combining echoes per run')
 
         self.valid_opts.add_opt('-blur_filter', 1, [],
@@ -2261,6 +2262,27 @@ class SubjProcSream:
                return None      # index too big, fail
 
         return None
+
+    def find_block_order(self, b0, b1):
+        """find order between blocks b0 and b1
+           return:
+               -2 : some block is not found
+               -1 : b0 is first
+                0 : they are the same
+                1 : b0 is last
+        """
+
+        i0 = self.find_block_index(b0)
+        i1 = self.find_block_index(b1)
+        # not found
+        if i0 < 0 or i1 < 0:
+           return -2
+
+        # return order
+        if i0 < i1: return -1
+        if i0 > i1: return 1
+
+        return 0
 
     def find_block_opt(self, label, opt_name):
         """return any found comompt instance in block.opts"""
