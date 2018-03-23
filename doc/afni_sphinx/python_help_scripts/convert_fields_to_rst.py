@@ -54,9 +54,14 @@ categories that we made up and given short bios.
 The ranking of each program is to highlight ones that we think are
 particularly useful in general processing ('5' being the most directly
 useful, and '1' being something that might just be a low-level,
-supplementary tool).
+supplementary tool).  Note that a given program may appear in more
+than one group.
 
-Note that a given program may appear in more than one group.
+This page might be most useful by using your browser to search through
+the text for keywords of interest, such as "ROI", "mask", "diffusion",
+"align", "model", etc.  Clicking on the name of the program will bring
+you its online help documentation, referenced from :ref:`this page of
+all AFNI "helps"<programs_main>`.
 
 '''
 

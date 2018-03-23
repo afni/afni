@@ -14,6 +14,7 @@ Welcome to AFNI's documentation!
 
    background_install/main_toc
    educational/main_toc
+   programs/main_toc
    pub_trawl/main_toc
    .. 
       AFNI/main_toc
@@ -22,7 +23,6 @@ Welcome to AFNI's documentation!
    STATISTICS/main_toc
    tutorials/main_toc
    installations/main_toc
-   programs/main_toc
    glossary
    references
    afni_home

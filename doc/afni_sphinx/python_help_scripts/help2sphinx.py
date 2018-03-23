@@ -141,6 +141,7 @@ main_toc.write(".. _programs_main:\n\n")
 main_toc.write("##################\n")
 main_toc.write("All Programs Helps\n")
 main_toc.write("##################\n\n")
+main_toc.write('For reference, please also see the "classified" list of helps :ref:`HERE <edu_class_prog>`, which loosely groups programs by topic and functionality, and includes a brief description of each.\n\n')
 main_toc.write(".. csv-table::\n\n")
 
 ########################################################################

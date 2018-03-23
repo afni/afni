@@ -6,6 +6,8 @@
 All Programs Helps
 ##################
 
+For reference, please also see the "classified" list of helps :ref:`HERE <edu_class_prog>`, which loosely groups programs by topic and functionality, and includes a brief description of each.
+
 .. csv-table::
 
       :ref:`1dAstrip <ahelp_1dAstrip>`,:ref:`1dBandpass <ahelp_1dBandpass>`,:ref:`1dBport <ahelp_1dBport>`
