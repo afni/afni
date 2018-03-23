@@ -2722,36 +2722,52 @@ def cmd_combine_tedana(proc, block, method='tedana'):
    if method == 'tedana':
       mstr = ''
    else:
-      print("** invalid OC (tedana) combine method, %s" % method)
+      print("** invalid combine method, %s" % method)
       return
-     
+
+   # make sure a mask block precedes us
+   bo = proc.find_block_order('mask', block.label)
+   if bo == -2 or proc.mask == None:
+      print("** a mask is required for tedana")
+      return
+   if bo != -1:
+      print("** processing block 'mask' should precede 'combine'\n"
+            "   when running tedana (MEICA)")
+      return
+
+   if proc.mask != proc.mask_epi_anat:
+      print('** consider option: "-mask_epi_anat yes"')
+
 
    # input prefix has $run fixed, but uses a wildcard for echoes
    # output prefix has $run fixed, but no echo var
    cur_prefix = proc.prefix_form_run(block, eind=-9)
    prev_prefix = proc.prev_prefix_form_run(block, view=1, eind=-2)
 
-   cmd =  '# ----- optimally combine echoes -----\n\n'              \
-          '# get weights for each run\n'                            \
+   cmd =  '# ----- method %s : generate TED results -----\n\n'      \
           'foreach run ( $runs )\n'                                 \
-          '    @compute_OC_weights -echo_times "$echo_times" \\\n'  \
-          '%s'                                                      \
-          '        -echo_dsets %s   \\\n'                           \
-          '        -prefix oc.weights.r$run  \\\n'                  \
-          '        -work_dir oc.work.r$run\n'                       \
-          'end\n\n' % (mstr, prev_prefix)
+          '    tedana_wrapper.py -input %s \\\n'                    \
+          '        -TE $echo_times \\\n'                            \
+          '        -mask %s  \\\n'                                  \
+          '        -results_dir tedana_r$run \\\n'                  \
+          '        -ted_label r$run \\\n'                           \
+          '        -save_all \\\n'                                  \
+          '        -prefix tedprep\n'                               \
+          % (method, prev_prefix, proc.mask.shortinput())
 
-   proc.OC_weightset = BASE.afni_name('oc.weights.$subj%s' % proc.view)
-   cmd += '# average weights across runs\n'          \
-          '3dMean -prefix %s oc.weights.r*.HEAD\n\n' \
-          % proc.OC_weightset.out_prefix()
+   # we may have to adjust the view
+   if proc.view != '+orig':
+      cstr = ', and adjust view'
+      ccmd = ''
+   else:
+      cstr = ''
+      ccmd = ''
 
-   cmd += '# apply weights to each run\n'           \
-          'foreach run ( $runs )\n'                    \
-          '    3dMean -weightset %s \\\n'           \
-          '           -prefix %s \\\n'          \
-          '           %s\n'                 \
-          'end\n\n' % (proc.OC_weightset.shortinput(), cur_prefix, prev_prefix)
+   cmd += '# copy result here%s' % cstr
+   # rcr - here: apply 3dcopy, 3drefit commands...
+
+
+   cmd += 'end\n\n'
 
    return cmd
 
