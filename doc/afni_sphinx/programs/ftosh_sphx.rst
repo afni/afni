@@ -1,8 +1,8 @@
+.. _ahelp_ftosh:
+
 *****
 ftosh
 *****
-
-.. _ftosh:
 
 .. contents:: 
     :depth: 4 

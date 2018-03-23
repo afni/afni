@@ -1,8 +1,8 @@
+.. _ahelp_@IsoMasks:
+
 *********
 @IsoMasks
 *********
-
-.. _@IsoMasks:
 
 .. contents:: 
     :depth: 4 

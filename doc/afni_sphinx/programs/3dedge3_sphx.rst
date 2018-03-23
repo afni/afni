@@ -1,8 +1,8 @@
+.. _ahelp_3dedge3:
+
 *******
 3dedge3
 *******
-
-.. _3dedge3:
 
 .. contents:: 
     :depth: 4 
@@ -43,4 +43,4 @@
         pp 203-214, August 1991.
     
     
-    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}
+    ++ Compile date = Mar 22 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

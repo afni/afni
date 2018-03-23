@@ -1,8 +1,8 @@
+.. _ahelp_3dTstat:
+
 *******
 3dTstat
 *******
-
-.. _3dTstat:
 
 .. contents:: 
     :depth: 4 
@@ -48,6 +48,11 @@
      -bmv       = compute biweight midvariance of input voxels [undetrended]
                     [actually is 0.989*sqrt(biweight midvariance), to make]
                     [the value comparable to the standard deviation output]
+     -MSSD      = Von Neumann's Mean of Successive Squared Differences
+                   = average of sum of squares of first time difference
+     -MSSDsqrt  = Sqrt(MSSD)
+     -MASD      = Median of absolute values of first time differences
+                   = a robust alternative to MSSDsqrt
      -min       = compute minimum of input voxels [undetrended]
      -max       = compute maximum of input voxels [undetrended]
      -absmax    = compute absolute maximum of input voxels [undetrended]
@@ -163,4 +168,4 @@
     option, then the output will be written into a NIML-formatted 1D
     dataset, which you might find slightly confusing (but still usable).
     
-    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}
+    ++ Compile date = Mar 22 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

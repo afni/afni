@@ -1,8 +1,8 @@
+.. _ahelp_slow_surf_clustsim.py:
+
 *********************
 slow_surf_clustsim.py
 *********************
-
-.. _slow_surf_clustsim.py:
 
 .. contents:: 
     :depth: 4 

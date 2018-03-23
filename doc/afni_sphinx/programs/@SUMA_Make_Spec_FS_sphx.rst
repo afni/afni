@@ -1,8 +1,8 @@
+.. _ahelp_@SUMA_Make_Spec_FS:
+
 ******************
 @SUMA_Make_Spec_FS
 ******************
-
-.. _@SUMA_Make_Spec_FS:
 
 .. contents:: 
     :depth: 4 

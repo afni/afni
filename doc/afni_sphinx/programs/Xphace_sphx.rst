@@ -1,8 +1,8 @@
+.. _ahelp_Xphace:
+
 ******
 Xphace
 ******
-
-.. _Xphace:
 
 .. contents:: 
     :depth: 4 

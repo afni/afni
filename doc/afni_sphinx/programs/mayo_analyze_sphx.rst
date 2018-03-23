@@ -1,8 +1,8 @@
+.. _ahelp_mayo_analyze:
+
 ************
 mayo_analyze
 ************
-
-.. _mayo_analyze:
 
 .. contents:: 
     :depth: 4 

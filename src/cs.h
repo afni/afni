@@ -53,6 +53,8 @@ extern float qfrac_float    ( int , float , float * ) ;       /* 31 Oct 2016 */
 extern void qmedmadbmv_float   ( int, float *, float *, float *, float * ) ;
 extern void qmedmadmeanad_float( int, float *, float *, float *, float * ) ;
 
+extern float cs_mean_square_sd( int npt , float *x ) ;        /* 19 Mar 2018 */
+extern float cs_median_abs_sd( int npt , float *x , float *wks ) ;
 
 extern float centromean_float( int n , float *ar ) ;          /* 01 Nov 2010 */
 

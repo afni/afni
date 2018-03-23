@@ -1,8 +1,8 @@
+.. _ahelp_3dGenFeatureDist:
+
 ****************
 3dGenFeatureDist
 ****************
-
-.. _3dGenFeatureDist:
 
 .. contents:: 
     :depth: 4 

@@ -1,8 +1,8 @@
+.. _ahelp_@Quiet_Talkers:
+
 **************
 @Quiet_Talkers
 **************
-
-.. _@Quiet_Talkers:
 
 .. contents:: 
     :depth: 4 

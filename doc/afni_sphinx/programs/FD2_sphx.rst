@@ -1,8 +1,8 @@
+.. _ahelp_FD2:
+
 ***
 FD2
 ***
-
-.. _FD2:
 
 .. contents:: 
     :depth: 4 

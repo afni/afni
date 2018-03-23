@@ -1,8 +1,8 @@
+.. _ahelp_fat_proc_align_anat_pair:
+
 ************************
 fat_proc_align_anat_pair
 ************************
-
-.. _fat_proc_align_anat_pair:
 
 .. contents:: 
     :depth: 4 
@@ -57,7 +57,7 @@ fat_proc_align_anat_pair
      use high resolution options for data acquired at higher resolution.
      Anyways, you can read more about that there.
     
-      Ver. 1.9 (PA Taylor, Jan 12, 2018)
+      Ver. 1.0 (PA Taylor, Feb 19, 2018)
     
     # ----------------------------------------------------------------------
     
@@ -79,6 +79,7 @@ fat_proc_align_anat_pair
           {-newgrid RES}                        \
           {-out_t2w_grid}                       \
           {-in_t2w_mask MASK_T2W}               \
+          {-do_ss_tmp_t1w}                      \
           {-matrix MMM}                         \
           {-workdir WWW}                        \
           {-no_fs_prep}                         \
@@ -109,6 +110,11 @@ fat_proc_align_anat_pair
                       :can input a mask to apply to the t2w volume for
                        alignment purposes; might help in times of aligning 
                        hardship.
+    
+       -do_ss_tmp_t1w :during an intermediate step, apply skullstripping
+                       to the T1w volume-- final output is *not*
+                       skullstripped.  This might be useful if there is
+                       lots of non-brain tissue still in the T1w volume.
     
        -warp WAR      :can choose which of the possible affine degrees of freedom
                        are employed in the warping, selecting them in the same

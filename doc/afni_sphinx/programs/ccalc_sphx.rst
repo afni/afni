@@ -1,8 +1,8 @@
+.. _ahelp_ccalc:
+
 *****
 ccalc
 *****
-
-.. _ccalc:
 
 .. contents:: 
     :depth: 4 

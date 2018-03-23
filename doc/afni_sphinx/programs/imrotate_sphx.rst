@@ -1,8 +1,8 @@
+.. _ahelp_imrotate:
+
 ********
 imrotate
 ********
-
-.. _imrotate:
 
 .. contents:: 
     :depth: 4 

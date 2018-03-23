@@ -1,8 +1,8 @@
+.. _ahelp_3dMean:
+
 ******
 3dMean
 ******
-
-.. _3dMean:
 
 .. contents:: 
     :depth: 4 
@@ -40,6 +40,10 @@
                     The masks will be set by any non-zero voxels in
                     the input datasets.
     
+      -weightset WSET = Sum of N dsets will be weighted by N volume WSET.
+                        e.g. -weightset opt_comb_weights+tlrc
+                    This weight dataset must be of type float.
+    
     N.B.: All input datasets must have the same number of voxels along
            each axis (x,y,z,t).
         * At least 2 input datasets are required.
@@ -50,4 +54,4 @@
         across time for a 3D+time dataset (not across datasets), use
         3dTstat instead.
     
-    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}
+    ++ Compile date = Mar 22 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

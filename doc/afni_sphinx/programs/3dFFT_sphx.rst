@@ -1,8 +1,8 @@
+.. _ahelp_3dFFT:
+
 *****
 3dFFT
 *****
-
-.. _3dFFT:
 
 .. contents:: 
     :depth: 4 
@@ -96,4 +96,4 @@
      * Started a long time ago, but only finished in Aug 2009 at the
         request of John Butman, because he asked so nicely.  (Now pay up!)
     
-    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}
+    ++ Compile date = Mar 22 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

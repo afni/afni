@@ -1,8 +1,8 @@
+.. _ahelp_SurfDist:
+
 ********
 SurfDist
 ********
-
-.. _SurfDist:
 
 .. contents:: 
     :depth: 4 
@@ -368,5 +368,5 @@ SurfDist
     
     
     Compile Date:
-       Jan 29 2018
+       Mar 22 2018
     

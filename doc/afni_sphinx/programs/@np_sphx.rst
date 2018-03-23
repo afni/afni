@@ -1,8 +1,8 @@
+.. _ahelp_@np:
+
 ***
 @np
 ***
-
-.. _@np:
 
 .. contents:: 
     :depth: 4 

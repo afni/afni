@@ -1,7 +1,7 @@
-Each step involves either:
- A. copying+pasting commands (from the green fields) into the
-    terminal, or
- #. clicking on a link to download+install a package.
+For each step, either:
+ A. copy+paste commands from the green fields into the terminal
+    (:ref:`help and shortcuts here <U_misc_copypaste>`), or
+ #. click on a link to download+install a package.
 
 We assume the user has admin privileges (can run ``sudo ...``), and
 some steps require an internet connection. Some steps depend on the OS
@@ -18,3 +18,5 @@ type::
  #. *And* follow the system check recommendations in the output
     "Please Fix" section.
 
+If anything seems problematic, please just ask a clear question on the
+`Message Board <https://afni.nimh.nih.gov/afni/community/board/>`_.

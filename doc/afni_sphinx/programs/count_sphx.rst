@@ -1,8 +1,8 @@
+.. _ahelp_count:
+
 *****
 count
 *****
-
-.. _count:
 
 .. contents:: 
     :depth: 4 

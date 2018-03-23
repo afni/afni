@@ -1,8 +1,8 @@
+.. _ahelp_@GetAfniDims:
+
 ************
 @GetAfniDims
 ************
-
-.. _@GetAfniDims:
 
 .. contents:: 
     :depth: 4 

@@ -1,8 +1,8 @@
+.. _ahelp_imreg:
+
 *****
 imreg
 *****
-
-.. _imreg:
 
 .. contents:: 
     :depth: 4 

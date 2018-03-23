@@ -1,8 +1,8 @@
+.. _ahelp_Dimon1:
+
 ******
 Dimon1
 ******
-
-.. _Dimon1:
 
 .. contents:: 
     :depth: 4 

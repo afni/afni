@@ -1,8 +1,8 @@
+.. _ahelp_stimband:
+
 ********
 stimband
 ********
-
-.. _stimband:
 
 .. contents:: 
     :depth: 4 

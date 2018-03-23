@@ -1,8 +1,8 @@
+.. _ahelp_3dSeg:
+
 *****
 3dSeg
 *****
-
-.. _3dSeg:
 
 .. contents:: 
     :depth: 4 

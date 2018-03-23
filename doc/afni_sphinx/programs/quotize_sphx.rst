@@ -1,8 +1,8 @@
+.. _ahelp_quotize:
+
 *******
 quotize
 *******
-
-.. _quotize:
 
 .. contents:: 
     :depth: 4 

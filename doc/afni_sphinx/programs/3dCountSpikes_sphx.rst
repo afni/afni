@@ -1,8 +1,8 @@
+.. _ahelp_3dCountSpikes:
+
 *************
 3dCountSpikes
 *************
-
-.. _3dCountSpikes:
 
 .. contents:: 
     :depth: 4 

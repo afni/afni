@@ -1,8 +1,8 @@
+.. _ahelp_@SSwarper:
+
 *********
 @SSwarper
 *********
-
-.. _@SSwarper:
 
 .. contents:: 
     :depth: 4 

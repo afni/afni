@@ -1,8 +1,8 @@
+.. _ahelp_@diff.tree:
+
 **********
 @diff.tree
 **********
-
-.. _@diff.tree:
 
 .. contents:: 
     :depth: 4 

@@ -1,8 +1,8 @@
+.. _ahelp_3dNetCorr:
+
 *********
 3dNetCorr
 *********
-
-.. _3dNetCorr:
 
 .. contents:: 
     :depth: 4 

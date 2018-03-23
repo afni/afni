@@ -1,8 +1,8 @@
+.. _ahelp_IsoSurface:
+
 **********
 IsoSurface
 **********
-
-.. _IsoSurface:
 
 .. contents:: 
     :depth: 4 

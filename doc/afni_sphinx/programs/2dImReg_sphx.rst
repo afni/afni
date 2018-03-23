@@ -1,8 +1,8 @@
+.. _ahelp_2dImReg:
+
 *******
 2dImReg
 *******
-
-.. _2dImReg:
 
 .. contents:: 
     :depth: 4 

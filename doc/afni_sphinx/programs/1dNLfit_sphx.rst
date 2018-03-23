@@ -1,8 +1,8 @@
+.. _ahelp_1dNLfit:
+
 *******
 1dNLfit
 *******
-
-.. _1dNLfit:
 
 .. contents:: 
     :depth: 4 

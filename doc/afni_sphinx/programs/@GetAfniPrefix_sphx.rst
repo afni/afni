@@ -1,8 +1,8 @@
+.. _ahelp_@GetAfniPrefix:
+
 **************
 @GetAfniPrefix
 **************
-
-.. _@GetAfniPrefix:
 
 .. contents:: 
     :depth: 4 

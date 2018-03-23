@@ -1,8 +1,8 @@
+.. _ahelp_3dNLfim:
+
 *******
 3dNLfim
 *******
-
-.. _3dNLfim:
 
 .. contents:: 
     :depth: 4 
@@ -275,4 +275,4 @@
                                  (constant, linear, quadratic)
                                  see model_quadratic.c
     
-    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}
+    ++ Compile date = Mar 22 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

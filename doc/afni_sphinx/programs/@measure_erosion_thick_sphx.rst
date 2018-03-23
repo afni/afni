@@ -1,8 +1,8 @@
+.. _ahelp_@measure_erosion_thick:
+
 **********************
 @measure_erosion_thick
 **********************
-
-.. _@measure_erosion_thick:
 
 .. contents:: 
     :depth: 4 

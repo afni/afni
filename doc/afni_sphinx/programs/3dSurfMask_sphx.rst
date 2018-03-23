@@ -1,8 +1,8 @@
+.. _ahelp_3dSurfMask:
+
 **********
 3dSurfMask
 **********
-
-.. _3dSurfMask:
 
 .. contents:: 
     :depth: 4 

@@ -1,8 +1,8 @@
+.. _ahelp_@Install_AfniRetinoDemo:
+
 ***********************
 @Install_AfniRetinoDemo
 ***********************
-
-.. _@Install_AfniRetinoDemo:
 
 .. contents:: 
     :depth: 4 

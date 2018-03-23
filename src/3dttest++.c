@@ -48,11 +48,20 @@ void TT_matrix_setup( int kout ) ;  /* 30 Jul 2010 */
 /*----- macro to truncate labels -----*/
 
 #undef  MAX_LABEL_SIZE
-#define MAX_LABEL_SIZE 12
+#define MAX_LABEL_SIZE   256
+
+#undef  MAX_SETNAME_SIZE
+#define MAX_SETNAME_SIZE 12
+
+#undef  GTRUNC
+#define GTRUNC(ss,lll) \
+ do{ if( strlen(ss) > lll ){(ss)[lll] = '\0'; }} while(0)
 
 #undef  LTRUNC
-#define LTRUNC(ss) \
- do{ if( strlen(ss) > MAX_LABEL_SIZE ){(ss)[MAX_LABEL_SIZE] = '\0'; }} while(0)
+#define LTRUNC(ssss) GTRUNC(ssss,MAX_LABEL_SIZE)
+
+#undef  STRUNC
+#define STRUNC(ssss) GTRUNC(ssss,MAX_SETNAME_SIZE)
 
 /*----- macro for some memory usage info -----*/
 
@@ -538,8 +547,16 @@ void display_help_menu(void)
       "   LABL_K    is the label for the Kth input dataset name, whose name follows.\n"
       "   BETA_DSET is the name of the dataset of the beta coefficient or GLT.\n"
       "             ++ only 1 sub-brick can be specified here!\n"
-      "   Note that the labels 'SETNAME' and 'LABL_K' are limited to 12\n"
-      "   characters -- any more will be thrown away without warning.\n"
+      "    ** Note that the label 'SETNAME' is limited to %d characters,\n"
+      "       and the labels 'LABL_K' are limited to %d characters\n"
+      "       -- any more will be thrown away without warning.\n"
+      "    ** Only the first %d characters of the covariate labels can be\n"
+      "       used in the sub-brick labels, due to limitations in the AFNI\n"
+      "       dataset structure and AFNI GUI. Any covariate labels longer than\n"
+      "       this will be truncated when put into the output dataset :(\n"
+         ,  MAX_SETNAME_SIZE , MAX_LABEL_SIZE , MAX_SETNAME_SIZE
+   ) ;
+   printf(
       "\n"
       "     ** The program determines if you are using the short form or long **\n"
       "     ** form to specify the input datasets based on the first argument **\n"
@@ -2749,14 +2766,14 @@ int main( int argc , char *argv[] )
      if( strcasecmp(argv[nopt],"-labelA") == 0 ){
        if( ++nopt >= argc )
          ERROR_exit("Need argument after '%s'",argv[nopt-1]) ;
-       lnam_AAA = strdup(argv[nopt]) ; LTRUNC(lnam_AAA) ;
+       lnam_AAA = strdup(argv[nopt]) ; STRUNC(lnam_AAA) ;
        nopt++ ; continue ;
      }
 
      if( strcasecmp(argv[nopt],"-labelB") == 0 ){
        if( ++nopt >= argc )
          ERROR_exit("Need argument after '%s'",argv[nopt-1]) ;
-       lnam_BBB = strdup(argv[nopt]) ; LTRUNC(lnam_BBB) ;
+       lnam_BBB = strdup(argv[nopt]) ; STRUNC(lnam_BBB) ;
        nopt++ ; continue ;
      }
 
@@ -2852,7 +2869,7 @@ int main( int argc , char *argv[] )
              "-set%c: LONG form group label '%s' looks like a dataset name but isn't -- is this OK ?!?",
              cc , argv[nopt] ) ;
 
-         snam = strdup(argv[nopt]) ; LTRUNC(snam) ;
+         snam = strdup(argv[nopt]) ; STRUNC(snam) ;
          for( nopt++ ; nopt < argc && argv[nopt][0] != '-' ; nopt+=2 ){
            if( nopt+1 >= argc || argv[nopt+1][0] == '-' ){
              ERROR_exit(
@@ -3843,33 +3860,33 @@ int main( int argc , char *argv[] )
   /* mean (effect size) label for 2 sample results */
 
 #undef  MEAN_LABEL_2SAM
-#define MEAN_LABEL_2SAM(npp,nmm,lll)                         \
- do{ sprintf(blab,"%s-%s_%s",npp,nmm,lll); ADD_BRICK_INDEX;  \
-     EDIT_BRICK_LABEL(outset,ss+bbase,blab);                 \
+#define MEAN_LABEL_2SAM(npp,nmm,lll)                                  \
+ do{ sprintf(blab,"%.12s-%.12s_%.12s",npp,nmm,lll); ADD_BRICK_INDEX;  \
+     EDIT_BRICK_LABEL(outset,ss+bbase,blab);                          \
      ss++; } while(0)
 
   /* mean label for 1 sample results */
 
-#define MEAN_LABEL_1SAM(nnn,lll)                     \
- do{ sprintf(blab,"%s_%s",nnn,lll); ADD_BRICK_INDEX; \
-     EDIT_BRICK_LABEL(outset,ss+bbase,blab);         \
+#define MEAN_LABEL_1SAM(nnn,lll)                           \
+ do{ sprintf(blab,"%.12s_%.12s",nnn,lll); ADD_BRICK_INDEX; \
+     EDIT_BRICK_LABEL(outset,ss+bbase,blab);               \
      ss++; } while(0)
 
   /* test statistic for 2 sample results, covariates label */
 
 #undef  TEST_LABEL_2SAM_COV
-#define TEST_LABEL_2SAM_COV(npp,nmm,lll)                      \
- do{ sprintf(blab,"%s-%s_%s_%s",npp,nmm,lll,stnam) ;          \
-     ADD_BRICK_INDEX; EDIT_BRICK_LABEL(outset,ss+bbase,blab); \
-     if( toz ) EDIT_BRICK_TO_FIZT(outset,ss+bbase) ;          \
-     else      EDIT_BRICK_TO_FITT(outset,ss+bbase,dof_AB) ;   \
+#define TEST_LABEL_2SAM_COV(npp,nmm,lll)                         \
+ do{ sprintf(blab,"%.12s-%.12s_%.12s_%.12s",npp,nmm,lll,stnam) ; \
+     ADD_BRICK_INDEX; EDIT_BRICK_LABEL(outset,ss+bbase,blab);    \
+     if( toz ) EDIT_BRICK_TO_FIZT(outset,ss+bbase) ;             \
+     else      EDIT_BRICK_TO_FITT(outset,ss+bbase,dof_AB) ;      \
      ss++; } while(0)
 
   /* test statistic for 2 sample results, mean label */
 
 #undef  TEST_LABEL_2SAM_MEAN
 #define TEST_LABEL_2SAM_MEAN(npp,nmm)                         \
- do{ sprintf(blab,"%s-%s_%s",npp,nmm,stnam) ;                 \
+ do{ sprintf(blab,"%.12s-%.12s_%.12s",npp,nmm,stnam) ;        \
      ADD_BRICK_INDEX; EDIT_BRICK_LABEL(outset,ss+bbase,blab); \
      if( toz ) EDIT_BRICK_TO_FIZT(outset,ss+bbase) ;          \
      else      EDIT_BRICK_TO_FITT(outset,ss+bbase,dof_AB) ;   \
@@ -3879,7 +3896,7 @@ int main( int argc , char *argv[] )
 
 #undef  TEST_LABEL_1SAM_COV
 #define TEST_LABEL_1SAM_COV(nnn,lll,ddd)                      \
- do{ sprintf(blab,"%s_%s_%s",nnn,lll,stnam) ;                 \
+ do{ sprintf(blab,"%.12s_%.12s_%.12s",nnn,lll,stnam) ;        \
      ADD_BRICK_INDEX; EDIT_BRICK_LABEL(outset,ss+bbase,blab); \
      if( toz ) EDIT_BRICK_TO_FIZT(outset,ss+bbase) ;          \
      else      EDIT_BRICK_TO_FITT(outset,ss+bbase,ddd) ;      \
@@ -3889,7 +3906,7 @@ int main( int argc , char *argv[] )
 
 #undef  TEST_LABEL_1SAM_MEAN
 #define TEST_LABEL_1SAM_MEAN(nnn,ddd)                         \
- do{ sprintf(blab,"%s_%s",nnn,stnam) ;                        \
+ do{ sprintf(blab,"%.12s_%.12s",nnn,stnam) ;                  \
      ADD_BRICK_INDEX; EDIT_BRICK_LABEL(outset,ss+bbase,blab); \
      if( toz ) EDIT_BRICK_TO_FIZT(outset,ss+bbase) ;          \
      else      EDIT_BRICK_TO_FITT(outset,ss+bbase,ddd) ;      \
@@ -4907,7 +4924,7 @@ LABELS_ARE_DONE:  /* target for goto above */
 
          sprintf( cmd+strlen(cmd) , " \\\n   ") ;
 
-         sprintf( cmd+strlen(cmd) , 
+         sprintf( cmd+strlen(cmd) ,
                  " -prefix %s.%s.ETAC.nii" , prefix_clustsim , nam ) ;
 
          if( fgoal > 0.0f ){

@@ -1,8 +1,8 @@
+.. _ahelp_read_matlab_files.py:
+
 ********************
 read_matlab_files.py
 ********************
-
-.. _read_matlab_files.py:
 
 .. contents:: 
     :depth: 4 

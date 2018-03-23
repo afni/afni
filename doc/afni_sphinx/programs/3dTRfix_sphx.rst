@@ -1,8 +1,8 @@
+.. _ahelp_3dTRfix:
+
 *******
 3dTRfix
 *******
-
-.. _3dTRfix:
 
 .. contents:: 
     :depth: 4 

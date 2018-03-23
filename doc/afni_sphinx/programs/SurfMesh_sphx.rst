@@ -1,8 +1,8 @@
+.. _ahelp_SurfMesh:
+
 ********
 SurfMesh
 ********
-
-.. _SurfMesh:
 
 .. contents:: 
     :depth: 4 
@@ -293,7 +293,7 @@ SurfMesh
     
     
     Compile Date:
-       Jan 29 2018
+       Mar 22 2018
     
      Originally written by Jakub Otwinowski.
      Now maintained by Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov     

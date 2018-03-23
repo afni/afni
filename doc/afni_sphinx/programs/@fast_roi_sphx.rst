@@ -1,8 +1,8 @@
+.. _ahelp_@fast_roi:
+
 *********
 @fast_roi
 *********
-
-.. _@fast_roi:
 
 .. contents:: 
     :depth: 4 

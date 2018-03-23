@@ -1,8 +1,8 @@
+.. _ahelp_ConvexHull:
+
 **********
 ConvexHull
 **********
-
-.. _ConvexHull:
 
 .. contents:: 
     :depth: 4 
@@ -299,5 +299,5 @@ ConvexHull
     
     
     Compile Date:
-       Jan 29 2018
+       Mar 22 2018
     

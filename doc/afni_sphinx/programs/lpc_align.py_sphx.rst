@@ -1,8 +1,8 @@
+.. _ahelp_lpc_align.py:
+
 ************
 lpc_align.py
 ************
-
-.. _lpc_align.py:
 
 .. contents:: 
     :depth: 4 

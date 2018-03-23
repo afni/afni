@@ -1,8 +1,8 @@
+.. _ahelp_@demo_prompt:
+
 ************
 @demo_prompt
 ************
-
-.. _@demo_prompt:
 
 .. contents:: 
     :depth: 4 

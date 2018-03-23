@@ -1,8 +1,8 @@
+.. _ahelp_afni_restproc.py:
+
 ****************
 afni_restproc.py
 ****************
-
-.. _afni_restproc.py:
 
 .. contents:: 
     :depth: 4 

@@ -1,8 +1,8 @@
+.. _ahelp_plugout_tt:
+
 **********
 plugout_tt
 **********
-
-.. _plugout_tt:
 
 .. contents:: 
     :depth: 4 

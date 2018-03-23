@@ -1,8 +1,8 @@
+.. _ahelp_RSFgen:
+
 ******
 RSFgen
 ******
-
-.. _RSFgen:
 
 .. contents:: 
     :depth: 4 

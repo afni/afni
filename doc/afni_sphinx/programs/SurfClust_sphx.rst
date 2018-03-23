@@ -1,8 +1,8 @@
+.. _ahelp_SurfClust:
+
 *********
 SurfClust
 *********
-
-.. _SurfClust:
 
 .. contents:: 
     :depth: 4 
@@ -205,5 +205,5 @@ SurfClust
     
     
     Compile Date:
-       Jan 29 2018
+       Mar 22 2018
     

@@ -1,8 +1,8 @@
+.. _ahelp_fat_roi_row.py:
+
 **************
 fat_roi_row.py
 **************
-
-.. _fat_roi_row.py:
 
 .. contents:: 
     :depth: 4 

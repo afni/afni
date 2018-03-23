@@ -1,8 +1,8 @@
+.. _ahelp_3dBRAIN_VOYAGERtoAFNI:
+
 *********************
 3dBRAIN_VOYAGERtoAFNI
 *********************
-
-.. _3dBRAIN_VOYAGERtoAFNI:
 
 .. contents:: 
     :depth: 4 
@@ -80,5 +80,5 @@
     
     
     Compile Date:
-       Jan 29 2018
+       Mar 22 2018
     

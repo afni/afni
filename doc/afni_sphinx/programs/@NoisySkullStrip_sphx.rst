@@ -1,8 +1,8 @@
+.. _ahelp_@NoisySkullStrip:
+
 ****************
 @NoisySkullStrip
 ****************
-
-.. _@NoisySkullStrip:
 
 .. contents:: 
     :depth: 4 

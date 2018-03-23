@@ -1,8 +1,8 @@
+.. _ahelp_3ddot_beta:
+
 **********
 3ddot_beta
 **********
-
-.. _3ddot_beta:
 
 .. contents:: 
     :depth: 4 

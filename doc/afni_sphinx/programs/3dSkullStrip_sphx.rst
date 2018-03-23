@@ -1,8 +1,8 @@
+.. _ahelp_3dSkullStrip:
+
 ************
 3dSkullStrip
 ************
-
-.. _3dSkullStrip:
 
 .. contents:: 
     :depth: 4 
@@ -511,5 +511,5 @@
     
     
     Compile Date:
-       Jan 29 2018
+       Mar 22 2018
     

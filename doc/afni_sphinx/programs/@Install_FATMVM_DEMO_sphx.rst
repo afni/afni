@@ -1,8 +1,8 @@
+.. _ahelp_@Install_FATMVM_DEMO:
+
 ********************
 @Install_FATMVM_DEMO
 ********************
-
-.. _@Install_FATMVM_DEMO:
 
 .. contents:: 
     :depth: 4 

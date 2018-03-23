@@ -1,8 +1,8 @@
+.. _ahelp_3dLME:
+
 *****
 3dLME
 *****
-
-.. _3dLME:
 
 .. contents:: 
     :depth: 4 

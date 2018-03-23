@@ -1,8 +1,8 @@
+.. _ahelp_3dDFT:
+
 *****
 3dDFT
 *****
-
-.. _3dDFT:
 
 .. contents:: 
     :depth: 4 
@@ -49,4 +49,4 @@
                  instead of the forward transform
                    SUM{ data[j] * exp(-2*PI*i*j/nfft) }
     
-    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}
+    ++ Compile date = Mar 22 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

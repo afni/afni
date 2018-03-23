@@ -1,8 +1,8 @@
+.. _ahelp_3dLocalBistat:
+
 *************
 3dLocalBistat
 *************
-
-.. _3dLocalBistat:
 
 .. contents:: 
     :depth: 4 
@@ -103,4 +103,4 @@
     -----------------------------
     Author: RWCox - October 2006.
     
-    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}
+    ++ Compile date = Mar 22 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

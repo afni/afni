@@ -1,8 +1,8 @@
+.. _ahelp_3dToyProg:
+
 *********
 3dToyProg
 *********
-
-.. _3dToyProg:
 
 .. contents:: 
     :depth: 4 
@@ -43,4 +43,4 @@
     
     
     
-    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}
+    ++ Compile date = Mar 22 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

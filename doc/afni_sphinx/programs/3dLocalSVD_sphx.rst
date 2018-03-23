@@ -1,8 +1,8 @@
+.. _ahelp_3dLocalSVD:
+
 **********
 3dLocalSVD
 **********
-
-.. _3dLocalSVD:
 
 .. contents:: 
     :depth: 4 
@@ -36,4 +36,4 @@
                              [default: just output principal singular vector]
                              [for 'smoothing' purposes, '-vnorm -vproj 2' is a good idea]
     
-    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}
+    ++ Compile date = Mar 22 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

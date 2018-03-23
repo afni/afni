@@ -1,8 +1,8 @@
+.. _ahelp_@parse_name:
+
 ***********
 @parse_name
 ***********
-
-.. _@parse_name:
 
 .. contents:: 
     :depth: 4 

@@ -1,8 +1,8 @@
+.. _ahelp_@AddEdge:
+
 ********
 @AddEdge
 ********
-
-.. _@AddEdge:
 
 .. contents:: 
     :depth: 4 

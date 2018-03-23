@@ -1,8 +1,8 @@
+.. _ahelp_3dTfilter:
+
 *********
 3dTfilter
 *********
-
-.. _3dTfilter:
 
 .. contents:: 
     :depth: 4 

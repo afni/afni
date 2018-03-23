@@ -1,8 +1,8 @@
+.. _ahelp_3dnvals:
+
 *******
 3dnvals
 *******
-
-.. _3dnvals:
 
 .. contents:: 
     :depth: 4 
@@ -18,4 +18,4 @@
     * If -verbose is used then the header name of the dataset is printed first.
     * The function of this simple program is to help in scripting.
     
-    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}
+    ++ Compile date = Mar 22 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

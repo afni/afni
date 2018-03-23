@@ -1,8 +1,8 @@
+.. _ahelp_3dTSgen:
+
 *******
 3dTSgen
 *******
-
-.. _3dTSgen:
 
 .. contents:: 
     :depth: 4 
@@ -51,4 +51,4 @@
     [-brick m scoef k label]   kth signal parameter regression coefficient
     [-brick m ncoef k label]   kth noise parameter regression coefficient 
     
-    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}
+    ++ Compile date = Mar 22 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

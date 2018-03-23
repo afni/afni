@@ -1,8 +1,8 @@
+.. _ahelp_unWarpEPI.py:
+
 ************
 unWarpEPI.py
 ************
-
-.. _unWarpEPI.py:
 
 .. contents:: 
     :depth: 4 

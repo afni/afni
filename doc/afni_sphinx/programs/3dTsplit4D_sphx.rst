@@ -1,8 +1,8 @@
+.. _ahelp_3dTsplit4D:
+
 **********
 3dTsplit4D
 **********
-
-.. _3dTsplit4D:
 
 .. contents:: 
     :depth: 4 
@@ -39,4 +39,4 @@
     
     
     Authored by: Peter Molfese, UConn
-    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}
+    ++ Compile date = Mar 22 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

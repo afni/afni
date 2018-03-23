@@ -1,8 +1,8 @@
+.. _ahelp_3dLRflip:
+
 ********
 3dLRflip
 ********
-
-.. _3dLRflip:
 
 .. contents:: 
     :depth: 4 
@@ -36,4 +36,4 @@
                   each output.
     
     
-    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}
+    ++ Compile date = Mar 22 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

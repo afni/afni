@@ -29,55 +29,39 @@ Install prerequisite: Getting Linux
   <https://docs.microsoft.com/en-us/windows/wsl/install-win10>`_
 
 
-..
-    0. If you have a previous version of Bash on Ubuntu on Windows,* it
-       will have to be removed.  Backup any files you want, and remove the
-       earlier Linux (which is no longer supported).  You can see
-       instructions for "Remove & replace" `HERE on this instruction page
-       <https://blogs.msdn.microsoft.com/commandline/2017/04/11/windows-10-creators-update-whats-new-in-bashwsl-windows-console/>`_
+.. _install_windows_VcXsrv:
 
-    #. Click on: Start -> "Windows Features" -> "Enable Windows Subsystem for
-       Linux". Then, reboot.
-
-    #. Click on: Start -> "Microsoft Store".  Search for "Linux" and select 
-       **C:\> Linux on Windows? Totally."** Click "Get the apps".
-
-    #. From options of Linux type, choose "Ubuntu".  Click "Get" (twice,
-       first time says to enable Windows Subsystem for Linux, as
-       above). Download is 195.7 MB now from Canonical Group Limited.
-
-       **Add** "Pin to Start" to make more accessible. 
-
-       **Then click** "Launch". It reports "Installing. this may take a
-       few minutes..."  in a terminal window.
-
-    #. In the terminal window, you will be prompted to enter a "UNIX
-       username". You may want to use one that is the same as one you use
-       on a remote system or server. 
-
-       Also give a new password and confirm it.
-
-    Follow ubuntu 16 install instructions for AFNI. Note the copy paste commands in the shell terminal is hidden in the upper left icon menu. Click icon, edit, paste to paste these commands. This following step is not needed in new install.
-    sudo add-apt-repository universe
-
-
-Install prerequisite: Xming X Server for Windows
-------------------------------------------------
+Install prerequisite: VcXsrv Windows X Server
+---------------------------------------------
 
 a. | Click on the following link to start automatic download:
-   | `https://sourceforge.net/projects/xming/files/latest/download
-     <https://sourceforge.net/projects/xming/files/latest/download>`_
+   | `https://sourceforge.net/projects/vcxsrv/files/latest/download
+     <https://sourceforge.net/projects/vcxsrv/files/latest/download>`_
    | Use default installation settings.  
+
+#. *First* start the X Server, and *then* start Ubuntu.
+
+   .. note:: From here on out, **whenever** you start up your WSL
+             Ubuntu, you will need to double-click on the VcXsrv icon
+             on your Desktop in order to start the X Server.  (Sorry,
+             not our design!)
+
+#. To enable copy+paste ability in Ubuntu terminal, right-click on the
+   toolbar at the top of the Ubuntu terminal, and select "Properties";
+   in the Options tab, make sure the box next to "QuickEdit Mode" is
+   selected.  
+
+   You should then be able to paste into a terminal by either
+   right-clicking or hitting the "Enter" key.  (To "copy" text that is
+   *in* the terminal, just highlight it, and then you should be able
+   to right-click to paste; to "copy" text from *outside* the
+   terminal, you probably need to highlight it and hit "Ctrl+c".)
 
 #. To set the DISPLAY properly, copy+paste the following into the
    terminal::
 
      echo "export DISPLAY=:0.0" >> ~/.bashrc
      echo "setenv DISPLAY :0.0" >> ~/.cshrc
-
-.. note:: When you start up your WSL, you will need to double-click on
-          the Xming icon on your Desktop in order to start the X
-          Server.  (Sorry, not our fault...)
 
 Install prerequisite: AFNI and  package dependencies
 ----------------------------------------------------

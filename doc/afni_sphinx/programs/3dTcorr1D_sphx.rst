@@ -1,8 +1,8 @@
+.. _ahelp_3dTcorr1D:
+
 *********
 3dTcorr1D
 *********
-
-.. _3dTcorr1D:
 
 .. contents:: 
     :depth: 4 
@@ -25,11 +25,15 @@
       -ktaub    = Correlation is Kendall's tau_b coefficient.
                   ++ For 'continuous' or finely-discretized data, tau_b and
                      rank correlation are nearly equivalent (but not equal).
+      -dot      = Doesn't actually compute a correlation coefficient; just
+                    calculates the dot product between the y1D vector(s)
+                    and the dataset time series.
     
       -Fisher   = Apply the 'Fisher' (inverse hyperbolic tangent) transformation
                     to the results.
                   ++ It does not make sense to use this with '-ktaub', but if
                      you want to do it, the program will not stop you.
+                  ++ Cannot be used with '-dot'!
     
       -prefix p = Save output into dataset with prefix 'p'
                    [default prefix is 'Tcorr1D'].
@@ -40,6 +44,7 @@
     
       -float    = Save results in float format [the default format].
       -short    = Save results in scaled short format [to save disk space].
+                  ++ Cannot be used with '-dot'!
     
     NOTES:
     * The output dataset is functional bucket type, with one sub-brick
@@ -70,7 +75,7 @@
     * For implementation and compilation details, please see
        https://afni.nimh.nih.gov/pub/dist/doc/misc/OpenMP.html
     * The number of CPU threads used will default to the maximum number on
-       your system.  You can control this value by setting environment variable
+       your system. You can control this value by setting environment variable
        OMP_NUM_THREADS to some smaller value (including 1).
     * Un-setting OMP_NUM_THREADS resets OpenMP back to its default state of
        using all CPUs available.
@@ -82,10 +87,10 @@
        since OpenMP queries this variable BEFORE the program actually starts.
        ++ You can't usefully set this variable in your ~/.afnirc file or on the
           command line with the '-D' option.
-    * How many threads are useful?  That varies with the program, and how well
-       it was coded.  You'll have to experiment on your own systems!
+    * How many threads are useful? That varies with the program, and how well
+       it was coded. You'll have to experiment on your own systems!
     * The number of CPUs on this particular computer system is ...... 16.
-    * The maximum number of CPUs that will be used is now set to .... 8.
+    * The maximum number of CPUs that will be used is now set to .... 12.
      =========================================================================
     
-    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}
+    ++ Compile date = Mar 22 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

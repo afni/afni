@@ -1,8 +1,8 @@
+.. _ahelp_@Align_Centers:
+
 **************
 @Align_Centers
 **************
-
-.. _@Align_Centers:
 
 .. contents:: 
     :depth: 4 

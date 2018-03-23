@@ -1,8 +1,8 @@
+.. _ahelp_rmz:
+
 ***
 rmz
 ***
-
-.. _rmz:
 
 .. contents:: 
     :depth: 4 

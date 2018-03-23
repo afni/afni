@@ -1,8 +1,8 @@
+.. _ahelp_3dZipperZapper:
+
 **************
 3dZipperZapper
 **************
-
-.. _3dZipperZapper:
 
 .. contents:: 
     :depth: 4 

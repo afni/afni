@@ -1,8 +1,8 @@
+.. _ahelp_3dTnorm:
+
 *******
 3dTnorm
 *******
-
-.. _3dTnorm:
 
 .. contents:: 
     :depth: 4 
@@ -36,4 +36,4 @@
     * This program is for producing regressors to use in 3dTfitter
     * Also see programs 1dnorm and 3dcalc
     
-    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}
+    ++ Compile date = Mar 22 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

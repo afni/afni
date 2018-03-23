@@ -1,8 +1,8 @@
+.. _ahelp_@DTI_studio_reposition:
+
 **********************
 @DTI_studio_reposition
 **********************
-
-.. _@DTI_studio_reposition:
 
 .. contents:: 
     :depth: 4 

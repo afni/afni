@@ -1,8 +1,8 @@
+.. _ahelp_images_equal:
+
 ************
 images_equal
 ************
-
-.. _images_equal:
 
 .. contents:: 
     :depth: 4 

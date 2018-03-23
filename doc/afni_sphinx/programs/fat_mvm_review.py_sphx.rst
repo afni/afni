@@ -1,8 +1,8 @@
+.. _ahelp_fat_mvm_review.py:
+
 *****************
 fat_mvm_review.py
 *****************
-
-.. _fat_mvm_review.py:
 
 .. contents:: 
     :depth: 4 

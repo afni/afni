@@ -1,8 +1,8 @@
+.. _ahelp_sqwave:
+
 ******
 sqwave
 ******
-
-.. _sqwave:
 
 .. contents:: 
     :depth: 4 

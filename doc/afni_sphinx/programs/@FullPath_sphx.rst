@@ -1,8 +1,8 @@
+.. _ahelp_@FullPath:
+
 *********
 @FullPath
 *********
-
-.. _@FullPath:
 
 .. contents:: 
     :depth: 4 

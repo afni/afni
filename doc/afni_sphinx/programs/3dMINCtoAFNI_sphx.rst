@@ -1,8 +1,8 @@
+.. _ahelp_3dMINCtoAFNI:
+
 ************
 3dMINCtoAFNI
 ************
-
-.. _3dMINCtoAFNI:
 
 .. contents:: 
     :depth: 4 
@@ -26,4 +26,4 @@
     * The TR recorded in MINC files is often incorrect.  You may
        need to fix this (or other parameters) using 3drefit.
     
-    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}
+    ++ Compile date = Mar 22 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

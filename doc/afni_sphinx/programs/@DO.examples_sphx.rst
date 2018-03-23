@@ -1,8 +1,8 @@
+.. _ahelp_@DO.examples:
+
 ************
 @DO.examples
 ************
-
-.. _@DO.examples:
 
 .. contents:: 
     :depth: 4 

@@ -1,8 +1,8 @@
+.. _ahelp_3dLSS:
+
 *****
 3dLSS
 *****
-
-.. _3dLSS:
 
 .. contents:: 
     :depth: 4 
@@ -141,4 +141,4 @@
     -- RWCox - Dec 2011 - Compute fast, abend early, leave a pretty dataset --
     --------------------------------------------------------------------------
     
-    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}
+    ++ Compile date = Mar 22 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

@@ -25,9 +25,9 @@ a. Copy+paste::
 
      sudo apt-get install -y tcsh xfonts-base python-qt4       \
                              gsl-bin netpbm gnome-tweak-tool   \
-                             libjpeg62 xvfb xterm vim curl
-   
-     sudo apt-get install -y libglu1-mesa-dev libglw1-mesa     \
+                             libjpeg62 xvfb xterm vim curl     \
+                             gedit evince                      \
+                             libglu1-mesa-dev libglw1-mesa     \
                              libxm4 build-essential
 
    **Purpose:** Installs a lot of packages that AFNI depends on (so we

@@ -1,8 +1,8 @@
+.. _ahelp_mpeg_encode:
+
 ***********
 mpeg_encode
 ***********
-
-.. _mpeg_encode:
 
 .. contents:: 
     :depth: 4 

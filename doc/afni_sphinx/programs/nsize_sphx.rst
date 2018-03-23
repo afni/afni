@@ -1,8 +1,8 @@
+.. _ahelp_nsize:
+
 *****
 nsize
 *****
-
-.. _nsize:
 
 .. contents:: 
     :depth: 4 

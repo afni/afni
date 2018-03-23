@@ -1,8 +1,8 @@
+.. _ahelp_3dnoise:
+
 *******
 3dnoise
 *******
-
-.. _3dnoise:
 
 .. contents:: 
     :depth: 4 
@@ -32,4 +32,4 @@
                    estimate of a value for 'x'.
     Author -- RW Cox
     
-    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}
+    ++ Compile date = Mar 22 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

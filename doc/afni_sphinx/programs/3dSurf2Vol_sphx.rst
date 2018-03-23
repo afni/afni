@@ -1,8 +1,8 @@
+.. _ahelp_3dSurf2Vol:
+
 **********
 3dSurf2Vol
 **********
-
-.. _3dSurf2Vol:
 
 .. contents:: 
     :depth: 4 

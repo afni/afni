@@ -1,8 +1,8 @@
+.. _ahelp_3dSignatures:
+
 ************
 3dSignatures
 ************
-
-.. _3dSignatures:
 
 .. contents:: 
     :depth: 4 

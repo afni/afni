@@ -1,8 +1,8 @@
+.. _ahelp_afni_util.py:
+
 ************
 afni_util.py
 ************
-
-.. _afni_util.py:
 
 .. contents:: 
     :depth: 4 

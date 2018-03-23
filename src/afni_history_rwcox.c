@@ -44,6 +44,21 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 23 , MAR , 2018 , RWC , "afni GUI" , MINOR , TYPE_ENHANCE ,
+   "Add 3dTstat pseudo-plugin on the Insta-stuff menu" ,
+   "Calculate voxelwise statistics of 3D+time datasets. Works by running\n"
+   "3dTstat. A few changes to 3dTstat to make this easier, as well." } ,
+
+ { 19 , MAR , 2018 , RWC , "3dTstat" , MINOR , TYPE_NEW_OPT ,
+   "Add -MSSD and -MASD option" ,
+   "MSSD = mean successive squared differences (Von Neumann)\n"
+   "MASD = median absolute successive differences" } ,
+
+ { 13 , MAR , 2018 , RWC , "3dQwarp" , MICRO , TYPE_ENHANCE ,
+   "-saveall option now writes out as it progresses, not at end" ,
+   "So if 3dQwarp crashes or stalls, the latest saved warp could be used to\n"
+   "re-start the damn thing." } ,
+
  { 16 , FEB , 2018 , RWC , "3dTcorr1D" , MICRO , TYPE_NEW_OPT ,
    "New -dot option (dot product)" ,
    NULL } ,

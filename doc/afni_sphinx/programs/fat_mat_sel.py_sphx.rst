@@ -1,8 +1,8 @@
+.. _ahelp_fat_mat_sel.py:
+
 **************
 fat_mat_sel.py
 **************
-
-.. _fat_mat_sel.py:
 
 .. contents:: 
     :depth: 4 

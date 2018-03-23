@@ -14,6 +14,7 @@ Setup Pages
 
    misc/background.0.whatis
    misc/background.1.terminal
+   misc/background.copypaste
 
    misc/install.afni
    misc/install.data

@@ -1,8 +1,8 @@
+.. _ahelp_3dSpatNorm:
+
 **********
 3dSpatNorm
 **********
-
-.. _3dSpatNorm:
 
 .. contents:: 
     :depth: 4 
@@ -33,4 +33,4 @@
     * This program is obsolete, and should not be used by most people. *
     --------------------------------------------------------------------
     
-    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}
+    ++ Compile date = Mar 22 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

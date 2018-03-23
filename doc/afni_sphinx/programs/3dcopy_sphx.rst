@@ -1,8 +1,8 @@
+.. _ahelp_3dcopy:
+
 ******
 3dcopy
 ******
-
-.. _3dcopy:
 
 .. contents:: 
     :depth: 4 
@@ -79,4 +79,4 @@ Notes:
     
     * The '-denote' option will remove any Notes from the file.
     
-    ++ Compile date = Jan 29 2018 {AFNI_18.0.11:linux_ubuntu_12_64}
+    ++ Compile date = Mar 22 2018 {AFNI_18.0.25:linux_ubuntu_12_64}

@@ -1,8 +1,8 @@
+.. _ahelp_3dDTtoNoisyDWI:
+
 **************
 3dDTtoNoisyDWI
 **************
-
-.. _3dDTtoNoisyDWI:
 
 .. contents:: 
     :depth: 4 

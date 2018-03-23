@@ -21,6 +21,13 @@ And my script's been rearranged. [#f11]_
 |    :align: left                                                      |
 +----------------------------------------------------------------------+
 
+.. warning::
+
+    If you have relative paths (./ etc) in your data table, remember to
+    run the script from the same location so the paths are correct!!
+
+|
+
 +----------------------------------------------------------------------+
 | This tab shows the script extra options to be added to the script.   |
 | The options are explained in the help for 3dMVM.                     |
