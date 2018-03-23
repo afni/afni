@@ -96,20 +96,24 @@ static float basepercent           = 0.5;  /* 50% assumed for duration unless us
 
 static int do_tdiff = 0 ;  /* 25 May 2011 */
 
-static char *meth_names[] = {
-   "Mean"          , "Slope"        , "Std Dev"       , "Coef of Var" ,
-   "Median"        , "Med Abs Dev"  , "Max"           , "Min"         ,
-   "Durbin-Watson" , "Std Dev(NOD)" , "Coef Var(NOD)" , "AutoCorr"    ,
-   "AutoReg"       , "Absolute Max" , "ArgMax"        , "ArgMin"      ,
-   "ArgAbsMax"     , "Sum"          , "Duration"      , "Centroid"    ,
-   "CentDuration"  , "Absolute Sum" , "Non-zero Mean" , "Onset"       ,
-   "Offset"        , "Accumulate"   , "SS"            , "BiwtMidV"    ,
-   "ArgMin+1"      , "ArgMax+1"     , "ArgAbsMax+1"   , "CentroMean"  ,
-   "CVarInv"       , "CvarInv (NOD)", "ZeroCount"     , "NZ Median"   ,
-   "Signed Absmax" , "L2 Norm"      , "NonZero Count" , "NZ Stdev"    ,
-   "Percentile %d" , "FirstValue"   , "TSNR"          , "MSSD"        ,
-   "MSSDsqrt"      , "MASD"
-};
+#if 1
+# include "Tstat.h"
+#else
+ static char *meth_names[] = {
+    "Mean"          , "Slope"        , "Std Dev"       , "Coef of Var" ,
+    "Median"        , "Med Abs Dev"  , "Max"           , "Min"         ,
+    "Durbin-Watson" , "Std Dev(NOD)" , "Coef Var(NOD)" , "AutoCorr"    ,
+    "AutoReg"       , "Absolute Max" , "ArgMax"        , "ArgMin"      ,
+    "ArgAbsMax"     , "Sum"          , "Duration"      , "Centroid"    ,
+    "CentDuration"  , "Absolute Sum" , "Non-zero Mean" , "Onset"       ,
+    "Offset"        , "Accumulate"   , "SS"            , "BiwtMidV"    ,
+    "ArgMin+1"      , "ArgMax+1"     , "ArgAbsMax+1"   , "CentroMean"  ,
+    "CVarInv"       , "CvarInv (NOD)", "ZeroCount"     , "NZ Median"   ,
+    "Signed Absmax" , "L2 Norm"      , "NonZero Count" , "NZ Stdev"    ,
+    "Percentile %d" , "FirstValue"   , "TSNR"          , "MSSD"        ,
+    "MSSDsqrt"      , "MASDx"
+ };
+#endif
 
 static void STATS_tsfunc( double tzero , double tdelta ,
                          int npts , float *ts , double ts_mean ,
@@ -165,7 +169,8 @@ void usage_3dTstat(int detail)
  " -MSSD      = Von Neumann's Mean of Successive Squared Differences\n"
  "               = average of sum of squares of first time difference\n"
  " -MSSDsqrt  = Sqrt(MSSD)\n"
- " -MASD      = Median of absolute values of first time differences\n"
+ " -MASDx     = Median of absolute values of first time differences\n"
+ "               times 1.4826 (to scale it like standard deviation)\n"
  "               = a robust alternative to MSSDsqrt\n"
  " -min       = compute minimum of input voxels [undetrended]\n"
  " -max       = compute maximum of input voxels [undetrended]\n"
@@ -329,6 +334,14 @@ int main( int argc , char *argv[] )
 
       /*-- methods --*/
 
+      if( strcasecmp(argv[nopt],"-methnum") == 0 ){    /* 20 Mar 2018 */
+        if( ++nopt == argc )                           /* for plugin use */
+          ERROR_exit("no arg after '%s'",argv[nopt-1]);
+        meth[nmeths++] = (int)strtod(argv[nopt],NULL) ;
+        nbriks++ ;
+        nopt++ ; continue ;
+      }
+
       if( strcasecmp(argv[nopt],"-centromean") == 0 ){ /* 01 Nov 2010 */
          meth[nmeths++] = METH_CENTROMEAN ;
          nbriks++ ;
@@ -417,7 +430,7 @@ int main( int argc , char *argv[] )
          nbriks++ ;
          nopt++ ; continue ;
       }
-      if( strcasecmp(argv[nopt],"-MASD") == 0 ){  /* 19 Mar 2018 */
+      if( strcasecmp(argv[nopt],"-MASDx") == 0 ){  /* 19 Mar 2018 */
          meth[nmeths++] = METH_MEDIAN_ASD ;
          nbriks++ ;
          nopt++ ; continue ;
@@ -1053,7 +1066,7 @@ static void STATS_tsfunc( double tzero, double tdelta ,
       break ;
 
       case METH_MEDIAN_ASD:{  /* 19 Mar 2018 */
-        val[out_index] = cs_median_abs_sd( npts , ts , NULL ) ;
+        val[out_index] = cs_median_abs_sd( npts , ts , NULL ) * 1.4826f ;
       }
       break ;
 

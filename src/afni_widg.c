@@ -3743,7 +3743,7 @@ STATUS("making func->rowcol") ;
 #define VEDIT_COLOR_B "#004466"
 #define VEDIT_NOPT    (VEDIT_LAST_VALUE+1)
    { static char *options_vedit_label[] =
-       { "InstaCorr" , "InstaCalc" , "GrpInCorr" } ;
+       { "InstaCorr" , "InstaCalc" , "3dTstat" , "GrpInCorr" } ;
      int nopt = (num_entry==1) ? VEDIT_NOPT : VEDIT_NOPT-1 ;  /* no GrpInCorr after [A] */
      int ibut ;
      func->options_vedit_av = new_MCW_arrowval(
@@ -4002,6 +4002,46 @@ STATUS("making func->rowcol") ;
 
    im3d->icalc_setup = NULL ;
 
+   /*--- 22 Mar 2018: Tstat stuff ---*/
+
+   func->tstat_rowcol =
+      XtVaCreateWidget(
+         "dialog" , xmRowColumnWidgetClass , func->vedit_frame ,
+            XmNorientation , XmVERTICAL ,
+            XmNpacking , XmPACK_TIGHT ,
+            XmNmarginHeight, 0 ,
+            XmNmarginWidth , 0 ,
+            XmNspacing     , 0 ,
+            XmNtraversalOn , True  ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+
+   func->tstat_pb =
+         XtVaCreateManagedWidget(
+            "dialog" , xmPushButtonWidgetClass , func->tstat_rowcol ,
+               LABEL_ARG("Setup Tstat") ,
+               XmNmarginHeight , 0 ,
+               XmNtraversalOn , True  ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+   MCW_set_widget_bg( func->tstat_pb , VEDIT_COLOR_B , 0 ) ;
+   XtAddCallback( func->tstat_pb , XmNactivateCallback , AFNI_misc_CB , im3d ) ;
+   MCW_register_hint( func->tstat_pb , "Control Tstat calculations" ) ;
+
+   xstr = XmStringCreateLtoR( "*NOT Ready* " , XmFONTLIST_DEFAULT_TAG ) ;
+   func->tstat_label =
+      XtVaCreateManagedWidget(
+         "dialog" , xmLabelWidgetClass , func->tstat_rowcol ,
+            XmNrecomputeSize , False ,
+            XmNlabelString , xstr ,
+            XmNalignment , XmALIGNMENT_CENTER ,
+            XmNtraversalOn , True  ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+   XmStringFree(xstr) ;
+   MCW_set_widget_bg(func->tstat_label,STOP_COLOR,0) ;
+
+
    /*--- 22 Dec 2009: Group InstaCorr stuff ---*/
 
    if( num_entry == 1 ){  /* only in controller A */
@@ -4026,7 +4066,7 @@ STATUS("making func->rowcol") ;
                  XmNtraversalOn , True  ,
                  XmNinitialResourcesPersistent , False ,
               NULL ) ;
-     MCW_set_widget_bg( func->gicor_pb , VEDIT_COLOR_B , 0 ) ;
+     MCW_set_widget_bg( func->gicor_pb , VEDIT_COLOR_A , 0 ) ;
      XtAddCallback( func->gicor_pb , XmNactivateCallback , AFNI_misc_CB , im3d ) ;
      MCW_register_hint( func->gicor_pb , "Control 3dGroupInCorr calculations" ) ;
 
@@ -7268,32 +7308,14 @@ ENTRY("AFNI_vedit_CB") ;
    XtUnmanageChild( im3d->vwid->func->vedit_frame ) ;
 
    switch( av->ival ){
-#if 0
-     /* switch to Clusters */
-     case 0:
-       DISABLE_INSTACALC(im3d) ;                          /* InstaCalc off */
-       DISABLE_INSTACORR(im3d) ;                          /* InstaCorr off */
-       DESTROY_ICOR_setup(im3d->iset) ;
-       DISABLE_GRPINCORR(im3d) ;                          /* GrpInCorr off */
-       XtUnmanageChild( im3d->vwid->func->icalc_rowcol) ;
-       XtUnmanageChild( im3d->vwid->func->icor_rowcol ) ;
-       if( im3d->vwid->func->gicor_rowcol != NULL )
-         XtUnmanageChild( im3d->vwid->func->gicor_rowcol ) ;
-       XtManageChild  ( im3d->vwid->func->clu_rowcol  ) ;
-     break ;
-#endif
 
      /* switch to InstaCorr */
      case VEDIT_INSTACORR:
-#if 0
-       UNCLUSTERIZE(im3d) ;                               /* Clusters off */
-#endif
+       DISABLE_TSTAT(im3d) ;
        DISABLE_INSTACALC(im3d) ;                          /* InstaCalc off */
        DISABLE_GRPINCORR(im3d) ;                          /* GrpInCorr off */
        XtUnmanageChild( im3d->vwid->func->icalc_rowcol) ;
-#if 0
-       XtUnmanageChild( im3d->vwid->func->clu_rowcol  ) ;
-#endif
+       XtUnmanageChild( im3d->vwid->func->tstat_rowcol) ;
        if( im3d->vwid->func->gicor_rowcol != NULL )
          XtUnmanageChild( im3d->vwid->func->gicor_rowcol ) ;
        XtManageChild  ( im3d->vwid->func->icor_rowcol ) ;
@@ -7301,33 +7323,40 @@ ENTRY("AFNI_vedit_CB") ;
 
      /* switch to InstaCalc [18 Sep 2009] */
      case VEDIT_INSTACALC:
-#if 0
-       UNCLUSTERIZE(im3d) ;                               /* Clusters off */
-#endif
+       DISABLE_TSTAT(im3d) ;
        DISABLE_INSTACORR(im3d) ;                          /* InstaCorr off */
        DESTROY_ICOR_setup(im3d->iset) ;
        DISABLE_GRPINCORR(im3d) ;                          /* GrpInCorr off */
-#if 0
-       XtUnmanageChild( im3d->vwid->func->clu_rowcol  ) ;
-#endif
        XtUnmanageChild( im3d->vwid->func->icor_rowcol ) ;
+       XtUnmanageChild( im3d->vwid->func->tstat_rowcol) ;
        if( im3d->vwid->func->gicor_rowcol != NULL )
          XtUnmanageChild( im3d->vwid->func->gicor_rowcol ) ;
        XtManageChild  ( im3d->vwid->func->icalc_rowcol) ;
      break ;
 
+     /* switch to Tstat [22 Mar 2018] */
+     case VEDIT_TSTAT:
+       DISABLE_INSTACALC(im3d) ;
+       DISABLE_INSTACORR(im3d) ;                          /* InstaCorr off */
+       DESTROY_ICOR_setup(im3d->iset) ;
+       DISABLE_GRPINCORR(im3d) ;                          /* GrpInCorr off */
+       XtUnmanageChild( im3d->vwid->func->icor_rowcol ) ;
+       XtUnmanageChild( im3d->vwid->func->icalc_rowcol) ;
+       if( im3d->vwid->func->gicor_rowcol != NULL )
+         XtUnmanageChild( im3d->vwid->func->gicor_rowcol ) ;
+       XtManageChild  ( im3d->vwid->func->tstat_rowcol) ;
+     break ;
+
      /* switch to Group InstaCorr [22 Dec 2009] */
      case VEDIT_GRINCORR:
        if( im3d->vwid->func->gicor_rowcol != NULL ){
+         DISABLE_TSTAT(im3d) ;
          DISABLE_INSTACALC(im3d) ;                          /* InstaCalc off */
          DISABLE_INSTACORR(im3d) ;                          /* InstaCorr off */
          DESTROY_ICOR_setup(im3d->iset) ;
-#if 0
-         UNCLUSTERIZE(im3d) ;                               /* Clusters off */
-         XtUnmanageChild( im3d->vwid->func->clu_rowcol  ) ;
-#endif
          XtUnmanageChild( im3d->vwid->func->icor_rowcol ) ;
          XtUnmanageChild( im3d->vwid->func->icalc_rowcol) ;
+         XtUnmanageChild( im3d->vwid->func->tstat_rowcol) ;
          XtManageChild  ( im3d->vwid->func->gicor_rowcol) ;
          if( im3d->giset != NULL ) ENABLE_GRPINCORR(im3d) ;
          else                      DISABLE_GRPINCORR(im3d) ;
