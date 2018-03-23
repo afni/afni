@@ -73,7 +73,11 @@ static int perc_val = -666;
 #define METH_FIRSTVALUE    41 /* returns the 1st value - to avoid exiting on invalid 1-input-methods */
 #define METH_TSNR          42 /* JKR 10 April 2017 */
 
-#define MAX_NUM_OF_METHS   43
+#define METH_MEAN_SSD      43 /* 19 Mar 2018 */
+#define METH_MEAN_SSDQ     44
+#define METH_MEDIAN_ASD    45
+
+#define MAX_NUM_OF_METHS   46
 
 /* allow single inputs for some methods (test as we care to add) */
 #define NUM_1_INPUT_METHODS 12
@@ -92,19 +96,24 @@ static float basepercent           = 0.5;  /* 50% assumed for duration unless us
 
 static int do_tdiff = 0 ;  /* 25 May 2011 */
 
-static char *meth_names[] = {
-   "Mean"          , "Slope"        , "Std Dev"       , "Coef of Var" ,
-   "Median"        , "Med Abs Dev"  , "Max"           , "Min"         ,
-   "Durbin-Watson" , "Std Dev(NOD)" , "Coef Var(NOD)" , "AutoCorr"    ,
-   "AutoReg"       , "Absolute Max" , "ArgMax"        , "ArgMin"      ,
-   "ArgAbsMax"     , "Sum"          , "Duration"      , "Centroid"    ,
-   "CentDuration"  , "Absolute Sum" , "Non-zero Mean" , "Onset"       ,
-   "Offset"        , "Accumulate"   , "SS"            , "BiwtMidV"    ,
-   "ArgMin+1"      , "ArgMax+1"     , "ArgAbsMax+1"   , "CentroMean"  ,
-   "CVarInv"       , "CvarInv (NOD)", "ZeroCount"     , "NZ Median"   ,
-   "Signed Absmax" , "L2 Norm"      , "NonZero Count" , "NZ Stdev"    ,
-   "Percentile %d" , "FirstValue"   , "TSNR"
-};
+#if 1
+# include "Tstat.h"
+#else
+ static char *meth_names[] = {
+    "Mean"          , "Slope"        , "Std Dev"       , "Coef of Var" ,
+    "Median"        , "Med Abs Dev"  , "Max"           , "Min"         ,
+    "Durbin-Watson" , "Std Dev(NOD)" , "Coef Var(NOD)" , "AutoCorr"    ,
+    "AutoReg"       , "Absolute Max" , "ArgMax"        , "ArgMin"      ,
+    "ArgAbsMax"     , "Sum"          , "Duration"      , "Centroid"    ,
+    "CentDuration"  , "Absolute Sum" , "Non-zero Mean" , "Onset"       ,
+    "Offset"        , "Accumulate"   , "SS"            , "BiwtMidV"    ,
+    "ArgMin+1"      , "ArgMax+1"     , "ArgAbsMax+1"   , "CentroMean"  ,
+    "CVarInv"       , "CvarInv (NOD)", "ZeroCount"     , "NZ Median"   ,
+    "Signed Absmax" , "L2 Norm"      , "NonZero Count" , "NZ Stdev"    ,
+    "Percentile %d" , "FirstValue"   , "TSNR"          , "MSSD"        ,
+    "MSSDsqrt"      , "MASDx"
+ };
+#endif
 
 static void STATS_tsfunc( double tzero , double tdelta ,
                          int npts , float *ts , double ts_mean ,
@@ -157,6 +166,12 @@ void usage_3dTstat(int detail)
  " -bmv       = compute biweight midvariance of input voxels [undetrended]\n"
  "                [actually is 0.989*sqrt(biweight midvariance), to make]\n"
  "                [the value comparable to the standard deviation output]\n"
+ " -MSSD      = Von Neumann's Mean of Successive Squared Differences\n"
+ "               = average of sum of squares of first time difference\n"
+ " -MSSDsqrt  = Sqrt(MSSD)\n"
+ " -MASDx     = Median of absolute values of first time differences\n"
+ "               times 1.4826 (to scale it like standard deviation)\n"
+ "               = a robust alternative to MSSDsqrt\n"
  " -min       = compute minimum of input voxels [undetrended]\n"
  " -max       = compute maximum of input voxels [undetrended]\n"
  " -absmax    = compute absolute maximum of input voxels [undetrended]\n"
@@ -319,6 +334,14 @@ int main( int argc , char *argv[] )
 
       /*-- methods --*/
 
+      if( strcasecmp(argv[nopt],"-methnum") == 0 ){    /* 20 Mar 2018 */
+        if( ++nopt == argc )                           /* for plugin use */
+          ERROR_exit("no arg after '%s'",argv[nopt-1]);
+        meth[nmeths++] = (int)strtod(argv[nopt],NULL) ;
+        nbriks++ ;
+        nopt++ ; continue ;
+      }
+
       if( strcasecmp(argv[nopt],"-centromean") == 0 ){ /* 01 Nov 2010 */
          meth[nmeths++] = METH_CENTROMEAN ;
          nbriks++ ;
@@ -394,6 +417,23 @@ int main( int argc , char *argv[] )
            WARNING_message("option '%s 100' is the same as '-max'",argv[nopt-1]) ;
          meth[nmeths++] = METH_PERCENTILE ;
          nbriks++ ; nopt++ ; continue ;
+      }
+
+      if( strcasecmp(argv[nopt],"-MSSD") == 0 ){  /* 19 Mar 2018 */
+         meth[nmeths++] = METH_MEAN_SSD ;
+         nbriks++ ;
+         nopt++ ; continue ;
+      }
+      if( strcasecmp(argv[nopt],"-MSSDQ")    == 0 ||
+          strcasecmp(argv[nopt],"-MSSDsqrt") == 0 ){  /* 20 Mar 2018 */
+         meth[nmeths++] = METH_MEAN_SSDQ ;
+         nbriks++ ;
+         nopt++ ; continue ;
+      }
+      if( strcasecmp(argv[nopt],"-MASDx") == 0 ){  /* 19 Mar 2018 */
+         meth[nmeths++] = METH_MEDIAN_ASD ;
+         nbriks++ ;
+         nopt++ ; continue ;
       }
 
       if( strcasecmp(argv[nopt],"-sum") == 0 ){
@@ -1014,6 +1054,19 @@ static void STATS_tsfunc( double tzero, double tdelta ,
                                            *(ts[ii]-ts_mean) ;
         std = sqrt( sum/(npts-1.0) ) ;  /* stdev */
         val[out_index] = (std != 0.0) ? fabs(ts_mean)/std : 0.0 ;
+      }
+      break ;
+
+      case METH_MEAN_SSDQ:
+      case METH_MEAN_SSD:{  /* 19 Mar 2018 */
+        val[out_index] = cs_mean_square_sd( npts , ts ) ;
+        if( meth[meth_index] == METH_MEAN_SSDQ )
+          val[out_index] = sqrtf( MAX(val[out_index],0.0f) ) ;
+      }
+      break ;
+
+      case METH_MEDIAN_ASD:{  /* 19 Mar 2018 */
+        val[out_index] = cs_median_abs_sd( npts , ts , NULL ) * 1.4826f ;
       }
       break ;
 

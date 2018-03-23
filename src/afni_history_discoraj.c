@@ -51,6 +51,9 @@
 afni_history_struct discoraj_history[] = {
 
  /* can copy to and change one of the examples here */
+ { 23 , MAR , 2018 , JKR , "tedana_wrapper.py" , SUPER , TYPE_NEW_PROG ,
+   "add wrapper for tedana.py that will be run from afni_proc.py"
+ } ,
  { 5 , MAR , 2018 , JKR , "FATCAT_matplot" , MINOR , TYPE_GENERAL ,
    "changed name of @FATCAT_heatmap_shiny to FATCAT_matplot"
  } ,
