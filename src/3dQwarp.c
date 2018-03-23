@@ -40,6 +40,7 @@
 #define ALLOW_QMODE                /* allows -Qfinal and -Qonly options */
 #define ALLOW_PLUSMINUS            /* allows -plusminus option */
 #undef  USE_PLUSMINUS_INITIALWARP  /* don't do this! doesn't work well! */
+#define USE_NEW_HSAVE              /* 13 Mar 2018 */
 
 #include "mri_nwarp.c"             /* all the real work is done in here */
 
@@ -374,6 +375,11 @@ void Qhelp(void)
     "       run the program to a larger minimum patch size, then\n"
     "       re-start the warping process from the last saved warp,\n"
     "       using '-inilev' and '-iniwarp'.\n"
+#ifdef USE_NEW_HSAVE
+    "       Using the '-allsave' option would also let you re-start the warping\n"
+    "       from the end of the last completed level, since that option saves\n"
+    "       the computed warp as each level finishes before starting the next.\n"
+#endif
     "    -- Also, the use of '-verb' will cause 3dQwarp to print a\n"
     "       report for every patch, which will usually make it obvious\n"
     "       when the program freezes up.\n"
@@ -609,6 +615,9 @@ void Qhelp(void)
     "                 then the -resample option will be ignored.\n"
     "               * You CAN use -resample with these 3dQwarp options:\n"
     "                   -plusminus  -inilev  -iniwarp  -duplo\n"
+    "                 In particular, '-iniwarp' and '-resample' will work\n"
+    "                 together if you need to re-start a warp job from the\n"
+    "                 output of '-allsave'.\n"
     "               * Unless you are in a hurry, '-allineate' is better.\n"
     "\n"
     " -nowarp      = Do not save the _WARP file.\n"
@@ -833,7 +842,10 @@ void Qhelp(void)
     "                 warp via the string \"IDENT(base_dataset) matrix_file.aff12.1D\".\n"
     "               * You CANNOT use this option with -duplo !!\n"
     "               * -iniwarp is usually used with -inilev to re-start 3dQwarp from\n"
-    "                 a previous stopping point.\n"
+    "                 a previous stopping point, or from the output of '-allsave'.\n"
+    "               * In particular, '-iniwarp' and '-resample' will work\n"
+    "                 together if you need to re-start a warp job from the\n"
+    "                 output of '-allsave'.\n"
 #if 0
     "               * Special cases allow the creation of an initial affine 'warp'\n"
     "                 from a list of 12 numbers:\n"
@@ -916,11 +928,23 @@ void Qhelp(void)
     " -allsave     = This option lets you save the output warps from each level\n"
     "   *OR*         of the refinement process. Mostly used for experimenting.\n"
     " -saveall      * Cannot be used with -nopadWARP, -duplo, or -plusminus.\n"
+    "               * You could use the saved warps to create different versions\n"
+    "                 of the warped source datasets (using 3dNwarpApply), to help\n"
+    "                 you visualize how the warping process makes progress.\n"
+#ifndef USE_NEW_HSAVE
     "               * Will only save all the outputs if the program terminates\n"
     "                 normally -- if it crashes, or freezes, then all these\n"
     "                 warps are lost.\n"
-#if defined(USE_OMP) && defined(__GNU_C__) /* I forget why this was here :( */
+#else
+    "               * The saved warps are written out at the end of each level,\n"
+    "                 before the next level starts computation. Thus, they could\n"
+    "                 be used to re-start the computation if the program crashed\n"
+    "                 (by using options '-inilev' and '-iniwarp').\n"
 #endif
+
+#if defined(USE_OMP) && defined(__GNU_C__) /* I forget why this was here - getting old :( */
+#endif
+
     "\n"
     " -duplo       = Start off with 1/2 scale versions of the volumes,\n"
     "                for getting a speedy coarse first alignment.\n"
@@ -1298,6 +1322,61 @@ void Qallin_resample( char *basname , char *srcname )  /* 17 Jul 2013 */
    return ;
 }
 
+/*---------------------------------------------------------------------------*/
+/* Function for writing out intermediate saved warps during optimization */
+
+static int do_allin=0 ; char *allopt=NULL ;
+static mat44 allin_matrix, allin_adjust_matrix ;
+static THD_3dim_dataset *adset=NULL , *bset=NULL ;
+static char *prefix = "Qwarp" ;
+static int saved_argc=0 ; static char **saved_argv=NULL ;
+
+#ifdef USE_NEW_HSAVE
+void save_intermediate_warp( IndexWarp3D *hwarp , char *nam )
+{
+   IndexWarp3D *tarp ; char suffix[64], *qprefix ; THD_3dim_dataset *qset ;
+
+   if( hwarp == NULL || nam == NULL ) return ;
+
+ENTRY("save_intermediate_warp") ;
+
+   if( do_allin ){
+STATUS("compose with allin") ;
+     tarp = IW3D_compose_w1m2(hwarp,allin_adjust_matrix,MRI_WSINC5) ;
+   } else {
+     tarp = hwarp ;
+   }
+
+STATUS("adoption") ;
+   IW3D_adopt_dataset(tarp,adset) ;
+   sprintf(suffix,"_%s_WARPsave",nam) ;
+   qprefix = modify_afni_prefix(prefix,NULL,suffix) ;
+STATUS("convert to dset") ;
+   qset = IW3D_to_dataset( tarp , qprefix ) ;
+   if( bset != NULL ){
+STATUS("copy history") ;
+     tross_Copy_History( bset , qset ) ;
+     if( saved_argc > 0 ){
+STATUS("make new history") ;
+       tross_Make_History( "3dQwarp" , saved_argc,saved_argv , qset ) ;
+     }
+STATUS("copy atlas_space") ;
+     MCW_strncpy( qset->atlas_space , bset->atlas_space , THD_MAX_NAME ) ;
+  }
+  if( do_allin ){  /* save copy of 3dAllineate matrix into header */
+    float qar[12] ;
+    UNLOAD_MAT44(allin_matrix,qar[0],qar[1],qar[ 2],qar[ 3],
+                              qar[4],qar[5],qar[ 6],qar[ 7],
+                              qar[8],qar[9],qar[10],qar[11] ) ;
+    THD_set_float_atr( qset->dblk , "QWARP_ALLIN_MATRIX" , 12 , qar ) ;
+  }
+STATUS("write warp") ;
+   DSET_write(qset) ; fprintf(stderr,"[%s]",DSET_BRIKNAME(qset)) ; DSET_delete(qset) ;
+   if( tarp != hwarp ) IW3D_destroy(tarp) ;
+   EXRETURN ;
+}
+#endif
+
 /*****************************************************************************/
 /*---------------------------------------------------------------------------*/
 /*                                                                           */
@@ -1308,19 +1387,18 @@ void Qallin_resample( char *basname , char *srcname )  /* 17 Jul 2013 */
 
 int main( int argc , char *argv[] )
 {
-   THD_3dim_dataset *bset=NULL , *sset=NULL , *oset , *iwset=NULL , *sstrue=NULL ;
+   THD_3dim_dataset *sset=NULL , *oset , *iwset=NULL , *sstrue=NULL ;
    char *bsname=NULL , *iwname=NULL , *ssname=NULL , *esname=NULL ;
    MRI_IMAGE *bim=NULL , *wbim=NULL , *sim=NULL , *oim=NULL ; float bmin,smin ;
    IndexWarp3D *oww=NULL , *owwi=NULL ; Image_plus_Warp *oiw=NULL ;
-   char *prefix="Qwarp" , *prefix_clean=NULL ; int nopt , nevox=0 ;
+   char *prefix_clean=NULL ; int nopt , nevox=0 ;
    char *wtprefix=NULL  , *wtprefix_clean=NULL ;
    int meth=GA_MATCH_PEARCLP_SCALAR ; int meth_is_lpc=0 ;
    int ilev=0 , nowarp=0 , nowarpi=1 , mlev=666 , nodset=0 , nnz ;
    int do_awarp=0 ; /* 21 Dec 2016 */
    int duplo=0 , qsave=0 , minpatch=0 , nx,ny,nz , ct , nnn , noneg=0 ;
    float dx,dy,dz ;
-   int do_allin=0 ; char *allopt=NULL ; mat44 allin_matrix ;
-   float dxal=0.0f,dyal=0.0f,dzal=0.0f ;
+   float dxal=0.0f,dyal=0.0f,dzal=0.0f ; int have_dxyzal=0 ;
    int do_resam=0 ; int keep_allin=1 ;
    int flags=0 , nbad=0 ;
    double cput=0.0 ;
@@ -1329,7 +1407,7 @@ int main( int argc , char *argv[] )
    char appendage[THD_MAX_NAME] ;
    int zeropad=1, pad_xm=0,pad_xp=0, pad_ym=0,pad_yp=0, pad_zm=0,pad_zp=0 ; /* 13 Sep 2013 */
    int nxold=0,nyold=0,nzold=0 ;
-   int zeropad_warp=1 ; THD_3dim_dataset *adset=NULL ;  /* 19 Mar 2014 */
+   int zeropad_warp=1 ;
    int expad=0 , minpad=0 ;
    int iwpad_xm=0,iwpad_xp=0, iwpad_ym=0,iwpad_yp=0, iwpad_zm=0,iwpad_zp=0 ;
    int do_pmbase=0 ;
@@ -1374,7 +1452,10 @@ int main( int argc , char *argv[] )
    (void)COX_clock_time() ;  /* initialize the clock timer */
    putenv("AFNI_WSINC5_SILENT=YES") ;
 
-   LOAD_IDENT_MAT44(allin_matrix); /* Just to quiet initialization warning */
+   LOAD_IDENT_MAT44(allin_matrix);        /* Just to quiet initialization warning */
+   LOAD_IDENT_MAT44(allin_adjust_matrix); /* Just to quiet initialization warning */
+
+   saved_argc = argc ; saved_argv = argv ; /* 13 Mar 2018 */
 
    /*------------- scan for and parse options -------------*/
 
@@ -2036,10 +2117,12 @@ int main( int argc , char *argv[] )
 
      if( strcasecmp(argv[nopt],"-allsave") == 0 ||
          strcasecmp(argv[nopt],"-saveall") == 0       ){   /* 02 Jan 2015 */
-       Hsave_allwarps = 1 ; nopt++ ; continue ;
+       Hsave_allwarps = 1 ;
+#ifdef USE_NEW_HSAVE
+       Hsave_callback_func = save_intermediate_warp ;      /* 13 Mar 2018 */
+#endif
+       nopt++ ; continue ;
      }
-
-
 
      /*---------------*/
 
@@ -2378,7 +2461,7 @@ STATUS("3dAllineate coming up next") ;
                                qar[4],qar[5],qar[ 6],qar[ 7],
                                qar[8],qar[9],qar[10],qar[11] ) ;
          /* save the magnitude of the shifts (needed for zero pad guesstimate */
-       dxal = fabsf(qar[3]) ; dyal = fabsf(qar[7]) ; dzal = fabsf(qar[11]) ;
+       dxal = fabsf(qar[3]); dyal = fabsf(qar[7]); dzal = fabsf(qar[11]); have_dxyzal = 1;
        if( !keep_allin ){
          remove(qs) ;           /* erase the 3dAllineate matrix file from disk */
          if( Hverb ) ININFO_message("3dAllineate output files have been deleted");
@@ -2423,6 +2506,15 @@ STATUS("construct initial warp") ;
        ERROR_exit("Cannot open -iniwarp %s",iwname) ;
      if( DSET_NVALS(iwset) < 3 || DSET_BRICK_TYPE(iwset,0) != MRI_float )
        ERROR_exit("-iniwarp %s is not in the right format :-(",argv[nopt]) ;
+
+     /* check for previous -allin matrix [16 Mar 2018] */
+
+     { ATR_float *afl = THD_find_float_atr( iwset->dblk , "QWARP_ALLIN_MATRIX" ) ;
+       if( afl != NULL && afl->nfl > 11 ){
+         float *qar = afl->fl ;
+         dxal = fabsf(qar[3]); dyal = fabsf(qar[7]); dzal = fabsf(qar[11]); have_dxyzal = 1;
+       }
+     }
 
      /* compute how much bset must be padded to fit the iniwarp [11 Apr 2014] */
 
@@ -2544,10 +2636,11 @@ STATUS("load datasets") ; /*--------------------------------------------------*/
      pad_ym = MIN(bpad_ym,spad_ym) ; pad_yp = MAX(bpad_yp,spad_yp) ;
      pad_zm = MIN(bpad_zm,spad_zm) ; pad_zp = MAX(bpad_zp,spad_zp) ;
 
-     if( do_allin ){                              /* extend pad size for */
+     if( have_dxyzal ){                           /* extend pad size for */
        float dm = MIN(dx,dy) ; dm = MIN(dm,dz) ;  /* 3dAllineate shifts? */
        dxal /= dm ; dyal /= dm ; dzal /= dm ;
        dm = MAX(dxal,dyal); dm = MAX(dm,dzal); mpad_min += (int)rintf(1.0111f*dm);
+       /* INFO_message("dxyzal => mpad_min = %d",mpad_min) ; */
      }
 
      /* define minimum padding for each direction */
@@ -2619,7 +2712,9 @@ STATUS("load datasets") ; /*--------------------------------------------------*/
          WARNING_message(
            "At least one padding is more than 50%% of dataset grid size!" ) ;
          WARNING_message(
-           "Computation time might be tremendously long :(") ;
+           "  Computation time might be tremendously long :(") ;
+         WARNING_message(
+           "  Preliminary alignment of dataset centers might help a LOT.") ;
        }
 
        /*-- replace base image --*/
@@ -2902,6 +2997,25 @@ STATUS("construct weight/mask volume") ;
    }
 #endif
 
+   /* create a dataset to be the warp's "adoption parent" */
+
+   if( !zeropad_warp )
+     adset = bset ;
+   else
+     adset = THD_zeropad( bset ,
+                          pad_xm,pad_xp , pad_ym,pad_yp , pad_zm,pad_zp ,
+                          "BSET_zeropadded" , ZPAD_IJK | ZPAD_EMPTY ) ;
+
+   if( do_allin ){ /* make warp adjustment matrix [13 Mar 2018] */
+     mat44 tmat,smat,qmat , cmat,imat ;
+     cmat = adset->daxes->ijk_to_dicom ;
+     imat = MAT44_INV(cmat) ;
+     qmat = allin_matrix ;                 /* convert matrix to */
+     tmat = MAT44_MUL(qmat,cmat) ;         /* index space from  */
+     smat = MAT44_MUL(imat,tmat) ;         /* coordinate space  */
+     allin_adjust_matrix = smat ;
+   }
+
    /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
    /*------------------------- do some actual work! --------------------------*/
 
@@ -3011,12 +3125,6 @@ STATUS("construct weight/mask volume") ;
    /*--- make the warps adopt a dataset to specify their extrinsic geometry --*/
 
    oim = oiw->im ; oww = oiw->warp ;
-   if( !zeropad_warp )
-     adset = bset ;      /* adset = adoption parent */
-   else
-     adset = THD_zeropad( bset ,
-                          pad_xm,pad_xp , pad_ym,pad_yp , pad_zm,pad_zp ,
-                          "BSET_zeropadded" , ZPAD_IJK | ZPAD_EMPTY ) ;
 
                              IW3D_adopt_dataset( oww        , adset ) ;
    if( qiw         != NULL ) IW3D_adopt_dataset( qiw->warp  , adset ) ;
@@ -3044,21 +3152,16 @@ STATUS("output awarp") ;
      /* (don't have to adjust plusminus warp since can't be run with -allin) */
 
      if( do_allin ){
-       mat44 tmat,smat,qmat ; IndexWarp3D *tarp ; int ii ;
+       IndexWarp3D *tarp ; int ii ;
 STATUS("adjust for 3dAllineate matrix") ;
-       qmat = allin_matrix ;                            /* convert matrix to */
-       tmat = MAT44_MUL(qmat,oiw->warp->cmat) ;         /* index space from  */
-       smat = MAT44_MUL(oiw->warp->imat,tmat) ;         /* coordinate space  */
-       tarp = IW3D_compose_w1m2(oiw->warp,smat,MRI_WSINC5) ;  /* adjust warp */
+       tarp = IW3D_compose_w1m2(oiw->warp,allin_adjust_matrix,MRI_WSINC5) ;  /* adjust warp */
        IW3D_destroy(oiw->warp) ; oww = oiw->warp = tarp ;
        IW3D_adopt_dataset(oww,adset) ;
 
        /** also adjust all intermediate saved warps [02 Jan 2015] **/
-
        for( ii=0 ; ii < Hsave_num ; ii++ ){
-         tarp = IW3D_compose_w1m2(Hsave_iwarp[ii],smat,MRI_WSINC5) ;
+         tarp = IW3D_compose_w1m2(Hsave_iwarp[ii],allin_adjust_matrix,MRI_WSINC5) ;
          IW3D_destroy(Hsave_iwarp[ii]) ; Hsave_iwarp[ii] = tarp ;
-         IW3D_adopt_dataset(Hsave_iwarp[ii],adset) ;
        }
      }
 
@@ -3164,6 +3267,13 @@ INFO_message("warp dataset origin: %g %g %g",DSET_XORG(qset),DSET_YORG(qset),DSE
      tross_Copy_History( bset , qset ) ;
      tross_Make_History( "3dQwarp" , argc,argv , qset ) ;
      MCW_strncpy( qset->atlas_space , bset->atlas_space , THD_MAX_NAME ) ;
+     if( do_allin ){  /* save copy of 3dAllineate matrix into header */
+       float qar[12] ;
+       UNLOAD_MAT44(allin_matrix,qar[0],qar[1],qar[ 2],qar[ 3],
+                                 qar[4],qar[5],qar[ 6],qar[ 7],
+                                 qar[8],qar[9],qar[10],qar[11] ) ;
+       THD_set_float_atr( qset->dblk , "QWARP_ALLIN_MATRIX" , 12 , qar ) ;
+     }
      DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ; qset=NULL ;
 
      if( do_plusminus && qiw != NULL ){
@@ -3205,6 +3315,7 @@ INFO_message("warp dataset origin: %g %g %g",DSET_XORG(qset),DSET_YORG(qset),DSE
    if( Hsave_allwarps && Hsave_num > 0 ){
      char suffix[64] , *qprefix ; int ii ;
      for( ii=0 ; ii < Hsave_num ; ii++ ){
+       IW3D_adopt_dataset(Hsave_iwarp[ii],adset) ;
        sprintf(suffix,"_%s_WARP",Hsave_iname[ii]) ;
        qprefix = modify_afni_prefix(prefix,NULL,suffix) ;
        qset = IW3D_to_dataset( Hsave_iwarp[ii] , qprefix ) ;

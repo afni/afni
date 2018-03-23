@@ -1123,3 +1123,40 @@ INFO_message("qfrac(%g): fmid=%g mid=%d a[mid]=%g temp=%g",frac,fmid,mid,a[mid],
 
    return (fb*a[mid]+ft*temp) ;
 }
+
+/*-------------------------------------------------------------------------*/
+/* The Mean Square Successive Difference
+   J von Neumann, RH Kent, HR Bellinson and BI Hart.
+   The Annals of Mathematical Statistics 12:153-162 (1941).
+*//*-----------------------------------------------------------------------*/
+
+float cs_mean_square_sd( int npt , float *x )
+{
+   float sum=0.0f , val ; int ii ;
+
+   if( npt < 2 || x == NULL ) return sum ;
+
+   for( ii=1 ; ii < npt ; ii++ ){
+     val = x[ii] - x[ii-1] ; sum += val*val ;
+   }
+   return (sum/(npt-1.0f)) ;
+}
+
+/*--- similar thing, but median absolute value of successive differences ---*/
+
+float cs_median_abs_sd( int npt , float *x , float *wks )
+{
+   float *dd=wks , val ; int ii ;
+
+   if( npt < 2 || x == NULL ) return 0.0f ;
+
+   if( dd == NULL ) dd = (float *)malloc(sizeof(float)*npt) ;
+
+   for( ii=1 ; ii < npt ; ii++ ){
+     dd[ii-1] = fabsf( x[ii] - x[ii-1] ) ;
+   }
+
+   val = qmed_float( npt-1 , dd ) ;
+   if( dd != wks ) free(dd) ;
+   return val ;
+}
