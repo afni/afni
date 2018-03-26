@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, Mar, 2018, RCR, "uber_subject.py", MICRO, TYPE_MODIFY,
+   "modify defaults: VR base = MIN_OUTLIER, EPI/anat cost func = lpc+ZZ",
+   NULL
+ } ,
+
  {  7, Mar, 2018, RCR, "afni", MICRO, TYPE_BUG_FIX,
    "add do_css check around css access for making catenated session list",
    NULL
