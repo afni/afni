@@ -11,7 +11,7 @@
 
 .. code-block:: none
 
-    ¸®}DxUsage: @DriveSuma 
+    ¸õ¯Usage: @DriveSuma 
     
     A script to demonstrate how to drive suma from the command line.
     The script pops messages explaining what will happen in the next command

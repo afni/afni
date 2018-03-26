@@ -13,7 +13,7 @@
 
     Error: Option -dsets needs at least 1 parameters
     Parameter list has 0 parameters.
-    {'basename': <afni_base.comopt object at 0x7f8c93b82e50>, '-dsets': <afni_base.comopt object at 0x7f8c93ddb510>, '-areas_2': <afni_base.comopt object at 0x7f8c93ddb590>, '-areas': <afni_base.comopt object at 0x7f8c93b59a90>}
+    {'basename': <afni_base.comopt object at 0x7f96b06bce50>, '-dsets': <afni_base.comopt object at 0x7f96b0915510>, '-areas_2': <afni_base.comopt object at 0x7f96b0915590>, '-areas': <afni_base.comopt object at 0x7f96b0693a90>}
     Option Name: basename
            Found: -1
            User Parameter List: None
