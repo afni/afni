@@ -156,9 +156,12 @@ g_history = """
     0.41 Oct 10, 2017: try to apply ${subj} and ${gname} in data inputs
          - also, put epi -dsets before tcat opts
     1.0  Dec 29, 2017: python3 compatible
+    1.1  Mar 26, 2018: changed a couple of defaults
+         - def vol registration base:  third -> MIN_OUTLIER
+         - def EPI/anat cost function: lpc -> lpc+ZZ
 """
 
-g_version = '1.0 (December 29, 2017)'
+g_version = '1.1 (March 26, 2018)'
 
 # ----------------------------------------------------------------------
 # global definition of default processing blocks
@@ -171,9 +174,9 @@ g_def_blocks      = ['tshift', 'volreg', 'blur', 'mask', 'scale', 'regress']
 g_def_blocks_anat = ['tshift', 'align', 'tlrc', 'volreg', 'blur', 'mask',
                      'scale', 'regress']
 g_vreg_base_list  = ['first', 'third', 'last', 'MIN_OUTLIER']
-g_def_vreg_base   = 'third'
+g_def_vreg_base   = 'MIN_OUTLIER'
 g_align_cost_list = ['lpc', 'lpc+ZZ', 'lpc+', 'lpa', 'nmi', 'ls']
-g_def_align_cost  = 'lpc'
+g_def_align_cost  = 'lpc+ZZ'
 g_tlrc_base_list  = ['TT_N27+tlrc', 'TT_avg152T1+tlrc', 'TT_icbm452+tlrc',
                      'MNI_avg152T1+tlrc']
 g_def_tlrc_base   = 'TT_N27+tlrc'
