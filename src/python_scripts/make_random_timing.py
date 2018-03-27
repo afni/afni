@@ -20,6 +20,9 @@ make_random_timing.py - Create random stimulus timing files.
     user requests it).  Stimulus presentation times will never overlap, though
     their responses can.
 
+    Consider using this in conjunction with @stim_analyze, at:
+
+       https://afni.nimh.nih.gov/pub/dist/edu/data/CD.expanded/AFNI_data6/ht03/@stim_analyze
 
     ---------------------------------------------------------------------------
     note on advance usage: ~2~
