@@ -11,7 +11,9 @@ import lib_afni1D as LAD
 
 g_help_string = """
 ===========================================================================
-Create random stimulus timing files.
+make_random_timing.py - Create random stimulus timing files.
+
+    Purpose: ~1~
 
     The object is to create a set of random stimulus timing files, suitable
     for use in 3dDeconvolve.  These times will not be TR-locked (unless the
@@ -20,6 +22,8 @@ Create random stimulus timing files.
 
 
     ---------------------------------------------------------------------------
+    note on advance usage: ~2~
+
     **  There is now basic (old) and advanced usage.  Until I decide how to
         properly merge the help, consider:
 
@@ -29,6 +33,7 @@ Create random stimulus timing files.
         the "Advanced Usage" (search for that string).  Perhaps in the future
         the basic usage will just be moved below the advanced.
     ---------------------------------------------------------------------------
+    background: ~2~
 
     This can easily be used to generate many sets of random timing files to
     test via "3dDeconvolve -nodata", in order to determine good timing, akin
@@ -97,7 +102,7 @@ Create random stimulus timing files.
     Currently, -pre_stim_rest and -post_stim_rest cannot vary over runs.
 
 ----------------------------------------
-getting TR-locked timing
+getting TR-locked timing ~2~
 
     If TR-locked timing is desired, it can be enforced with the -tr_locked
     option, along with which the user must specify "-tr TR".  The effect is
@@ -107,7 +112,7 @@ getting TR-locked timing
     set t_gran).
 
 ----------------------------------------
-distributing stimuli across all runs at once (via -across_runs)
+distributing stimuli across all runs at once (via -across_runs) ~2~
 
     The main described use is where there is a fixed number of stimulus events 
     in each run, and of each type.  The -num_reps option specifies that number
@@ -128,7 +133,7 @@ distributing stimuli across all runs at once (via -across_runs)
     any stimuli of a certain type.
 
 ----------------------------------------------------------------------
-examples:
+examples: ~2~
 
     1. Create a timing file for a single stimulus class for a single run.
        The run will be 100 seconds long, with (at least) 10 seconds before
@@ -354,7 +359,7 @@ examples:
                  -max_consec 2
 
 ----------------------------------------------------------------------
-NOTE: distribution of ISI
+NOTE: distribution of ISI ~2~
 
     To picture the distribution, consider the probability of starting with
     r rest events, given R total rest events and T total task events.
@@ -477,6 +482,9 @@ NOTE: distribution of ISI
        curve.
 
 ----------------------------------------------------------------------
+options and arguments ~2~
+
+----------------------------------------
 informational arguments:
 
     -help                       : display this help
@@ -835,12 +843,14 @@ optional arguments:
 
 g_help_advanced = """
 ===========================================================================
-make_random_timing.py - Advanced Usage
+make_random_timing.py - Advanced Usage ~1~
 
    With advanced usage, timing classes are defined for both stimulus periods
    and rest periods.  Timing classes specify duration types that have different
    distributions (min, mean, max and distribution type), which can be applied
    to stimulus events or to rest events.
+
+   overview of timing classes: ~2~
 
    When specifying a timing class, one can provide:
 
@@ -886,8 +896,11 @@ make_random_timing.py - Advanced Usage
    The 'decay' distribution type matches that of the basic (non-advanced) use
    this program.  See "NOTE: distribution of ISI" in the -help output.
 
+   ============================================================
+   Examples: ~2~
+
    -------------------------------------------------------
-   Advanced Example 1: basic, with 3 conditions
+   Advanced Example 1: basic, with 3 conditions ~3~
 
      - This is a simple case with 3 conditions, each having 8 events per run
        of duration 3.5 s.  Rest is randomly distributed using the default
@@ -919,7 +932,7 @@ make_random_timing.py - Advanced Usage
 
 
    -------------------------------------------------------
-   Advanced Example 2: varying stimulus and rest timing classes
+   Advanced Example 2: varying stimulus and rest timing classes ~3~
 
      - This has 4 stimulus conditions employing 3 different stimulus timing
        classes and 3 different rest timing classes.
@@ -968,7 +981,7 @@ make_random_timing.py - Advanced Usage
 
 
    -------------------------------------------------------
-   Advanced Example 3: ordered event types
+   Advanced Example 3: ordered event types ~3~
 
      - Every cue event is followed by test and then result.
      - Every pizza1 event is followed by pizza2 and then pizza3.
@@ -1001,7 +1014,7 @@ make_random_timing.py - Advanced Usage
             -seed 31415 -prefix stimes.adv.3
 
    -------------------------------------------------------
-   Advanced Example 4: limit consecutive events per class type
+   Advanced Example 4: limit consecutive events per class type ~3~
 
      - Use simple 1s stim events and random rest (decay).
      - For entertainment, houses/faces and tuna/fish are
@@ -1027,7 +1040,7 @@ make_random_timing.py - Advanced Usage
             -seed 31415 -prefix stimes.adv.4 -verb 2
 
 ---------------------------------------------------------------------
-options (specific to the advanced usage):
+options (specific to the advanced usage): ~2~
 
     -help_advanced              : display help for advanced usage
     -help_concerns              : display general concerns for timing
@@ -1047,7 +1060,7 @@ R Reynolds  Jan 20, 2017          motivated by K Kircanski and A Stringaris
 
 g_help_concerns = """
 ===========================================================================
-general concerns regarding random timing (to be expanded)
+general concerns regarding random timing (to be expanded) ~2~
 
    (some of this only applies to the advanced usage)
 
@@ -1066,7 +1079,7 @@ general concerns regarding random timing (to be expanded)
 
 g_decay_fixed_details = """
 ===========================================================================
-background on creating decay_fixed curves
+background on creating decay_fixed curves ~2~
  
  Notes:
  Given A,M,B,N = desired min,mean,max for list of N (pseudo-randomly ?)
@@ -1078,7 +1091,7 @@ background on creating decay_fixed curves
     inputs is m=(M-A)/(B-A), and the fractional mean of e^-x on [0,L] is the
     expected value of x (in PDF e^-x) divided by L.
   
- Basic equations:
+ Basic equations: ~3~
   
        (1) integral [e^-x] on (a,b) = e^-a - e^-b
        (2) integral [xe^-x] on (a,b) = (a+1)e^-a - (b+1)e^-b
@@ -1097,7 +1110,7 @@ background on creating decay_fixed curves
     [A,B] with the given mean M.
    
 
- a) Approximation games...
+ a) Approximation games... ~3~
 
     Given A,M,B, find L such that E[x]/L = (M-a)/(b-a).
     So if m is the fractional mean on [a,b], solve m = F(L) = E[x]/L for m.
@@ -1144,7 +1157,7 @@ background on creating decay_fixed curves
     "this is kinda stupid".  Forget approximations.  Moving on...
   
 
- b) Solve m = F(L) for L using Newton's method.
+ b) Solve m = F(L) for L using Newton's method. ~3~
 
     F(L) is very smooth, behaving like a line for L<2 and then scaled
     versions of 1/L beyond that.  So iterate to invert, which should be
@@ -1197,7 +1210,9 @@ background on creating decay_fixed curves
     0.5 < m < 1.0      expected, solve using 1-m and reflect about the mean
     m >= 1.0           illegal
 
- c) Given L, get a list of N exact durations that follow PDF and have mean m.
+ c) Get durations that follow PDF and have mean m. ~3~
+
+    Given L, get a list of N exact durations that follow PDF and have mean m.
 
     This can still apply to [0,inf) with fractional mean m in (0,0.5).
 
@@ -1210,14 +1225,14 @@ background on creating decay_fixed curves
 
   * Note that such values have the desired mean m and follow the PDF on [0,L].
 
- d) Scale the times.
+ d) Scale the times. ~3~
 
     Given A, M, B, and N times[], map each time from [0,L] to [A,B] (which
     should map the mean m to mean M).
 
          newval = A + oldval * (B-A)/L
 
- e) Round the times.
+ e) Round the times. ~3~
 
     Maintain CS = cumulative sum of differences between the exact and rounded
     times.  If the new abs(CS) >= prec (precision), round in the opposite
@@ -1225,11 +1240,13 @@ background on creating decay_fixed curves
     *could* require abs(CS) < prec/2, but that might mean more would be
     rounded in the "wrong" direction.  Please discuss amongst yourselves...
 
- f) if original m > 0.5, reflect times over (A+B)/2
+ f) if original m > 0.5, reflect times over (A+B)/2 ~3~
 
- g) Verify the mean.  Since the difference between the precise sum and the
-    rounded sum should be less than prec, the difference between the means
-    should be less than prec/N, which is all we can ask for in life.
+ g) Verify the mean. ~3~
+
+    Since the difference between the precise sum and the rounded sum
+    should be less than prec, the difference between the means should be
+    less than prec/N, which is all we can ask for in life.
 """
 
 g_history = """
