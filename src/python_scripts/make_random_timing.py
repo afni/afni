@@ -13,7 +13,7 @@ g_help_string = """
 ===========================================================================
 make_random_timing.py - Create random stimulus timing files.
 
-    Purpose: ~1~
+    Basic usage (consider the Advanced usage): ~1~
 
     The object is to create a set of random stimulus timing files, suitable
     for use in 3dDeconvolve.  These times will not be TR-locked (unless the
@@ -846,7 +846,7 @@ optional arguments:
 
 g_help_advanced = """
 ===========================================================================
-make_random_timing.py - Advanced Usage ~1~
+Advanced usage (make_random_timing.py) ~1~
 
    With advanced usage, timing classes are defined for both stimulus periods
    and rest periods.  Timing classes specify duration types that have different
