@@ -1,5 +1,8 @@
 #!/bin/tcsh
 
+# Make AFNI's help readable in a text editor again!
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+
 ### This is not fully adapted yet -- Zhark
 
 if( $#argv < 2 )then
