@@ -49,7 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
- { 27, Mar, 2018, RCR, "uber_subject.py", MICRO, TYPE_MODIFY,
+ { 27, Mar, 2018, RCR, "make_random_timing.py", MICRO, TYPE_MODIFY,
+   "modify help for sphinx formatting",
+   NULL
+ } ,
+
+ { 26, Mar, 2018, RCR, "uber_subject.py", MICRO, TYPE_MODIFY,
    "modify defaults: VR base = MIN_OUTLIER, EPI/anat cost func = lpc+ZZ",
    NULL
  } ,
