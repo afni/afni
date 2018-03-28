@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 28 , MAR , 2018 , RWC , "3dNwarpApply" , MAJOR , TYPE_ENHANCE ,
+   "Program now warps complex-valued datasets." ,
+   "Real and imaginary parts are extracted, warped, and combined.\n"
+   "No special option is needed." } ,
+
  { 23 , MAR , 2018 , RWC , "afni GUI" , MINOR , TYPE_ENHANCE ,
    "Add 3dTstat pseudo-plugin on the Insta-stuff menu" ,
    "Calculate voxelwise statistics of 3D+time datasets. Works by running\n"

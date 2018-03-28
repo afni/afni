@@ -4,6 +4,7 @@
 #include <omp.h>
 #endif
 
+/* bodily include the relevant interpolation and warp functions, for speed */
 #include "mri_genalign_util.c"
 #include "mri_genalign.c"
 #include "mri_nwarp.c"
@@ -12,7 +13,7 @@
 
 void NWA_help(void)
 {
-     printf(
+     printf("\n"
       "Usage: 3dNwarpApply [options]\n"
       "\n"
       "Program to apply a nonlinear 3D warp saved from 3dQwarp (or 3dNwarpCat, etc.)\n"
@@ -32,8 +33,21 @@ void NWA_help(void)
       "    warped the same way at once.  This operation is more efficient than running\n"
       "    3dNwarpApply several times, since the auto-regridding and auto-catenation\n"
       "    in '-nwarp' will only have to be done once.\n"
-      "(3a) Specification of the output dataset names can be done via multiple\n"
+      "  *  Specification of the output dataset names can be done via multiple\n"
       "     arguments to the '-prefix' option, or via the new '-suffix' option.\n"
+      "\n"
+      "New Feature [28 Mar 2018]:\n"
+      "(4) If a source dataset contains complex numbers, then 3dNwarpApply will warp\n"
+      "    the real and imaginary parts separately, combine them, and produce a\n"
+      "    complex-valued dataset as output.\n"
+      "  *  Previously, the program would have warped the magnitude of the input\n"
+      "     dataset and written out a float-valued dataset.\n"
+      "  *  No special option is needed to warp complex-valued datasets.\n"
+      "  *  If you WANT to warp the magnitude of a complex-valued dataset, you will\n"
+      "     have to convert the dataset to a float dataset via 3dcalc, then use\n"
+      "     3dNwarpApply on THAT dataset instead.\n"
+      "  *  You cannot use option '-short' with complex-valued source datasets!\n"
+      "     More precisely, you can try to use this option, but it will be ignored.\n"
       "\n"
       "OPTIONS:\n"
       "--------\n"
@@ -155,6 +169,8 @@ void NWA_help(void)
       "                   No scaling is performed.\n"
       "                ++ This option is intended for use with '-ainterp' and for\n"
       "                   source datasets that contain integral values.\n"
+      "                ++ If the source dataset is complex-valued, this option will\n"
+      "                   be ignored.\n"
       "\n"
       " -quiet       = Don't be verbose :-(\n"
       " -verb        = Be extra verbose :-)\n"
@@ -775,7 +791,7 @@ int main( int argc , char *argv[] )
      INFO_message(".......... Starting dataset warping ..........") ;
 
    dset_outar = THD_nwarp_dataset_array( nwc , dset_srcar , dset_mast , prefix ,
-                                     interp_code,ainter_code , 0.0f , wfac , 0 ) ;
+                                         interp_code,ainter_code , 0.0f , wfac , 0 ) ;
 
    if( dset_outar == NULL ) ERROR_exit("Warping failed for some reason :-(((") ;
 
@@ -787,10 +803,17 @@ int main( int argc , char *argv[] )
        dset_ooo = DSET_IN_3DARR(dset_outar,kk) ;
        nxyz = DSET_NVOX(dset_ooo) ;
        for( iv=0 ; iv < DSET_NVALS(dset_ooo) ; iv++ ){
-         far = (float *)DSET_ARRAY(dset_ooo,iv) ;
-         sar = (short *)malloc(sizeof(short)*nxyz) ;
-         EDIT_coerce_type( nxyz , MRI_float,far , MRI_short,sar ) ;
-         EDIT_substitute_brick( dset_ooo , iv , MRI_short,sar ) ;
+         if( DSET_BRICK_TYPE(dset_ooo,iv) == MRI_float ){
+           far = (float *)DSET_ARRAY(dset_ooo,iv) ;
+           sar = (short *)malloc(sizeof(short)*nxyz) ;
+           EDIT_coerce_type( nxyz , MRI_float,far , MRI_short,sar ) ;
+           EDIT_substitute_brick( dset_ooo , iv , MRI_short,sar ) ;
+           if( iv == 0 )
+             INFO_message("Converting %s to shorts",DSET_HEADNAME(dset_ooo)) ;
+         } else {
+           if( iv == 0 )
+             INFO_message("Cannot convert non-float %s to shorts",DSET_HEADNAME(dset_ooo)) ;
+         }
        }
      }
    }
