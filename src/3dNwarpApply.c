@@ -48,6 +48,8 @@ void NWA_help(void)
       "     3dNwarpApply on THAT dataset instead.\n"
       "  *  You cannot use option '-short' with complex-valued source datasets!\n"
       "     More precisely, you can try to use this option, but it will be ignored.\n"
+      "  *  This ability is added for those of you who deal with complex-valued\n"
+      "     EPI datasets (I'm looking at YOU, O International Man of Mystery).\n"
       "\n"
       "OPTIONS:\n"
       "--------\n"
