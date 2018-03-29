@@ -124,7 +124,7 @@ def write_out_startup_tip_rst(ofile, ttt):
         x = alltips.tips[i].tip
         Nrow = len(x)
         for j in range(Nrow):
-            fff.write("        "+check_for_webaddr(x[j])+"\n")
+            fff.write("        "+x[j]+"\n")
             #fff.write("   | "+check_for_webaddr(x[j])+"\n")
         fff.write("\n")
     fff.close()
