@@ -45,7 +45,7 @@ cd ..
 # ---------------------------------
 
 ### Build Sphinx.
-sudo make html
+make html
 
 ### move old documentation to a backupdir
 #mv  /mnt/afni/var/www/html/pub/dist/doc/htmldoc     \
@@ -54,7 +54,7 @@ sudo make html
 
 
 ### new documentation ----> slow to RSYNC!
-sudo rsync -av --delete _build/html/                              \
+rsync -av --delete _build/html/                              \
     /mnt/afni/pub/dist/doc/htmldoc
 
 # OLD

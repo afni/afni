@@ -15,6 +15,7 @@
 import sys
 import os
 
+import subprocess
 
 # CLOUD: import Cloud
 import cloud_sptheme as csp
@@ -70,8 +71,15 @@ source_suffix = '.rst'
 # The master toctree document.
 master_doc = 'index'
 
+# [PT: March 29, 2018] Had to change way of getting version number,
+# because will do build elsewhere now, and AFNI_version*txt are not
+# Python files
+wafni = subprocess.Popen("which afni", 
+                         shell=True, 
+                         stdout=subprocess.PIPE).stdout.read()
+
 # get the version number of AFNI
-fname_version = '../../src/AFNI_version_base.txt'
+fname_version = wafni[:-5]+'AFNI_version.txt'
 fff = open(fname_version, 'r')
 x = fff.readlines()
 fff.close()

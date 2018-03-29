@@ -4,7 +4,6 @@ import numpy as np
 import sys as sys
 import os
 
-sys.path.insert(0, "/home/ptaylor/AFNI/src/python_scripts")
 import afni_util as au
 
 THIS_PROG = 'make_file_of_startup_tips.py'
