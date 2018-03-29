@@ -9,3 +9,4 @@ Educational resources
    bootcamp_recordings.rst
    outside_lectures.rst
    classified_progs.rst
+   startup_tips.rst

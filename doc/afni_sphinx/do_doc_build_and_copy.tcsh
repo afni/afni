@@ -35,6 +35,12 @@ python convert_list_to_fields_pandas.py        \
 python convert_fields_to_rst.py                \
     $fieldfile                                 \
     ../educational/classified_progs.rst
+
+# make AFNI startup tips RST
+python make_file_of_startup_tips.py            \
+    all_startup_tips.txt                       \
+    ../educational/startup_tips.rst
+
 cd ..
 # ---------------------------------
 
