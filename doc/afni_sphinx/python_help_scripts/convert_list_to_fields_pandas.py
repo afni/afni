@@ -118,7 +118,7 @@ def parse_lines(LL):
                     list_rank.append(this_rank)
                     list_desc.append(this_desc)
 
-        print "%10s  %5d  %s   %s" % (ltype, len(x.strip()), x, this_desc)
+        #print "%10s  %5d  %s   %s" % (ltype, len(x.strip()), x, this_desc)
 
     lll = [list_group, list_grank, list_prog, list_rank, list_desc]
     mmm = map(list, zip(*lll))

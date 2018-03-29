@@ -10,6 +10,7 @@
 #   A backup doc dir from the server can be removed later.
 #
 #######################################################################
+setenv PYTHONPATH /home/ptaylor/afni_src/linux_ubuntu_12_64
 
 set here = $PWD
 set thedate = `date +%Y_%m_%d`
@@ -19,13 +20,15 @@ echo "Backup directory called: $backup_dir"
 
 ### Make preliminary stuff from helpfiles: will open both AFNI and SUMA
 ### this way
-tcsh @gen_all -phelp -suma -afni
+#tcsh @gen_all -phelp -suma -afni
 
 # ---------------------------------
 cd python_help_scripts
 
 # Make list of All Program Helps
-python help2sphinx.py -OutFolder ../programs
+#python help2sphinx.py -OutFolder ../programs
+
+echo "python path: $PYTHONPATH"
 
 # Make classified/groupings stuff
 set fieldfile = list_STYLED_NEW.txt
@@ -45,7 +48,7 @@ cd ..
 # ---------------------------------
 
 ### Build Sphinx.
-make html
+sudo make html
 
 ### move old documentation to a backupdir
 #mv  /mnt/afni/var/www/html/pub/dist/doc/htmldoc     \
@@ -54,7 +57,7 @@ make html
 
 
 ### new documentation ----> slow to RSYNC!
-rsync -av --delete _build/html/                              \
+sudo rsync -av --delete _build/html/                              \
     /mnt/afni/pub/dist/doc/htmldoc
 
 # OLD

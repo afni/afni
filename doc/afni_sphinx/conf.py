@@ -27,8 +27,6 @@ import cloud_sptheme as csp
 
 
 
-
-
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
@@ -74,12 +72,16 @@ master_doc = 'index'
 # [PT: March 29, 2018] Had to change way of getting version number,
 # because will do build elsewhere now, and AFNI_version*txt are not
 # Python files
-wafni = subprocess.Popen("which afni", 
-                         shell=True, 
-                         stdout=subprocess.PIPE).stdout.read()
+##### !!!!!!!!!!!! temp fix, don't know why this won't work with
+##### !!!!!!!!!!!! subprocess!!
+wafni = "/home/ptaylor/afni_src/linux_ubuntu_12_64/afni"
+#subprocess.check_output("which afni",
+#                                stderr=subprocess.STDOUT,
+#                                shell=True)
+print "++ Path to AFNI_version.txt: \n\t", wafni
 
 # get the version number of AFNI
-fname_version = wafni[:-5]+'AFNI_version.txt'
+fname_version = wafni[:-4]+'AFNI_version.txt'
 fff = open(fname_version, 'r')
 x = fff.readlines()
 fff.close()

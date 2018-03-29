@@ -118,18 +118,15 @@ def write_out_startup_tip_rst(ofile, ttt):
 
     for i in range(Nt):
         
-        #fff.write("#. %s\n\n" % (' '.join(alltips.tips[i].tip)))
-        fff.write("**Tip "+str(alltips.tips[i].num)+"**\n")
+        fff.write("**Tip "+str(alltips.tips[i].num)+"**\n\n")
+        fff.write("    .. code-block:: none\n\n")
+        #fff.write("**Tip "+str(alltips.tips[i].num)+"**\n")
         x = alltips.tips[i].tip
         Nrow = len(x)
         for j in range(Nrow):
-            fff.write("   "+check_for_webaddr(x[j])+"\n")
+            fff.write("        "+check_for_webaddr(x[j])+"\n")
+            #fff.write("   | "+check_for_webaddr(x[j])+"\n")
         fff.write("\n")
-        #        fff.write("#. "+check_for_webaddr(x[0])+"\n")
-        #        Nrow = len(x)
-        #        for j in range(1, Nrow):
-        #            fff.write("   "+check_for_webaddr(x[j])+"\n")
-        #        fff.write("\n")
     fff.close()
 
 def check_for_webaddr(sss):
