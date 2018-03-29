@@ -191,4 +191,4 @@ if __name__=="__main__":
 
     write_out_edu_rst(ofile, lll)
 
-    print("++ Done!")
+    print("++ Done writing educational classification rst!")
