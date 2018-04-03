@@ -5,6 +5,8 @@
 /******* 29 Oct 2001: Read a 3D MINC file as an AFNI dataset *******/
 /*******************************************************************/
 
+#ifndef DONT_ALLOW_MINC
+
 static int first_err = 1 ;
 static char *fname_err ;
 
@@ -635,3 +637,18 @@ ENTRY("THD_load_minc") ;
    if( im_max != NULL ) free(im_max) ;
    nc_close(ncid) ; EXRETURN ;
 }
+
+#else  /* disabled MINC */
+
+THD_3dim_dataset * THD_open_minc( char *pathname )
+{
+   ERROR_message("MINC-1 dataset open support disabled: %s",pathname) ;
+   return NULL ;
+}
+
+void THD_load_minc( THD_datablock *dblk ){
+   ERROR_message("MINC-1 dataset load support disabled") ;
+   return ;
+}
+
+#endif
