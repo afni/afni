@@ -146,6 +146,7 @@ fprintf(stderr,"\nputting datasets into initial view \n");
    }
    FREE_XTARR( dblk_arrarr ) ;
 
+#ifndef DONT_ALLOW_MINC
    /*-- 29 Oct 2001: try to read .mnc "datasets" --*/
 
    if( !AFNI_noenv("AFNI_MINC_DATASETS") ){
@@ -178,6 +179,7 @@ fprintf(stderr,"\nputting datasets into initial view \n");
        MCW_free_expand( num_minc , fn_minc ) ;
      } /* end of if we found MINC files */
    }
+#endif
 
    /*-- 06 Apr 2005: try to read NIfTI-1 files [KRH and RWC] --*/
 
