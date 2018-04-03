@@ -124,7 +124,7 @@ static char *tip[] = {
    "lets you plot extra dataset time series on top of the UnderLay dataset's\n"
    "time series graphs."
  ,
-   "You can change the way the graph viewer shows it plots by using the\n"
+   "You can change the way the graph viewer shows its plots by using the\n"
    "'Colors, Etc.' sub-menu from the main 'Opt' menu (lower right corner):\n"
    " * Boxes     = color of the boxes around each sub-graph\n"
    " * BackG     = color of background\n"
@@ -947,6 +947,7 @@ static char *gby[] = {
      "If a turtle loses its shell, is it naked or homeless?"         ,
      "There is no mistake so great as being right ahead of time"     ,
      "We give you tools; You build things with them"                 ,
+     "Do not take life too seriously. You won't get out of it alive" ,
 
      /* bastardizations of Shakespeare */
 
