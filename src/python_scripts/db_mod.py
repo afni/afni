@@ -28,6 +28,13 @@ valid_warp_types = ['affine', 'NL']
 
 clustsim_types = ['FWHM', 'ACF', 'both', 'yes', 'no']
 
+# OC/MEICA/TEDANA methods
+g_oc_methods = ['mean',     # average across echoes
+                'OC',       # default OC in @compute_OC_weights
+                'OC_A',     # Javier's method
+                'OC_B',     # full run method
+                'tedana']   # TED results from tedana
+
 
 WARP_EPI_TLRC_ADWARP    = 1
 WARP_EPI_TLRC_WARP      = 2
@@ -2673,9 +2680,15 @@ def db_cmd_combine(proc, block):
    if rv: return
 
    # write commands
-   cmd =  '# %s\n'                                \
-          '# combine multi-echo data, per run\n'  \
+   cmd =  '# %s\n'                                 \
+          '# combine multi-echo data, per run\n\n' \
           % block_header('combine')
+
+   # probably not reachable, but at least for clarity...
+   if ocmeth not in g_oc_methods:
+      print("OC method %s not in list of valid methods:\n   %s" \
+            % (ocmeth, ', '.join(g_oc_methods)))
+      return
 
    if ocmeth == 'ave':
       ccmd = cmd_combine_mean(proc, block)
@@ -2698,14 +2711,14 @@ def db_cmd_combine(proc, block):
 
 
 def cmd_combine_tedana(proc, block, method='tedana'):
-   """combine all echoes using the tedana.py wrapper, tedana_hammer.py
+   """combine all echoes using the tedana.py wrapper, tedana_wrapper.py
 
       1. for each run, get weights (with run-specific prefix)
       2. average those weights across runs (nzmean? not necessary?)
       3. apply 
 
       method must currently be one of the following
-         tedana             : default - run tedana_hammer.py, collect output
+         tedana             : default - run tedana_wrapper.py, collect output
          tedana_proj_all    : get projection matrix from both rejected lists
                               (rejected.txt and midk_rejected.txt)
          tedana_proj_rej    : just get projection matrix from rejected.txt
@@ -2744,28 +2757,29 @@ def cmd_combine_tedana(proc, block, method='tedana'):
    cur_prefix = proc.prefix_form_run(block, eind=-9)
    prev_prefix = proc.prev_prefix_form_run(block, view=1, eind=-2)
 
-   cmd =  '# ----- method %s : generate TED results -----\n\n'      \
-          'foreach run ( $runs )\n'                                 \
-          '    tedana_wrapper.py -input %s \\\n'                    \
-          '        -TE $echo_times \\\n'                            \
-          '        -mask %s  \\\n'                                  \
-          '        -results_dir tedana_r$run \\\n'                  \
-          '        -ted_label r$run \\\n'                           \
-          '        -save_all \\\n'                                  \
-          '        -prefix tedprep\n'                               \
+   cmd =  '# ----- method %s : generate TED (MEICA) results  -----\n\n' \
+          'foreach run ( $runs )\n'                                     \
+          '   tedana_wrapper.py -input %s \\\n'                         \
+          '      -TE $echo_times \\\n'                                  \
+          '      -mask %s  \\\n'                                        \
+          '      -results_dir tedana_r$run \\\n'                        \
+          '      -ted_label r$run \\\n'                                 \
+          '      -save_all \\\n'                                        \
+          '      -prefix tedprep\n\n'                                   \
           % (method, prev_prefix, proc.mask.shortinput())
 
    # we may have to adjust the view
-   if proc.view != '+orig':
-      cstr = ', and adjust view'
-      ccmd = ''
+   if proc.view and (proc.view != '+orig'):
+      ccmd = '\n'                           \
+             '   # and adjust view from +orig\n' \
+             '   3drefit -view %s %s+orig\n' % (proc.view[1:], cur_prefix)
    else:
-      cstr = ''
       ccmd = ''
 
-   cmd += '# copy result here%s' % cstr
-   # rcr - here: apply 3dcopy, 3drefit commands...
-
+   cmd += '   # copy result here\n'                            \
+          '   3dcopy tedana_r$run/TED.r$run/dn_ts_OC.nii %s\n' \
+          '%s'                                                 \
+          % (cur_prefix, ccmd)
 
    cmd += 'end\n\n'
 
