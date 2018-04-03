@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3, Apr, 2018, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "initial testing run with -combine_tedana_path",
+   NULL
+ } ,
+
  { 27, Mar, 2018, RCR, "make_random_timing.py", MICRO, TYPE_MODIFY,
    "modify help for sphinx formatting",
    NULL
