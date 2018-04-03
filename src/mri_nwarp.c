@@ -4278,6 +4278,65 @@ ENTRY("THD_interp_floatim") ;
    EXRETURN ;
 }
 
+/*--------------------------------------------------------------------------*/
+/* interpolate from a complex-valued image to a set of indexes (ip,jp,kp) */
+
+void THD_interp_complexim( MRI_IMAGE *fim ,
+                           int np , float *ip , float *jp , float *kp ,
+                           int code, complex *outar )
+{
+   MRI_IMARR *rpair ;
+   MRI_IMAGE *rim , *iim , *aim , *bim ;
+   float     *rar , *iar ;
+   complex   *aar ;
+
+ENTRY("THD_interp_complexim") ;
+
+   /* split input into float pair */
+
+   rpair = mri_complex_to_pair( fim ) ;
+   if( rpair == NULL ) EXRETURN ;
+   aim = IMARR_SUBIM(rpair,0) ;
+   bim = IMARR_SUBIM(rpair,1) ;
+
+   /* make float images for outputs */
+
+   rim = mri_new_conforming( fim , MRI_float ) ; rar = MRI_FLOAT_PTR(rim) ;
+   iim = mri_new_conforming( fim , MRI_float ) ; iar = MRI_FLOAT_PTR(iim) ;
+
+   /* interpolate into these new images */
+
+   switch( code ){
+     case MRI_NN:      GA_interp_NN     ( aim, np,ip,jp,kp, rar ) ;
+                       GA_interp_NN     ( bim, np,ip,jp,kp, iar ) ; break ;
+     case MRI_LINEAR:  GA_interp_linear ( aim, np,ip,jp,kp, rar ) ;
+                       GA_interp_linear ( bim, np,ip,jp,kp, iar ) ; break ;
+     case MRI_CUBIC:   GA_interp_cubic  ( aim, np,ip,jp,kp, rar ) ;
+                       GA_interp_cubic  ( bim, np,ip,jp,kp, iar ) ; break ;
+     default:
+     case MRI_QUINTIC: GA_interp_quintic( aim, np,ip,jp,kp, rar ) ;
+                       GA_interp_quintic( bim, np,ip,jp,kp, iar ) ; break ;
+     case MRI_WSINC5:  GA_interp_wsinc5 ( aim, np,ip,jp,kp, rar ) ;
+                       GA_interp_wsinc5 ( bim, np,ip,jp,kp, iar ) ; break ;
+   }
+
+   /* toss the input pair */
+
+   DESTROY_IMARR(rpair) ;
+
+   /* convert output pair to single complex image */
+
+   aim = mri_pair_to_complex( rim , iim ) ; mri_free(rim) ; mri_free(iim) ;
+
+   /* copy that data to the user-provided output array */
+
+   aar = MRI_COMPLEX_PTR(aim) ;
+   memcpy( outar , aar , sizeof(complex)*np ) ;
+   mri_free(aim) ;
+
+   EXRETURN ;
+}
+
 /*----------------------------------------------------------------------------*/
 /* Apply a warp to a source image 'sim', and stick values into output 'fim'.
    Apply to a sub-volume ibot..itop, jbot..jtop, kbot..ktop (inclusive).
@@ -5558,6 +5617,7 @@ ENTRY("THD_nwarp_dataset") ;
      }
      if( verb_nww && iv == 0 ) fprintf(stderr,"++ Warping dataset: ") ;
      THD_interp_floatim( fim, nxyz,ip,jp,kp, dincode, MRI_FLOAT_PTR(wim) ) ;
+#if 0
      if( MRI_HIGHORDER(dincode) ){ /* clipping */
        double_pair fmm = mri_minmax(fim) ;
        float fb=(float)fmm.a , ft=(float)fmm.b ; int qq ;
@@ -5566,6 +5626,7 @@ ENTRY("THD_nwarp_dataset") ;
          if( war[qq] < fb ) war[qq] = fb ; else if( war[qq] > ft ) war[qq] = ft ;
        }
      }
+#endif
      EDIT_substitute_brick( dset_out , iv , MRI_float , MRI_FLOAT_PTR(wim) ) ;
      mri_clear_and_free(wim) ; mri_free(fim) ;
      if( nya > 1 ){ DESTROY_IMARR(im_src) ; }  /* will be re-computed */
@@ -5816,39 +5877,49 @@ if( verb_nww > 1 ) fprintf(stderr,"d") ;
 
      for( kds=0 ; kds < numds ; kds++ ){  /* loop over input datasets */
        dset_sss = DSET_IN_3DARR(dset_src,kds) ;
-       if( DSET_NVALS(dset_sss) < iv ) continue ;  /* this one is done already */
+       if( DSET_NVALS(dset_sss) < iv ) continue ;  /* dataset is done already */
+       dset_ooo = DSET_IN_3DARR(dset_out,kds) ;
 #ifdef DEBUG_CATLIST
 if( verb_nww > 1 ) fprintf(stderr,"-") ;
 #endif
-       fim = THD_extract_float_brick(iv,dset_sss) ; DSET_unload_one(dset_sss,iv) ;
-       wim = mri_new_vol(nx,ny,nz,MRI_float) ;
-       /*** the actual warping is done in the function below! ***/
+       if( DSET_BRICK_TYPE(dset_sss,iv) != MRI_complex ){
+         fim = THD_extract_float_brick(iv,dset_sss) ; DSET_unload_one(dset_sss,iv) ;
+         wim = mri_new_vol(nx,ny,nz,MRI_float) ;
+         /*** the actual warping is done in the function below! ***/
 #ifdef DEBUG_CATLIST
 if( verb_nww > 1 ) fprintf(stderr,"+") ;
 #endif
-       THD_interp_floatim( fim, nxyz,ip,jp,kp, dincode, MRI_FLOAT_PTR(wim) ) ;
+         THD_interp_floatim( fim, nxyz,ip,jp,kp, dincode, MRI_FLOAT_PTR(wim) ) ;
 
-       if( MRI_HIGHORDER(dincode) ){ /* clipping output values */
-         double_pair fmm = mri_minmax(fim) ;
-         float fb=(float)fmm.a , ft=(float)fmm.b ; int qq ;
-         float *war=MRI_FLOAT_PTR(wim) ;
+#if 0
+         if( MRI_HIGHORDER(dincode) ){ /* clipping output values */
+           double_pair fmm = mri_minmax(fim) ;
+           float fb=(float)fmm.a , ft=(float)fmm.b ; int qq ;
+           float *war=MRI_FLOAT_PTR(wim) ;
 #ifdef DEBUG_CATLIST
 if( verb_nww > 1 ) fprintf(stderr,"*") ;
 #endif
-         for( qq=0 ; qq < wim->nvox ; qq++ ){
-           if( war[qq] < fb ) war[qq] = fb ; else if( war[qq] > ft ) war[qq] = ft ;
+           for( qq=0 ; qq < wim->nvox ; qq++ ){
+             if( war[qq] < fb ) war[qq] = fb ; else if( war[qq] > ft ) war[qq] = ft ;
+           }
          }
-       }
-#ifdef DEBUG_CATLIST
-if( verb_nww > 1 ) fprintf(stderr,"/") ;
 #endif
-       dset_ooo = DSET_IN_3DARR(dset_out,kds) ;
-       EDIT_substitute_brick( dset_ooo , iv , MRI_float , MRI_FLOAT_PTR(wim) ) ;
+         EDIT_substitute_brick( dset_ooo, iv, MRI_float, MRI_FLOAT_PTR(wim) ) ;
+         mri_free(fim) ;                           /* is a copy, so delete it */
+       } else {  /* <<<-------------------------- complex image [27 Mar 2018] */
+         fim = DSET_BRICK(dset_sss,iv) ;
+         wim = mri_new_vol(nx,ny,nz,MRI_complex) ;
+#ifdef DEBUG_CATLIST
+if( verb_nww > 1 ) fprintf(stderr,"+") ;
+#endif
+         THD_interp_complexim( fim, nxyz,ip,jp,kp, dincode, MRI_COMPLEX_PTR(wim) ) ;
+         EDIT_substitute_brick( dset_ooo, iv, MRI_complex, MRI_COMPLEX_PTR(wim) ) ;
+         /* fim here is NOT a copy, so don't delete it */
+       }
 #ifdef DEBUG_CATLIST
 if( verb_nww > 1 ) fprintf(stderr,"!") ;
 #endif
        mri_clear_and_free(wim) ;  /* clear and free won't delete the data, just the shell */
-       mri_free(fim) ;            /* this, on the other hand, is totally destroyed */
      } /* end of loop over input datasets */
 
      if( verb_nww && iv%vp == 0 ) fprintf(stderr,".") ;  /* progress meter */

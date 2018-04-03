@@ -1,3 +1,54 @@
+AFNI Digest, week of 2018/03/26.
+
+00) Updated X-server for Windows Subsystem for Linux (WSL).
+For the newest form of having Linux capability on Windows (WSL), we
+recently found that a different X-server worked better with AFNI than
+in the previous, beta-version of Linux on Windows (BoUoW).  We have
+updated the instructions for installing it here:
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/background_install/install_instructs/steps_windows10.html
+(as well as instructions how how to be able to copy+paste in the WSL
+terminal, which somehow is not enabled by default???).
+
+01) Grouping functionality of all AFNI programs.
+There are over 500 programs in AFNI.  That's a lot of functionality to
+get to know, especially for new users.  To help with this process, we
+have painstakingly (= heuristically) classified almost all of them,
+put brief descriptions of each, and highlighted what we think are the
+most useful ones to get to know.  That effort is recorded for the
+future historians of AFNI here:
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/educational/classified_progs.html 
+(and this will probably be a growing/adapting project over time).
+
+02) More Insta in the AFNI GUI.
+Bob and some of his followers on Twitter like to see time series
+statistics NOW NOW NOW, and so he has added 3dTstat Insta-calculation
+capability to the AFNI GUI, as described here:
+https://afni.nimh.nih.gov/afni/community/board/read.php?1,157684,157684#msg-157684
+New statistics were added to 3dTstat to measure the fluctuations of
+time series volumes, including Von Neumann’s MSSD (mean square of
+successive differences) https://www.jstor.org/stable/2235765
+
+03) fat_proc* diffusion tools: default updates + new demo.
+The fat_proc* programs for DWI/DTI analyzing have gone through some
+minor revisions.  The names of the automatically generated QC
+snapshots have been altered to be clearer (hopefully).  The default
+orientation of the dsets after DICOM conversion has also been set to
+be RAI (other values can still be set via command line).  The online
+help docs here:
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/tutorials/fatcat_prep/main_toc.html
+should soon reflect these changes, as should the new FATCAT_DEMO2,
+which is available via "@Install_FATCAT_DEMO2".
+
+04) New program name, same great functionality.
+The program formerly known as "@FATCAT_matplot_shiny," used to view
+matrix output from 3dNetCorr and 3dTrackID, has now been shortened to
+"FATCAT_matplot".  More about this program can be seen here:
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/tutorials/FATCAT_matplot/FATCAT_matplot.html
+Additional tools for setting up stats in a similar, user-interactive
+vein can be learned about here:
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/tutorials/3dMVM_validator/3dMVM_validator_overview.html 
+
+
 ========================================================================
 
 AFNI Digest, week of 2018/01/05.

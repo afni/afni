@@ -3113,9 +3113,9 @@ class RegWrap:
       if(ps.edge) :
          basesuff = "%s_edge" % (basesuff)
          if(ps.save_rep):
-            prefix = "%s%s%s" % (basepathname,basesuff)
+            prefix = "%s%s%s" % (basepathname,basesuff,baseviewext)
          else:
-            prefix = "%s%s" % (tempbasepathname,basesuff)
+            prefix = "%s%s%s" % (tempbasepathname,basesuff,baseviewext)
 
          skullstrip_o = self.edge_dset(skullstrip_o, prefix, binarize=0,
             erodelevel=ps.erodelevel)

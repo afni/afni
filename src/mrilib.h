@@ -2373,6 +2373,9 @@ extern void NwarpCalcRPN_verb(int i) ;
 extern void THD_interp_floatim( MRI_IMAGE *fim ,
                                 int np , float *ip , float *jp , float *kp ,
                                 int code, float *outar ) ;
+extern void THD_interp_complexim( MRI_IMAGE *fim ,
+                                  int np , float *ip , float *jp , float *kp ,
+                                  int code, complex *outar ) ; /* 27 Mar 2018 */
 extern MRI_IMARR * THD_setup_nwarp( MRI_IMARR *bimar,
                                     int use_amat    , mat44 amat ,
                                     mat44 cmat_bim  ,
