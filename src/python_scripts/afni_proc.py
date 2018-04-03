@@ -1177,8 +1177,7 @@ class SubjProcSream:
                         helpstr='number of slices to pad by in volreg')
 
         self.valid_opts.add_opt('-combine_method', 1, [],
-                        acplist=['mean','OC', 'OC_A', 'OC_B',
-                                 'tedana'],
+                        acplist=g_oc_methods,
                         helpstr='specify method for combining echoes per run')
 
         self.valid_opts.add_opt('-blur_filter', 1, [],
