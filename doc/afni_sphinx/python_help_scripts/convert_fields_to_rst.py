@@ -30,22 +30,14 @@ final_cols = [
 # ======================================================================
 # ======================================================================
 
-text_label = ".. _edu_class_prog"
+text_label = ".. _edu_class_prog:"
 
-text_title = \
+text_title_desc = \
 '''
 
 ***********************
 Classified Program list
 ***********************
-
-.. contents:: :local:
-
-'''
-
-
-text_desc = \
-''' 
 
 All AFNI programs, great and small, are listed here and classified
 based on functionality.  That is, they are grouped into some general
@@ -54,9 +46,18 @@ categories that we made up and given short bios.
 The ranking of each program is to highlight ones that we think are
 particularly useful in general processing ('5' being the most directly
 useful, and '1' being something that might just be a low-level,
-supplementary tool).
+supplementary tool).  Note that a given program may appear in more
+than one group.
 
-Note that a given program may appear in more than one group.
+This page might be most useful by using your browser to search through
+the text for keywords of interest, such as "ROI", "mask", "diffusion",
+"align", "model", etc.  Clicking on the name of the program will bring
+you its online help documentation, referenced from :ref:`this page of
+all AFNI "helps"<programs_main>`.
+
+.. contents:: :local:
+
+|
 
 '''
 
@@ -159,8 +160,7 @@ def write_out_edu_rst(ofile, lll):
 
     # Top level header stuff and description
     fff.write(text_label)
-    fff.write(text_title)
-    fff.write(text_desc)
+    fff.write(text_title_desc)
 
     grp = ""
     for x in lll:

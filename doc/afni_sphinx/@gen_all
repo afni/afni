@@ -41,7 +41,7 @@ if ( $noafni == 0 ) then
          -com 'QUIT'
 
 # but never add the dots 
-else if ( 0 )
+else if ( 0 ) then
    sed 's/   afnitoc1/   .. afnitoc1/' index.rst > __tmp
    diff -q __tmp index.rst
    if ($status) then

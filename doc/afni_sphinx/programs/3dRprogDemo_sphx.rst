@@ -11,7 +11,7 @@
 
 .. code-block:: none
 
-    ¸®gÄM
+    ¸Ž0wµ
     Usage:
     ------ 
      3dRprogDemo is a template program to help users write their own R
