@@ -590,6 +590,7 @@ g_history = """
     6.07 Feb 27, 2018: added help for a few option
                        (some old, some new, some red, some blue)
     6.08 Mar  1, 2018: added OC_methods OC_A and OC_B
+    6.09 Apr  3, 2018: added -combine_tedana_path
 """
 
 g_version = "version 6.08, March 1, 2018"
@@ -606,6 +607,7 @@ g_requires_afni = [ \
 
 g_todo_str = """todo:
   - ME:
+     - ** add help for -combine_tedana_path
      - ** write AP regression tests
      x do 'apply catenated xform'
      x compare OC inputs with those from Lauren
