@@ -69,10 +69,6 @@ struct THD_3dim_dataset ;  /* incomplete definition */
 extern "C" {
 #endif
 
-/*! Enables compilation of the MINC dataset code. */
-
-#define ALLOW_MINC   /* 29 Oct 2001 */
-
 /*! Macro to check if string ss ends in string suf. */
 
 #define STRING_HAS_SUFFIX(ss,suf)              \
