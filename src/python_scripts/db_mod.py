@@ -2659,6 +2659,7 @@ def db_mod_combine(block, proc, user_opts):
       return 1
 
    apply_uopt_to_block('-combine_method', user_opts, block)
+   apply_uopt_to_block('-combine_tedana_path', user_opts, block)
 
    block.valid = 1
 
@@ -2752,6 +2753,16 @@ def cmd_combine_tedana(proc, block, method='tedana'):
       print('** consider option: "-mask_epi_anat yes"')
 
 
+   # maybe the user specified a tedana.py path
+   exopts = ''
+   oname = '-combine_tedana_path'
+   val, rv = block.opts.get_string_opt(oname)
+   if val and not rv:
+      if not os.path.isfile(val):
+         print("** warning %s file does not seem to exist:\n   %s" \
+               % (oname, val))
+      exopts += '%s-tedana_prog %s \\\n' % (' '*6, val)
+
    # input prefix has $run fixed, but uses a wildcard for echoes
    # output prefix has $run fixed, but no echo var
    cur_prefix = proc.prefix_form_run(block, eind=-9)
@@ -2765,8 +2776,9 @@ def cmd_combine_tedana(proc, block, method='tedana'):
           '      -results_dir tedana_r$run \\\n'                        \
           '      -ted_label r$run \\\n'                                 \
           '      -save_all \\\n'                                        \
+          '%s'                                                          \
           '      -prefix tedprep\n\n'                                   \
-          % (method, prev_prefix, proc.mask.shortinput())
+          % (method, prev_prefix, proc.mask.shortinput(), exopts)
 
    # we may have to adjust the view
    if proc.view and (proc.view != '+orig'):

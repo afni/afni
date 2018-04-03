@@ -1179,6 +1179,8 @@ class SubjProcSream:
         self.valid_opts.add_opt('-combine_method', 1, [],
                         acplist=g_oc_methods,
                         helpstr='specify method for combining echoes per run')
+        self.valid_opts.add_opt('-combine_tedana_path', 1, [],
+                        helpstr='specify path to tedana.py')
 
         self.valid_opts.add_opt('-blur_filter', 1, [],
                         helpstr='blurring filter option (def: -1blur_fwhm)')
