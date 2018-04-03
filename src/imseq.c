@@ -14086,7 +14086,7 @@ static MRI_IMAGE * mri_vgize( MRI_IMAGE *iim )
 /* ININFO_message("max angle=%g",bmax) ; */
 
    /* rotate streak directions randomly */
-   if( bmax > 0.0f ){
+   if( bmax > 0.0f && vgize_sigfac > 0.0111f ){
      bmax = (22.2f * PI/180.0f) / bmax ;  /* max angle is 22.2 degrees */
      for( kk=0 ; kk < nxy ; kk++ ){
        bx = bxar[kk] ; by = byar[kk] ;
