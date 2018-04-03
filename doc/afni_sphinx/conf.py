@@ -15,6 +15,7 @@
 import sys
 import os
 
+import subprocess
 
 # CLOUD: import Cloud
 import cloud_sptheme as csp
@@ -23,8 +24,6 @@ import cloud_sptheme as csp
 # $ sudo pip install pbr
 # $ sudo pip install sphinxcontrib-fulltoc
 # $ sudo pip install sphinxcontrib.programoutput
-
-
 
 
 
@@ -70,8 +69,19 @@ source_suffix = '.rst'
 # The master toctree document.
 master_doc = 'index'
 
+# [PT: March 29, 2018] Had to change way of getting version number,
+# because will do build elsewhere now, and AFNI_version*txt are not
+# Python files
+##### !!!!!!!!!!!! temp fix, don't know why this won't work with
+##### !!!!!!!!!!!! subprocess!!
+wafni = "/home/ptaylor/afni_src/linux_ubuntu_12_64/afni"
+#subprocess.check_output("which afni",
+#                                stderr=subprocess.STDOUT,
+#                                shell=True)
+print "++ Path to AFNI_version.txt: \n\t", wafni
+
 # get the version number of AFNI
-fname_version = '../../src/AFNI_version_base.txt'
+fname_version = wafni[:-4]+'AFNI_version.txt'
 fff = open(fname_version, 'r')
 x = fff.readlines()
 fff.close()

@@ -9,7 +9,7 @@ import pandas as pd
 
 # Each "GROUP" name line *must* start with "++" (no spaces beforehand)
 
-sys.path.insert(0, "/home/ptaylor/AFNI/src/python_scripts")
+#sys.path.insert(0, "/home/ptaylor/AFNI/src/python_scripts")
 import afni_util as au
 
 THIS_PROG = 'convert_list_to_fields_pandas.py'
@@ -118,7 +118,7 @@ def parse_lines(LL):
                     list_rank.append(this_rank)
                     list_desc.append(this_desc)
 
-        print "%10s  %5d  %s   %s" % (ltype, len(x.strip()), x, this_desc)
+        #print "%10s  %5d  %s   %s" % (ltype, len(x.strip()), x, this_desc)
 
     lll = [list_group, list_grank, list_prog, list_rank, list_desc]
     mmm = map(list, zip(*lll))

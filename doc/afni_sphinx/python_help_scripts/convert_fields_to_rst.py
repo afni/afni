@@ -9,7 +9,7 @@ import pandas as pd
 
 # Each "GROUP" name line *must* start with "++" (no spaces beforehand)
 
-sys.path.insert(0, "/home/ptaylor/AFNI/src/python_scripts")
+#sys.path.insert(0, "/home/ptaylor/AFNI/src/python_scripts")
 import afni_util as au
 
 import convert_list_to_fields_pandas as clfp
@@ -191,4 +191,4 @@ if __name__=="__main__":
 
     write_out_edu_rst(ofile, lll)
 
-    print("++ Done!")
+    print("++ Done writing educational classification rst!")

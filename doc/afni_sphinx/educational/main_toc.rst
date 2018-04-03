@@ -6,6 +6,7 @@ Educational resources
 .. toctree::
    :maxdepth: 2
 
-   bootcamp_recordings.rst
-   outside_lectures.rst
-   classified_progs.rst
+   bootcamp_recordings
+   outside_lectures
+   startup_tips
+   classified_progs
