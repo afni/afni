@@ -149,7 +149,10 @@ prep_only = args.prep_only
 ted_bin = args.tedana_prog
 # kdaw = str(args.kdaw)
 # rdaw = str(args.rdaw)
-tedana_opts = args.tedana_opts
+
+# this argument is actually a list of options, so it might
+# have newline characters inside        4 Apr 2018 [rickr]
+tedana_opts = args.tedana_opts.replace('\n', ' ')
 
 ## combine stuff with commas for tedana.py input
 TEs = ','.join(map(str,args.TE))
@@ -302,6 +305,7 @@ if not prep_only:
     ted_out.write(tedana_script)
     ted_out.close()
     print(tedana_script)
+    sys.stdout.flush()    # force output before system call
 
     ## and run it
     os.system(tedana_script)
