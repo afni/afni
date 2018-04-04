@@ -69,8 +69,6 @@ int main( int argc , char *argv[] )
    if( pvim == NULL ) ERROR_exit("Can't compute PVmap :(") ;
    DSET_unload(inset) ;
 
-INFO_message("inset->nvox = %d  pvim->nvox = %d",DSET_NVOX(inset),pvim->nvox) ;
-
    outset = EDIT_empty_copy(inset) ;
    EDIT_dset_items( outset ,
                          ADN_prefix     , prefix   ,
