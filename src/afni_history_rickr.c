@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  4, Apr, 2018, RCR, "tedana_wrapper.py", MICRO, TYPE_ENHANCE,
+   "allow for newlines in -tedana_opts; flush tedana.py command",
+   NULL
+ } ,
+
  {  4, Apr, 2018, RCR, "@update.afni.binaries", MICRO, TYPE_BUG_FIX,
    "set sysname early - forgot to commit this weeks ago...",
    NULL
