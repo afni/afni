@@ -993,6 +993,12 @@ strblast:strblast.o
 	$(RM) $@
 	$(CC) -o 3dAutomask 3dAutomask.o $(LFLAGS) $(LLIBS)
 
+3dPVmap.o: 3dPVmap.c mri_pvmap.c despike_inc.c
+
+3dPVmap:3dPVmap.o
+	$(RM) $@
+	$(CC) -o 3dPVmap 3dPVmap.o $(LFLAGS) $(LLIBS)
+
 3dLRflip:3dLRflip.o
 	$(RM) $@
 	$(CC) -o 3dLRflip 3dLRflip.o $(LFLAGS) $(LLIBS)
