@@ -4572,7 +4572,7 @@ def db_mod_regress(block, proc, user_opts):
             errs += 1
         proc.mot_extern = uopt.parlist[0]
         proc.mot_labs = ['roll', 'pitch', 'yaw', 'dS', 'dL', 'dP']
-        # -volreg_regress_per_run should be okay  20 May 2011
+        # -volreg_regress_per_run should be okay  (option removed: 20 May 2011)
         # (must still assume TR correspondence)
 
     # maybe the user wants to specify types of motion parameters to use
@@ -11364,14 +11364,28 @@ g_help_options = """
             When using the 'combine' block to combine echoes (for each run),
             this option can be used to specify the method used.   Methods:
 
-                OC      : optimally combined (via @compute_OC_weights)
-                          (current default is OC_B)
-                OC_A    : original log(mean()) regression method
-                OC_B    : newer log() time teries regression method
-                          (there is little difference between OC_A and OC_B)
-                mean    : simple mean of echoes
+                mean      : simple mean of echoes
+                OC        : optimally combined (via @compute_OC_weights)
+                            (current default is OC_A)
+                OC_A      : original log(mean()) regression method
+                OC_B      : newer log() time series regression method
+                            (there is little difference between OC_A and OC_B)
+                tedana    : run tedana.py, taking the resulting dn_ts_OC.nii
 
             Please see '@compute_OC_weights -help' for more information.
+            See also -combine_tedana_path.
+
+        -combine_tedana_path PATH : specify path to tedana.py
+
+                e.g. -combine_tedana_path ~/testbin/meica.libs/tedana.py
+                default: from under afni binaries directory
+
+            If one wishes to use a version of tedana.py other than what comes
+            with AFNI, this option allows one to specify that file.
+
+            This applies to any tedana-based -combine_method.
+
+            See also -combine_method.
 
         -mask_type TYPE         : specify 'union' or 'intersection' mask type
 
