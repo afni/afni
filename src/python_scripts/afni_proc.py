@@ -593,10 +593,11 @@ g_history = """
     6.09 Apr  3, 2018: added -combine_tedana_path
 """
 
-g_version = "version 6.08, March 1, 2018"
+g_version = "version 6.09, Apr 3, 2018"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
+      [ "23 Mar 2018",  "tedana_wrapper.py" ],
       [ "23 Feb 2018",  "@compute_OC_weights -echo_times" ],
       [ "23 Sep 2016",  "1d_tool.py -select_runs" ],
       [  "1 Dec 2015",  "3dClustSim -ACF" ],
@@ -607,8 +608,8 @@ g_requires_afni = [ \
 
 g_todo_str = """todo:
   - ME:
-     - ** add help for -combine_tedana_path
      - ** write AP regression tests
+     x add help for -combine_tedana_path
      x do 'apply catenated xform'
      x compare OC inputs with those from Lauren
      - test only vreg, w/anat, aff std space, NL, blip
@@ -1181,6 +1182,8 @@ class SubjProcSream:
         self.valid_opts.add_opt('-combine_method', 1, [],
                         acplist=g_oc_methods,
                         helpstr='specify method for combining echoes per run')
+        self.valid_opts.add_opt('-combine_opts_tedana', -1, [],
+                        helpstr='specify extra options for tedana.py')
         self.valid_opts.add_opt('-combine_tedana_path', 1, [],
                         helpstr='specify path to tedana.py')
 

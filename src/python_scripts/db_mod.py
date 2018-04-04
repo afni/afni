@@ -2659,6 +2659,7 @@ def db_mod_combine(block, proc, user_opts):
       return 1
 
    apply_uopt_to_block('-combine_method', user_opts, block)
+   apply_uopt_to_block('-combine_opts_tedana', user_opts, block)
    apply_uopt_to_block('-combine_tedana_path', user_opts, block)
 
    block.valid = 1
@@ -2752,21 +2753,36 @@ def cmd_combine_tedana(proc, block, method='tedana'):
    if proc.mask != proc.mask_epi_anat:
       print('** consider option: "-mask_epi_anat yes"')
 
+   oindent = ' '*6
+
+   # gather any extra options
+   exopts = []
+   oname = '-combine_opts_tedana'
+   opt = block.opts.find_opt(oname)
+   if opt:
+      olist, rv = block.opts.get_string_list(oname)
+      if rv: return ''
+      if len(olist) > 0:
+         exopts.append("%s-tedana_opts '%s' \\\n" % (oindent,' '.join(olist)))
+      else:
+         print("** found -combine_opts_tedana without any options")
+         return
 
    # maybe the user specified a tedana.py path
-   exopts = ''
    oname = '-combine_tedana_path'
    val, rv = block.opts.get_string_opt(oname)
    if val and not rv:
       if not os.path.isfile(val):
          print("** warning %s file does not seem to exist:\n   %s" \
                % (oname, val))
-      exopts += '%s-tedana_prog %s \\\n' % (' '*6, val)
+      exopts.append('%s-tedana_prog %s \\\n' % (oindent, val))
 
    # input prefix has $run fixed, but uses a wildcard for echoes
    # output prefix has $run fixed, but no echo var
+   # 
    cur_prefix = proc.prefix_form_run(block, eind=-9)
    prev_prefix = proc.prev_prefix_form_run(block, view=1, eind=-2)
+   exoptstr = ''.join(exopts)
 
    cmd =  '# ----- method %s : generate TED (MEICA) results  -----\n\n' \
           'foreach run ( $runs )\n'                                     \
@@ -2778,7 +2794,7 @@ def cmd_combine_tedana(proc, block, method='tedana'):
           '      -save_all \\\n'                                        \
           '%s'                                                          \
           '      -prefix tedprep\n\n'                                   \
-          % (method, prev_prefix, proc.mask.shortinput(), exopts)
+          % (method, prev_prefix, proc.mask.shortinput(), exoptstr)
 
    # we may have to adjust the view
    if proc.view and (proc.view != '+orig'):
@@ -11374,6 +11390,18 @@ g_help_options = """
 
             Please see '@compute_OC_weights -help' for more information.
             See also -combine_tedana_path.
+
+        -combine_opts_tedana OPT OPT ... : specify extra options for tedana.py
+
+                e.g. -combine_tedana_path ~/testbin/meica.libs/tedana.py
+                default: from under afni binaries directory
+
+            If one wishes to use a version of tedana.py other than what comes
+            with AFNI, this option allows one to specify that file.
+
+            This applies to any tedana-based -combine_method.
+
+            See also -combine_method.
 
         -combine_tedana_path PATH : specify path to tedana.py
 
