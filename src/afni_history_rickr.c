@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  4, Apr, 2018, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -combine_opts_tedana, to pass opts down to tedana.py",
+   NULL
+ } ,
+
  {  4, Apr, 2018, RCR, "tedana_wrapper.py", MICRO, TYPE_ENHANCE,
    "allow for newlines in -tedana_opts; flush tedana.py command",
    NULL
