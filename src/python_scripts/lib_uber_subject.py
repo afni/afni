@@ -159,9 +159,10 @@ g_history = """
     1.1  Mar 26, 2018: changed a couple of defaults
          - def vol registration base:  third -> MIN_OUTLIER
          - def EPI/anat cost function: lpc -> lpc+ZZ
+    1.2  Apr  5, 2018: always apply -regress_motion_per_run
 """
 
-g_version = '1.1 (March 26, 2018)'
+g_version = '1.2 (April 5, 2018)'
 
 # ----------------------------------------------------------------------
 # global definition of default processing blocks
@@ -618,6 +619,7 @@ class AP_Subject(object):
       """apply items with their own -regress_* options:
 
            motion_limit, outlier_limit, regress_bandpass, regress_mot_deriv,
+           regress_motion_per_run
       """
 
       istr = self.LV.istr
@@ -631,6 +633,7 @@ class AP_Subject(object):
          rstr += '%s-regress_bandpass %s %s \\\n' % (istr, val[0], val[1])
       if self.svars.val('regress_mot_deriv') == 'yes':      # default is 'no'
          rstr += '%s-regress_apply_mot_types demean deriv \\\n' % istr
+      rstr += '%s-regress_motion_per_run \\\n' % istr
 
       return rstr
 

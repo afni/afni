@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  5, Apr, 2018, RCR, "uber_subject.py", MICRO, TYPE_MODIFY,
+   "always apply -regress_motion_per_run",
+   NULL
+ } ,
+
  {  4, Apr, 2018, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "add -combine_opts_tedana, to pass opts down to tedana.py",
    NULL
