@@ -3293,7 +3293,7 @@ static int AFNI_drive_set_xhairs( char *cmd )
    Three_D_View *im3d ;
    int i,j,k ;
 
-   if( strlen(cmd) < 3 ) return -1;
+   if( strlen(cmd) < 1 ) return -1;
 
    ic = AFNI_controller_code_to_index( cmd ) ;
    if( ic < 0 ){ ic = 0 ; dadd = 0 ; }

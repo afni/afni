@@ -86,7 +86,6 @@ MRI_IMAGE * THD_dataset_to_pvmap( THD_3dim_dataset *dset , byte *mask )
    } else {
      nmask = nvox ;
    }
-INFO_message("nmask = %d (pv)",nmask) ;
 
    inim = mri_new( npt , nmask , MRI_float ) ;
    inar = MRI_FLOAT_PTR(inim) ;
