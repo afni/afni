@@ -280,6 +280,7 @@ set astep = `ccalc -int "cbrt($anatNN)/6.111"`
 if( $astep < 2 ) set astep = 2
 
 afni -noplugins -no_detach                                       \
+     -DAFNI_DEFAULT_OPACITY=9                                    \
      -com "SWITCH_UNDERLAY ${cdset}"                             \
      -com "SWITCH_OVERLAY ${zpref}.epiEM.nii"                    \
      -com "SET_DICOM_XYZ $anatCM"                                \
