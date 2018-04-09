@@ -357,6 +357,9 @@ Ifile:Ifile.o
 3dGetrow:3dGetrow.o
 	$(CC) -o 3dGetrow 3dGetrow.o $(LFLAGS) $(LLIBS)
 
+3dGrayplot:3dGrayplot.o
+	$(CC) -o 3dGrayplot 3dGrayplot.o $(LFLAGS) $(LLIBS)
+
 3dnoise:3dnoise.o
 	$(CC) -o 3dnoise 3dnoise.o $(LFLAGS) $(LLIBS)
 
