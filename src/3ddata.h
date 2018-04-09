@@ -5080,6 +5080,9 @@ extern MRI_vectim * THD_vectim_copy( MRI_vectim *mrv ) ;      /* 08 Apr 2010 */
 extern MRI_vectim * THD_tcat_vectims( int , MRI_vectim ** ) ; /* 26 Jul 2010 */
 extern MRI_vectim * THD_dset_list_to_vectim( int, THD_3dim_dataset **, byte * );
 
+extern MRI_vectim * THD_xyzcat_vectims( int nvim , MRI_vectim **vim ) ; /* 09 Apr 2018 */
+
+
 #define ICOR_MAX_FTOP 99999  /* 26 Feb 2010 */
 
 typedef struct {
