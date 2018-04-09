@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 9 , APR , 2018 , RWC , "3dGrayplot" , MINOR , TYPE_NEW_PROG ,
+   "A plot, a la JD Power, of time series intensities in a brain mask" ,
+   "For Cesar Caballero-Gaudes, and anyone else who actually cares about\n"
+   "data quality." } ,
+
  { 28 , MAR , 2018 , RWC , "3dNwarpApply" , MAJOR , TYPE_ENHANCE ,
    "Program now warps complex-valued datasets." ,
    "Real and imaginary parts are extracted, warped, and combined.\n"
