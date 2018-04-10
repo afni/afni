@@ -9,21 +9,106 @@ int main( int argc , char *argv[] )
    char *prefix = "Grayplot.png" ;
    byte *mask=NULL ; int mask_nvox=0 ;
    int iarg = 1 ;
-   int polort=2 ; float fwhm=6.0f ;
+   int polort=2 , nxout=0,nyout=0 ; float fwhm=6.0f ;
+
+   /*----------------------------------------------------------------*/
 
    if( argc < 2 ){
      printf("\n"
-      "Usage: 3dGrayplot [options] dataset\n"
+      "Make a grayplot from a 3D+time dataset, sort of like Jonathan Power:\n"
+      "  https://www.ncbi.nlm.nih.gov/pubmed/27510328\n"
+      "  https://www.jonathanpower.net/2017-ni-the-plot.html\n"
+      "Result is saved to a PNG image for your viewing pleasure.\n"
+      "\n"
+      "  3dGrayplot [options] dataset\n"
+      "\n"
+      "OPTIONS:\n"
+      "--------\n"
+      "\n"
+      " -mask mset      = Name of mask dataset [REQUIRED]\n"
+      "                   * Voxels that are 0 in mset will not be processed.\n"
+      "                   * Dataset must be byte-valued (0..255).\n"
+      "                   * Each distinct value from 1..255 will be processed\n"
+      "                     separately, and the output image will be ordered\n"
+      "                     with the mask=1 voxels on top, mask=2 voxels next,\n"
+      "                     and so on down the image.\n"
+      "                   * A partition (e.g., mask=3) with fewer than 9 voxels\n"
+      "                     will not be processed at all.\n"
+      "\n"
+      " -prefix ppp.png = Name for output file.\n"
+      "                   * Default is Grayplot.png\n"
+      "                   * If the filename ends in '.jpg', a JPEG file is output.\n"
+      "                   * If the filename does not end in '.jpg' OR in '.png',\n"
+      "                     then the string '.png' will be added at the end.\n"
+      "\n"
+      " -dimen X Y      = Output size of image in pixels.\n"
+      "                   * X = width  = time axis\n"
+      "                   * Y = height = space dimensions\n"
+      "                   * Defaults are X=1024 Y=512.\n"
+      "\n"
+      " -polort p       = Order of polynomials for detrending.\n"
+      "                   * Default value is 2.\n"
+      "                   * Use '-1' if data is already detrended and de-meaned.\n"
+      "\n"
+      " -fwhm f         = FWHM of blurring radius to use in the dataset before\n"
+      "                   making the mask.\n"
+      "                   * Each partition (i.e., mask=1, mask=2, ...) is blurred\n"
+      "                     independently, as in program 3dBlurInMask.\n"
+      "                   * Default value is 6 mm.\n"
+      "                   * '-fwhm 0' will stop blurring (e.g., if already blurred).\n"
+      "\n"
+      "** Quick hack for Cesar Caballero-Gaudes, April 2019, by @AFNIman.\n"
+      "   As such, this program may be modified in the future to be more useful,\n"
+      "   or at least more beautiful.\n"
+      "\n"
+      "** Applied to 'raw' EPI data, the results may not be very informative.\n"
+      "   It seems to be more useful to look at the grayplot calculated from\n"
+      "   pre-processed data (e.g., time series registered, etc.).\n"
+      "\n"
      ) ;
      exit(0) ;
    }
 
+   /*----------------------------------------------------------------*/
+
+   mainENTRY("3dGrayplot"); machdep(); (void)COX_clock_time();
+
    while( iarg < argc && argv[iarg][0] == '-' ){
+
+     if( strcasecmp(argv[iarg],"-dimen") == 0 ){
+       if( ++iarg >= argc-1 )
+         ERROR_exit("'-dimen' needs 2 arguments") ;
+       nxout = (int)strtod(argv[iarg++],NULL) ;
+       nyout = (int)strtod(argv[iarg++],NULL) ;
+       continue ;
+     }
+
+     if( strcasecmp(argv[iarg],"-polort") == 0 ){
+       if( ++iarg >= argc )
+         ERROR_exit("'-polort' needs an argument") ;
+       polort = (int)strtod(argv[iarg++],NULL) ;
+       continue ;
+     }
+
+     if( strcasecmp(argv[iarg],"-fwhm") == 0 ){
+       if( ++iarg >= argc )
+         ERROR_exit("'-fwhm' needs an argument") ;
+       fwhm = (float)strtod(argv[iarg++],NULL) ;
+       continue ;
+     }
 
      if( strcasecmp(argv[iarg],"-prefix") == 0 ){
        if( ++iarg >= argc )
          ERROR_exit("'-prefix' needs an argument") ;
-       prefix = strdup(argv[iarg]) ;
+       if( STRING_HAS_SUFFIX(argv[iarg],".png") ||
+           STRING_HAS_SUFFIX(argv[iarg],".jpg")   ){
+         prefix = strdup(argv[iarg]) ;
+       } else {
+         prefix = malloc(sizeof(char)*(strlen(argv[iarg])+16)) ;
+         sprintf(prefix,"%s.png",argv[iarg]) ;
+       }
+       if( !THD_filename_ok(prefix) )
+         ERROR_exit("prefix '%s' is illegal :(",prefix) ;
        iarg++ ; continue ;
      }
 
@@ -61,15 +146,22 @@ int main( int argc , char *argv[] )
 
    if( iarg >= argc ) ERROR_exit("No input dataset?") ;
 
+   /*----------------------------------------------------------------*/
+
    dset = THD_open_dataset( argv[iarg] ) ;
    CHECK_OPEN_ERROR(dset,argv[iarg]) ;
+   INFO_message("Loading dataset") ;
    DSET_load(dset) ; CHECK_LOAD_ERROR(dset) ;
 
    if( mask_nvox != DSET_NVOX(dset) )
      ERROR_exit("mask and dataset don't match :(") ;
 
-   imout = THD_dset_to_grayplot( dset , mask , polort , fwhm ) ;
+   INFO_message("Grayplot-ing dataset") ;
+   imout = THD_dset_to_grayplot( dset,mask , nxout,nyout , polort,fwhm ) ;
 
    mri_write_png( prefix , imout ) ;
+
+   INFO_message("3dGrayplot: Elapsed = %.1f s\n", COX_clock_time() ) ;
+
    exit(0) ;
 }
