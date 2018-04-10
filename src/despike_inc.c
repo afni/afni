@@ -1,3 +1,5 @@
+#ifndef __DESKPIKE_INCLUDE__
+
 #undef  SWAP
 #define SWAP(x,y) (temp=x,x=y,y=temp)
 
@@ -138,3 +140,5 @@ static int DES_despike25( int num , float *vec , float *wks )
 #undef mead25
 #undef SORT2
 #undef SWAP
+
+#endif
