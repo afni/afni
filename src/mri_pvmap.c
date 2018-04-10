@@ -28,6 +28,7 @@ MRI_IMAGE * mri_vec_to_pvmap( MRI_IMAGE *inim )
    MRI_IMAGE *outim ;
    float *uvec , *vvec , *outar , *iar ;
    unsigned short xran[3] ;
+   static int ncall=0 ;
 
    if( inim == NULL || inim->kind != MRI_float ) return NULL ;
 
@@ -38,15 +39,15 @@ MRI_IMAGE * mri_vec_to_pvmap( MRI_IMAGE *inim )
    vvec = (float *)malloc(sizeof(float)*nx) ;
 
    xran[0] = (unsigned short)(nx+ny+73) ;
-   xran[1] = (unsigned short)(nx-ny+473) ;
+   xran[1] = (unsigned short)(nx-ny+473+ncall) ; ncall++ ;
    xran[2] = (unsigned short)(nx*ny+7) ;
 
    iar   = MRI_FLOAT_PTR(inim) ;
    svals = principal_vector_pair( nx , ny , 0 , iar ,
                                   uvec , vvec , NULL , NULL , xran ) ;
 
-INFO_message("mri_vec_to_pvmap: svals = %g %g",svals.a,svals.b) ;
 #if 0
+INFO_message("mri_vec_to_pvmap: svals = %g %g",svals.a,svals.b) ;
 for( ii=0 ; ii < nx ; ii++ ){
   printf(" %g %g\n",uvec[ii],vvec[ii]) ;
 }
