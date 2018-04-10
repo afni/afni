@@ -1186,6 +1186,9 @@ class SubjProcSream:
                         helpstr='specify extra options for tedana.py')
         self.valid_opts.add_opt('-combine_tedana_path', 1, [],
                         helpstr='specify path to tedana.py')
+        self.valid_opts.add_opt('-combine_tedana_save_all', 1, [],
+                        acplist=['yes','no'],
+                        helpstr='save tedana preproc data (stack): yes/no')
 
         self.valid_opts.add_opt('-blur_filter', 1, [],
                         helpstr='blurring filter option (def: -1blur_fwhm)')

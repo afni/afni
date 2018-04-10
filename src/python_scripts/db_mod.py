@@ -2777,6 +2777,11 @@ def cmd_combine_tedana(proc, block, method='tedana'):
                % (oname, val))
       exopts.append('%s-tedana_prog %s \\\n' % (oindent, val))
 
+   # use -save_all?
+   save_opt = ''
+   if block.opts.have_yes_opt('-combine_tedana_save_all', 0):
+      save_opt = '%s-save_all \\\n' % oindent
+
    # input prefix has $run fixed, but uses a wildcard for echoes
    # output prefix has $run fixed, but no echo var
    # 
@@ -2791,10 +2796,10 @@ def cmd_combine_tedana(proc, block, method='tedana'):
           '      -mask %s  \\\n'                                        \
           '      -results_dir tedana_r$run \\\n'                        \
           '      -ted_label r$run \\\n'                                 \
-          '      -save_all \\\n'                                        \
+          '%s'                                                          \
           '%s'                                                          \
           '      -prefix tedprep\n\n'                                   \
-          % (method, prev_prefix, proc.mask.shortinput(), exoptstr)
+          % (method, prev_prefix, proc.mask.shortinput(), save_opt, exoptstr)
 
    # we may have to adjust the view
    if proc.view and (proc.view != '+orig'):
@@ -11372,6 +11377,21 @@ g_help_options = """
 
             Please see '3dABoverlap -help' for more information.
 
+        -mask_type TYPE         : specify 'union' or 'intersection' mask type
+
+                e.g. -mask_type intersection
+                default: union
+
+            This option is used to specify whether the mask applied to the
+            analysis is the union of masks from each run, or the intersection.
+            The only valid values for TYPE are 'union' and 'intersection'.
+
+            This is not how to specify whether a mask is created, that is
+            done via the 'mask' block with the '-blocks' option.
+
+            Please see '3dAutomask -help', '3dMean -help' or '3dcalc -help'.
+            See also -mask_dilate, -blocks.
+
         -combine_method METHOD  : specify method for combining echoes
 
                 e.g. -combine_method OC
@@ -11414,21 +11434,6 @@ g_help_options = """
             This applies to any tedana-based -combine_method.
 
             See also -combine_method.
-
-        -mask_type TYPE         : specify 'union' or 'intersection' mask type
-
-                e.g. -mask_type intersection
-                default: union
-
-            This option is used to specify whether the mask applied to the
-            analysis is the union of masks from each run, or the intersection.
-            The only valid values for TYPE are 'union' and 'intersection'.
-
-            This is not how to specify whether a mask is created, that is
-            done via the 'mask' block with the '-blocks' option.
-
-            Please see '3dAutomask -help', '3dMean -help' or '3dcalc -help'.
-            See also -mask_dilate, -blocks.
 
         -scale_max_val MAX      : specify the maximum value for scaled data
 
