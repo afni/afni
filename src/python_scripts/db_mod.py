@@ -5540,7 +5540,11 @@ def set_proc_vr_vall(proc, block, parset=None, newpre='rm.all_runs.volreg'):
    # create or not catenated volreg dataset
    if proc.vr_vall != None: return ''
 
-   vblock = proc.find_block_or_prev('volreg', block)
+   # rcr - need more logic to pick block:
+   #     - if volreg is before combine or no volreg, use combine
+   #     - else use volreg
+   if proc.have_me: vblock = proc.find_block_or_prev('combine', block)
+   else:            vblock = proc.find_block_or_prev('volreg', block)
    if vblock == None:
       print('** SPVV: failed to find corresponding volreg block')
       return ''
