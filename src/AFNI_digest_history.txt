@@ -1,3 +1,39 @@
+AFNI Digest, week of 2018/04/11.
+
+00) New AFNI Bootcamp:  UW, Seattle, USA (July, 2018).
+We will be having an AFNI Bootcamp in the sunny Northwest in July.
+Please see here for more information, if you are interested:
+https://afni.nimh.nih.gov/afni/community/board/read.php?1,157746,157746#msg-157746
+
+01) More info about "equitable" clustering (ETAC) in AFNI.
+A new draft about the ETAC method in AFNI is available for general
+edufication:
+https://www.biorxiv.org/content/early/2018/04/05/295931
+Go forth, and cluster!
+
+02) Complex warping in AFNI:  i, i, Cap'n!
+Program 3dNwarpApply will now warp complex-valued source datasets
+correctly, transforming the real and imaginary parts, and then
+recombining them to form a complex-valued output dataset. Previously,
+it would have converted the source dataset to the magnitude values,
+and output the float-valued dataset of the warped magnitude volume.
+
+03) New AFNI analysis recipe:  noodle al phreno.
+In case you missed a very *important* posting on April 1.
+https://afni.nimh.nih.gov/afni/community/board/read.php?1,157722,157722#msg-157722
+
+04) Gray's time series anatomy.
+New program 3dGrayplot will take a 3D+time dataset and make a summary
+2D image for data quality review, in the style of Jonathan Power
+(x-axis=time axis, y-axis=all spatial dimensions):
+https://www.ncbi.nlm.nih.gov/pubmed/27510328
+https://www.jonathanpower.net/2017-ni-the-plot.html 
+The result is saved to a PNG (or JPEG) image for your viewing
+pleasure. This program is new, and will probably be upgraded in the
+future to provide more control over the image manufacturing process.
+
+========================================================================
+
 AFNI Digest, week of 2018/03/26.
 
 00) Updated X-server for Windows Subsystem for Linux (WSL).
@@ -47,7 +83,6 @@ https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/tutorials/FATCAT_matplot/FATCAT_m
 Additional tools for setting up stats in a similar, user-interactive
 vein can be learned about here:
 https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/tutorials/3dMVM_validator/3dMVM_validator_overview.html 
-
 
 ========================================================================
 
