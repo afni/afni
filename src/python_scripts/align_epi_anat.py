@@ -599,7 +599,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = "1.57" # software version (update for changes)
+      self.align_version = "1.58" # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -2418,7 +2418,8 @@ class RegWrap:
             com.run();
 
             if(ps.tlrc_apar!=""):
-               tlrc_dset = afni_name("%s%s_tlrc%s" % (o.p(), self.epi_afniformat.out_prefix(), suf))
+               tlrc_dset = afni_name("%s%s_tlrc%s+tlrc" % (o.p(), self.epi_afniformat.out_prefix(), suf))
+               print("tlrc_dset input %s view %s" % (tlrc_dset.input(), tlrc_dset.view));
                # tlrc_dset.view = ps.tlrc_apar.view  '+tlrc'
                if(self.master_tlrc_dset=='SOURCE'):
                    tlrc_dset.view = e.view
@@ -2478,7 +2479,7 @@ class RegWrap:
                  com.run()
               else:
                  if(oblique_mat!=""):
-                    com = shell_com ("3drefit -deoblique %s" %     \
+                    com = shell_com ("3drefit -deoblique %s+tlrc" %  \
                       (atlrcpost.input()), ps.oexec)
                     com.run()               
       else:
