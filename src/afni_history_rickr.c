@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12,  Apr, 2018, RCR, "dcm2niix_afni", MAJOR, TYPE_ENHANCE,
+   "update from C Rorden: includes support for Philips enhanced DICOMs",
+   NULL
+ } ,
+
  {  5, Apr, 2018, RCR, "uber_subject.py", MICRO, TYPE_MODIFY,
    "always apply -regress_motion_per_run",
    NULL
