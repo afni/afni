@@ -1,5 +1,7 @@
 #!/bin/tcsh
 
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+
 # ----------------------------------------------------------------------
 # Create correlation volumes (correlate with average of local spheres)
 # to look for scanner (or maybe motion) artifacts in EPI data.

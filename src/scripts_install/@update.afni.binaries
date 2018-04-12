@@ -17,6 +17,12 @@ set hostname = afni.nimh.nih.gov
 set hostproto = https://
 set hostsite = $hostproto$hostname
 
+set sysname = `uname -s`
+if ( $status ) then
+   echo "** command failure: uname -s"
+   set sysname = ""
+endif
+
 # ----------------------------------------------------------------------
 # history section
 
@@ -58,6 +64,7 @@ history for $prog :
   3.2  23 Jun 2017 : unalias grep; only update cur_afni if not abin
   3.3  10 Jul 2017 : if bindir is relative, fail without -no_recur
   3.4  21 Jul 2017 : oops, apparently that needs quotes to block eval
+  3.5  04 Apr 2018 : missed sysname
 
 -------------------------------------------------------------------------------
 EOF
@@ -66,7 +73,7 @@ POST_HIST:
 # end history section
 # ----------------------------------------------------------------------
 
-set aub_version = "3.4, July 21, 2017"
+set aub_version = "3.5, April 4, 2018"
 
 # ----------------------------------------------------------------------
 # apply any options
@@ -504,13 +511,8 @@ if ( $package == "" ) then
           exit 1
       endif
    else
-      # pick package based on OS
-      set sysname = `uname -s`
+      # pick package based on OS (sysname is set above)
       set errs = 0
-      if ( $status ) then
-         @ errs ++
-         set sysname = ""
-      endif
 
       set cpuname = `uname -p`
       if ( $status ) then

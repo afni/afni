@@ -590,12 +590,14 @@ g_history = """
     6.07 Feb 27, 2018: added help for a few option
                        (some old, some new, some red, some blue)
     6.08 Mar  1, 2018: added OC_methods OC_A and OC_B
+    6.09 Apr  3, 2018: added -combine_tedana_path
 """
 
-g_version = "version 6.08, March 1, 2018"
+g_version = "version 6.09, Apr 3, 2018"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
+      [ "23 Mar 2018",  "tedana_wrapper.py" ],
       [ "23 Feb 2018",  "@compute_OC_weights -echo_times" ],
       [ "23 Sep 2016",  "1d_tool.py -select_runs" ],
       [  "1 Dec 2015",  "3dClustSim -ACF" ],
@@ -606,7 +608,10 @@ g_requires_afni = [ \
 
 g_todo_str = """todo:
   - ME:
+     - ** set_proc_vr_vall (and similar), choose between volreg and combine
+        - test ROI PC
      - ** write AP regression tests
+     x add help for -combine_tedana_path
      x do 'apply catenated xform'
      x compare OC inputs with those from Lauren
      - test only vreg, w/anat, aff std space, NL, blip
@@ -1177,8 +1182,15 @@ class SubjProcSream:
                         helpstr='number of slices to pad by in volreg')
 
         self.valid_opts.add_opt('-combine_method', 1, [],
-                        acplist=['mean','OC', 'OC_A', 'OC_B'],
+                        acplist=g_oc_methods,
                         helpstr='specify method for combining echoes per run')
+        self.valid_opts.add_opt('-combine_opts_tedana', -1, [],
+                        helpstr='specify extra options for tedana.py')
+        self.valid_opts.add_opt('-combine_tedana_path', 1, [],
+                        helpstr='specify path to tedana.py')
+        self.valid_opts.add_opt('-combine_tedana_save_all', 1, [],
+                        acplist=['yes','no'],
+                        helpstr='save tedana preproc data (stack): yes/no')
 
         self.valid_opts.add_opt('-blur_filter', 1, [],
                         helpstr='blurring filter option (def: -1blur_fwhm)')
@@ -2262,6 +2274,27 @@ class SubjProcSream:
 
         return None
 
+    def find_block_order(self, b0, b1):
+        """find order between blocks b0 and b1
+           return:
+               -2 : some block is not found
+               -1 : b0 is first
+                0 : they are the same
+                1 : b0 is last
+        """
+
+        i0 = self.find_block_index(b0)
+        i1 = self.find_block_index(b1)
+        # not found
+        if i0 < 0 or i1 < 0:
+           return -2
+
+        # return order
+        if i0 < i1: return -1
+        if i0 > i1: return 1
+
+        return 0
+
     def find_block_opt(self, label, opt_name):
         """return any found comompt instance in block.opts"""
         for block in self.blocks:
@@ -3252,14 +3285,14 @@ class SubjProcSream:
     #               eind == -9,  use ''           (nothing)
     #    (else)     eind ==  0,  use .e$eind
     # (pass as 0/1, -1 for default)
-    def prefix_form(self, block, run, view=0, surf_names=-1, eind=0):
+    def prefix_form(self, block, run, view=0, surf_names=-1, eind=0, use_me=0):
         if self.runs > 99: rstr = 'r%03d' % run
         else:              rstr = 'r%02d' % run
 
         # maybe we have an echo index
         sstr = '' # if going wild (and not surf), need .HEAD suffix
         estr = ''
-        if self.use_me:
+        if use_me or self.use_me:
            if eind > 0:     estr = '%se%02d' % (self.sep_char, eind)
            elif eind == -1: estr = '%se%s' % (self.sep_char, self.regecho_var)
            elif eind == -2:
@@ -3285,12 +3318,12 @@ class SubjProcSream:
                 block.label, vstr)
 
     # same, but leave run as a variable
-    def prefix_form_run(self, block, view=0, surf_names=-1, eind=0):
+    def prefix_form_run(self, block, view=0, surf_names=-1, eind=0, use_me=0):
 
         # maybe we have an echo index
         sstr = '' # if going wild (and not surf), need .HEAD suffix
         estr = ''
-        if self.use_me:
+        if use_me or self.use_me:
            if eind > 0:     estr = '%se%02d' % (self.sep_char, eind)
            elif eind == -1: estr = '%se%s' % (self.sep_char, self.regecho_var)
            elif eind == -2:
@@ -3319,14 +3352,15 @@ class SubjProcSream:
     # same as prefix_form, but use previous block values (index and label)
     # (so we don't need the block)
     # if self.surf_names: pbNN.SUBJ.rMM.BLABEL.HEMI.niml.dset
-    def prev_prefix_form(self, run, block, view=0, surf_names=-1, eind=0):
+    def prev_prefix_form(self, run, block, view=0, surf_names=-1,
+                               eind=0, use_me=0):
         if self.runs > 99: rstr = 'r%03d' % run
         else:              rstr = 'r%02d' % run
 
         # maybe we have an echo index
         sstr = '' # if going wild (and not surf), need .HEAD suffix
         estr = ''
-        if self.use_me:
+        if use_me or self.use_me:
            if eind > 0:     estr = '%se%02d' % (self.sep_char, eind)
            elif eind == -1: estr = '%se%s' % (self.sep_char, self.regecho_var)
            elif eind == -2:
@@ -3351,11 +3385,12 @@ class SubjProcSream:
                self.prev_lab(block), vstr)
 
     # same, but leave run as a variable
-    def prev_prefix_form_run(self, block, view=0, surf_names=-1, eind=0):
+    def prev_prefix_form_run(self, block, view=0, surf_names=-1,
+                                   eind=0, use_me=0):
         # maybe we have an echo index
         sstr = '' # if going wild (and not surf), need .HEAD suffix
         estr = ''
-        if self.use_me:
+        if use_me or self.use_me:
            if eind > 0:     estr = '%se%02d' % (self.sep_char, eind)
            elif eind == -1: estr = '%se%s' % (self.sep_char, self.regecho_var)
            elif eind == -2:
@@ -3382,10 +3417,11 @@ class SubjProcSream:
                self.prev_lab(block), vstr)
 
     # same, but leave run wild
-    def prev_dset_form_wild(self, block, view=0, surf_names=-1, eind=0):
+    def prev_dset_form_wild(self, block, view=0, surf_names=-1,
+                                  eind=0, use_me=0):
         # maybe we have an echo index
         estr = ''
-        if self.use_me:
+        if use_me or self.use_me:
            if eind > 0:     estr = '%se%02d' % (self.sep_char, eind)
            elif eind == -1: estr = '%se%s' % (self.sep_char, self.regecho_var)
            elif eind == -2: estr = '%se*'  % (self.sep_char)
@@ -3406,7 +3442,8 @@ class SubjProcSream:
              self.prev_lab(block), vstr)
 
     # like prefix, but list the whole dset form, in wildcard format
-    def dset_form_wild(self, blabel, view=None, surf_names=-1, eind=0):
+    def dset_form_wild(self, blabel, view=None, surf_names=-1,
+                             eind=0, use_me=0):
         block = self.find_block(blabel)
         if not block:
             print("** DFW: failed to find block for label '%s'" % blabel)
@@ -3415,7 +3452,7 @@ class SubjProcSream:
 
         # maybe we have an echo index
         estr = ''
-        if self.use_me:
+        if use_me or self.use_me:
            if eind > 0:     estr = '%se%02d' % (self.sep_char, eind)
            elif eind == -1: estr = '%se%s' % (self.sep_char, self.regecho_var)
            elif eind == -2: estr = '%se*'  % (self.sep_char)

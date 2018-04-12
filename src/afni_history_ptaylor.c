@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 2, Apr , 2018 , PT , "@radial_correlate" , MICRO , TYPE_GENERAL,
+   "Make -hview option work with the program.",
+   "Didn't before, does now.\n"
+},
+
 { 14, Mar , 2018 , PT , "fat_proc_dwi_to_dt" , MINOR , TYPE_BUG_FIX,
    "Crashed no ref dset was used in mapping.",
    "Crashes no more under such circumstance.\n"

@@ -6,6 +6,8 @@ int main( int argc , char *argv[] )
    char *prefix ;
    int narg=1 ;
 
+#ifndef DONT_ALLOW_MINC
+
 WARNING_message("This program (3dMINCtoAFNI) is old, obsolete, and not maintained!") ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
@@ -66,4 +68,8 @@ WARNING_message("This program (3dMINCtoAFNI) is old, obsolete, and not maintaine
    DSET_write(dset) ;
    fprintf(stderr,"++ Wrote dataset %s\n",DSET_BRIKNAME(dset)) ;
    exit(0) ;
+
+#else
+   ERROR_exit("3dMINCtoAFNI is no longer compiled") ;
+#endif
 }
