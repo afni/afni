@@ -7,9 +7,7 @@
 ## system libraries
 import sys, os, glob, subprocess, csv, re, shutil, argparse, signal, textwrap
 
-## [PT: Mar 22, 2018] So that we can leave the help2*py file here, but
-## use afni_util;  should always be relatively related like this:
-sys.path.insert(0, "../../../src/python_scripts")
+# requires PYTHONPATH to directory of AFNI binaries
 import afni_util as au
 
 ## [PT: Mar 22, 2018] Make the reference for each help in the "All
@@ -139,7 +137,7 @@ main_toc = open(toc_file,"w")
 main_toc.write(":tocdepth: 2\n\n")
 main_toc.write(".. _programs_main:\n\n")
 main_toc.write("##################\n")
-main_toc.write("All Programs Helps\n")
+main_toc.write("All program helps\n")
 main_toc.write("##################\n\n")
 main_toc.write('This is a list of all AFNI programs.  Click on any name to see the help for that program.\n\nFor additional reference, please also see the "classified" list of helps :ref:`HERE<edu_class_prog>`\, where programs are loosely grouped by topic and functionality, with a brief description of each provided.\n\n')
 main_toc.write(".. csv-table::\n\n")

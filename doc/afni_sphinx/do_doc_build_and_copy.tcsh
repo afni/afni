@@ -10,6 +10,7 @@
 #   A backup doc dir from the server can be removed later.
 #
 #######################################################################
+setenv PYTHONPATH /home/ptaylor/afni_src/linux_ubuntu_12_64
 
 set here = $PWD
 set thedate = `date +%Y_%m_%d`
@@ -25,7 +26,9 @@ echo "Backup directory called: $backup_dir"
 cd python_help_scripts
 
 # Make list of All Program Helps
-python help2sphinx.py -OutFolder ../programs
+#python help2sphinx.py -OutFolder ../programs
+
+echo "python path: $PYTHONPATH"
 
 # Make classified/groupings stuff
 set fieldfile = list_STYLED_NEW.txt
@@ -35,6 +38,12 @@ python convert_list_to_fields_pandas.py        \
 python convert_fields_to_rst.py                \
     $fieldfile                                 \
     ../educational/classified_progs.rst
+
+# make AFNI startup tips RST
+python make_file_of_startup_tips.py            \
+    all_startup_tips.txt                       \
+    ../educational/startup_tips.rst
+
 cd ..
 # ---------------------------------
 

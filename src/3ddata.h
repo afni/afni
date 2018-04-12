@@ -69,10 +69,6 @@ struct THD_3dim_dataset ;  /* incomplete definition */
 extern "C" {
 #endif
 
-/*! Enables compilation of the MINC dataset code. */
-
-#define ALLOW_MINC   /* 29 Oct 2001 */
-
 /*! Macro to check if string ss ends in string suf. */
 
 #define STRING_HAS_SUFFIX(ss,suf)              \
@@ -5083,6 +5079,9 @@ extern void THD_vectim_vectim_dot( MRI_vectim *arv, MRI_vectim *brv, float *dp )
 extern MRI_vectim * THD_vectim_copy( MRI_vectim *mrv ) ;      /* 08 Apr 2010 */
 extern MRI_vectim * THD_tcat_vectims( int , MRI_vectim ** ) ; /* 26 Jul 2010 */
 extern MRI_vectim * THD_dset_list_to_vectim( int, THD_3dim_dataset **, byte * );
+
+extern MRI_vectim * THD_xyzcat_vectims( int nvim , MRI_vectim **vim ) ; /* 09 Apr 2018 */
+
 
 #define ICOR_MAX_FTOP 99999  /* 26 Feb 2010 */
 

@@ -3,7 +3,7 @@
 .. _programs_main:
 
 ##################
-All Programs Helps
+All program helps
 ##################
 
 This is a list of all AFNI programs.  Click on any name to see the help for that program.

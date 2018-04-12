@@ -49,6 +49,41 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  5, Apr, 2018, RCR, "uber_subject.py", MICRO, TYPE_MODIFY,
+   "always apply -regress_motion_per_run",
+   NULL
+ } ,
+
+ {  4, Apr, 2018, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -combine_opts_tedana, to pass opts down to tedana.py",
+   NULL
+ } ,
+
+ {  4, Apr, 2018, RCR, "tedana_wrapper.py", MICRO, TYPE_ENHANCE,
+   "allow for newlines in -tedana_opts; flush tedana.py command",
+   NULL
+ } ,
+
+ {  4, Apr, 2018, RCR, "@update.afni.binaries", MICRO, TYPE_BUG_FIX,
+   "set sysname early - forgot to commit this weeks ago...",
+   NULL
+ } ,
+
+ {  3, Apr, 2018, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "initial testing run with -combine_tedana_path",
+   NULL
+ } ,
+
+ { 27, Mar, 2018, RCR, "make_random_timing.py", MICRO, TYPE_MODIFY,
+   "modify help for sphinx formatting",
+   NULL
+ } ,
+
+ { 26, Mar, 2018, RCR, "uber_subject.py", MICRO, TYPE_MODIFY,
+   "modify defaults: VR base = MIN_OUTLIER, EPI/anat cost func = lpc+ZZ",
+   NULL
+ } ,
+
  {  7, Mar, 2018, RCR, "afni", MICRO, TYPE_BUG_FIX,
    "add do_css check around css access for making catenated session list",
    NULL

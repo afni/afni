@@ -1,4 +1,4 @@
-.. _edu_class_prog
+.. _edu_class_prog:
 
 ***********************
 Classified Program list
