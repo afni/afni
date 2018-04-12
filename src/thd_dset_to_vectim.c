@@ -1349,3 +1349,47 @@ void THD_check_vectim( MRI_vectim *mv , char *fname )
                      fname , nbad , (nbad==1) ? " is" : "s are" ) ;
    return ;
 }
+
+/*---------------------------------------------------------------------*/
+
+MRI_vectim * THD_xyzcat_vectims( int nvim , MRI_vectim **vim )
+{
+   MRI_vectim *vout ;
+   int nx,ny,nz,nv , nvectot , iv,ii,jj ;
+   float *vout_ptr , *vin_ptr ;
+
+   if( nvim <= 0 || vim == NULL ) return NULL ;
+
+   if( nvim == 1 ){
+     vout = THD_vectim_copy( vim[0] ) ; return vout ;
+   }
+
+   nx = vim[0]->nx ;
+   ny = vim[0]->ny ;
+   nz = vim[0]->nz ;
+   nv = vim[0]->nvals ;
+   nvectot = vim[0]->nvec ;
+
+   for( iv=1 ; iv < nvim ; iv++ ){
+     if( vim[iv]->nx    != nx ||
+         vim[iv]->ny    != ny ||
+         vim[iv]->nz    != nz ||
+         vim[iv]->nvals != nv   ) return NULL ;
+
+     nvectot += vim[iv]->nvec ;
+   }
+
+   MAKE_VECTIM( vout , nvectot , nv ) ;
+   vout->nx = nx ; vout->dx = vim[0]->dx ;
+   vout->ny = ny ; vout->dy = vim[0]->dy ;
+   vout->nz = nz ; vout->dz = vim[0]->dz ; vout->dt = vim[0]->dt ;
+
+   for( jj=iv=0 ; iv < nvim ; iv++ ){
+     for( ii=0 ; ii < vim[iv]->nvec ; ii++,jj++ ){
+       vout->ivec[jj] = vim[iv]->ivec[ii] ;
+       memcpy( VECTIM_PTR(vout,jj) , VECTIM_PTR(vim[iv],ii) , sizeof(float)*nv ) ;
+     }
+   }
+
+   return vout ;
+}

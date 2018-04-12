@@ -28,6 +28,13 @@ valid_warp_types = ['affine', 'NL']
 
 clustsim_types = ['FWHM', 'ACF', 'both', 'yes', 'no']
 
+# OC/MEICA/TEDANA methods
+g_oc_methods = ['mean',     # average across echoes
+                'OC',       # default OC in @compute_OC_weights
+                'OC_A',     # Javier's method
+                'OC_B',     # full run method
+                'tedana']   # TED results from tedana
+
 
 WARP_EPI_TLRC_ADWARP    = 1
 WARP_EPI_TLRC_WARP      = 2
@@ -2652,6 +2659,8 @@ def db_mod_combine(block, proc, user_opts):
       return 1
 
    apply_uopt_to_block('-combine_method', user_opts, block)
+   apply_uopt_to_block('-combine_opts_tedana', user_opts, block)
+   apply_uopt_to_block('-combine_tedana_path', user_opts, block)
 
    block.valid = 1
 
@@ -2673,14 +2682,22 @@ def db_cmd_combine(proc, block):
    if rv: return
 
    # write commands
-   cmd =  '# %s\n'                                \
-          '# combine multi-echo data, per run\n'  \
+   cmd =  '# %s\n'                                 \
+          '# combine multi-echo data, per run\n\n' \
           % block_header('combine')
+
+   # probably not reachable, but at least for clarity...
+   if ocmeth not in g_oc_methods:
+      print("OC method %s not in list of valid methods:\n   %s" \
+            % (ocmeth, ', '.join(g_oc_methods)))
+      return
 
    if ocmeth == 'ave':
       ccmd = cmd_combine_mean(proc, block)
    elif ocmeth[0:2] == 'OC':
       ccmd = cmd_combine_OC(proc, block, ocmeth)
+   elif ocmeth[0:6] == 'tedana':
+      ccmd = cmd_combine_tedana(proc, block, ocmeth)
    else:
       print("** invalid combine method: %s" % ocmeth)
       return ''
@@ -2691,6 +2708,113 @@ def db_cmd_combine(proc, block):
 
    # importantly, we are now done with ME processing
    proc.use_me = 0
+
+   return cmd
+
+
+def cmd_combine_tedana(proc, block, method='tedana'):
+   """combine all echoes using the tedana.py wrapper, tedana_wrapper.py
+
+      1. for each run, get weights (with run-specific prefix)
+      2. average those weights across runs (nzmean? not necessary?)
+      3. apply 
+
+      method must currently be one of the following
+         tedana             : default - run tedana_wrapper.py, collect output
+         tedana_proj_all    : get projection matrix from both rejected lists
+                              (rejected.txt and midk_rejected.txt)
+         tedana_proj_rej    : just get projection matrix from rejected.txt
+   """
+
+   if not proc.use_me:
+      print("** creating combine block, but no ME?")
+      return
+
+   if len(proc.echo_times) == 0:
+      print("** option -echo_times is required for 'OC' combine method")
+      return
+
+   if method == 'tedana':
+      mstr = ''
+   else:
+      print("** invalid combine method, %s" % method)
+      return
+
+   # make sure a mask block precedes us
+   bo = proc.find_block_order('mask', block.label)
+   if bo == -2 or proc.mask == None:
+      print("** a mask is required for tedana")
+      return
+   if bo != -1:
+      print("** processing block 'mask' should precede 'combine'\n"
+            "   when running tedana (MEICA)")
+      return
+
+   if proc.mask != proc.mask_epi_anat:
+      print('** consider option: "-mask_epi_anat yes"')
+
+   oindent = ' '*6
+
+   # gather any extra options
+   exopts = []
+   oname = '-combine_opts_tedana'
+   opt = block.opts.find_opt(oname)
+   if opt:
+      olist, rv = block.opts.get_string_list(oname)
+      if rv: return ''
+      if len(olist) > 0:
+         exopts.append("%s-tedana_opts '%s' \\\n" % (oindent,' '.join(olist)))
+      else:
+         print("** found -combine_opts_tedana without any options")
+         return
+
+   # maybe the user specified a tedana.py path
+   oname = '-combine_tedana_path'
+   val, rv = block.opts.get_string_opt(oname)
+   if val and not rv:
+      if not os.path.isfile(val):
+         print("** warning %s file does not seem to exist:\n   %s" \
+               % (oname, val))
+      exopts.append('%s-tedana_prog %s \\\n' % (oindent, val))
+
+   # use -save_all?
+   save_opt = ''
+   if block.opts.have_yes_opt('-combine_tedana_save_all', 0):
+      save_opt = '%s-save_all \\\n' % oindent
+
+   # input prefix has $run fixed, but uses a wildcard for echoes
+   # output prefix has $run fixed, but no echo var
+   # 
+   cur_prefix = proc.prefix_form_run(block, eind=-9)
+   prev_prefix = proc.prev_prefix_form_run(block, view=1, eind=-2)
+   exoptstr = ''.join(exopts)
+
+   cmd =  '# ----- method %s : generate TED (MEICA) results  -----\n\n' \
+          'foreach run ( $runs )\n'                                     \
+          '   tedana_wrapper.py -input %s \\\n'                         \
+          '      -TE $echo_times \\\n'                                  \
+          '      -mask %s  \\\n'                                        \
+          '      -results_dir tedana_r$run \\\n'                        \
+          '      -ted_label r$run \\\n'                                 \
+          '%s'                                                          \
+          '%s'                                                          \
+          '      -prefix tedprep\n\n'                                   \
+          % (method, prev_prefix, proc.mask.shortinput(), save_opt, exoptstr)
+
+   # we may have to adjust the view
+   if proc.view and (proc.view != '+orig'):
+      ccmd = '\n'                           \
+             '   # and adjust view from +orig\n' \
+             '   3drefit -view %s %s+orig\n' % (proc.view[1:], cur_prefix)
+   else:
+      ccmd = ''
+
+   cmd += '   # copy result here\n'                            \
+          '   3dcopy tedana_r$run/TED.r$run/dn_ts_OC.nii %s\n' \
+          '%s'                                                 \
+          % (cur_prefix, ccmd)
+
+   cmd += 'end\n\n'
 
    return cmd
 
@@ -4469,7 +4593,7 @@ def db_mod_regress(block, proc, user_opts):
             errs += 1
         proc.mot_extern = uopt.parlist[0]
         proc.mot_labs = ['roll', 'pitch', 'yaw', 'dS', 'dL', 'dP']
-        # -volreg_regress_per_run should be okay  20 May 2011
+        # -volreg_regress_per_run should be okay  (option removed: 20 May 2011)
         # (must still assume TR correspondence)
 
     # maybe the user wants to specify types of motion parameters to use
@@ -5416,7 +5540,11 @@ def set_proc_vr_vall(proc, block, parset=None, newpre='rm.all_runs.volreg'):
    # create or not catenated volreg dataset
    if proc.vr_vall != None: return ''
 
-   vblock = proc.find_block_or_prev('volreg', block)
+   # rcr - need more logic to pick block:
+   #     - if volreg is before combine or no volreg, use combine
+   #     - else use volreg
+   if proc.have_me: vblock = proc.find_block_or_prev('combine', block)
+   else:            vblock = proc.find_block_or_prev('volreg', block)
    if vblock == None:
       print('** SPVV: failed to find corresponding volreg block')
       return ''
@@ -11253,23 +11381,6 @@ g_help_options = """
 
             Please see '3dABoverlap -help' for more information.
 
-        -combine_method METHOD  : specify method for combining echoes
-
-                e.g. -combine_method OC
-                default: OC
-
-            When using the 'combine' block to combine echoes (for each run),
-            this option can be used to specify the method used.   Methods:
-
-                OC      : optimally combined (via @compute_OC_weights)
-                          (current default is OC_B)
-                OC_A    : original log(mean()) regression method
-                OC_B    : newer log() time teries regression method
-                          (there is little difference between OC_A and OC_B)
-                mean    : simple mean of echoes
-
-            Please see '@compute_OC_weights -help' for more information.
-
         -mask_type TYPE         : specify 'union' or 'intersection' mask type
 
                 e.g. -mask_type intersection
@@ -11284,6 +11395,49 @@ g_help_options = """
 
             Please see '3dAutomask -help', '3dMean -help' or '3dcalc -help'.
             See also -mask_dilate, -blocks.
+
+        -combine_method METHOD  : specify method for combining echoes
+
+                e.g. -combine_method OC
+                default: OC
+
+            When using the 'combine' block to combine echoes (for each run),
+            this option can be used to specify the method used.   Methods:
+
+                mean      : simple mean of echoes
+                OC        : optimally combined (via @compute_OC_weights)
+                            (current default is OC_A)
+                OC_A      : original log(mean()) regression method
+                OC_B      : newer log() time series regression method
+                            (there is little difference between OC_A and OC_B)
+                tedana    : run tedana.py, taking the resulting dn_ts_OC.nii
+
+            Please see '@compute_OC_weights -help' for more information.
+            See also -combine_tedana_path.
+
+        -combine_opts_tedana OPT OPT ... : specify extra options for tedana.py
+
+                e.g. -combine_tedana_path ~/testbin/meica.libs/tedana.py
+                default: from under afni binaries directory
+
+            If one wishes to use a version of tedana.py other than what comes
+            with AFNI, this option allows one to specify that file.
+
+            This applies to any tedana-based -combine_method.
+
+            See also -combine_method.
+
+        -combine_tedana_path PATH : specify path to tedana.py
+
+                e.g. -combine_tedana_path ~/testbin/meica.libs/tedana.py
+                default: from under afni binaries directory
+
+            If one wishes to use a version of tedana.py other than what comes
+            with AFNI, this option allows one to specify that file.
+
+            This applies to any tedana-based -combine_method.
+
+            See also -combine_method.
 
         -scale_max_val MAX      : specify the maximum value for scaled data
 
