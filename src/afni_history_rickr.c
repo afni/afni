@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12,  Apr, 2018, RCR, "3dMVM.R", MICRO, TYPE_NEW_OPT,
+   "add -verb option",
+   NULL
+ } ,
+
  { 12,  Apr, 2018, RCR, "dcm2niix_afni", MAJOR, TYPE_ENHANCE,
    "update from C Rorden: includes support for Philips enhanced DICOMs",
    NULL
