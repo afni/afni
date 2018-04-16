@@ -65,6 +65,7 @@ class Afni1D:
 
       # misc variables (from attributes)
       self.command   = ''       # from CommandLine
+      self.header    = []       # array of extra header (comment) lines
 
       # list variables (from attributes)
       self.havelabs = 0         # did we find any labels
@@ -234,6 +235,9 @@ class Afni1D:
       cols = self.ordered_cols_by_group_list(gnew)
       if self.verb > 1: print('-- red. by glist: cols %s' % cols)
       return self.reduce_by_vec_list(cols)
+
+   def show_header(self):
+      print('\n'.join(self.header))
 
    def show_group_labels(self):
       show_groups = (len(self.groups) == self.nvec)
@@ -2471,7 +2475,10 @@ class Afni1D:
 
       for line in clines:
          label, data = c1D_line2labelNdata(line)
-         if not label: continue
+         if not label:
+            # store all unprocessed comment lines   16 Apr 2018
+            self.header.append(line)
+            continue
 
          verb_level = 3     # cutoff for verbose level
 
