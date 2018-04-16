@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16,  Apr, 2018, RCR, "lib_afni1D.py", MICRO, TYPE_ENHANCE,
+   "Afni1D: store array of comment lines in header; add show_header()",
+   NULL
+ } ,
+
  { 12,  Apr, 2018, RCR, "3dMVM.R", MICRO, TYPE_NEW_OPT,
    "add -verb option",
    NULL
