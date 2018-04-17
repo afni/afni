@@ -1087,6 +1087,8 @@ class A1DInterface:
       self.censor_next_TR  = 0          # if censor, also censor next TR
       self.censor_prev_TR  = 0          # if censor, also censor previous TR
       self.collapse_method = ''         # method for collapsing columns
+      self.csim_alpha      = 0.05       # corrected   p-value for clust sim
+      self.csim_pthr       = 0.001      # uncorrected p-value for clust sim
       self.demean          = 0          # demean the data
       self.derivative      = 0          # take temporal derivative
       self.direct          = 0          # for deriv: 0=backward diff, 1=forward
@@ -1113,6 +1115,7 @@ class A1DInterface:
       self.show_argmax     = 0          # show index of max arg
       self.show_argmin     = 0          # show index of min arg
       self.show_censor_count= 0         # show count of censored TRs
+      self.show_clustsize  = 0          # show min clust size for corrected p
       self.show_cormat     = 0          # show cormat
       self.show_cormat_warn= 0          # show cormat warnings
       self.show_displace   = 0          # max_displacement (0,1,2)
@@ -1257,6 +1260,15 @@ class A1DInterface:
 
       self.valid_opts.add_opt('-cormat_cutoff', 1, [], 
                       helpstr='set the cutoff for cormat warnings')
+
+      self.valid_opts.add_opt('-csim_show_clustsize', 0, [], 
+                      helpstr='show cluster size, given pthr and alpha')
+
+      self.valid_opts.add_opt('-csim_alpha', 1, [], 
+                      helpstr='set corrected p-value for cluster size')
+
+      self.valid_opts.add_opt('-csim_pthr', 1, [], 
+                      helpstr='set uncorrected p-value for cluster size')
 
       self.valid_opts.add_opt('-demean', 0, [], 
                       helpstr='demean each run of each column')
@@ -1619,6 +1631,21 @@ class A1DInterface:
             else:
                print('** -cormat_cutoff must be in [0,1)')
                return 1
+
+         elif opt.name == '-csim_show_clustsize':
+            self.show_clustsize = 1
+
+         elif opt.name == '-csim_alpha':
+            val, err = uopts.get_type_opt(float, '', opt=opt)
+            if err: return 1
+            self.csim_alpha = val
+            self.show_clustsize = 1
+
+         elif opt.name == '-csim_pthr':
+            val, err = uopts.get_type_opt(float, '', opt=opt)
+            if err: return 1
+            self.csim_pthr = val
+            self.show_clustsize = 1
 
          elif opt.name == '-demean':
             self.demean = 1
@@ -2106,6 +2133,9 @@ class A1DInterface:
       if self.show_trs_uncensored != '': self.show_TR_censor_list(0)
 
       if self.show_censor_count: self.adata.show_censor_count()
+
+      if self.show_clustsize:
+         csize = self.adata.csim_clust_size(self.csim_pthr, self.csim_alpha)
 
       if self.show_cormat: self.adata.show_cormat()
 
