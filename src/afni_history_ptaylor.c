@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 16, Apr , 2018 , PT , "p2dsetstat" , MAJOR , TYPE_NEW_PROG,
+   "Program to convert a p-value to a statistic, using params in dset header.",
+   "Useful to calculate thresholds for a particular volume.\n"
+},
+
 { 2, Apr , 2018 , PT , "@radial_correlate" , MICRO , TYPE_GENERAL,
    "Make -hview option work with the program.",
    "Didn't before, does now.\n"
