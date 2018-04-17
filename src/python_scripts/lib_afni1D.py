@@ -66,6 +66,8 @@ class Afni1D:
       # misc variables (from attributes)
       self.command   = ''       # from CommandLine
       self.header    = []       # array of extra header (comment) lines
+      self.csimobj   = None     # ClustSim object
+      self.csimstat  = -1       # -1, 0, 1: undef, not csim, is csim
 
       # list variables (from attributes)
       self.havelabs = 0         # did we find any labels
@@ -81,6 +83,8 @@ class Afni1D:
       self.cormat      = None   # correlation mat (normed xtx)
       self.cosmat      = None   # cosine mat (scaled xtx)
       self.cormat_ready = 0     # correlation mat is set
+
+      self.VO          = None   # VarsObject, if set
 
       # initialize...
       if self.fname:
@@ -1154,6 +1158,109 @@ class Afni1D:
       else:         print(ccount)
 
       return 0
+
+   # ----------------------------------------------------------------------
+   # cluster table functions
+
+   def is_csim_type(self):
+      """test whether this element seems to be a clustsim table"""
+      if len(self.header) < 1:  return 0
+      if len(self.mat) <= 1:    return 0
+
+      if self.csim_fill_obj():  return 0 # if csim, status -> 1
+      if self.csimstat < 1:     return 0
+
+      return 1
+
+   def csim_has_all_attrs(self, verb=1):
+      if self.csimstat !=  1:                               return 0
+      if self.VO == None:                                   return 0
+      if not isinstance(self.csimobj, self.VO.VarsObject):  return 0
+
+      alist = ['command', 'btype', 'bvals', 'sided', 'grid', 'mask_nvox',
+               'NN', 'avals']
+      cobj = self.csimobj
+      attrs = cobj.attributes()
+      hasall = 1
+      for aname in alist:
+         if not aname in attrs:
+            hasall = 0
+            if verb: print('** csim obj, missing attribute %s' % aname)
+
+      return hasall
+
+   # if we like this, formalize via class ClusterTable, say
+   def csim_fill_obj(self, refill=0):
+      # if not refill and we have set status, there is nothing to do
+      if not refill and self.csimstat != -1:
+         return 0
+
+      # fill as if we have not been here before
+      self.csimstat = 0
+
+      if len(self.header) < 1: return 0
+      if len(self.mat) <= 1:   return 0
+      if not UTIL.starts_with(self.header[0], '# 3dClustSim '): return 0
+
+      try:
+         # try this out, it is separate, so make_random_timing need not import
+         import lib_vars_object as VO
+         self.VO = VO
+         cobj = self.VO.VarsObject()
+         for cline in self.header:
+            csplit = cline.split()
+            if UTIL.starts_with(cline, '# 3dClustSim '):
+               # command, btype, bvals[3]
+               cobj.command = cline[2:]
+               for ind in range(len(csplit)):
+                  # get blur option
+                  if csplit[ind] == '-acf':
+                     cobj.btype = 'ACF'
+                     cobj.bvals = [float(v) for v in csplit[ind+1:ind+4]]
+                  elif csplit[ind] == '-fwhm':
+                     cobj.btype = 'FWHM'
+                     cobj.bvals = [float(v) for v in csplit[ind+1:ind+4]]
+                  elif csplit[ind] == '-fwhmxyz':
+                     cobj.btype = 'acf'
+                     bval = float(csplit[ind+1])
+                     cobj.bvals = [bval, bval, bval]
+                  else:
+                     continue
+                  
+            elif cline.find('thresholding') > 1:
+               cobj.sided = csplit[1]
+
+            elif UTIL.starts_with(cline, '# Grid: '):
+               # grid, mask_nvox
+               gline = cline[2:]
+               vind = gline.find(' (')
+               cobj.grid = gline[0:vind]
+               msplit = gline[vind+2:].split()
+               cobj.mask_nvox = int(msplit[0])
+               
+            elif UTIL.starts_with(cline, '# -NN '):
+               cobj.NN = int(csplit[2])
+
+            elif UTIL.starts_with(cline, '#  pthr '):
+               cobj.avals = [float(csplit[i]) for i in range(3,len(csplit))]
+         self.csimobj = cobj
+      except:
+         print('** failed to convert 3dClustSim header to object')
+         return 1
+
+      self.csimstat = 1
+      return 0
+
+   def clust_get_min_size(self, pthr=0.001, alpha=0.05):
+      """given: self is from a cluster file
+                pthr    : uncorrected p-value
+                alpha   : corrected p-value
+         return: required min clust size (integral ceiling)
+                 > 0 on success, 0 on failure
+      """
+      if len(self.header) < 1: return 0
+
+   # ----------------------------------------------------------------------
 
    def write(self, fname, sep=" ", overwrite=0):
       """write the data to a new .1D file
