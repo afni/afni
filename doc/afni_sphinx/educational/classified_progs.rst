@@ -59,13 +59,16 @@ all AFNI "helps"<programs_main>`.
      - Compute voxelwise statistics of time series datasets (e.g., mean, variance)
    * - 5
      - :ref:`3dMVM <ahelp_3dMVM>`
-     - 
+     - Group-analysis program that performs traditional ANOVA- and ANCOVA style computations, and multivariate modeling
    * - 5
      - :ref:`3dLME <ahelp_3dLME>`
-     - 
+     - Group-analysis program that performs linear mixed-effects (LME) modeling analysis
    * - 4
      - :ref:`3dMean <ahelp_3dMean>`
      - Compute the average of a number of datasets
+   * - 3
+     - :ref:`3dGroupInCorr <ahelp_3dGroupInCorr>`
+     - With a group of dsets, calc voxelwise t-tests on group of corr maps wherever user clicks
    * - 3
      - :ref:`3dTcorr1D <ahelp_3dTcorr1D>`
      - correlation coefficient between 3D+time dataset and 1D time series
@@ -73,11 +76,8 @@ all AFNI "helps"<programs_main>`.
      - :ref:`3dTcorrMap <ahelp_3dTcorrMap>`
      - compute average correlation of every voxel with every other
    * - 1
-     - :ref:`3dGroupInCorr <ahelp_3dGroupInCorr>`
-     - 
-   * - 1
      - :ref:`3dSetupGroupInCorr <ahelp_3dSetupGroupInCorr>`
-     - 
+     - Preliminary program to run when using 3dGroupInCorr
    * - 1
      - :ref:`3dClustSim <ahelp_3dClustSim>`
      - 3Monte Carlo simulation for multiple comparison correction
@@ -1151,6 +1151,24 @@ all AFNI "helps"<programs_main>`.
      - Parse FreeSurfer region labels to get indices
 
 
+**Convert statistics and p-values**
+==============
+
+.. list-table:: 
+   :header-rows: 0
+   :widths: 5 20 70
+
+   * - 4
+     - :ref:`ccalc <ahelp_ccalc>`
+     - A command line calculator (like 3dcalc)
+   * - 4
+     - :ref:`cdf <ahelp_cdf>`
+     - Compute probabilities, thresholds for standard distributions
+   * - 4
+     - :ref:`p2dsetstat <ahelp_p2dsetstat>`
+     - Convert a p-value to a stat, using parameters stored in a dset header
+
+
 **Compare dset volumes (masks or valued)**
 ==============
 
@@ -1743,9 +1761,12 @@ all AFNI "helps"<programs_main>`.
    :header-rows: 0
    :widths: 5 20 70
 
-   * - 1
+   * - 3
      - :ref:`aiv <ahelp_aiv>`
      - AFNI Image Viewer program
+   * - 3
+     - :ref:`3dGrayplot <ahelp_3dGrayplot>`
+     - Take a 3D+time dataset and make a summary 2D image for data quality review
    * - 1
      - :ref:`plugin(Render[new]) <ahelp_plugin(Render[new])>`
      - Interactive volume rendering
@@ -1768,15 +1789,15 @@ all AFNI "helps"<programs_main>`.
      - :ref:`apsearch <ahelp_apsearch>`
      - simple+approx string searching; used in atlases and helps
    * - 4
-     - :ref:`ccalc <ahelp_ccalc>`
-     - A command line calculator (like 3dcalc)
-   * - 4
      - :ref:`count <ahelp_count>`
      - Generate numbered strings for command line scripts
    * - 4
      - :ref:`afni_history <ahelp_afni_history>`
      - display a log of updates to AFNI code
-   * - 1
+   * - 3
+     - :ref:`ccalc <ahelp_ccalc>`
+     - A command line calculator (like 3dcalc)
+   * - 3
      - :ref:`cdf <ahelp_cdf>`
      - Compute probabilities, thresholds for standard distributions
    * - 1
