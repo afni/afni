@@ -1,8 +1,8 @@
 :tocdepth: 2
 
 
-Public. code
-============
+Code examples from publications
+===============================
 
 Below is an archive of "larger" AFNI commands that have been used in
 published work, largely grouped by category of processing.  We thank

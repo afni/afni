@@ -3,13 +3,13 @@ Interactive viewer GUIs                                      ::  6 :: suma      
 Interactive viewer GUIs                                      ::  6 :: aiv                                 ::  1 :: AFNI Image Viewer program     
 Voxelwise calcs, esp. stats and tests                        ::  5 :: 3dttest++                           ::  5 :: Compute voxelwise t-tests (and GLMs) across collection of datasets
 Voxelwise calcs, esp. stats and tests                        ::  5 :: 3dTstat                             ::  5 :: Compute voxelwise statistics of time series datasets (e.g., mean, variance)
-Voxelwise calcs, esp. stats and tests                        ::  5 :: 3dMVM                               ::  5 ::                               
-Voxelwise calcs, esp. stats and tests                        ::  5 :: 3dLME                               ::  5 ::                               
+Voxelwise calcs, esp. stats and tests                        ::  5 :: 3dMVM                               ::  5 :: Group-analysis program that performs traditional ANOVA- and ANCOVA style computations, and multivariate modeling
+Voxelwise calcs, esp. stats and tests                        ::  5 :: 3dLME                               ::  5 :: Group-analysis program that performs linear mixed-effects (LME) modeling analysis
 Voxelwise calcs, esp. stats and tests                        ::  5 :: 3dMean                              ::  4 :: Compute the average of a number of datasets
+Voxelwise calcs, esp. stats and tests                        ::  5 :: 3dGroupInCorr                       ::  3 :: With a group of dsets, calc voxelwise t-tests on group of corr maps wherever user clicks
 Voxelwise calcs, esp. stats and tests                        ::  5 :: 3dTcorr1D                           ::  3 :: correlation coefficient between 3D+time dataset and 1D time series
 Voxelwise calcs, esp. stats and tests                        ::  5 :: 3dTcorrMap                          ::  3 :: compute average correlation of every voxel with every other
-Voxelwise calcs, esp. stats and tests                        ::  5 :: 3dGroupInCorr                       ::  1 ::                               
-Voxelwise calcs, esp. stats and tests                        ::  5 :: 3dSetupGroupInCorr                  ::  1 ::                               
+Voxelwise calcs, esp. stats and tests                        ::  5 :: 3dSetupGroupInCorr                  ::  1 :: Preliminary program to run when using 3dGroupInCorr
 Voxelwise calcs, esp. stats and tests                        ::  5 :: 3dClustSim                          ::  1 :: 3Monte Carlo simulation for multiple comparison correction
 Voxelwise calcs, esp. stats and tests                        ::  5 :: 3dTcorrelate                        ::  1 :: compute correlation between two 3D+time datasets
 Voxelwise calcs, esp. stats and tests                        ::  5 :: 3dTfitter                           ::  1 :: Fit a linear model to each voxel time series, with various methods (L1, L2, LASSO)
@@ -307,6 +307,9 @@ Convert surfaces from other software                         ::  3 :: @FSlabel2d
 Convert surfaces from other software                         ::  3 :: FSread_annot                        ::  1 ::                               
 Convert surfaces from other software                         ::  3 :: @FS_roi_label                       ::  1 ::                               
 Convert surfaces from other software                         ::  3 :: parse_fs_lt_log.py                  ::  1 :: Parse FreeSurfer region labels to get indices
+Convert statistics and p-values                              ::  3 :: ccalc                               ::  4 :: A command line calculator (like 3dcalc)
+Convert statistics and p-values                              ::  3 :: cdf                                 ::  4 :: Compute probabilities, thresholds for standard distributions
+Convert statistics and p-values                              ::  3 :: p2dsetstat                          ::  4 :: Convert a p-value to a stat, using parameters stored in a dset header
 Compare dset volumes (masks or valued)                       ::  3 :: @DiceMetric                         ::  1 :: Computes Dice Coefficient between two datasets
 Compare dset volumes (masks or valued)                       ::  3 :: 3dMatch                             ::  1 :: Find pairs of similar-looking subbricks between two groups of dsets
 Compare dset volumes (masks or valued)                       ::  3 :: 3ddot                               ::  1 :: Calculate correlation coefficients between sub-brick pairs in a 4D dset
@@ -451,15 +454,16 @@ Simulate/generate dsets                                      ::  1 :: 3dConvolve
 Simulate/generate dsets                                      ::  1 :: 3dInvFMRI                           ::  1 :: Compute stimulus time series given activation map and 3D+time dataset
 Simulate/generate dsets                                      ::  1 :: 3dDTtoNoisyDWI                      ::  1 :: Make a simulated DWI set with random noise, from DT+gradient information
 Simulate/generate dsets                                      ::  1 :: 1dgenARMA11                         ::  1 :: generate synthetic ARMA(1,1) correlated time series, to test 3dREMLfit
-Miscellaneous visualization tools                            ::  1 :: aiv                                 ::  1 :: AFNI Image Viewer program     
+Miscellaneous visualization tools                            ::  1 :: aiv                                 ::  3 :: AFNI Image Viewer program     
+Miscellaneous visualization tools                            ::  1 :: 3dGrayplot                          ::  3 :: Take a 3D+time dataset and make a summary 2D image for data quality review
 Miscellaneous visualization tools                            ::  1 :: plugin(Render[new])                 ::  1 :: Interactive volume rendering  
 Miscellaneous visualization tools                            ::  1 :: plugin(Dataset#N)                   ::  1 :: Graph extra dataset time series in AFNI graph viewer
 Miscellaneous visualization tools                            ::  1 :: afni_open                           ::  1 :: Open various AFNI/SUMA files (*.xmat, *.pdf, etc.)
 Miscellaneous utilities                                      ::  1 :: apsearch                            ::  5 :: simple+approx string searching; used in atlases and helps
-Miscellaneous utilities                                      ::  1 :: ccalc                               ::  4 :: A command line calculator (like 3dcalc)
 Miscellaneous utilities                                      ::  1 :: count                               ::  4 :: Generate numbered strings for command line scripts
 Miscellaneous utilities                                      ::  1 :: afni_history                        ::  4 :: display a log of updates to AFNI code
-Miscellaneous utilities                                      ::  1 :: cdf                                 ::  1 :: Compute probabilities, thresholds for standard distributions
+Miscellaneous utilities                                      ::  1 :: ccalc                               ::  3 :: A command line calculator (like 3dcalc)
+Miscellaneous utilities                                      ::  1 :: cdf                                 ::  3 :: Compute probabilities, thresholds for standard distributions
 Miscellaneous utilities                                      ::  1 :: byteorder                           ::  1 :: Report the byteorder of the current CPU
 Unclassed                                                    ::  0 :: 1dAstrip                            ::  1 ::                               
 Unclassed                                                    ::  0 :: @1dDiffMag                          ::  1 ::                               
