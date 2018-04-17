@@ -1172,6 +1172,34 @@ class Afni1D:
 
       return 1
 
+   def csim_clust_size(self, pthr=0.001, alpha=0.05):
+      """given pthr/alpha, return min clust size
+         return 0 on error"""
+
+      if self.csim_fill_obj():          return 0
+      if not self.csim_has_all_attrs(): return 0
+  
+      # get to work
+      try:
+         pind = self.mat[0].index(pthr)
+      except:
+         print('** uncorrected pthr = %s not in ClustSim table' % pthr)
+         return 0
+
+      try:
+         aind = self.csimobj.avals.index(alpha)
+      except:
+         print('** corrected alpha = %s not in ClustSim table' % alpha)
+         return 0
+
+      try:
+         csize = int(math.ceil(self.mat[aind+1][pind]))
+      except:
+         print("** csim_clust_size: unknown index error")
+         return 0
+
+      return csize
+
    def csim_has_all_attrs(self, verb=1):
       if self.csimstat !=  1:                               return 0
       if self.VO == None:                                   return 0
@@ -1232,7 +1260,7 @@ class Afni1D:
 
             elif UTIL.starts_with(cline, '# Grid: '):
                # grid, mask_nvox
-               gline = cline[2:]
+               gline = cline[8:]
                vind = gline.find(' (')
                cobj.grid = gline[0:vind]
                msplit = gline[vind+2:].split()
