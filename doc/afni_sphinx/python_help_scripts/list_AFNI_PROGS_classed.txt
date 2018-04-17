@@ -99,8 +99,8 @@
 ++ 5 :: Voxelwise calcs, esp. stats and tests
 4 :: 3dMean                 :: Compute the average of a number of datasets
 5 :: 3dttest++               :: Compute voxelwise t-tests (and GLMs) across collection of datasets
-1 :: 3dGroupInCorr
-1 :: 3dSetupGroupInCorr
+3 :: 3dGroupInCorr          ::  With a group of dsets, calc voxelwise t-tests on group of corr maps wherever user clicks
+1 :: 3dSetupGroupInCorr     :: Preliminary program to run when using 3dGroupInCorr
 1 :: 3dClustSim             :: 3Monte Carlo simulation for multiple comparison correction
 5 :: 3dTstat                :: Compute voxelwise statistics of time series datasets (e.g., mean, variance)
 3 :: 3dTcorr1D              :: correlation coefficient between 3D+time dataset and 1D time series
@@ -109,8 +109,8 @@
 1 :: 3dTfitter              :: Fit a linear model to each voxel time series, with various methods (L1, L2, LASSO)
 1 :: 3dTfilter              :: Apply a linear filter to each voxel time series (archaic)
 1 :: 3dTsort                :: Sort each voxel’s time series in various ways
-5 :: 3dMVM
-5 :: 3dLME
+5 :: 3dMVM                  :: Group-analysis program that performs traditional ANOVA- and ANCOVA style computations, and multivariate modeling
+5 :: 3dLME                  :: Group-analysis program that performs linear mixed-effects (LME) modeling analysis
 1 :: 3dRank
 1 :: 3dRankizer
 1 :: 3dANOVA                :: 1-way ANOVA (fixed effects)
@@ -547,9 +547,14 @@
 1 :: @np                :: Generate new prefix given some base prefix
 
 
-++ 1 :: Miscellaneous utilities
+++ 3 :: Convert statistics and p-values
 4 :: ccalc               :: A command line calculator (like 3dcalc)
-1 :: cdf                 :: Compute probabilities, thresholds for standard distributions
+4 :: cdf                 :: Compute probabilities, thresholds for standard distributions
+4 :: p2dsetstat          :: Convert a p-value to a stat, using parameters stored in a dset header
+
+++ 1 :: Miscellaneous utilities
+3 :: ccalc               :: A command line calculator (like 3dcalc)
+3 :: cdf                 :: Compute probabilities, thresholds for standard distributions
 4 :: count               :: Generate numbered strings for command line scripts
 4 :: afni_history        :: display a log of updates to AFNI code
 5 :: apsearch            :: simple+approx string searching; used in atlases and helps
@@ -557,10 +562,11 @@
 
 
 ++ 1 :: Miscellaneous visualization tools
-1 :: aiv                  :: AFNI Image Viewer program
+3 :: aiv                  :: AFNI Image Viewer program
 1 :: plugin(Render[new])  :: Interactive volume rendering
 1 :: plugin(Dataset#N)    :: Graph extra dataset time series in AFNI graph viewer
 1 :: afni_open            :: Open various AFNI/SUMA files (*.xmat, *.pdf, etc.)
+3 :: 3dGrayplot           :: Take a 3D+time dataset and make a summary 2D image for data quality review
 
 
 ++ 1 :: Supplementary/open programs included in AFNI
