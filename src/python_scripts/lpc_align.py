@@ -216,7 +216,7 @@ class RegWrap:
       if self.user_opts.trailers:
          opt = self.user_opts.find_opt('trailers')
          if not opt: print "** seem to have trailers, but cannot find them!"
-         else: print "** have invalid trailing args: %s", opt.show()
+         else: print "** have invalid trailing args: %s" % opt.parlist
          return 1  # failure
 
       # apply the user options
