@@ -608,8 +608,10 @@ g_requires_afni = [ \
 
 g_todo_str = """todo:
   - ME:
+     - update (f)ANATICOR and -mask_import
      - ** set_proc_vr_vall (and similar), choose between volreg and combine
         - test ROI PC
+     - for DH, option to use mask based on last echo (prob int w/anat)
      - ** write AP regression tests
      x add help for -combine_tedana_path
      x do 'apply catenated xform'
