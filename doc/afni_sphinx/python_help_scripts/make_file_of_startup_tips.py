@@ -157,8 +157,8 @@ class list_tips:
 
     def __init__(self, name):
         self.name  = name
-        self.tips  = []    # creates a new empty list for each dog
-        self.count = 0    # creates a new empty list for each dog
+        self.tips  = [] 
+        self.count = 0  
 
     def add_tip(self, newtip):
         self.tips.append(newtip)

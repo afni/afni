@@ -1,10 +1,11 @@
 Interactive viewer GUIs                                      ::  6 :: afni                                ::  5 :: GUI-based viewer for exploring data primarily as slices
 Interactive viewer GUIs                                      ::  6 :: suma                                ::  5 :: GUI-based viewer for exploring data in 3D: surfaces, tracts, graph nodes, and volume slices
-Interactive viewer GUIs                                      ::  6 :: aiv                                 ::  1 :: AFNI Image Viewer program     
-Voxelwise calcs, esp. stats and tests                        ::  5 :: 3dttest++                           ::  5 :: Compute voxelwise t-tests (and GLMs) across collection of datasets
+Interactive viewer GUIs                                      ::  6 :: aiv                                 ::  2 :: AFNI Image Viewer program     
+Voxelwise calcs, esp. stats and tests                        ::  5 :: 3dttest++                           ::  5 :: Compute voxelwise t-tests (and GLMs) across collection of datasets (see 3dMEMA for generalizing to include within-subjects variance in model)
 Voxelwise calcs, esp. stats and tests                        ::  5 :: 3dTstat                             ::  5 :: Compute voxelwise statistics of time series datasets (e.g., mean, variance)
 Voxelwise calcs, esp. stats and tests                        ::  5 :: 3dMVM                               ::  5 :: Group-analysis program that performs traditional ANOVA- and ANCOVA style computations, and multivariate modeling
 Voxelwise calcs, esp. stats and tests                        ::  5 :: 3dLME                               ::  5 :: Group-analysis program that performs linear mixed-effects (LME) modeling analysis
+Voxelwise calcs, esp. stats and tests                        ::  5 :: 3dMEMA                              ::  5 :: Group-analysis program that performs Mixed Effects Meta Analysis, modeling both within- and across-subjects variability
 Voxelwise calcs, esp. stats and tests                        ::  5 :: 3dMean                              ::  4 :: Compute the average of a number of datasets
 Voxelwise calcs, esp. stats and tests                        ::  5 :: 3dGroupInCorr                       ::  3 :: With a group of dsets, calc voxelwise t-tests on group of corr maps wherever user clicks
 Voxelwise calcs, esp. stats and tests                        ::  5 :: 3dTcorr1D                           ::  3 :: correlation coefficient between 3D+time dataset and 1D time series
@@ -91,18 +92,19 @@ Align/register/warp/axialize spatially                       ::  5 :: uber_align
 Align/register/warp/axialize spatially                       ::  5 :: unWarpEPI.py                        ::  1 :: Blip-up/down unwarping nonlinear alignment
 Align/register/warp/axialize spatially                       ::  5 :: @Shift_Volume                       ::  1 :: Move origin of dataset by specified amount or shift between MNI and MNI_ANAT
 SUMA surface calculations, formats and viewing               ::  4 :: @SUMA_Make_Spec_FS                  ::  5 :: Convert Freesurfer surfaces to SUMA spec files
+SUMA surface calculations, formats and viewing               ::  4 :: IsoSurface                          ::  4 :: Extract isosurface from a volume
 SUMA surface calculations, formats and viewing               ::  4 :: 3dSurf2Vol                          ::  4 :: Compute volume equivalent from surface or pair of surfaces
 SUMA surface calculations, formats and viewing               ::  4 :: 3dVol2Surf                          ::  4 :: Assign values to surface nodes from volumetric data
 SUMA surface calculations, formats and viewing               ::  4 :: DriveSuma                           ::  4 :: Send commands to SUMA program from script
+SUMA surface calculations, formats and viewing               ::  4 :: SurfaceMetrics                      ::  3 :: Provides information on surface mesh
+SUMA surface calculations, formats and viewing               ::  4 :: SurfMeasures                        ::  3 :: Compute various measurements for surface or pair of surfaces
 SUMA surface calculations, formats and viewing               ::  4 :: Surf2VolCoord                       ::  1 ::                               
-SUMA surface calculations, formats and viewing               ::  4 :: SurfaceMetrics                      ::  1 :: Provides information on surface mesh
 SUMA surface calculations, formats and viewing               ::  4 :: SurfClust                           ::  1 :: Find clusters on surfaces     
 SUMA surface calculations, formats and viewing               ::  4 :: SurfDist                            ::  1 :: Output shortest distance between two nodes on a surface (along surface or Euclidean)
 SUMA surface calculations, formats and viewing               ::  4 :: SurfDsetInfo                        ::  1 :: Display information about surface dataset
 SUMA surface calculations, formats and viewing               ::  4 :: SurfExtrema                         ::  1 :: Find local extrema in a (surface) dataset
 SUMA surface calculations, formats and viewing               ::  4 :: SurfFWHM                            ::  1 ::                               
 SUMA surface calculations, formats and viewing               ::  4 :: SurfInfo                            ::  1 :: Show information on surface   
-SUMA surface calculations, formats and viewing               ::  4 :: SurfMeasures                        ::  1 :: Compute various measurements for surface or pair of surfaces
 SUMA surface calculations, formats and viewing               ::  4 :: SurfMesh                            ::  1 :: Reduce number of points in surface mesh
 SUMA surface calculations, formats and viewing               ::  4 :: SurfPatch                           ::  1 :: Extract patch of surface or compute volume from specified nodes
 SUMA surface calculations, formats and viewing               ::  4 :: SurfQual                            ::  1 :: Quality check for surfaces    
@@ -122,20 +124,19 @@ SUMA surface calculations, formats and viewing               ::  4 :: ConvertSur
 SUMA surface calculations, formats and viewing               ::  4 :: CompareSurfaces                     ::  1 :: Compute distances between two surfaces at each node
 SUMA surface calculations, formats and viewing               ::  4 :: CreateIcosahedron                   ::  1 ::                               
 SUMA surface calculations, formats and viewing               ::  4 :: MapIcosahedron                      ::  1 :: Create new version of surface mesh using mesh of icosahedron
-SUMA surface calculations, formats and viewing               ::  4 :: IsoSurface                          ::  1 :: Extract isosurface from a volume
 SUMA surface calculations, formats and viewing               ::  4 :: @IsoMasks                           ::  1 ::                               
 SUMA surface calculations, formats and viewing               ::  4 :: @SUMA_Make_Spec_SF                  ::  1 :: Convert SureFit surfaces to SUMA spec files
 SUMA surface calculations, formats and viewing               ::  4 :: MakeColorMap                        ::  1 :: Make afni and suma colormaps  
 Mask/skull-strip/segment                                     ::  4 :: 3dAutomask                          ::  5 :: Generate a brain and skull-only mask
 Mask/skull-strip/segment                                     ::  4 :: 3dSkullStrip                        ::  5 :: Enhanced skull stripping      
+Mask/skull-strip/segment                                     ::  4 :: 3dmask_tool                         ::  4 :: for combining/dilating/eroding/filling masks
+Mask/skull-strip/segment                                     ::  4 :: @NoisySkullStrip                    ::  3 :: Strips the skull of anatomical datasets with low SNR
+Mask/skull-strip/segment                                     ::  4 :: 3dSeg                               ::  3 :: Segment anatomical (t1w) volume into major brain tissue types
 Mask/skull-strip/segment                                     ::  4 :: plugin(Draw Dataset)                ::  1 :: Manually draw ROI mask datasets
-Mask/skull-strip/segment                                     ::  4 :: @NoisySkullStrip                    ::  1 :: Strips the skull of anatomical datasets with low SNR
 Mask/skull-strip/segment                                     ::  4 :: 3dinfill                            ::  1 :: well, for editing masks       
-Mask/skull-strip/segment                                     ::  4 :: 3dmask_tool                         ::  1 :: for combining/dilating/eroding/filling masks
 Mask/skull-strip/segment                                     ::  4 :: 3dIntracranial                      ::  1 :: Strip off outside-the-brain voxels
 Mask/skull-strip/segment                                     ::  4 :: plugin(Gyrus Finder)                ::  1 :: Interactively segment gray and white matter
 Mask/skull-strip/segment                                     ::  4 :: 3dClipLevel                         ::  1 :: Find value to threshold off outside-the-brain voxels
-Mask/skull-strip/segment                                     ::  4 :: 3dSeg                               ::  1 :: Segment anatomical (t1w) volume into major brain tissue types
 Make/edit/evaluate stimulus timing files                     ::  4 :: make_random_timing.py               ::  4 :: Generate random stimulus times files
 Make/edit/evaluate stimulus timing files                     ::  4 :: timing_tool.py                      ::  4 :: Edit stimulus timing files    
 Make/edit/evaluate stimulus timing files                     ::  4 :: 1dMarry                             ::  1 :: Combine ragged 1D files for use with 3dDeconvolve's -stim_times_AM2 option
@@ -173,9 +174,9 @@ Edit dset headers                                            ::  4 :: ParseName 
 Edit dset headers                                            ::  4 :: @FindAfniDsetPath                   ::  1 :: Find a path to dataset        
 Edit dset headers                                            ::  4 :: @isOblique                          ::  1 :: Flag if dataset is marked as oblique
 Edit dset headers                                            ::  4 :: @Shift_Volume                       ::  1 :: Move origin of dataset by specified amount or shift between MNI and MNI_ANAT
-Compute various numbers from datasets                        ::  4 :: 3dFWHMx                             ::  4 :: Estimate FWHM for all sub-bricks of dataset
-Compute various numbers from datasets                        ::  4 :: 3dBrickStat                         ::  1 :: Simple statistics (max, min, mean) for scripts
-Compute various numbers from datasets                        ::  4 :: 3dExtrema                           ::  1 :: Find local maxima (or minima) of datasets
+Compute various numbers from datasets                        ::  4 :: 3dFWHMx                             ::  5 :: Estimate FWHM for all sub-bricks of dataset
+Compute various numbers from datasets                        ::  4 :: 3dBrickStat                         ::  3 :: Simple statistics (max, min, mean) for scripts
+Compute various numbers from datasets                        ::  4 :: 3dExtrema                           ::  2 :: Find local maxima (or minima) of datasets
 Compute various numbers from datasets                        ::  4 :: 3ddot                               ::  1 :: Dot product (correlation coefficient) of 2 sub-bricks
 Compute various numbers from datasets                        ::  4 :: 3dStatClust                         ::  1 :: Find statistically connected clusters
 Compute various numbers from datasets                        ::  4 :: 3dGetrow                            ::  1 :: Output voxel values for a row/column in x,y,z space
@@ -185,11 +186,11 @@ Blur and smooth dsets                                        ::  4 :: 3dBlurInMa
 Blur and smooth dsets                                        ::  4 :: 3dBlurToFWHM                        ::  1 :: Blur a dataset to a given level of smoothness (for inter-site studies)
 Blur and smooth dsets                                        ::  4 :: 3danisosmooth                       ::  1 :: Anisotropic blurring of a dataset (e.g., to clean up structural images)
 Blur and smooth dsets                                        ::  4 :: 3dMedianFilter                      ::  1 :: Smooth a 3D volume using a median filter
-Volume editing/image processing                              ::  3 :: 3dedge3                             ::  1 :: calculate edges in 3D         
-Volume editing/image processing                              ::  3 :: 3danisosmooth                       ::  1 :: Smooth a dataset using an anisotropic technique to preserve edges
-Volume editing/image processing                              ::  3 :: 3dUnifize                           ::  1 :: Correct T1-weighted dataset for non-uniform histogram
+Volume editing/image processing                              ::  3 :: 3dedge3                             ::  4 :: calculate edges in 3D         
+Volume editing/image processing                              ::  3 :: 3danisosmooth                       ::  4 :: Smooth a dataset using an anisotropic technique to preserve edges
+Volume editing/image processing                              ::  3 :: 3dUnifize                           ::  4 :: Correct T1-weighted dataset for non-uniform histogram
+Volume editing/image processing                              ::  3 :: 3dSharpen                           ::  2 :: 3D sharpening filter applied to a dataset (to clean up a template)
 Volume editing/image processing                              ::  3 :: 3dUniformize                        ::  1 :: (obsolete -> use 3dUnifize)   
-Volume editing/image processing                              ::  3 :: 3dSharpen                           ::  1 :: 3D sharpening filter applied to a dataset (to clean up a template)
 Update AFNI, install software (not demos)                    ::  3 :: @update.afni.binaries               ::  5 :: update current AFNI binaries  
 Update AFNI, install software (not demos)                    ::  3 :: afni_system_check.py                ::  5 :: evaluate present setup        
 Update AFNI, install software (not demos)                    ::  3 :: rPkgsInstall                        ::  4 :: get+install all necessary R packages
@@ -200,8 +201,8 @@ Simple dset calcs (-> make new dsets)                        ::  3 :: 3dcalc    
 Simple dset calcs (-> make new dsets)                        ::  3 :: 3dmerge                             ::  5 :: Various spatial filters, thresholds, and averaging
 Simple dset calcs (-> make new dsets)                        ::  3 :: 3dTstat                             ::  5 :: Various statistics of multi-brick datasets, voxel-by-voxel
 Simple dset calcs (-> make new dsets)                        ::  3 :: 3dMean                              ::  4 :: Average datasets together, voxel-by-voxel, for each timept
+Simple dset calcs (-> make new dsets)                        ::  3 :: 3danisosmooth                       ::  4 :: Edge preserving filter for spatial smoothing
 Simple dset calcs (-> make new dsets)                        ::  3 :: 3dWinsor                            ::  1 :: Nonlinear order statistics filter for spatial smoothing
-Simple dset calcs (-> make new dsets)                        ::  3 :: 3danisosmooth                       ::  1 :: Edge preserving filter for spatial smoothing
 Simple dset calcs (-> make new dsets)                        ::  3 :: 3dLocalstat                         ::  1 :: Find simple statistical values for neighborhoods around each voxel
 Simple dset calcs (-> make new dsets)                        ::  3 :: 3dLocalBistat                       ::  1 :: Compute various bivariate statistics for neighborhoods around each voxel
 Simple dset calcs (-> make new dsets)                        ::  3 :: 3dLocalstat                         ::  1 :: Compute some local statistics in a neighborhood around each voxel
@@ -212,10 +213,10 @@ Simple dset calcs (-> make new dsets)                        ::  3 :: 3dLocalHis
 Simple dset calcs (-> make new dsets)                        ::  3 :: 3dTto1D                             ::  1 :: Collapse 4D data to 1D in various ways
 Simple dset calcs (-> make new dsets)                        ::  3 :: 3dmatcalc                           ::  1 :: Applies matrix to datasets    
 Simple dset calcs (-> make new dsets)                        ::  3 :: 3dmatmult                           ::  1 :: Multiply datasets as matrices 
-Resting state FMRI parameters                                ::  3 :: 3dRSFC                              ::  1 :: Calculate RSFC parameters (ALFF, fALFF, RSFA, etc.) for uncensored time series
-Resting state FMRI parameters                                ::  3 :: 3dReHo                              ::  1 :: Calculate ReHo (Kendall's coefficient of concordance) for time series
-Resting state FMRI parameters                                ::  3 :: 3dLombScargle                       ::  1 :: Calculate amp/pow spectrum (like FFT) along time axis with missing time points
-Resting state FMRI parameters                                ::  3 :: 3dAmpToRSFC                         ::  1 :: Calculate RSFC parameters (ALFF, fALFF, RSFA, etc.) from 3dLombScargle output
+Resting state FMRI parameters                                ::  3 :: 3dRSFC                              ::  3 :: Calculate RSFC parameters (ALFF, fALFF, RSFA, etc.) for uncensored time series
+Resting state FMRI parameters                                ::  3 :: 3dReHo                              ::  3 :: Calculate ReHo (Kendall's coefficient of concordance) for time series
+Resting state FMRI parameters                                ::  3 :: 3dLombScargle                       ::  3 :: Calculate amp/pow spectrum (like FFT) along time axis with missing time points
+Resting state FMRI parameters                                ::  3 :: 3dAmpToRSFC                         ::  3 :: Calculate RSFC parameters (ALFF, fALFF, RSFA, etc.) from 3dLombScargle output
 Make/edit correlation matrices                               ::  3 :: 3dNetCorr                           ::  4 :: Calculate correlation matrix of a set of ROIs, as well as WB maps of each
 Make/edit correlation matrices                               ::  3 :: @ROI_Corr_Mat                       ::  1 :: Make an NxN ROI correlation matrix of N ROIs (consider 3dNetCorr instead)
 Make/edit correlation matrices                               ::  3 :: fat_mat_sel.py                      ::  1 :: Visualize functional correlation (*.netcc files) or tracted-WM property (*.grid file) matrices
@@ -229,26 +230,27 @@ Make/edit ROIs and clusters, resample                        ::  3 :: 3dfraction
 Make/edit ROIs and clusters, resample                        ::  3 :: 3dExtrema                           ::  1 :: Find local extrema within volumes
 Make/edit ROIs and clusters, resample                        ::  3 :: 3dmaxima                            ::  1 :: Find local extrema within volumes
 Make/edit ROIs and clusters, resample                        ::  3 :: 3dClustCount                        ::  1 ::                               
+Edit dsets: concatenate, split, add/remove slices            ::  3 :: 3dZeropad                           ::  3 :: Add zero slices around the edges of a dataset
+Edit dsets: concatenate, split, add/remove slices            ::  3 :: 3dZcat                              ::  3 :: Assemble a 3D+time dataset from multiple input sub-bricks
+Edit dsets: concatenate, split, add/remove slices            ::  3 :: 3dZcutup                            ::  3 :: Cut slices out of a dataset to make a 'thinner' dataset
 Edit dsets: concatenate, split, add/remove slices            ::  3 :: 3dbucket                            ::  1 :: Assemble a bucket dataset from multiple input sub-bricks3dTcat
-Edit dsets: concatenate, split, add/remove slices            ::  3 :: 3dZeropad                           ::  1 :: Add zero slices around the edges of a dataset
 Edit dsets: concatenate, split, add/remove slices            ::  3 :: 3dTsplit4D                          ::  1 :: Convert a 3D+time dataset into multiple 3D single-brick files
-Edit dsets: concatenate, split, add/remove slices            ::  3 :: 3dZcat                              ::  1 :: Assemble a 3D+time dataset from multiple input sub-bricks
 Edit dsets: concatenate, split, add/remove slices            ::  3 :: 3dAutobox                           ::  1 :: Automatically crop a dataset to remove empty space
-Edit dsets: concatenate, split, add/remove slices            ::  3 :: 3dZcutup                            ::  1 :: Cut slices out of a dataset to make a 'thinner' dataset
 Edit dsets: concatenate, split, add/remove slices            ::  3 :: 3dXYZcat                            ::  1 :: Glue multiple sub-bricks together along the {x|y|z}-axis
 Edit dsets: concatenate, split, add/remove slices            ::  3 :: 3dZregrid                           ::  1 :: Interpolate a dataset to a different slice thickness
+Drive AFNI/SUMA, make images/snapshots/montages              ::  3 :: @chauffeur_afni                     ::  5 :: Wrapper to combine environment+driving functionality to save image files of 3D dataset (nice in conjunction with imcat to form arrays of images)
+Drive AFNI/SUMA, make images/snapshots/montages              ::  3 :: imcat                               ::  5 :: Very useful program for making grids of images and things (nice in conjunction with @chauffeur_afni or generally driving AFNI)
+Drive AFNI/SUMA, make images/snapshots/montages              ::  3 :: @snapshot_volreg                    ::  5 :: Drive AFNI to save QC images of EPI-anatomical alignment
 Drive AFNI/SUMA, make images/snapshots/montages              ::  3 :: DriveSuma                           ::  4 :: Drive suma from external program
-Drive AFNI/SUMA, make images/snapshots/montages              ::  3 :: @chauffeur_afni                     ::  4 :: Wrapper to combine environment+driving functionality to save image files of 3D dataset
-Drive AFNI/SUMA, make images/snapshots/montages              ::  3 :: @snapshot_volreg                    ::  4 :: Drive AFNI to save QC images of EPI-anatomical alignment
-Drive AFNI/SUMA, make images/snapshots/montages              ::  3 :: @DriveAfni                          ::  1 :: Example script to drive afni GUI with class data
+Drive AFNI/SUMA, make images/snapshots/montages              ::  3 :: @djunct_4d_imager                   ::  3 :: Wrapper to combine environment+driving functionality to save image/movies files of 4D dataset
+Drive AFNI/SUMA, make images/snapshots/montages              ::  3 :: plugout_drive                       ::  3 :: Drive afni GUI from external program
+Drive AFNI/SUMA, make images/snapshots/montages              ::  3 :: @DriveAfni                          ::  2 :: Example script to drive afni GUI with class data
+Drive AFNI/SUMA, make images/snapshots/montages              ::  3 :: @DriveSuma                          ::  2 :: Example script to drive suma with class data
 Drive AFNI/SUMA, make images/snapshots/montages              ::  3 :: HalloSuma                           ::  1 ::                               
-Drive AFNI/SUMA, make images/snapshots/montages              ::  3 :: @DriveSuma                          ::  1 :: Example script to drive suma with class data
 Drive AFNI/SUMA, make images/snapshots/montages              ::  3 :: @Quiet_Talkers                      ::  1 :: kill all network talking afni and suma instances
-Drive AFNI/SUMA, make images/snapshots/montages              ::  3 :: @djunct_4d_imager                   ::  1 :: Wrapper to combine environment+driving functionality to save image/movies files of 4D dataset
 Drive AFNI/SUMA, make images/snapshots/montages              ::  3 :: @djunct_calc_mont_dims.py           ::  1 :: Sub-functionality of @djunct_dwi_selector.bash
 Drive AFNI/SUMA, make images/snapshots/montages              ::  3 :: @djunct_dwi_selector.bash           ::  1 :: Helper/intermediate function for fat_proc_select_vols
 Drive AFNI/SUMA, make images/snapshots/montages              ::  3 :: @djunct_select_str.py               ::  1 :: Sub-functionality of @djunct_dwi_selector.bash
-Drive AFNI/SUMA, make images/snapshots/montages              ::  3 :: plugout_drive                       ::  1 :: Drive afni GUI from external program
 Drive AFNI/SUMA, make images/snapshots/montages              ::  3 :: plugout_ijk                         ::  1 ::                               
 Drive AFNI/SUMA, make images/snapshots/montages              ::  3 :: plugout_tt                          ::  1 ::                               
 Drive AFNI/SUMA, make images/snapshots/montages              ::  3 :: plugout_tta                         ::  1 ::                               
@@ -272,9 +274,20 @@ Deal with 1D time series                                     ::  3 :: 1dUpsample
 Deal with 1D time series                                     ::  3 :: column_cat                          ::  1 :: Catenate data horizontally    
 DWI/DTI/diffusion-related                                    ::  3 :: 3dDWItoDT                           ::  5 :: Estimate diffusion tensor and parameters from DWIs (and see fat_proc_dwi_to_dt)
 DWI/DTI/diffusion-related                                    ::  3 :: 3dTrackID                           ::  5 :: Perform deterministic, mini- or fully-probabilistic tracking for DTI or HARDI data
+DWI/DTI/diffusion-related                                    ::  3 :: fat_proc_convert_dcm_anat           ::  5 :: Wrapper to convert 3D dataset from DICOMs, with additional nice features.
+DWI/DTI/diffusion-related                                    ::  3 :: fat_proc_convert_dcm_dwis           ::  5 :: Wrapper to convert 4D dataset from DICOMs, with additional nice features.
+DWI/DTI/diffusion-related                                    ::  3 :: fat_proc_decmap                     ::  5 :: Make a directionally-encoded color map of DTI data.
+DWI/DTI/diffusion-related                                    ::  3 :: fat_proc_dwi_to_dt                  ::  5 :: Wrapper to estimate DT and parameters, and align datasets.
+DWI/DTI/diffusion-related                                    ::  3 :: fat_proc_filter_dwis                ::  5 :: Graphical interface to help user select out bad volumes (esp. from DWI dataset)
+DWI/DTI/diffusion-related                                    ::  3 :: fat_proc_grad_plot                  ::  5 :: In progress...                
+DWI/DTI/diffusion-related                                    ::  3 :: fat_proc_imit2w_from_t1w            ::  5 :: Invert a T1w dataset to imitate a T2w-type contrast dset (as a backup ref for DWI processing with TORTOISE)
+DWI/DTI/diffusion-related                                    ::  3 :: fat_proc_map_to_dti                 ::  5 :: Wrapper to bring data (esp. FS surfaces and parcels) into DTI space
+DWI/DTI/diffusion-related                                    ::  3 :: fat_proc_select_vols                ::  5 :: Select out good valumes in a DWI dataset + associated text files
 DWI/DTI/diffusion-related                                    ::  3 :: @GradFlipTest                       ::  5 :: Test what 'flip', if any, is necessary for gradients in a DWI set
 DWI/DTI/diffusion-related                                    ::  3 :: 1dDW_Grad_o_Mat++                   ::  5 :: Perform calculations and conversions of DWI gradients and matrices
 DWI/DTI/diffusion-related                                    ::  3 :: 3dDWUncert                          ::  4 :: Estimate uncertainty of FA and V1 of diffusion tensor dataset, for tracking purposes (and see fat_proc_dwi_to_dt)
+DWI/DTI/diffusion-related                                    ::  3 :: @fat_tract_colorize                 ::  4 :: Visualize volumetric output maps from 3dTrackID tracking
+DWI/DTI/diffusion-related                                    ::  3 :: fat_roi_row.py                      ::  3 :: Select a single ROI's row out of a connectivity matrix file (*.grid or *.netcc)
 DWI/DTI/diffusion-related                                    ::  3 :: 3dDTeig                             ::  1 :: Computes eigenvalues and eigenvectors for an input DT set
 DWI/DTI/diffusion-related                                    ::  3 :: 3dDTtoDWI                           ::  1 :: Calculate 'ideal' DWIs for each grad, from DT+b0+gradient files
 DWI/DTI/diffusion-related                                    ::  3 :: 3dDTtoNoisyDWI                      ::  1 :: Make a simulated DWI set with random noise, from DT+gradient information
@@ -282,17 +295,6 @@ DWI/DTI/diffusion-related                                    ::  3 :: 3dEigsToDT
 DWI/DTI/diffusion-related                                    ::  3 :: 3dTORTOISEtoHere                    ::  1 :: Convert standard TORTOISE-format DTs to AFNI-format DTs
 DWI/DTI/diffusion-related                                    ::  3 :: DTIStudioFibertoSegments            ::  1 :: Convert a DTIStudio Fiber file to a SUMA segment file
 DWI/DTI/diffusion-related                                    ::  3 :: @DTI_studio_reposition              ::  1 :: (probably obsolete)           
-DWI/DTI/diffusion-related                                    ::  3 :: fat_proc_convert_dcm_anat           ::  1 :: Wrapper to convert 3D dataset from DICOMs, with additional nice features.
-DWI/DTI/diffusion-related                                    ::  3 :: fat_proc_convert_dcm_dwis           ::  1 :: Wrapper to convert 4D dataset from DICOMs, with additional nice features.
-DWI/DTI/diffusion-related                                    ::  3 :: fat_proc_decmap                     ::  1 :: Make a directionally-encoded color map of DTI data.
-DWI/DTI/diffusion-related                                    ::  3 :: fat_proc_dwi_to_dt                  ::  1 :: Wrapper to estimate DT and parameters, and align datasets.
-DWI/DTI/diffusion-related                                    ::  3 :: fat_proc_filter_dwis                ::  1 :: Graphical interface to help user select out bad volumes (esp. from DWI dataset)
-DWI/DTI/diffusion-related                                    ::  3 :: fat_proc_grad_plot                  ::  1 :: In progress...                
-DWI/DTI/diffusion-related                                    ::  3 :: fat_proc_imit2w_from_t1w            ::  1 :: Invert a T1w dataset to imitate a T2w-type contrast dset (as a backup ref for DWI processing with TORTOISE)
-DWI/DTI/diffusion-related                                    ::  3 :: fat_proc_map_to_dti                 ::  1 :: Wrapper to bring data (esp. FS surfaces and parcels) into DTI space
-DWI/DTI/diffusion-related                                    ::  3 :: fat_proc_select_vols                ::  1 :: Select out good valumes in a DWI dataset + associated text files
-DWI/DTI/diffusion-related                                    ::  3 :: fat_roi_row.py                      ::  1 :: Select a single ROI's row out of a connectivity matrix file (*.grid or *.netcc)
-DWI/DTI/diffusion-related                                    ::  3 :: @fat_tract_colorize                 ::  1 :: Visualize volumetric output maps from 3dTrackID tracking
 DWI/DTI/diffusion-related                                    ::  3 :: InstaTract                          ::  1 :: (intermediate function only)  
 DWI/DTI/diffusion-related                                    ::  3 :: 3dProbTrackID                       ::  1 :: (obsolete -> use 3dTrackID)   
 DWI/DTI/diffusion-related                                    ::  3 :: map_TrackID                         ::  1 :: Apply linear affine transform to track file (*.trk format only)
@@ -310,12 +312,12 @@ Convert surfaces from other software                         ::  3 :: parse_fs_l
 Convert statistics and p-values                              ::  3 :: ccalc                               ::  4 :: A command line calculator (like 3dcalc)
 Convert statistics and p-values                              ::  3 :: cdf                                 ::  4 :: Compute probabilities, thresholds for standard distributions
 Convert statistics and p-values                              ::  3 :: p2dsetstat                          ::  4 :: Convert a p-value to a stat, using parameters stored in a dset header
+Compare dset volumes (masks or valued)                       ::  3 :: 3dMatch                             ::  4 :: Find pairs of similar-looking subbricks between two groups of dsets
+Compare dset volumes (masks or valued)                       ::  3 :: 3dABoverlap                         ::  4 :: Count overlaps between 2 datasets (union, intersection, etc.)
 Compare dset volumes (masks or valued)                       ::  3 :: @DiceMetric                         ::  1 :: Computes Dice Coefficient between two datasets
-Compare dset volumes (masks or valued)                       ::  3 :: 3dMatch                             ::  1 :: Find pairs of similar-looking subbricks between two groups of dsets
 Compare dset volumes (masks or valued)                       ::  3 :: 3ddot                               ::  1 :: Calculate correlation coefficients between sub-brick pairs in a 4D dset
 Compare dset volumes (masks or valued)                       ::  3 :: 3ddot_beta                          ::  1 :: Faster version of 3ddot, though currently just for calculating eta-squared
 Compare dset volumes (masks or valued)                       ::  3 :: 3dOverlap                           ::  1 :: Count of number of voxels that are nonzero in ALL of the input dataset sub-bricks
-Compare dset volumes (masks or valued)                       ::  3 :: 3dABoverlap                         ::  1 :: Count overlaps between 2 datasets (union, intersection, etc.)
 Time series pre-processing                                   ::  2 :: 3dTshift                            ::  4 :: Shift slices to a common time origin (temporal interpolation)
 Time series pre-processing                                   ::  2 :: 3dBrainSync                         ::  3 :: Alter one dataset’s time series to be maximally correlated with another dataset’s time series
 Time series pre-processing                                   ::  2 :: 3dDespike                           ::  1 :: Remove spikes from voxel time series
@@ -325,8 +327,8 @@ Time series pre-processing                                   ::  2 :: 3dFourier 
 Time series pre-processing                                   ::  2 :: 3dTsmooth                           ::  1 :: Smooth time series in the time domain
 Time series pre-processing                                   ::  2 :: 3dTRfix                             ::  1 :: Resample a dataset in time from an irregular grid to a regular grid
 Time series pre-processing                                   ::  2 :: RetroTS.py                          ::  1 :: Generate slicewise physiological regressors
-Time series analysis                                         ::  2 :: 3dDeconvolve                        ::  1 :: Multiple linear regression and deconvolution (ordinary least squares)
-Time series analysis                                         ::  2 :: 3dREMLfit                           ::  1 :: Multiple linear regression (generalized least squares)
+Time series analysis                                         ::  2 :: 3dREMLfit                           ::  5 :: Multiple linear regression (generalized least squares)
+Time series analysis                                         ::  2 :: 3dDeconvolve                        ::  4 :: Multiple linear regression and deconvolution (ordinary least squares)
 Time series analysis                                         ::  2 :: 3dNLfim                             ::  1 :: Nonlinear regression          
 Time series analysis                                         ::  2 :: 3dLSS                               ::  1 :: Ad hoc version of IM regression, giving amplitudes for each stimulus event
 Time series analysis                                         ::  2 :: 3dTcorrelate                        ::  1 :: Correlate two input datasets, voxel-by-voxel
@@ -368,29 +370,30 @@ Generate model 1D time series                                ::  2 :: 3dDeconvol
 Generate model 1D time series                                ::  2 :: 1dBport                             ::  1 :: Generate columns of sines and cosines for bandpassing
 Generate model 1D time series                                ::  2 :: sqwave                              ::  1 :: Generate a square wave (a very old program)
 Generate model 1D time series                                ::  2 :: waver                               ::  1 :: Generate hemodynamic responses to stimulus time series
+Fourier related, time series/freq                            ::  2 :: 3dLombScargle                       ::  3 :: Calculate amp/pow spectrum (like FFT) along time axis with missing time points
+Fourier related, time series/freq                            ::  2 :: 3dAmpToRSFC                         ::  3 :: Calculate RSFC parameters (ALFF, fALFF, RSFA, etc.) from 3dLombScargle output
+Fourier related, time series/freq                            ::  2 :: 3dBandpass                          ::  3 ::                               
+Fourier related, time series/freq                            ::  2 :: 3dRSFC                              ::  3 :: Calculate RSFC parameters (ALFF, fALFF, RSFA, etc.) for uncensored time series
 Fourier related, time series/freq                            ::  2 :: 3dFourier                           ::  1 ::                               
 Fourier related, time series/freq                            ::  2 :: 3dDFT                               ::  1 :: FFT along time axis           
 Fourier related, time series/freq                            ::  2 :: 3dFFT                               ::  1 :: FFT along spatial axis        
-Fourier related, time series/freq                            ::  2 :: 3dLombScargle                       ::  1 :: Calculate amp/pow spectrum (like FFT) along time axis with missing time points
-Fourier related, time series/freq                            ::  2 :: 3dAmpToRSFC                         ::  1 :: Calculate RSFC parameters (ALFF, fALFF, RSFA, etc.) from 3dLombScargle output
 Fourier related, time series/freq                            ::  2 :: 1dBandpass                          ::  1 ::                               
-Fourier related, time series/freq                            ::  2 :: 3dBandpass                          ::  1 ::                               
-Fourier related, time series/freq                            ::  2 :: 3dRSFC                              ::  1 :: Calculate RSFC parameters (ALFF, fALFF, RSFA, etc.) for uncensored time series
 Fourier related, time series/freq                            ::  2 :: 3dPeriodogram                       ::  1 ::                               
 Fourier related, time series/freq                            ::  2 :: 3dWavelets                          ::  1 ::                               
 Fourier related, time series/freq                            ::  2 :: stimband                            ::  1 ::                               
+Dset histograms                                              ::  2 :: 3dHist                              ::  3 :: Compute histograms using functions for generating priors
 Dset histograms                                              ::  2 :: 3dAnhist                            ::  1 :: Create and plot histogram of dataset, print peaks
 Dset histograms                                              ::  2 :: 3dhistog                            ::  1 :: Create histogram of dataset to a file
 Dset histograms                                              ::  2 :: plugin(Histogram)                   ::  1 :: Interactively graphs histogram of a dataset (or ROI)
 Dset histograms                                              ::  2 :: plugin(ScatterPlot)                 ::  1 :: Interactively graphs 1 sub-brick vs. another (or ROI)
-Dset histograms                                              ::  2 :: 3dHist                              ::  1 :: Compute histograms using functions for generating priors
+Download/install demos                                       ::  2 :: @Install_D99_macaque                ::  4 :: Install Saleem D99 macaque atlas and template
+Download/install demos                                       ::  2 :: @Install_DBSproc                    ::  4 :: Install DBS processing pipeline script
+Download/install demos                                       ::  2 :: @Install_FATCAT_DEMO2               ::  4 :: Install newer FATCAT Demo for DTI processing with fat_proc programs (and including TORTOISE and FreeSurfer processing)
+Download/install demos                                       ::  2 :: @Install_FATCAT_DEMO                ::  3 :: Install original FATCAT Demo for DTI + some FMRI processing
+Download/install demos                                       ::  2 :: @Install_FATMVM_DEMO                ::  3 :: Install FATCAT+MVM statistical modeling demo, multivariate modeling in conjuction with tractography (also applies to correlation matrices such as from 3dNetCorr)
 Download/install demos                                       ::  2 :: @Install_3dPFM_Demo                 ::  1 ::                               
 Download/install demos                                       ::  2 :: @Install_AfniRetinoDemo             ::  1 ::                               
 Download/install demos                                       ::  2 :: @Install_ClustScat_Demo             ::  1 ::                               
-Download/install demos                                       ::  2 :: @Install_D99_macaque                ::  1 :: Install Saleem D99 macaque atlas and template
-Download/install demos                                       ::  2 :: @Install_DBSproc                    ::  1 :: Install DBS processing pipeline script
-Download/install demos                                       ::  2 :: @Install_FATCAT_DEMO                ::  1 :: Install original FATCAT Demo for DTI + some FMRI processing
-Download/install demos                                       ::  2 :: @Install_FATMVM_DEMO                ::  1 :: Install FATCAT+MVM statistical modeling demo
 Download/install demos                                       ::  2 :: @Install_InstaCorr_Demo             ::  1 :: Install demo data for InstaCorr, instant correlation
 Download/install demos                                       ::  2 :: @Install_MEICA_Demo                 ::  1 ::                               
 Download/install demos                                       ::  2 :: @Install_NIH_Marmoset               ::  1 :: Install NIH Marmoset atlas and template
@@ -398,10 +401,10 @@ Download/install demos                                       ::  2 :: @Install_R
 Download/install demos                                       ::  2 :: @Install_TSrestMovieDemo            ::  1 ::                               
 DICOM info and conversion                                    ::  2 :: Dimon                               ::  5 :: Read DICOM files on disk or as they are created
 DICOM info and conversion                                    ::  2 :: dcm2niix_afni                       ::  5 :: Primary choice for converting DCM files of DWI dsets (and possibly FMRI)
+DICOM info and conversion                                    ::  2 :: dicom_hinfo                         ::  3 :: Print out selected information from a number of DICOM headers
 DICOM info and conversion                                    ::  2 :: to3d                                ::  2 :: Read image files, write AFNI format datasets (not usually directly used)
 DICOM info and conversion                                    ::  2 :: from3d                              ::  2 :: Write dataset slices into image files
 DICOM info and conversion                                    ::  2 :: dicom_hdr                           ::  1 :: Print out information from one DICOM header
-DICOM info and conversion                                    ::  2 :: dicom_hinfo                         ::  1 :: Print out selected information from a number of DICOM headers
 DICOM info and conversion                                    ::  2 :: dicom_to_raw                        ::  1 :: For extracting only the binary image data from a DICOM file
 DICOM info and conversion                                    ::  2 :: @move.to.series.dirs                ::  1 :: Partition DICOM images into run directectories
 DICOM info and conversion                                    ::  2 :: Ifile                               ::  1 :: Read GE realtime EPI files and runs to3d
@@ -488,7 +491,6 @@ Unclassed                                                    ::  0 :: 3dGenPrior
 Unclassed                                                    ::  0 :: 3dkmeans                            ::  1 ::                               
 Unclassed                                                    ::  0 :: 3dLFCD                              ::  1 ::                               
 Unclassed                                                    ::  0 :: 3dmaskSVD                           ::  1 ::                               
-Unclassed                                                    ::  0 :: 3dMEMA                              ::  1 ::                               
 Unclassed                                                    ::  0 :: 3dMSE                               ::  1 ::                               
 Unclassed                                                    ::  0 :: 3dMultiThresh                       ::  1 ::                               
 Unclassed                                                    ::  0 :: 3dnoise                             ::  1 ::                               
@@ -552,7 +554,6 @@ Unclassed                                                    ::  0 :: images_equ
 Unclassed                                                    ::  0 :: imand                               ::  1 ::                               
 Unclassed                                                    ::  0 :: imaver                              ::  1 ::                               
 Unclassed                                                    ::  0 :: imcalc                              ::  1 ::                               
-Unclassed                                                    ::  0 :: imcat                               ::  1 ::                               
 Unclassed                                                    ::  0 :: imcutup                             ::  1 ::                               
 Unclassed                                                    ::  0 :: imdump                              ::  1 ::                               
 Unclassed                                                    ::  0 :: immask                              ::  1 ::                               

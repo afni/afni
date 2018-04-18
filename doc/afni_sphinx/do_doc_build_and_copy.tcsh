@@ -44,11 +44,18 @@ python make_file_of_startup_tips.py            \
     all_startup_tips.txt                       \
     ../educational/startup_tips.rst
 
+# make AFNI colorbars RST
+python make_file_of_all_afni_cbars.py \
+    ../educational/media/cbars \
+    ../educational/all_afni_cbars.rst
+
 cd ..
 # ---------------------------------
 
 ### Build Sphinx.
 sudo make html
+
+exit
 
 ### move old documentation to a backupdir
 #mv  /mnt/afni/var/www/html/pub/dist/doc/htmldoc     \
