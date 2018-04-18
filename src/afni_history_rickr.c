@@ -49,6 +49,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18,  Apr, 2018, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "add -csim_show_clustsize and helper options to report cluster requirements",
+   "Given a cluster table output by 3dClustSim, use this option to extract\n"
+   "the mininum cluster size, given uncorrected and corrected p-values.\n"
+   "Use -csim_pthr and -csim_alpha to specify those respective p-values."
+ } ,
+
  { 16,  Apr, 2018, RCR, "lib_afni1D.py", MICRO, TYPE_ENHANCE,
    "Afni1D: store array of comment lines in header; add show_header()",
    NULL
