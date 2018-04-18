@@ -505,6 +505,7 @@ def read_options(argv, oplist, verb = -1):
             newopt = BASE.comopt('trailers', -1, [])
             newopt.n_found = alen - ac
             newopt.parlist = argv[ac:]
+            OL.trailers = 1   # flag to calling function
             if verb > 2: print("-- found trailing args: %s" % newopt.parlist)
 
         OL.olist.append(newopt) # insert newopt into our return list
