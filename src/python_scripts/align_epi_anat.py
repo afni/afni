@@ -1169,7 +1169,7 @@ class RegWrap:
          if not opt: 
              print "** ERROR: seem to have trailers, but cannot find them!"
          else:
-             print "** ERROR: have invalid trailing args: %s", opt.show()
+             print "** ERROR: have invalid trailing args: %s" % opt.parlist
          return 1  # failure
 
       # apply the user options
