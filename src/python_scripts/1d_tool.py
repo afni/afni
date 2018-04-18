@@ -2135,7 +2135,8 @@ class A1DInterface:
       if self.show_censor_count: self.adata.show_censor_count()
 
       if self.show_clustsize:
-         csize = self.adata.csim_clust_size(self.csim_pthr, self.csim_alpha)
+         self.adata.csim_show_min_clust_size(self.csim_pthr, self.csim_alpha,
+                                             verb=self.verb)
 
       if self.show_cormat: self.adata.show_cormat()
 

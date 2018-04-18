@@ -1172,6 +1172,28 @@ class Afni1D:
 
       return 1
 
+   def csim_show_min_clust_size(self, pthr=0.001, alpha=0.05, verb=1):
+      """given pthr/alpha, show min cluster size and cluster details,
+         depending on verb
+
+         verb 0: just print size
+              1: also so attributes
+              2: all debug attributes
+      """
+
+      csize = self.csim_clust_size(pthr, alpha)
+      if verb == 0:
+         print("%s" % csize)
+         return 0
+
+      # else, show more verbose output
+      self.csim_show_attrs(verb=verb)
+      print("    pthr           : %s" % pthr)
+      print("    alpha          : %s" % alpha)
+      print("    min clust nvox : %s" % csize)
+
+      return 0
+
    def csim_clust_size(self, pthr=0.001, alpha=0.05):
       """given pthr/alpha, return min clust size
          return 0 on error"""
@@ -1200,13 +1222,41 @@ class Afni1D:
 
       return csize
 
-   def csim_has_all_attrs(self, verb=1):
+   def csim_show_attrs(self, verb=1):
+      if not self.csim_has_vo():
+         print("** ClustSim: no attribute object")
+         return 1
+
+      if not self.csim_has_all_attrs():
+         print("** ClustSim attributes are missing\n")
+
+      print("")
+
+      if verb > 1:
+         self.csimobj.show()
+
+      print("ClustSim attributes:")
+      print("    neighbors      : NN-%s" % self.csimobj.val('NN'))
+      print("    sidedness      : %s" % self.csimobj.val('sided'))
+      print("    blur est type  : %s" % self.csimobj.val('btype'))
+      print("    grid voxels    : %s" % self.csimobj.val('grid_nvox'))
+      print("    grid vox size  : %s" % self.csimobj.val('grid_vsize'))
+      print("    mask N voxels  : %s" % self.csimobj.val('mask_nvox'))
+      print("")
+
+      return 0
+
+   def csim_has_vo(self):
       if self.csimstat !=  1:                               return 0
       if self.VO == None:                                   return 0
       if not isinstance(self.csimobj, self.VO.VarsObject):  return 0
+      return 1
 
-      alist = ['command', 'btype', 'bvals', 'sided', 'grid', 'mask_nvox',
-               'NN', 'avals']
+   def csim_has_all_attrs(self, verb=1):
+      if not self.csim_has_vo(): return 0
+
+      alist = ['command', 'btype', 'bvals', 'sided', 'grid_nvox', 'grid_vsize',
+               'mask_nvox', 'NN', 'avals']
       cobj = self.csimobj
       attrs = cobj.attributes()
       hasall = 1
@@ -1259,10 +1309,12 @@ class Afni1D:
                cobj.sided = csplit[1]
 
             elif UTIL.starts_with(cline, '# Grid: '):
-               # grid, mask_nvox
+               # grid_nvox, grid_vsize, mask_nvox
                gline = cline[8:]
                vind = gline.find(' (')
-               cobj.grid = gline[0:vind]
+               gvals = gline[0:vind].split()
+               cobj.grid_nvox = gvals[0]
+               cobj.grid_vsize = ' '.join(gvals[1:3])
                msplit = gline[vind+2:].split()
                cobj.mask_nvox = int(msplit[0])
                
@@ -1278,15 +1330,6 @@ class Afni1D:
 
       self.csimstat = 1
       return 0
-
-   def clust_get_min_size(self, pthr=0.001, alpha=0.05):
-      """given: self is from a cluster file
-                pthr    : uncorrected p-value
-                alpha   : corrected p-value
-         return: required min clust size (integral ceiling)
-                 > 0 on success, 0 on failure
-      """
-      if len(self.header) < 1: return 0
 
    # ----------------------------------------------------------------------
 
