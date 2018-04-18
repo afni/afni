@@ -492,6 +492,29 @@ examples (very basic for now): ~1~
           echo $slice_order | 1d_tool.py -set_tr 2 -slice_order_to_times \\
                                          -infile - -write -
 
+   Example 29. Display minimum cluster size from 3dClustSim output. ~2~
+
+       Given a text file output by 3dClustSim, e.g. ClustSim.ACF.NN1_1sided.1D,
+       and given both an uncorrected (pthr) and a corrected (alpha) p-value,
+       look up the entry that specifies the minimum cluster size needed for
+       corrected p-value significance.
+
+       If requested in afni_proc.py, they are under files_ClustSim.
+
+       a. with modestly verbose output (default is -verb 1)
+
+          1d_tool.py -infile ClustSim.ACF.NN1_1sided.1D -csim_show_clustsize
+
+       b. quiet, to see just the output value
+
+          1d_tool.py -infile ClustSim.ACF.NN1_1sided.1D -csim_show_clustsize \\
+                     -verb 0
+
+       c. quiet, and capture the output value (tcsh syntax)
+
+          set clustsize = `1d_tool.py -infile ClustSim.ACF.NN1_1sided.1D \\
+                                      -csim_show_clustsize -verb 0`
+
 ---------------------------------------------------------------------------
 command-line options: ~1~
 ---------------------------------------------------------------------------
@@ -600,10 +623,46 @@ general options: ~2~
 
    -censor_first_trs N          : when censoring motion, also censor the first
                                   N TRs of each run
+
    -censor_next_TR              : for each censored TR, also censor next one
                                   (probably for use with -forward_diff)
+
    -censor_prev_TR              : for each censored TR, also censor previous
+
    -cormat_cutoff CUTOFF        : set cutoff for cormat warnings (in [0,1])
+
+   -csim_show_clustsize         : for 3dClustSim input, show min clust size
+
+       Given a 3dClustSim table output (e.g. ClustSim.ACF.NN1_1sided.1D),
+       along with uncorrected (pthr) and corrected (alpha) p-values, show the
+       minimum cluster size to achieve significance.
+
+       The pthr and alpha values can be controlled via the options -csim_pthr
+       and -csim_alpha (with defaults of 0.001 and 0.05, respectively).
+
+       The -verb option can be used to provide additional or no details
+       about the clustering method.
+
+       See Example 29, along with options -csim_pthr, -csim_alpha and -verb.
+
+   -csim_pthr THRESH            : specify uncorrected threshold for csim output
+
+       e.g. -csim_pthr 0.0001
+
+       This option implies -csim_show_clustsize, and is used to specify the
+       uncorrected p-value of the 3dClustSim output.
+
+       See also -csim_show_clustsize.
+
+   -csim_alpha THRESH           : specify corrected threshold for csim output
+
+       e.g. -csim_alpha 0.01
+
+       This option implies -csim_show_clustsize, and is used to specify the
+       corrected, cluster-wise p-value of the 3dClustSim output.
+
+       See also -csim_show_clustsize.
+
    -demean                      : demean each run (new mean of each run = 0.0)
 
    -derivative                  : take the temporal derivative of each vector
