@@ -19,12 +19,43 @@ void usage_SliceNDice(int detail)
 {
    printf(
 "\n"
-"  *** \n"
-"  *** \n"
+" This program is for calculating the Dice coefficient between two volumes \n"
+" on a slice-by-slice basis.  The user enters two volumes on the same grid,\n"
+" and Dice coefficients along each axis are calculated; three separate text\n"
+" (*.1D) files are output.\n"
+"\n"
+" The Dice coefficient (Dice, 1945) is known by many names.  In the present\n"
+" context, it is defined as follows.  Consider two sets voxels, A and B.\n"
+" The Dice coefficient D is the ratio of their intersection to their union:\n"
+"     D = 2*(intersection of A and B)/(union of A and B).\n"
+" The range of D is 0 (no overlap of A and B at all) to 1 (perfect overlap\n"
+" of A and B), inclusively.\n"
+"\n"
+" This program calculates D in a slicewise manner across all 3 major axes\n"
+" of a dset;  other programs of interest for a volumewise Dice coefficient\n"
+" or more general overlap calculations include 3dABoverlap, for example.\n"
+"\n"
+" written by PA Taylor (NIMH, NIH).\n"
 "\n"
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "  \n"
 "  + USAGE: ***\n"
+"\n"
+"      Input: \n"
+"         + two single-volume datasets\n"
+"\n"
+"      Output:\n"
+"         + three text files, each a *.1D file of columns of numbers. File\n"
+"           name indicates along which axis the particular results were\n"
+"           calculated, such as ending in '0_RL.1D', '1_AP.1D', '2_IS.1D',\n"
+"           etc.\n"
+"           For each file, there are currently 5 columns of data output,\n"
+"           in the following order:\n"
+"           [index] the i, j, or k index of the slice (starting from 0).\n"
+"           [coord] the x, y, or z coordinate of the slice.\n"
+"           [size of A ROI] the number of voxels in set A's ROI in the slice.\n"
+"           [size of B ROI] the number of voxels in set B's ROI in the slice.\n"
+"           [Dice coef] the Dice coefficient of that slice.\n"
 "\n"
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "\n"
@@ -61,6 +92,7 @@ int main(int argc, char *argv[]) {
    THD_3dim_dataset *insetB = NULL;
    char *prefix="PREFIX" ;
    char tprefixx[THD_MAX_PREFIX];
+   char ori[3] = "no";
 
    FILE *fout0, *fout1;
 
@@ -212,7 +244,18 @@ int main(int argc, char *argv[]) {
    // **************************************************************
 
    for( nn=0 ; nn<3 ; nn++ ) {
-      sprintf(tprefixx,"%s_%d.1D", prefix, nn);
+      
+      // attach the orientation to the file name
+      for( i=0 ; i<2 ; i++ ) {
+         if( !nn ) 
+            ori[i] = ORIENT_tinystr[insetA->daxes->xxorient][i];
+         else if( nn==1 )
+            ori[i] = ORIENT_tinystr[insetA->daxes->yyorient][i];
+         else
+            ori[i] = ORIENT_tinystr[insetA->daxes->zzorient][i];
+      }
+
+      sprintf(tprefixx,"%s_%d_%s.1D", prefix, nn, ori);
 
       if( (fout0 = fopen(tprefixx, "w")) == NULL) {
          fprintf(stderr, "Error opening file %s.", tprefixx);
