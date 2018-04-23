@@ -74,8 +74,12 @@
 #   + change output snapshotting to be in a QC/ dir, and change
 #     names of output files
 #
-set version   = "3.8b";  set rev_dat   = "Mar 2, 2018"
+#set version   = "3.8b";  set rev_dat   = "Mar 2, 2018"
 #   + update rel path loc of QC/ dir
+#
+set version   = "3.9";  set rev_dat   = "Apr 20, 2018"
+#   + show existence of -pre_center_mass option
+#   + fix how -remove_inf_sli N works -- thanks, lzhyoung!
 #
 # ----------------------------------------------------------------
 
@@ -479,11 +483,12 @@ endif
 cd $wdir
 
 # [PT: May 18, 2017]: in case lots of nonbrain exists inferiorly
-if ( $INF_SLI != "" ) then
+if ( $INF_SLI != "" ) then 
     echo "++ Pre-pre-step: remove $INF_SLI inferior (ha!) slices."
     set fin  = "$fout"
+    set inp0 = $fout    # !!!!!!!!!!! moved
     set fout = "${tpref}_${iidx}_cut.nii"
-    set inp0 = $fout
+    # set inp0 = $fout 
     3dZeropad -echo_edu        \
         -overwrite             \
         -I -$INF_SLI           \
@@ -990,6 +995,7 @@ cat << EOF
         {-extra_al_opts SS}                   \
         {-focus_mask MMM}                     \
         {-remove_inf_sli II}                  \
+        {-pre_center_mass}                    \
         {-post_lr_symm}                       \
         {-no_pre_lr_symm}                     \
         {-no_clean}                           \
@@ -1072,6 +1078,9 @@ cat << EOF
                     far lower than it should be.  You can get rid of this
                     by applying this option, to remove 'II' number of 
                     slices from the inferior part of the FOV.
+  -pre_center_mass :pre-align the centers of mass of the volumes; might help
+                    in conjunction with '-remove_inf_sli ...' above, when
+                    there is a large amount of non-brain material
 
   -no_pre_lr_symm  :a pre-alignment left-right symmetrization is
                     performed by default, but you can turn it off if you
