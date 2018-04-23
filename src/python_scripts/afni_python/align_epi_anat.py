@@ -1167,9 +1167,9 @@ class RegWrap:
       if self.user_opts.trailers:
          opt = self.user_opts.find_opt('trailers')
          if not opt: 
-             print "** ERROR: seem to have trailers, but cannot find them!"
+             print("** ERROR: seem to have trailers, but cannot find them!")
          else:
-             print "** ERROR: have invalid trailing args: %s" % opt.parlist
+             print("** ERROR: have invalid trailing args: %s", opt.show())
          return 1  # failure
 
       # apply the user options
@@ -1181,28 +1181,28 @@ class RegWrap:
       return
     
    def show(self, mesg=""):
-      print '%s: %s' % (mesg, self.label)
+      print('%s: %s' % (mesg, self.label))
       if self.verb > 2: self.valid_opts.show('valid_opts: ')
       self.user_opts.show('user_opts: ')
    
    def info_msg(self, mesg=""):
        if(self.verb >= 1) :
-          print "#++ %s" % mesg
+          print("#++ %s" % mesg)
 
    def error_msg(self, mesg=""):
-       print "#**ERROR %s" % mesg
+       print("#**ERROR %s" % mesg)
 
    def exists_msg(self, dsetname=""):
-       print "** Dataset: %s already exists" % dsetname
-       print "** Not overwriting."
+       print("** Dataset: %s already exists" % dsetname)
+       print("** Not overwriting.")
        if(not ps.dry_run()):
            self.ciao(1)
        
    def ciao(self, i):
       if i > 0:
-         print "** ERROR - script failed"
+         print("** ERROR - script failed")
       elif i==0:
-         print ""
+         print("")
 
       os.chdir(self.odir)
 
@@ -1225,20 +1225,20 @@ class RegWrap:
    # if help_level is 2, then show main help and options help
    def self_help(self, help_level=0):
       if(help_level!=1) :
-         print g_help_string
+         print(g_help_string)
       if(help_level):  
-         print "A full list of options for %s:\n" % ps.label
+         print("A full list of options for %s:\n" % ps.label)
          for opt in self.valid_opts.olist:
-            print "   %-20s" % (opt.name )
+            print("   %-20s" % (opt.name ))
             if (opt.helpstr != ''):
-               print "   %-20s   %s" % \
-                  ("   use:", opt.helpstr.replace("\n","\n   %-20s   "%' '))
+               print("   %-20s   %s" % \
+                  ("   use:", opt.helpstr.replace("\n","\n   %-20s   "%' ')))
             if (opt.acceptlist):
-               print "   %-20s   %s" % \
-                  ("   allowed:" , string.join(opt.acceptlist,', '))
+               print("   %-20s   %s" % \
+                  ("   allowed:" , str.join(', ', opt.acceptlist)))
             if (opt.deflist):
-               print "   %-20s   %s" % \
-                  ("   default:",string.join(opt.deflist,' '))
+               print("   %-20s   %s" % \
+                  ("   default:",str.join(' ', opt.deflist)))
       return 1
    
    # remove all the temporary files for epi and anat base names
@@ -1269,18 +1269,18 @@ class RegWrap:
    def copy_dset(self, dset1, dset2, message, exec_mode):
       self.info_msg(message)
       if(dset1.input()==dset2.input()):
-         print "# copy is not necessary"
+         print("# copy is not necessary")
          return 0
 #      if((os.path.islink(dset1.p())) or (os.path.islink(dset2.p()))):
       if(dset1.real_input() == dset2.real_input()):
-         print "# copy is not necessary"
+         print("# copy is not necessary")
          return 0
       ds1 = dset1.real_input()
       ds2 = dset2.real_input()
       ds1s = ds1.replace('/./','/')
       ds2s = ds2.replace('/./','/')
       if(ds1s == ds2s):
-          print "# copy is not necessary - both paths are same"
+          print("# copy is not necessary - both paths are same")
           return 0
       print("copying from dataset %s to %s" % (dset1.input(), dset2.input()))
       dset2.delete(exec_mode)
@@ -1288,7 +1288,7 @@ class RegWrap:
             "3dcopy %s %s" % (dset1.input(), dset2.out_prefix()), exec_mode)
       com.run()
       if ((not dset2.exist())and (exec_mode!='dry_run')):
-         print "** ERROR: Could not rename %s\n" % dset1.input()
+         print("** ERROR: Could not rename %s\n" % dset1.input())
          return 1
       return 0
    
@@ -1328,7 +1328,7 @@ class RegWrap:
       #Allineate extras
       opt = self.user_opts.find_opt('-Allineate_opts')
       if opt != None: 
-         ps.AlOpt = string.join(opt.parlist, ' ')
+         ps.AlOpt = str.join(' ', opt.parlist)
       else:
          ps.AlOpt = ''
 
@@ -1406,7 +1406,7 @@ class RegWrap:
       if opt == None: 
          opt = self.user_opts.find_opt('-dset2')
          if opt == None:
-            print "** ERROR: Must use -epi or -dset2 option\n"
+            print("** ERROR: Must use -epi or -dset2 option\n")
             return 0
          if self.cost == '':
             self.cost = 'lpa'   # make default cost lpa for dset1/2 terminology
@@ -1421,7 +1421,7 @@ class RegWrap:
       if opt == None: 
          opt = self.user_opts.find_opt('-dset1')
          if opt == None:
-            print "** ERROR: Must use -anat or -dset1 options\n"
+            print("** ERROR: Must use -anat or -dset1 options\n")
             ps.ciao(1)
          if self.cost == '':
             self.cost = 'lpa'   # make default cost lpa for dset1/2 terminology
@@ -1441,34 +1441,34 @@ class RegWrap:
          
       #epi input
       if not e.exist():
-         print ( "** ERROR: Could not find epi / dset2 dataset\n   %s " 
+         print( "** ERROR: Could not find epi / dset2 dataset\n   %s " 
              % e.input())
          ps.ciao(1)
          
       #anat input
       if not a.exist():
-         print ("** ERROR: Could not find anat / dset1 dataset\n   %s "
+         print("** ERROR: Could not find anat / dset1 dataset\n   %s "
              % a.input())
          ps.ciao(1)
 
       #get 3dTshift options
       opt = self.user_opts.find_opt('-tshift_opts')
       if opt != None: 
-         ps.tshift_opt = string.join(opt.parlist, ' ')
+         ps.tshift_opt = str.join(' ', opt.parlist)
       else:
          ps.tshift_opt = '-cubic'
 
       #get 3dvolreg options
       opt = self.user_opts.find_opt('-volreg_opts')
       if opt != None: 
-         ps.reg_opt = string.join(opt.parlist, ' ')
+         ps.reg_opt = str.join(' ', opt.parlist)
       else:
          ps.reg_opt = ''
 
       #get 3dSkullstrip options
       opt = self.user_opts.find_opt('-skullstrip_opts')
       if opt != None: 
-         ps.skullstrip_opt = string.join(opt.parlist, ' ')
+         ps.skullstrip_opt = str.join(' ',opt.parlist)
 
       #get epi base type for alignment (specific sub-brick/median/mean)
       opt = self.user_opts.find_opt('-epi_base')
@@ -1495,7 +1495,7 @@ class RegWrap:
       #get 3dTstat options
       opt = self.user_opts.find_opt('-tstat_opts')
       if opt != None: 
-         ps.tstat_opt = string.join(opt.parlist, ' ')
+         ps.tstat_opt = str.join(' ', opt.parlist)
       else:
          ps.tstat_opt = ''
 
@@ -1780,7 +1780,7 @@ class RegWrap:
       #get deobliquing options
       opt = self.user_opts.find_opt('-deoblique_opts')
       if opt != None: 
-         ps.deoblique_opt = string.join(opt.parlist, ' ')
+         ps.deoblique_opt = str.join(' ',opt.parlist)
       else:
          ps.deoblique_opt = ''
 
@@ -1812,7 +1812,7 @@ class RegWrap:
       opt = self.user_opts.find_opt('-check_cost')    
       if opt != None:
       
-          self.checkcost = string.join(opt.parlist, ' ')
+          self.checkcost = str.join(' ', opt.parlist)
       else: 
           self.checkcost = ""
 
@@ -1831,10 +1831,10 @@ class RegWrap:
          self.output_dir = opt.parlist[0]
          # end with a slash
          self.output_dir = "%s/" % os.path.realpath(self.output_dir)
-         print "# User has selected a new output directory %s" % self.output_dir
+         print("# User has selected a new output directory %s" % self.output_dir)
          com = shell_com(("mkdir %s" % self.output_dir), self.oexec)
          com.run()
-         print "cd %s" % self.output_dir
+         print("cd %s" % self.output_dir)
          if(not self.dry_run()):
             os.chdir(self.output_dir)
       else :
@@ -1944,12 +1944,12 @@ class RegWrap:
          costs = costlist.split()
          costfile.close()
          # make dictionary of names and costs
-         costdict = dict(zip(costnamelist, costs))
+         costdict = dict(list(zip(costnamelist, costs)))
          # get cost value from dictionary (error handling if it doesn't exist in list)
          costvalue = float(costdict[costfunction])
          return (costvalue)
       except:
-         print "ERROR: error reading cost list file"
+         print("ERROR: error reading cost list file")
       
       # find the cost name and then the corresponding value
       # for i, name in enumerate(costnamelist):
@@ -2058,7 +2058,7 @@ class RegWrap:
                ps.oexec)
          # if this fails, notify the user
          if com.run():
-            print '** 3dAllineate failure'
+            print("** 3dAllineate failure")
             return None, None
          e2a_mat = self.anat_mat
 
@@ -2121,14 +2121,14 @@ class RegWrap:
             com.run()
 
             noflipcost = self.get_cost("__tt_lr_noflipcosts.1D",costfunction)
-            print "No flip cost is %f for %s cost function" % (noflipcost, costfunction)
+            print("No flip cost is %f for %s cost function" % (noflipcost, costfunction))
             flipcost = self.get_cost("__tt_lr_flipcosts.1D",costfunction)
-            print "Flip cost is %f for %s cost function" % (flipcost, costfunction)
+            print("Flip cost is %f for %s cost function" % (flipcost, costfunction))
             if(flipcost < noflipcost):
-               print "WARNING: ************ flipped data aligns better than original data\n" \
-                     "Check for left - right flipping in the GUI ************************"
+               print("WARNING: ************ flipped data aligns better than original data\n" \
+                     "Check for left - right flipping in the GUI ************************")
             else:
-               print "Data does not need flipping"
+               print("Data does not need flipping")
           
          # if not doing alignment for anat2epi, just return now,
          # and use the xform matrix computed later
@@ -2530,7 +2530,7 @@ class RegWrap:
          com.run();
          if (not o.exist() and not ps.dry_run()):
             o.show
-            print "** ERROR: Could not 3dTstat epi"
+            print("** ERROR: Could not 3dTstat epi")
             return None
       else:
          self.exists_msg(o.input())
@@ -2616,7 +2616,7 @@ class RegWrap:
                ( o.p(),o.out_prefix(), deoblique_opt, e.input()), ps.oexec)
          com.run();
          if (not o.exist() and not ps.dry_run()):
-            print "** ERROR: Could not deoblique epi data\n"
+            print("** ERROR: Could not deoblique epi data\n")
             return None
       else:
          self.exists_msg(o.input())
@@ -2662,7 +2662,7 @@ class RegWrap:
          com = shell_com( warp_str, ps.oexec)
          com.run();
          if (not o.exist() and not ps.dry_run()):
-            print "** ERROR: Could not oblique/shift anat to epi data\n"
+            print("** ERROR: Could not oblique/shift anat to epi data\n")
             return None
       else:
          self.exists_msg(o.input())
@@ -2695,7 +2695,7 @@ class RegWrap:
                com = shell_com( warp_str, ps.oexec)
                com.run();
                if (not tempshft.exist() and not ps.dry_run()):
-                  print "** ERROR: Could not oblique/shift anat to epi data\n"
+                  print("** ERROR: Could not oblique/shift anat to epi data\n")
                   return None
             else:
                self.exists_msg(tempshft.input())
@@ -2719,7 +2719,7 @@ class RegWrap:
                ( o.pp(), tshift_opt, e.input()), ps.oexec)
          com.run();
          if (not o.exist() and not ps.dry_run()):
-            print "** ERROR: Could not do time shifting of epi data\n"
+            print("** ERROR: Could not do time shifting of epi data\n")
             return e
       else:
          self.exists_msg(o.input())
@@ -2852,7 +2852,7 @@ class RegWrap:
                 % (ps.anat_ns.ppv(), o.pp(), e.input(),sb), ps.oexec)
          com.run()
          if (not o.exist() and not ps.dry_run()):
-            print "** ERROR: Could not resample\n"
+            print("** ERROR: Could not resample\n")
             return None          
       else:
          self.exists_msg(o.input())
@@ -2872,7 +2872,7 @@ class RegWrap:
                   % (skullstrip_opt, e.input(), n.pp()) , ps.oexec)
             com.run()
             if (not n.exist() and not ps.dry_run()):
-               print "** ERROR: Could not strip skull\n"
+               print("** ERROR: Could not strip skull\n")
                return None
          else:
             self.exists_msg(n.input())
@@ -2886,7 +2886,7 @@ class RegWrap:
                   % (   n.pp(), e.input()), ps.oexec)
             com.run()
             if (not n.exist() and not ps.dry_run()):
-               print "** ERROR: Could not strip skull with automask\n"
+               print("** ERROR: Could not strip skull with automask\n")
                return None
             j.delete(ps.oexec)
          else:
@@ -2938,7 +2938,7 @@ class RegWrap:
          self.exists_msg(o.input())
          
       if (not o.exist() and not ps.dry_run()):
-         print "** ERROR: Could not create weight dset\n"
+         print("** ERROR: Could not create weight dset\n")
          return None
       
       return o
@@ -3142,7 +3142,7 @@ class RegWrap:
            (self.anat0.input(), self.anat.p(), self.anat.pv()), ps.oexec)
          com.run();
          if (not self.anat.exist() and not ps.dry_run()):
-            print "** ERROR: Could not copy anat (%d)" % self.anat.exist()
+            print("** ERROR: Could not copy anat (%d)" % self.anat.exist())
             ps.ciao(1)
       else:
          self.exists_msg(self.anat.input())
@@ -3176,7 +3176,7 @@ class RegWrap:
 
             com.run()
             if (not n.exist() and not ps.dry_run()):
-               print "** ERROR: Could not strip skull\n"
+               print("** ERROR: Could not strip skull\n")
                return None
          else:
             self.exists_msg(o.input())
@@ -3549,17 +3549,17 @@ if __name__ == '__main__':
       ps.cleanup()
 
 
-   print "\n# Finished alignment successfully"
+   print("\n# Finished alignment successfully")
    if(ps.AddEdge):
-      print "To view edges produced by @AddEdge, type:"
-      print "cd AddEdge"
+      print("To view edges produced by @AddEdge, type:")
+      print("cd AddEdge")
       if (0):  #ZSS  @AddEdge now launches AFNI
-         print "afni -niml -yesplugouts &"
+         print("afni -niml -yesplugouts &")
          
       if (ps.epi2anat and ps.anat2epi):
-         print "@AddEdge -examinelist %s" % listlog_a2e
-         print "@AddEdge -examinelist %s" % listlog_e2a
+         print("@AddEdge -examinelist %s" % listlog_a2e)
+         print("@AddEdge -examinelist %s" % listlog_e2a)
       else:
-         print "@AddEdge"
+         print("@AddEdge")
             
    ps.ciao(0)
