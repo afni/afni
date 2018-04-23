@@ -19,6 +19,13 @@ slidice *Create_slidice( int *Dim,
                          THD_3dim_dataset *B );
 slidice *Free_slidice(slidice *ss, int n);
 
+// calculate output lengths along FOV
+int Find_slidice_orange( slidice *ss, 
+                         int FOV_TYPE,
+                         byte **orange);
+
+
+
 // actual dice calcs
 int Dice_em_up_calcs( slidice *ss, 
                       byte ***ma,
