@@ -66,6 +66,16 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 22, Apr , 2018 , PT , "fat_proc_axialize_anat" , MINOR , TYPE_BUG_FIX,
+   "When using '-remove_inf_sli', the wrong volume was being warped at end.",
+   "Final warped volume had lower slice reduction, when it shouldn't have.\n"
+},
+
+{ 22, Apr , 2018 , PT , "3dSliceNDice" , MAJOR , TYPE_NEW_PROG,
+   "Calculate Dice coefficients between volumes on a slicewise basis.",
+   "Useful for comparing masks/maps of volumes.\n"
+},
+
 { 16, Apr , 2018 , PT , "p2dsetstat" , MAJOR , TYPE_NEW_PROG,
    "Program to convert a p-value to a statistic, using params in dset header.",
    "Useful to calculate thresholds for a particular volume.\n"

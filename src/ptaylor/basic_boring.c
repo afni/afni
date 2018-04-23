@@ -252,7 +252,6 @@ int Dice_em_up_calcs( slidice *ss,
 
    ENTRY("Dice_em_up_calcs");
 
-   #
    for( k=0 ; k<ss->d[2] ; k++ ) 
       for( j=0 ; j<ss->d[1] ; j++ ) 
          for( i=0 ; i<ss->d[0] ; i++ ) {
@@ -274,7 +273,7 @@ int Dice_em_up_calcs( slidice *ss,
                }
             }
          }
-   
+
    // now combine the ratios
    for( nn=0 ; nn<3 ; nn++ )
       for( i=0 ; i<ss->d[nn] ; i++ ) {
@@ -283,5 +282,58 @@ int Dice_em_up_calcs( slidice *ss,
             ss->dice[nn][i] = ss->dice[nn][i] / ( (float) mm );
       }
 
+   return 0;
+}
+
+int Find_slidice_orange( slidice *ss, 
+                         int FOV_TYPE,
+                         byte **orange)
+{
+   int i,j,k,mm;
+   
+   ENTRY("Find_slidice_orange");
+
+   switch( FOV_TYPE ) {
+      
+   case 0:
+      // all: on
+      for( mm=0 ; mm<3 ; mm++ )
+         for( i=0 ; i< ss->d[mm] ; i++ )
+            orange[mm][i] = 1;
+      break;
+      
+   case 1:
+      // where A or B: on
+      for( mm=0 ; mm<3 ; mm++ )
+         for( i=0 ; i< ss->d[mm] ; i++ )
+            if( ss->sizeA[mm][i] ||  ss->sizeB[mm][i] )
+               orange[mm][i] = 1;
+      break;
+   case 2:
+      // where A AND B: on
+      for( mm=0 ; mm<3 ; mm++ )
+         for( i=0 ; i< ss->d[mm] ; i++ )
+            if( ss->sizeA[mm][i] &&  ss->sizeB[mm][i] )
+               orange[mm][i] = 1;
+      break;
+   case 3:
+      // where A is not empty: on
+      for( mm=0 ; mm<3 ; mm++ )
+         for( i=0 ; i< ss->d[mm] ; i++ )
+            if( ss->sizeA[mm][i] )
+               orange[mm][i] = 1;
+      break;
+   case 4:
+      // where B is not empty: on
+      for( mm=0 ; mm<3 ; mm++ )
+         for( i=0 ; i< ss->d[mm] ; i++ )
+            if( ss->sizeB[mm][i] )
+               orange[mm][i] = 1;
+      break;
+   default:
+      ERROR_exit( "Can't find FOV type %d!",
+                  FOV_TYPE);
+   }
+   
    return 0;
 }
