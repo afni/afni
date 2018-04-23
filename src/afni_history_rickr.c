@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 23,  Apr, 2018, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "moved python_scripts/*.py down 1 level, under python_scripts/afni",
+   "This is preparation for setup.py and __init__.py to install AFNI's\n"
+   "python files using pip, and to then load them via 'module load afni'."
+ } ,
+
  { 18,  Apr, 2018, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
    "add -csim_show_clustsize and helper options to report cluster requirements",
    "Given a cluster table output by 3dClustSim, use this option to extract\n"

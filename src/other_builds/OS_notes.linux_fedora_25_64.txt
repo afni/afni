@@ -10,10 +10,11 @@ dnf install tcsh
 dnf upgrade
 dnf install pyqt4 motif-devel gsl-devel libXpm-devel python-devel R
 dnf install mesa-libGL-devel mesa-libGLw-devel mesa-libGLU-devel
-dnf install glib-devel libXi-devel
+dnf install glib-devel glib2-devel libXi-devel netpbm-devel
 
 # convenience and user machine packages
 dnf install gnome-tweak-tool ipython aspell-en
+sudo dnf install xorg-x11-fonts-misc scipy
 
 
 # fix bug in /usr/include/GL/GLwDrawA.h
