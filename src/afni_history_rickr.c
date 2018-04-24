@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24, Apr, 2018, RCR, "gen_epi_review.py", MINOR, TYPE_ENHANCE,
+   "python3 compatible as of version 0.4",
+   NULL
+ } ,
+
  { 24, Apr, 2018, RCR, "auto_warp.py", MINOR, TYPE_ENHANCE,
    "python3 compatible as of version 0.4",
    NULL
