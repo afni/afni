@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# python3 status: started
+
 import sys, os
 import copy
 from time import asctime
@@ -39,7 +41,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = "0.03" # software version (update for changes)
+      self.align_version = "0.04" # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -302,9 +304,9 @@ class RegWrap:
       if self.user_opts.trailers:
          opt = self.user_opts.find_opt('trailers')
          if not opt: 
-             print "** ERROR: seem to have trailers, but cannot find them!"
+             print("** ERROR: seem to have trailers, but cannot find them!")
          else:
-             print "** ERROR: have invalid trailing args: %s" % opt.parlist
+             print("** ERROR: have invalid trailing args: %s" % opt.parlist)
          return 1  # failure
 
       # apply the user options
@@ -316,19 +318,19 @@ class RegWrap:
       return
     
    def show(self, mesg=""):
-      print '%s: %s' % (mesg, self.label)
+      print('%s: %s' % (mesg, self.label))
       if self.verb > 2: self.valid_opts.show('valid_opts: ')
       self.user_opts.show('user_opts: ')
    
    def info_msg(self, mesg=""):
        if(self.verb >= 1) :
-          print "#++ %s" % mesg
+          print("#++ %s" % mesg)
 
    def error_msg(self, mesg=""):
-       print "#**ERROR %s" % mesg
+       print("#**ERROR %s" % mesg)
 
    def error_ex(self, mesg=""):
-       print "#**ERROR %s" % mesg
+       print("#**ERROR %s" % mesg)
        self.ciao(1)
 
    def exists_msg(self, dsetname=""):
@@ -337,9 +339,9 @@ class RegWrap:
        
    def ciao(self, i):
       if i > 0:
-         print "** ERROR - script failed"
+         print("** ERROR - script failed")
       elif i==0:
-         print ""
+         print("")
 
       os.chdir(self.odir)
 
@@ -361,23 +363,23 @@ class RegWrap:
    # if help_level is 2, then show main help and options help
    def self_help(self, help_level=0):
       if(help_level!=1) :
-         print g_help_string
+         print(g_help_string)
       if(help_level):  
-         print "A full list of options for %s:\n" % ps.label
+         print("A full list of options for %s:\n" % ps.label)
          for opt in self.valid_opts.olist:
-            print "   %-20s" % (opt.name )
+            print("   %-20s" % (opt.name ))
             if (opt.helpstr != ''):
-               print "   %-20s   %s" % \
-                  ("   use:", opt.helpstr.replace("\n","\n   %-20s   "%' '))
+               print("   %-20s   %s" % \
+                  ("   use:", opt.helpstr.replace("\n","\n   %-20s   "%' ')))
             if (opt.acceptlist):
-               print "   %-20s   %s" % \
-                  ("   allowed:" , string.join(opt.acceptlist,', '))
+               print("   %-20s   %s" % \
+                  ("   allowed:" , ', '.join(opt.acceptlist)))
             if (opt.deflist):
                if type(opt.deflist[0]) != str:  # 31 Mar 2014 [rickr]
-                  print "   %-20s   %s" % ("   default:",opt.deflist)
+                  print("   %-20s   %s" % ("   default:",opt.deflist))
                else:
-                  print "   %-20s   %s" % \
-                     ("   default:",string.join(opt.deflist,' '))
+                  print("   %-20s   %s" % \
+                     ("   default:",' '.join(opt.deflist)))
       return 1
    
    # remove all the temporary files for epi and anat base names
@@ -400,7 +402,7 @@ class RegWrap:
                % (a.input(), n.input()) , ps.oexec)
          com.run()
          if (not n.exist() and not ps.dry_run()):
-            print "** ERROR: Could not copy dset\n"
+            print("** ERROR: Could not copy dset\n")
             ps.ciao(1)
       else:
          self.exists_msg(n.input())
@@ -415,8 +417,8 @@ class RegWrap:
 
       # do not allow AFNI_COMPRESSOR (or avoid NIFTI)  10 Jun 2015 [rickr] */
       ename = 'AFNI_COMPRESSOR'
-      if os.environ.has_key(ename):
-         print '-- clearing %s ...' % ename
+      if ename in os.environ:
+         print('-- clearing %s ...' % ename)
          del os.environ[ename]
 
       opt = self.user_opts.find_opt('-skull_strip_input')
@@ -460,7 +462,7 @@ class RegWrap:
       #get 3dSkullstrip options
       opt = self.user_opts.find_opt('-skullstrip_opt')
       if opt != None: 
-         ps.skullstrip_opt = string.join(opt.parlist, ' ')
+         ps.skullstrip_opt = ' '.join(opt.parlist)
       else:
          ps.skullstrip_opt = ''
 
@@ -473,11 +475,11 @@ class RegWrap:
       if opt != None: 
          self.output_dir = opt.parlist[0]
          self.output_dir = "%s/" % os.path.realpath(self.output_dir)
-         print "# Output directory %s" % self.output_dir
+         print("# Output directory %s" % self.output_dir)
 
       com = shell_com(("mkdir %s" % self.output_dir), self.oexec)
       com.run()
-      print "cd %s" % self.output_dir
+      print("cd %s" % self.output_dir)
       if(not self.dry_run()):
          os.chdir(self.output_dir)
          
@@ -523,7 +525,7 @@ class RegWrap:
                 % (ps.anat_ns.ppv(), o.pp(), e.input(),sb), ps.oexec)
          com.run()
          if (not o.exist() and not ps.dry_run()):
-            print "** ERROR: Could not resample\n"
+            print("** ERROR: Could not resample\n")
             ps.ciao(1)          
       else:
          self.exists_msg(o.pve())
@@ -543,7 +545,7 @@ class RegWrap:
                   % (skullstrip_opt, e.input(), n.input()) , ps.oexec)
             com.run()
             if (not n.exist() and not ps.dry_run()):
-               print "** ERROR: Could not strip skull\n"
+               print("** ERROR: Could not strip skull\n")
                ps.ciao(1)
          else:
             self.exists_msg(n.input())
@@ -559,7 +561,7 @@ class RegWrap:
                         j.input(), n.pp()), ps.oexec)
             com.run()
             if (not n.exist() and not ps.dry_run()):
-               print "** ERROR: Could not strip skull with automask\n"
+               print("** ERROR: Could not strip skull with automask\n")
                ps.ciao(1)
             j.delete(ps.oexec)
          else:
@@ -578,7 +580,7 @@ class RegWrap:
                % (a.input(), n.input()) , ps.oexec)
          com.run()
          if (not n.exist() and not ps.dry_run()):
-            print "** ERROR: Could not strip skull\n"
+            print("** ERROR: Could not strip skull\n")
             ps.ciao(1)
       else:
          self.exists_msg(n.input())  
@@ -627,7 +629,7 @@ class RegWrap:
                         m.input()), ps.oexec)
          com.run()
          if (not n.exist() and not ps.dry_run()):
-            print "** ERROR: Could not strip skull with automask\n"
+            print("** ERROR: Could not strip skull with automask\n")
             ps.ciao(1)
       else:
          self.exists_msg(n.input())    
@@ -636,7 +638,7 @@ class RegWrap:
       
    def match_resolutions(self, a, b, suf, dxyz=0.0, m=None):
       if (dxyz != 0.0):
-         print "%f" % (dxyz)
+         print("%f" % (dxyz))
          ar = self.resample(a,prefix="anat%s.nii" % suf, dxyz=dxyz, m=m)
          br = self.resample(b,prefix="base%s.nii" % suf, dxyz=dxyz, m=m)
       else:
@@ -644,7 +646,7 @@ class RegWrap:
          br = b
          dxa = self.min_dim_dset(a)
          dxb = self.min_dim_dset(b)
-         print "%f %f" % (dxa, dxb)
+         print("%f %f" % (dxa, dxb))
          if (dxb < dxa):
             br = self.resample(b,prefix="base%s.nii" % suf, dxyz=dxa, m=m)    
          if (dxa > dxb):
@@ -822,7 +824,7 @@ if __name__ == '__main__':
       #now run auto_tlrc
       a, ps.affine_input_xmat = ps.align_auto_tlrc(a,b)
    elif (ps.affine_input_xmat == 'ID'): #input already in std space
-      if (0): print "Nothing to do"
+      if (0): print("Nothing to do")
    else: #User specified matrix to take input to std space
       a, ps.affine_input_xmat = ps.align_auto_tlrc(a,b, xmat=ps.affine_input_xmat)
       
