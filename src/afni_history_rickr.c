@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24, Apr, 2018, RCR, "auto_warp.py", MINOR, TYPE_ENHANCE,
+   "python3 compatible as of version 0.4",
+   NULL
+ } ,
+
  { 23,  Apr, 2018, RCR, "afni-general", MICRO, TYPE_MODIFY,
    "moved python_scripts/*.py down 1 level, under python_scripts/afni",
    "This is preparation for setup.py and __init__.py to install AFNI's\n"
