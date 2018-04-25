@@ -8,11 +8,11 @@ Voxelwise calcs, esp. stats and tests                        ::  5 :: 3dLME     
 Voxelwise calcs, esp. stats and tests                        ::  5 :: 3dMEMA                              ::  5 :: Group-analysis program that performs Mixed Effects Meta Analysis, modeling both within- and across-subjects variability
 Voxelwise calcs, esp. stats and tests                        ::  5 :: 3dMean                              ::  4 :: Compute the average of a number of datasets
 Voxelwise calcs, esp. stats and tests                        ::  5 :: 3dGroupInCorr                       ::  3 :: With a group of dsets, calc voxelwise t-tests on group of corr maps wherever user clicks
-Voxelwise calcs, esp. stats and tests                        ::  5 :: 3dTcorr1D                           ::  3 :: correlation coefficient between 3D+time dataset and 1D time series
-Voxelwise calcs, esp. stats and tests                        ::  5 :: 3dTcorrMap                          ::  3 :: compute average correlation of every voxel with every other
+Voxelwise calcs, esp. stats and tests                        ::  5 :: 3dTcorr1D                           ::  3 :: Correlation coefficient between 3D+time dataset and 1D time series
+Voxelwise calcs, esp. stats and tests                        ::  5 :: 3dTcorrMap                          ::  3 :: Compute average correlation of every voxel with every other
 Voxelwise calcs, esp. stats and tests                        ::  5 :: 3dSetupGroupInCorr                  ::  1 :: Preliminary program to run when using 3dGroupInCorr
 Voxelwise calcs, esp. stats and tests                        ::  5 :: 3dClustSim                          ::  1 :: 3Monte Carlo simulation for multiple comparison correction
-Voxelwise calcs, esp. stats and tests                        ::  5 :: 3dTcorrelate                        ::  1 :: compute correlation between two 3D+time datasets
+Voxelwise calcs, esp. stats and tests                        ::  5 :: 3dTcorrelate                        ::  1 :: Compute correlation between two 3D+time datasets
 Voxelwise calcs, esp. stats and tests                        ::  5 :: 3dTfitter                           ::  1 :: Fit a linear model to each voxel time series, with various methods (L1, L2, LASSO)
 Voxelwise calcs, esp. stats and tests                        ::  5 :: 3dTfilter                           ::  1 :: Apply a linear filter to each voxel time series (archaic)
 Voxelwise calcs, esp. stats and tests                        ::  5 :: 3dTsort                             ::  1 :: Sort each voxel’s time series in various ways
@@ -36,7 +36,7 @@ Voxelwise calcs, esp. stats and tests                        ::  5 :: 3dNormalit
 Get info/stats within ROIs                                   ::  5 :: whereami                            ::  5 :: Get atlas region name for coordinates
 Get info/stats within ROIs                                   ::  5 :: 3dROIstats                          ::  4 :: Calculate dataset values from multiple ROIs
 Get info/stats within ROIs                                   ::  5 :: 3dmaskave                           ::  4 :: Calculate dataset values averaged over a ROI
-Get info/stats within ROIs                                   ::  5 :: 3dBrickStat                         ::  4 :: calculate percentile values within dsets
+Get info/stats within ROIs                                   ::  5 :: 3dBrickStat                         ::  4 :: Calculate percentile values within dsets
 Get info/stats within ROIs                                   ::  5 :: 3dUndump                            ::  3 :: Create dataset from text (inverse of 3dmaskdump)
 Get info/stats within ROIs                                   ::  5 :: 3dmaskdump                          ::  1 :: Output all dataset values in a ROI
 Get info/stats within ROIs                                   ::  5 :: 3dMax                               ::  1 :: (obsolete -> use 3dBrickStat) 
@@ -54,12 +54,12 @@ Build FMRI pipelines                                         ::  5 :: gen_group_
 Build FMRI pipelines                                         ::  5 :: afni_restproc.py                    ::  1 :: (obsolete -> use afni_proc.py)
 Align/register/warp/axialize spatially                       ::  5 :: 3dvolreg                            ::  5 :: Volumetric registration (rigid body in 3D, 6DOF linear)
 Align/register/warp/axialize spatially                       ::  5 :: align_epi_anat.py                   ::  5 :: Align 2 volumes (e.g. anat and EPI)
-Align/register/warp/axialize spatially                       ::  5 :: 3dQwarp                             ::  5 :: align two datasets using nonlinear warping (relatedly, see @SSwarper, auto_warp.py, @toMNI_Qwarpar)
+Align/register/warp/axialize spatially                       ::  5 :: 3dQwarp                             ::  5 :: Align two datasets using nonlinear warping (relatedly, see @SSwarper, auto_warp.py, @toMNI_Qwarpar)
 Align/register/warp/axialize spatially                       ::  5 :: 3dAllineate                         ::  5 :: Cross-modality affine volume registration
 Align/register/warp/axialize spatially                       ::  5 :: 3dresample                          ::  5 :: Rewrite dataset in new orientation, with new voxel size
-Align/register/warp/axialize spatially                       ::  5 :: fat_proc_align_anat_pair            ::  4 :: align a T1w dset to a T2w dset, esp. as part of DWI processing and if incorporating FreeSurfer after
-Align/register/warp/axialize spatially                       ::  5 :: fat_proc_axialize_anat              ::  4 :: attempt to align major viewing planes of anatomical with FOV, based on WB alignment to a reference vol
-Align/register/warp/axialize spatially                       ::  5 :: 3dNwarpApply                        ::  4 :: apply a nonlinear warp to transform a dataset
+Align/register/warp/axialize spatially                       ::  5 :: fat_proc_align_anat_pair            ::  4 :: Align a T1w dset to a T2w dset, esp. as part of DWI processing and if incorporating FreeSurfer after
+Align/register/warp/axialize spatially                       ::  5 :: fat_proc_axialize_anat              ::  4 :: Attempt to align major viewing planes of anatomical with FOV, based on WB alignment to a reference vol
+Align/register/warp/axialize spatially                       ::  5 :: 3dNwarpApply                        ::  4 :: Apply a nonlinear warp to transform a dataset
 Align/register/warp/axialize spatially                       ::  5 :: @Align_Centers                      ::  3 :: Align the center of a dataset to another
 Align/register/warp/axialize spatially                       ::  5 :: @AddEdge                            ::  3 :: Show two or more datasets with edges for alignment visualization
 Align/register/warp/axialize spatially                       ::  5 :: auto_warp.py                        ::  1 :: wrapper for nonlinear warping with 3dQwarp
@@ -71,16 +71,16 @@ Align/register/warp/axialize spatially                       ::  5 :: @align_par
 Align/register/warp/axialize spatially                       ::  5 :: @auto_align                         ::  1 :: (obsolete -> use align_epi_anat.py)
 Align/register/warp/axialize spatially                       ::  5 :: @SSwarper                           ::  1 :: Skull-stripping program that uses a reference anatomical
 Align/register/warp/axialize spatially                       ::  5 :: @SUMA_AlignToExperiment             ::  1 :: Align volume from FreeSurfer analysis to a different session's anatomical volume in order to warp surfaces similarly
-Align/register/warp/axialize spatially                       ::  5 :: 3dNwarpAdjust                       ::  1 :: adjust a collection of nonlinear warps for template building (@toMNI_Qwarpar)
-Align/register/warp/axialize spatially                       ::  5 :: 3dNwarpCalc                         ::  1 :: carry out calculations on nonlinear warps
-Align/register/warp/axialize spatially                       ::  5 :: 3dNwarpCat                          ::  1 :: combine linear and nonlinear warps (spatial transformations)
-Align/register/warp/axialize spatially                       ::  5 :: 3dNwarpFuncs                        ::  1 :: compute various voxelwise information about a nonlinear warp (e.g., Jacobian)
-Align/register/warp/axialize spatially                       ::  5 :: 3dNwarpXYZ                          ::  1 :: apply a nonlinear warp to a set of (x,y,z) triples
+Align/register/warp/axialize spatially                       ::  5 :: 3dNwarpAdjust                       ::  1 :: Adjust a collection of nonlinear warps for template building (@toMNI_Qwarpar)
+Align/register/warp/axialize spatially                       ::  5 :: 3dNwarpCalc                         ::  1 :: Carry out calculations on nonlinear warps
+Align/register/warp/axialize spatially                       ::  5 :: 3dNwarpCat                          ::  1 :: Combine linear and nonlinear warps (spatial transformations)
+Align/register/warp/axialize spatially                       ::  5 :: 3dNwarpFuncs                        ::  1 :: Compute various voxelwise information about a nonlinear warp (e.g., Jacobian)
+Align/register/warp/axialize spatially                       ::  5 :: 3dNwarpXYZ                          ::  1 :: Apply a nonlinear warp to a set of (x,y,z) triples
 Align/register/warp/axialize spatially                       ::  5 :: 3dTagalign                          ::  1 :: Align datasets by matching manually placed 'tags'
 Align/register/warp/axialize spatially                       ::  5 :: plugin(Edit Tagset)                 ::  1 :: Place 'tags' in a dataset interactively
 Align/register/warp/axialize spatially                       ::  5 :: 3drotate                            ::  1 :: Rigid body rotation of dataset in 3D
 Align/register/warp/axialize spatially                       ::  5 :: 3dAnatNudge                         ::  1 :: (obsolete -> use align_epi_anat.py); try to align EPI and structural volumes automatically
-Align/register/warp/axialize spatially                       ::  5 :: cat_matvec                          ::  1 :: utility for combining linear affine transformation matrices (e.g., from 3dAllineate)
+Align/register/warp/axialize spatially                       ::  5 :: cat_matvec                          ::  1 :: Utility for combining linear affine transformation matrices (e.g., from 3dAllineate)
 Align/register/warp/axialize spatially                       ::  5 :: adwarp                              ::  1 :: Transform dataset using warp from dataset header
 Align/register/warp/axialize spatially                       ::  5 :: Vecwarp                             ::  1 :: Transform 3-vectors using warp from dataset header
 Align/register/warp/axialize spatially                       ::  5 :: 2dImReg                             ::  1 :: Slice-by-slice registration (rigid body in 2D)
@@ -116,8 +116,8 @@ SUMA surface calculations, formats and viewing               ::  4 :: suma_chang
 SUMA surface calculations, formats and viewing               ::  4 :: SUMA_glxdino                        ::  1 ::                               
 SUMA surface calculations, formats and viewing               ::  4 :: SUMA_paperplane                     ::  1 ::                               
 SUMA surface calculations, formats and viewing               ::  4 :: SUMA_pixmap2eps                     ::  1 ::                               
-SUMA surface calculations, formats and viewing               ::  4 :: quickspec                           ::  1 :: generate (basic) specification file for running suma
-SUMA surface calculations, formats and viewing               ::  4 :: ROI2dataset                         ::  1 :: convert ROI (e.g., after drawing) to SUMA-type dset
+SUMA surface calculations, formats and viewing               ::  4 :: quickspec                           ::  1 :: Generate (basic) specification file for running suma
+SUMA surface calculations, formats and viewing               ::  4 :: ROI2dataset                         ::  1 :: Convert ROI (e.g., after drawing) to SUMA-type dset
 SUMA surface calculations, formats and viewing               ::  4 :: 3dSurfMask                          ::  1 :: Generate volumetric mask for inside of surface
 SUMA surface calculations, formats and viewing               ::  4 :: ConvertDset                         ::  1 :: Converts a surface dataset from one format to another
 SUMA surface calculations, formats and viewing               ::  4 :: ConvertSurface                      ::  1 :: Convert surface files among various formats
@@ -133,7 +133,7 @@ Mask/skull-strip/segment                                     ::  4 :: 3dmask_too
 Mask/skull-strip/segment                                     ::  4 :: @NoisySkullStrip                    ::  3 :: Strips the skull of anatomical datasets with low SNR
 Mask/skull-strip/segment                                     ::  4 :: 3dSeg                               ::  3 :: Segment anatomical (t1w) volume into major brain tissue types
 Mask/skull-strip/segment                                     ::  4 :: plugin(Draw Dataset)                ::  1 :: Manually draw ROI mask datasets
-Mask/skull-strip/segment                                     ::  4 :: 3dinfill                            ::  1 :: well, for editing masks       
+Mask/skull-strip/segment                                     ::  4 :: 3dinfill                            ::  1 :: Edit masks by filling in holes
 Mask/skull-strip/segment                                     ::  4 :: 3dIntracranial                      ::  1 :: Strip off outside-the-brain voxels
 Mask/skull-strip/segment                                     ::  4 :: plugin(Gyrus Finder)                ::  1 :: Interactively segment gray and white matter
 Mask/skull-strip/segment                                     ::  4 :: 3dClipLevel                         ::  1 :: Find value to threshold off outside-the-brain voxels
@@ -186,17 +186,17 @@ Blur and smooth dsets                                        ::  4 :: 3dBlurInMa
 Blur and smooth dsets                                        ::  4 :: 3dBlurToFWHM                        ::  1 :: Blur a dataset to a given level of smoothness (for inter-site studies)
 Blur and smooth dsets                                        ::  4 :: 3danisosmooth                       ::  1 :: Anisotropic blurring of a dataset (e.g., to clean up structural images)
 Blur and smooth dsets                                        ::  4 :: 3dMedianFilter                      ::  1 :: Smooth a 3D volume using a median filter
-Volume editing/image processing                              ::  3 :: 3dedge3                             ::  4 :: calculate edges in 3D         
+Volume editing/image processing                              ::  3 :: 3dedge3                             ::  4 :: Calculate edges in 3D         
 Volume editing/image processing                              ::  3 :: 3danisosmooth                       ::  4 :: Smooth a dataset using an anisotropic technique to preserve edges
 Volume editing/image processing                              ::  3 :: 3dUnifize                           ::  4 :: Correct T1-weighted dataset for non-uniform histogram
 Volume editing/image processing                              ::  3 :: 3dSharpen                           ::  2 :: 3D sharpening filter applied to a dataset (to clean up a template)
 Volume editing/image processing                              ::  3 :: 3dUniformize                        ::  1 :: (obsolete -> use 3dUnifize)   
-Update AFNI, install software (not demos)                    ::  3 :: @update.afni.binaries               ::  5 :: update current AFNI binaries  
-Update AFNI, install software (not demos)                    ::  3 :: afni_system_check.py                ::  5 :: evaluate present setup        
-Update AFNI, install software (not demos)                    ::  3 :: rPkgsInstall                        ::  4 :: get+install all necessary R packages
+Update AFNI, install software (not demos)                    ::  3 :: @update.afni.binaries               ::  5 :: Update current AFNI binaries  
+Update AFNI, install software (not demos)                    ::  3 :: afni_system_check.py                ::  5 :: Evaluate present setup        
+Update AFNI, install software (not demos)                    ::  3 :: rPkgsInstall                        ::  4 :: Get+install all necessary R packages
 Update AFNI, install software (not demos)                    ::  3 :: @UpdateAfni                         ::  1 :: (obsolete -> use @update.afni.binaries)
 Update AFNI, install software (not demos)                    ::  3 :: @get.afni.version                   ::  1 :: Download an archived version of AFNI source code using github
-Update AFNI, install software (not demos)                    ::  3 :: afni_vcheck                         ::  1 :: check if update needed (compare present and available version numbers)
+Update AFNI, install software (not demos)                    ::  3 :: afni_vcheck                         ::  1 :: Check if update needed (compare present and available version numbers)
 Simple dset calcs (-> make new dsets)                        ::  3 :: 3dcalc                              ::  5 :: Voxel-by-voxel general purpose calculator
 Simple dset calcs (-> make new dsets)                        ::  3 :: 3dmerge                             ::  5 :: Various spatial filters, thresholds, and averaging
 Simple dset calcs (-> make new dsets)                        ::  3 :: 3dTstat                             ::  5 :: Various statistics of multi-brick datasets, voxel-by-voxel
@@ -242,12 +242,12 @@ Drive AFNI/SUMA, make images/snapshots/montages              ::  3 :: @chauffeur
 Drive AFNI/SUMA, make images/snapshots/montages              ::  3 :: imcat                               ::  5 :: Very useful program for making grids of images and things (nice in conjunction with @chauffeur_afni or generally driving AFNI)
 Drive AFNI/SUMA, make images/snapshots/montages              ::  3 :: @snapshot_volreg                    ::  5 :: Drive AFNI to save QC images of EPI-anatomical alignment
 Drive AFNI/SUMA, make images/snapshots/montages              ::  3 :: DriveSuma                           ::  4 :: Drive suma from external program
+Drive AFNI/SUMA, make images/snapshots/montages              ::  3 :: @Quiet_Talkers                      ::  3 :: Close all network talking afni and suma instances (often used at end of "talking" scripts)
 Drive AFNI/SUMA, make images/snapshots/montages              ::  3 :: @djunct_4d_imager                   ::  3 :: Wrapper to combine environment+driving functionality to save image/movies files of 4D dataset
 Drive AFNI/SUMA, make images/snapshots/montages              ::  3 :: plugout_drive                       ::  3 :: Drive afni GUI from external program
 Drive AFNI/SUMA, make images/snapshots/montages              ::  3 :: @DriveAfni                          ::  2 :: Example script to drive afni GUI with class data
 Drive AFNI/SUMA, make images/snapshots/montages              ::  3 :: @DriveSuma                          ::  2 :: Example script to drive suma with class data
 Drive AFNI/SUMA, make images/snapshots/montages              ::  3 :: HalloSuma                           ::  1 ::                               
-Drive AFNI/SUMA, make images/snapshots/montages              ::  3 :: @Quiet_Talkers                      ::  1 :: kill all network talking afni and suma instances
 Drive AFNI/SUMA, make images/snapshots/montages              ::  3 :: @djunct_calc_mont_dims.py           ::  1 :: Sub-functionality of @djunct_dwi_selector.bash
 Drive AFNI/SUMA, make images/snapshots/montages              ::  3 :: @djunct_dwi_selector.bash           ::  1 :: Helper/intermediate function for fat_proc_select_vols
 Drive AFNI/SUMA, make images/snapshots/montages              ::  3 :: @djunct_select_str.py               ::  1 :: Sub-functionality of @djunct_dwi_selector.bash
@@ -312,8 +312,9 @@ Convert surfaces from other software                         ::  3 :: parse_fs_l
 Convert statistics and p-values                              ::  3 :: ccalc                               ::  4 :: A command line calculator (like 3dcalc)
 Convert statistics and p-values                              ::  3 :: cdf                                 ::  4 :: Compute probabilities, thresholds for standard distributions
 Convert statistics and p-values                              ::  3 :: p2dsetstat                          ::  4 :: Convert a p-value to a stat, using parameters stored in a dset header
+Compare dset volumes (masks or valued)                       ::  3 :: 3dABoverlap                         ::  5 :: Count overlaps between 2 datasets (union, intersection, etc.)
+Compare dset volumes (masks or valued)                       ::  3 :: 3dSliceNDice                        ::  5 :: Calculate Dice coefficients slice-by-slice (for all three FOV planes) between mask dsets.
 Compare dset volumes (masks or valued)                       ::  3 :: 3dMatch                             ::  4 :: Find pairs of similar-looking subbricks between two groups of dsets
-Compare dset volumes (masks or valued)                       ::  3 :: 3dABoverlap                         ::  4 :: Count overlaps between 2 datasets (union, intersection, etc.)
 Compare dset volumes (masks or valued)                       ::  3 :: @DiceMetric                         ::  1 :: Computes Dice Coefficient between two datasets
 Compare dset volumes (masks or valued)                       ::  3 :: 3ddot                               ::  1 :: Calculate correlation coefficients between sub-brick pairs in a 4D dset
 Compare dset volumes (masks or valued)                       ::  3 :: 3ddot_beta                          ::  1 :: Faster version of 3ddot, though currently just for calculating eta-squared
@@ -339,11 +340,11 @@ Time series analysis                                         ::  2 :: 3dSynthesi
 Time series analysis                                         ::  2 :: plugin(Deconvolution)               ::  1 :: Interactive deconvolution     
 Time series analysis                                         ::  2 :: 3ddelay                             ::  1 :: Single regressor linear analysis with time shifting
 Time series analysis                                         ::  2 :: plugins(Nlfit and Nlerr)            ::  1 :: Interactive nonlinear regression
-Time series analysis                                         ::  2 :: 3dfim                               ::  1 :: linear regression (obsolete -> use 3dDeconvolve)
-Time series analysis                                         ::  2 :: 3dfim+                              ::  1 :: linear regression (obsolete -> use 3dDeconvolve)
+Time series analysis                                         ::  2 :: 3dfim                               ::  1 :: Linear regression (obsolete -> use 3dDeconvolve)
+Time series analysis                                         ::  2 :: 3dfim+                              ::  1 :: Linear regression (obsolete -> use 3dDeconvolve)
 Time series analysis                                         ::  2 :: 1dNLfit                             ::  1 :: Fit a general model to a vector of data
 Quality checks (for 3D+time datasets or results)             ::  2 :: 3dToutcount                         ::  4 :: Check voxel time series for quality (temporal outliers)
-Quality checks (for 3D+time datasets or results)             ::  2 :: @radial_correlate                   ::  4 :: check datasets for correlation artifact
+Quality checks (for 3D+time datasets or results)             ::  2 :: @radial_correlate                   ::  4 :: Check datasets for correlation artifact
 Quality checks (for 3D+time datasets or results)             ::  2 :: gen_ss_review_scripts.py            ::  4 :: Generate QC review scripts    
 Quality checks (for 3D+time datasets or results)             ::  2 :: 3dTqual                             ::  1 :: Check dataset sub-bricks for quality (spatial outliers)
 Quality checks (for 3D+time datasets or results)             ::  2 :: @compute_gcor                       ::  1 :: Compute average pairwise correlation (GCOR), one number
@@ -434,17 +435,17 @@ Copy/convert/manipulate dsets                                ::  2 :: 3drename  
 Copy/convert/manipulate dsets                                ::  2 :: 3ddup                               ::  1 :: Make an 'empty' duplicate (warp-on-demand) of a dataset
 Copy/convert/manipulate dsets                                ::  2 :: 3dTwotoComplex                      ::  1 :: Create complex dataset from two sub-bricks
 Copy/convert/manipulate dsets                                ::  2 :: 3dEmpty                             ::  1 :: Create header file only for specified dimensions
-Copy/convert/manipulate dsets                                ::  2 :: 3dVecRGB_to_HSL                     ::  1 :: convert RGB coloration to HSL values; typically intermed step in viewing prob. tracking results.
+Copy/convert/manipulate dsets                                ::  2 :: 3dVecRGB_to_HSL                     ::  1 :: Convert RGB coloration to HSL values; typically intermed step in viewing prob. tracking results.
 Copy/convert/manipulate dsets                                ::  2 :: 3dMaskToASCII                       ::  1 ::                               
 Changing dset spatial structure                              ::  2 :: 3dLRflip                            ::  3 :: Flip dataset contents Left <-> Right
-Changing dset spatial structure                              ::  2 :: fat_proc_axialize_anat              ::  3 :: rotate brain to have standard viewing planes along slices
+Changing dset spatial structure                              ::  2 :: fat_proc_axialize_anat              ::  3 :: Rotate brain to have standard viewing planes along slices
 Changing dset spatial structure                              ::  2 :: 3daxialize                          ::  1 :: Rewrite dataset with slices in different direction
 Changing dset spatial structure                              ::  2 :: 3dresample                          ::  1 :: Rewrite dataset in new orientation, with new voxel size
 Change dset temporal structure                               ::  2 :: 3dUpsample                          ::  1 :: Upsample in time (to a shorter TR)
-Supplementary/open programs included in AFNI                 ::  1 :: cjpeg                               ::  1 :: compress an image file to a JPEG file
-Supplementary/open programs included in AFNI                 ::  1 :: djpeg                               ::  1 :: decompress a JPEG file to an image file
-Supplementary/open programs included in AFNI                 ::  1 :: mpeg_encode                         ::  1 :: convert sequence of images into MPEG movie
-Supplementary/open programs included in AFNI                 ::  1 :: whirlgif                            ::  1 :: concatenate series of GIFs into a single one
+Supplementary/open programs included in AFNI                 ::  1 :: cjpeg                               ::  1 :: Compress an image file to a JPEG file
+Supplementary/open programs included in AFNI                 ::  1 :: djpeg                               ::  1 :: Decompress a JPEG file to an image file
+Supplementary/open programs included in AFNI                 ::  1 :: mpeg_encode                         ::  1 :: Convert sequence of images into MPEG movie
+Supplementary/open programs included in AFNI                 ::  1 :: whirlgif                            ::  1 :: Concatenate series of GIFs into a single one
 Supplemental/underlying programs (no desc needed)            ::  1 :: @global_parse                       ::  1 ::                               
 Supplemental/underlying programs (no desc needed)            ::  1 :: lib_afni1D.py                       ::  1 ::                               
 Supplemental/underlying programs (no desc needed)            ::  1 :: afni_util.py                        ::  1 ::                               
@@ -456,15 +457,15 @@ Simulate/generate dsets                                      ::  1 :: quick.alph
 Simulate/generate dsets                                      ::  1 :: 3dConvolve                          ::  1 :: Simulate datasets via convolution (for testing 3dDeconvolve)
 Simulate/generate dsets                                      ::  1 :: 3dInvFMRI                           ::  1 :: Compute stimulus time series given activation map and 3D+time dataset
 Simulate/generate dsets                                      ::  1 :: 3dDTtoNoisyDWI                      ::  1 :: Make a simulated DWI set with random noise, from DT+gradient information
-Simulate/generate dsets                                      ::  1 :: 1dgenARMA11                         ::  1 :: generate synthetic ARMA(1,1) correlated time series, to test 3dREMLfit
+Simulate/generate dsets                                      ::  1 :: 1dgenARMA11                         ::  1 :: Generate synthetic ARMA(1,1) correlated time series, to test 3dREMLfit
 Miscellaneous visualization tools                            ::  1 :: aiv                                 ::  3 :: AFNI Image Viewer program     
 Miscellaneous visualization tools                            ::  1 :: 3dGrayplot                          ::  3 :: Take a 3D+time dataset and make a summary 2D image for data quality review
 Miscellaneous visualization tools                            ::  1 :: plugin(Render[new])                 ::  1 :: Interactive volume rendering  
 Miscellaneous visualization tools                            ::  1 :: plugin(Dataset#N)                   ::  1 :: Graph extra dataset time series in AFNI graph viewer
 Miscellaneous visualization tools                            ::  1 :: afni_open                           ::  1 :: Open various AFNI/SUMA files (*.xmat, *.pdf, etc.)
-Miscellaneous utilities                                      ::  1 :: apsearch                            ::  5 :: simple+approx string searching; used in atlases and helps
+Miscellaneous utilities                                      ::  1 :: apsearch                            ::  5 :: Simple+approx string searching; used in atlases and helps
 Miscellaneous utilities                                      ::  1 :: count                               ::  4 :: Generate numbered strings for command line scripts
-Miscellaneous utilities                                      ::  1 :: afni_history                        ::  4 :: display a log of updates to AFNI code
+Miscellaneous utilities                                      ::  1 :: afni_history                        ::  4 :: Display a log of updates to AFNI code
 Miscellaneous utilities                                      ::  1 :: ccalc                               ::  3 :: A command line calculator (like 3dcalc)
 Miscellaneous utilities                                      ::  1 :: cdf                                 ::  3 :: Compute probabilities, thresholds for standard distributions
 Miscellaneous utilities                                      ::  1 :: byteorder                           ::  1 :: Report the byteorder of the current CPU
