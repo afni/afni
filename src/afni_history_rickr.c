@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25, Apr, 2018, RCR, "meica.py", MINOR, TYPE_BUG_FIX,
+   "deal with numpy update that fails for 'array == None', use 'is None'",
+   "Thanks to dowdlele on MB for noting this and pointing to the emdupre\n"
+   "update on https://github.com/ME-ICA/me-ica."
+ } ,
+
  { 25, Apr, 2018, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
    "python3 compatible as of version 1.0",
    NULL
