@@ -60,7 +60,10 @@ Monday
      - AFNI datasets; image viewer; side controls
        (brightness/contrast, zoom); help; display panel; montage;
        multiple controllers
-   * - AFNI Interactive (Glen)
+   * - `AFNI Interactive (Glen), Pt 1
+       <https://afni.nimh.nih.gov/pub/dist/edu/class_lectures/2017-10-NIH/Day1/AFNI_Interactive_DG_Pt1.mp4>`_,
+       `Pt 2
+       <https://afni.nimh.nih.gov/pub/dist/edu/class_lectures/2017-10-NIH/Day1/AFNI_Interactive_DG_Pt2.mp4>`_
      - `AFNI_interactive2.pdf
        <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/AFNI_interactive2.pdf>`_,
        `afni03_interactive.pdf
@@ -71,7 +74,10 @@ Monday
    * - Single Subject Analysis (Cox)
      - 
      -
-   * - Regression Hands-On (Reynolds)
+   * - `Regression Hands-On (Reynolds), Pt 1
+       <https://afni.nimh.nih.gov/pub/dist/edu/class_lectures/2017-10-NIH/Day1/HandsOn_Regression_RR_Pt1.mp4>`_, 
+       `Pt 2
+       <https://afni.nimh.nih.gov/pub/dist/edu/class_lectures/2017-10-NIH/Day1/HandsOn_Regression_RR_Pt2.mp4>`_ 
      - `afni05_regression.pdf
        <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni05_regression.pdf>`_
      - hands-on: preprocessing overview and simple linear regression example
@@ -90,7 +96,8 @@ Tuesday
    * - Video
      - Associated handouts
      - Contents, notes
-   * - Alignment and Registration, pt1 (Glen)
+   * - `Alignment and Registration, pt1 (Glen)
+       <https://afni.nimh.nih.gov/pub/dist/edu/class_lectures/2017-10-NIH/Day2/Alignment_Registration_DG_Pt1.mp4>`_, 
      - `afni10_volreg_talairach.pdf
        <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni10_volreg_talairach.pdf>`_
      - definitions and overview (rigid; linear affine; motion
@@ -98,7 +105,8 @@ Tuesday
        epi); cost functions (esp. lpc and lpa); cross-modality (anat
        to epi; align_epi_anat.py); programs for visualization of
        alignment
-   * - Alignment and Registration, pt2 (Glen)
+   * - `Alignment and Registration, pt2 (Glen)
+       <https://afni.nimh.nih.gov/pub/dist/edu/class_lectures/2017-10-NIH/Day2/Alignment_Registration_DG_Pt1.mp4>`_, 
      - `afni10_volreg_talairach.pdf
        <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni10_volreg_talairach.pdf>`_
        (`3dQwarp.pdf
@@ -108,12 +116,15 @@ Tuesday
        afni_proc.py alignment; nonlinear warping (3dQwarp);
        blip-up/down (EPI distortion) correction; atlas definitions;
        templates; @auto_tlrc
-   * - FMRI Analysis: Start-to-Middle (Reynolds)
+   * - `FMRI Analysis: Start-to-Middle (Reynolds)
+       <https://afni.nimh.nih.gov/pub/dist/edu/class_lectures/2017-10-NIH/Day2/FMRI_Analysis_STM_RR_Day2_Pt1.mp4>`_, 
+
      - `afni16_start_to_finish.pdf
        <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni16_start_to_finish.pdf>`_
      - hands-on: afni_proc.py; detailed analysis (preprocessing through linear
        regression) of FT_analysis data; looking at data
-   * - FMRI Analysis: Middle-to-End (Reynolds)
+   * - `FMRI Analysis: Middle-to-End (Reynolds)
+       <https://afni.nimh.nih.gov/pub/dist/edu/class_lectures/2017-10-NIH/Day2/FMRI_Analysis_STM_RR_Day2_Pt2.mp4>`_, 
      - `afni16_start_to_finish.pdf
        <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni16_start_to_finish.pdf>`_
      - continuation of Start-to-Middle; @ss_review_driver
@@ -274,20 +285,23 @@ DTI & FATCAT videos
    * - Video
      - Associated handouts
      - Contents, notes
-   * - Background on DWI and DTI (Taylor)
+   * - `Background on DWI and DTI (Taylor)
+       <https://afni.nimh.nih.gov/pub/dist/edu/class_lectures/2017-10-NIH/FATCAT/FATCAT_01.mp4>`_
      - `FATCAT_01_background_dti.pdf
        <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/FATCAT_01_background_dti.pdf>`_
      - what is diffusion; how it is used in MRI to describe structure;
        geometry of DTI parameters; what are DW images; what noise and
        uncertainty features are in DWI/DTI data
-   * - Introduction to DTI tracking (Taylor)
+   * - `Introduction to DTI tracking (Taylor)
+       <https://afni.nimh.nih.gov/pub/dist/edu/class_lectures/2017-10-NIH/FATCAT/FATCAT_02.mp4>`_
      - `FATCAT_02_dti_tracking_intro.pdf
        <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/FATCAT_02_dti_tracking_intro.pdf>`_
      - assumptions in DTI; important scales to understand; AFNI's
        tracking algorithm; different types ("modes") of tracking;
        basic terminology; making targets for tracking; what useful
        quantities to we get out; caveats+philosophical musings
-   * - Practicalities for tractography in AFNI (Taylor)
+   * - `Practicalities for tractography in AFNI (Taylor)
+       <https://afni.nimh.nih.gov/pub/dist/edu/class_lectures/2017-10-NIH/FATCAT/FATCAT_03.mp4>`_
      - `FATCAT_03_dti_tracking_funcs.pdf
        <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/FATCAT_03_dti_tracking_funcs.pdf>`_
      - motivating network-oriented paradigm; combining FMRI and DTI;
@@ -295,14 +309,16 @@ DTI & FATCAT videos
        options for tracking and target-making (with 3dROIMaker);
        @GradFlipTest to check grads; 3dDWUncert for estimating
        parameter uncertainty; extensions to HARDI and connectomes
-   * - Investigating networks with multivariate modeling (Taylor)
+   * - `Investigating networks with multivariate modeling (Taylor)
+       <https://afni.nimh.nih.gov/pub/dist/edu/class_lectures/2017-10-NIH/FATCAT/FATCAT_04.mp4>`_
      - `FATCAT_04_netw_stats_mvm.pdf
        <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/FATCAT_04_netw_stats_mvm.pdf>`_
      - taking tracking outputs for quantitative analysis; tracked
        results into the multivariate modeling (MVM) framework;
        fat_mvm_prep.py and fat_mvm_scripter.py to combine MRI and
        non-MRI data for modeling; example analysis from real study
-   * - FATCAT Hands-On Demo (Taylor)
+   * - `FATCAT Hands-On Demo (Taylor) [first half only, at the moment]
+       <https://afni.nimh.nih.gov/pub/dist/edu/class_lectures/2017-10-NIH/FATCAT/FATCAT_05_HandsOnDemo.mp4>`_
      - `FATCAT_05_HO.pdf
        <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/FATCAT_HO.pdf>`_,
        `suma.pdf
