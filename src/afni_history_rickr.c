@@ -49,6 +49,27 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25, Apr, 2018, RCR, "meica.py", MINOR, TYPE_BUG_FIX,
+   "deal with numpy update that fails for 'array == None', use 'is None'",
+   "Thanks to dowdlele on MB for noting this and pointing to the emdupre\n"
+   "update on https://github.com/ME-ICA/me-ica."
+ } ,
+
+ { 25, Apr, 2018, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
+   "python3 compatible as of version 1.0",
+   NULL
+ } ,
+
+ { 24, Apr, 2018, RCR, "gen_epi_review.py", MINOR, TYPE_ENHANCE,
+   "python3 compatible as of version 0.4",
+   NULL
+ } ,
+
+ { 24, Apr, 2018, RCR, "auto_warp.py", MINOR, TYPE_ENHANCE,
+   "python3 compatible as of version 0.4",
+   NULL
+ } ,
+
  { 23,  Apr, 2018, RCR, "afni-general", MICRO, TYPE_MODIFY,
    "moved python_scripts/*.py down 1 level, under python_scripts/afni",
    "This is preparation for setup.py and __init__.py to install AFNI's\n"

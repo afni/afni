@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# python3 status: compatible
+
 # system libraries
 import sys, os, glob
 
@@ -202,16 +204,16 @@ def disp_field_help(full=1, update=1):
    if update: update_field_help()
    if full:
       sostr = ' (SO = potential Subject Omission)'
-      print ''
+      print('')
    else: sostr = ''
-   print 'Descriptions for %d fields%s:' % (len(g_basic_help_fields), sostr)
-   if full: print ''
+   print('Descriptions for %d fields%s:' % (len(g_basic_help_fields), sostr))
+   if full: print('')
    jlong = '\n      '
    for field in g_basic_help_fields:
-      print '  %-26s : %s' % (field.name, field.hshort)
+      print('  %-26s : %s' % (field.name, field.hshort))
       if full and len(field.hlong) > 0:
-         print '%s%s\n' % (jlong, jlong.join(field.hlong))
-   if full: print ''
+         print('%s%s\n' % (jlong, jlong.join(field.hlong)))
+   if full: print('')
 
 def update_field_help():
    add_field_help('subject ID', 'subject identifier, used in file names')
@@ -844,9 +846,10 @@ g_history = """
    0.49 Jan 19, 2017: fix for -final_anat (thanks to N Anderson)
    0.50 Mar 30, 2017: clust with AFNI_ORIENT=RAI, to match afni -com SET_DICOM_XYZ
    0.51 May 30, 2017: plot volreg params with enorm/outlier plot
+   1.0  Apr 25, 2018: updated for python3
 """
 
-g_version = "gen_ss_review_scripts.py version 0.51, May 30, 2017"
+g_version = "gen_ss_review_scripts.py version 1.0, April 25, 2018"
 
 g_todo_str = """
    - add @epi_review execution as a run-time choice (in the 'drive' script)?
@@ -900,7 +903,7 @@ class MyInterface:
       vopts.add_opt('-ver', 0, [], helpstr='display the current version number')
 
       # user variable options - add from dictionary
-      ukeys = g_uvar_dict.keys()
+      ukeys = list(g_uvar_dict.keys())
       ukeys.sort()
       for opt in ukeys:
          vopts.add_opt('-'+opt, -1, [], helpstr=g_uvar_dict[opt])
@@ -939,7 +942,7 @@ class MyInterface:
 
       # if no arguments are given, do default processing
       if '-help' in argv:
-         print g_help_string
+         print(g_help_string)
          return 1
 
       if '-help_fields' in argv:
@@ -951,18 +954,18 @@ class MyInterface:
          return 1
 
       if '-help_todo' in argv:
-         print g_todo_str
+         print(g_todo_str)
          return 1
 
       if '-hist' in argv:
-         print g_history
+         print(g_history)
          return 1
 
       if '-show_uvar_dict' in argv:
-         keys = g_uvar_dict.keys()
+         keys = list(g_uvar_dict.keys())
          keys.sort()
          for key in keys:
-            print '   %-20s : %s' % (key, g_uvar_dict[key])
+            print('   %-20s : %s' % (key, g_uvar_dict[key]))
          return 1
 
       if '-show_cvar_defs' in argv:
@@ -978,7 +981,7 @@ class MyInterface:
          return 1
 
       if '-ver' in argv:
-         print g_version
+         print(g_version)
          return 1
 
       # check this before any non-terminal return
@@ -997,7 +1000,7 @@ class MyInterface:
       if val != None and not err: self.cvars.verb = val
 
       # make list to process user vars by name
-      ukeys = g_uvar_dict.keys()
+      ukeys = list(g_uvar_dict.keys())
 
       # convenience
       C = self.cvars
@@ -1060,7 +1063,7 @@ class MyInterface:
                continue
             C.scr_drive = val
          else:
-            print '** unknown option %d: %s' % (oind+1, opt.name)
+            print('** unknown option %d: %s' % (oind+1, opt.name))
             errs += 1
 
       if errs: return -1
@@ -1125,16 +1128,16 @@ class MyInterface:
       if self.find_censor_file():  return 1
 
       if self.cvars.verb > 2:
-         print '-' * 75
+         print('-' * 75)
          self.uvars.show('post-init uvars', name=0)
          self.cvars.show('post-init cvars', name=0)
          for datr in self.dsets.attributes(getall=1):
             obj = self.dsets.val(datr)
             if isinstance(obj, BASE.afni_name):
-               print '-- dset   %-16s : %s' % (datr, obj.pv())
+               print('-- dset   %-16s : %s' % (datr, obj.pv()))
             elif isinstance(obj, LAD.Afni1D):
-               print '-- Afni1D %-16s : %s' % (datr, obj.fname)
-         print '-' * 75
+               print('-- Afni1D %-16s : %s' % (datr, obj.fname))
+         print('-' * 75)
 
       return 0
 
@@ -1163,30 +1166,30 @@ class MyInterface:
       if len(xfiles) == 0: xfiles = glob.glob('*.xmat.1D')
       if len(xfiles) == 0:
          # error is fatal so print message
-         print '** failed to match any x-matrix files'
+         print('** failed to match any x-matrix files')
          return 1
 
       # we have some list now, start looking through them
       use_xmat = ''
       for xfile in xfiles:
          ax = LAD.Afni1D(xfile, verb=0)    # try to load, no whining
-         if verb > 2: print '-- testing xmat file %s' % xfile
+         if verb > 2: print('-- testing xmat file %s' % xfile)
          if ax == None: continue
          if not ax.ready: continue
          if not ax.command: continue
-         if verb > 2: print '-- have command in xmat file'
+         if verb > 2: print('-- have command in xmat file')
 
          # now we have a command
          opt = '-x1D'
          copts = self.find_opt_and_params(ax.command, opt, 1)
          if len(copts) < 2:
-            if verb > 2: print '-- no %s option in command, skipping file' % opt
+            if verb > 2: print('-- no %s option in command, skipping file' % opt)
             continue
          xf = copts[1]
 
          if xf not in xfiles:
             if verb > 1:
-               print '-- have "-x1D %s", but no such file' % xf
+               print('-- have "-x1D %s", but no such file' % xf)
                continue
 
          # we have a file to use
@@ -1210,26 +1213,26 @@ class MyInterface:
 
       xb = BASE.afni_name(xname)
       if not xb.exist():
-         print '** X-matrix dataset does not exist: %s' % xname
+         print('** X-matrix dataset does not exist: %s' % xname)
          return 1
 
       ax = LAD.Afni1D(xname, verb=0)
       if ax == None:
-         print '** failed to read X-matrix file %s' % xname
+         print('** failed to read X-matrix file %s' % xname)
          return 1
       if not ax.ready:
-         print '** failed to load X-matrix file %s' % xname
+         print('** failed to load X-matrix file %s' % xname)
          return 1
 
       # set corresponding dset items and then go after uncensored
       if regress:
          self.dsets.xmat_regress = xb
          self.dsets.xmat_ad = ax
-         if self.cvars.verb > 1: print '++ guessing xmat_baisc = %s' % xname
+         if self.cvars.verb > 1: print('++ guessing xmat_baisc = %s' % xname)
       else:
          self.dsets.xmat_uncensored = xb
          self.dsets.xmat_ad_nocen = ax
-         if self.cvars.verb > 1: print '++ guessing xmat_uncensored = %s'%xname
+         if self.cvars.verb > 1: print('++ guessing xmat_uncensored = %s'%xname)
 
       return 0
 
@@ -1242,7 +1245,7 @@ class MyInterface:
       # now try to set uncensored dset (cvar and dset)
       ax = self.dsets.val('xmat_ad')
       if ax == None:
-         print '** no xmat_ad to set xmat_uncensored from'
+         print('** no xmat_ad to set xmat_uncensored from')
          return 1
 
       copts = self.find_opt_and_params(ax.command, '-x1D_uncensored', 1, last=1)
@@ -1252,9 +1255,9 @@ class MyInterface:
          if self.set_xmat_dset_from_name(self.uvars.xmat_uncensored, regress=0):
             return 0  
 
-         if self.cvars.verb > 2: print '-- xmat_uncensored exists = %d' \
-                                       % self.dsets.xmat_uncensored.exist()
-      elif self.cvars.verb > 2: print '-- no uncensored X-matrix'
+         if self.cvars.verb > 2: print('-- xmat_uncensored exists = %d' \
+                                       % self.dsets.xmat_uncensored.exist())
+      elif self.cvars.verb > 2: print('-- no uncensored X-matrix')
 
       return 0  # success
 
@@ -1281,17 +1284,17 @@ class MyInterface:
          glist = UTIL.glob_list_minus_pref_suf(pref, suf)
 
       if len(glist) < 1:
-         print '** guess tcat: failed to determine subject ID from pb00 files'
+         print('** guess tcat: failed to determine subject ID from pb00 files')
          return 0  # non-fatal error
       if len(glist) > 1:
-         print '** warning: guess tcat, non-unique tcat list: %s' % glist
+         print('** warning: guess tcat, non-unique tcat list: %s' % glist)
 
       self.uvars.tcat_dset = pref + glist[0] + suf
       tcat = BASE.afni_name(self.uvars.tcat_dset)
       self.dsets.tcat_dset = tcat
 
       if self.cvars.verb > 1:
-         print '-- tcat dset (exists=%d) = %s' % (tcat.exist(), tcat.pv())
+         print('-- tcat dset (exists=%d) = %s' % (tcat.exist(), tcat.pv()))
 
       return 0
 
@@ -1310,20 +1313,20 @@ class MyInterface:
       sid = ''
 
       if self.dsets.valid('tcat_dset'):
-         if self.cvars.verb > 3: print '-- guessing subj from tcat dset...'
+         if self.cvars.verb > 3: print('-- guessing subj from tcat dset...')
          prefix = self.dsets.tcat_dset.prefix
          if prefix[0:4] != 'pb00':
-            print '** SID: odd tcat dset prefix, %s' % prefix
+            print('** SID: odd tcat dset prefix, %s' % prefix)
             return 1
          posn = prefix.find('r01')
          if posn < 7: # so at least 1 char for $subj
-            print '** SID: odd tcat dset name, %s' % prefix
+            print('** SID: odd tcat dset name, %s' % prefix)
             return 1
 
          sid = prefix[5:posn-1]
 
       else:
-         if self.cvars.verb > 3: print '-- guessing subj from enorm...'
+         if self.cvars.verb > 3: print('-- guessing subj from enorm...')
          gstr = 'motion_*_enorm.1D'
          glist = glob.glob(gstr)
          glen = len(glist)
@@ -1333,10 +1336,10 @@ class MyInterface:
             sid = mfile[7:posn]
 
       if sid == '':
-         print '** failed to guess subject ID'
+         print('** failed to guess subject ID')
          return 1
 
-      if self.cvars.verb > 1: print '++ guessing subject id = %s' % sid
+      if self.cvars.verb > 1: print('++ guessing subject id = %s' % sid)
 
       self.uvars.subj = sid
 
@@ -1352,13 +1355,13 @@ class MyInterface:
       if self.uvar_already_set('num_stim'): return 0
 
       if self.dsets.is_empty('xmat_ad'):
-         print '** no xmat_ad to set num_stim from'
+         print('** no xmat_ad to set num_stim from')
          return 1
 
       self.uvars.num_stim = self.dsets.xmat_ad.nroi
 
       if self.cvars.verb > 1:
-         print '++ guessing num_stim (from X) = %d' % self.uvars.num_stim
+         print('++ guessing num_stim (from X) = %d' % self.uvars.num_stim)
 
       return 0
 
@@ -1372,7 +1375,7 @@ class MyInterface:
       if self.uvar_already_set('rm_trs'): return 0
 
       if self.dsets.is_empty('tcat_dset'):
-         print '** guess rm_trs: no pb00 dset to detect removed TRs'
+         print('** guess rm_trs: no pb00 dset to detect removed TRs')
          return 0  # non-fatal?
 
       cmd = UTIL.get_last_history_command(self.dsets.tcat_dset.pv(), '3dTcat')
@@ -1380,14 +1383,14 @@ class MyInterface:
       intlist = UTIL.decode_1D_ints(intstr)
 
       if len(intlist) == 0:
-         print '** guess rm_trs: failed to find sub-brick selector in 3dTcat'
+         print('** guess rm_trs: failed to find sub-brick selector in 3dTcat')
          return 0  # non-fatal?
 
       self.uvars.rm_trs = intlist[0]
 
       if self.cvars.verb > 1:
-         print '++ guessing rm_trs (from 3dTcat command) = %d' \
-               % self.uvars.rm_trs
+         print('++ guessing rm_trs (from 3dTcat command) = %d' \
+               % self.uvars.rm_trs)
 
       return 0
 
@@ -1404,7 +1407,7 @@ class MyInterface:
       elif self.dsets.is_not_empty('stats_dset'):
          view = self.dsets.stats_dset.view
       else:
-         print '** no stats_dset to get final_view from'
+         print('** no stats_dset to get final_view from')
          view = ''
 
       if len(view) != 5: # maybe surface, go after volreg explicitly for now
@@ -1416,14 +1419,14 @@ class MyInterface:
          if len(glist) > 0: view = vv
 
       if len(view) != 5:
-         print "** could not find view in stats or volreg dsets"
+         print("** could not find view in stats or volreg dsets")
          return 1
 
       self.uvars.final_view = view[1:]
 
       if self.cvars.verb > 1:
-         print '++ guessing final_view (from stats_dset) = %s' \
-               % self.uvars.final_view
+         print('++ guessing final_view (from stats_dset) = %s' \
+               % self.uvars.final_view)
 
       # do a basic test of the subject ID and view
       gform = 'pb*%s?r0*volreg+%s.HEAD' \
@@ -1436,10 +1439,10 @@ class MyInterface:
 
       if len(glist) == 0:
          if self.cvars.verb > 0:
-            print '** warning: failed to test sid/view with dset check on %s' \
-                  % gform
+            print('** warning: failed to test sid/view with dset check on %s' \
+                  % gform)
       elif self.cvars.verb > 2:
-         print '-- found volreg dset in view: %s' % glist[0]
+         print('-- found volreg dset in view: %s' % glist[0])
 
       return 0
 
@@ -1503,7 +1506,7 @@ class MyInterface:
          posn = name.find('_al_junk')
          fname = name[0:posn] + '+%s.HEAD' % self.uvars.final_view
          if self.cvars.verb > 2:
-            print '-- final anat: found %s, trying %s...' % (name, fname)
+            print('-- final anat: found %s, trying %s...' % (name, fname))
          if os.path.isfile(fname):
             self.uvars.final_anat = fname
             self.dsets.final_anat = BASE.afni_name(self.uvars.final_anat)
@@ -1518,7 +1521,7 @@ class MyInterface:
          posn = name.find('_al')
          fname = '%s*.HEAD' % name[0:posn]
          if self.cvars.verb > 2:
-            print '++ found potential anat %s, looking for %s' % (name, fname)
+            print('++ found potential anat %s, looking for %s' % (name, fname))
          glist = glob.glob(fname)
          glen = len(glist)
          if glen == 1:
@@ -1541,7 +1544,7 @@ class MyInterface:
       # find -input for (command line "-prefix rm.resam.anat")
       # rcr - todo
 
-      print '** failed to guess final_anat (continuing)'
+      print('** failed to guess final_anat (continuing)')
 
       return 0
 
@@ -1565,7 +1568,7 @@ class MyInterface:
    def uvar_already_set(self, vname):
       if self.uvars.is_not_empty(vname):
          if self.cvars.verb > 3:
-            print '-- already set: %s = %s' % (vname, self.uvars.val(vname))
+            print('-- already set: %s = %s' % (vname, self.uvars.val(vname)))
          return 1
       return 0
 
@@ -1593,13 +1596,13 @@ class MyInterface:
       # else try using wildcards
       glist = glob.glob('*_al_*+orig.HEAD')
       if self.cvars.verb > 2:
-         print '-- have %d align files via wildcard: %s' % (len(glist), glist)
+         print('-- have %d align files via wildcard: %s' % (len(glist), glist))
       for file in glist:
          if os.path.isfile(file):
             self.uvars.align_anat = gstr
             return 0
 
-      print '** failed to guess align_anat (continuing)'
+      print('** failed to guess align_anat (continuing)')
 
       return 0
 
@@ -1619,7 +1622,7 @@ class MyInterface:
             anat = copts[1]
             aset = BASE.afni_name(anat)
             if aset.exist(): anat = aset.pv() + '.HEAD'
-            if self.cvars.verb > 3: print '== GAFVR %s, %s' % (anat, copts[1])
+            if self.cvars.verb > 3: print('== GAFVR %s, %s' % (anat, copts[1]))
             return anat
 
       # go after adwarp -apar ANAT ...
@@ -1645,7 +1648,7 @@ class MyInterface:
          self.uvars.enorm_dset = glist[0]
          return 0
 
-      print '** failed to find motion enorm dset'
+      print('** failed to find motion enorm dset')
 
       return 1
 
@@ -1662,7 +1665,7 @@ class MyInterface:
          if os.path.isfile(gstr):
             self.uvars.motion_dset = gstr
             if self.cvars.verb > 1:
-               print '-- setting motion_dset = %s' % self.uvars.motion_dset
+               print('-- setting motion_dset = %s' % self.uvars.motion_dset)
             return 0
 
       # else go 1D or text files with motion in the name
@@ -1671,10 +1674,10 @@ class MyInterface:
       if len(glist) > 1:
          self.uvars.motion_dset = glist[0]
          if self.cvars.verb > 1:
-            print '-- guessing motion_dset = %s' % self.uvars.motion_dset
+            print('-- guessing motion_dset = %s' % self.uvars.motion_dset)
          return 0
 
-      print '** failed to find motion parameter dset, continuing...'
+      print('** failed to find motion parameter dset, continuing...')
 
       return 0  # not fatal
 
@@ -1697,7 +1700,7 @@ class MyInterface:
          self.uvars.outlier_dset = glist[0]
          return 0
 
-      print '** failed to find outlier fraction dset'
+      print('** failed to find outlier fraction dset')
 
       return 1
 
@@ -1710,7 +1713,7 @@ class MyInterface:
       gstr = 'full_mask?%s+%s.HEAD' % (self.uvars.subj, self.uvars.final_view)
       glist = glob.glob(gstr)
       if len(glist) == 0:
-         print '** failed to find mask dset, continuing...'
+         print('** failed to find mask dset, continuing...')
          return 0 # failure is not terminal
 
       self.uvars.mask_dset = glist[0]
@@ -1730,7 +1733,7 @@ class MyInterface:
          gstr = '*[tT][sS][nN][rR]*'
          glist = glob.glob(gstr)
       if len(glist) == 0:
-         print '** failed to find tsnr dset, continuing...'
+         print('** failed to find tsnr dset, continuing...')
          return 0 # failure is not terminal
 
       self.uvars.tsnr_dset = glist[0]
@@ -1761,12 +1764,12 @@ class MyInterface:
          gstr = 'errts*.HEAD'
          glist = glob.glob(gstr)
       if len(glist) == 0:
-         print '** failed to find errts dset, continuing...'
+         print('** failed to find errts dset, continuing...')
          return 0 # failure is not terminal
       if len(glist) > 1:
          if self.cvars.verb > 1:
-            print '++ found multiple errts datasets, picking between:\n   ',
-            print '\n   '.join(glist)
+            print('++ found multiple errts datasets, picking between:')
+            print('   ' + '\n   '.join(glist))
          # if multiple and have REML use it
          for ind, gname in enumerate(glist):
             if UTIL.dset_prefix_endswith(gname, '_REML'):
@@ -1794,7 +1797,7 @@ class MyInterface:
       gstr = '*[gG][cC][oO][rR]*.1D'
       glist = glob.glob(gstr)
       if len(glist) == 0:
-         print '** failed to find gcor dset, continuing...'
+         print('** failed to find gcor dset, continuing...')
          return 0 # failure is not terminal
 
       # search for files containing 'out', but default to first
@@ -1843,7 +1846,7 @@ class MyInterface:
          self.dsets.volreg_dset = BASE.afni_name(glist[0])
          return 0
 
-      print '** failed to find volreg dset, continuing...'
+      print('** failed to find volreg dset, continuing...')
 
       return 0 # not failure
 
@@ -1873,11 +1876,11 @@ class MyInterface:
       glist = glob.glob(gstr)
       if len(glist) >= 1:
          if self.cvars.verb > 3:
-            print '-- trying to set sum_ideal from list : %s' % glist
+            print('-- trying to set sum_ideal from list : %s' % glist)
          self.uvars.sum_ideal = glist[0]
          return 0
 
-      print '** failed to guess sum_ideal file, continuing...'
+      print('** failed to guess sum_ideal file, continuing...')
 
       return 0  # non-fatal
 
@@ -1897,7 +1900,7 @@ class MyInterface:
          return 0
 
       if self.dsets.is_empty('xmat_ad'):
-         print '** no xmat_ad to set stats_dset from'
+         print('** no xmat_ad to set stats_dset from')
          return 1
 
       ax = self.dsets.xmat_ad
@@ -1915,7 +1918,7 @@ class MyInterface:
          if posn > 0: gform = copts[1]
          else:        gform = '%s*HEAD' % copts[1]
       else:
-         if self.cvars.verb > 2: print '-- no %s option in command ...' % opt
+         if self.cvars.verb > 2: print('-- no %s option in command ...' % opt)
          gform = 'stats*HEAD'
 
       # now find all datasets, but remove expected REMLvar+VIEW ones
@@ -1923,15 +1926,15 @@ class MyInterface:
       dlist = [d for d in dlist if d.find('_REMLvar') < 0]
 
       if len(dlist) < 1:
-         print '** failed to guess at any stats dset, resting state?'
-         print '   (else X-matrix file "%s" may not apply)' % ax.fname
+         print('** failed to guess at any stats dset, resting state?')
+         print('   (else X-matrix file "%s" may not apply)' % ax.fname)
          self.uvars.stats_dset = 'NO_STATS'
          return 0
       if len(dlist) == 1:
          sset = dlist[0]
       else:     # must pare down the list
          if self.cvars.verb > 3:
-            print '-- found %d potential stats dsets: %s' % (len(dlist), dlist)
+            print('-- found %d potential stats dsets: %s' % (len(dlist), dlist))
          sset = ''
          # take the first one with '_REML', else take the first one
          for dfile in dlist:
@@ -1943,7 +1946,7 @@ class MyInterface:
       self.uvars.stats_dset = sset
 
       if self.cvars.verb > 1:
-         print '++ guessing stats_dset (from X) = %s' % self.uvars.stats_dset
+         print('++ guessing stats_dset (from X) = %s' % self.uvars.stats_dset)
 
       return self.set_stats_dset_from_name(self.uvars.stats_dset)
 
@@ -1952,12 +1955,12 @@ class MyInterface:
 
       sb = BASE.afni_name(sname)
       if not sb.exist():
-         print "** warning: stats dataset not found: '%s'" % sname
+         print("** warning: stats dataset not found: '%s'" % sname)
 
       # set corresponding dset items and then go after uncensored
       self.dsets.stats_dset = sb
       if self.cvars.verb > 1:
-         print '-- setting stats_dset = %s' % (sb.pv() + '.HEAD')
+         print('-- setting stats_dset = %s' % (sb.pv() + '.HEAD'))
 
       return 0
 
@@ -1983,7 +1986,7 @@ class MyInterface:
          # check for -censor option in 3dD command
          ax = self.dsets.val('xmat_ad')
          if ax == None:
-            if self.cvars.verb: print '** no xmat_ad to check censoring with'
+            if self.cvars.verb: print('** no xmat_ad to check censoring with')
             return 1
 
          opt = '-censor'
@@ -1991,7 +1994,7 @@ class MyInterface:
          copts = self.find_opt_and_params(ax.command, opt, 1)
 
          if len(copts) != 2: # no censoring
-            if self.cvars.verb > 1: print '-- no censoring...'
+            if self.cvars.verb > 1: print('-- no censoring...')
             return 0
 
          cset = copts[1]
@@ -2000,18 +2003,18 @@ class MyInterface:
 
       # now apply
       if not os.path.isfile(cset):
-         print '** warning: have censoring in X-matrix, but no censor file'
+         print('** warning: have censoring in X-matrix, but no censor file')
          return 0
       self.uvars.censor_dset = cset
       self.dsets.censor_dset = BASE.afni_name(cset)
       if self.cvars.verb > 1:
-         print '-- setting censor_dset = %s' % cset
+         print('-- setting censor_dset = %s' % cset)
       
       # we should have some limit option
       if self.uvars.is_empty('mot_limit') and \
          self.uvars.is_empty('out_limit'):
-         print '** have censor file %s, but no passed -mot/out_limit' \
-               % copts[1]
+         print('** have censor file %s, but no passed -mot/out_limit' \
+               % copts[1])
 
       return 0
 
@@ -2021,19 +2024,19 @@ class MyInterface:
          if self.make_basic_script(): return 1
          # write to executable text file
          UTIL.write_text_to_file(scr_basic, self.text_basic, exe=1)
-         print '++ writing ss review basic:          %s' % scr_basic
+         print('++ writing ss review basic:          %s' % scr_basic)
 
       scr_drive = self.cvars.val('scr_drive')
       if scr_drive:
          if self.make_drive_script(): return 1
          # write to executable text file
          UTIL.write_text_to_file(scr_drive, self.text_drive, exe=1)
-         print '++ writing ss review driver:         %s' % scr_drive
+         print('++ writing ss review driver:         %s' % scr_drive)
 
       cmds_drive = self.cvars.val('cmds_drive')
       if cmds_drive:
          UTIL.write_text_to_file(cmds_drive, self.commands_drive, exe=1)
-         print '++ writing ss review drive commands: %s' % cmds_drive
+         print('++ writing ss review drive commands: %s' % cmds_drive)
 
       return 0
 
@@ -2128,9 +2131,9 @@ class MyInterface:
          if uvars.valid(var):
             txt += form % (var,self.uvars.val(var))
          elif var in ['rm_trs']: # non-fatal
-            print '** warning: basic script, missing variable %s' % var
+            print('** warning: basic script, missing variable %s' % var)
          else:
-            print '** basic script: missing variable %s' % var
+            print('** basic script: missing variable %s' % var)
             errs += 1
 
       if self.dsets.is_not_empty('censor_dset'):
@@ -2156,7 +2159,7 @@ class MyInterface:
       if uvars.is_not_empty(var):
          txt += form % ('enorm_dset', uvars.val(var))
       else:
-         print '** basic script: missing variable %s' % var
+         print('** basic script: missing variable %s' % var)
          errs += 1
 
       var = 'motion_dset'
@@ -2167,14 +2170,14 @@ class MyInterface:
       if uvars.is_not_empty(var):
          txt += form % ('outlier_dset', uvars.val(var))
       else:
-         print '** basic script: missing variable %s' % var
+         print('** basic script: missing variable %s' % var)
          errs += 1
 
       var = 'xmat_regress'
       if uvars.is_not_empty(var):
          txt += form % ('xmat_regress', uvars.val(var))
       else:
-         print '** basic script: missing variable %s' % var
+         print('** basic script: missing variable %s' % var)
          errs += 1
 
       var = 'stats_dset'
@@ -2347,7 +2350,7 @@ class MyInterface:
       xstim = self.cvars.val('xstim')
 
       if not os.path.isfile(xset):
-         print '** missing X-matrix, cannot drive regress_xmatrix'
+         print('** missing X-matrix, cannot drive regress_xmatrix')
          return 1
 
       txt = 'echo ' + UTIL.section_divider('X-matrix',
@@ -2393,7 +2396,7 @@ class MyInterface:
       xset = self.uvars.val('xmat_regress')
 
       if not os.path.isfile(xset):
-         print '** missing X-matrix, cannot drive regress_warnings'
+         print('** missing X-matrix, cannot drive regress_warnings')
          return 1
 
       txt = 'echo ' + UTIL.section_divider('regession warnings',
@@ -2463,10 +2466,10 @@ class MyInterface:
       """
       fname = self.uvars.val(varname)
       if not fname:
-         if mesg: print '** no %s, %s' % (varname, mesg)
+         if mesg: print('** no %s, %s' % (varname, mesg))
          return 1
       if not os.path.isfile(fname):
-         if mesg: print '** missing %s %s, %s' % (varname, fname, mesg)
+         if mesg: print('** missing %s %s, %s' % (varname, fname, mesg))
          return 1
       return 0
 
@@ -2476,10 +2479,10 @@ class MyInterface:
       """
       dset = self.dsets.val(dname)
       if not dset:
-         if mesg: print '** no %s dset, %s' % (dname, mesg)
+         if mesg: print('** no %s dset, %s' % (dname, mesg))
          return 1
       if not dset.exist():
-         if mesg: print '** missing %s %s, %s' % (dname, dset.prefix, mesg)
+         if mesg: print('** missing %s %s, %s' % (dname, dset.prefix, mesg))
          return 1
       return 0
 
@@ -2529,7 +2532,7 @@ class MyInterface:
 
       # do the dsets exist?
       if self.uvars.is_empty('tsnr_dset') or self.uvars.is_empty('mask_dset'):
-         print '** skipping drive_tsnr'
+         print('** skipping drive_tsnr')
          return 0
 
       tset = self.dsets.tsnr_dset
@@ -2537,13 +2540,13 @@ class MyInterface:
 
       errs = 0
       if not tset.exist():
-         print '** missing TSNR dataset %s' % tset
+         print('** missing TSNR dataset %s' % tset)
          errs += 1
       if not mset.exist():
-         print '** missing mask dataset %s' % mset
+         print('** missing mask dataset %s' % mset)
          errs += 1
       if errs:
-         print '** skipping TSNR review block'
+         print('** skipping TSNR review block')
          return 0
 
       txt = 'echo ' + UTIL.section_divider('temporal signal to noise',
@@ -2578,16 +2581,16 @@ class MyInterface:
 
       errs = 0
       if not os.path.isfile(efile):
-         print '** missing motion file %s' % efile
+         print('** missing motion file %s' % efile)
          errs += 1
       if not os.path.isfile(ofile):
-         print '** missing outlier file %s' % ofile
+         print('** missing outlier file %s' % ofile)
          errs += 1
       if errs: return 1
 
       # don't require motion file
       if not os.path.isfile(mfile):
-         print '** missing volreg motion file %s' % mfile
+         print('** missing volreg motion file %s' % mfile)
          mfile = None
 
       # maybe include -censor option
@@ -2679,12 +2682,12 @@ def main():
    rv = me.process_options()
    if rv > 0: return 0  # valid and exit
    if rv < 0: # error and exit
-      print '** failed to process options...'
+      print('** failed to process options...')
       if me.cvars.exit0: return 0
       return 1
 
    if me.init_basics():
-      print '** failed to init basics...'
+      print('** failed to init basics...')
       if me.cvars.exit0: return 0
       return 1
 
