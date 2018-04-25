@@ -33,7 +33,7 @@ def fitmodels_direct(catd,mmix,mask,t2s,tes,fout=None,reindex=False,mmixN=None,f
 	tsoc_dm = tsoc-tsoc_mean[:,np.newaxis]
 	
 	#Compute un-normalized weight dataset (features)
-	if mmixN == None: mmixN=mmix
+	if mmixN is None: mmixN=mmix
 	WTS = computefeats2(unmask(tsoc,mask),mmixN,mask,normalize=False)
 
 	#Compute PSC dataset - shouldn't have to refit data
