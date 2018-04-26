@@ -68,21 +68,21 @@ set backup_dir = htmldoc.auto_backup.$thedate
 
 echo "Backup directory called: $backup_dir"
 
-# =================== do build ====================
+# =============================================================
 
-### Make preliminary stuff from helpfiles: will open both AFNI and SUMA
-### this way
+# =========================== do build ========================
+
+### Make preliminary stuff from helpfiles: will open both AFNI and
+### SUMA this way
 tcsh @gen_all $gen_all_opts
 
-# ---------------------------------
+# ------------- python stuff --------------------
 cd python_help_scripts
 
-# Make list of All Program Helps
+echo "++ Make list of All Program Helps"
 python help2sphinx.py -OutFolder ../programs
 
-echo "python path: $PYTHONPATH"
-
-# Make classified/groupings stuff
+echo "++ Make classified/groupings stuff"
 set fieldfile = list_STYLED_NEW.txt
 python convert_list_to_fields_pandas.py        \
     list_AFNI_PROGS_classed.txt                \
@@ -91,12 +91,12 @@ python convert_fields_to_rst.py                \
     $fieldfile                                 \
     ../educational/classified_progs.rst
 
-# make AFNI startup tips RST
+echo "++ Make AFNI startup tips RST"
 python make_file_of_startup_tips.py            \
     all_startup_tips.txt                       \
     ../educational/startup_tips.rst
 
-# [PT: Apr 25, 2018] make AFNI colorbars RST
+echo "++ Make AFNI colorbars RST"
 python make_file_of_all_afni_cbars.py          \
     ../educational/media/cbars                 \
     ../educational/all_afni_cbars.rst
@@ -104,13 +104,14 @@ python make_file_of_all_afni_cbars.py          \
 cd ..
 # ---------------------------------
 
-### Build Sphinx.
-# sudo make html
+echo "++ Build Sphinx html"
 make html
 
-### move old documentation to a backupdir
-#mv  /mnt/afni/var/www/html/pub/dist/doc/htmldoc     \
-#    /mnt/afni/var/www/html/pub/dist/doc/$backup_dir
+if ( "$DO_PUSH" == "1" ) then
+    echo "++ Pushin' the docs over to afni (and the World!)."
+    rsync -av --delete _build/html/         \
+        afni.nimh.nih.gov:/fraid/pub/dist/doc/htmldoc
+endif
 
 exit
 
@@ -161,14 +162,31 @@ SHOW_HELP:
 cat << EOF
 -------------------------------------------------------------------------
 
-Build and push AFNI et al. documentation. Umcomment/comment as you
-desire, and run using: 
+Build and push AFNI et al. documentation. 
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+OPTIONS
+
+    -build      :signal doc build; required to do anything 
+
+    -push       :will rsync the docs over to afni
+
+    -gen_all_afni :do the AFNI pictures-help stuff
+    -gen_all_suma :do the SUMA pictures-help stuff
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+RUNNING
 
 To just *build* docs locally:
     do_doc_build_and_copy.tcsh -build
 
 To just build docs locally *and* push:
     do_doc_build_and_copy.tcsh -build -push
+
+To just build docs locally *and* push *and* build AFNI/SUMA picture docs:
+    do_doc_build_and_copy.tcsh -build -push -gen_all_afni -gen_all_suma 
 
 A backup doc dir from the server can be removed later.
 
