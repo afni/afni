@@ -75,6 +75,8 @@ endif
 
 if ( "DO_BUILD" == "1" ) then
 
+    echo "++ Do documentation build!"
+
     ### Make preliminary stuff from helpfiles: will open both AFNI and
     ### SUMA this way
     tcsh @gen_all $gen_all_opts
