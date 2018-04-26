@@ -3,9 +3,10 @@
 # ======================================================================
 
 # variables controlling what gets done; modified by input flags
-set gen_all_opts = ( "-phelp" )
+set gen_all_opts = () #( "-phelp" )
 set DO_BUILD    = 0
 set DO_PUSH     = 0
+set DO_PHELP    = 0    # prob don't need to change with the opt below
 
 # ======================================================================
 
@@ -30,6 +31,11 @@ while ( $ac <= $#argv )
 
     else if ( "$argv[$ac]" == "-gen_all_suma" ) then
         set gen_all_opts = ( $gen_all_opts "-suma" )
+
+    # this is probably never necessary now
+    else if ( "$argv[$ac]" == "-gen_all_phelp" ) then
+        set gen_all_opts = ( $gen_all_opts "-phelp" )
+        set DO_PHELP = 1
 
     else
         echo "\n\n** ERROR: unexpected option #$ac = '$argv[$ac]'\n\n"
@@ -60,6 +66,10 @@ set thedate = `date +%Y_%m_%d`
 set backup_dir = htmldoc.auto_backup.$thedate
 
 # =============================================================
+
+if ( "DO_PHELP" == "1" ) then
+    set gen_all_opts = ( $gen_all_opts "-no_phelp" )
+endif
 
 # =========================== do build ========================
 
