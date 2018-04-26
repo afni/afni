@@ -2789,7 +2789,9 @@ def cmd_combine_tedana(proc, block, method='tedana'):
    prev_prefix = proc.prev_prefix_form_run(block, view=1, eind=-2)
    exoptstr = ''.join(exopts)
 
+   # actually run tedana.py
    cmd =  '# ----- method %s : generate TED (MEICA) results  -----\n\n' \
+          '# first run tedana.py commands, to see if they all succeed\n'\
           'foreach run ( $runs )\n'                                     \
           '   tedana_wrapper.py -input %s \\\n'                         \
           '      -TE $echo_times \\\n'                                  \
@@ -2798,23 +2800,28 @@ def cmd_combine_tedana(proc, block, method='tedana'):
           '      -ted_label r$run \\\n'                                 \
           '%s'                                                          \
           '%s'                                                          \
-          '      -prefix tedprep\n\n'                                   \
+          '      -prefix tedprep\n'                                     \
+          'end\n\n'                                                     \
           % (method, prev_prefix, proc.mask.shortinput(), save_opt, exoptstr)
 
-   # we may have to adjust the view
+   # prepare for fixing view before copying the results back
    if proc.view and (proc.view != '+orig'):
-      ccmd = '\n'                           \
+      rcmt = ' (and fix view)'
+      rcmd = '\n'                                \
              '   # and adjust view from +orig\n' \
              '   3drefit -view %s %s+orig\n' % (proc.view[1:], cur_prefix)
    else:
-      ccmd = ''
+      rcmt = ''
+      rcmd = ''
 
-   cmd += '   # copy result here\n'                            \
-          '   3dcopy tedana_r$run/TED.r$run/dn_ts_OC.nii %s\n' \
-          '%s'                                                 \
-          % (cur_prefix, ccmd)
-
-   cmd += 'end\n\n'
+   # and copy the results back
+   cmd += '# now get the tedana.py results%s\n'                 \
+          'foreach run ( $runs )\n'                             \
+          '   # copy result back here\n'                        \
+          '   3dcopy tedana_r$run/TED.r$run/dn_ts_OC.nii %s\n'  \
+          '%s'                                                  \
+          'end\n\n'                                             \
+          % (rcmt, cur_prefix, rcmd)
 
    return cmd
 
@@ -5530,7 +5537,8 @@ def db_cmd_regress_gcor(proc, block, errts_pre):
     return cmd
 
 
-def set_proc_vr_vall(proc, block, parset=None, newpre='rm.all_runs.volreg'):
+def set_proc_vr_vall(proc, block, parset=None, newpre='rm.all_runs',
+                                               blabel='volreg'):
    """if proc.vr_vall is set, do nothing
       else return string to create it
 
@@ -5543,17 +5551,22 @@ def set_proc_vr_vall(proc, block, parset=None, newpre='rm.all_runs.volreg'):
    # rcr - need more logic to pick block:
    #     - if volreg is before combine or no volreg, use combine
    #     - else use volreg
-   if proc.have_me: vblock = proc.find_block_or_prev('combine', block)
-   else:            vblock = proc.find_block_or_prev('volreg', block)
+   if proc.have_me: blabel = 'combine'
+   else:            blabel = 'volreg'
+   proc.vr_vall_lab = blabel
+
+   vblock = proc.find_block_or_prev(blabel, block)
    if vblock == None:
-      print('** SPVV: failed to find corresponding volreg block')
+      print('** SPVV: failed to find corresponding %s block', blabel)
       return ''
 
-   cmd = '# create catenated volreg dataset\n' \
-         '3dTcat -prefix %s %s\n'              \
-         % (newpre, proc.dset_form_wild(vblock.label))
+   dprefix = '%s.%s' % (newpre, blabel)
 
-   proc.vr_vall = parset.new(newpre)
+   cmd = '# create catenated %s dataset\n'  \
+         '3dTcat -prefix %s %s\n'           \
+         % (blabel, dprefix, proc.dset_form_wild(vblock.label))
+
+   proc.vr_vall = parset.new(dprefix)
 
    return cmd
 
@@ -5613,7 +5626,7 @@ def db_cmd_regress_anaticor(proc, block):
 
     # generate main command string
     if proc.anaticor == 2:
-       vmask = 'rm.all_runs.volreg.mask'
+       vmask = '%s.mask' % proc.vr_vall.prefix
        cmd += '\n# mask white matter before blurring\n'              \
               '3dcalc -a %s -b %s \\\n'                              \
               '       -expr "a*bool(b)" -datum float -prefix %s\n\n' \
@@ -6331,6 +6344,7 @@ def db_cmd_regress_ROI(proc, block):
     # if there is no volreg prefix, get a more recent one
     vr_prefix = proc.volreg_prefix
     if not vr_prefix:
+       # rcr - todo combine
        vblock = proc.find_block_or_prev('volreg', block)
        vr_prefix = proc.prefix_form_run(vblock)
 
