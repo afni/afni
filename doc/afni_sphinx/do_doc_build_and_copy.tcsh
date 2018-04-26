@@ -85,7 +85,9 @@ if ( "$DO_BUILD" == "1" ) then
     cd python_help_scripts
 
     echo "++ Make list of All Program Helps"
-    python help2sphinx.py -OutFolder ../programs
+    set dir_allhelp = "../programs"
+    mkdir -p ${dir_allhelp}
+    python help2sphinx.py -OutFolder ${dir_allhelp}
 
     echo "++ Make classified/groupings stuff"
     set fieldfile = list_STYLED_NEW.txt
