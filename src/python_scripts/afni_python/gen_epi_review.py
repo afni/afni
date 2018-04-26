@@ -166,11 +166,11 @@ g_history = """
     0.1  Jun 27, 2008: initial version
     0.2  Jun 30, 2008:
          - make script executable, decrease sleep time and add usage comment
-    0.3  Sep 23, 2008: 
-         - in script, check for existence of given datasets
+    0.3  Sep 23, 2008: in script, check for existence of given datasets
+    0.4  Apr 24, 2018: updated for python3
 """
 
-g_version = "version 0.3, Sep 23, 2008"
+g_version = "version 0.4, Apr 24, 2018"
 
 gDEF_VERB       = 1             # default verbose level
 gDEF_IM_SIZE    = [300,300]     # image size, in pixels
@@ -261,11 +261,11 @@ class GenEPIReview:
 
         # if argv has only the program name, or user requests help, show it
         if len(sys.argv) <= 1 or '-help' in sys.argv:
-            print g_help_string
+            print(g_help_string)
             return 0
 
         if '-hist' in sys.argv:
-            print g_history
+            print(g_history)
             return 0
 
         if '-show_valid_opts' in sys.argv:      # show all valid options
@@ -273,7 +273,7 @@ class GenEPIReview:
             return 0
 
         if '-ver' in sys.argv:
-            print g_version
+            print(g_version)
             return 0
 
         # ------------------------------------------------------------
@@ -301,7 +301,7 @@ class GenEPIReview:
             self.dsets = opt.parlist
             self.adsets = [BASE.afni_name(s) for s in opt.parlist]
         if len(self.dsets) < 1:
-            print '** missing input dataets'
+            print('** missing input dataets')
             return 1
 
         # ----------------------------------------
@@ -311,15 +311,15 @@ class GenEPIReview:
         if err: return 1
         if self.script == None: self.script = '@review_epi_data'
         if os.path.isfile(self.script):
-            print "** script file '%s' already exists, failing..."      \
-                  % self.script
+            print("** script file '%s' already exists, failing..."      \
+                  % self.script)
             return 1
 
         opt = self.user_opts.find_opt('-windows')
         if opt and opt.parlist:
             self.windows = opt.parlist
         if len(self.windows) < 1:
-            print '** missing window list'
+            print('** missing window list')
             return 1
 
         # ----------------------------------------
@@ -392,7 +392,7 @@ class GenEPIReview:
                % self.adsets[0].prefix
 
         # open windows in the list
-        if self.verb>1: print '++ opening windows: %s' % ', '.join(self.windows)
+        if self.verb>1: print('++ opening windows: %s' % ', '.join(self.windows))
 
         for ind in range(len(self.windows)):
             c2 += '    -com "OPEN_WINDOW %simage  \\\n'                  \
@@ -409,7 +409,7 @@ class GenEPIReview:
 
         c2  = UTIL.add_line_wrappers(c2)  # do it early, for verb
 
-        if self.verb > 2: print 'initial drive command:\n%s' % c2
+        if self.verb > 2: print('initial drive command:\n%s' % c2)
 
         cmd += c2
 
@@ -451,15 +451,15 @@ class GenEPIReview:
 
         fp = open(self.script, "w")
         if not fp:
-            print '** failed to open %s for writing decon script' % self.script
+            print('** failed to open %s for writing decon script' % self.script)
             return 1
 
         fp.write(cmd)
         fp.close()
         try:
-            os.chmod(self.script, 0755)
-        except OSError, e:
-            print e
+            os.chmod(self.script, 0o755)
+        except OSError as e:
+            print(e)
 
         return
 
