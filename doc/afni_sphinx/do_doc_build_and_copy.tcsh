@@ -10,7 +10,8 @@
 #   A backup doc dir from the server can be removed later.
 #
 #######################################################################
-setenv PYTHONPATH /home/ptaylor/afni_src/linux_ubuntu_12_64
+# setenv PYTHONPATH /home/ptaylor/afni_src/linux_ubuntu_12_64
+setenv PYTHONPATH ~/abin
 
 set here = $PWD
 set thedate = `date +%Y_%m_%d`
@@ -21,12 +22,13 @@ echo "Backup directory called: $backup_dir"
 ### Make preliminary stuff from helpfiles: will open both AFNI and SUMA
 ### this way
 #tcsh @gen_all -phelp -suma -afni
+tcsh @gen_all -phelp
 
 # ---------------------------------
 cd python_help_scripts
 
 # Make list of All Program Helps
-#python help2sphinx.py -OutFolder ../programs
+python help2sphinx.py -OutFolder ../programs
 
 echo "python path: $PYTHONPATH"
 
@@ -44,18 +46,17 @@ python make_file_of_startup_tips.py            \
     all_startup_tips.txt                       \
     ../educational/startup_tips.rst
 
-# make AFNI colorbars RST
-python make_file_of_all_afni_cbars.py \
-    ../educational/media/cbars \
+# [PT: Apr 25, 2018] make AFNI colorbars RST
+python make_file_of_all_afni_cbars.py   \
+    ../educational/media/cbars          \
     ../educational/all_afni_cbars.rst
-
+    
 cd ..
 # ---------------------------------
 
 ### Build Sphinx.
-sudo make html
-
-exit
+# sudo make html
+make html
 
 ### move old documentation to a backupdir
 #mv  /mnt/afni/var/www/html/pub/dist/doc/htmldoc     \
@@ -64,8 +65,9 @@ exit
 
 
 ### new documentation ----> slow to RSYNC!
-sudo rsync -av --delete _build/html/                              \
-    /mnt/afni/pub/dist/doc/htmldoc
+# sudo rsync -av --delete _build/html/ /mnt/afni/pub/dist/doc/htmldoc
+rsync -av --delete _build/html/ 	\
+      afni.nimh.nih.gov:/fraid/pub/dist/doc/htmldoc
 
 # OLD
 #rsync -av --delete _build/html/                              \
