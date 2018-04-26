@@ -591,9 +591,12 @@ g_history = """
                        (some old, some new, some red, some blue)
     6.08 Mar  1, 2018: added OC_methods OC_A and OC_B
     6.09 Apr  3, 2018: added -combine_tedana_path
+    6.10 Apr 26, 2018:
+        - run all tedana steps before copying results
+        - adjust labels from combine to volreg
 """
 
-g_version = "version 6.09, Apr 3, 2018"
+g_version = "version 6.10, Apr 26, 2018"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -611,6 +614,7 @@ g_todo_str = """todo:
      - for LA: run all tedana steps before 3dcopy ones
      - update (f)ANATICOR and -mask_import
      - use combine result in -regress_ROI* options
+        - see: rcr - todo combine
      - ** set_proc_vr_vall (and similar), choose between volreg and combine
         - test ROI PC
      - for DH, option to use mask based on last echo (prob int w/anat)
