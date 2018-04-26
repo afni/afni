@@ -26,6 +26,8 @@ Publications with example scripts
 
 ==========
 
-:2016:
+:2018:
 
-   hi
+   .. _public_ex_fmri_2018_TaylorEtal_brief:
+   .. include:: fmri_proc/2018_TaylorEtal/brief.rst
+
