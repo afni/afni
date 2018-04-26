@@ -591,9 +591,12 @@ g_history = """
                        (some old, some new, some red, some blue)
     6.08 Mar  1, 2018: added OC_methods OC_A and OC_B
     6.09 Apr  3, 2018: added -combine_tedana_path
+    6.10 Apr 26, 2018:
+        - run all tedana steps before copying results
+        - adjust labels from combine to volreg
 """
 
-g_version = "version 6.09, Apr 3, 2018"
+g_version = "version 6.10, Apr 26, 2018"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -608,8 +611,13 @@ g_requires_afni = [ \
 
 g_todo_str = """todo:
   - ME:
+     - for LA: run all tedana steps before 3dcopy ones
+     - update (f)ANATICOR and -mask_import
+     - use combine result in -regress_ROI* options
+        - see: rcr - todo combine
      - ** set_proc_vr_vall (and similar), choose between volreg and combine
         - test ROI PC
+     - for DH, option to use mask based on last echo (prob int w/anat)
      - ** write AP regression tests
      x add help for -combine_tedana_path
      x do 'apply catenated xform'
@@ -622,6 +630,8 @@ g_todo_str = """todo:
      - implement case for volreg (without align or tlrc)
         - sooo, initial 3dvolreg output will be changed to garbage?
      x after OC/MEICA, clear use_me
+  - run 3dinfo -av_space to check if anat is already in standard
+    space and the user is also trying to warp it
   - be able to run simple forms of @Align_Centers
   - implement multi-echo OC and possibly meica functionality
   - improve on distortion correction via gentle NL alignment with anat
@@ -747,6 +757,7 @@ class SubjProcSream:
         self.volreg_prefix = ''         # prefix for volreg dataset ($run)
                                         #   (using $subj and $run)
         self.vr_vall    = None          # all runs from volreg block
+        self.vr_vall_lab= 'volreg'      # label for vr_vall (volreg or combine)
         self.mot_labs   = []            # labels for motion params
         # motion parameter file (across all runs)
         self.mot_file   = 'dfile_rall.1D' # either mot_default or mot_extern
@@ -1439,7 +1450,7 @@ class SubjProcSream:
         if self.user_opts.trailers:
             opt = self.user_opts.find_opt('trailers')
             if not opt: print("** seem to have trailers, but cannot find them!")
-            else: print("** have invalid trailing args: %s", opt.show())
+            else: print("** have invalid trailing args: %s" % opt.parlist)
             return 1  # failure
 
         # maybe the users justs wants a complete option list
@@ -2302,6 +2313,13 @@ class SubjProcSream:
         return None
 
     def find_block_index(self, label):
+        block = self.find_block(label)
+        if block: return self.blocks.index(block)
+        return -1
+
+    def find_latest_block(self, lablist):
+        """
+        """
         block = self.find_block(label)
         if block: return self.blocks.index(block)
         return -1

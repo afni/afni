@@ -65,6 +65,9 @@ class Afni1D:
 
       # misc variables (from attributes)
       self.command   = ''       # from CommandLine
+      self.header    = []       # array of extra header (comment) lines
+      self.csimobj   = None     # ClustSim object
+      self.csimstat  = -1       # -1, 0, 1: undef, not csim, is csim
 
       # list variables (from attributes)
       self.havelabs = 0         # did we find any labels
@@ -80,6 +83,8 @@ class Afni1D:
       self.cormat      = None   # correlation mat (normed xtx)
       self.cosmat      = None   # cosine mat (scaled xtx)
       self.cormat_ready = 0     # correlation mat is set
+
+      self.VO          = None   # VarsObject, if set
 
       # initialize...
       if self.fname:
@@ -234,6 +239,9 @@ class Afni1D:
       cols = self.ordered_cols_by_group_list(gnew)
       if self.verb > 1: print('-- red. by glist: cols %s' % cols)
       return self.reduce_by_vec_list(cols)
+
+   def show_header(self):
+      print('\n'.join(self.header))
 
    def show_group_labels(self):
       show_groups = (len(self.groups) == self.nvec)
@@ -1150,6 +1158,180 @@ class Afni1D:
       else:         print(ccount)
 
       return 0
+
+   # ----------------------------------------------------------------------
+   # cluster table functions
+
+   def is_csim_type(self):
+      """test whether this element seems to be a clustsim table"""
+      if len(self.header) < 1:  return 0
+      if len(self.mat) <= 1:    return 0
+
+      if self.csim_fill_obj():  return 0 # if csim, status -> 1
+      if self.csimstat < 1:     return 0
+
+      return 1
+
+   def csim_show_min_clust_size(self, pthr=0.001, alpha=0.05, verb=1):
+      """given pthr/alpha, show min cluster size and cluster details,
+         depending on verb
+
+         verb 0: just print size
+              1: also so attributes
+              2: all debug attributes
+      """
+
+      csize = self.csim_clust_size(pthr, alpha)
+      if verb == 0:
+         print("%s" % csize)
+         return 0
+
+      # else, show more verbose output
+      self.csim_show_attrs(verb=verb)
+      print("    pthr           : %s" % pthr)
+      print("    alpha          : %s" % alpha)
+      print("    min clust nvox : %s" % csize)
+
+      return 0
+
+   def csim_clust_size(self, pthr=0.001, alpha=0.05):
+      """given pthr/alpha, return min clust size
+         return 0 on error"""
+
+      if self.csim_fill_obj():          return 0
+      if not self.csim_has_all_attrs(): return 0
+  
+      # get to work
+      try:
+         pind = self.mat[0].index(pthr)
+      except:
+         print('** uncorrected pthr = %s not in ClustSim table' % pthr)
+         return 0
+
+      try:
+         aind = self.csimobj.avals.index(alpha)
+      except:
+         print('** corrected alpha = %s not in ClustSim table' % alpha)
+         return 0
+
+      try:
+         csize = int(math.ceil(self.mat[aind+1][pind]))
+      except:
+         print("** csim_clust_size: unknown index error")
+         return 0
+
+      return csize
+
+   def csim_show_attrs(self, verb=1):
+      if not self.csim_has_vo():
+         print("** ClustSim: no attribute object")
+         return 1
+
+      if not self.csim_has_all_attrs():
+         print("** ClustSim attributes are missing\n")
+
+      print("")
+
+      if verb > 1:
+         self.csimobj.show()
+
+      print("ClustSim attributes:")
+      print("    neighbors      : NN-%s" % self.csimobj.val('NN'))
+      print("    sidedness      : %s" % self.csimobj.val('sided'))
+      print("    blur est type  : %s" % self.csimobj.val('btype'))
+      print("    grid voxels    : %s" % self.csimobj.val('grid_nvox'))
+      print("    grid vox size  : %s" % self.csimobj.val('grid_vsize'))
+      print("    mask N voxels  : %s" % self.csimobj.val('mask_nvox'))
+      print("")
+
+      return 0
+
+   def csim_has_vo(self):
+      if self.csimstat !=  1:                               return 0
+      if self.VO == None:                                   return 0
+      if not isinstance(self.csimobj, self.VO.VarsObject):  return 0
+      return 1
+
+   def csim_has_all_attrs(self, verb=1):
+      if not self.csim_has_vo(): return 0
+
+      alist = ['command', 'btype', 'bvals', 'sided', 'grid_nvox', 'grid_vsize',
+               'mask_nvox', 'NN', 'avals']
+      cobj = self.csimobj
+      attrs = cobj.attributes()
+      hasall = 1
+      for aname in alist:
+         if not aname in attrs:
+            hasall = 0
+            if verb: print('** csim obj, missing attribute %s' % aname)
+
+      return hasall
+
+   # if we like this, formalize via class ClusterTable, say
+   def csim_fill_obj(self, refill=0):
+      # if not refill and we have set status, there is nothing to do
+      if not refill and self.csimstat != -1:
+         return 0
+
+      # fill as if we have not been here before
+      self.csimstat = 0
+
+      if len(self.header) < 1: return 0
+      if len(self.mat) <= 1:   return 0
+      if not UTIL.starts_with(self.header[0], '# 3dClustSim '): return 0
+
+      try:
+         # try this out, it is separate, so make_random_timing need not import
+         import lib_vars_object as VO
+         self.VO = VO
+         cobj = self.VO.VarsObject()
+         for cline in self.header:
+            csplit = cline.split()
+            if UTIL.starts_with(cline, '# 3dClustSim '):
+               # command, btype, bvals[3]
+               cobj.command = cline[2:]
+               for ind in range(len(csplit)):
+                  # get blur option
+                  if csplit[ind] == '-acf':
+                     cobj.btype = 'ACF'
+                     cobj.bvals = [float(v) for v in csplit[ind+1:ind+4]]
+                  elif csplit[ind] == '-fwhm':
+                     cobj.btype = 'FWHM'
+                     cobj.bvals = [float(v) for v in csplit[ind+1:ind+4]]
+                  elif csplit[ind] == '-fwhmxyz':
+                     cobj.btype = 'acf'
+                     bval = float(csplit[ind+1])
+                     cobj.bvals = [bval, bval, bval]
+                  else:
+                     continue
+                  
+            elif cline.find('thresholding') > 1:
+               cobj.sided = csplit[1]
+
+            elif UTIL.starts_with(cline, '# Grid: '):
+               # grid_nvox, grid_vsize, mask_nvox
+               gline = cline[8:]
+               vind = gline.find(' (')
+               gvals = gline[0:vind].split()
+               cobj.grid_nvox = gvals[0]
+               cobj.grid_vsize = ' '.join(gvals[1:3])
+               msplit = gline[vind+2:].split()
+               cobj.mask_nvox = int(msplit[0])
+               
+            elif UTIL.starts_with(cline, '# -NN '):
+               cobj.NN = int(csplit[2])
+
+            elif UTIL.starts_with(cline, '#  pthr '):
+               cobj.avals = [float(csplit[i]) for i in range(3,len(csplit))]
+         self.csimobj = cobj
+      except:
+         print('** failed to convert 3dClustSim header to object')
+         return 1
+
+      self.csimstat = 1
+      return 0
+
+   # ----------------------------------------------------------------------
 
    def write(self, fname, sep=" ", overwrite=0):
       """write the data to a new .1D file
@@ -2471,7 +2653,10 @@ class Afni1D:
 
       for line in clines:
          label, data = c1D_line2labelNdata(line)
-         if not label: continue
+         if not label:
+            # store all unprocessed comment lines   16 Apr 2018
+            self.header.append(line)
+            continue
 
          verb_level = 3     # cutoff for verbose level
 

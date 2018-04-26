@@ -542,13 +542,17 @@ Usage:
  3dMEMA is a program for performing Mixed Effects Meta Analysis at group level 
  that models both within- and across- subjects variability, thereby requiring
  both regression coefficients, or general linear contrasts among them, and the 
- corresponding t-statistics from each subject as input. It\'s required to install 
- R (https://www.r-project.org/), plus \'snow\' package if parallel computing is
- desirable. Version 1.0.1, Dec 21, 2016. If you want to cite the analysis
- approach, use the following at this moment:
+ corresponding t-statistics from each subject as input.  To get accurate 
+ t-statistics, 3dREMLfit should be used for the linear regression (a GLS
+ regression program using an ARMA(1,1) model for the noise), rather than
+ 3dDeconvolve.
 
- Chen et al., 2012. FMRI Group Analysis Combining Effect Estimates
- and Their Variances. NeuroImage. NeuroImage 60: 747-765.
+ It\'s required to install R (https://www.r-project.org/), plus \'snow\' package
+ if parallel computing is desirable. Version 1.0.1, Dec 21, 2016. If you want to
+ cite the analysis approach, use the following at this moment:
+
+    Chen et al., 2012. FMRI Group Analysis Combining Effect Estimates
+    and Their Variances. NeuroImage. NeuroImage 60: 747-765.
  
  The basic usage of 3dMEMA is to derive group effects of a condition, contrast,
  or linear combination (GLT) of multiple conditions. It can be used to analyze

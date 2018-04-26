@@ -24,24 +24,27 @@ g_help_string = """
 =============================================================================
 1d_tool.py      - for manipulating and evaluating 1D files
 
+---------------------------------------------------------------------------
+purpose: ~1~
+
    This program is meant to read/manipulate/write/diagnose 1D datasets.
    Input can be specified using AFNI sub-brick[]/time{} selectors.
 
 ---------------------------------------------------------------------------
-examples (very basic for now):
+examples (very basic for now): ~1~
 
-   Example 1.  Select by rows and columns, akin to 1dcat.
+   Example 1.  Select by rows and columns, akin to 1dcat. ~2~
 
          1d_tool.py -infile 'data/X.xmat.1D[0..3]{0..5}' -write t1.1D
 
-   Example 2.  Compare with selection by separate options.
+   Example 2.  Compare with selection by separate options. ~2~
 
          1d_tool.py -infile data/X.xmat.1D                  \\
                     -select_cols '0..3' -select_rows '0..5' \\
                     -write t2.1D
          diff t1.1D t2.1D
 
-   Example 2b. Select or remove columns by label prefixes.
+   Example 2b. Select or remove columns by label prefixes. ~2~
 
        Keep only bandpass columns:
 
@@ -60,7 +63,7 @@ examples (very basic for now):
                     -label_prefix_keep Run d a b          \\
                     -label_prefix_drop bandpass
 
-   Example 2c. Select columns by group values, 3 examples.
+   Example 2c. Select columns by group values, 3 examples. ~2~
 
        First be sure of what the group labels represent.
 
@@ -78,32 +81,36 @@ examples (very basic for now):
 
          1d_tool.py -infile X.xmat.1D -select_groups POS 0, -1 -write order.1D
 
-   Example 2d. Select specific runs from the input.  Note that X.xmat.1D may
-        have runs defined automatically, but for an arbitrary input, they may
-        need to be specified via -set_run_lengths.
+   Example 2d. Select specific runs from the input. ~2~
 
-        i) 
+        Note that X.xmat.1D may have runs defined automatically, but for an
+        arbitrary input, they may need to be specified via -set_run_lengths.
+
+        i) .... apparently I forgot to do this...
+
 
          1d_tool.py -infile X.xmat.1D -write X.bandpass.1D    \\
 
-   Example 3.  Transpose a dataset, akin to 1dtranspose.
+   Example 3.  Transpose a dataset, akin to 1dtranspose. ~2~
 
          1d_tool.py -infile t3.1D -transpose -write ttr.1D
 
-   Example 4a. Pad a file of regressors for a single run (#2) with zeros, so
-       that it becomes run 2 of 7 (runs are 1-based).
+   Example 4a. Pad a file of regressors for a single run (#2) with zeros. ~2~
+
+       So that it becomes run 2 of 7 (runs are 1-based).
 
          1d_tool.py -infile ricor_r02.1D -pad_into_many_runs 2 7 \\
                     -write ricor_r02_all.1D
 
-   Example 4b. Similar to 4a, but specify varying TRs per run.  The number of
-       runs must match the number of run_lengths parameters.
+   Example 4b. Similar to 4a, but specify varying TRs per run. ~2~
+
+       The number of runs must match the number of run_lengths parameters.
 
          1d_tool.py -infile ricor_r02.1D -pad_into_many_runs 2 7 \\
                     -set_run_lengths 64 61 67 61 67 61 67        \\
                     -write ricor_r02_all.1D
 
-   Example 5.  Display small details about a 1D dataset:
+   Example 5.  Display small details about a 1D dataset: ~2~
 
        a. Display number of rows and columns for a 1D dataset.
 
@@ -117,58 +124,65 @@ examples (very basic for now):
 
          1d_tool.py -infile X.xmat.1D -show_group_labels
 
-   Example 6a.  Show correlation matrix warnings for this matrix.
+   Example 6a.  Show correlation matrix warnings for this matrix. ~2~
 
          1d_tool.py -infile X.xmat.1D -show_cormat_warnings
 
-   Example 6b.  Show entire correlation matrix.
+   Example 6b.  Show entire correlation matrix. ~2~
 
          1d_tool.py -infile X.xmat.1D -show_cormat
 
-   Example 7a. Output temporal derivative of motion regressors.  There are
-       9 runs in dfile_rall.1D, and derivatives are applied per run.
+   Example 7a. Output temporal derivative of motion regressors. ~2~
+
+       There are 9 runs in dfile_rall.1D, and derivatives are applied per run.
 
          1d_tool.py -infile dfile_rall.1D -set_nruns 9 \\
                     -derivative -write motion.deriv.1D
 
-   Example 7b. Similar to 7a, but let the run lengths vary.  The sum of run
-       lengths should equal the number of time points.
+   Example 7b. Similar to 7a, but let the run lengths vary. ~2~
+
+       The sum of run lengths should equal the number of time points.
 
          1d_tool.py -infile dfile_rall.1D                       \\
                     -set_run_lengths 64 64 64 64 64 64 64 64 64 \\
                     -derivative -write motion.deriv.rlens.1D
 
-   Example 7c. Use forward differences, instead of the default backward
-       differences.
+   Example 7c. Use forward differences. ~2~
+
+       instead of the default backward differences...
 
          1d_tool.py -infile dfile_rall.1D                       \\
                     -set_run_lengths 64 64 64 64 64 64 64 64 64 \\
                     -forward_diff -write motion.deriv.rlens.1D
 
-   Example 8.  Verify whether labels show slice-major ordering (where all
-       slice0 regressors come first, then all slice1 regressors, etc).  Either
-       show the labels and verify visually, or print whether it is true.
+   Example 8.  Verify whether labels show slice-major ordering.
+
+       This is where all slice0 regressors come first, then all slice1
+       regressors, etc.  Either show the labels and verify visually, or
+       print whether it is true.
 
          1d_tool.py -infile scan_2.slibase.1D'[0..12]' -show_labels
          1d_tool.py -infile scan_2.slibase.1D -show_labels
          1d_tool.py -infile scan_2.slibase.1D -show_label_ordering
 
-   Example 9a. Given motion.1D, take the derivative (ignoring run breaks) and
-       the Euclidean Norm, and write as e.norm.1D.  This might be plotted to
-       show show sudden motion as a single time series.
+   Example 9a. Given motion.1D, create an Enorm time series. ~2~
+
+       Take the derivative (ignoring run breaks) and the Euclidean Norm,
+       and write as e.norm.1D.  This might be plotted to show show sudden
+       motion as a single time series.
 
          1d_tool.py -infile motion.1D -set_nruns 9              \\
                     -derivative  -collapse_cols euclidean_norm  \\
                     -write e.norm.1D
 
-   Example 9b. Like 9a, but supposing the run lengths vary (still 576 TRs).
+   Example 9b. Like 9a, but supposing the run lengths vary (still 576 TRs). ~2~
 
          1d_tool.py -infile motion.1D                           \\
                     -set_run_lengths 64 61 67 61 67 61 67 61 67 \\
                     -derivative  -collapse_cols euclidean_norm  \\
                     -write e.norm.rlens.1D
 
-   Example 9c. Like 9b, but weight the rotations as 0.9 mm.
+   Example 9c. Like 9b, but weight the rotations as 0.9 mm. ~2~
 
          1d_tool.py -infile motion.1D                           \\
                     -set_run_lengths 64 61 67 61 67 61 67 61 67 \\
@@ -176,8 +190,9 @@ examples (very basic for now):
                     -weight_vec .9 .9 .9 1 1 1                  \\
                     -write e.norm.weighted.1D
 
-  Example 10.  Given motion.1D, create censor files to use in 3dDeconvolve,
-       where a TR is censored if the derivative values have a Euclidean Norm
+  Example 10.  Given motion.1D, create censor files to use in 3dDeconvolve. ~2~
+    
+       Here a TR is censored if the derivative values have a Euclidean Norm
        above 1.2.  It is common to also censor each previous TR, as motion may
        span both (previous because "derivative" is actually a backward
        difference).
@@ -187,7 +202,7 @@ examples (very basic for now):
        should have the same effect in 3dDeconvolve.  The CENSORTR file is more
        readable, but the censor file is better for plotting against the data.
  
-       a. general example
+       a. general example ~3~
 
           1d_tool.py -infile motion.1D -set_nruns 9     \\
                      -derivative -censor_prev_TR        \\
@@ -197,7 +212,7 @@ examples (very basic for now):
                      -write_censor subjA_censor.1D      \\
                      -write_CENSORTR subjA_CENSORTR.txt
 
-       b. using -censor_motion
+       b. using -censor_motion ~3~
 
           The -censor_motion option is available, which implies '-derivative',
           '-collapse_cols euclidean_norm', 'moderate_mask -LIMIT LIMIT', and the
@@ -210,7 +225,7 @@ examples (very basic for now):
                      -censor_motion 1.2 subjA           \\
                      -censor_prev_TR
 
-       c. allow the run lengths to vary
+       c. allow the run lengths to vary ~3~
 
           1d_tool.py -infile motion.1D                           \\
                      -set_run_lengths 64 61 67 61 67 61 67 61 67 \\
@@ -220,7 +235,7 @@ examples (very basic for now):
 
        Consider also '-censor_prev_TR' and '-censor_first_trs'.
 
-  Example 11.  Demean the data.  Use motion parameters as an example.
+  Example 11.  Demean the data.  Use motion parameters as an example. ~2~
 
        The demean operation is done per run (default is 1 when 1d_tool.py
        does not otherwise know).
@@ -240,7 +255,7 @@ examples (very basic for now):
                 -set_run_lengths 64 61 67 61 67 61 67 61 67 \\
                 -demean -write motion.demean.c.1D
 
-  Example 12.  "Uncensor" the data, zero-padding previously censored TRs.
+  Example 12.  "Uncensor" the data, zero-padding previously censored TRs. ~2~
 
        Note that an X-matrix output by 3dDeconvolve contains censor
        information in GoodList, which is the list of uncensored TRs.
@@ -259,7 +274,7 @@ examples (very basic for now):
          1d_tool.py -censor_fill_parent motion_FT_censor.1D \\
                     -infile cdata.1D -write cdata.zeropad.1D
 
-  Example 13. Show whether the input file is valid as a numeric data file.
+  Example 13. Show whether the input file is valid as a numeric data file. ~2~
 
        a. as any generic 1D file
 
@@ -289,10 +304,11 @@ examples (very basic for now):
           1d_tool.py -infile data.txt -looks_like_test_all \\
                      -set_run_lengths 64 64 64 -set_tr 2
 
-   Example 14. Split motion parameters across runs, but keep them at the
-       original length so they apply to the same multi-run regression.  Each
-       file will be the same as the original for the run it applies to, but
-       zero across all other runs.
+   Example 14. Split motion parameters across runs. ~2~
+
+       Split, but keep them at the original length so they apply to the same
+       multi-run regression.  Each file will be the same as the original for
+       the run it applies to, but zero across all other runs.
 
        Note that -split_into_pad_runs takes the output prefix as a parameter.
 
@@ -309,8 +325,10 @@ examples (very basic for now):
                     -set_nruns 3                        \\
                     -split_into_pad_runs mot.padded
 
-   Example 15a. Show the maximum pairwise displacement in the motion parameter
-       file.  So over all TRs pairs, find the biggest displacement.
+   Example 15a. Show the maximum pairwise displacement. ~2~
+
+       Show the max pairwise displacement in the motion parameter file.
+       So over all TRs pairs, find the biggest displacement.
 
        In one direction it is easy (AP say).  If the minimum AP shift is -0.8
        and the maximum is 1.5, then the maximum displacement is 2.3 mm.  It
@@ -320,12 +338,12 @@ examples (very basic for now):
 
         1d_tool.py -infile dfile_rall.1D -show_max_displace
 
-   Example 15b. Like 15a, but do not include displacement from censored TRs.
+   Example 15b. Like 15a, but do not include displacement from censored TRs. ~2~
 
         1d_tool.py -infile dfile_rall.1D -show_max_displace \\
                    -censor_infile motion_censor.1D
 
-   Example 16. Randomize a list of numbers, say, those from 1..40.
+   Example 16. Randomize a list of numbers, say, those from 1..40. ~2~
 
        The numbers can come from 1deval, with the result piped to
        '1d_tool.py -infile stdin -randomize_trs ...'.
@@ -335,7 +353,7 @@ examples (very basic for now):
 
         See also -seed.
 
-   Example 17. Display min, mean, max, stdev of 1D file.
+   Example 17. Display min, mean, max, stdev of 1D file. ~2~
 
         1d_tool.py -show_mmms -infile data.1D
 
@@ -346,7 +364,7 @@ examples (very basic for now):
         cat subject_results/group.*/sub*/*.results/blur.errts.1D \\
                 | 1d_tool.py -show_mmms -infile -
 
-   Example 18. Just output censor count for default method.
+   Example 18. Just output censor count for default method. ~2~
 
        This will output nothing but the number of TRs that would be censored,
        akin to using -censor_motion and -censor_prev_TR.
@@ -356,7 +374,7 @@ examples (very basic for now):
         1d_tool.py -infile dfile_rall.1D -set_run_lengths 100 80 120 \\
                    -quick_censor_count 0.3
 
-   Example 19. Compute GCOR from some 1D file.
+   Example 19. Compute GCOR from some 1D file. ~2~
 
        * Note, time should be in the vertical direction of the file
          (else use -transpose).
@@ -368,7 +386,7 @@ examples (very basic for now):
         1d_tool.py -infile data.1D -show_gcor_doc
         1d_tool.py -infile data.1D -show_gcor_all
 
-   Example 20. Display censored or uncensored TRs lists (for use in 3dTcat).
+   Example 20. Display censored or uncensored TRs lists (for use in 3dTcat). ~2~
 
        TRs which were censored:
 
@@ -383,7 +401,7 @@ examples (very basic for now):
           1d_tool.py -infile X.xmat.1D -show_trs_uncensored encoded \\
                      -show_trs_run 2
 
-   Example 21. Convert to rank order.
+   Example 21. Convert to rank order. ~2~
 
        a. show rank order of slice times from a 1D file
 
@@ -398,16 +416,16 @@ examples (very basic for now):
          3dinfo -slice_timing epi+orig \\
                 | 1d_tool.py -infile - -rank_style competition -write -
 
-   Example 22. Guess volreg base index from motion parameters.
+   Example 22. Guess volreg base index from motion parameters. ~2~
 
          1d_tool.py -infile dfile_rall.1D -collapse_cols enorm -show_argmin
 
-   Example 23. Convert volreg parameters to those suitable for 3dAllineate.
+   Example 23. Convert volreg parameters to those suitable for 3dAllineate. ~2~
 
          1d_tool.py -infile dfile_rall.1D -volreg2allineate \\
                     -write allin_rall_aff12.1D
 
-   Example 24. Show TR counts per run.
+   Example 24. Show TR counts per run. ~2~
 
         a. list the number of TRs in each run
 
@@ -430,11 +448,11 @@ examples (very basic for now):
           1d_tool.py -infile X.xmat.1D -show_tr_run_counts frac_cen \\
                      -show_trs_run 3
 
-   Example 25. Show number of runs.
+   Example 25. Show number of runs. ~2~
 
           1d_tool.py -infile X.xmat.1D -show_num_runs
 
-   Example 26. Convert global index to run and TR index.
+   Example 26. Convert global index to run and TR index. ~2~
 
        Note that run indices are 1-based, while TR indices are 0-based,
        as usual.  Confusion is key.
@@ -447,7 +465,7 @@ examples (very basic for now):
 
           1d_tool.py -infile X.nocensor.xmat.1D -index_to_run_tr 217
 
-   Example 27. Display length of response curve.
+   Example 27. Display length of response curve. ~2~
 
           1d_tool.py -show_trs_to_zero -infile data.1D
 
@@ -455,7 +473,7 @@ examples (very basic for now):
        values become a constant zero.  Zeros that are followed by non-zero
        values are irrelevant.
 
-   Example 28. convert slice order to slice times.
+   Example 28. Convert slice order to slice times. ~2~
 
        A slice order might be the sequence in which slices were acquired.
        For example, with 33 slices, perhaps the order is:
@@ -474,8 +492,33 @@ examples (very basic for now):
           echo $slice_order | 1d_tool.py -set_tr 2 -slice_order_to_times \\
                                          -infile - -write -
 
+   Example 29. Display minimum cluster size from 3dClustSim output. ~2~
+
+       Given a text file output by 3dClustSim, e.g. ClustSim.ACF.NN1_1sided.1D,
+       and given both an uncorrected (pthr) and a corrected (alpha) p-value,
+       look up the entry that specifies the minimum cluster size needed for
+       corrected p-value significance.
+
+       If requested in afni_proc.py, they are under files_ClustSim.
+
+       a. with modestly verbose output (default is -verb 1)
+
+          1d_tool.py -infile ClustSim.ACF.NN1_1sided.1D -csim_show_clustsize
+
+       b. quiet, to see just the output value
+
+          1d_tool.py -infile ClustSim.ACF.NN1_1sided.1D -csim_show_clustsize \\
+                     -verb 0
+
+       c. quiet, and capture the output value (tcsh syntax)
+
+          set clustsize = `1d_tool.py -infile ClustSim.ACF.NN1_1sided.1D \\
+                                      -csim_show_clustsize -verb 0`
+
 ---------------------------------------------------------------------------
-basic informational options:
+command-line options: ~1~
+---------------------------------------------------------------------------
+basic informational options: ~2~
 
    -help                        : show this help
    -hist                        : show the module history
@@ -483,12 +526,12 @@ basic informational options:
    -ver                         : show the version number
 
 ----------------------------------------
-required input:
+required input: ~2~
 
    -infile DATASET.1D           : specify input 1D file
 
 ----------------------------------------
-general options:
+general options: ~2~
 
    -add_cols NEW_DSET.1D        : extend dset to include these columns
 
@@ -580,10 +623,46 @@ general options:
 
    -censor_first_trs N          : when censoring motion, also censor the first
                                   N TRs of each run
+
    -censor_next_TR              : for each censored TR, also censor next one
                                   (probably for use with -forward_diff)
+
    -censor_prev_TR              : for each censored TR, also censor previous
+
    -cormat_cutoff CUTOFF        : set cutoff for cormat warnings (in [0,1])
+
+   -csim_show_clustsize         : for 3dClustSim input, show min clust size
+
+       Given a 3dClustSim table output (e.g. ClustSim.ACF.NN1_1sided.1D),
+       along with uncorrected (pthr) and corrected (alpha) p-values, show the
+       minimum cluster size to achieve significance.
+
+       The pthr and alpha values can be controlled via the options -csim_pthr
+       and -csim_alpha (with defaults of 0.001 and 0.05, respectively).
+
+       The -verb option can be used to provide additional or no details
+       about the clustering method.
+
+       See Example 29, along with options -csim_pthr, -csim_alpha and -verb.
+
+   -csim_pthr THRESH            : specify uncorrected threshold for csim output
+
+       e.g. -csim_pthr 0.0001
+
+       This option implies -csim_show_clustsize, and is used to specify the
+       uncorrected p-value of the 3dClustSim output.
+
+       See also -csim_show_clustsize.
+
+   -csim_alpha THRESH           : specify corrected threshold for csim output
+
+       e.g. -csim_alpha 0.01
+
+       This option implies -csim_show_clustsize, and is used to specify the
+       corrected, cluster-wise p-value of the 3dClustSim output.
+
+       See also -csim_show_clustsize.
+
    -demean                      : demean each run (new mean of each run = 0.0)
 
    -derivative                  : take the temporal derivative of each vector
@@ -1087,6 +1166,8 @@ class A1DInterface:
       self.censor_next_TR  = 0          # if censor, also censor next TR
       self.censor_prev_TR  = 0          # if censor, also censor previous TR
       self.collapse_method = ''         # method for collapsing columns
+      self.csim_alpha      = 0.05       # corrected   p-value for clust sim
+      self.csim_pthr       = 0.001      # uncorrected p-value for clust sim
       self.demean          = 0          # demean the data
       self.derivative      = 0          # take temporal derivative
       self.direct          = 0          # for deriv: 0=backward diff, 1=forward
@@ -1113,6 +1194,7 @@ class A1DInterface:
       self.show_argmax     = 0          # show index of max arg
       self.show_argmin     = 0          # show index of min arg
       self.show_censor_count= 0         # show count of censored TRs
+      self.show_clustsize  = 0          # show min clust size for corrected p
       self.show_cormat     = 0          # show cormat
       self.show_cormat_warn= 0          # show cormat warnings
       self.show_displace   = 0          # max_displacement (0,1,2)
@@ -1257,6 +1339,15 @@ class A1DInterface:
 
       self.valid_opts.add_opt('-cormat_cutoff', 1, [], 
                       helpstr='set the cutoff for cormat warnings')
+
+      self.valid_opts.add_opt('-csim_show_clustsize', 0, [], 
+                      helpstr='show cluster size, given pthr and alpha')
+
+      self.valid_opts.add_opt('-csim_alpha', 1, [], 
+                      helpstr='set corrected p-value for cluster size')
+
+      self.valid_opts.add_opt('-csim_pthr', 1, [], 
+                      helpstr='set uncorrected p-value for cluster size')
 
       self.valid_opts.add_opt('-demean', 0, [], 
                       helpstr='demean each run of each column')
@@ -1619,6 +1710,21 @@ class A1DInterface:
             else:
                print('** -cormat_cutoff must be in [0,1)')
                return 1
+
+         elif opt.name == '-csim_show_clustsize':
+            self.show_clustsize = 1
+
+         elif opt.name == '-csim_alpha':
+            val, err = uopts.get_type_opt(float, '', opt=opt)
+            if err: return 1
+            self.csim_alpha = val
+            self.show_clustsize = 1
+
+         elif opt.name == '-csim_pthr':
+            val, err = uopts.get_type_opt(float, '', opt=opt)
+            if err: return 1
+            self.csim_pthr = val
+            self.show_clustsize = 1
 
          elif opt.name == '-demean':
             self.demean = 1
@@ -2106,6 +2212,10 @@ class A1DInterface:
       if self.show_trs_uncensored != '': self.show_TR_censor_list(0)
 
       if self.show_censor_count: self.adata.show_censor_count()
+
+      if self.show_clustsize:
+         self.adata.csim_show_min_clust_size(self.csim_pthr, self.csim_alpha,
+                                             verb=self.verb)
 
       if self.show_cormat: self.adata.show_cormat()
 

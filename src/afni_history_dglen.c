@@ -50,6 +50,10 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 23, APR, 2018, DRG, "align_epi_anat.py python3",
+	MICRO, TYPE_MODIFY,
+	"Makes align_epi_anat.py python3 compatible"
+},
 { 28, JAN, 2018, DRG, "@measure_xxx surface object controllers",
 	MICRO, TYPE_BUG_FIX,
 	"keep surface object controllers open in the output suma scripts",
