@@ -2789,7 +2789,9 @@ def cmd_combine_tedana(proc, block, method='tedana'):
    prev_prefix = proc.prev_prefix_form_run(block, view=1, eind=-2)
    exoptstr = ''.join(exopts)
 
+   # actually run tedana.py
    cmd =  '# ----- method %s : generate TED (MEICA) results  -----\n\n' \
+          '# first run tedana.py commands, to see if they all succeed\n'\
           'foreach run ( $runs )\n'                                     \
           '   tedana_wrapper.py -input %s \\\n'                         \
           '      -TE $echo_times \\\n'                                  \
@@ -2798,23 +2800,28 @@ def cmd_combine_tedana(proc, block, method='tedana'):
           '      -ted_label r$run \\\n'                                 \
           '%s'                                                          \
           '%s'                                                          \
-          '      -prefix tedprep\n\n'                                   \
+          '      -prefix tedprep\n'                                     \
+          'end\n\n'                                                     \
           % (method, prev_prefix, proc.mask.shortinput(), save_opt, exoptstr)
 
-   # we may have to adjust the view
+   # prepare for fixing view before copying the results back
    if proc.view and (proc.view != '+orig'):
-      ccmd = '\n'                           \
+      rcmt = ' (and fix view)'
+      rcmd = '\n'                                \
              '   # and adjust view from +orig\n' \
              '   3drefit -view %s %s+orig\n' % (proc.view[1:], cur_prefix)
    else:
-      ccmd = ''
+      rcmt = ''
+      rcmd = ''
 
-   cmd += '   # copy result here\n'                            \
-          '   3dcopy tedana_r$run/TED.r$run/dn_ts_OC.nii %s\n' \
-          '%s'                                                 \
-          % (cur_prefix, ccmd)
-
-   cmd += 'end\n\n'
+   # and copy the results back
+   cmd += '# now get the tedana.py results%s\n'                 \
+          'foreach run ( $runs )\n'                             \
+          '   # copy result back here\n'                        \
+          '   3dcopy tedana_r$run/TED.r$run/dn_ts_OC.nii %s\n'  \
+          '%s'                                                  \
+          'end\n\n'                                             \
+          % (rcmt, cur_prefix, rcmd)
 
    return cmd
 
