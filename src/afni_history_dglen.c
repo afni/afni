@@ -50,6 +50,10 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 26, APR, 2018, DRG, "@surf_to_vol_spackle",
+	MINOR, TYPE_NEW_PROG,
+	"propagate surface to volume and fill holes"
+},
 { 23, APR, 2018, DRG, "align_epi_anat.py python3",
 	MICRO, TYPE_MODIFY,
 	"Makes align_epi_anat.py python3 compatible"
