@@ -285,6 +285,10 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    "         Choose 1 for a single-processor computer.\n", sep = '\n'
                      ) ),
 
+      '-verb' = apl(n = 1, d = 1, h = paste(
+   "-verb VERB: Speicify ver level.\n", sep = '\n'
+                     ) ),
+
       '-model' = apl(n = 1, d = 1, h = paste(
    "-model FORMULA: This option will phase out at some point. So use -bsVars",
    "         instead. Specify the fixed effects for between-subjects factors ",
@@ -666,6 +670,7 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
              prefix = lop$outFN  <- pprefix.AFNI.name(ops[[i]]),
              mask = lop$maskFN <- ops[[i]],
              jobs   = lop$nNodes <- ops[[i]],
+             verb = lop$verb  <- ops[[i]],
              model  = lop$model  <- ops[[i]],
              bsVars = lop$model  <- ops[[i]],
              wsVars = lop$wsVars  <- ops[[i]],

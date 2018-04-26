@@ -74,14 +74,15 @@ master_doc = 'index'
 # Python files
 ##### !!!!!!!!!!!! temp fix, don't know why this won't work with
 ##### !!!!!!!!!!!! subprocess!!
-wafni = "/home/ptaylor/afni_src/linux_ubuntu_12_64/afni"
-#subprocess.check_output("which afni",
-#                                stderr=subprocess.STDOUT,
-#                                shell=True)
+# wafni = "/home/ptaylor/afni_src/linux_ubuntu_12_64/afni"
+# wafni = "/home/afniHQ/abin/afni"
+wafni = subprocess.check_output("which afni",
+                                stderr=subprocess.STDOUT,
+                                shell=True)
 print "++ Path to AFNI_version.txt: \n\t", wafni
 
 # get the version number of AFNI
-fname_version = wafni[:-4]+'AFNI_version.txt'
+fname_version = wafni[:-5]+'AFNI_version.txt'
 fff = open(fname_version, 'r')
 x = fff.readlines()
 fff.close()

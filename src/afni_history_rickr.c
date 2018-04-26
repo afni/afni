@@ -49,6 +49,55 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25, Apr, 2018, RCR, "meica.py", MINOR, TYPE_BUG_FIX,
+   "deal with numpy update that fails for 'array == None', use 'is None'",
+   "Thanks to dowdlele on MB for noting this and pointing to the emdupre\n"
+   "update on https://github.com/ME-ICA/me-ica."
+ } ,
+
+ { 25, Apr, 2018, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
+   "python3 compatible as of version 1.0",
+   NULL
+ } ,
+
+ { 24, Apr, 2018, RCR, "gen_epi_review.py", MINOR, TYPE_ENHANCE,
+   "python3 compatible as of version 0.4",
+   NULL
+ } ,
+
+ { 24, Apr, 2018, RCR, "auto_warp.py", MINOR, TYPE_ENHANCE,
+   "python3 compatible as of version 0.4",
+   NULL
+ } ,
+
+ { 23,  Apr, 2018, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "moved python_scripts/*.py down 1 level, under python_scripts/afni",
+   "This is preparation for setup.py and __init__.py to install AFNI's\n"
+   "python files using pip, and to then load them via 'module load afni'."
+ } ,
+
+ { 18,  Apr, 2018, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "add -csim_show_clustsize and helper options to report cluster requirements",
+   "Given a cluster table output by 3dClustSim, use this option to extract\n"
+   "the mininum cluster size, given uncorrected and corrected p-values.\n"
+   "Use -csim_pthr and -csim_alpha to specify those respective p-values."
+ } ,
+
+ { 16,  Apr, 2018, RCR, "lib_afni1D.py", MICRO, TYPE_ENHANCE,
+   "Afni1D: store array of comment lines in header; add show_header()",
+   NULL
+ } ,
+
+ { 12,  Apr, 2018, RCR, "3dMVM.R", MICRO, TYPE_NEW_OPT,
+   "add -verb option",
+   NULL
+ } ,
+
+ { 12,  Apr, 2018, RCR, "dcm2niix_afni", MAJOR, TYPE_ENHANCE,
+   "version v1.0.20180403, including support for Philips enhanced DICOMs",
+   "Update from C Rorden."
+ } ,
+
  {  5, Apr, 2018, RCR, "uber_subject.py", MICRO, TYPE_MODIFY,
    "always apply -regress_motion_per_run",
    NULL

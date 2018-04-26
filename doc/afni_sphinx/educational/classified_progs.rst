@@ -39,7 +39,7 @@ all AFNI "helps"<programs_main>`.
    * - 5
      - :ref:`suma <ahelp_suma>`
      - GUI-based viewer for exploring data in 3D: surfaces, tracts, graph nodes, and volume slices
-   * - 1
+   * - 2
      - :ref:`aiv <ahelp_aiv>`
      - AFNI Image Viewer program
 
@@ -53,37 +53,40 @@ all AFNI "helps"<programs_main>`.
 
    * - 5
      - :ref:`3dttest++ <ahelp_3dttest++>`
-     - Compute voxelwise t-tests (and GLMs) across collection of datasets
+     - Compute voxelwise t-tests (and GLMs) across collection of datasets (see 3dMEMA for generalizing to include within-subjects variance in model)
    * - 5
      - :ref:`3dTstat <ahelp_3dTstat>`
      - Compute voxelwise statistics of time series datasets (e.g., mean, variance)
    * - 5
      - :ref:`3dMVM <ahelp_3dMVM>`
-     - 
+     - Group-analysis program that performs traditional ANOVA- and ANCOVA style computations, and multivariate modeling
    * - 5
      - :ref:`3dLME <ahelp_3dLME>`
-     - 
+     - Group-analysis program that performs linear mixed-effects (LME) modeling analysis
+   * - 5
+     - :ref:`3dMEMA <ahelp_3dMEMA>`
+     - Group-analysis program that performs Mixed Effects Meta Analysis, modeling both within- and across-subjects variability
    * - 4
      - :ref:`3dMean <ahelp_3dMean>`
      - Compute the average of a number of datasets
    * - 3
+     - :ref:`3dGroupInCorr <ahelp_3dGroupInCorr>`
+     - With a group of dsets, calc voxelwise t-tests on group of corr maps wherever user clicks
+   * - 3
      - :ref:`3dTcorr1D <ahelp_3dTcorr1D>`
-     - correlation coefficient between 3D+time dataset and 1D time series
+     - Correlation coefficient between 3D+time dataset and 1D time series
    * - 3
      - :ref:`3dTcorrMap <ahelp_3dTcorrMap>`
-     - compute average correlation of every voxel with every other
-   * - 1
-     - :ref:`3dGroupInCorr <ahelp_3dGroupInCorr>`
-     - 
+     - Compute average correlation of every voxel with every other
    * - 1
      - :ref:`3dSetupGroupInCorr <ahelp_3dSetupGroupInCorr>`
-     - 
+     - Preliminary program to run when using 3dGroupInCorr
    * - 1
      - :ref:`3dClustSim <ahelp_3dClustSim>`
      - 3Monte Carlo simulation for multiple comparison correction
    * - 1
      - :ref:`3dTcorrelate <ahelp_3dTcorrelate>`
-     - compute correlation between two 3D+time datasets
+     - Compute correlation between two 3D+time datasets
    * - 1
      - :ref:`3dTfitter <ahelp_3dTfitter>`
      - Fit a linear model to each voxel time series, with various methods (L1, L2, LASSO)
@@ -164,7 +167,7 @@ all AFNI "helps"<programs_main>`.
      - Calculate dataset values averaged over a ROI
    * - 4
      - :ref:`3dBrickStat <ahelp_3dBrickStat>`
-     - calculate percentile values within dsets
+     - Calculate percentile values within dsets
    * - 3
      - :ref:`3dUndump <ahelp_3dUndump>`
      - Create dataset from text (inverse of 3dmaskdump)
@@ -236,7 +239,7 @@ all AFNI "helps"<programs_main>`.
      - Align 2 volumes (e.g. anat and EPI)
    * - 5
      - :ref:`3dQwarp <ahelp_3dQwarp>`
-     - align two datasets using nonlinear warping (relatedly, see @SSwarper, auto_warp.py, @toMNI_Qwarpar)
+     - Align two datasets using nonlinear warping (relatedly, see @SSwarper, auto_warp.py, @toMNI_Qwarpar)
    * - 5
      - :ref:`3dAllineate <ahelp_3dAllineate>`
      - Cross-modality affine volume registration
@@ -245,13 +248,13 @@ all AFNI "helps"<programs_main>`.
      - Rewrite dataset in new orientation, with new voxel size
    * - 4
      - :ref:`fat_proc_align_anat_pair <ahelp_fat_proc_align_anat_pair>`
-     - align a T1w dset to a T2w dset, esp. as part of DWI processing and if incorporating FreeSurfer after
+     - Align a T1w dset to a T2w dset, esp. as part of DWI processing and if incorporating FreeSurfer after
    * - 4
      - :ref:`fat_proc_axialize_anat <ahelp_fat_proc_axialize_anat>`
-     - attempt to align major viewing planes of anatomical with FOV, based on WB alignment to a reference vol
+     - Attempt to align major viewing planes of anatomical with FOV, based on WB alignment to a reference vol
    * - 4
      - :ref:`3dNwarpApply <ahelp_3dNwarpApply>`
-     - apply a nonlinear warp to transform a dataset
+     - Apply a nonlinear warp to transform a dataset
    * - 3
      - :ref:`@Align_Centers <ahelp_@Align_Centers>`
      - Align the center of a dataset to another
@@ -287,19 +290,19 @@ all AFNI "helps"<programs_main>`.
      - Align volume from FreeSurfer analysis to a different session's anatomical volume in order to warp surfaces similarly
    * - 1
      - :ref:`3dNwarpAdjust <ahelp_3dNwarpAdjust>`
-     - adjust a collection of nonlinear warps for template building (@toMNI_Qwarpar)
+     - Adjust a collection of nonlinear warps for template building (@toMNI_Qwarpar)
    * - 1
      - :ref:`3dNwarpCalc <ahelp_3dNwarpCalc>`
-     - carry out calculations on nonlinear warps
+     - Carry out calculations on nonlinear warps
    * - 1
      - :ref:`3dNwarpCat <ahelp_3dNwarpCat>`
-     - combine linear and nonlinear warps (spatial transformations)
+     - Combine linear and nonlinear warps (spatial transformations)
    * - 1
      - :ref:`3dNwarpFuncs <ahelp_3dNwarpFuncs>`
-     - compute various voxelwise information about a nonlinear warp (e.g., Jacobian)
+     - Compute various voxelwise information about a nonlinear warp (e.g., Jacobian)
    * - 1
      - :ref:`3dNwarpXYZ <ahelp_3dNwarpXYZ>`
-     - apply a nonlinear warp to a set of (x,y,z) triples
+     - Apply a nonlinear warp to a set of (x,y,z) triples
    * - 1
      - :ref:`3dTagalign <ahelp_3dTagalign>`
      - Align datasets by matching manually placed 'tags'
@@ -314,7 +317,7 @@ all AFNI "helps"<programs_main>`.
      - (obsolete -> use align_epi_anat.py); try to align EPI and structural volumes automatically
    * - 1
      - :ref:`cat_matvec <ahelp_cat_matvec>`
-     - utility for combining linear affine transformation matrices (e.g., from 3dAllineate)
+     - Utility for combining linear affine transformation matrices (e.g., from 3dAllineate)
    * - 1
      - :ref:`adwarp <ahelp_adwarp>`
      - Transform dataset using warp from dataset header
@@ -358,6 +361,9 @@ all AFNI "helps"<programs_main>`.
      - :ref:`@SUMA_Make_Spec_FS <ahelp_@SUMA_Make_Spec_FS>`
      - Convert Freesurfer surfaces to SUMA spec files
    * - 4
+     - :ref:`IsoSurface <ahelp_IsoSurface>`
+     - Extract isosurface from a volume
+   * - 4
      - :ref:`3dSurf2Vol <ahelp_3dSurf2Vol>`
      - Compute volume equivalent from surface or pair of surfaces
    * - 4
@@ -366,12 +372,15 @@ all AFNI "helps"<programs_main>`.
    * - 4
      - :ref:`DriveSuma <ahelp_DriveSuma>`
      - Send commands to SUMA program from script
+   * - 3
+     - :ref:`SurfaceMetrics <ahelp_SurfaceMetrics>`
+     - Provides information on surface mesh
+   * - 3
+     - :ref:`SurfMeasures <ahelp_SurfMeasures>`
+     - Compute various measurements for surface or pair of surfaces
    * - 1
      - :ref:`Surf2VolCoord <ahelp_Surf2VolCoord>`
      - 
-   * - 1
-     - :ref:`SurfaceMetrics <ahelp_SurfaceMetrics>`
-     - Provides information on surface mesh
    * - 1
      - :ref:`SurfClust <ahelp_SurfClust>`
      - Find clusters on surfaces
@@ -390,9 +399,6 @@ all AFNI "helps"<programs_main>`.
    * - 1
      - :ref:`SurfInfo <ahelp_SurfInfo>`
      - Show information on surface
-   * - 1
-     - :ref:`SurfMeasures <ahelp_SurfMeasures>`
-     - Compute various measurements for surface or pair of surfaces
    * - 1
      - :ref:`SurfMesh <ahelp_SurfMesh>`
      - Reduce number of points in surface mesh
@@ -428,10 +434,10 @@ all AFNI "helps"<programs_main>`.
      - 
    * - 1
      - :ref:`quickspec <ahelp_quickspec>`
-     - generate (basic) specification file for running suma
+     - Generate (basic) specification file for running suma
    * - 1
      - :ref:`ROI2dataset <ahelp_ROI2dataset>`
-     - convert ROI (e.g., after drawing) to SUMA-type dset
+     - Convert ROI (e.g., after drawing) to SUMA-type dset
    * - 1
      - :ref:`3dSurfMask <ahelp_3dSurfMask>`
      - Generate volumetric mask for inside of surface
@@ -450,9 +456,6 @@ all AFNI "helps"<programs_main>`.
    * - 1
      - :ref:`MapIcosahedron <ahelp_MapIcosahedron>`
      - Create new version of surface mesh using mesh of icosahedron
-   * - 1
-     - :ref:`IsoSurface <ahelp_IsoSurface>`
-     - Extract isosurface from a volume
    * - 1
      - :ref:`@IsoMasks <ahelp_@IsoMasks>`
      - 
@@ -477,18 +480,21 @@ all AFNI "helps"<programs_main>`.
    * - 5
      - :ref:`3dSkullStrip <ahelp_3dSkullStrip>`
      - Enhanced skull stripping
+   * - 4
+     - :ref:`3dmask_tool <ahelp_3dmask_tool>`
+     - for combining/dilating/eroding/filling masks
+   * - 3
+     - :ref:`@NoisySkullStrip <ahelp_@NoisySkullStrip>`
+     - Strips the skull of anatomical datasets with low SNR
+   * - 3
+     - :ref:`3dSeg <ahelp_3dSeg>`
+     - Segment anatomical (t1w) volume into major brain tissue types
    * - 1
      - :ref:`plugin(Draw Dataset) <ahelp_plugin(Draw Dataset)>`
      - Manually draw ROI mask datasets
    * - 1
-     - :ref:`@NoisySkullStrip <ahelp_@NoisySkullStrip>`
-     - Strips the skull of anatomical datasets with low SNR
-   * - 1
      - :ref:`3dinfill <ahelp_3dinfill>`
-     - well, for editing masks
-   * - 1
-     - :ref:`3dmask_tool <ahelp_3dmask_tool>`
-     - for combining/dilating/eroding/filling masks
+     - Edit masks by filling in holes
    * - 1
      - :ref:`3dIntracranial <ahelp_3dIntracranial>`
      - Strip off outside-the-brain voxels
@@ -498,9 +504,6 @@ all AFNI "helps"<programs_main>`.
    * - 1
      - :ref:`3dClipLevel <ahelp_3dClipLevel>`
      - Find value to threshold off outside-the-brain voxels
-   * - 1
-     - :ref:`3dSeg <ahelp_3dSeg>`
-     - Segment anatomical (t1w) volume into major brain tissue types
 
 
 **Make/edit/evaluate stimulus timing files**
@@ -639,13 +642,13 @@ all AFNI "helps"<programs_main>`.
    :header-rows: 0
    :widths: 5 20 70
 
-   * - 4
+   * - 5
      - :ref:`3dFWHMx <ahelp_3dFWHMx>`
      - Estimate FWHM for all sub-bricks of dataset
-   * - 1
+   * - 3
      - :ref:`3dBrickStat <ahelp_3dBrickStat>`
      - Simple statistics (max, min, mean) for scripts
-   * - 1
+   * - 2
      - :ref:`3dExtrema <ahelp_3dExtrema>`
      - Find local maxima (or minima) of datasets
    * - 1
@@ -693,21 +696,21 @@ all AFNI "helps"<programs_main>`.
    :header-rows: 0
    :widths: 5 20 70
 
-   * - 1
+   * - 4
      - :ref:`3dedge3 <ahelp_3dedge3>`
-     - calculate edges in 3D
-   * - 1
+     - Calculate edges in 3D
+   * - 4
      - :ref:`3danisosmooth <ahelp_3danisosmooth>`
      - Smooth a dataset using an anisotropic technique to preserve edges
-   * - 1
+   * - 4
      - :ref:`3dUnifize <ahelp_3dUnifize>`
      - Correct T1-weighted dataset for non-uniform histogram
+   * - 2
+     - :ref:`3dSharpen <ahelp_3dSharpen>`
+     - 3D sharpening filter applied to a dataset (to clean up a template)
    * - 1
      - :ref:`3dUniformize <ahelp_3dUniformize>`
      - (obsolete -> use 3dUnifize)
-   * - 1
-     - :ref:`3dSharpen <ahelp_3dSharpen>`
-     - 3D sharpening filter applied to a dataset (to clean up a template)
 
 
 **Update AFNI, install software (not demos)**
@@ -719,13 +722,13 @@ all AFNI "helps"<programs_main>`.
 
    * - 5
      - :ref:`@update.afni.binaries <ahelp_@update.afni.binaries>`
-     - update current AFNI binaries
+     - Update current AFNI binaries
    * - 5
      - :ref:`afni_system_check.py <ahelp_afni_system_check.py>`
-     - evaluate present setup
+     - Evaluate present setup
    * - 4
      - :ref:`rPkgsInstall <ahelp_rPkgsInstall>`
-     - get+install all necessary R packages
+     - Get+install all necessary R packages
    * - 1
      - :ref:`@UpdateAfni <ahelp_@UpdateAfni>`
      - (obsolete -> use @update.afni.binaries)
@@ -734,7 +737,7 @@ all AFNI "helps"<programs_main>`.
      - Download an archived version of AFNI source code using github
    * - 1
      - :ref:`afni_vcheck <ahelp_afni_vcheck>`
-     - check if update needed (compare present and available version numbers)
+     - Check if update needed (compare present and available version numbers)
 
 
 **Simple dset calcs (-> make new dsets)**
@@ -756,12 +759,12 @@ all AFNI "helps"<programs_main>`.
    * - 4
      - :ref:`3dMean <ahelp_3dMean>`
      - Average datasets together, voxel-by-voxel, for each timept
+   * - 4
+     - :ref:`3danisosmooth <ahelp_3danisosmooth>`
+     - Edge preserving filter for spatial smoothing
    * - 1
      - :ref:`3dWinsor <ahelp_3dWinsor>`
      - Nonlinear order statistics filter for spatial smoothing
-   * - 1
-     - :ref:`3danisosmooth <ahelp_3danisosmooth>`
-     - Edge preserving filter for spatial smoothing
    * - 1
      - :ref:`3dLocalstat <ahelp_3dLocalstat>`
      - Find simple statistical values for neighborhoods around each voxel
@@ -801,16 +804,16 @@ all AFNI "helps"<programs_main>`.
    :header-rows: 0
    :widths: 5 20 70
 
-   * - 1
+   * - 3
      - :ref:`3dRSFC <ahelp_3dRSFC>`
      - Calculate RSFC parameters (ALFF, fALFF, RSFA, etc.) for uncensored time series
-   * - 1
+   * - 3
      - :ref:`3dReHo <ahelp_3dReHo>`
      - Calculate ReHo (Kendall's coefficient of concordance) for time series
-   * - 1
+   * - 3
      - :ref:`3dLombScargle <ahelp_3dLombScargle>`
      - Calculate amp/pow spectrum (like FFT) along time axis with missing time points
-   * - 1
+   * - 3
      - :ref:`3dAmpToRSFC <ahelp_3dAmpToRSFC>`
      - Calculate RSFC parameters (ALFF, fALFF, RSFA, etc.) from 3dLombScargle output
 
@@ -879,24 +882,24 @@ all AFNI "helps"<programs_main>`.
    :header-rows: 0
    :widths: 5 20 70
 
+   * - 3
+     - :ref:`3dZeropad <ahelp_3dZeropad>`
+     - Add zero slices around the edges of a dataset
+   * - 3
+     - :ref:`3dZcat <ahelp_3dZcat>`
+     - Assemble a 3D+time dataset from multiple input sub-bricks
+   * - 3
+     - :ref:`3dZcutup <ahelp_3dZcutup>`
+     - Cut slices out of a dataset to make a 'thinner' dataset
    * - 1
      - :ref:`3dbucket <ahelp_3dbucket>`
      - Assemble a bucket dataset from multiple input sub-bricks3dTcat
    * - 1
-     - :ref:`3dZeropad <ahelp_3dZeropad>`
-     - Add zero slices around the edges of a dataset
-   * - 1
      - :ref:`3dTsplit4D <ahelp_3dTsplit4D>`
      - Convert a 3D+time dataset into multiple 3D single-brick files
    * - 1
-     - :ref:`3dZcat <ahelp_3dZcat>`
-     - Assemble a 3D+time dataset from multiple input sub-bricks
-   * - 1
      - :ref:`3dAutobox <ahelp_3dAutobox>`
      - Automatically crop a dataset to remove empty space
-   * - 1
-     - :ref:`3dZcutup <ahelp_3dZcutup>`
-     - Cut slices out of a dataset to make a 'thinner' dataset
    * - 1
      - :ref:`3dXYZcat <ahelp_3dXYZcat>`
      - Glue multiple sub-bricks together along the {x|y|z}-axis
@@ -912,30 +915,36 @@ all AFNI "helps"<programs_main>`.
    :header-rows: 0
    :widths: 5 20 70
 
+   * - 5
+     - :ref:`@chauffeur_afni <ahelp_@chauffeur_afni>`
+     - Wrapper to combine environment+driving functionality to save image files of 3D dataset (nice in conjunction with imcat to form arrays of images)
+   * - 5
+     - :ref:`imcat <ahelp_imcat>`
+     - Very useful program for making grids of images and things (nice in conjunction with @chauffeur_afni or generally driving AFNI)
+   * - 5
+     - :ref:`@snapshot_volreg <ahelp_@snapshot_volreg>`
+     - Drive AFNI to save QC images of EPI-anatomical alignment
    * - 4
      - :ref:`DriveSuma <ahelp_DriveSuma>`
      - Drive suma from external program
-   * - 4
-     - :ref:`@chauffeur_afni <ahelp_@chauffeur_afni>`
-     - Wrapper to combine environment+driving functionality to save image files of 3D dataset
-   * - 4
-     - :ref:`@snapshot_volreg <ahelp_@snapshot_volreg>`
-     - Drive AFNI to save QC images of EPI-anatomical alignment
-   * - 1
+   * - 3
+     - :ref:`@Quiet_Talkers <ahelp_@Quiet_Talkers>`
+     - Close all network talking afni and suma instances (often used at end of "talking" scripts)
+   * - 3
+     - :ref:`@djunct_4d_imager <ahelp_@djunct_4d_imager>`
+     - Wrapper to combine environment+driving functionality to save image/movies files of 4D dataset
+   * - 3
+     - :ref:`plugout_drive <ahelp_plugout_drive>`
+     - Drive afni GUI from external program
+   * - 2
      - :ref:`@DriveAfni <ahelp_@DriveAfni>`
      - Example script to drive afni GUI with class data
-   * - 1
-     - :ref:`HalloSuma <ahelp_HalloSuma>`
-     - 
-   * - 1
+   * - 2
      - :ref:`@DriveSuma <ahelp_@DriveSuma>`
      - Example script to drive suma with class data
    * - 1
-     - :ref:`@Quiet_Talkers <ahelp_@Quiet_Talkers>`
-     - kill all network talking afni and suma instances
-   * - 1
-     - :ref:`@djunct_4d_imager <ahelp_@djunct_4d_imager>`
-     - Wrapper to combine environment+driving functionality to save image/movies files of 4D dataset
+     - :ref:`HalloSuma <ahelp_HalloSuma>`
+     - 
    * - 1
      - :ref:`@djunct_calc_mont_dims.py <ahelp_@djunct_calc_mont_dims.py>`
      - Sub-functionality of @djunct_dwi_selector.bash
@@ -945,9 +954,6 @@ all AFNI "helps"<programs_main>`.
    * - 1
      - :ref:`@djunct_select_str.py <ahelp_@djunct_select_str.py>`
      - Sub-functionality of @djunct_dwi_selector.bash
-   * - 1
-     - :ref:`plugout_drive <ahelp_plugout_drive>`
-     - Drive afni GUI from external program
    * - 1
      - :ref:`plugout_ijk <ahelp_plugout_ijk>`
      - 
@@ -1036,6 +1042,33 @@ all AFNI "helps"<programs_main>`.
      - :ref:`3dTrackID <ahelp_3dTrackID>`
      - Perform deterministic, mini- or fully-probabilistic tracking for DTI or HARDI data
    * - 5
+     - :ref:`fat_proc_convert_dcm_anat <ahelp_fat_proc_convert_dcm_anat>`
+     - Wrapper to convert 3D dataset from DICOMs, with additional nice features.
+   * - 5
+     - :ref:`fat_proc_convert_dcm_dwis <ahelp_fat_proc_convert_dcm_dwis>`
+     - Wrapper to convert 4D dataset from DICOMs, with additional nice features.
+   * - 5
+     - :ref:`fat_proc_decmap <ahelp_fat_proc_decmap>`
+     - Make a directionally-encoded color map of DTI data.
+   * - 5
+     - :ref:`fat_proc_dwi_to_dt <ahelp_fat_proc_dwi_to_dt>`
+     - Wrapper to estimate DT and parameters, and align datasets.
+   * - 5
+     - :ref:`fat_proc_filter_dwis <ahelp_fat_proc_filter_dwis>`
+     - Graphical interface to help user select out bad volumes (esp. from DWI dataset)
+   * - 5
+     - :ref:`fat_proc_grad_plot <ahelp_fat_proc_grad_plot>`
+     - In progress...
+   * - 5
+     - :ref:`fat_proc_imit2w_from_t1w <ahelp_fat_proc_imit2w_from_t1w>`
+     - Invert a T1w dataset to imitate a T2w-type contrast dset (as a backup ref for DWI processing with TORTOISE)
+   * - 5
+     - :ref:`fat_proc_map_to_dti <ahelp_fat_proc_map_to_dti>`
+     - Wrapper to bring data (esp. FS surfaces and parcels) into DTI space
+   * - 5
+     - :ref:`fat_proc_select_vols <ahelp_fat_proc_select_vols>`
+     - Select out good valumes in a DWI dataset + associated text files
+   * - 5
      - :ref:`@GradFlipTest <ahelp_@GradFlipTest>`
      - Test what 'flip', if any, is necessary for gradients in a DWI set
    * - 5
@@ -1044,6 +1077,12 @@ all AFNI "helps"<programs_main>`.
    * - 4
      - :ref:`3dDWUncert <ahelp_3dDWUncert>`
      - Estimate uncertainty of FA and V1 of diffusion tensor dataset, for tracking purposes (and see fat_proc_dwi_to_dt)
+   * - 4
+     - :ref:`@fat_tract_colorize <ahelp_@fat_tract_colorize>`
+     - Visualize volumetric output maps from 3dTrackID tracking
+   * - 3
+     - :ref:`fat_roi_row.py <ahelp_fat_roi_row.py>`
+     - Select a single ROI's row out of a connectivity matrix file (*.grid or *.netcc)
    * - 1
      - :ref:`3dDTeig <ahelp_3dDTeig>`
      - Computes eigenvalues and eigenvectors for an input DT set
@@ -1065,39 +1104,6 @@ all AFNI "helps"<programs_main>`.
    * - 1
      - :ref:`@DTI_studio_reposition <ahelp_@DTI_studio_reposition>`
      - (probably obsolete)
-   * - 1
-     - :ref:`fat_proc_convert_dcm_anat <ahelp_fat_proc_convert_dcm_anat>`
-     - Wrapper to convert 3D dataset from DICOMs, with additional nice features.
-   * - 1
-     - :ref:`fat_proc_convert_dcm_dwis <ahelp_fat_proc_convert_dcm_dwis>`
-     - Wrapper to convert 4D dataset from DICOMs, with additional nice features.
-   * - 1
-     - :ref:`fat_proc_decmap <ahelp_fat_proc_decmap>`
-     - Make a directionally-encoded color map of DTI data.
-   * - 1
-     - :ref:`fat_proc_dwi_to_dt <ahelp_fat_proc_dwi_to_dt>`
-     - Wrapper to estimate DT and parameters, and align datasets.
-   * - 1
-     - :ref:`fat_proc_filter_dwis <ahelp_fat_proc_filter_dwis>`
-     - Graphical interface to help user select out bad volumes (esp. from DWI dataset)
-   * - 1
-     - :ref:`fat_proc_grad_plot <ahelp_fat_proc_grad_plot>`
-     - In progress...
-   * - 1
-     - :ref:`fat_proc_imit2w_from_t1w <ahelp_fat_proc_imit2w_from_t1w>`
-     - Invert a T1w dataset to imitate a T2w-type contrast dset (as a backup ref for DWI processing with TORTOISE)
-   * - 1
-     - :ref:`fat_proc_map_to_dti <ahelp_fat_proc_map_to_dti>`
-     - Wrapper to bring data (esp. FS surfaces and parcels) into DTI space
-   * - 1
-     - :ref:`fat_proc_select_vols <ahelp_fat_proc_select_vols>`
-     - Select out good valumes in a DWI dataset + associated text files
-   * - 1
-     - :ref:`fat_roi_row.py <ahelp_fat_roi_row.py>`
-     - Select a single ROI's row out of a connectivity matrix file (*.grid or *.netcc)
-   * - 1
-     - :ref:`@fat_tract_colorize <ahelp_@fat_tract_colorize>`
-     - Visualize volumetric output maps from 3dTrackID tracking
    * - 1
      - :ref:`InstaTract <ahelp_InstaTract>`
      - (intermediate function only)
@@ -1151,6 +1157,24 @@ all AFNI "helps"<programs_main>`.
      - Parse FreeSurfer region labels to get indices
 
 
+**Convert statistics and p-values**
+==============
+
+.. list-table:: 
+   :header-rows: 0
+   :widths: 5 20 70
+
+   * - 4
+     - :ref:`ccalc <ahelp_ccalc>`
+     - A command line calculator (like 3dcalc)
+   * - 4
+     - :ref:`cdf <ahelp_cdf>`
+     - Compute probabilities, thresholds for standard distributions
+   * - 4
+     - :ref:`p2dsetstat <ahelp_p2dsetstat>`
+     - Convert a p-value to a stat, using parameters stored in a dset header
+
+
 **Compare dset volumes (masks or valued)**
 ==============
 
@@ -1158,12 +1182,18 @@ all AFNI "helps"<programs_main>`.
    :header-rows: 0
    :widths: 5 20 70
 
+   * - 5
+     - :ref:`3dABoverlap <ahelp_3dABoverlap>`
+     - Count overlaps between 2 datasets (union, intersection, etc.)
+   * - 5
+     - :ref:`3dSliceNDice <ahelp_3dSliceNDice>`
+     - Calculate Dice coefficients slice-by-slice (for all three FOV planes) between mask dsets.
+   * - 4
+     - :ref:`3dMatch <ahelp_3dMatch>`
+     - Find pairs of similar-looking subbricks between two groups of dsets
    * - 1
      - :ref:`@DiceMetric <ahelp_@DiceMetric>`
      - Computes Dice Coefficient between two datasets
-   * - 1
-     - :ref:`3dMatch <ahelp_3dMatch>`
-     - Find pairs of similar-looking subbricks between two groups of dsets
    * - 1
      - :ref:`3ddot <ahelp_3ddot>`
      - Calculate correlation coefficients between sub-brick pairs in a 4D dset
@@ -1173,9 +1203,6 @@ all AFNI "helps"<programs_main>`.
    * - 1
      - :ref:`3dOverlap <ahelp_3dOverlap>`
      - Count of number of voxels that are nonzero in ALL of the input dataset sub-bricks
-   * - 1
-     - :ref:`3dABoverlap <ahelp_3dABoverlap>`
-     - Count overlaps between 2 datasets (union, intersection, etc.)
 
 
 **Time series pre-processing**
@@ -1221,12 +1248,12 @@ all AFNI "helps"<programs_main>`.
    :header-rows: 0
    :widths: 5 20 70
 
-   * - 1
-     - :ref:`3dDeconvolve <ahelp_3dDeconvolve>`
-     - Multiple linear regression and deconvolution (ordinary least squares)
-   * - 1
+   * - 5
      - :ref:`3dREMLfit <ahelp_3dREMLfit>`
      - Multiple linear regression (generalized least squares)
+   * - 4
+     - :ref:`3dDeconvolve <ahelp_3dDeconvolve>`
+     - Multiple linear regression and deconvolution (ordinary least squares)
    * - 1
      - :ref:`3dNLfim <ahelp_3dNLfim>`
      - Nonlinear regression
@@ -1259,10 +1286,10 @@ all AFNI "helps"<programs_main>`.
      - Interactive nonlinear regression
    * - 1
      - :ref:`3dfim <ahelp_3dfim>`
-     - linear regression (obsolete -> use 3dDeconvolve)
+     - Linear regression (obsolete -> use 3dDeconvolve)
    * - 1
      - :ref:`3dfim+ <ahelp_3dfim+>`
-     - linear regression (obsolete -> use 3dDeconvolve)
+     - Linear regression (obsolete -> use 3dDeconvolve)
    * - 1
      - :ref:`1dNLfit <ahelp_1dNLfit>`
      - Fit a general model to a vector of data
@@ -1280,7 +1307,7 @@ all AFNI "helps"<programs_main>`.
      - Check voxel time series for quality (temporal outliers)
    * - 4
      - :ref:`@radial_correlate <ahelp_@radial_correlate>`
-     - check datasets for correlation artifact
+     - Check datasets for correlation artifact
    * - 4
      - :ref:`gen_ss_review_scripts.py <ahelp_gen_ss_review_scripts.py>`
      - Generate QC review scripts
@@ -1395,6 +1422,18 @@ all AFNI "helps"<programs_main>`.
    :header-rows: 0
    :widths: 5 20 70
 
+   * - 3
+     - :ref:`3dLombScargle <ahelp_3dLombScargle>`
+     - Calculate amp/pow spectrum (like FFT) along time axis with missing time points
+   * - 3
+     - :ref:`3dAmpToRSFC <ahelp_3dAmpToRSFC>`
+     - Calculate RSFC parameters (ALFF, fALFF, RSFA, etc.) from 3dLombScargle output
+   * - 3
+     - :ref:`3dBandpass <ahelp_3dBandpass>`
+     - 
+   * - 3
+     - :ref:`3dRSFC <ahelp_3dRSFC>`
+     - Calculate RSFC parameters (ALFF, fALFF, RSFA, etc.) for uncensored time series
    * - 1
      - :ref:`3dFourier <ahelp_3dFourier>`
      - 
@@ -1405,20 +1444,8 @@ all AFNI "helps"<programs_main>`.
      - :ref:`3dFFT <ahelp_3dFFT>`
      - FFT along spatial axis
    * - 1
-     - :ref:`3dLombScargle <ahelp_3dLombScargle>`
-     - Calculate amp/pow spectrum (like FFT) along time axis with missing time points
-   * - 1
-     - :ref:`3dAmpToRSFC <ahelp_3dAmpToRSFC>`
-     - Calculate RSFC parameters (ALFF, fALFF, RSFA, etc.) from 3dLombScargle output
-   * - 1
      - :ref:`1dBandpass <ahelp_1dBandpass>`
      - 
-   * - 1
-     - :ref:`3dBandpass <ahelp_3dBandpass>`
-     - 
-   * - 1
-     - :ref:`3dRSFC <ahelp_3dRSFC>`
-     - Calculate RSFC parameters (ALFF, fALFF, RSFA, etc.) for uncensored time series
    * - 1
      - :ref:`3dPeriodogram <ahelp_3dPeriodogram>`
      - 
@@ -1437,6 +1464,9 @@ all AFNI "helps"<programs_main>`.
    :header-rows: 0
    :widths: 5 20 70
 
+   * - 3
+     - :ref:`3dHist <ahelp_3dHist>`
+     - Compute histograms using functions for generating priors
    * - 1
      - :ref:`3dAnhist <ahelp_3dAnhist>`
      - Create and plot histogram of dataset, print peaks
@@ -1449,9 +1479,6 @@ all AFNI "helps"<programs_main>`.
    * - 1
      - :ref:`plugin(ScatterPlot) <ahelp_plugin(ScatterPlot)>`
      - Interactively graphs 1 sub-brick vs. another (or ROI)
-   * - 1
-     - :ref:`3dHist <ahelp_3dHist>`
-     - Compute histograms using functions for generating priors
 
 
 **Download/install demos**
@@ -1461,6 +1488,21 @@ all AFNI "helps"<programs_main>`.
    :header-rows: 0
    :widths: 5 20 70
 
+   * - 4
+     - :ref:`@Install_D99_macaque <ahelp_@Install_D99_macaque>`
+     - Install Saleem D99 macaque atlas and template
+   * - 4
+     - :ref:`@Install_DBSproc <ahelp_@Install_DBSproc>`
+     - Install DBS processing pipeline script
+   * - 4
+     - :ref:`@Install_FATCAT_DEMO2 <ahelp_@Install_FATCAT_DEMO2>`
+     - Install newer FATCAT Demo for DTI processing with fat_proc programs (and including TORTOISE and FreeSurfer processing)
+   * - 3
+     - :ref:`@Install_FATCAT_DEMO <ahelp_@Install_FATCAT_DEMO>`
+     - Install original FATCAT Demo for DTI + some FMRI processing
+   * - 3
+     - :ref:`@Install_FATMVM_DEMO <ahelp_@Install_FATMVM_DEMO>`
+     - Install FATCAT+MVM statistical modeling demo, multivariate modeling in conjuction with tractography (also applies to correlation matrices such as from 3dNetCorr)
    * - 1
      - :ref:`@Install_3dPFM_Demo <ahelp_@Install_3dPFM_Demo>`
      - 
@@ -1470,18 +1512,6 @@ all AFNI "helps"<programs_main>`.
    * - 1
      - :ref:`@Install_ClustScat_Demo <ahelp_@Install_ClustScat_Demo>`
      - 
-   * - 1
-     - :ref:`@Install_D99_macaque <ahelp_@Install_D99_macaque>`
-     - Install Saleem D99 macaque atlas and template
-   * - 1
-     - :ref:`@Install_DBSproc <ahelp_@Install_DBSproc>`
-     - Install DBS processing pipeline script
-   * - 1
-     - :ref:`@Install_FATCAT_DEMO <ahelp_@Install_FATCAT_DEMO>`
-     - Install original FATCAT Demo for DTI + some FMRI processing
-   * - 1
-     - :ref:`@Install_FATMVM_DEMO <ahelp_@Install_FATMVM_DEMO>`
-     - Install FATCAT+MVM statistical modeling demo
    * - 1
      - :ref:`@Install_InstaCorr_Demo <ahelp_@Install_InstaCorr_Demo>`
      - Install demo data for InstaCorr, instant correlation
@@ -1512,6 +1542,9 @@ all AFNI "helps"<programs_main>`.
    * - 5
      - :ref:`dcm2niix_afni <ahelp_dcm2niix_afni>`
      - Primary choice for converting DCM files of DWI dsets (and possibly FMRI)
+   * - 3
+     - :ref:`dicom_hinfo <ahelp_dicom_hinfo>`
+     - Print out selected information from a number of DICOM headers
    * - 2
      - :ref:`to3d <ahelp_to3d>`
      - Read image files, write AFNI format datasets (not usually directly used)
@@ -1521,9 +1554,6 @@ all AFNI "helps"<programs_main>`.
    * - 1
      - :ref:`dicom_hdr <ahelp_dicom_hdr>`
      - Print out information from one DICOM header
-   * - 1
-     - :ref:`dicom_hinfo <ahelp_dicom_hinfo>`
-     - Print out selected information from a number of DICOM headers
    * - 1
      - :ref:`dicom_to_raw <ahelp_dicom_to_raw>`
      - For extracting only the binary image data from a DICOM file
@@ -1622,7 +1652,7 @@ all AFNI "helps"<programs_main>`.
      - Create header file only for specified dimensions
    * - 1
      - :ref:`3dVecRGB_to_HSL <ahelp_3dVecRGB_to_HSL>`
-     - convert RGB coloration to HSL values; typically intermed step in viewing prob. tracking results.
+     - Convert RGB coloration to HSL values; typically intermed step in viewing prob. tracking results.
    * - 1
      - :ref:`3dMaskToASCII <ahelp_3dMaskToASCII>`
      - 
@@ -1640,7 +1670,7 @@ all AFNI "helps"<programs_main>`.
      - Flip dataset contents Left <-> Right
    * - 3
      - :ref:`fat_proc_axialize_anat <ahelp_fat_proc_axialize_anat>`
-     - rotate brain to have standard viewing planes along slices
+     - Rotate brain to have standard viewing planes along slices
    * - 1
      - :ref:`3daxialize <ahelp_3daxialize>`
      - Rewrite dataset with slices in different direction
@@ -1670,16 +1700,16 @@ all AFNI "helps"<programs_main>`.
 
    * - 1
      - :ref:`cjpeg <ahelp_cjpeg>`
-     - compress an image file to a JPEG file
+     - Compress an image file to a JPEG file
    * - 1
      - :ref:`djpeg <ahelp_djpeg>`
-     - decompress a JPEG file to an image file
+     - Decompress a JPEG file to an image file
    * - 1
      - :ref:`mpeg_encode <ahelp_mpeg_encode>`
-     - convert sequence of images into MPEG movie
+     - Convert sequence of images into MPEG movie
    * - 1
      - :ref:`whirlgif <ahelp_whirlgif>`
-     - concatenate series of GIFs into a single one
+     - Concatenate series of GIFs into a single one
 
 
 **Supplemental/underlying programs (no desc needed)**
@@ -1733,7 +1763,7 @@ all AFNI "helps"<programs_main>`.
      - Make a simulated DWI set with random noise, from DT+gradient information
    * - 1
      - :ref:`1dgenARMA11 <ahelp_1dgenARMA11>`
-     - generate synthetic ARMA(1,1) correlated time series, to test 3dREMLfit
+     - Generate synthetic ARMA(1,1) correlated time series, to test 3dREMLfit
 
 
 **Miscellaneous visualization tools**
@@ -1743,9 +1773,12 @@ all AFNI "helps"<programs_main>`.
    :header-rows: 0
    :widths: 5 20 70
 
-   * - 1
+   * - 3
      - :ref:`aiv <ahelp_aiv>`
      - AFNI Image Viewer program
+   * - 3
+     - :ref:`3dGrayplot <ahelp_3dGrayplot>`
+     - Take a 3D+time dataset and make a summary 2D image for data quality review
    * - 1
      - :ref:`plugin(Render[new]) <ahelp_plugin(Render[new])>`
      - Interactive volume rendering
@@ -1766,17 +1799,17 @@ all AFNI "helps"<programs_main>`.
 
    * - 5
      - :ref:`apsearch <ahelp_apsearch>`
-     - simple+approx string searching; used in atlases and helps
-   * - 4
-     - :ref:`ccalc <ahelp_ccalc>`
-     - A command line calculator (like 3dcalc)
+     - Simple+approx string searching; used in atlases and helps
    * - 4
      - :ref:`count <ahelp_count>`
      - Generate numbered strings for command line scripts
    * - 4
      - :ref:`afni_history <ahelp_afni_history>`
-     - display a log of updates to AFNI code
-   * - 1
+     - Display a log of updates to AFNI code
+   * - 3
+     - :ref:`ccalc <ahelp_ccalc>`
+     - A command line calculator (like 3dcalc)
+   * - 3
      - :ref:`cdf <ahelp_cdf>`
      - Compute probabilities, thresholds for standard distributions
    * - 1
@@ -1859,9 +1892,6 @@ all AFNI "helps"<programs_main>`.
      - 
    * - 1
      - :ref:`3dmaskSVD <ahelp_3dmaskSVD>`
-     - 
-   * - 1
-     - :ref:`3dMEMA <ahelp_3dMEMA>`
      - 
    * - 1
      - :ref:`3dMSE <ahelp_3dMSE>`
@@ -2051,9 +2081,6 @@ all AFNI "helps"<programs_main>`.
      - 
    * - 1
      - :ref:`imcalc <ahelp_imcalc>`
-     - 
-   * - 1
-     - :ref:`imcat <ahelp_imcat>`
      - 
    * - 1
      - :ref:`imcutup <ahelp_imcutup>`

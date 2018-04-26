@@ -1,7 +1,7 @@
 ++ 6 :: Interactive viewer GUIs
 5 :: afni                :: GUI-based viewer for exploring data primarily as slices
 5 :: suma                :: GUI-based viewer for exploring data in 3D: surfaces, tracts, graph nodes, and volume slices
-1 :: aiv                 :: AFNI Image Viewer program
+2 :: aiv                 :: AFNI Image Viewer program
 
 
 ++ 3 :: Make/edit ROIs and clusters, resample
@@ -22,7 +22,7 @@
 5 :: 3dTstat             :: Various statistics of multi-brick datasets, voxel-by-voxel
 4 :: 3dMean              :: Average datasets together, voxel-by-voxel, for each timept
 1 :: 3dWinsor            :: Nonlinear order statistics filter for spatial smoothing
-1 :: 3danisosmooth       :: Edge preserving filter for spatial smoothing
+4 :: 3danisosmooth       :: Edge preserving filter for spatial smoothing
 1 :: 3dLocalstat         :: Find simple statistical values for neighborhoods around each voxel
 1 :: 3dLocalBistat       :: Compute various bivariate statistics for neighborhoods around each voxel
 1 :: 3dLocalstat         :: Compute some local statistics in a neighborhood around each voxel
@@ -36,9 +36,9 @@
 
 
 ++ 4 :: Compute various numbers from datasets
-1 :: 3dBrickStat         :: Simple statistics (max, min, mean) for scripts
-1 :: 3dExtrema           :: Find local maxima (or minima) of datasets
-4 :: 3dFWHMx             :: Estimate FWHM for all sub-bricks of dataset
+3 :: 3dBrickStat         :: Simple statistics (max, min, mean) for scripts
+2 :: 3dExtrema           :: Find local maxima (or minima) of datasets
+5 :: 3dFWHMx             :: Estimate FWHM for all sub-bricks of dataset
 1 :: 3ddot               :: Dot product (correlation coefficient) of 2 sub-bricks
 1 :: 3dStatClust         :: Find statistically connected clusters
 1 :: 3dGetrow            :: Output voxel values for a row/column in x,y,z space
@@ -53,7 +53,7 @@
 1 :: 3dConvolve           :: Simulate datasets via convolution (for testing 3dDeconvolve)
 1 :: 3dInvFMRI            :: Compute stimulus time series given activation map and 3D+time dataset
 1 :: 3dDTtoNoisyDWI       :: Make a simulated DWI set with random noise, from DT+gradient information
-1 :: 1dgenARMA11          :: generate synthetic ARMA(1,1) correlated time series, to test 3dREMLfit
+1 :: 1dgenARMA11          :: Generate synthetic ARMA(1,1) correlated time series, to test 3dREMLfit
 
 
 ++ 3 :: Deal with 1D time series
@@ -84,7 +84,7 @@
 4 :: 3dROIstats              :: Calculate dataset values from multiple ROIs
 4 :: 3dmaskave               :: Calculate dataset values averaged over a ROI
 1 :: 3dmaskdump              :: Output all dataset values in a ROI
-4 :: 3dBrickStat             :: calculate percentile values within dsets
+4 :: 3dBrickStat             :: Calculate percentile values within dsets
 1 :: 3dMax                   :: (obsolete -> use 3dBrickStat)
 3 :: 3dUndump                :: Create dataset from text (inverse of 3dmaskdump)
 1 :: 3dOverlap               :: Create mask that is overlap of nonzero voxels from multiple datasets
@@ -98,19 +98,20 @@
 
 ++ 5 :: Voxelwise calcs, esp. stats and tests
 4 :: 3dMean                 :: Compute the average of a number of datasets
-5 :: 3dttest++               :: Compute voxelwise t-tests (and GLMs) across collection of datasets
-1 :: 3dGroupInCorr
-1 :: 3dSetupGroupInCorr
+5 :: 3dttest++               :: Compute voxelwise t-tests (and GLMs) across collection of datasets (see 3dMEMA for generalizing to include within-subjects variance in model)
+3 :: 3dGroupInCorr          :: With a group of dsets, calc voxelwise t-tests on group of corr maps wherever user clicks
+1 :: 3dSetupGroupInCorr     :: Preliminary program to run when using 3dGroupInCorr
 1 :: 3dClustSim             :: 3Monte Carlo simulation for multiple comparison correction
 5 :: 3dTstat                :: Compute voxelwise statistics of time series datasets (e.g., mean, variance)
-3 :: 3dTcorr1D              :: correlation coefficient between 3D+time dataset and 1D time series
-1 :: 3dTcorrelate           :: compute correlation between two 3D+time datasets
-3 :: 3dTcorrMap             :: compute average correlation of every voxel with every other
+3 :: 3dTcorr1D              :: Correlation coefficient between 3D+time dataset and 1D time series
+1 :: 3dTcorrelate           :: Compute correlation between two 3D+time datasets
+3 :: 3dTcorrMap             :: Compute average correlation of every voxel with every other
 1 :: 3dTfitter              :: Fit a linear model to each voxel time series, with various methods (L1, L2, LASSO)
 1 :: 3dTfilter              :: Apply a linear filter to each voxel time series (archaic)
 1 :: 3dTsort                :: Sort each voxel’s time series in various ways
-5 :: 3dMVM
-5 :: 3dLME
+5 :: 3dMVM                  :: Group-analysis program that performs traditional ANOVA- and ANCOVA style computations, and multivariate modeling
+5 :: 3dLME                  :: Group-analysis program that performs linear mixed-effects (LME) modeling analysis
+5 :: 3dMEMA                 :: Group-analysis program that performs Mixed Effects Meta Analysis, modeling both within- and across-subjects variability
 1 :: 3dRank
 1 :: 3dRankizer
 1 :: 3dANOVA                :: 1-way ANOVA (fixed effects)
@@ -142,23 +143,23 @@
 3 :: @AddEdge                 :: Show two or more datasets with edges for alignment visualization
 1 :: @align_partial_oblique   :: Align (non-oblique) full- and partial-coverage T1w datasets; consider 3dQwarp instead.
 1 :: @auto_align               :: (obsolete -> use align_epi_anat.py)        
-4 :: fat_proc_align_anat_pair  :: align a T1w dset to a T2w dset, esp. as part of DWI processing and if incorporating FreeSurfer after
-4 :: fat_proc_axialize_anat   :: attempt to align major viewing planes of anatomical with FOV, based on WB alignment to a reference vol
+4 :: fat_proc_align_anat_pair  :: Align a T1w dset to a T2w dset, esp. as part of DWI processing and if incorporating FreeSurfer after
+4 :: fat_proc_axialize_anat   :: Attempt to align major viewing planes of anatomical with FOV, based on WB alignment to a reference vol
 1 :: @SSwarper                :: Skull-stripping program that uses a reference anatomical
 1 :: @SUMA_AlignToExperiment  :: Align volume from FreeSurfer analysis to a different session's anatomical volume in order to warp surfaces similarly
-5 :: 3dQwarp                :: align two datasets using nonlinear warping (relatedly, see @SSwarper, auto_warp.py, @toMNI_Qwarpar)
-1 :: 3dNwarpAdjust            :: adjust a collection of nonlinear warps for template building (@toMNI_Qwarpar)
-4 :: 3dNwarpApply             :: apply a nonlinear warp to transform a dataset
-1 :: 3dNwarpCalc              :: carry out calculations on nonlinear warps
-1 :: 3dNwarpCat               :: combine linear and nonlinear warps (spatial transformations)
-1 :: 3dNwarpFuncs             :: compute various voxelwise information about a nonlinear warp (e.g., Jacobian)
-1 :: 3dNwarpXYZ               :: apply a nonlinear warp to a set of (x,y,z) triples
+5 :: 3dQwarp                :: Align two datasets using nonlinear warping (relatedly, see @SSwarper, auto_warp.py, @toMNI_Qwarpar)
+1 :: 3dNwarpAdjust            :: Adjust a collection of nonlinear warps for template building (@toMNI_Qwarpar)
+4 :: 3dNwarpApply             :: Apply a nonlinear warp to transform a dataset
+1 :: 3dNwarpCalc              :: Carry out calculations on nonlinear warps
+1 :: 3dNwarpCat               :: Combine linear and nonlinear warps (spatial transformations)
+1 :: 3dNwarpFuncs             :: Compute various voxelwise information about a nonlinear warp (e.g., Jacobian)
+1 :: 3dNwarpXYZ               :: Apply a nonlinear warp to a set of (x,y,z) triples
 1 :: 3dTagalign              :: Align datasets by matching manually placed 'tags'
 1 :: plugin(Edit Tagset)     :: Place 'tags' in a dataset interactively
 1 :: 3drotate                :: Rigid body rotation of dataset in 3D
 1 :: 3dAnatNudge              :: (obsolete -> use align_epi_anat.py); try to align EPI and structural volumes automatically
 5 :: 3dAllineate             :: Cross-modality affine volume registration
-1 :: cat_matvec              :: utility for combining linear affine transformation matrices (e.g., from 3dAllineate)
+1 :: cat_matvec              :: Utility for combining linear affine transformation matrices (e.g., from 3dAllineate)
 1 :: adwarp                  :: Transform dataset using warp from dataset header
 1 :: Vecwarp                 :: Transform 3-vectors using warp from dataset header
 1 :: 2dImReg                 :: Slice-by-slice registration (rigid body in 2D)
@@ -174,11 +175,11 @@
 
 ++ 3 :: Update AFNI, install software (not demos)
 1 :: @UpdateAfni                  :: (obsolete -> use @update.afni.binaries)
-5 :: @update.afni.binaries       :: update current AFNI binaries
-4 :: rPkgsInstall                 :: get+install all necessary R packages
-5 :: afni_system_check.py        :: evaluate present setup
+5 :: @update.afni.binaries       :: Update current AFNI binaries
+4 :: rPkgsInstall                 :: Get+install all necessary R packages
+5 :: afni_system_check.py        :: Evaluate present setup
 1 :: @get.afni.version             :: Download an archived version of AFNI source code using github
-1 :: afni_vcheck                   :: check if update needed (compare present and available version numbers)
+1 :: afni_vcheck                   :: Check if update needed (compare present and available version numbers)
 
 
 ++ 2 :: Copy/convert/manipulate dsets
@@ -199,7 +200,7 @@
 1 :: 3ddup                 :: Make an 'empty' duplicate (warp-on-demand) of a dataset
 1 :: 3dTwotoComplex        :: Create complex dataset from two sub-bricks
 1 :: 3dEmpty               :: Create header file only for specified dimensions
-1 :: 3dVecRGB_to_HSL       :: convert RGB coloration to HSL values; typically intermed step in viewing prob. tracking results.
+1 :: 3dVecRGB_to_HSL       :: Convert RGB coloration to HSL values; typically intermed step in viewing prob. tracking results.
 1 :: 3dMaskToASCII
 
 
@@ -208,7 +209,7 @@
 5 :: dcm2niix_afni   :: Primary choice for converting DCM files of DWI dsets (and possibly FMRI)
 2 :: to3d              :: Read image files, write AFNI format datasets (not usually directly used)
 1 :: dicom_hdr         :: Print out information from one DICOM header
-1 :: dicom_hinfo       :: Print out selected information from a number of DICOM headers
+3 :: dicom_hinfo       :: Print out selected information from a number of DICOM headers
 1 :: dicom_to_raw      :: For extracting only the binary image data from a DICOM file
 1 :: @move.to.series.dirs  :: Partition DICOM images into run directectories
 1 :: Ifile             :: Read GE realtime EPI files and runs to3d
@@ -227,7 +228,7 @@
 ++ 2 :: Quality checks (for 3D+time datasets or results)
 4 :: 3dToutcount       :: Check voxel time series for quality (temporal outliers)
 1 :: 3dTqual           :: Check dataset sub-bricks for quality (spatial outliers)
-4 :: @radial_correlate  :: check datasets for correlation artifact
+4 :: @radial_correlate  :: Check datasets for correlation artifact
 1 :: @compute_gcor     :: Compute average pairwise correlation (GCOR), one number
 4 :: gen_ss_review_scripts.py  :: Generate QC review scripts
 1 :: gen_ss_review_table.py    :: Generate spread-sheet of review_basic results
@@ -247,8 +248,8 @@
 
 
 ++ 2 :: Time series analysis 
-1 :: 3dDeconvolve      :: Multiple linear regression and deconvolution (ordinary least squares)
-1 :: 3dREMLfit         :: Multiple linear regression (generalized least squares)
+4 :: 3dDeconvolve      :: Multiple linear regression and deconvolution (ordinary least squares)
+5 :: 3dREMLfit         :: Multiple linear regression (generalized least squares)
 1 :: 3dNLfim           :: Nonlinear regression
 1 :: 3dLSS             :: Ad hoc version of IM regression, giving amplitudes for each stimulus event
 1 :: 3dTcorrelate       :: Correlate two input datasets, voxel-by-voxel
@@ -259,8 +260,8 @@
 1 :: plugin(Deconvolution)   :: Interactive deconvolution
 1 :: 3ddelay            :: Single regressor linear analysis with time shifting
 1 :: plugins(Nlfit and Nlerr)  :: Interactive nonlinear regression
-1 :: 3dfim                  :: linear regression (obsolete -> use 3dDeconvolve)
-1 :: 3dfim+               :: linear regression (obsolete -> use 3dDeconvolve)
+1 :: 3dfim                  :: Linear regression (obsolete -> use 3dDeconvolve)
+1 :: 3dfim+               :: Linear regression (obsolete -> use 3dDeconvolve)
 1 :: 1dNLfit            :: Fit a general model to a vector of data
 
 
@@ -273,11 +274,12 @@
 
 ++ 3 :: Compare dset volumes (masks or valued)
 1 :: @DiceMetric      :: Computes Dice Coefficient between two datasets
-1 :: 3dMatch            :: Find pairs of similar-looking subbricks between two groups of dsets
+4 :: 3dMatch            :: Find pairs of similar-looking subbricks between two groups of dsets
 1 :: 3ddot              :: Calculate correlation coefficients between sub-brick pairs in a 4D dset
 1 :: 3ddot_beta         :: Faster version of 3ddot, though currently just for calculating eta-squared
 1 :: 3dOverlap          :: Count of number of voxels that are nonzero in ALL of the input dataset sub-bricks
-1 :: 3dABoverlap        :: Count overlaps between 2 datasets (union, intersection, etc.)
+5 :: 3dABoverlap        :: Count overlaps between 2 datasets (union, intersection, etc.)
+5 :: 3dSliceNDice        :: Calculate Dice coefficients slice-by-slice (for all three FOV planes) between mask dsets.
 
 
 ++ 5 :: Build FMRI pipelines
@@ -291,14 +293,14 @@
 
 ++ 4 :: SUMA surface calculations, formats and viewing
 1 :: Surf2VolCoord
-1 :: SurfaceMetrics            :: Provides information on surface mesh
+3 :: SurfaceMetrics            :: Provides information on surface mesh
 1 :: SurfClust                 :: Find clusters on surfaces
 1 :: SurfDist                  :: Output shortest distance between two nodes on a surface (along surface or Euclidean)
 1 :: SurfDsetInfo              :: Display information about surface dataset
 1 :: SurfExtrema                 :: Find local extrema in a (surface) dataset
 1 :: SurfFWHM
 1 :: SurfInfo                    :: Show information on surface
-1 :: SurfMeasures                :: Compute various measurements for surface or pair of surfaces
+3 :: SurfMeasures                :: Compute various measurements for surface or pair of surfaces
 1 :: SurfMesh                     :: Reduce number of points in surface mesh
 1 :: SurfPatch                      :: Extract patch of surface or compute volume from specified nodes
 1 :: SurfQual                       :: Quality check for surfaces
@@ -310,15 +312,15 @@
 1 :: SUMA_glxdino
 1 :: SUMA_paperplane
 1 :: SUMA_pixmap2eps
-1 :: quickspec                 :: generate (basic) specification file for running suma
-1 :: ROI2dataset               :: convert ROI (e.g., after drawing) to SUMA-type dset
+1 :: quickspec                 :: Generate (basic) specification file for running suma
+1 :: ROI2dataset               :: Convert ROI (e.g., after drawing) to SUMA-type dset
 1 :: 3dSurfMask                :: Generate volumetric mask for inside of surface
 1 :: ConvertDset               :: Converts a surface dataset from one format to another
 1 :: ConvertSurface            :: Convert surface files among various formats
 1 :: CompareSurfaces           :: Compute distances between two surfaces at each node
 1 :: CreateIcosahedron
 1 :: MapIcosahedron            :: Create new version of surface mesh using mesh of icosahedron
-1 :: IsoSurface                :: Extract isosurface from a volume
+4 :: IsoSurface                :: Extract isosurface from a volume
 1 :: @IsoMasks
 4 :: 3dSurf2Vol                :: Compute volume equivalent from surface or pair of surfaces
 4 :: 3dVol2Surf                :: Assign values to surface nodes from volumetric data
@@ -338,14 +340,14 @@
 ++ 4 :: Mask/skull-strip/segment
 5 :: 3dAutomask              :: Generate a brain and skull-only mask
 1 :: plugin(Draw Dataset)    :: Manually draw ROI mask datasets
-1 :: @NoisySkullStrip        :: Strips the skull of anatomical datasets with low SNR
-1 :: 3dinfill                :: well, for editing masks
-1 :: 3dmask_tool             :: for combining/dilating/eroding/filling masks
+3 :: @NoisySkullStrip        :: Strips the skull of anatomical datasets with low SNR
+1 :: 3dinfill                :: Edit masks by filling in holes
+4 :: 3dmask_tool             :: for combining/dilating/eroding/filling masks
 1 :: 3dIntracranial          :: Strip off outside-the-brain voxels
 5 :: 3dSkullStrip            :: Enhanced skull stripping
 1 :: plugin(Gyrus Finder)    :: Interactively segment gray and white matter
 1 :: 3dClipLevel             :: Find value to threshold off outside-the-brain voxels
-1 :: 3dSeg                   :: Segment anatomical (t1w) volume into major brain tissue types
+3 :: 3dSeg                   :: Segment anatomical (t1w) volume into major brain tissue types
 
 
 ++ 2 :: Dset histograms
@@ -353,7 +355,7 @@
 1 :: 3dhistog                :: Create histogram of dataset to a file
 1 :: plugin(Histogram)       :: Interactively graphs histogram of a dataset (or ROI)
 1 :: plugin(ScatterPlot)     :: Interactively graphs 1 sub-brick vs. another (or ROI)
-1 :: 3dHist                  :: Compute histograms using functions for generating priors
+3 :: 3dHist                  :: Compute histograms using functions for generating priors
 
 
 ++ 4 :: Edit dset headers
@@ -393,7 +395,7 @@
 1 :: 3daxialize               :: Rewrite dataset with slices in different direction
 1 :: 3dresample               :: Rewrite dataset in new orientation, with new voxel size
 3 :: 3dLRflip                 :: Flip dataset contents Left <-> Right
-3 :: fat_proc_axialize_anat   :: rotate brain to have standard viewing planes along slices
+3 :: fat_proc_axialize_anat   :: Rotate brain to have standard viewing planes along slices
 
 
 ++ 2 :: Change dset temporal structure
@@ -401,11 +403,11 @@
 
 
 ++ 3 :: Volume editing/image processing
-1 :: 3dedge3                :: calculate edges in 3D
-1 :: 3danisosmooth          :: Smooth a dataset using an anisotropic technique to preserve edges
-1 :: 3dUnifize              :: Correct T1-weighted dataset for non-uniform histogram
+4 :: 3dedge3                :: Calculate edges in 3D
+4 :: 3danisosmooth          :: Smooth a dataset using an anisotropic technique to preserve edges
+4 :: 3dUnifize              :: Correct T1-weighted dataset for non-uniform histogram
 1 :: 3dUniformize           :: (obsolete -> use 3dUnifize)
-1 :: 3dSharpen              :: 3D sharpening filter applied to a dataset (to clean up a template)
+2 :: 3dSharpen              :: 3D sharpening filter applied to a dataset (to clean up a template)
 
 
 ++ 3 :: DWI/DTI/diffusion-related
@@ -419,17 +421,17 @@
 5 :: 3dTrackID            :: Perform deterministic, mini- or fully-probabilistic tracking for DTI or HARDI data
 1 :: DTIStudioFibertoSegments  :: Convert a DTIStudio Fiber file to a SUMA segment file
 1 :: @DTI_studio_reposition    :: (probably obsolete)
-1 :: fat_proc_convert_dcm_anat   :: Wrapper to convert 3D dataset from DICOMs, with additional nice features.
-1 :: fat_proc_convert_dcm_dwis   :: Wrapper to convert 4D dataset from DICOMs, with additional nice features.
-1 :: fat_proc_decmap             :: Make a directionally-encoded color map of DTI data.
-1 :: fat_proc_dwi_to_dt          :: Wrapper to estimate DT and parameters, and align datasets.
-1 :: fat_proc_filter_dwis       :: Graphical interface to help user select out bad volumes (esp. from DWI dataset)
-1 :: fat_proc_grad_plot         :: In progress...
-1 :: fat_proc_imit2w_from_t1w   :: Invert a T1w dataset to imitate a T2w-type contrast dset (as a backup ref for DWI processing with TORTOISE)
-1 :: fat_proc_map_to_dti        :: Wrapper to bring data (esp. FS surfaces and parcels) into DTI space
-1 :: fat_proc_select_vols       :: Select out good valumes in a DWI dataset + associated text files
-1 :: fat_roi_row.py             :: Select a single ROI's row out of a connectivity matrix file (*.grid or *.netcc)
-1 :: @fat_tract_colorize        :: Visualize volumetric output maps from 3dTrackID tracking
+5 :: fat_proc_convert_dcm_anat   :: Wrapper to convert 3D dataset from DICOMs, with additional nice features.
+5 :: fat_proc_convert_dcm_dwis   :: Wrapper to convert 4D dataset from DICOMs, with additional nice features.
+5 :: fat_proc_decmap             :: Make a directionally-encoded color map of DTI data.
+5 :: fat_proc_dwi_to_dt          :: Wrapper to estimate DT and parameters, and align datasets.
+5 :: fat_proc_filter_dwis       :: Graphical interface to help user select out bad volumes (esp. from DWI dataset)
+5 :: fat_proc_grad_plot         :: In progress...
+5 :: fat_proc_imit2w_from_t1w   :: Invert a T1w dataset to imitate a T2w-type contrast dset (as a backup ref for DWI processing with TORTOISE)
+5 :: fat_proc_map_to_dti        :: Wrapper to bring data (esp. FS surfaces and parcels) into DTI space
+5 :: fat_proc_select_vols       :: Select out good valumes in a DWI dataset + associated text files
+3 :: fat_roi_row.py             :: Select a single ROI's row out of a connectivity matrix file (*.grid or *.netcc)
+4 :: @fat_tract_colorize        :: Visualize volumetric output maps from 3dTrackID tracking
 1 :: InstaTract            :: (intermediate function only)
 1 :: 3dProbTrackID        :: (obsolete -> use 3dTrackID)
 1 :: map_TrackID           :: Apply linear affine transform to track file (*.trk format only)
@@ -451,32 +453,33 @@
 1 :: 3dFourier
 1 :: 3dDFT                         :: FFT along time axis
 1 :: 3dFFT                         :: FFT along spatial axis
-1 :: 3dLombScargle                 :: Calculate amp/pow spectrum (like FFT) along time axis with missing time points
-1 :: 3dAmpToRSFC                   :: Calculate RSFC parameters (ALFF, fALFF, RSFA, etc.) from 3dLombScargle output
+3:: 3dLombScargle                 :: Calculate amp/pow spectrum (like FFT) along time axis with missing time points
+3 :: 3dAmpToRSFC                   :: Calculate RSFC parameters (ALFF, fALFF, RSFA, etc.) from 3dLombScargle output
 1 :: 1dBandpass
-1 :: 3dBandpass
-1 :: 3dRSFC                        :: Calculate RSFC parameters (ALFF, fALFF, RSFA, etc.) for uncensored time series
+3 :: 3dBandpass
+3 :: 3dRSFC                        :: Calculate RSFC parameters (ALFF, fALFF, RSFA, etc.) for uncensored time series
 1 :: 3dPeriodogram
 1 :: 3dWavelets
 1 :: stimband
 
 
 ++ 3 :: Drive AFNI/SUMA, make images/snapshots/montages
-1 :: @DriveAfni                    :: Example script to drive afni GUI with class data
+2 :: @DriveAfni                    :: Example script to drive afni GUI with class data
 4 :: DriveSuma                    :: Drive suma from external program
 1 :: HalloSuma
-1 :: @DriveSuma                    :: Example script to drive suma with class data
-1 :: @Quiet_Talkers                :: kill all network talking afni and suma instances
-4 :: @chauffeur_afni               :: Wrapper to combine environment+driving functionality to save image files of 3D dataset
-1 :: @djunct_4d_imager             :: Wrapper to combine environment+driving functionality to save image/movies files of 4D dataset
+2 :: @DriveSuma                    :: Example script to drive suma with class data
+3 :: @Quiet_Talkers                :: Close all network talking afni and suma instances (often used at end of "talking" scripts)
+5 :: @chauffeur_afni               :: Wrapper to combine environment+driving functionality to save image files of 3D dataset (nice in conjunction with imcat to form arrays of images)
+5 :: imcat                        :: Very useful program for making grids of images and things (nice in conjunction with @chauffeur_afni or generally driving AFNI)
+3 :: @djunct_4d_imager             :: Wrapper to combine environment+driving functionality to save image/movies files of 4D dataset
 1 :: @djunct_calc_mont_dims.py     :: Sub-functionality of @djunct_dwi_selector.bash
 1 :: @djunct_dwi_selector.bash     :: Helper/intermediate function for fat_proc_select_vols
 1 :: @djunct_select_str.py         :: Sub-functionality of @djunct_dwi_selector.bash
-1 :: plugout_drive                 :: Drive afni GUI from external program
+3 :: plugout_drive                 :: Drive afni GUI from external program
 1 :: plugout_ijk
 1 :: plugout_tt
 1 :: plugout_tta
-4 :: @snapshot_volreg            :: Drive AFNI to save QC images of EPI-anatomical alignment
+5 :: @snapshot_volreg            :: Drive AFNI to save QC images of EPI-anatomical alignment
 1 :: @snapshot_volreg3               :: (obsolete -> use @snapshot_volreg)
 1 :: @CommandGlobb                  :: Execute AFNI commands for multiple datasets
 1 :: prompt_popup                 :: Popup a dialog box with a message and buttons
@@ -488,10 +491,11 @@
 1 :: @Install_3dPFM_Demo
 1 :: @Install_AfniRetinoDemo
 1 :: @Install_ClustScat_Demo
-1 :: @Install_D99_macaque           :: Install Saleem D99 macaque atlas and template
-1 :: @Install_DBSproc               :: Install DBS processing pipeline script
-1 :: @Install_FATCAT_DEMO          :: Install original FATCAT Demo for DTI + some FMRI processing
-1 :: @Install_FATMVM_DEMO          :: Install FATCAT+MVM statistical modeling demo
+4 :: @Install_D99_macaque           :: Install Saleem D99 macaque atlas and template
+4 :: @Install_DBSproc               :: Install DBS processing pipeline script
+3 :: @Install_FATCAT_DEMO          :: Install original FATCAT Demo for DTI + some FMRI processing
+4 :: @Install_FATCAT_DEMO2          :: Install newer FATCAT Demo for DTI processing with fat_proc programs (and including TORTOISE and FreeSurfer processing)
+3 :: @Install_FATMVM_DEMO          :: Install FATCAT+MVM statistical modeling demo, multivariate modeling in conjuction with tractography (also applies to correlation matrices such as from 3dNetCorr)
 1 :: @Install_InstaCorr_Demo        :: Install demo data for InstaCorr, instant correlation
 1 :: @Install_MEICA_Demo
 1 :: @Install_NIH_Marmoset          :: Install NIH Marmoset atlas and template
@@ -514,11 +518,11 @@
 
 ++ 3 :: Edit dsets: concatenate, split, add/remove slices
 1 :: 3dbucket          :: Assemble a bucket dataset from multiple input sub-bricks3dTcat
-1 :: 3dZeropad         :: Add zero slices around the edges of a dataset
+3 :: 3dZeropad         :: Add zero slices around the edges of a dataset
 1 :: 3dTsplit4D        :: Convert a 3D+time dataset into multiple 3D single-brick files
-1 :: 3dZcat            :: Assemble a 3D+time dataset from multiple input sub-bricks
+3 :: 3dZcat            :: Assemble a 3D+time dataset from multiple input sub-bricks
 1 :: 3dAutobox         :: Automatically crop a dataset to remove empty space
-1 :: 3dZcutup          :: Cut slices out of a dataset to make a 'thinner' dataset
+3 :: 3dZcutup          :: Cut slices out of a dataset to make a 'thinner' dataset
 1 :: 3dXYZcat          :: Glue multiple sub-bricks together along the {x|y|z}-axis
 1 :: 3dZregrid         :: Interpolate a dataset to a different slice thickness
 
@@ -547,34 +551,40 @@
 1 :: @np                :: Generate new prefix given some base prefix
 
 
-++ 1 :: Miscellaneous utilities
+++ 3 :: Convert statistics and p-values
 4 :: ccalc               :: A command line calculator (like 3dcalc)
-1 :: cdf                 :: Compute probabilities, thresholds for standard distributions
+4 :: cdf                 :: Compute probabilities, thresholds for standard distributions
+4 :: p2dsetstat          :: Convert a p-value to a stat, using parameters stored in a dset header
+
+++ 1 :: Miscellaneous utilities
+3 :: ccalc               :: A command line calculator (like 3dcalc)
+3 :: cdf                 :: Compute probabilities, thresholds for standard distributions
 4 :: count               :: Generate numbered strings for command line scripts
-4 :: afni_history        :: display a log of updates to AFNI code
-5 :: apsearch            :: simple+approx string searching; used in atlases and helps
+4 :: afni_history        :: Display a log of updates to AFNI code
+5 :: apsearch            :: Simple+approx string searching; used in atlases and helps
 1 :: byteorder           :: Report the byteorder of the current CPU
 
 
 ++ 1 :: Miscellaneous visualization tools
-1 :: aiv                  :: AFNI Image Viewer program
+3 :: aiv                  :: AFNI Image Viewer program
 1 :: plugin(Render[new])  :: Interactive volume rendering
 1 :: plugin(Dataset#N)    :: Graph extra dataset time series in AFNI graph viewer
 1 :: afni_open            :: Open various AFNI/SUMA files (*.xmat, *.pdf, etc.)
+3 :: 3dGrayplot           :: Take a 3D+time dataset and make a summary 2D image for data quality review
 
 
 ++ 1 :: Supplementary/open programs included in AFNI
-1 :: cjpeg                :: compress an image file to a JPEG file
-1 :: djpeg                :: decompress a JPEG file to an image file
-1 :: mpeg_encode          :: convert sequence of images into MPEG movie
-1 :: whirlgif             :: concatenate series of GIFs into a single one
+1 :: cjpeg                :: Compress an image file to a JPEG file
+1 :: djpeg                :: Decompress a JPEG file to an image file
+1 :: mpeg_encode          :: Convert sequence of images into MPEG movie
+1 :: whirlgif             :: Concatenate series of GIFs into a single one
 
 
 ++ 3 :: Resting state FMRI parameters
-1 :: 3dRSFC              :: Calculate RSFC parameters (ALFF, fALFF, RSFA, etc.) for uncensored time series
-1 :: 3dReHo              :: Calculate ReHo (Kendall's coefficient of concordance) for time series
-1 :: 3dLombScargle       :: Calculate amp/pow spectrum (like FFT) along time axis with missing time points
-1 :: 3dAmpToRSFC         :: Calculate RSFC parameters (ALFF, fALFF, RSFA, etc.) from 3dLombScargle output
+3 :: 3dRSFC              :: Calculate RSFC parameters (ALFF, fALFF, RSFA, etc.) for uncensored time series
+3 :: 3dReHo              :: Calculate ReHo (Kendall's coefficient of concordance) for time series
+3 :: 3dLombScargle       :: Calculate amp/pow spectrum (like FFT) along time axis with missing time points
+3 :: 3dAmpToRSFC         :: Calculate RSFC parameters (ALFF, fALFF, RSFA, etc.) from 3dLombScargle output
 
 
 ++ 1 :: Supplemental/underlying programs (no desc needed)
@@ -608,7 +618,6 @@
 1 :: 3dkmeans
 1 :: 3dLFCD
 1 :: 3dmaskSVD
-1 :: 3dMEMA
 1 :: 3dMSE
 1 :: 3dMultiThresh
 1 :: 3dnoise
@@ -672,7 +681,6 @@
 1 :: imand
 1 :: imaver
 1 :: imcalc
-1 :: imcat
 1 :: imcutup
 1 :: imdump
 1 :: immask
