@@ -67,13 +67,13 @@ set backup_dir = htmldoc.auto_backup.$thedate
 
 # =============================================================
 
-if ( "DO_PHELP" == "1" ) then
+if ( "$DO_PHELP" == "0" ) then
     set gen_all_opts = ( $gen_all_opts "-no_phelp" )
 endif
 
 # =========================== do build ========================
 
-if ( "DO_BUILD" == "1" ) then
+if ( "$DO_BUILD" == "1" ) then
 
     echo "++ Do documentation build!"
 
