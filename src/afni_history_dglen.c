@@ -50,6 +50,14 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 26, APR, 2018, DRG, "ORIG space",
+	MINOR, TYPE_GENERAL,
+	"ORIG space formally defined in AFNI_atlas_spaces.niml",
+    "Should allow for FreeSurfer segmentation to be used\n"
+    "with the SessionAtlases.niml created by @SUMA_MakeSpecFS\n"
+    "This change currently applies only to the whereami command\n"
+    "line. The afni GUI still requires a +tlrc or equivalent view."
+},
 { 26, APR, 2018, DRG, "@surf_to_vol_spackle",
 	MINOR, TYPE_NEW_PROG,
 	"propagate surface to volume and fill holes"
