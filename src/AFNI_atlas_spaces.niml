@@ -6,6 +6,13 @@
 # new spaces should be added to this file or to a local directory version
 # for subject-specific datasets
 <TEMPLATE_SPACE
+  space_name="ORIG"
+  generic_space="ORIG"
+  comment="Typically the native space of the subject\n"
+          "used for native space segmentation, as from FreeSurfer\n"
+></TEMPLATE_SPACE>
+
+<TEMPLATE_SPACE
   space_name="TT_N27"
   generic_space="TLRC"
   comment="The TLRC templates made from MNI group templates were\n"
