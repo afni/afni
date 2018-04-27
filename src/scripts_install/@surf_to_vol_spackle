@@ -44,7 +44,11 @@ echo "Project data from a surface dataset into a volume primarily using"
 echo " 3dSurf2Vol but then filling any holes with an iterative smoothing"
 echo " procedure. If two surfaces are provided, then the dataset is filled"
 echo " between corresponding nodes. The filling is done by smoothing the"
-echo " holes with a local non-zero mean in a spherical neighborhood."
+echo " holes with a local non-zero mean (or mode) in a spherical neighborhood."
+echo " Holes come about because the lines from surfaces can miss some voxels."
+echo " These are more likely with sparse surfaces, but can still happen"
+echo " even with high-resolution surfaces."
+echo
 echo "Required (mostly) options:"
 echo "   -maskset mymask.nii     mask dataset in which to project surface measures"
 echo "   -spec mysurfs.spec      Surface specification file with list of surfaces"
@@ -64,9 +68,16 @@ echo "   -keep_temp_files        do not remove any of the temporary files"
 echo "                           (default is to remove them)"
 echo "   -maxiters nn            maximum number of smoothing and filling iterations"
 echo "                           (default is 4)"
-echo "   -mode                   use mode instead of average, good for ROIs"
+echo "   -mode                   use mode instead of average (appropriate for ROIs)"
 echo "   -ignore_unknown_options ignore additional options that are not needed"
 echo
+echo " Example usage:"
+echo "    @surf_to_vol_spackle -maskset leftmask_1mm.nii.gz -spec quick.spec \\"
+echo "       -surfA anat.gii -surfset v2s_inout_max_smooth2mm.niml.dset      \\"
+echo "       -prefix vol_thick_ave -maxiters 10"
+echo
+echo " See related scripts and programs:"
+echo "    3dSurf2Vol,3dVol2Surf,@measure_in2out,@measure_erosion_thick,SurfMeasures"
 exit 0
 endif
 
@@ -135,6 +146,15 @@ while ( $ac <= $#argv )
         endif
         set  meanrad = $argv[$ac]
         @ ac ++; continue;
+    else if ( "$argv[$ac]" == "-maxiters" ) then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-maxiters'"
+            exit 1
+        endif
+        set  maxiters = $argv[$ac]
+        @ ac ++; continue;
+
     else if ( "$argv[$ac]" == "-keep_temp_files" ) then
         set keep_temp_files = "keep"
         @ ac ++; continue;
@@ -208,7 +228,7 @@ foreach ii (`count -digits 2 1 $maxiters`)
    if ($stat == "mode") then
        # smooth with non-zero mode value in neighborhood
        3dLocalstat -mask $maskset -nbhd "SPHERE(${meanrad})" \
-        -stat nzmode -use_nonmask -prefix $smoothset -overwrite $refilled_set
+        -stat nzmode -prefix $smoothset -overwrite $refilled_set
    else
        # smooth with non-zero mean filter
        3dmerge -1fmask $maskset -1filter_nzmean $meanrad \
@@ -223,6 +243,7 @@ foreach ii (`count -digits 2 1 $maxiters`)
    set refilled_set = $fillset
    # count how many zeros left in the mask 
    set nvox = `3dBrickStat -count -zero -mask $maskset $fillset`
+   echo "found $nvox holes this time"
    if ("$nvox" == "0") then
       goto finishup
    endif
