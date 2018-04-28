@@ -27,10 +27,12 @@ typedef enum
     E_SMAP_INVALID = -1,
     E_SMAP_NONE,                        /* do not change INVALID or NONE */
     E_SMAP_MASK, E_SMAP_MASK2,
-    E_SMAP_AVE,  E_SMAP_COUNT,
+    E_SMAP_AVE, E_SMAP_NZ_AVE,
+    E_SMAP_COUNT,
     E_SMAP_MIN,  E_SMAP_MAX,
     E_SMAP_MAX_ABS,
-    E_SMAP_MODE,                        /* 3 Nov 2011 [rickr]  */
+    E_SMAP_MODE, E_SMAP_NZ_MODE,        /* 3 Nov 2011, 27 Apr 2018 [rickr] */
+    E_SMAP_MEDIAN, E_SMAP_NZ_MEDIAN,    /* 27 Apr 2018 [rickr, drg]  */
     E_SMAP_FINAL                        /* do not change FINAL */
 } s2v_map_num;
 
@@ -52,6 +54,7 @@ typedef struct
     char   * f_index_str;               /* count by voxels or points   */
     char   * snames[S2V_MAX_SURFS];     /* list of surfaces to use     */
     int      sxyz_ori_gpar;             /* input xyz use gpar orient   */
+    int      stop_gap;                  /* stop at mask gap            */
     int      debug;                     /* level of debug output       */
     int      dnode;                     /* node watched for debug      */
     int      dvox;                      /* voxel watched for debug     */
@@ -72,6 +75,7 @@ typedef struct
     int      dnode;                     /* node watched for debug      */
     int      dvox;                      /* voxel watched for debug     */
     byte   * cmask;                     /* computed mask               */
+    int      stop_gap;                  /* stop at mask gap            */
     int      sxyz_ori_gpar;             /* input xyz use gpar orient   */
     int      f_steps;                   /* # int steps for mask2 map   */
     int      f_index;                   /* count by voxels or points   */
