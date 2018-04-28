@@ -128,9 +128,14 @@ static char g_history[] =
  "  - 6.5 years since the last change?  really??\n"
  "  - added 'mode' mapping function\n"
  "  - for R Mruczek and Z Puckett\n"
+ "\n"
+ "3.8  April 28, 2018  [rickr]\n"
+ "  - 7.5 years since the last change, again??  done until late 2024?\n"
+ "  - added -stop_gap option\n"
+ "  - added mapping functions: nzave, nzmode, median, nzmedian\n"
  "----------------------------------------------------------------------\n";
  
-#define VERSION "version  3.7 (November 4, 2011)"
+#define VERSION "version  3.8 (April 4, 2011)"
 
 
 /*----------------------------------------------------------------------
@@ -152,8 +157,9 @@ int                  SUMAg_N_DOv = 0;   /* length of DOv array          */
 SUMA_CommonFields  * SUMAg_CF = NULL;   /* info common to all viewers   */
 
 /* this must match s2v_map_num enum */
-char * gs2v_map_names[] = { "none", "mask", "mask2", "ave", "count",
-                            "min", "max", "max_abs", "mode" };
+char * gs2v_map_names[] = { "none", "mask", "mask2", "ave", "nzave", "count",
+                            "min", "max", "max_abs", "mode", "nzmode",
+                            "median", "nzmedian" };
 
 /* AFNI prototype */
 extern void machdep( void );
@@ -580,7 +586,7 @@ ENTRY("final_computations");
             float mval;
             /* for each voxel, sort list and aggregate */
             for ( index = 0, flp = aggr->vlist; index < nvox; index++, flp++ ) {
-                /* if nothing here, set to 0 and continue */
+                /* handle empty or single element list separately */
                 if( flp->num == 0 ) {
                     ddata[index] = 0.0;
                     if( sopt->debug > 1 && sopt->dvox == index )
@@ -589,6 +595,11 @@ ENTRY("final_computations");
                     continue;
                 } else if ( flp->num == 1 ) {
                     ddata[index] = flp->list[0];
+                    if( sopt->debug > 1 && sopt->dvox == index ) {
+                        fprintf(stderr, "\n-- voxel %d, one val to aggregate\n",
+                                index);
+                        fprintf(stderr, "++ final median %g\n", ddata[index]);
+                    }
                     continue;
                 }
 
@@ -599,21 +610,20 @@ ENTRY("final_computations");
                 /* (correct (as floor) if odd, higher of pair if even) */
                 mind = flp->num/2;
 
-                /* assign median (if odd, middle index, else average) */
+                /* assign median as value or average of middle two */
                 if( flp->num % 2 )
                     ddata[index] = flp->list[mind];
                 else
-                    ddata[index] = (flp->list[mind] + flp->list[mind-1])/2.0;
-                ddata[index] = mval;
+                    ddata[index] = (flp->list[mind-1] + flp->list[mind])/2.0;
 
+                /* announce the glorious action to the world */
                 if( sopt->debug > 1 && sopt->dvox == index ) {
                     fprintf(stderr, "\n-- aggregating voxel %d, %d vals "
                                     "from %g to %g\n",
                                     index, flp->num, flp->list[0],
                                     flp->list[flp->num-1]);
-                    fprintf(stderr, "++ final median %g\n", mval);
+                    fprintf(stderr, "++ final median %g\n", ddata[index]);
                 }
-
             }
             break;
         }
@@ -3046,6 +3056,8 @@ ENTRY("usage");
             "\n"
             "          ave    : average all values\n"
             "\n"
+            "          nzave  : ave, but ignorning any zero values\n"
+            "\n"
             "          count  : count the number of mapped data points\n"
             "\n"
             "          min    : find the minimum value from all mapped points\n"
@@ -3055,8 +3067,14 @@ ENTRY("usage");
             "          max_abs: find the number with maximum absolute value\n"
             "                   (the resulting value will retain its sign)\n"
             "\n"
+            "          median : median of all mapped values\n"
+            "\n"
+            "          nzmedian: median, but ignoring any zero values\n"
+            "\n"
             "          mode   : apply the most common value per voxel\n"
             "                   (appropriate where surf ROIs overlap)\n"
+            "\n"
+            "          nzmode : mode, but ignoring any zero values\n"
             "\n"
             "    -prefix OUTPUT_PREFIX  : prefix for the output dataset\n"
             "\n"
@@ -3175,6 +3193,14 @@ ENTRY("usage");
             "\n"
             "        In the example, pn is moved 1 millimeter farther from\n"
             "        p1, extending the segment by that distance.\n"
+            "\n"
+            "    -stop_gap              : stop when a zero gap has been hit\n"
+            "\n"
+            "        This limits segment processing such that once a non-zero\n"
+            "        mask value has been encountered, the segment will be\n"
+            "        terminated on any subsequent zero mask value.\n"
+            "        \n"
+            "        The goal is to prevent mixing masked cortex regions.\n"
             "\n"
             "  ------------------------------\n"
             "  GENERAL OPTIONS:\n"
