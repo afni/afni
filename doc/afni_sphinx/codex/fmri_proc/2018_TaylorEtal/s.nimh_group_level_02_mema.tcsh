@@ -42,11 +42,13 @@ set here        = $PWD
 set p_0         = /data/NIMH_SSCC
 set path_main   = ${p_0}/openfmri/ds001_R2.0.4
 set path_proc   = ${path_main}/data_proc_nimh
-set path_mema   = ${path_proc}/GROUP_LEVEL_nimh
+set odir        = GROUP_LEVEL_nimh
+set path_mema   = ${path_proc}/${odir}
 
 # Running 3dMEMA
 set script_mema = do_group_level_nimh.tcsh # generated command file name
 set omema       = mema_results.nii.gz      # output effect+stats filename
+set omema_mskd  = mema_results_mskd.nii.gz # masked, stats in brain
 
 # Cluster parameters
 set csim_NN     = "NN1"    # neighborhood; could be NN1, NN2, NN3
@@ -73,7 +75,7 @@ endif
 # These variables used again *after* afni_proc.py command, if running
 # on Biowulf.
 if( $?SLURM_JOBID )then
-  set tempdir = /lscratch/$SLURM_JOBID/GROUP_LEVEL_nimh
+  set tempdir = /lscratch/$SLURM_JOBID/${odir}
   set usetemp = 1
 else
   set tempdir = $path_mema
@@ -163,6 +165,14 @@ echo "++ The voxelwise stat value threshold is:  $voxstat_thr"
 
 # ================== Make cluster maps =====================
 
+# Apply WB mask to the statistics results, so we only find clusters
+# that lie within the mask of interest.
+3dcalc                              \
+    -a ${omema}                     \
+    -b mask.nii.gz                  \
+    -expr 'a*b'                     \
+    -prefix ${omema_mskd} 
+
 # Following the previous paper, these commands extract the "positive"
 # and "negative" cluster info, respectively, into separate files.
 # Each applies clustering parameters above and makes: a *map* of
@@ -180,7 +190,7 @@ set csim_pref = "clust_tpos"
     -2thresh -1e+09 $voxstat_thr  -dxyz=1                      \
     -savemask ${csim_pref}_map.nii.gz                          \
     -prefix   ${csim_pref}_EE.nii.gz                           \
-    1.01 ${clust_thrvol} ${omema} > ${csim_pref}_table.1D
+    1.01 ${clust_thrvol} ${omema_mskd} > ${csim_pref}_table.1D
 # Also make a mask of t-stats (not necessary, but matching previous
 # work)
 3dcalc \
@@ -196,7 +206,7 @@ set csim_pref = "clust_tneg"
     -2thresh -$voxstat_thr 1e+09 -dxyz=1                       \
     -savemask ${csim_pref}_map.nii.gz                          \
     -prefix   ${csim_pref}_EE.nii.gz                           \
-    1.01 ${clust_thrvol} ${omema} > ${csim_pref}_table.1D
+    1.01 ${clust_thrvol} ${omema_mskd} > ${csim_pref}_table.1D
 # Also make a mask of t-stats (not necessary, but matching previous
 # work)
 3dcalc \
