@@ -14,12 +14,6 @@
 ></TEMPLATE_SPACE>
 
 <TEMPLATE_SPACE
-  space_name="ORIG"
-  generic_space="ORIG"
-  comment="Typically the native space of the subject"
-></TEMPLATE_SPACE>
-
-<TEMPLATE_SPACE
   space_name="TT_avg"
   generic_space="TLRC"
   comment="The TLRC templates made from MNI group templates were\n"
@@ -685,3 +679,9 @@
 ></TEMPLATE>
 
 #**********************************************
+
+<TEMPLATE_SPACE
+  space_name="ORIG"
+  generic_space="ORIG"
+  comment="Typically the native space of the subject"
+></TEMPLATE_SPACE>
