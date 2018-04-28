@@ -576,8 +576,8 @@ ENTRY("final_computations");
         case E_SMAP_NZ_MEDIAN:
         case E_SMAP_MEDIAN:
         {
-            int mcount, ncount, find;
-            float mval, nval;
+            int mind;
+            float mval;
             /* for each voxel, sort list and aggregate */
             for ( index = 0, flp = aggr->vlist; index < nvox; index++, flp++ ) {
                 /* if nothing here, set to 0 and continue */
@@ -587,24 +587,31 @@ ENTRY("final_computations");
                         fprintf(stderr, "\n-- voxel %d, nothing to aggregate\n",
                                 index);
                     continue;
+                } else if ( flp->num == 1 ) {
+                    ddata[index] = flp->list[0];
+                    continue;
                 }
+
+                /* at least 2, sort and assign */
                 qsort(flp->list, flp->num, sizeof(float), fcomp);
 
-                /* assign median */
-                if( flp->num/2 ) /* ave 2 mid values */
-                else       picles /* assign mid value */
+                /* mid index = floor of length/2 */
+                /* (correct (as floor) if odd, higher of pair if even) */
+                mind = flp->num/2;
 
-                find = 0; /* current index */
-                mval = flp->list[find];
-                while(find < flp->num && mval == flp->list[find]) find++;
-                ddata[index] = mval;    /* and finally, assign */
+                /* assign median (if odd, middle index, else average) */
+                if( flp->num % 2 )
+                    ddata[index] = flp->list[mind];
+                else
+                    ddata[index] = (flp->list[mind] + flp->list[mind-1])/2.0;
+                ddata[index] = mval;
 
                 if( sopt->debug > 1 && sopt->dvox == index ) {
                     fprintf(stderr, "\n-- aggregating voxel %d, %d vals "
                                     "from %g to %g\n",
                                     index, flp->num, flp->list[0],
                                     flp->list[flp->num-1]);
-                    fprintf(stderr, "++ final mode %g (%d vals)\n",mval,mcount);
+                    fprintf(stderr, "++ final median %g\n", mval);
                 }
 
             }
