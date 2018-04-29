@@ -1363,6 +1363,7 @@ int main(int argc, char **argv)
       return(1) ;
    }
    
+#if 0
    /* linkRbrain output */
    if (linkrbrain_output){
      /* if just testing parsing linkrbrain output, just parse and exit*/
@@ -1404,6 +1405,7 @@ int main(int argc, char **argv)
      } 
      exit(0);
    }
+#endif
 
    for (ixyz = 0; ixyz < nxyz; ++ixyz) {
       x = coord_list[3*ixyz];
