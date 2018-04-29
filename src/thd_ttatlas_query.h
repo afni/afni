@@ -449,6 +449,8 @@ int transform_atlas_coords(ATLAS_COORD ac, char **out_spaces,
 int wami_xform_xyz(float xi,float yi,float zi,
    float *xout, float *yout, float *zout,
    char *srcspace, char *destspace);
+int wami_xform_coords_print(float *coords, int ncoords,
+   char *srcspace, char *destspace, char *outfile);
 
 void set_wami_verb(int lev);
 int wami_verb(void);

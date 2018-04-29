@@ -50,6 +50,10 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 29, APR, 2018, DRG, "First space xform bug",
+	MICRO, TYPE_BUG_FIX,
+	"Fixed bug where first space in AFNI_atlas_spaces.niml had to have xform "
+},
 { 26, APR, 2018, DRG, "ORIG space",
 	MINOR, TYPE_GENERAL,
 	"ORIG space formally defined in AFNI_atlas_spaces.niml",
