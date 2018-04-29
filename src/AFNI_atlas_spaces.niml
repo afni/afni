@@ -5,6 +5,11 @@
 # of atlas datasets that are in a specified space
 # new spaces should be added to this file or to a local directory version
 # for subject-specific datasets
+<TEMPLATE_SPACE
+  space_name="ORIG"
+  generic_space="ORIG"
+  comment="Typically the native space of the subject"
+></TEMPLATE_SPACE>
 
 <TEMPLATE_SPACE
   space_name="TT_N27"
@@ -679,9 +684,3 @@
 ></TEMPLATE>
 
 #**********************************************
-
-<TEMPLATE_SPACE
-  space_name="ORIG"
-  generic_space="ORIG"
-  comment="Typically the native space of the subject"
-></TEMPLATE_SPACE>

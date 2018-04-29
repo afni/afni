@@ -745,7 +745,7 @@ ATLAS_XFORM_LIST * get_xform_chain( ATLAS_SPACE *at_space,
    ATLAS_XFORM_LIST *axl=get_G_xform_list();
    /* you might want to return identity right here if 
       at_space->atlas_space == dest_space->atlas_space,
-      even of find_atlas_space can't find them ... */
+      even if find_atlas_space can't find them ... */
       
    /* find index for input spaces */
    if ((srci  = find_atlas_space(asl, at_space))<0) {
@@ -759,10 +759,10 @@ ATLAS_XFORM_LIST * get_xform_chain( ATLAS_SPACE *at_space,
                dest_space->atlas_space, dest_space->generic_space);
       return(NULL);
    };
-
    /* if src and dest are the same, should return identity right away */
-   if((N_Neighb==NULL) || (FirstNeighbDist==NULL) ||(*N_Neighb==0)) return (NULL);
-
+   /* check if neighborhood is defined */
+   if((N_Neighb==NULL) || (FirstNeighbDist==NULL)) return (NULL);
+   /* search neighborhood for shortest path between indices */
    if ( !(nPath = SUMA_Dijkstra_generic ( 
                           asl->nspaces, 
                           NULL, -1, 0,
@@ -771,7 +771,9 @@ ATLAS_XFORM_LIST * get_xform_chain( ATLAS_SPACE *at_space,
                           NULL, NULL, 
                           1, 
                           &nDistance, &N_n, 0)) ) {
-          return(NULL); /* no path found */
+         if(wami_verb()>1) fprintf(stderr, 
+            "No path found in Dijkstra from %d to %d space", srci, desti);
+         return(NULL); /* no path found */
    } else {
       if(wami_verb() > 1){
          INFO_message("Number of spaces to traverse %d with distance %.2f ",
