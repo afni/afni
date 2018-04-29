@@ -78,11 +78,11 @@ RETURN_PARSE:
 goto END
 
 PARSE:
-	set Narg = $#
+   set Narg = $#
    set env = ''
    set enn = 0
    set quiet_death = 0
-	set cnt = 1
+   set cnt = 1
    while ($cnt <= $Narg)
       if ("$argv[$cnt]" == "-d" || "$argv[$cnt]" == "-echo") then
          set verb = 1
@@ -103,9 +103,9 @@ PARSE:
       if (  "$argv[$cnt]" == "-set") then
          set nneed = `ccalc -i $cnt + 2`
          if ($nneed > $Narg) then
-				if (! $quiet_death) echo "Need 2 values after -set"
+            if (! $quiet_death) echo "Need 2 values after -set"
             goto BEND
-			else
+         else
             @ cnt ++
             set enn = $argv[$cnt]
             @ cnt ++
@@ -125,9 +125,9 @@ PARSE:
       if (  "$argv[$cnt]" == "-get") then
          set nneed = `ccalc -i $cnt + 1`
          if ($nneed > $Narg) then
-				if (! $quiet_death) echo "Need 1 values after -set"
+            if (! $quiet_death) echo "Need 1 values after -set"
             goto BEND
-			else
+         else
             @ cnt ++
             set enn = $argv[$cnt]
             apsearch "-V${enn}="
@@ -138,9 +138,9 @@ PARSE:
       if (  "$argv[$cnt]" == "-unset") then
          set nneed = `ccalc -i $cnt + 1`
          if ($nneed > $Narg) then
-				if (! $quiet_death) echo "Need 1 values after -set"
+            if (! $quiet_death) echo "Need 1 values after -set"
             goto BEND
-			else
+         else
             @ cnt ++
             set enn = $argv[$cnt]
             @ cnt ++
@@ -161,9 +161,9 @@ PARSE:
       apsearch -popt `basename $0` -word $argv[$cnt]
       goto BEND
       
-      CONTINUE:		
-		@ cnt ++
-	end
+      CONTINUE:      
+      @ cnt ++
+   end
 
    set rc = `apsearch -afni_rc_file`
    if ( ! -f $rc) then
