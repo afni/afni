@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28, Apr, 2018, RCR, "3dSurf2Vol", MINOR, TYPE_NEW_OPT,
+   "add option -stop_gap and map functions nzave, nzmode, median, nzmedian",
+   NULL
+ } ,
+
  { 25, Apr, 2018, RCR, "meica.py", MINOR, TYPE_BUG_FIX,
    "deal with numpy update that fails for 'array == None', use 'is None'",
    "Thanks to dowdlele on MB for noting this and pointing to the emdupre\n"

@@ -8,8 +8,7 @@
 <TEMPLATE_SPACE
   space_name="ORIG"
   generic_space="ORIG"
-  comment="Typically the native space of the subject\n"
-          "used for native space segmentation, as from FreeSurfer\n"
+  comment="Typically the native space of the subject"
 ></TEMPLATE_SPACE>
 
 <TEMPLATE_SPACE

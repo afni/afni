@@ -849,9 +849,9 @@ dear user, can still accomplish all the same with those commands, but
 I just wanted to add in some other calculations, as well, to try to
 make the process of generating montages of images easier.
 
-The purpose of this function is to generate images easily and quickly
+The purpose of this function is to generate montage images easily and quickly
 while processing-- even if on a remote server (because it uses xvfb to
-make a virtual X11 environment)-- to be able to what is happening in
+make a virtual X11 environment)-- to be able to see what is happening in
 data processing at useful stages: for example, alignment of two sets
 without having to click any buttons in the AFNI GUI.  This makes it
 easier to review batch processing, discuss processing with one's boss,
