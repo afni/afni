@@ -1,3 +1,51 @@
+
+AFNI Digest, week of 2018/04/30.
+
+00) Discussion of FMRI processing with AFNI.
+A recently-submitted bioRxiv draft (not by AFNI authors) described
+"default FMRI processing" using various softwares, including AFNI.  In
+further dialogue with this work, we comment on many of the steps
+chosen therein with AFNI, and provide several recommendations in the
+forms of both code snippets and philosophical musings.  The AFNI draft
+is located on bioRxiv:
+https://www.biorxiv.org/content/early/2018/04/28/308643
+and some of the associated codes are located here:
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/codex/fmri_detailed.html
+(Note that while some those codes do contain fixes from the other
+paper and recommended steps in analyzing FMRI data, there are still
+several cases where things we would *not* recommend were left in the
+codes, for the purposes of comparison with the other authors' text;
+please refer to our bioRxiv comments for details.)
+
+01) NIH Brainhack 2018, May 2-3, will be on the NIH campus in
+Bethesda.  For details, please see:
+https://brainhacknih.github.io/NIHBrainHack2018
+
+02) Processing of multi-echo data using afni_proc.py.
+Recent updates have been made to afni_proc.py for processing
+multi-echo data.  Processing for all steps leading up to the “combine”
+block is run on each echo. Registration of the data is driven by a
+“favorite” echo (default 2nd), which is then applied to all echoes,
+and can include typical transformations: blip distortion correction,
+EPI to EPI base, EPI to anat, affine anat to template, and subsequent
+anat to template non-linear registration.  The multi-echo data can
+then be combined using the “optimally combined” method from Posse
+et. al., 1999, applied by Kundu et. al., 2011.
+Alternatively, echoes can be combined running ME-ICA via tedana.py,
+called from the resulting proc script, with control over passed
+options.
+Those going to the NIH Brainhack 2018, May 2-3, can bring data for
+processing.  Please see:
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/programs/afni_proc.py_sphx.html#ahelp-afni-proc-py
+
+03) Mapping data from surface to volumes has been holier than thou
+might want it. You can fill your volume with @surf_to_vol_spackle. You
+can use these with thickness measurements generated on the surface
+like the ones from FreeSurfer or with the thickness measurements from
+our newish thickness scripts.
+
+========================================================================
+
 AFNI Digest, week of 2018/04/11.
 
 00) New AFNI Bootcamp:  UW, Seattle, USA (July, 2018).
