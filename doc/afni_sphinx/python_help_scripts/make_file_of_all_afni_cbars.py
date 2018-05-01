@@ -27,23 +27,24 @@ displaying the colorbar.  (The image isn't meant to look meaningful
 for every colorbar, it's just an example.)  Some of these apply as
 SUMA colorbars, as well.  Order is reverse alphabetical.
 
+You can set your default overlay colorbar in with the
+AFNI_COLORSCALE_DEFAULT environment variable in your "~/.afnirc" file.
+Otherwise, you can select session-by-session in the AFNI GUI by
+right-clicking on the colorbar when you have an overlay displayed.
 
-We might/should add more over time.
+We might add more over time.
 
-|
-
-.. list-table:: Reference images: the dsets viewed as overlay/underlays
+.. list-table:: Reference images, shown as ulays: the dsets viewed as
+                overlay/underlays below to exemplify colorbar
+                properties in a couple different scenarios. The 
+                range of voxel values in each case is [1, 256].
    :header-rows: 1
-   :widths: 15 35 35
+   :align: center
+   :widths: 35 35
 
-   * - Name
-     - anatomical dset
+   * - anatomical dset
      - ROI dset
-   * - Viridis
-     - .. image:: media/cbars/Viridis.png
-          :height: 3in
-          :align: center
-     - .. image:: media/cbar_refs/FIG_ref_anat.axi.png
+   * - .. image:: media/cbar_refs/FIG_ref_anat.axi.png
           :height: 3in
           :align: center
      - .. image:: media/cbar_refs/FIG_ref_rois.axi.png
