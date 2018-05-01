@@ -863,20 +863,16 @@ ENTRY("insert_value");
             break;
 
         case E_SMAP_MEDIAN:
-            if ( cv[vox] == 0 )
-                dv[vox] = value;
-            else
-                dv[vox] += value;               /* divide by count later */
+            add_to_float_list(aggr->vlist+vox, value, 4);
+            dv[vox] = value;      /* useless, but lets us track via debug */
             break;
 
         case E_SMAP_NZ_MEDIAN:
             /* return, to avoid cv increment (pretend we were never here) */
             if( !value ) RETURN(0);
 
-            if ( cv[vox] == 0 )
-                dv[vox] = value;
-            else
-                dv[vox] += value;               /* divide by count later */
+            add_to_float_list(aggr->vlist+vox, value, 4);
+            dv[vox] = value;      /* useless, but lets us track via debug */
             break;
 
         case E_SMAP_COUNT:
