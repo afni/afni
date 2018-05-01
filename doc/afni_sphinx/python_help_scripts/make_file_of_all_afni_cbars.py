@@ -27,10 +27,28 @@ displaying the colorbar.  (The image isn't meant to look meaningful
 for every colorbar, it's just an example.)  Some of these apply as
 SUMA colorbars, as well.  Order is reverse alphabetical.
 
-You can set your default overlay colorbar in with the
-AFNI_COLORSCALE_DEFAULT environment variable in your "~/.afnirc" file.
 
 We might/should add more over time.
+
+|
+
+.. list-table:: Reference images: the dsets viewed as overlay/underlays
+   :header-rows: 1
+   :widths: 15 35 35
+
+   * - Name
+     - anatomical dset
+     - ROI dset
+   * - Viridis
+     - .. image:: media/cbars/Viridis.png
+          :height: 3in
+          :align: center
+     - .. image:: media/cbar_refs/FIG_ref_anat.axi.png
+          :height: 3in
+          :align: center
+     - .. image:: media/cbar_refs/FIG_ref_rois.axi.png
+          :height: 3in
+          :align: center
 
 |
 
@@ -124,7 +142,7 @@ def write_out_edu_rst(ofile, lll, relpath=""):
     fff.write(table_head % (grp))
     fff.write("   * - Name\n" )
     fff.write("     - Cbar\n" )
-    fff.write("     - opacity=9, brain [1,256]\n" )
+    fff.write("     - opacity=9, anatomical [1,256]\n" )
     fff.write("     - opacity=4, ROIs [1,256]\n" )
 
     for x in lll:
