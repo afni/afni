@@ -4,8 +4,9 @@
 **FMRI examples (detailed)**
 ****************************
 
-.. contents::
-   :depth: 3
+.. comment
+   .. contents::
+      :depth: 3
 
 Publications with example scripts
 =================================
