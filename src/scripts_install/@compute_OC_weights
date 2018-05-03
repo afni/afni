@@ -39,7 +39,7 @@
 # 
 # 
 # ** bad voxels (e.g. m(R2s)<0) will get weights of 1.0/necho
-
+# 
 
 set VERSION = 0.3
 set prog = @compute_OC_weights
@@ -449,8 +449,26 @@ $prog           - compute optimally combined weights dataset
 
    ----------------------------------------------------------------------
 
-   These computations are based on the system of equations from the summer
-   2017 presentation by Javier Gonzalez-Castillo.  After solving:
+   These computations are based on the system of equations from:
+
+      o Posse, S., Wiese, S., Gembris, D., Mathiak, K., Kessler, C.,
+        Grosse-Ruyken, M.L., Elghahwagi, B., Richards, T., Dager, S.R.,
+        Kiselev, V.G.
+        Enhancement of BOLD-contrast sensitivity by single-shot multi-echo
+        functional MR imaging. Magn Reson Med 42, 87–97.
+        Magnetic Resonance in Medicine 42:87–97 (1999)
+
+      o Prantik Kundu, Souheil J. Inati, Jennifer W. Evans, Wen-Ming Luh,
+        Peter A. Bandettini
+        Differentiating BOLD and non-BOLD signals in fMRI time series using
+        multi-echo EPI
+        NeuroImage 60 (2012) 1759–1770
+
+      o a summer 2017 presentation by Javier Gonzalez-Castillo
+
+   ----------------------------------------------------------------------
+
+   After solving:
   
      log(mean(S(TE_1))) ~= -mean(R2s(x))*TE_1 + log(So(x))
      log(mean(S(TE_2))) ~= -mean(R2s(x))*TE_2 + log(So(x))

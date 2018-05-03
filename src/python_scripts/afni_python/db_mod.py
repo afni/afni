@@ -11426,6 +11426,10 @@ g_help_options = """
                             (there is little difference between OC_A and OC_B)
                 tedana    : run tedana.py, taking the resulting dn_ts_OC.nii
 
+            The OC/OC_A combine method is from Posse et. al., 1999, and then
+            applied by Kundu et. al., 2011 and presented by Javier in a 2017
+            summer course.
+
             Please see '@compute_OC_weights -help' for more information.
             See also -combine_tedana_path.
 
