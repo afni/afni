@@ -36,6 +36,8 @@ int main( int argc , char *argv[] )
       "                     and so on down the image.\n"
       "                   * A partition (e.g., mask=3) with fewer than 9 voxels\n"
       "                     will not be processed at all.\n"
+      "                   * If there is more than one partition, horizontal dashed\n"
+      "                     lines will drawn between them.\n"
       "\n"
       " -input dataset  = Alternative way to input dataset to process.\n"
       "\n"
@@ -74,6 +76,10 @@ int main( int argc , char *argv[] )
       "** Applied to 'raw' EPI data, the results may not be very informative.\n"
       "   It seems to be more useful to look at the grayplot calculated from\n"
       "   pre-processed data (e.g., time series registered, filtered, etc.).\n"
+      "\n"
+      "** See also the script @grayplot, which can process the results from\n"
+      "   afni_proc.py and produce an image with the grayplot combined with\n"
+      "   a graph of the motion magnitude.\n"
       "\n"
      ) ;
      exit(0) ;
