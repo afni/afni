@@ -402,6 +402,11 @@ int mri_write_jpg( char *fname , MRI_IMAGE *im )  /* 15 Apr 2005 */
    if( STRING_HAS_SUFFIX_CASE(fname,".png") ){  /* 07 Dec 2007 */
      RETURN( mri_write_png(fname,im) ) ;
    }
+   if( STRING_HAS_SUFFIX_CASE(fname,".ppm") ||
+       STRING_HAS_SUFFIX_CASE(fname,".pgm") ||
+       STRING_HAS_SUFFIX_CASE(fname,".pnm")   ){
+     RETURN( mri_write_pnm(fname,im) ) ;
+   }
 
    pg = THD_find_executable( "cjpeg" ) ;
    if( pg == NULL ) return 0 ;
@@ -443,6 +448,11 @@ int mri_write_png( char *fname , MRI_IMAGE *im )  /* 11 Dec 2006 */
 
    if( STRING_HAS_SUFFIX_CASE(fname,".jpg") ){  /* 07 Dec 2007 */
      RETURN( mri_write_jpg(fname,im) ) ;
+   }
+   if( STRING_HAS_SUFFIX_CASE(fname,".ppm") ||
+       STRING_HAS_SUFFIX_CASE(fname,".pgm") ||
+       STRING_HAS_SUFFIX_CASE(fname,".pnm")   ){
+     RETURN( mri_write_pnm(fname,im) ) ;
    }
 
    pg = THD_find_executable( "pnmtopng" ) ; if( pg == NULL ) return 0 ;

@@ -44,6 +44,20 @@ static int ilab[4] = { 0,2,3,1 } ;  /* whether to plot labels on axes */
 static float THIK = 0.004f ;  /* 27 Mar 2004: changed from a #define */
 static float thik = 0.002f ;  /* 02 Apr 2012: for labels */
 
+static float aspect = 1.3f ;  /* 03 May 2018 */
+static int   do_perim = 1 ;
+static int   do_naked = 0 ;
+
+#define ASX(xv) ((xv)*aspect/1.3f)
+
+void plot_ts_set_aspect( float asp ){ aspect = asp ; }
+void plot_ts_do_perim  ( int   dp  ){ do_perim = dp ; }
+
+void plot_ts_do_naked  ( int   nn  ){
+  do_naked = nn ;
+  if( do_naked ) do_perim = 0 ;
+}
+
 /*----------------------------------------------------------------------*/
 static float tsbox  = 0.0f ;      /* 23 May 2011 */
 static float noline = 0 ;
@@ -520,6 +534,10 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
 
    init_colors() ;
 
+   if( do_naked ){  /* 03 May 2018 */
+     lab_xxx = lab_yyy = lab_top = NULL ; nam_yyy = NULL ;
+   }
+
    /*-- make up an x-axis if none given --*/
 
    if( nsepx > 0 ){
@@ -662,7 +680,7 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
 
    /*-- setup to plot --*/
 
-   create_memplot_surely( "tsplot" , 1.3 ) ;
+   create_memplot_surely( "tsplot" , aspect ) ;
    set_thick_memplot( thik ) ;  /* for labels */
 #if 0
    thth = get_opacity_memplot() ;
@@ -670,7 +688,6 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
 #endif
 
    /*-- plot labels, if any --*/
-
 
    if( xflip ){ xobot = 0.03; xotop = 1.15; } /* set objective size of plot */
    else       { xobot = 0.15; xotop = 1.27; }
@@ -684,6 +701,8 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
        xotop -= 0.16 ; xobot -= 0.02 ;
      }
    }
+
+   if( do_naked ){ xobot = yobot = 0.0f ; xotop = 1.3f ; } /* 03 May 2018 */
 
    /* x-axis label? */
 
@@ -762,7 +781,8 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
       /* plot axes */
 
       floatfix(ybot) ; floatfix(ytop) ;
-      plotpak_set( xobot,xotop , yobot,yotop , xabot,xatop , ybot,ytop , 1 ) ;
+      plotpak_set( ASX(xobot),ASX(xotop) , yobot,yotop ,
+                   xabot,xatop , ybot,ytop , 1 ) ;
 
       /* 24 Apr 2012: add vbox stuff now, before other plotting */
 
@@ -811,9 +831,11 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
         }
       }
 
-      set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
-      set_thick_memplot( thik ) ;
-      plotpak_perimm( nnax,mmax , nnay,mmay , ilab[(nnax>0)+2*(nnay>0)] ) ;
+      if( do_perim ){
+        set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
+        set_thick_memplot( thik ) ;
+        plotpak_perimm( nnax,mmax , nnay,mmay , ilab[(nnax>0)+2*(nnay>0)] ) ;
+      }
 
       /* plot data */
 
@@ -941,7 +963,8 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
       for( jj=ny-1 ; jj >= 0 ; jj-- ){
          yll = yobot + jj*(1.0+SY)*dyo ; yhh = yll + dyo ;
          floatfix(ylo[jj]) ; floatfix(yhi[jj]) ;
-         plotpak_set( xobot,xotop , yll,yhh , xabot,xatop , ylo[jj],yhi[jj] , 1 ) ;
+         plotpak_set( ASX(xobot),ASX(xotop) , yll,yhh ,
+                      xabot,xatop , ylo[jj],yhi[jj] , 1 ) ;
 
          /* 24 Apr 2012: add vbox stuff now, before other plotting */
 
@@ -970,8 +993,10 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
            else if( mmay == 3 ) mmay = 6 ;
          }
 
-         set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
-         plotpak_perimm( nnax,mmax , nnay,mmay , ilab[(nnax>0)*(jj==0)+2*(nnay>0)] ) ;
+         if( do_perim ){
+           set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
+           plotpak_perimm( nnax,mmax , nnay,mmay , ilab[(nnax>0)*(jj==0)+2*(nnay>0)] ) ;
+         }
          if( ylo[jj] < 0.0 && yhi[jj] > 0.0 ){
            set_thick_memplot( 0.0 ) ;
            plotpak_setlin(3) ;
@@ -1065,7 +1090,7 @@ void plot_ts_lab( Display * dpy ,
 
    if( dpy == NULL ) return ;
 
-   if (nx < 0 ) { ymask = ymask | TSP_SEPARATE_YSCALE; nx = -nx; }
+   if (nx < 0 ){ ymask = ymask | TSP_SEPARATE_YSCALE; nx = -nx; }
    if( ny < 0 ){ ymask = ymask | TSP_SEPARATE_YBOX ; ny = -ny ; }
 
    mp = plot_ts_mem( nx,x , ny,ymask,y , lab_xxx , lab_yyy , lab_top , nam_yyy ) ;
@@ -1111,6 +1136,10 @@ MEM_topshell_data * plot_ts_init( Display * dpy ,
    if( dpy == NULL || ny == 0 || xbot >= xtop || ybot >= ytop ) return NULL ;
 
    init_colors() ;
+
+   if( do_naked ){  /* 03 May 2018 */
+     lab_xxx = lab_yyy = lab_top = NULL ; nam_yyy = NULL ;
+   }
 
    /*-- push range of x outwards --*/
 
@@ -1162,7 +1191,7 @@ MEM_topshell_data * plot_ts_init( Display * dpy ,
 
    /*-- setup to plot --*/
 
-   create_memplot_surely( "Tsplot" , 1.3 ) ;
+   create_memplot_surely( "Tsplot" , aspect ) ;
    set_thick_memplot( thik*1.5f ) ;
 
    /*-- plot labels, if any --*/
@@ -1172,6 +1201,8 @@ MEM_topshell_data * plot_ts_init( Display * dpy ,
 
    if( STGOOD(lab_top) ){ yotop -= 0.02 ; yobot -= 0.01 ; }
    if( nam_yyy != NULL ){ xotop -= 0.16 ; xobot -= 0.02 ; }
+
+   if( do_naked ){ xobot = yobot = 0.0f ; xotop = 1.3f ; } /* 03 May 2018 */
 
    /* x-axis label? */
 
@@ -1220,10 +1251,13 @@ MEM_topshell_data * plot_ts_init( Display * dpy ,
 
       /* plot axes */
 
-      set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
       floatfix(ybot) ; floatfix(ytop) ;
-      plotpak_set( xobot,xotop , yobot,yotop , xbot,xtop , ybot,ytop , 1 ) ;
-      plotpak_perimm( nnax,mmax , nnay,mmay , ilab[(nnax>0)+2*(nnay>0)] ) ;
+      plotpak_set( ASX(xobot),ASX(xotop) , yobot,yotop ,
+                   xbot,xtop , ybot,ytop , 1 ) ;
+      if( do_perim ){
+        set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
+        plotpak_perimm( nnax,mmax , nnay,mmay , ilab[(nnax>0)+2*(nnay>0)] ) ;
+      }
 
    } else {  /*-- plot each on separate vertical scale --*/
 
@@ -1264,9 +1298,12 @@ MEM_topshell_data * plot_ts_init( Display * dpy ,
       for( jj=ny-1 ; jj >= 0 ; jj-- ){
          yll = yobot + jj*(1.0+SY)*dyo ; yhh = yll + dyo ;
          floatfix(ybot) ; floatfix(ytop) ;
-         plotpak_set( xobot,xotop , yll,yhh , xbot,xtop , ybot,ytop , 1 ) ;
-         set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
-         plotpak_perimm( nnax,mmax , nnay,mmay , ilab[(nnax>0)*(jj==0)+2*(nnay>0)] ) ;
+         plotpak_set( ASX(xobot),ASX(xotop) , yll,yhh ,
+                      xbot,xtop , ybot,ytop , 1 ) ;
+         if( do_perim ){
+           set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
+           plotpak_perimm( nnax,mmax , nnay,mmay , ilab[(nnax>0)*(jj==0)+2*(nnay>0)] ) ;
+         }
          if( ybot < 0.0 && ytop > 0.0 ){
             plotpak_setlin(5) ;
             plotpak_line( xbot,0.0 , xtop,0.0 ) ;
@@ -1317,7 +1354,8 @@ void plot_ts_addto( MEM_topshell_data * mp ,
    if( yall ){  /*-- all in one big happy box --*/
 
       floatfix(ybot) ; floatfix(ytop) ;
-      plotpak_set( xobot,xotop , yobot,yotop , xbot,xtop , ybot,ytop , 1 ) ;
+      plotpak_set( ASX(xobot),ASX(xotop) , yobot,yotop ,
+                   xbot,xtop , ybot,ytop , 1 ) ;
       set_thick_memplot( THIK ) ;
 
       /* plot data */
@@ -1345,7 +1383,8 @@ void plot_ts_addto( MEM_topshell_data * mp ,
       for( jj=ny-1 ; jj >= 0 ; jj-- ){
          yll = yobot + jj*(1.0+SY)*dyo ; yhh = yll + dyo ;
          floatfix(ybot) ; floatfix(ytop) ;
-         plotpak_set( xobot,xotop , yll,yhh , xbot,xtop , ybot,ytop , 1 ) ;
+         plotpak_set( ASX(xobot),ASX(xotop) , yll,yhh ,
+                      xbot,xtop , ybot,ytop , 1 ) ;
          set_color_memplot( ccc[jj%NCLR][0] , ccc[jj%NCLR][1] , ccc[jj%NCLR][2] ) ;
 
          yy = y[jj] ;
@@ -1495,7 +1534,7 @@ MEM_plotdata * plot_ts_ebar( int nx , float *x , float *y , float *ey ,
 
    /*-- setup to plot --*/
 
-   create_memplot_surely( "tsplot" , 1.3 ) ;
+   create_memplot_surely( "tsplot" , aspect ) ;
    set_thick_memplot( thik ) ;  /* for labels */
 
    /*-- plot labels, if any --*/
@@ -1527,11 +1566,14 @@ MEM_plotdata * plot_ts_ebar( int nx , float *x , float *y , float *ey ,
 
    /* plot axes */
 
-   set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
-   set_thick_memplot( thik ) ;
    floatfix(ybot) ; floatfix(ytop) ;
-   plotpak_set( xobot,xotop , yobot,yotop , xbot,xtop , ybot,ytop , 1 ) ;
-   plotpak_perimm( nnax,mmax , nnay,mmay , ilab[(nnax>0)+2*(nnay>0)] ) ;
+   plotpak_set( ASX(xobot),ASX(xotop) , yobot,yotop ,
+                xbot,xtop , ybot,ytop , 1 ) ;
+   if( do_perim ){
+     set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
+     set_thick_memplot( thik ) ;
+     plotpak_perimm( nnax,mmax , nnay,mmay , ilab[(nnax>0)+2*(nnay>0)] ) ;
+   }
 
    xdd = (xtop-xbot)*0.00333f ;
 
