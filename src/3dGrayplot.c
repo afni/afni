@@ -4,7 +4,7 @@
 
 int main( int argc , char *argv[] )
 {
-   THD_3dim_dataset *dset ;
+   THD_3dim_dataset *dset=NULL ;
    MRI_IMAGE *imout ;
    char *prefix = "Grayplot.png" ;
    byte *mask=NULL ; int mask_nvox=0 ;
@@ -36,6 +36,8 @@ int main( int argc , char *argv[] )
       "                     and so on down the image.\n"
       "                   * A partition (e.g., mask=3) with fewer than 9 voxels\n"
       "                     will not be processed at all.\n"
+      "\n"
+      " -input dataset  = Alternative way to input dataset to process.\n"
       "\n"
       " -prefix ppp.png = Name for output file.\n"
       "                   * Default is Grayplot.png\n"
@@ -146,22 +148,32 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
+     if( strcasecmp(argv[iarg],"-input") == 0 ){
+       if( ++iarg >= argc ) ERROR_exit("Need argument after '-input'") ;
+       if( dset != NULL ) ERROR_exit("Can't have two -input options") ;
+       dset = THD_open_dataset( argv[iarg] ) ;
+       CHECK_OPEN_ERROR(dset,argv[iarg]) ;
+       DSET_load(dset) ; CHECK_LOAD_ERROR(dset) ;
+       iarg++ ; continue ;
+     }
+
      ERROR_exit("Unknown option '%s'",argv[iarg]) ;
    }
 
    if( mask == NULL ) ERROR_exit("Need '-mask'") ;
 
-   if( iarg >= argc ) ERROR_exit("No input dataset?") ;
-
    /*----------------------------------------------------------------*/
 
-   dset = THD_open_dataset( argv[iarg] ) ;
-   CHECK_OPEN_ERROR(dset,argv[iarg]) ;
-   INFO_message("Loading dataset") ;
-   DSET_load(dset) ; CHECK_LOAD_ERROR(dset) ;
+   if( dset == NULL ){
+     if( iarg >= argc ) ERROR_exit("No input dataset?") ;
+     dset = THD_open_dataset( argv[iarg] ) ;
+     CHECK_OPEN_ERROR(dset,argv[iarg]) ;
+     INFO_message("Loading dataset") ;
+     DSET_load(dset) ; CHECK_LOAD_ERROR(dset) ;
+   }
 
    if( mask_nvox != DSET_NVOX(dset) )
-     ERROR_exit("mask and dataset don't match :(") ;
+     ERROR_exit("mask and dataset voxel counts don't match :(") ;
 
    INFO_message("Grayplot-ing dataset") ;
    imout = THD_dset_to_grayplot( dset,mask , nxout,nyout , polort,fwhm ) ;
