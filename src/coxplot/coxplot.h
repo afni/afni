@@ -309,6 +309,9 @@ extern void plot_ts_dobox ( float ) ;
 extern void plot_ts_xfix( int,int , float,float ) ;                /* 22 Jul 2003 */
 extern void plot_ts_yfix( int,int , float,float ) ;
 
+extern void plot_ts_set_aspect( float asp ) ;                      /* 03 May 2018 */
+extern void plot_ts_do_perim  ( int   dp  ) ;
+
 extern void plot_ts_add_vbox( int,float,float,float,float,float ); /* 24 Apr 2012 */
 
 extern void plot_ts_add_rbox( int ygr ,

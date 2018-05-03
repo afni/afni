@@ -42,8 +42,9 @@ int main( int argc , char *argv[] )
       " -prefix ppp.png = Name for output file.\n"
       "                   * Default is Grayplot.png\n"
       "                   * If the filename ends in '.jpg', a JPEG file is output.\n"
-      "                   * If the filename does not end in '.jpg' OR in '.png',\n"
-      "                     then the string '.png' will be added at the end.\n"
+      "                   * If the filename ends in '.pgm', a PGM file is output.\n"
+      "                   * If the filename does not end in '.jpg' OR in '.png'\n"
+      "                     OR in '.pgm', then '.png' will be added at the end.\n"
       "\n"
       " -dimen X Y      = Output size of image in pixels.\n"
       "                   * X = width  = time axis direction\n"
@@ -110,6 +111,7 @@ int main( int argc , char *argv[] )
        if( ++iarg >= argc )
          ERROR_exit("'-prefix' needs an argument") ;
        if( STRING_HAS_SUFFIX(argv[iarg],".png") ||
+           STRING_HAS_SUFFIX(argv[iarg],".pgm") ||
            STRING_HAS_SUFFIX(argv[iarg],".jpg")   ){
          prefix = strdup(argv[iarg]) ;
        } else {
