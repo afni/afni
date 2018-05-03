@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3, May, 2018, RCR, "@extract_meica_ortvec", MINOR, TYPE_NEW_PROG,
+   "new program to extract MEICA projection vectors",
+   "These 'rejected' terms are orthogonalized to the 'accepted' ones.\n"
+   "This was written to be called by afni_proc.py."
+ } ,
+
  { 28, Apr, 2018, RCR, "3dSurf2Vol", MINOR, TYPE_NEW_OPT,
    "add option -stop_gap and map functions nzave, nzmode, median, nzmedian",
    NULL
