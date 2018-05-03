@@ -192,6 +192,11 @@ void usage_1dplot(int detail)
      "             [before the program scans the command line for options]\n"
      #endif
      "\n"
+     " -naked     = Do NOT plot axes or labels, just the graph(s).\n"
+     "              You might want to use '-nopush' with '-naked'.\n"
+     " -aspect A  = Set the width-to-height ratio of the plot region to 'A'.\n"
+     "              Default value is 1.3. Larger 'A' means a wider graph.\n"
+     "\n"
      " -stdin     = Don't read from tsfile; instead, read from\n"
      "              stdin and plot it. You cannot combine input\n"
      "              from stdin and tsfile(s).  If you want to do so,\n"
@@ -569,6 +574,23 @@ int main( int argc , char *argv[] )
       }
 
       /*----------*/
+
+      if( strcmp(argv[iarg],"-aspect") == 0 ){         /* 03 May 2018 */
+        float asp = (float)strtod(argv[++iarg],NULL) ;
+        if( asp > 0.0f && asp < 666.0f )
+          plot_ts_set_aspect(asp) ;
+        iarg++ ; continue ;
+      }
+
+      if( strcmp(argv[iarg],"-noaxes") == 0 ){         /* 03 May 2018 */
+        plot_ts_do_perim(0) ;
+        iarg++ ; continue ;
+      }
+
+      if( strcmp(argv[iarg],"-naked") == 0 ){          /* 03 May 2018 */
+        plot_ts_do_naked(1) ;
+        iarg++ ; continue ;
+      }
 
 #if 0
      if( strcmp(argv[iarg],"-vbox") == 0 ){   /* HIDDEN: just for testing */

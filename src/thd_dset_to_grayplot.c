@@ -2,6 +2,9 @@
 
 /*--------------------------------------------------------------------------*/
 
+static int lev_num ;
+static int lev_siz[256] ;
+
 static MRI_vectim * THD_dset_grayplot_prep( THD_3dim_dataset *dset ,
                                             byte *mmask ,
                                             int polort , float fwhm )
@@ -11,6 +14,7 @@ static MRI_vectim * THD_dset_grayplot_prep( THD_3dim_dataset *dset ,
    int nvim ; MRI_vectim **vim , *vout ;
    float *tsar ;
 
+   lev_num = 0 ;
    if( !ISVALID_DSET(dset) || mmask == NULL ) return NULL ;
    nts = DSET_NVALS(dset) ;
    if( nts < 19 ) return NULL ;
@@ -30,7 +34,7 @@ static MRI_vectim * THD_dset_grayplot_prep( THD_3dim_dataset *dset ,
      if( cmval > 9 ){
        vim = (MRI_vectim **)realloc( vim , sizeof(MRI_vectim *)*(nvim+1) ) ;
        vim[nvim] = THD_dset_to_vectim( dset , tmask , 0 ) ;
-       if( polort > 0 ){
+       if( polort >= 0 ){
          for( jj=0 ; jj < vim[nvim]->nvec ; jj++ ){
            tsar = VECTIM_PTR( vim[nvim] , jj ) ;
            THD_generic_detrend_LSQ( nts,tsar , polort , 0,NULL,NULL ) ;
@@ -43,10 +47,13 @@ static MRI_vectim * THD_dset_grayplot_prep( THD_3dim_dataset *dset ,
        if( fwhm > 0 )
          mri_blur3D_vectim( vim[nvim] , fwhm ) ;
 
+       lev_siz[nvim] = cmval ;
        nvim++ ;
      }
    }
    free(tmask) ;
+
+   lev_num = nvim ;
 
    if( nvim == 0 ) return NULL ;
 
@@ -183,6 +190,18 @@ static MRI_IMAGE * mri_vectim_to_grayplot( MRI_vectim *imts, int nx, int ny )
    }
 
    free(zar) ; free(yar) ; mri_free(imttt) ;
+
+   if( lev_num > 1 ){
+     float yfac ; int kk ;
+     for( kk=1 ; kk < lev_num ; kk++ ) lev_siz[kk] += lev_siz[kk-1] ;
+     yfac = nyy / (float)nss ;
+     for( kk=0 ; kk < lev_num-1 ; kk++ ){
+       jj = (int)rintf( yfac * lev_siz[kk] ) ;
+       for( ii=0 ; ii < nxx ; ii++ ){
+         if( ii%19 < 9 ) outar[ii+jj*nxx] = 0 ;
+       }
+     }
+   }
 
    return imout ;
 }
