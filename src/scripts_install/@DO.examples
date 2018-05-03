@@ -1,6 +1,6 @@
 #!/bin/tcsh
 
-set testmode = 1
+set testmode = 0
 set tmpico = __donut
 set to = ''
 
