@@ -1,6 +1,6 @@
 ########################################
 ## 05/2018 Justin Rajendra
-## Gang bayesian something or other
+## Gang bayesian something or other 
 
 ## todo
 
