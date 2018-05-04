@@ -1,14 +1,41 @@
 #!/bin/tcsh
 
-if( $#argv < 1 || "$argv[1]" == "-help" )then
+set do_help = 0
+if( $#argv < 1 ) set do_help = 1
+if( $do_help == 0 )then
+  if( "$argv[1]" == "-help" ) set do_help = 1
+endif
+if( $do_help )then
   echo "Usage: @grayplot dirname"
   echo
   echo "Script to read files from an afni_proc.py results directory"
   echo "and produce a grayplot from the errts dataset, combined with"
   echo "a motion magnitude indicator graph."
   echo
+  echo "Will produce a plot for errts.SUBJECT+tlrc and also for"
+  echo "errts.SUBJECT_REML+tlrc, if both datasets were computed."
+  echo "The output images are grayscale, stored in .png format, and"
+  echo "have names like 'Grayplot.errts.SUBJECT.png'."
+  echo
+  echo "Note that time points which were censored out will have errts=0"
+  echo "(and thus look flat), and the motion magnitude graph will be"
+  echo "set to 0 at these points as well -- to avoid having large motions"
+  echo "dominate the graph and make it hard to see other movements."
+  echo
+  echo "Segments the anatomy (or uses an existing segmentation, if"
+  echo "it was run by afni_proc.py), and grayplots the GM, WM, and CSF"
+  echo "voxels separately from top to bottom, with dashed lines dividing"
+  echo "the partitions. Within each partition, voxels are ordered by"
+  echo "a simple similarity measure, so the top of each partition will"
+  echo "have voxel time series that are more similar than the bottom of"
+  echo "the partition."
+  echo
+  echo "If the current working directory IS the afni_proc.py results"
+  echo "directory, then '@grayplot .' should work. Otherwise, the only"
+  echo "command line argument is the name of the directory to use."
+  echo
   echo "Author: RWCox -- May 2018"
-  echo "Notice: Subject to drastic change at any moment"
+  echo "Notice: Subject to drastic change at any instant"
   exit 0
 endif
 
@@ -74,13 +101,18 @@ endif
 
 # make a mask of GM, WM, and CSF (in that order)
 
-echo "----- Segmenting $aa[1]"
+if( -f Classes+tlrc.HEAD )then
+  echo "----- Using existing segmentation"
+else
+  echo "----- Segmenting $aa[1]"
+  3dSeg -anat $aa[1] -mask AUTO -blur_meth BIM -classes 'CSF; GM; WM'
+  if( -f Segsy/Classes+tlrc.HEAD ) mv Segsy/Classes+tlrc.* .
+  \rm -rf Segsy
+endif
 
-3dSeg -anat $aa[1] -mask AUTO -blur_meth BIM -classes 'CSF; GM; WM'
-
-if( -d Segsy )then
+if( -f Classes+tlrc.HEAD )then
 # convert CSF=1 to CSF=4
-  3dcalc -a Segsy/Classes+tlrc -expr 'ifelse(equals(a,1),4,a)' \
+  3dcalc -a Classes+tlrc.HEAD -expr 'ifelse(equals(a,1),4,a)' \
          -datum byte -nscale -prefix GmaskA.nii
 # convert from anat resolution to EPI resolution
   3dfractionize -template $dmask \
@@ -88,7 +120,7 @@ if( -d Segsy )then
 # combine with EPI mask
   3dcalc -a GmaskB.nii -b $dmask -expr 'a*b' -prefix GmaskC.nii
   set ggg = GmaskC.nii
-  \rm -rf GmaskA.nii GmaskB.nii Segsy
+  \rm -rf GmaskA.nii GmaskB.nii
 else
   set ggg = $dmask
 endif
@@ -103,6 +135,7 @@ foreach eee ( $eaa $ebb )
     echo "----- Grayplot $eee"
     set ppp = `basename $eee +tlrc.HEAD`
     3dGrayplot -dimen 1000 500      \
+               -pvorder             \
                -mask $ggg           \
                -input $eee          \
                -prefix G.errts.pgm
