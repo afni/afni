@@ -69,6 +69,17 @@ int main( int argc , char *argv[] )
       "                     blurring here will help bring out larger scale\n"
       "                     features in the times series.\n"
       "\n"
+      " -pvorder        = Within each mask partition, order the voxels (top to\n"
+      "                   bottom) by how well they match the two leading principal\n"
+      "                   components of that partition. The result is to make the\n"
+      "                   top part of each partition be made up of voxels with\n"
+      "                   similar time series, and the bottom part will be more\n"
+      "                   'random looking'.\n"
+      "                   * The default order of voxels is just the coordinate\n"
+      "                     order in which they appear in the dataset.\n"
+      "                   * Someday, somehow, perhaps more ordering options will\n"
+      "                     be included. Maybe.\n"
+      "\n"
       "** Quick hack for Cesar Caballero-Gaudes, April 2019, by @AFNIman.\n"
       "   As such, this program may be modified in the future to be more useful,\n"
       "   or at least more beautifully gorgeous.\n"
@@ -79,7 +90,8 @@ int main( int argc , char *argv[] )
       "\n"
       "** See also the script @grayplot, which can process the results from\n"
       "   afni_proc.py and produce an image with the grayplot combined with\n"
-      "   a graph of the motion magnitude.\n"
+      "   a graph of the motion magnitude, and with the GM, WM, and CSF in\n"
+      "   different partitions.\n"
       "\n"
      ) ;
      exit(0) ;
@@ -104,6 +116,10 @@ int main( int argc , char *argv[] )
          ERROR_exit("'-polort' needs an argument") ;
        polort = (int)strtod(argv[iarg++],NULL) ;
        continue ;
+     }
+
+     if( strcasecmp(argv[iarg],"-pvorder") == 0 ){ /* 04 May 2018 */
+       grayplot_order_by_pvmap(1) ; iarg++ ; continue ;
      }
 
      if( strcasecmp(argv[iarg],"-fwhm") == 0 ){
