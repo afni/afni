@@ -2,7 +2,7 @@
 
 ########################################################################
 ## 05/2018 Justin Rajendra
-## wrapper for Gang's Bayesian Group Analysis 
+## wrapper for Gang's Bayesian Group Analysis
 
 ## system libraries
 import sys, os, glob, subprocess, re, argparse, csv, signal, textwrap, shutil
@@ -66,13 +66,18 @@ Overview ~1~
     provided in a table in the output. A boxplot can also be generated if
     requested with -plot.
 
-    The computation requires that the R package
-    "brms" be installed (e.g., through rPkgsInstall). Similar to 3dMVM and
-    3dLME, a data table should be created containing the input data and
-    relevant variables (with at least 3 columns: subject labels, ROI labels,
-    response variable values).
+    The computation requires that the R package "brms" be installed
+    (e.g., through rPkgsInstall).
+    More info on the brms package can be found here:
+        https://CRAN.R-project.org/package=brms
+    And the brms reference manual is here:
+        https://cran.r-project.org/web/packages/brms/brms.pdf
 
 Details ~1~
+
+    Similar to 3dMVM and 3dLME, a data table  should be created containing
+    the input data and relevant variables (with at least 3 columns: subject
+    labels, ROI labels, response variable values).
 
     The -dataTable should be formated as follows:
 
