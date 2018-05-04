@@ -51,6 +51,9 @@
 afni_history_struct discoraj_history[] = {
 
  /* can copy to and change one of the examples here */
+ { 04 , MAY , 2018 , JKR , "BayesianGroupAna.py" , SUPER , TYPE_NEW_PROG ,
+   "New program to preform Bayesian group analysis on ROI level data."
+ } ,
  { 23 , MAR , 2018 , JKR , "tedana_wrapper.py" , SUPER , TYPE_NEW_PROG ,
    "add wrapper for tedana.py that will be run from afni_proc.py"
  } ,
