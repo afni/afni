@@ -611,8 +611,9 @@ g_requires_afni = [ \
 
 g_todo_str = """todo:
   - ME:
-     - for LA: run all tedana steps before 3dcopy ones
-     - update (f)ANATICOR and -mask_import
+     x for LA: run all tedana steps before 3dcopy ones
+     x update for (f)ANATICOR 
+     - allow use of -mask_import
      - use combine result in -regress_ROI* options
         - see: rcr - todo combine
      - ** set_proc_vr_vall (and similar), choose between volreg and combine
@@ -2318,11 +2319,21 @@ class SubjProcSream:
         return -1
 
     def find_latest_block(self, lablist):
+        """return the label of the latest block
+           (i.e. with the highest index)
+
+           if no label is found, return 'NONE'
         """
-        """
-        block = self.find_block(label)
-        if block: return self.blocks.index(block)
-        return -1
+        
+        # get maximum label index
+        imax = UTIL.argmax([self.find_block_index(lab) for lab in lablist])
+
+        # if actually found, return corresponding label
+        rlabel = lablist[imax]
+        if self.find_block_index(rlabel) >= 0: return lablist[imax]
+    
+        # failure
+        return 'NONE'
 
     def find_block_or_prev(self, blabel, cblock):
        """find block of given label, or some prior block
