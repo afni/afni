@@ -365,6 +365,10 @@ static char *tip[] = {
   "Want your picture in the AFNI splash window at startup? Send us a JPEG\n"
   "image, formatted to be square 128x128, and we can include it!\n"
  ,
+  "Do you want ALL the AFNI plugins to be visible in the Plugins menu?\n"
+  "Set environment variable AFNI_ALLOW_ALL_PLUGINS to YES in your\n"
+  ".afnirc file."
+ ,
 
 /*-- tips below here are for non-GUI programs --*/
 
