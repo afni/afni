@@ -1,9 +1,19 @@
 #include "mrilib.h"
 
+#include "mri_pvmap.c"
+
 /*--------------------------------------------------------------------------*/
 
 static int lev_num ;
 static int lev_siz[256] ;
+
+#define ORDER_PV 1
+
+static int ordering = 0 ;
+
+static grayplot_order_by_pvmap( int yesno ){
+  ordering = (yesno) ? ORDER_PV : 0 ;
+}
 
 static MRI_vectim * THD_dset_grayplot_prep( THD_3dim_dataset *dset ,
                                             byte *mmask ,
@@ -46,6 +56,29 @@ static MRI_vectim * THD_dset_grayplot_prep( THD_3dim_dataset *dset ,
        }
        if( fwhm > 0 )
          mri_blur3D_vectim( vim[nvim] , fwhm ) ;
+
+       switch( ordering ){
+         default: break ;
+
+         case ORDER_PV:{
+           MRI_IMAGE *tim = mri_new(nts,cmval,MRI_float) , *pim ;
+           int       *kim = (int *)malloc(sizeof(int)*cmval) ;
+           float     *tar = MRI_FLOAT_PTR(tim), *par ;
+           for( jj=0 ; jj < cmval ; jj++ ){
+             memcpy( tar+jj*nts, VECTIM_PTR(vim[nvim],jj), sizeof(float)*nts ) ;
+             kim[jj] = jj ;
+           }
+           pim = mri_vec_to_pvmap(tim) ; par = MRI_FLOAT_PTR(pim) ;
+           for( jj=0 ; jj < cmval ; jj++ ) par[jj] = -par[jj] ;
+           qsort_floatint( cmval , par , kim ) ;
+           mri_free(pim) ;
+           for( jj=0 ; jj < cmval ; jj++ ){
+             memcpy( VECTIM_PTR(vim[nvim],jj), tar+kim[jj]*nts, sizeof(float)*nts ) ;
+           }
+           mri_free(tim) ; free(kim) ;
+         }
+         break ;
+       }
 
        lev_siz[nvim] = cmval ;
        nvim++ ;
@@ -198,7 +231,7 @@ static MRI_IMAGE * mri_vectim_to_grayplot( MRI_vectim *imts, int nx, int ny )
      for( kk=0 ; kk < lev_num-1 ; kk++ ){
        jj = (int)rintf( yfac * lev_siz[kk] ) ;
        for( ii=0 ; ii < nxx ; ii++ ){
-         if( ii%19 < 9 ) outar[ii+jj*nxx] = 0 ;
+         if( ii%19 < 9 ) outar[ii+jj*nxx] = 1 ;
        }
      }
    }
