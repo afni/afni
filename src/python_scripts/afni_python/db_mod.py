@@ -5548,17 +5548,21 @@ def set_proc_vr_vall(proc, block, parset=None, newpre='rm.all_runs',
    # create or not catenated volreg dataset
    if proc.vr_vall != None: return ''
 
-   # rcr - need more logic to pick block:
-   #     - if volreg is before combine or no volreg, use combine
-   #     - else use volreg
-   if proc.have_me: blabel = 'combine'
-   else:            blabel = 'volreg'
+   # use combine or volreg block, whichever block comes last
+   # (i.e. require both, if they exist)
+   # (if blabel is different, use it)
+   def_blist = ['combine', 'volreg']
+   if blabel in def_blist: blist = def_blist
+   else:                   blist = [blabel]
+   blabel = proc.find_latest_block(blist)
+   vblock = proc.find_block_or_prev(blabel, block)
+   blabel = vblock.label   # if neither exists, will use current block
+   if vblock == None:
+      print('** SPVV: failed to find corresponding %s block' % blabel)
+      return ''
+   
    proc.vr_vall_lab = blabel
 
-   vblock = proc.find_block_or_prev(blabel, block)
-   if vblock == None:
-      print('** SPVV: failed to find corresponding %s block', blabel)
-      return ''
 
    dprefix = '%s.%s' % (newpre, blabel)
 
@@ -6128,11 +6132,28 @@ def db_cmd_regress_pc_followers(proc, block):
        cmd_censor = ''
        opt_censor = ''
 
+
+    # rcr - PONDER
+
+    # use combine or volreg block, whichever block comes last
+    # (i.e. require both, if they exist)
+    blabel = proc.find_latest_block(['combine', 'volreg'])
+    vblock = proc.find_block_or_prev(blabel, block)
+    blabel = vblock.label   # if neither exists, will use current block
+    if vblock == None:
+       print('** ROI_PC: failed to find corresponding %s block' % blabel)
+       return 1, ''
+    vr_prefix = proc.prefix_form_run(vblock)
+
+    proc.vr_vall_lab = blabel
+
+
+
     # if there is no volreg prefix, get a more recent one
-    vr_prefix = proc.volreg_prefix
-    if not vr_prefix:
-       vblock = proc.find_block_or_prev('volreg', block)
-       vr_prefix = proc.prefix_form_run(vblock)
+    #vr_prefix = proc.volreg_prefix
+    #if not vr_prefix:
+    #   vblock = proc.find_block_or_prev('volreg', block)
+    #   vr_prefix = proc.prefix_form_run(vblock)
 
     tpre = 'rm.det_pcin'
     clist.append(                                                \
