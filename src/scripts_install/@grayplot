@@ -1,13 +1,22 @@
 #!/bin/tcsh
 
-if( $#argv < 1 )then
-  echo "Need results directory name as command line argument"
+if( $#argv < 1 || "$argv[1]" == "-help" )then
+  echo "Usage: @grayplot dirname"
+  echo
+  echo "Script to read files from an afni_proc.py results directory"
+  echo "and produce a grayplot from the errts dataset, combined with"
+  echo "a motion magnitude indicator graph."
+  echo
+  echo "Author: RWCox -- May 2018"
+  echo "Notice: Subject to drastic change at any moment"
   exit 0
 endif
 
 set ddir = $argv[1]
 
 pushd $ddir
+
+# find anat file, extract subj name from it
 
 set aa = ( anat_final.*+tlrc.HEAD )
 if( $#aa != 1 )then
@@ -16,14 +25,31 @@ endif
 
 set subj = `echo $aa[1] | sed -e 's/+tlrc.HEAD//' -e 's/anat_final.//'`
 
+# find EPI mask file
+
+set dmask = mask_epi_anat.${subj}+tlrc.HEAD
+if( ! -f $dmask )then
+  set dmask = full_mask.${subj}+tlrc.HEAD
+  if( ! -f $dmask )then
+    echo "** Can't find EPI mask :(" ; exit 1
+  endif
+endif
+
 echo "----- Plotting motion"
 
+# compute enorm from each run's dfile
+
 foreach ddd ( dfile.r[0-9]*.1D )
-  1d_tool.py -infile $ddd -derivative -collapse_cols euclidean_norm -write enorm.$ddd
+  1d_tool.py -infile $ddd -derivative -collapse_cols euclidean_norm \
+             -write enorm.$ddd
 end
+
+# glue them together
 
 cat enorm.dfile.r*.1D > enorm.dfile.all.1D
 \rm enorm.dfile.r*.1D
+
+# find the censoring file
 
 set ccc = censor_${subj}_combined_2.1D
 if( ! -f $ccc )then
@@ -36,45 +62,61 @@ if( ! -f $ccc )then
   endif
 endif
 
+# make the naked enorm plot
+
 if( $?ccc )then
   1deval -a enorm.dfile.all.1D -b $ccc -expr 'a*b' | \
     1dplot -stdin -nopush -naked -pnms 1000 enorm.dfile.all.ppm -aspect 10
 else
-  1dplot -nopush -naked -pnms 1000 enorm.dfile.all.ppm -aspect 10 enorm.dfile.all.1D
+  1dplot -nopush -naked -pnms 1000 enorm.dfile.all.ppm -aspect 10 \
+         enorm.dfile.all.1D
 endif
+
+# make a mask of GM, WM, and CSF (in that order)
 
 echo "----- Segmenting $aa[1]"
 
 3dSeg -anat $aa[1] -mask AUTO -blur_meth BIM -classes 'CSF; GM; WM'
 
 if( -d Segsy )then
+# convert CSF=1 to CSF=4
   3dcalc -a Segsy/Classes+tlrc -expr 'ifelse(equals(a,1),4,a)' \
          -datum byte -nscale -prefix GmaskA.nii
-##  3dresample -master mask_epi_anat.${subj}+tlrc.HEAD \
-##             -rmode NN -input GmaskA.nii -prefix GmaskB.nii
-  3dfractionize -template mask_epi_anat.${subj}+tlrc.HEAD \
+# convert from anat resolution to EPI resolution
+  3dfractionize -template $dmask \
                 -input GmaskA.nii -prefix GmaskB.nii -vote
-  3dcalc -a GmaskB.nii -b mask_epi_anat.${subj}+tlrc.HEAD \
-         -expr 'a*b' -prefix GmaskC.nii
+# combine with EPI mask
+  3dcalc -a GmaskB.nii -b $dmask -expr 'a*b' -prefix GmaskC.nii
   set ggg = GmaskC.nii
   \rm -rf GmaskA.nii GmaskB.nii Segsy
 else
-  set ggg = mask_epi_anat.${subj}+tlrc.HEAD
+  set ggg = $dmask
 endif
 
-echo "----- Grayplot errts"
+# grayplot both errts files, if they both exist
 
-3dGrayplot -dimen 1000 500                  \
-           -mask $ggg                       \
-           -input errts.${subj}+tlrc.HEAD   \
-           -prefix G.errts.pgm
+set eaa = errts.${subj}+tlrc.HEAD
+set ebb = errts.${subj}_REML+tlrc.HEAD
 
-echo "----- Combining images"
+foreach eee ( $eaa $ebb )
+  if( -f $eee )then
+    echo "----- Grayplot $eee"
+    set ppp = `basename $eee +tlrc.HEAD`
+    3dGrayplot -dimen 1000 500      \
+               -mask $ggg           \
+               -input $eee          \
+               -prefix G.errts.pgm
+# merge with graph
+    pnmcat -tb enorm.dfile.all.ppm G.errts.pgm | \
+      pnmtopng - > Grayplot.${ppp}.png
+    echo " ---- Result in $cwd/Grayplot.${ppp}.png"
+    \rm G.errts.pgm
+  endif
+end
 
-pnmcat -tb enorm.dfile.all.ppm G.errts.pgm | pnmtopng - > Grayplot.errts.${subj}.png
+# remove the trash
 
-\rm enorm.dfile.all.* G.errts.pgm
+\rm enorm.dfile.all.*
 if( -f GmaskC.nii ) \rm GmaskC.nii
 
-echo "----- Result in $cwd/Grayplot.errts.${subj}.png"
 exit 0
