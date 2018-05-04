@@ -2,7 +2,7 @@
 
 ########################################################################
 ## 05/2018 Justin Rajendra
-## wrapper for Gang's Bayesian Group Analysis
+## wrapper for Gang's Bayesian Group Analysis 
 
 ## system libraries
 import sys, os, glob, subprocess, re, argparse, csv, signal, textwrap, shutil
