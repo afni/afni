@@ -177,6 +177,7 @@ int main( int argc , char *argv[] )
        if( dset != NULL ) ERROR_exit("Can't have two -input options") ;
        dset = THD_open_dataset( argv[iarg] ) ;
        CHECK_OPEN_ERROR(dset,argv[iarg]) ;
+       INFO_message("Loading dataset") ;
        DSET_load(dset) ; CHECK_LOAD_ERROR(dset) ;
        iarg++ ; continue ;
      }

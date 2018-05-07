@@ -64,6 +64,7 @@ static MRI_vectim * THD_dset_grayplot_prep( THD_3dim_dataset *dset ,
            MRI_IMAGE *tim = mri_new(nts,cmval,MRI_float) , *pim ;
            int       *kim = (int *)malloc(sizeof(int)*cmval) ;
            float     *tar = MRI_FLOAT_PTR(tim), *par ;
+           ININFO_message("  Computing PV order for mask partition #%d - %d voxels",ii,cmval) ;
            for( jj=0 ; jj < cmval ; jj++ ){
              memcpy( tar+jj*nts, VECTIM_PTR(vim[nvim],jj), sizeof(float)*nts ) ;
              kim[jj] = jj ;
