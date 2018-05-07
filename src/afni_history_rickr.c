@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  7, May, 2018, RCR, "@extract_meica_ortvec", MINOR, TYPE_NEW_OPT,
+   "add -ver, -meica_dir, -work_dir, init history",
+   NULL
+ } ,
+
  {  7, May, 2018, RCR, "afni_pro.py", MINOR, TYPE_MODIFY,
    "EPI automask (full_mask) is no longer dilated by default",
    "Also, add -show_process_changes, to report changes affecting results."
