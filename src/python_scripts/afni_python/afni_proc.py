@@ -594,9 +594,11 @@ g_history = """
     6.10 Apr 26, 2018:
         - run all tedana steps before copying results
         - adjust labels from combine to volreg
+    6.11 May  7, 2018:
+        - EPI automask (full_mask) is no longer dilated by default
 """
 
-g_version = "version 6.10, Apr 26, 2018"
+g_version = "version 6.11, May 7, 2018"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
