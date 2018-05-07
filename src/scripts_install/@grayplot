@@ -12,8 +12,11 @@ if( $do_help )then
   echo "and produce a grayplot from the errts dataset, combined with"
   echo "a motion magnitude indicator graph."
   echo
-  echo "Will produce a plot for errts.SUBJECT+tlrc and also for"
+  echo "Will produce a plot for errts.SUBJECT+tlrc and for"
   echo "errts.SUBJECT_REML+tlrc, if both datasets were computed."
+  echo "And errts.SUBJECT_REMLwh+tlrc will also be plotted, if option"
+  echo "'-regress_opts_reml -Rwherr errts.SUBJECT_REMLwh' was given"
+  echo "to afni_proc.py -- this is the 'pre-whitened' residuals dataset."
   echo "The output images are grayscale, stored in .png format, and"
   echo "have names like 'Grayplot.errts.SUBJECT.png'."
   echo
@@ -23,7 +26,7 @@ if( $do_help )then
   echo "dominate the graph and make it hard to see other movements."
   echo "Censored time points are also overlaid with gray band in the"
   echo "graph above the dataset grayplot. (Gray so that the resulting"
-  echo "png file is grayscale.)"
+  echo "png file is grayscale, without color.)"
   echo
   echo "If the afni_proc.py setup was a task analysis, and if option"
   echo "'-regress_make_ideal_sum sum_ideal.1D' was used, the 'sum_ideal.1D'"
@@ -37,7 +40,9 @@ if( $do_help )then
   echo "the partitions. Within each partition, voxels are ordered by"
   echo "a simple similarity measure, so the top of each partition will"
   echo "have voxel time series that are more similar than the bottom of"
-  echo "the partition."
+  echo "the partition. This ordering helps make it clear if there are"
+  echo "many time series with similar temporal patterns, which will show"
+  echo "up as vertical bands in the grayplot."
   echo
   echo "If the current working directory IS the afni_proc.py results"
   echo "directory, then '@grayplot .' should work. The only command"
