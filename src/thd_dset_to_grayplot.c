@@ -226,13 +226,15 @@ static MRI_IMAGE * mri_vectim_to_grayplot( MRI_vectim *imts, int nx, int ny )
    free(zar) ; free(yar) ; mri_free(imttt) ;
 
    if( lev_num > 1 ){
-     float yfac ; int kk ;
+     float yfac ; int kk , rr ; byte qq=1 ;
      for( kk=1 ; kk < lev_num ; kk++ ) lev_siz[kk] += lev_siz[kk-1] ;
      yfac = nyy / (float)nss ;
      for( kk=0 ; kk < lev_num-1 ; kk++ ){
        jj = (int)rintf( yfac * lev_siz[kk] ) ;
        for( ii=0 ; ii < nxx ; ii++ ){
-         if( ii%19 < 9 ) outar[ii+jj*nxx] = 1 ;
+         rr = ii%19 ;
+              if( rr <   9 ) outar[ii+jj*nxx] = qq ;
+         else if( rr == 18 ) qq = 255-qq ;
        }
      }
    }
