@@ -3,7 +3,7 @@
 ########################################################################
 ## 03/2018 Justin Rajendra
 ## prep data from afni_proc.py for tedana.py
-## todo:
+## 05/07/2018: removed the mean addition 
 
 ## system libraries
 import sys, os, glob, subprocess, re, argparse, signal, textwrap, shutil
@@ -210,13 +210,13 @@ for e in range(0,len(echos)):
     mask_echo.new_prefix(OutName+"_echo_"+str(e+1)+"_masked")
     mask_echo.new_path(OutFolder)
 
-    mask_scaled_echo = afni_base.afni_name(echos[e])
-    mask_scaled_echo.new_prefix(OutName+"_echo_"+str(e+1)+"_masked_scaled")
-    mask_scaled_echo.new_path(OutFolder)
+    # mask_scaled_echo = afni_base.afni_name(echos[e])
+    # mask_scaled_echo.new_prefix(OutName+"_echo_"+str(e+1)+"_masked_scaled")
+    # mask_scaled_echo.new_path(OutFolder)
 
-    mean_echo = afni_base.afni_name(echos[e])
-    mean_echo.new_prefix(OutName+"_echo_"+str(e+1)+"_mean")
-    mean_echo.new_path(OutFolder)
+    # mean_echo = afni_base.afni_name(echos[e])
+    # mean_echo.new_prefix(OutName+"_echo_"+str(e+1)+"_mean")
+    # mean_echo.new_path(OutFolder)
 
     out_echo = afni_base.afni_name(echos[e])
     out_echo.new_prefix(OutName+"_echo_"+str(e+1)+"_preZcat")
@@ -238,25 +238,25 @@ for e in range(0,len(echos)):
 
     ## scale
     cmd_str = ("3dcalc -float "+overwrite+" -a "+mask_echo.ppv()+" "+
-               "-expr 'a*10000/"+p50+"' -prefix "+mask_scaled_echo.pp())
+               "-expr 'a*10000/"+p50+"' -prefix "+out_echo.pp())
     exec_or_error(cmd_str,"ERROR: Scaling failed!!!")
 
-    ## mean
-    cmd_str = ("3dTstat "+overwrite+" -prefix "+mean_echo.pp()+" "+
-               mask_scaled_echo.ppv())
-    exec_or_error(cmd_str,"ERROR: Mean failed!!!")
-
-    ## output strange addition
-    cmd_str = ("3dcalc -float "+overwrite+" -a "+mask_scaled_echo.ppv()+
-               " -b "+mean_echo.ppv()+" -expr 'a+b' "+
-               "-prefix "+out_echo.pp())
-    exec_or_error(cmd_str,"ERROR: Mean addition failed!!!")
+    # ## mean
+    # cmd_str = ("3dTstat "+overwrite+" -prefix "+mean_echo.pp()+" "+
+    #            mask_scaled_echo.ppv())
+    # exec_or_error(cmd_str,"ERROR: Mean failed!!!")
+    #
+    # ## output strange addition
+    # cmd_str = ("3dcalc -float "+overwrite+" -a "+mask_scaled_echo.ppv()+
+    #            " -b "+mean_echo.ppv()+" -expr 'a+b' "+
+    #            "-prefix "+out_echo.pp())
+    # exec_or_error(cmd_str,"ERROR: Mean addition failed!!!")
 
     ## clean up
     if not save_all:
         mask_echo.delete()
-        mask_scaled_echo.delete()
-        mean_echo.delete()
+        # mask_scaled_echo.delete()
+        # mean_echo.delete()
 
 ###################################
 ## stack up
