@@ -594,9 +594,12 @@ g_history = """
     6.10 Apr 26, 2018:
         - run all tedana steps before copying results
         - adjust labels from combine to volreg
+    6.11 May  7, 2018:
+        - EPI automask (full_mask) is no longer dilated by default
+        - added -show_process_changes, to report changes affecting results
 """
 
-g_version = "version 6.10, Apr 26, 2018"
+g_version = "version 6.11, May 7, 2018"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -608,6 +611,27 @@ g_requires_afni = [ \
       [  "1 Sep 2015",  "gen_ss_review_scripts.py -errts_dset" ],
       [ "23 Jul 2015",  "3dREMLfit -dsort" ],
       [  "1 Apr 2015",  "1d_tool.py uncensor from 1D" ] ]
+
+g_process_changes_str = """
+---------- changes to afni_proc.py that might afftect results ----------
+
+Miscellaneous older changes:
+
+   24 Mar 2009 : mask is no longer applied to EPI data
+      - preferable to see all results by default
+      - reproduce with: -mask_apply brain
+
+   17 Jun 2009 : EPI extents mask is aplied
+      - motion could cause strange edge effects
+      - require data at every time point
+      - reproduce with: -volreg_no_extent_mask
+
+More detailed changes, starting May, 2018.
+
+   07 May 2018 : EPI full_mask: dilation is no longer the default
+      - since mask is not (generally) applied to data, make more accurate
+      - reproduce with: -mask_dilate 1
+"""
 
 g_todo_str = """todo:
   - ME:
@@ -955,6 +979,8 @@ class SubjProcSream:
                         helpstr='show which date is required of AFNI')
         self.valid_opts.add_opt('-requires_afni_hist', 0, [],
                         helpstr='show history of -requires_afni_version')
+        self.valid_opts.add_opt('-show_process_changes', 0, [],
+                        helpstr="show afni_proc.py changes that affect results")
         self.valid_opts.add_opt('-show_valid_opts', 0, [],
                         helpstr="show all valid options")
         self.valid_opts.add_opt('-todo', 0, [],
@@ -1497,6 +1523,10 @@ class SubjProcSream:
             hlist = ['   %11s, for : %s' % (h[0],h[1]) for h in g_requires_afni]
             print('%s' % '\n'.join(hlist))
             return 0  # gentle termination
+        
+        if opt_list.find_opt('-show_process_changes'):
+            print(g_process_changes_str)
+            return 0
         
         if opt_list.find_opt('-todo'):     # print "todo" list
             print(g_todo_str)
