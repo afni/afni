@@ -164,8 +164,9 @@ endif
 
 set eaa = errts.${subj}+tlrc.HEAD
 set ebb = errts.${subj}_REML+tlrc.HEAD
+set ecc = errts.${subj}_REMLwh+tlrc.HEAD
 
-foreach eee ( $eaa $ebb )
+foreach eee ( $eaa $ebb $ecc )
   if( -f $eee )then
     echo "----- Grayplot $eee"
     set ppp = `basename $eee +tlrc.HEAD`
