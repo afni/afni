@@ -21,6 +21,15 @@ if( $do_help )then
   echo "(and thus look flat), and the motion magnitude graph will be"
   echo "set to 0 at these points as well -- to avoid having large motions"
   echo "dominate the graph and make it hard to see other movements."
+  echo "Censored time points are also overlaid with gray band in the"
+  echo "graph above the dataset grayplot. (Gray so that the resulting"
+  echo "png file is grayscale.)"
+  echo
+  echo "If the afni_proc.py setup was a task analysis, and if option"
+  echo "'-regress_make_ideal_sum sum_ideal.1D' was used, the 'sum_ideal.1D'"
+  echo "file will also be graphed above the motion magnitude graphed, to make"
+  echo "it possible to see if the dataset grayplot has stimulus-correlated"
+  echo "bands of data."
   echo
   echo "Segments the anatomy (or uses an existing segmentation, if"
   echo "it was run by afni_proc.py), and grayplots the GM, WM, and CSF"
@@ -31,8 +40,8 @@ if( $do_help )then
   echo "the partition."
   echo
   echo "If the current working directory IS the afni_proc.py results"
-  echo "directory, then '@grayplot .' should work. Otherwise, the only"
-  echo "command line argument is the name of the directory to use."
+  echo "directory, then '@grayplot .' should work. The only command"
+  echo "line argument (at this time) is the name of the directory to use."
   echo
   echo "Author: RWCox -- May 2018"
   echo "Notice: Subject to drastic change at any instant"
@@ -66,14 +75,18 @@ echo "----- Plotting motion"
 
 # compute enorm from each run's dfile
 
-foreach ddd ( dfile.r[0-9]*.1D )
+set dlist = ( dfile.r*.1D )
+set nrun  = $#dlist
+
+foreach ddd ( $dlist )
   1d_tool.py -infile $ddd -derivative -collapse_cols euclidean_norm \
              -write enorm.$ddd
 end
 
 # glue them together
 
-cat enorm.dfile.r*.1D > enorm.dfile.all.1D
+\rm -f enorm.dfile.all*
+cat enorm.dfile.r*.1D > enorm.dfile.allU.1D
 \rm enorm.dfile.r*.1D
 
 # find the censoring file
@@ -89,14 +102,36 @@ if( ! -f $ccc )then
   endif
 endif
 
-# make the naked enorm plot
+# make the naked enorm plots
 
+setenv AFNI_1DPLOT_COLOR_01   'black'
+set    cencol               = '#dddddd'
 if( $?ccc )then
-  1deval -a enorm.dfile.all.1D -b $ccc -expr 'a*b' | \
-    1dplot -stdin -nopush -naked -pnms 1000 enorm.dfile.all.ppm -aspect 10
-else
-  1dplot -nopush -naked -pnms 1000 enorm.dfile.all.ppm -aspect 10 \
-         enorm.dfile.all.1D
+  1deval -a enorm.dfile.allU.1D -b $ccc -expr 'a*b' > enorm.dfile.allC.1D
+endif
+
+if( -f enorm.dfile.allC.1D && -f sum_ideal.1D )then
+  1dplot -nopush -naked -sep_scl -pnms 1000 enorm.dfile.allC.ppm -aspect 10 \
+         -censor_RGB $cencol -censor $ccc enorm.dfile.allC.1D sum_ideal.1D
+  1dplot -nopush -naked -sep_scl -pnms 1000 enorm.dfile.allU.ppm -aspect 10 \
+         -censor_RGB $cencol -censor $ccc enorm.dfile.allU.1D sum_ideal.1D
+else if( -f enorm.dfile.allC.1D && ! -f sum_ideal.1D )then
+  1dplot -nopush -naked -pnms 1000 enorm.dfile.allC.ppm -aspect 10 \
+         -censor_RGB $cencol -censor $ccc enorm.dfile.allC.1D
+  1dplot -nopush -naked -pnms 1000 enorm.dfile.allU.ppm -aspect 10 \
+           -censor_RGB $cencol -censor $ccc enorm.dfileU.all.1D
+endif
+
+if( ! -f enorm.dfile.allU.ppm && -f sum_ideal.1D )then
+  1dplot -nopush -naked -sep_scl -pnms 1000 enorm.dfile.allU.ppm -aspect 10 \
+         enorm.dfile.allU.1D sum_ideal.1D
+else if( ! -f enorm.dfile.allU.ppm && ! -f sum_ideal.1D )then
+  1dplot -nopush -naked -pnms 1000 enorm.dfile.allU.ppm -aspect 10 \
+         enorm.dfile.allU.1D
+endif
+
+if( ! -f enorm.dfile.allC.ppm )then
+  \cp -f enorm.dfile.allU.ppm enorm.dfile.allC.ppm
 endif
 
 # make a mask of GM, WM, and CSF (in that order)
@@ -136,11 +171,34 @@ foreach eee ( $eaa $ebb )
     set ppp = `basename $eee +tlrc.HEAD`
     3dGrayplot -dimen 1000 500      \
                -pvorder             \
+               -polort -1           \
                -mask $ggg           \
                -input $eee          \
                -prefix G.errts.pgm
 # merge with graph
-    pnmcat -tb enorm.dfile.all.ppm G.errts.pgm | \
+    pnmcat -tb enorm.dfile.allC.ppm G.errts.pgm | \
+      pnmtopng - > Grayplot.${ppp}.png
+    echo " ---- Result in $cwd/Grayplot.${ppp}.png"
+    \rm G.errts.pgm
+  endif
+end
+
+# grayplot the all_runs file
+
+@ port = 2 * $nrun
+
+foreach eee ( all_runs.${subj}+tlrc.HEAD )
+  if( -f $eee )then
+    echo "----- Grayplot $eee"
+    set ppp = `basename $eee +tlrc.HEAD`
+    3dGrayplot -dimen 1000 500      \
+               -pvorder             \
+               -polort $port        \
+               -mask $ggg           \
+               -input $eee          \
+               -prefix G.errts.pgm
+# merge with graph
+    pnmcat -tb enorm.dfile.allU.ppm G.errts.pgm | \
       pnmtopng - > Grayplot.${ppp}.png
     echo " ---- Result in $cwd/Grayplot.${ppp}.png"
     \rm G.errts.pgm
@@ -149,7 +207,7 @@ end
 
 # remove the trash
 
-\rm enorm.dfile.all.*
+\rm enorm.dfile.all*
 if( -f GmaskC.nii ) \rm GmaskC.nii
 
 exit 0
