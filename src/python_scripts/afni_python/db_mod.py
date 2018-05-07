@@ -3494,7 +3494,7 @@ def cmd_blur_surf(proc, block):
 def db_mod_mask(block, proc, user_opts):
     if len(block.opts.olist) == 0: # then init
         block.opts.add_opt('-mask_type', 1, ['union'], setpar=1)
-        block.opts.add_opt('-mask_dilate', 1, [1], setpar=1)
+        block.opts.add_opt('-mask_dilate', 1, [0], setpar=1)
         block.opts.add_opt('-mask_rm_segsy', 1, ['yes'], setpar=1)
         block.opts.add_opt('-mask_test_overlap', 1, ['yes'], setpar=1)
 
@@ -3581,9 +3581,9 @@ def mask_created(mask):
 def db_cmd_mask(proc, block):
     cmd = ''
     opt = block.opts.find_opt('-mask_type')
-    type = opt.parlist[0]
-    if type == 'union': minv = 0           # result must be greater than minv
-    else:               minv = 0.999
+    mtype = opt.parlist[0]
+    if mtype == 'union': minv = 0           # result must be greater than minv
+    else:                minv = 0.999
 
     # if we have an EPI mask, set the view here
     if proc.mask_epi.view == '': proc.mask_epi.view = proc.view
@@ -3594,14 +3594,16 @@ def db_cmd_mask(proc, block):
 
     opt = block.opts.find_opt('-mask_dilate')
     nsteps = opt.parlist[0]
+    if nsteps > 0: dstr = '-dilate %d ' % nsteps
+    else:          dstr = ''
 
     prev = proc.prev_dset_form_wild(block)
     prev = proc.prev_prefix_form_run(block, view=1, eind=-1)
     cmd = cmd + "# %s\n"                                                \
                 "# create 'full_mask' dataset (%s mask)\n"              \
                 "foreach run ( $runs )\n"                               \
-                "    3dAutomask -dilate %d -prefix rm.mask_r$run %s\n"  \
-                "end\n\n" % (block_header('mask'), type, nsteps, prev)
+                "    3dAutomask %s-prefix rm.mask_r$run %s\n"  \
+                "end\n\n" % (block_header('mask'), mtype, dstr, prev)
     proc.have_rm = 1            # rm.* files exist
 
     # make the mask (3dMean/3dcalc/3dcopy -> 3dmask_tool 26 Jun 2014 [rickr])
