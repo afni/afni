@@ -11,7 +11,7 @@ static int lev_siz[256] ;
 
 static int ordering = 0 ;
 
-static grayplot_order_by_pvmap( int yesno ){
+static void grayplot_order_by_pvmap( int yesno ){
   ordering = (yesno) ? ORDER_PV : 0 ;
 }
 
