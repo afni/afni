@@ -2404,7 +2404,7 @@ def warp_anat_followers(proc, block, anat_aname, epi_aname=None, prevepi=0):
    # check for any non-linear warp
    donl = 0
    for warp in warps:
-      if warp.endswith('_WARP.nii') or warp.endswith('_WARP.nii.gz'):
+      if proc.looks_like_qwarp_name(warp):
          donl = 1
          break
 
@@ -2668,10 +2668,12 @@ def db_cmd_combine(proc, block):
    """combine all echoes
 
       This will grow to include options like:
-         ave    : simple average
-         OC     : optimally combine
-         meica  : run meica to get projection terms
-                  possibly also use to combine echoes
+         ave           : simple average
+         OC            : optimally combine
+         OC_tedort     : OC, but get ortvec from tedana (@extract_meica_ortvec)
+         tedana        : run tedana.py to get dn_ts_OC.nii
+         tedana_tedort : run tedana.py to get OC result (ts_OC.nii),
+                         and get ortvec for later projection
    """
 
    if not proc.use_me:
@@ -2696,6 +2698,9 @@ def db_cmd_combine(proc, block):
       ccmd = cmd_combine_mean(proc, block)
    elif ocmeth[0:2] == 'OC':
       ccmd = cmd_combine_OC(proc, block, ocmeth)
+      #if ocmeth == 'OC_tedort':
+      #   # now ALSO run tedana to get ortvecs
+      #   ccmd = cmd_combine_tedana(proc, block, 'getorts')
    elif ocmeth[0:6] == 'tedana':
       ccmd = cmd_combine_tedana(proc, block, ocmeth)
    else:
@@ -2736,6 +2741,10 @@ def cmd_combine_tedana(proc, block, method='tedana'):
 
    if method == 'tedana':
       mstr = ''
+      dataout = 'dn_ts_OC.nii'
+   elif method == 'getorts':
+      mstr = '# (run tedana.py to get -ortvec results)\n\n'
+      dataout = ''
    else:
       print("** invalid combine method, %s" % method)
       return
@@ -2789,8 +2798,10 @@ def cmd_combine_tedana(proc, block, method='tedana'):
    prev_prefix = proc.prev_prefix_form_run(block, view=1, eind=-2)
    exoptstr = ''.join(exopts)
 
+
    # actually run tedana.py
    cmd =  '# ----- method %s : generate TED (MEICA) results  -----\n\n' \
+          '%s'                                                          \
           '# first run tedana.py commands, to see if they all succeed\n'\
           'foreach run ( $runs )\n'                                     \
           '   tedana_wrapper.py -input %s \\\n'                         \
@@ -2802,7 +2813,9 @@ def cmd_combine_tedana(proc, block, method='tedana'):
           '%s'                                                          \
           '      -prefix tedprep\n'                                     \
           'end\n\n'                                                     \
-          % (method, prev_prefix, proc.mask.shortinput(), save_opt, exoptstr)
+          % (method, mstr, prev_prefix, proc.mask.shortinput(), save_opt,
+             exoptstr)
+ 
 
    # prepare for fixing view before copying the results back
    if proc.view and (proc.view != '+orig'):
@@ -6792,6 +6805,8 @@ def mod_check_tlrc_NL_warp_dsets(proc, block):
     if dims[3] != 3:
        print('** error in %s p3: NL warp should be 3 volumes,' % oname)
        print('   but dataset %s shows %d' % (nlname.shortinput(), dims[3]))
+       return 1
+    if not proc.looks_like_qwarp_name(dslist[2], warn=1):
        return 1
 
     # store the afni_names and bolt
