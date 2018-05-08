@@ -49,6 +49,17 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  8, May, 2018, RCR, "afni_proc.py", MAJOR, TYPE_NEW_OPT,
+   "add multi-echo combine methods: OC_tedort, tedana_OC, tedana_OC_tedort",
+   "With this, afni_proc.py can run tedana.py and extract projection\n"
+   "components (projecting good orts from bad, making cleaner bad orts).\n"
+   "   OC_tedort        : like AFNI's OC, but also regress clean orts\n"
+   "   tedana_OC        : tedana.py's OC\n"
+   "   tedana_OC_tedort : tedana.py's OC, and regress clean orts\n"
+   "The tedort (orthogonalized tedana projection components) terms are\n"
+   "applied in the regress block, still as per-run terms."
+ } ,
+
  {  8, May, 2018, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
    "3dQwarp warp datasets need only be named _WARP",
    "Thanks to dowdlelt on MB for bringing this up."
