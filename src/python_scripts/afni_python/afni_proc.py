@@ -597,13 +597,16 @@ g_history = """
     6.11 May  7, 2018:
         - EPI automask (full_mask) is no longer dilated by default
         - added -show_process_changes, to report changes affecting results
-    6.12 May  8, 2018: NL-warp dsets need only end in _WARP
+    6.12 May  8, 2018:
+        - NL-warp dsets need only end in _WARP
+        - added -combine_methods: OC_tedort, tedana_OC, tedana_OC_tedort
 """
 
 g_version = "version 6.12, May 8, 2018"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
+      [ " 3 May 2018",  "@extract_meica_ortvec" ],
       [ "23 Mar 2018",  "tedana_wrapper.py" ],
       [ "23 Feb 2018",  "@compute_OC_weights -echo_times" ],
       [ "23 Sep 2016",  "1d_tool.py -select_runs" ],
@@ -627,6 +630,8 @@ Miscellaneous older changes:
       - require data at every time point
       - reproduce with: -volreg_no_extent_mask
 
+    ... add ACF ...
+
 More detailed changes, starting May, 2018.
 
    07 May 2018 : EPI full_mask: dilation is no longer the default
@@ -636,6 +641,8 @@ More detailed changes, starting May, 2018.
 
 g_todo_str = """todo:
   - ME:
+     - add help for new combine methods
+     x add tedana orthogonalization combine methods
      x for LA: run all tedana steps before 3dcopy ones
      x update for (f)ANATICOR 
      - allow use of -mask_import
