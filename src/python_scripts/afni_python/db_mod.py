@@ -2404,7 +2404,7 @@ def warp_anat_followers(proc, block, anat_aname, epi_aname=None, prevepi=0):
    # check for any non-linear warp
    donl = 0
    for warp in warps:
-      if warp.endswith('qw_WARP.nii') or warp.endswith('qw_WARP.nii.gz'):
+      if warp.endswith('_WARP.nii') or warp.endswith('_WARP.nii.gz'):
          donl = 1
          break
 
