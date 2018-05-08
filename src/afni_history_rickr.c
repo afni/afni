@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  8, May, 2018, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "3dQwarp warp datasets need only be named _WARP",
+   "Thanks to dowdlelt on MB for bringing this up."
+ } ,
+
  {  7, May, 2018, RCR, "@extract_meica_ortvec", MINOR, TYPE_NEW_OPT,
    "add -ver, -meica_dir, -work_dir, init history",
    NULL
