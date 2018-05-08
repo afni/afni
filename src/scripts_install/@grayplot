@@ -1,12 +1,12 @@
 #!/bin/tcsh
 
 set do_help = 0
-if( $#argv < 1 ) set do_help = 1
+if( $#argv == 0 ) set do_help = 1
 if( $do_help == 0 )then
   if( "$argv[1]" == "-help" ) set do_help = 1
 endif
 if( $do_help )then
-  echo "Usage: @grayplot dirname"
+  echo "Usage: @grayplot [OPTIONS] dirname"
   echo
   echo "Script to read files from an afni_proc.py results directory"
   echo "and produce a grayplot from the errts dataset, combined with"
@@ -18,7 +18,11 @@ if( $do_help )then
   echo "'-regress_opts_reml -Rwherr errts.SUBJECT_REMLwh' was given"
   echo "to afni_proc.py -- this is the 'pre-whitened' residuals dataset."
   echo "The output images are grayscale, stored in .png format, and"
-  echo "have names like 'Grayplot.errts.SUBJECT.png'."
+  echo "have names like 'Grayplot.errts.SUBJECT.ORDERMETH.png'."
+  echo "* See the OPTIONS section below for the ordering methods"
+  echo "  of the voxels in the output."
+  echo "* SUBJECT is the subject ID code, extracted from the dataset name"
+  echo "  'anat_final.SUBJECT+tlrc.HEAD'."
   echo
   echo "Note that time points which were censored out will have errts=0"
   echo "(and thus look flat), and the motion magnitude graph will be"
@@ -37,23 +41,50 @@ if( $do_help )then
   echo "Segments the anatomy (or uses an existing segmentation, if"
   echo "it was run by afni_proc.py), and grayplots the GM, WM, and CSF"
   echo "voxels separately from top to bottom, with dashed lines dividing"
-  echo "the partitions. Within each partition, voxels are ordered by"
-  echo "a simple similarity measure, so the top of each partition will"
-  echo "have voxel time series that are more similar than the bottom of"
-  echo "the partition. This ordering helps make it clear if there are"
-  echo "many time series with similar temporal patterns, which will show"
-  echo "up as vertical bands in the grayplot."
+  echo "the partitions."
   echo
-  echo "If the current working directory IS the afni_proc.py results"
-  echo "directory, then '@grayplot .' should work. The only command"
-  echo "line argument (at this time) is the name of the directory to use."
+  echo "COMMAND LINE ARGUMENTS"
+  echo "* The last argument is the afni_proc.py results directory."
+  echo "  To use the current working directory, use '.' as the last argument."
+  echo "* The only OPTIONS at this time control the ordering of the voxel"
+  echo "  (time series)graphs inside each mask partition in the grayplot,"
+  echo "  downward in the image:"
+  echo "    -pvorder ="
+  echo "      Within each partition, voxels are ordered by a simple similarity"
+  echo "      measure, so the top of each partition will echo have voxel time"
+  echo "      series that are more similar than the bottom of the partition."
+  echo "      This ordering helps make it clear if there are many time series"
+  echo "      with similar temporal patterns, which will show up as vertical"
+  echo "      bands in the grayplot."
+  echo "    -peelorder ="
+  echo "      Within each partition, voxels are ordered by how many 'peel'"
+  echo "      operations are needed to reach a given voxel; that is, how"
+  echo "      far a voxel is from the partition's boundary. Voxels at the"
+  echo "      edge of the partition are first, etc."
+  echo "  The default (no option given) order is simple coordinate order"
+  echo "  in the dataset, which may not be very interesting."
   echo
   echo "Author: RWCox -- May 2018"
   echo "Notice: Subject to drastic change at any instant"
   exit 0
 endif
 
-set ddir = $argv[1]
+set order = " "
+set osuff = "XYZORDER.png"
+set ddir  = "."
+set iarg  = 0
+
+if( $#argv > 0 )then
+  set iarg = 1
+  if( "$argv[$iarg]" == "-peelorder" )then
+    set order = "-peelorder" ; set osuff = "PEELORDER.png" ; @ iarg ++
+  else if( "$argv[$iarg]" == "-pvorder" )then
+    set order = "-pvorder" ; set osuff = "PVORDER.png" ; @ iarg ++
+  endif
+  if( $#argv >= $iarg )then
+    set ddir = $argv[$iarg] ; @ iarg ++
+  endif
+endif
 
 pushd $ddir
 
@@ -176,15 +207,15 @@ foreach eee ( $eaa $ebb $ecc )
     echo "----- Grayplot $eee"
     set ppp = `basename $eee +tlrc.HEAD`
     3dGrayplot -dimen 1000 500      \
-               -pvorder             \
+               $order               \
                -polort -1           \
                -mask $ggg           \
                -input $eee          \
                -prefix G.errts.pgm
 # merge with graph
     pnmcat -tb enorm.dfile.allC.ppm G.errts.pgm | \
-      pnmtopng - > Grayplot.${ppp}.png
-    echo " ---- Result in $cwd/Grayplot.${ppp}.png"
+      pnmtopng - > Grayplot.${ppp}.${osuff}
+    echo " ---- Result in $cwd/Grayplot.${ppp}.${osuff}"
     \rm G.errts.pgm
   endif
 end
@@ -198,15 +229,15 @@ foreach eee ( all_runs.${subj}+tlrc.HEAD )
     echo "----- Grayplot $eee"
     set ppp = `basename $eee +tlrc.HEAD`
     3dGrayplot -dimen 1000 500      \
-               -pvorder             \
+               $order               \
                -polort $port        \
                -mask $ggg           \
                -input $eee          \
                -prefix G.errts.pgm
 # merge with graph
     pnmcat -tb enorm.dfile.allU.ppm G.errts.pgm | \
-      pnmtopng - > Grayplot.${ppp}.png
-    echo " ---- Result in $cwd/Grayplot.${ppp}.png"
+      pnmtopng - > Grayplot.${ppp}.${osuff}
+    echo " ---- Result in $cwd/Grayplot.${ppp}.${osuff}"
     \rm G.errts.pgm
   endif
 end
