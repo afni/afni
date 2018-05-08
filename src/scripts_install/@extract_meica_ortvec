@@ -224,7 +224,7 @@ cat << EOF
 
       @extract_meica_ortvec -meica_dir tedana_r01/TED.r01   \\
             -work_dir tedana_r01/work.orts                  \\
-            -prefix tedana_r01/projected_orts.1D
+            -prefix tedana_r01/meica_orts.1D
 
    options:
 

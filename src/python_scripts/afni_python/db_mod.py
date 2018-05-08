@@ -29,11 +29,16 @@ valid_warp_types = ['affine', 'NL']
 clustsim_types = ['FWHM', 'ACF', 'both', 'yes', 'no']
 
 # OC/MEICA/TEDANA methods
-g_oc_methods = ['mean',     # average across echoes
-                'OC',       # default OC in @compute_OC_weights
-                'OC_A',     # Javier's method
-                'OC_B',     # full run method
-                'tedana']   # TED results from tedana
+g_oc_methods = [
+    'mean',             # average across echoes
+    'OC',               # default OC in @compute_OC_weights
+    'OC_A',             # Javier's method
+    'OC_B',             # full run method
+    'OC_tedort',        # OC,        and ortvecs from tedana
+    'tedana',           # dn_ts_OC.nii           from tedana
+    'tedana_OC',        # ts_OC.nii              from tedana
+    'tedana_OC_tedort'  # ts_OC.nii, and ortvecs from tedana
+    ]
 
 
 WARP_EPI_TLRC_ADWARP    = 1
@@ -2668,12 +2673,14 @@ def db_cmd_combine(proc, block):
    """combine all echoes
 
       This will grow to include options like:
-         ave           : simple average
-         OC            : optimally combine
-         OC_tedort     : OC, but get ortvec from tedana (@extract_meica_ortvec)
-         tedana        : run tedana.py to get dn_ts_OC.nii
-         tedana_tedort : run tedana.py to get OC result (ts_OC.nii),
-                         and get ortvec for later projection
+         ave              : simple average
+         OC               : optimally combine
+         OC_tedort        : OC, but get ortvec from tedana
+                            (@extract_meica_ortvec)
+         tedana           : run tedana.py to get dn_ts_OC.nii
+         tedana_OC        : run tedana.py to get OC result (ts_OC.nii)
+         tedana_OC_tedort : tedana_OC, and get ortvec for later projection
+                            (@extract_meica_ortvec)
    """
 
    if not proc.use_me:
@@ -2694,13 +2701,15 @@ def db_cmd_combine(proc, block):
             % (ocmeth, ', '.join(g_oc_methods)))
       return
 
-   if ocmeth == 'ave':
+   if ocmeth == 'mean':
       ccmd = cmd_combine_mean(proc, block)
    elif ocmeth[0:2] == 'OC':
       ccmd = cmd_combine_OC(proc, block, ocmeth)
-      #if ocmeth == 'OC_tedort':
-      #   # now ALSO run tedana to get ortvecs
-      #   ccmd = cmd_combine_tedana(proc, block, 'getorts')
+      if ocmeth == 'OC_tedort':
+         # now ALSO run tedana to get ortvecs
+         tcmd = cmd_combine_tedana(proc, block, 'getorts')
+         if tcmd is None: return
+         ccmd += tcmd
    elif ocmeth[0:6] == 'tedana':
       ccmd = cmd_combine_tedana(proc, block, ocmeth)
    else:
@@ -2725,10 +2734,11 @@ def cmd_combine_tedana(proc, block, method='tedana'):
       3. apply 
 
       method must currently be one of the following
-         tedana             : default - run tedana_wrapper.py, collect output
-         tedana_proj_all    : get projection matrix from both rejected lists
-                              (rejected.txt and midk_rejected.txt)
-         tedana_proj_rej    : just get projection matrix from rejected.txt
+         tedana           : default - run tedana_wrapper.py, collect output
+         getorts          : get projection matrix from both rejected lists
+                            (project all bad from good and store ortvecs)
+                            This is an internal method (for OC_tedort).
+         tedana_OC_tedort : 
    """
 
    if not proc.use_me:
@@ -2739,14 +2749,30 @@ def cmd_combine_tedana(proc, block, method='tedana'):
       print("** option -echo_times is required for 'OC' combine method")
       return
 
+   # ----------------------------------------------------------------------
+   # decide what to do
+   #    - what output to copy, if any (and a corresponding comment)
+   #    - whether to grab the ortvec
+
    if method == 'tedana':
-      mstr = ''
+      getorts = 0
       dataout = 'dn_ts_OC.nii'
+      mstr = '# (run tedana.py and get final result, %s)\n\n' % dataout
+   elif method == 'tedana_OC':
+      getorts = 0
+      dataout = 'ts_OC.nii'
+      mstr = '# (run tedana.py and get OC result, %s)\n\n' % dataout
+   elif method == 'tedana_OC_tedort':
+      getorts = 1
+      dataout = 'ts_OC.nii'
+      mstr = '# (run tedana.py to get OC result, %s, plus -ortvec)\n\n' \
+             % dataout
    elif method == 'getorts':
-      mstr = '# (run tedana.py to get -ortvec results)\n\n'
+      getorts = 1
       dataout = ''
+      mstr = '# (run tedana.py to get -ortvec results)\n\n'
    else:
-      print("** invalid combine method, %s" % method)
+      print("** invalid tedana combine method, %s" % method)
       return
 
    # make sure a mask block precedes us
@@ -2770,7 +2796,7 @@ def cmd_combine_tedana(proc, block, method='tedana'):
    opt = block.opts.find_opt(oname)
    if opt:
       olist, rv = block.opts.get_string_list(oname)
-      if rv: return ''
+      if rv: return
       if len(olist) > 0:
          exopts.append("%s-tedana_opts '%s' \\\n" % (oindent,' '.join(olist)))
       else:
@@ -2817,24 +2843,52 @@ def cmd_combine_tedana(proc, block, method='tedana'):
              exoptstr)
  
 
-   # prepare for fixing view before copying the results back
-   if proc.view and (proc.view != '+orig'):
-      rcmt = ' (and fix view)'
-      rcmd = '\n'                                \
-             '   # and adjust view from +orig\n' \
-             '   3drefit -view %s %s+orig\n' % (proc.view[1:], cur_prefix)
-   else:
-      rcmt = ''
-      rcmd = ''
+   # ----------------------------------------------------------------------
+   # only copy the results back out if dataout is set
+   if dataout != '':
+      # prepare for fixing view before copying the results back
+      if proc.view and (proc.view != '+orig'):
+         rcmt = ' (and fix view)'
+         rcmd = '\n'                                \
+                '   # and adjust view from +orig\n' \
+                '   3drefit -view %s %s+orig\n' % (proc.view[1:], cur_prefix)
+      else:
+         rcmt = ''
+         rcmd = ''
 
-   # and copy the results back
-   cmd += '# now get the tedana.py results%s\n'                 \
-          'foreach run ( $runs )\n'                             \
-          '   # copy result back here\n'                        \
-          '   3dcopy tedana_r$run/TED.r$run/dn_ts_OC.nii %s\n'  \
-          '%s'                                                  \
-          'end\n\n'                                             \
-          % (rcmt, cur_prefix, rcmd)
+      # and copy the results back
+      cmd += '# now get the tedana.py results%s\n'         \
+             'foreach run ( $runs )\n'                     \
+             '   # copy result back here\n'                \
+             '   3dcopy tedana_r$run/TED.r$run/%s %s\n'    \
+             '%s'                                          \
+             'end\n\n'                                     \
+             % (rcmt, dataout, cur_prefix, rcmd)
+
+   # ----------------------------------------------------------------------
+   # finally, grab the orts, if desired
+   if getorts:
+      ocmd = '# create orthogonalized projection terms\n'  \
+             'mkdir meica_orts\n'                          \
+             'foreach run ( $runs )\n'                     \
+             '   @extract_meica_ortvec -meica_dir tedana_r$run/TED.r$run \\\n'\
+             '                         -work_dir tedana_r$run/work.orts \\\n' \
+             '                         -prefix tedana_r$run/meica_orts.1D\n\n'\
+             '   # pad single run terms across all runs\n' \
+             '   1d_tool.py -infile tedana_r$run/meica_orts.1D \\\n' \
+             '              -set_run_lengths $tr_counts        \\\n' \
+             '              -pad_into_many_runs $run %d        \\\n' \
+             '              -write meica_orts/morts_r$run.1D\n'      \
+             'end\n\n'                                               \
+             % (proc.runs)
+
+      # now make note of the files for the regress block
+      for rind in range(proc.runs):
+          label = 'morts_r%02d' % (rind+1)
+          ortfile = 'meica_orts/%s.1D' % label
+          proc.regress_orts.append([ortfile, label])
+
+      cmd += ocmd
 
    return cmd
 
@@ -2861,7 +2915,7 @@ def cmd_combine_OC(proc, block, method='OC'):
       print("** option -echo_times is required for 'OC' combine method")
       return
 
-   if method == 'OC':
+   if method == 'OC' or method == 'OC_tedort':
       mstr = ''
    elif method == 'OC_A' or method == 'OC_B':
       mstr = '        -oc_method %s   \\\n' % method
