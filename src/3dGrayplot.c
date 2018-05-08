@@ -77,8 +77,10 @@ int main( int argc , char *argv[] )
       "                   'random looking'.\n"
       "                   * The default order of voxels is just the coordinate\n"
       "                     order in which they appear in the dataset.\n"
-      "                   * Someday, somehow, perhaps more ordering options will\n"
-      "                     be included. Maybe.\n"
+      "\n"
+      " -peelorder      = Within each mask partition, order the voxels by how\n"
+      "                   many 'peel' steps are needed to get from the partition\n"
+      "                   boundary to a given voxel.\n"
       "\n"
       "** Quick hack for Cesar Caballero-Gaudes, April 2019, by @AFNIman.\n"
       "   As such, this program may be modified in the future to be more useful,\n"
@@ -120,6 +122,9 @@ int main( int argc , char *argv[] )
 
      if( strcasecmp(argv[iarg],"-pvorder") == 0 ){ /* 04 May 2018 */
        grayplot_order_by_pvmap(1) ; iarg++ ; continue ;
+     }
+     if( strcasecmp(argv[iarg],"-peelorder") == 0 ){ /* 08 May 2018 */
+       grayplot_order_by_peels(1) ; iarg++ ; continue ;
      }
 
      if( strcasecmp(argv[iarg],"-fwhm") == 0 ){
