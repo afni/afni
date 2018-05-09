@@ -7,6 +7,7 @@
 static int lev_num ;
 static int lev_siz[256] ;
 
+#define ORDER_IJK  0
 #define ORDER_PV   1
 #define ORDER_PEEL 2
 
@@ -17,6 +18,9 @@ static void grayplot_order_by_pvmap( int yesno ){
 }
 static void grayplot_order_by_peels( int yesno ){
   ordering = (yesno) ? ORDER_PEEL : 0 ;
+}
+static void grayplot_order_by_ijk( int yesno ){
+  ordering = 0 ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -64,7 +68,7 @@ static MRI_vectim * THD_dset_grayplot_prep( THD_3dim_dataset *dset ,
          mri_blur3D_vectim( vim[nvim] , fwhm ) ;
 
        switch( ordering ){
-         default: break ;
+         default: break ;  /* == IJK */
 
          case ORDER_PV:{
            MRI_IMAGE *tim = mri_new(nts,cmval,MRI_float) , *pim ;
