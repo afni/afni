@@ -28,8 +28,8 @@ set keep_temp_files = ""
 set ignore_unknown_options = ""
 # no surfB to start
 set surfB = ""
-# set stat type ave / mode
-set stat = "ave"
+# set stat type nzmedian (non-zero median) / mode
+set stat = "nzmedian"
 
 # help
 if ($# < 1) then
@@ -68,7 +68,7 @@ echo "   -keep_temp_files        do not remove any of the temporary files"
 echo "                           (default is to remove them)"
 echo "   -maxiters nn            maximum number of smoothing and filling iterations"
 echo "                           (default is 4)"
-echo "   -mode                   use mode instead of average (appropriate for ROIs)"
+echo "   -mode                   use mode instead of non-zero median (appropriate for ROIs)"
 echo "   -ignore_unknown_options ignore additional options that are not needed"
 echo
 echo " Example usage:"
@@ -210,8 +210,11 @@ endif
 set f_inout_frac = "-f_p1_fr -0.1 -f_pn_fr 0.1"
 # project from surface to volume
 # fill in line segment connecting surfaces with maximum value
-3dSurf2Vol -spec $spec $surfB_arg -surf_A $surfA $f_inout_frac -grid_parent $maskset -sdata $surfset \
-   -map_func $stat -prefix temp_${outpref}_f00.nii.gz -sv $maskset -f_steps $nsteps -overwrite
+# using new "stop_gap" option to stop when reaching gap in mask
+3dSurf2Vol -spec $spec $surfB_arg -surf_A $surfA $f_inout_frac \
+   -grid_parent $maskset -sdata $surfset  -stop_gap \
+   -map_func $stat -prefix temp_${outpref}_f00.nii.gz -sv $maskset \
+   -f_steps $nsteps -stop_gap -overwrite
 
 # resulting dataset has holes
 # iteratively smooth each dataset to replace holes
