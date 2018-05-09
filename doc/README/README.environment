@@ -1638,24 +1638,40 @@ time than the default, which is that this label is only turned on when
 all 3 image viewer windows are open.  If you are operating X11 remotely
 over a slow connection, this option should not be turned on.
 
-----------------------------
-Variable: AFNI_SUMA_BOXCOLOR (editable)
-----------------------------
+-------------------------------
+Variable: AFNI_SUMA_BOXCOLOR_xx
+-------------------------------
 This string defines the color used for overlaying surface nodes transmitted
-from SUMA to AFNI.  The default is an orangish-yellow.  If you like yellow,
-then do
-   setenv AFNI_SUMA_COLOR yellow
-If this is set to "none", then these lines won't be plotted.
+from SUMA to AFNI. This applies to surface number 'xx', for xx=01, 02, etc.
+if this is set to "none", then these boxes (at each node near a slice)
+won't be plotted.
+**NOTE** This variable, and the immediately following AFNI_SUMA_something
+         variables, can be set interactively from the 'Control Surface'
+         chooser window in the AFNI GUI.
+**NOTE** The colors allowed for surface display in AFNI are chosen via
+         AFNI's color chooser menu. So no matter what color you specify
+         in one of these AFNI_SUMA_something variables, it will be mapped
+         to be the closest color on the color chooser menu.
 
------------------------------
-Variable: AFNI_SUMA_LINECOLOR (editable)
------------------------------
-This string defines the color used for overlaying the intersection of SUMA
-surface triangles with image slice planes.  The default is white.  If this
-is set to "none", then these lines won't be plotted.
+--------------------------------
+Variable: AFNI_SUMA_LINECOLOR_xx
+--------------------------------
+This string defines the color used for overlaying surfaces transmitted
+from SUMA to AFNI. This applies to surface number 'xx', for xx=01, 02, etc.
+if this is set to "none", then these lines (intersections of surfaces
+with slices) won't be plotted.
+
+--------------------------------------
+Variable: AFNI_SUMA_LINECOLOR_FORCE_xx
+--------------------------------------
+This variable is similar to AFNI_SUMA_LINECOLOR_xx (again, for xx=01 etc.),
+except for one detail. When SUMA sends a surface to AFNI for display, it
+can also send a color. If that happens, then AFNI_SUMA_LINECOLOR_xx will
+have no effect. But AFNI_SUMA_LINECOLOR_FORCE_xx will over-ride the choice
+SUMA makes and forces the color for surface number 'xx' to be this color.
 
 ---------------------------
-Variable: AFNI_SUMA_BOXSIZE (editable)
+Variable: AFNI_SUMA_BOXSIZE
 ---------------------------
 This variable defines the size of the boxes drawn at each surface node
 transmitted from SUMA.  The default is 0.25, which means that each box is
@@ -1664,7 +1680,7 @@ larger box, you could try
    setenv AFNI_SUMA_BOXSIZE 0.5
 
 ----------------------------
-Variable: AFNI_SUMA_LINESIZE (editable)
+Variable: AFNI_SUMA_LINESIZE
 ----------------------------
 This variable sets the thickness of the lines used when drawing a surface
 intersection overlay.  The units are the width of the entire image;
