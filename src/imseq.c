@@ -5394,6 +5394,12 @@ if( AFNI_yesenv("AFNI_IMSEQ_DEBUG") ){
 
      /**** actually put the image to the screen ****/
 
+#if 0
+INFO_message("ISQ_show_image(seq=%p) %d x %d",
+             (void *)seq ,
+             (int)seq->sized_xim->width , (int)seq->sized_xim->height ) ;
+#endif
+
      XPutImage( seq->dc->display , XtWindow(seq->wimage) , seq->dc->origGC ,
                 seq->sized_xim , 0,0,0,0,
                 seq->sized_xim->width , seq->sized_xim->height ) ;
@@ -5876,10 +5882,16 @@ DPRI(" .. Expose; count=",event->count) ;
 
 STATUS(" .. really a hidden resize") ;
 
+#if 0
+INFO_message("convert Expose to ConfigureNotify") ;
+#endif
                   nev.type = ConfigureNotify ; nev.width = nx ; nev.height = ny ;
                   ISQ_drawing_EV( w, client_data, (XEvent *) &nev, continue_to_dispatch ) ;
 
                } else
+#if 0
+INFO_message("Expose") ;
+#endif
                   ISQ_show_image( seq ) ;
             }
             else if( w == seq->wbar )
@@ -6158,7 +6170,7 @@ STATUS("scroll wheel ==> change slice") ;
       case ConfigureNotify:{
          XConfigureEvent *event = (XConfigureEvent *) ev ;
 
-         static int am_active = 0  ;  /* 09 Oct 1999 */
+         static int am_active = 0 ; /* 09 Oct 1999 */
 
 #if 0
          /* 04 Nov 2003: don't do anything while mouse is down */
@@ -6185,9 +6197,18 @@ STATUS("scroll wheel ==> change slice") ;
 
          if( w == seq->wimage ){
 
-            if( (seq->sized_xim == NULL)                  ||
-                (event->width  != seq->sized_xim->width ) ||
-                (event->height != seq->sized_xim->height)   ){
+            int ntime=NI_clock_time(); /* 09 May 2018 */
+            int nx,ny ;
+            static int ltime=-666;
+
+            if( ntime-ltime < 2 ){ am_active = 0 ; break ; }
+            ltime = ntime ;
+
+            MCW_widget_geom( seq->wimage , &nx , &ny , NULL,NULL ) ;
+          
+            if( (seq->sized_xim == NULL)       ||
+                (nx != seq->sized_xim->width ) ||    /* modified 09 May 2018 */
+                (ny != seq->sized_xim->height)   ){  /* to check nx and ny */
 
                seq->wimage_width = seq->wimage_height = -1 ; /* Feb 1998 */
 
@@ -6212,6 +6233,9 @@ else fprintf(stderr,"  -- too soon to enforce aspect!\n") ;
 
                /*-- now show the image in the new window size --*/
 
+#if 0
+INFO_message("ConfigureNotify") ;
+#endif
                ISQ_show_image( seq ) ;
             }
 
