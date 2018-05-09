@@ -61,13 +61,58 @@ void usage_Clusterize(int detail)
 "          that can be dumped into a text file\n"
 "        + Optional: a mask\n"
 " \n"
+" Explanation of 3dclust text report output\n"
+" -----------------------------------------     \n"
+" \n"
+" Nvoxel       : Number of voxels in the cluster       \n"
+"                                                                      \n"
+" CM RL        : Center of mass (CM) for the cluster in the Right-Left \n"
+"                direction (i.e., the coordinates for the CM)          \n"
+"                                                                      \n"
+" CM AP        : Center of mass for the cluster in the                 \n"
+"                Anterior-Posterior direction                          \n"
+"                                                                      \n"
+" CM IS        : Center of mass for the cluster in the                 \n"
+"                Inferior-Superior direction                           \n"
+"                                                                      \n"
+" minRL, maxRL : Bounding box for the cluster, min and max             \n"
+"                coordinates in the Right-Left direction               \n"
+"                                                                      \n"
+" minAP, maxAP : Min and max coordinates in the Anterior-Posterior     \n"
+"                direction of the volume cluster                       \n"
+"                                                                      \n"
+" minIS, maxIS : Min and max coordinates in the Inferior-Superior      \n"
+"                direction of the volume cluster                       \n"
+"                                                                      \n"
+" Mean         : Mean value for the volume cluster                     \n"
+"                                                                      \n"
+" SEM          : Standard Error of the Mean for the volume cluster     \n"
+"                                                                      \n"
+" Max Int      : Maximum Intensity value for the volume cluster        \n"
+"                                                                      \n"
+" MI RL        : Coordinate of the Maximum Intensity value in the      \n"
+"                Right-Left direction of the volume cluster            \n"
+"                                                                      \n"
+" MI AP        : Coordinate of the Maximum Intensity value in the      \n"
+"                Anterior-Posterior direction of the volume cluster    \n"
+"                                                                      \n"
+" MI IS        : Coordinate of the Maximum Intensity value in the      \n"
+"                Inferior-Superior direction of the volume cluster     \n"
+" \n"
+"   * CM values use the absolute value of the voxel values as weights.\n"
+" \n"
+"   * The program does not work on complex- or rgb-valued datasets!      \n"
+" \n"
+"   * SEM values are not realistic for interpolated data sets!  A ROUGH\n"
+"     correction is to multiply the SEM of the interpolated data set by\n"
+"     the square root of the number of interpolated voxels per original\n"
+"     voxel.\n"
+" \n"
+" \n"
 "  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 " \n"
 " COMMAND ~1~\n"
 " \n"
-" \n"
-" -TESTING       :*For now, a necessary option, to acknowledge that this \n"
-"                 program is still being tested!!\n"
 " \n"
 " -inset  III    :Load in a dataset III of one or more bricks for thresholding\n"
 "                 and clusterizing; one can choose to use either just a \n"
@@ -154,7 +199,10 @@ void usage_Clusterize(int detail)
 " \n"
 " -quiet         :Suppress all non-essential output\n"
 " \n"
-" -orient        \n"
+" -orient OOO    :change the coordinate output order to 'OOO' (def:\n"
+"                 is DICOM, RAI); alternatively, one could set the\n"
+"                 environment variable AFNI_ORIENT (see the file\n"
+"                 README.environment).\n"
 " \n"
 " -noabs         :Use the signed voxel intensities (not the absolute     \n"
 "                 value) for calculation of the mean and Standard        \n"
@@ -957,9 +1005,15 @@ int main(int argc, char *argv[]) {
          mm = fabs(ms);
          
          mssum += ms;
-         mmsum += mm;
+         mmsum += mm; 
          
          sqsum += mm * mm;
+
+         // PT: forward looking note-- to calculate center of mass of
+         // clusters *without* using the value of the voxel, could
+         // probably edit here (or the 'mm' values above).  Note that
+         // one would have to check about the global ones, to see how
+         // those are affected, as well as mssum.
          xxsum += mm * xx ; yysum += mm * yy ; zzsum += mm * zz ;
          if( mm > mmmax ){
             xxmax = xx ; yymax = yy ; zzmax = zz ;
@@ -981,58 +1035,59 @@ int main(int argc, char *argv[]) {
             ISmin = zz;
       }
       if( mmsum == 0.0 ) continue ;
+      
+      // PT: I think that the "gl*" parameters are "global" ones.
+      glmssum += mssum;
+      glmmsum += mmsum;
+      glsqsum += sqsum;
+      glxxsum += xxsum;
+      glyysum += yysum;
+      glzzsum += zzsum;
+      
+      ndet++ ;
+      xxsum /= mmsum; 
+      yysum /= mmsum; 
+      zzsum /= mmsum;
+    
+      if (CL_noabs)   
+         mean = mssum / cl->num_pt;
+      else            
+         mean = mmsum / cl->num_pt;
+    
+      if( fimfac != 0.0 ) {
+         mean  *= fimfac;  
+         msmax *= fimfac;
+         sqsum *= fimfac*fimfac; 
+      }  
 
-	 glmssum += mssum;
-	 glmmsum += mmsum;
-	 glsqsum += sqsum;
-	 glxxsum += xxsum;
-	 glyysum += yysum;
-	 glzzsum += zzsum;
-
-    ndet++ ;
-    xxsum /= mmsum; 
-    yysum /= mmsum; 
-    zzsum /= mmsum;
+      /* MSB 11/1/96  Calculate SEM using SEM^2=s^2/N,
+         where s^2 = (SUM Y^2)/N - (Ymean)^2
+         where sqsum = (SUM Y^2 ) 
+      */
     
-	 if (CL_noabs)   
-       mean = mssum / cl->num_pt;
-    else            
-       mean = mmsum / cl->num_pt;
+      if (cl->num_pt > 1) {
+         sem = (sqsum - (cl->num_pt * mean * mean)) / (cl->num_pt - 1);
+         if (sem > 0.0) 
+            sem = sqrt( sem / cl->num_pt );
+         else 
+            sem = 0.0;
+      }
+      else
+         sem = 0.0;
     
-    if( fimfac != 0.0 ) {
-       mean  *= fimfac;  
-       msmax *= fimfac;
-       sqsum *= fimfac*fimfac; 
-    }  
-
-    /* MSB 11/1/96  Calculate SEM using SEM^2=s^2/N,
-	    where s^2 = (SUM Y^2)/N - (Ymean)^2
-	    where sqsum = (SUM Y^2 ) 
-    */
-    
-	 if (cl->num_pt > 1) {
-       sem = (sqsum - (cl->num_pt * mean * mean)) / (cl->num_pt - 1);
-       if (sem > 0.0) 
-          sem = sqrt( sem / cl->num_pt );
-       else 
-          sem = 0.0;
-    }
-	 else
-       sem = 0.0;
-    
-    if( CL_summarize != 1 ) {
-       MCW_fc7(mean,  buf1);
-       MCW_fc7(msmax, buf2);
-       MCW_fc7(sem,   buf3);
+      if( CL_summarize != 1 ) {
+         MCW_fc7(mean,  buf1);
+         MCW_fc7(msmax, buf2);
+         MCW_fc7(sem,   buf3);
        
-       printf("%s%6.0f  %5.1f  %5.1f  %5.1f  %5.1f  %5.1f  %5.1f  %5.1f  %5.1f  %5.1f  %7s  %7s  %7s  %5.1f  %5.1f  %5.1f \n",
-              c1dn, volsum, xxsum, yysum, zzsum, 
-              RLmin, RLmax, APmin, APmax, ISmin, ISmax, 
-              buf1, buf3, buf2, xxmax, yymax, zzmax );
-    }
+         printf("%s%6.0f  %5.1f  %5.1f  %5.1f  %5.1f  %5.1f  %5.1f  %5.1f  %5.1f  %5.1f  %7s  %7s  %7s  %5.1f  %5.1f  %5.1f \n",
+                c1dn, volsum, xxsum, yysum, zzsum, 
+                RLmin, RLmax, APmin, APmax, ISmin, ISmax, 
+                buf1, buf3, buf2, xxmax, yymax, zzmax );
+      }
     
-    nvox_total += cl->num_pt;
-    vol_total  += volsum;
+      nvox_total += cl->num_pt;
+      vol_total  += volsum;
    }
 
    DESTROY_CLARR(clar);
