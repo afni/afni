@@ -1637,6 +1637,7 @@ static int process_NIML_SUMA_ixyz( NI_element * nel, int ct_start )
    int ct_read = 0, ct_tot = 0 ;
    char msg[1024] ;
    char *scon_tog, *scon_box, *scon_lin, *scon_plm, *scon_wid, *vname;
+   char ename[64] , *etemp ;
 
    SUMA_mask *msk=NULL ;                /* added 04 Apr 2014 */
    char *parent_idcode , *parent_type ;
@@ -1850,6 +1851,26 @@ ENTRY("process_NIML_SUMA_ixyz");
    scon_tog = NI_get_attribute( nel , "afni_surface_controls_toggle"    ) ;
    scon_plm = NI_get_attribute( nel , "afni_surface_controls_plusminus" ) ;
 #endif
+
+   /* get stuff from environment, if not set by Ziad [09 May 2018] */
+
+   sprintf(ename,"AFNI_SUMA_LINECOLOR_FORCE_%02d",surf_num+1) ;
+   etemp = my_getenv(ename) ;
+   if( etemp != NULL ) scon_lin = strdup(etemp) ;
+   if( scon_lin == NULL ){
+     sprintf(ename,"AFNI_SUMA_LINECOLOR_%02d",surf_num+1) ;
+     scon_lin = my_getenv(ename) ;
+   }
+
+   if( scon_box == NULL ){
+     sprintf(ename,"AFNI_SUMA_BOXCOLOR_%02d",surf_num+1) ;
+     scon_box = my_getenv(ename) ;
+   }
+
+   if( scon_wid == NULL ){
+     sprintf(ename,"AFNI_SUMA_LINEWIDTH_%02d",surf_num+1) ;
+     scon_wid = my_getenv(ename) ;
+   }
 
    if( msk == NULL && (scon_box != NULL || scon_lin != NULL) )  /* and init */
      AFNI_init_suma_color( surf_num , scon_box , scon_lin ) ;   /* widgets */
