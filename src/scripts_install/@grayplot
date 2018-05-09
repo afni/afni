@@ -37,12 +37,6 @@ if( $do_help )then
   echo "graph above the dataset grayplot. (Gray so that the resulting"
   echo "png file is grayscale, without color.)"
   echo
-  echo "If the afni_proc.py setup was a task analysis, and if option"
-  echo "'-regress_make_ideal_sum sum_ideal.1D' was used, the 'sum_ideal.1D'"
-  echo "file will also be graphed above the motion magnitude graphed, to make"
-  echo "it possible to see if the dataset grayplot has stimulus-correlated"
-  echo "bands of data."
-  echo
   echo "Segments the anatomy (or uses an existing segmentation, if"
   echo "it was run by afni_proc.py), and grayplots the GM, WM, and CSF"
   echo "voxels separately from top to bottom, with dashed lines dividing"
@@ -78,11 +72,11 @@ if( $do_help )then
   echo "* Also see '3dGrayplot -help', since the actual grayplot is created"
   echo "  by that program."
   echo "* Since the vertical (spatial) dimension of the output grayplot image"
-  echo "  is 500 pixels, each horizontal (time) row in the plot will be"
+  echo "  is 1000 pixels, each horizontal (time) row in the plot will be"
   echo "  the combination of multiple voxels, in whatever order they appear."
   echo "* Since the horizontal dimension of the output grayplot image is"
-  echo "  1000 pixels, unless the time series has more than 1000 points, each"
-  echo "  time point will be stretched to fill more than one pixel."
+  echo "  2000 pixels, unless the time series has more than 2000 points, each"
+  echo "  time point will be stretched (interpolated) to fill more than one pixel."
   echo "* I personally find '-pvorder' to be the most useful, but the"
   echo "  other orderings can also be interesting to compare."
   echo "* I like to use the AFNI 'aiv' program to view the images, rather than"
@@ -146,8 +140,6 @@ if( ! -f $dmask )then
   endif
 endif
 
-echo "----- Plotting motion"
-
 # compute enorm from each run's dfile
 
 set dlist = ( dfile.r*.1D )
@@ -180,39 +172,26 @@ if( ! -f $ccc )then
   endif
 endif
 
-# make the naked enorm plots
+# setup to make the naked enorm plots
 
 setenv AFNI_1DPLOT_COLOR_01   'black'
 set    cencol               = '#dddddd'
+set    Ufile                = enorm.dfile.allU.1D
+set    Cfile                = $Ufile
 if( $?ccc )then
-  1deval -a enorm.dfile.allU.1D -b $ccc -expr 'a*b' > enorm.dfile.allC.1D
+  1deval -a $Ufile -b $ccc -expr 'a*b' > enorm.dfile.allC.1D
+  set Cfile = enorm.dfile.allC.1D
 endif
 
-if( -f enorm.dfile.allC.1D && -f sum_ideal.1D )then
-  1dplot -nopush -naked -sep_scl -pnms 1000 enorm.dfile.allC.ppm -aspect 10 \
-         -censor_RGB $cencol -censor $ccc enorm.dfile.allC.1D sum_ideal.1D
-  1dplot -nopush -naked -sep_scl -pnms 1000 enorm.dfile.allU.ppm -aspect 10 \
-         -censor_RGB $cencol -censor $ccc enorm.dfile.allU.1D sum_ideal.1D
-else if( -f enorm.dfile.allC.1D && ! -f sum_ideal.1D )then
-  1dplot -nopush -naked -pnms 1000 enorm.dfile.allC.ppm -aspect 10 \
-         -censor_RGB $cencol -censor $ccc enorm.dfile.allC.1D
-  1dplot -nopush -naked -pnms 1000 enorm.dfile.allU.ppm -aspect 10 \
-           -censor_RGB $cencol -censor $ccc enorm.dfileU.all.1D
+if( $?ccc )then
+  set Gplot = \
+   "1dplot -nopush -naked -pnms 2000 Gplot.ppm -aspect 10 -censor_RGB $cencol -censor $ccc"
+else
+  set Gplot = \
+   "1dplot -nopush -naked -pnms 2000 Gplot.ppm -aspect 10"
 endif
 
-if( ! -f enorm.dfile.allU.ppm && -f sum_ideal.1D )then
-  1dplot -nopush -naked -sep_scl -pnms 1000 enorm.dfile.allU.ppm -aspect 10 \
-         enorm.dfile.allU.1D sum_ideal.1D
-else if( ! -f enorm.dfile.allU.ppm && ! -f sum_ideal.1D )then
-  1dplot -nopush -naked -pnms 1000 enorm.dfile.allU.ppm -aspect 10 \
-         enorm.dfile.allU.1D
-endif
-
-if( ! -f enorm.dfile.allC.ppm )then
-  \cp -f enorm.dfile.allU.ppm enorm.dfile.allC.ppm
-endif
-
-# make a mask of GM, WM, and CSF (in that order)
+# make a mask of GM, WM, and CSF (in that order), if needed
 
 if( -f Classes+tlrc.HEAD )then
   echo "----- Using existing segmentation"
@@ -249,17 +228,20 @@ foreach eee ( $eaa $ebb $ecc )
   if( -f $eee )then
     echo "----- Grayplot $eee"
     set ppp = `basename $eee +tlrc.HEAD`
-    3dGrayplot -dimen 1000 500      \
+    set fff = Grayplot.${ppp}.${osuff}
+    set lll = `echo $fff | sed -e 's/.png//' -e 's/Grayplot.//'`
+    3dGrayplot -dimen 2000 1000     \
                $order               \
                -polort -1           \
                -mask $ggg           \
                -input $eee          \
                -prefix G.errts.pgm
+# make graph image
+    $Gplot -plabel "\small\small _{\noesc  $lll\esc}" $Cfile
 # merge with graph image
-    pnmcat -tb enorm.dfile.allC.ppm G.errts.pgm | \
-      pnmtopng - > Grayplot.${ppp}.${osuff}
-    echo " ---- Result in $cwd/Grayplot.${ppp}.${osuff}"
-    \rm G.errts.pgm
+    pnmcat -tb Gplot.ppm G.errts.pgm | pnmtopng - > $fff
+    echo " ---- Result in $cwd/$fff"
+    \rm G.errts.pgm Gplot.ppm
   endif
 end
 
@@ -271,17 +253,20 @@ foreach eee ( all_runs.${subj}+tlrc.HEAD )
   if( -f $eee )then
     echo "----- Grayplot $eee"
     set ppp = `basename $eee +tlrc.HEAD`
-    3dGrayplot -dimen 1000 500      \
+    set fff = Grayplot.${ppp}.${osuff}
+    set lll = `echo $fff | sed -e 's/.png//' -e 's/Grayplot.//'`
+    3dGrayplot -dimen 2000 1000     \
                $order               \
                -polort $port        \
                -mask $ggg           \
                -input $eee          \
                -prefix G.errts.pgm
+# make graph image
+    $Gplot -plabel "\small\small _{\noesc  $lll\esc}" $Ufile
 # merge with graph image
-    pnmcat -tb enorm.dfile.allU.ppm G.errts.pgm | \
-      pnmtopng - > Grayplot.${ppp}.${osuff}
-    echo " ---- Result in $cwd/Grayplot.${ppp}.${osuff}"
-    \rm G.errts.pgm
+    pnmcat -tb Gplot.ppm G.errts.pgm | pnmtopng - > $fff
+    echo " ---- Result in $cwd/$fff"
+    \rm G.errts.pgm Gplot.ppm
   endif
 end
 
