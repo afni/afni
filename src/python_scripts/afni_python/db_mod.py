@@ -11510,19 +11510,33 @@ g_help_options = """
             When using the 'combine' block to combine echoes (for each run),
             this option can be used to specify the method used.   Methods:
 
-                mean      : simple mean of echoes
-                OC        : optimally combined (via @compute_OC_weights)
-                            (current default is OC_A)
-                OC_A      : original log(mean()) regression method
-                OC_B      : newer log() time series regression method
-                            (there is little difference between OC_A and OC_B)
-                tedana    : run tedana.py, taking the resulting dn_ts_OC.nii
+                mean             : simple mean of echoes
+                OC               : optimally combined (via @compute_OC_weights)
+                                   (current default is OC_A)
+                OC_A             : original log(mean()) regression method
+                OC_B             : newer log() time series regression method
+                                   (there is little difference between OC_A
+                                   and OC_B)
+                OC_tedort        : OC, and pass tedana orts to regression
+                tedana           : run tedana.py, using output dn_ts_OC.nii
+                tedana_OC        : run tedana.py, using output ts_OC.nii
+                                   (i.e. use tedana.py for optimally combined)
+                tedana_OC_tedort : tedana_OC, and include tedana orts
 
             The OC/OC_A combine method is from Posse et. al., 1999, and then
             applied by Kundu et. al., 2011 and presented by Javier in a 2017
             summer course.
 
+            The 'tedort' methods are applied using @extract_meica_ortvec,
+            which projects the 'good' MEICA components out of the 'bad' ones,
+            and saves those as regressors to be applied later.  Otherwise, some
+            of the 'good' components are removed with the 'bad.  The tedort
+            method can be applied with either AFNI OC or tedana OC (meaning
+            the respective OC method would be applied to combine the echoes,
+            and the tedort components will be passed on to the regress block).
+
             Please see '@compute_OC_weights -help' for more information.
+            Please see '@extract_meica_ortvec -help' for more information.
             See also -combine_tedana_path.
 
         -combine_opts_tedana OPT OPT ... : specify extra options for tedana.py
