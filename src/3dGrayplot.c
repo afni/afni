@@ -75,10 +75,18 @@ int main( int argc , char *argv[] )
       "                   top part of each partition be made up of voxels with\n"
       "                   similar time series, and the bottom part will be more\n"
       "                   'random looking'.\n"
-      "                   * The default order of voxels is just the coordinate\n"
+      "                   * The default order of voxels is just the index\n"
       "                     order in which they appear in the dataset.\n"
-      "                   * Someday, somehow, perhaps more ordering options will\n"
-      "                     be included. Maybe.\n"
+      "\n"
+      " -peelorder      = Within each mask partition, order the voxels by how\n"
+      "                   many 'peel' steps are needed to get from the partition\n"
+      "                   boundary to a given voxel.\n"
+      "\n"
+      " -ijkorder       = Set the intra-partition ordering to the default, by\n"
+      "                   dataset 3D index ('ijk').\n"
+      "                   In AFNI's +tlrc ordering, this ordering primarily will be\n"
+      "                   from Inferior to Superior in the brain (from top to bottom\n"
+      "                   in the grayplot image).\n"
       "\n"
       "** Quick hack for Cesar Caballero-Gaudes, April 2019, by @AFNIman.\n"
       "   As such, this program may be modified in the future to be more useful,\n"
@@ -118,8 +126,14 @@ int main( int argc , char *argv[] )
        continue ;
      }
 
-     if( strcasecmp(argv[iarg],"-pvorder") == 0 ){ /* 04 May 2018 */
+     if( strcasecmp(argv[iarg],"-pvorder") == 0 ){   /* 04 May 2018 */
        grayplot_order_by_pvmap(1) ; iarg++ ; continue ;
+     }
+     if( strcasecmp(argv[iarg],"-peelorder") == 0 ){ /* 08 May 2018 */
+       grayplot_order_by_peels(1) ; iarg++ ; continue ;
+     }
+     if( strcasecmp(argv[iarg],"-ijkorder") == 0 ){  /* 09 May 2018 */
+       grayplot_order_by_ijk(1) ; iarg++ ; continue ;
      }
 
      if( strcasecmp(argv[iarg],"-fwhm") == 0 ){
