@@ -101,7 +101,7 @@ PROGS_3  = 3dDeconvolve_f 3dAnhist 3dAFNIto3D 3dUniformize 3dWarp nicat         
 PROGS_4  = 3dBlurInMask 3dRank 3dFFT 1dgenARMA11 3dPeriodogram 1dAstrip         \
            3dLocalPV 3dBandpass 3dSetupGroupInCorr 3dGroupInCorr 3dTcorr1D      \
            3dClustSim 3dRetinoPhase 3dMaskToASCII 3dttest++ 3dDTtoDWI           \
-           niccc qhull qdelaunay 3dkmeans 3dXYZcat 3dPolyfit 3dNwarpApply       \
+           niccc qdelaunay 3dkmeans 3dXYZcat 3dPolyfit 3dNwarpApply             \
            1dCorrelate 3dCountSpikes 3dNwarpCalc dicom_hinfo apsearch 1dBport   \
            3dNormalityTest 3dmask_tool FIRdesign help_format 2perm 3dClustCount \
            column_cat 3dUnifize 3dNwarpCat 3dQwarp 3dLocalHistog 3dNwarpAdjust  \
