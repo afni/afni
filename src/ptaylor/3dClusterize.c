@@ -783,6 +783,9 @@ int main(int argc, char *argv[]) {
    nz    = insetA->daxes->nzz;
    nxy   = nx * ny; 
    nxyz = nxy * nz;
+   dx = fabs(insetA->daxes->xxdel);
+   dy = fabs(insetA->daxes->yydel);
+   dz = fabs(insetA->daxes->zzdel);
    dxf = dyf = dzf = 1.0;
 
    // translate cluster threshold into relevant units
@@ -1015,32 +1018,34 @@ int main(int argc, char *argv[]) {
       if( CL_summarize != 1 ) {
          printf( 
                 "%s\n"
-                "%sCluster report for file %s %s\n"
+                //"%sCluster report for file %s %s\n"
+                "%sCluster report \n"
 #if 0
                 "%s[3D Dataset Name: %s ]\n"
                 "%s[    Short Label: %s ]\n"
 #endif
                 "%s[Connectivity radius = %.2f mm"
-                "  Volume threshold = %.2f ]\n"
-                "%s[Single voxel volume = %.1f (microliters) ]\n"
+                "  Volume threshold = %.3f ]\n"
+                "%s[Single voxel volume = %.3f (microliters) ]\n"
                 "%s[Voxel datum type    = %s ]\n"
                 "%s[Voxel dimensions    = %.3f mm X %.3f mm X %.3f mm ]\n"
                 "%s[Coordinates Order   = %s ]\n",
                 c1d,
-                c1d, argv[iarg], do_mni ? "[MNI coords]" : "",
+                c1d, //argv[iarg], do_mni ? "[MNI coords]" : "",
 #if 0
                 c1d, insetA->self_name ,
                 c1d, insetA->label1 ,
 #endif
-                c1d, rmm, ptmin*dx*dy*dz ,
+                c1d, rmm, ptmin*dx*dy*dz , // !!!
                 c1d, dx*dy*dz,
                 c1d, MRI_TYPE_name[ DSET_BRICK_TYPE(insetA, ival) ],
                 c1d, dx,dy,dz,
                 c1d, CL_cord.orcode );
 
-         // always fake voxel dims
-         printf("%s[Fake voxel dimen    = %.3f mm X %.3f mm X %.3f mm ]\n",
-                c1d, dxf,dyf,dzf);
+         // always fake voxel dims-- just confusing to put; only refers
+         // to internal/calculation considerations.
+         //printf("%s[Fake voxel dimen    = %.3f mm X %.3f mm X %.3f mm ]\n",
+         //       c1d, dxf,dyf,dzf);
          
          if( nmask > 0 && mask != NULL )           
             printf("%s[Using internal mask]\n", c1d);
