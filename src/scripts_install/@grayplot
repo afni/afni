@@ -14,13 +14,16 @@ if( $do_help )then
   echo "and produce a grayplot from the errts dataset(s), combined with"
   echo "a motion magnitude indicator graph."
   echo
-  echo "Will produce a plot for errts.SUBJECT+tlrc and for"
-  echo "errts.SUBJECT_REML+tlrc, if both datasets were computed."
-  echo "And errts.SUBJECT_REMLwh+tlrc will also be plotted, if option"
-  echo "'-regress_opts_reml -Rwherr errts.SUBJECT_REMLwh' was given"
-  echo "to afni_proc.py -- this is the 'pre-whitened' residuals dataset,"
-  echo "Which is the noise examplar from which the 3dREMLfit statistics"
-  echo "are computed."
+  echo "Will produce a plot for each dataset whose name fits the wildcard"
+  echo "  errts.SUBJECT*+tlrc.HEAD"
+  echo "including errts.SUBJECT+tlrc and errts.SUBJECT_REML+tlrc,"
+  echo "if both datasets were computed. Dataset errts.SUBJECT_REMLwh+tlrc"
+  echo "will also be plotted, if option"
+  echo "  '-regress_opts_reml -Rwherr errts.SUBJECT_REMLwh'"
+  echo "was given to afni_proc.py -- this is the 'pre-whitened' residuals"
+  echo "dataset, which is the noise examplar from which the 3dREMLfit statistics"
+  echo "statistics are computed."
+  echo "* NOTE: dataset all_runs.SUBJECT+tlrc.HEAD will also be plotted."
   echo
   echo "The output images are grayscale, stored in .png format, and"
   echo "have names like 'Grayplot.errts.SUBJECT.ORDERMETH.png'."
@@ -55,6 +58,10 @@ if( $do_help )then
   echo "      This ordering helps make it clear if there are many time series"
   echo "      with similar temporal patterns, which will show up as vertical"
   echo "      bands in the grayplot."
+  echo "      * Note that '-pvorder' is based on the data, so the voxel"
+  echo "        order in the grayplot will differ between datasets in the"
+  echo "        same directory, unlike the geometrically-based orderings"
+  echo "        '-peelorder' and '-ijkorder'."
   echo "    -peelorder ="
   echo "      Within each partition, voxels are ordered by how many 'peel'"
   echo "      operations are needed to reach a given voxel; that is, how"
@@ -220,11 +227,9 @@ endif
 
 # grayplot diverse errts files
 
-set eaa = errts.${subj}+tlrc.HEAD
-set ebb = errts.${subj}_REML+tlrc.HEAD
-set ecc = errts.${subj}_REMLwh+tlrc.HEAD
+set elist = ( errts.${subj}*+tlrc.HEAD )
 
-foreach eee ( $eaa $ebb $ecc )
+foreach eee ( $elist )
   if( -f $eee )then
     echo "----- Grayplot $eee"
     set ppp = `basename $eee +tlrc.HEAD`
