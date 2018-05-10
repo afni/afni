@@ -19,7 +19,12 @@
 
 #define BIIIIG_NUM 1.e9
 
+// allow 'negative p-value', for syntax reasons
+#define IsNotValidP(p) ( ( (p<-1.) || (p>1.) ) ? 1 : 0 )
+
 void MCW_fc7( float qval , char *buf );
+int CheckStringStart( char *a, char *b, char *c);
+int ssgn(float x);
 
 void usage_Clusterize(int detail) 
 {
@@ -169,7 +174,8 @@ void usage_Clusterize(int detail)
 "                 with '-idat ..', then thresholding, clustering and\n"
 "                 reporting are all done using the 'threshold' dataset.\n"
 " \n"
-"    One of the following methods of clustering MUST be chosen:\n"
+"    One of the following methods of clustering MUST be chosen (and read\n"
+"    just below for using p-values as thresholds):\n"
 " -1sided SSS TT :Perform one-sided testing. Two arguments are required:\n"
 "                   SSS -> either 'RIGHT_TAIL' or 'LEFT_TAIL', to specify\n"
 "                          which side of the distribution to test.\n"
@@ -192,15 +198,14 @@ void usage_Clusterize(int detail)
 "                 INSTEAD of keeping values on the tails. Is this useful?\n"
 "                 Who knows, but it exists.\n"
 " \n"
-" -NN {1|2|3}    :Necessary option to specify how many neighbors\n"
-"                 a voxel has; one MUST put one of 1, 2 or 3 after it:\n"
-"                   1 -> 6  facewise neighbors\n"
-"                   2 -> 18 face+edgewise neighbors\n"
-"                   3 -> 26 face+edge+nodewise neighbors\n"
-"                 For example, this should match what was chosen\n"
-"                 in 3dClustSim, if that program were run on the data\n"
-"                 prior to this one. (In many AFNI programs, NN=1 is\n"
-"                 a default choice, but BE SURE YOURSELF!)\n"
+" -NN {1|2|3} :Necessary option to specify how many neighbors a voxel\n"
+"                 has; one MUST put one of 1, 2 or 3 after it: 1 -> 6\n"
+"                 facewise neighbors 2 -> 18 face+edgewise neighbors 3\n"
+"                 -> 26 face+edge+nodewise neighbors For example, this\n"
+"                 should match what was chosen in 3dClustSim, if that\n"
+"                 program were run on the data prior to this one. (In\n"
+"                 many AFNI programs, NN=1 is a default choice, but BE\n"
+"                 SURE YOURSELF!)\n"
 " \n"
 " -clust_nvox M  :specify the minimum cluster size in terms of number\n"
 "                 of voxels M (such as output by 3dClustSim, for\n"
@@ -240,6 +245,37 @@ void usage_Clusterize(int detail)
 " \n"
 " * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 " \n"
+" + NOTE ABOUT USING P-VALUES AS THRESHOLD VALUES:\n"
+" \n"
+"     By default, numbers entered as voxelwise thresholds are\n"
+"     assumed to be appropriate statistic values that you have\n"
+"     calculated for your desired significance (e.g., using\n"
+"     p2dsetstat).  HOWEVER, if you just want to enter p-values and\n"
+"     have the program do the conversion work for you, then do as\n"
+"     follows: prepend 'p=' to your threshold number; and if you\n"
+"     want the negative statistic, then put 'p=-' before the value,\n"
+"     which gets translated as '-STAT(abs(p))'.  The numbers entered\n"
+"     in this way must be in the range [-1, 1].\n"
+" \n"
+"     Examples of using p-values:\n"
+"         -1sided RIGHT_SIDED p=0.005\n"
+"         -1sided LEFT_SIDED p=-0.001\n"
+"         -bisided p=-0.001 p=0.001\n"
+" \n"
+"     You will probably NEED to have negative signs for the cases of\n"
+"     '-1sided LEFT_SIDED ..', and for the first entries of '-bisided ..'\n"
+"     or '-2sided ..'.\n"
+" \n"
+"     You cannot mix p-values and statistic values (for two-sided\n"
+"     things, enter either both p-values or both stats).\n"
+" \n"
+" + NOTE ABOUT APPROPRIATE TESTING\n"
+" \n"
+"     Don't use a pair of one-sided tests when you *should* be using a\n"
+"     two-sided test!\n"
+" \n"
+" * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
+" \n"
 " EXAMPLES ~1~\n"
 " \n"
 "   1. Take an output of FMRI testing (e.g., from afni_proc.py), whose\n"
@@ -276,8 +312,22 @@ void usage_Clusterize(int detail)
 "        -pref_map ClusterMap       \\\n"
 "        -pref_dat ClusterEffEst\n"
 " \n"
+"   3. The same as Ex. 2, but using p-values instead of statistic values\n"
+"   as voxelwise thresholds.\n"
+" \n"
+"     3dClusterize                  \\\n"
+"        -inset stats.FT+tlrc.      \\\n"
+"        -ithr 2                    \\\n"
+"        -idat 1                    \\\n"
+"        -mask mask_group+tlrc.     \\\n"
+"        -NN 1                      \\\n"
+"        -bisided p=-0.001 p=0.001  \\\n"
+"        -clust_nvox 157            \\\n"
+"        -pref_map ClusterMap       \\\n"
+"        -pref_dat ClusterEffEst\n"
+" \n"
 " # ------------------------------------------------------------------------\n"
-)
+          )
 ;
 	return;
 }
@@ -290,9 +340,11 @@ int main(int argc, char *argv[]) {
    THD_3dim_dataset *insetA = NULL;
    THD_3dim_dataset *INMASK=NULL;
    char *prefix="PREFIX" ;
-   // char in_name[300];
 
-   // FILE *fout0, *fout1;
+   int STATINPUT  = 1; // flag for whether user input stat (1) or pval (0)
+   int STATINPUT2 = 1;
+   char chtmp[200]; //=NULL;
+   float tmpb, tmpt;
 
    int Nvox=-1;   // tot number vox
    int *Dim=NULL;
@@ -467,7 +519,13 @@ int main(int argc, char *argv[]) {
          // get second arg
          iarg++ ; if( iarg >= argc ) 
                      ERROR_exit("Need 2 arguments after '-1sided'");
-         thr_1sid = atof(argv[iarg]);
+
+         // STATINPUT gets acted on later, when we know thr vol for
+         // possible p-value conversion
+         STATINPUT = CheckStringStart(argv[iarg],"p=", chtmp);
+         thr_1sid = atof(chtmp); // atof(argv[iarg]);
+         if( IsNotValidP(thr_1sid) )
+            ERROR_exit("Non-valid p-value (%f) entered!", thr_1sid);
 
          // assign one thr to user's value, and other effectively to
          // -/+ infty
@@ -486,11 +544,23 @@ int main(int argc, char *argv[]) {
       if( strcmp(argv[iarg],"-2sided") == 0 ){
          iarg++ ; if( iarg >= argc ) 
                      ERROR_exit("Need 2 arguments after '-2sided'");
-         tht = atof(argv[iarg]);
+
+         STATINPUT = CheckStringStart(argv[iarg],"p=", chtmp);
+         tht = atof(chtmp); 
+         if( IsNotValidP(tht) )
+            ERROR_exit("Non-valid p-value (%f) entered!", tht);
+
          // get second arg
          iarg++ ; if( iarg >= argc ) 
                      ERROR_exit("Need 2 arguments after '-2sided'");
-         thb = atof(argv[iarg]);
+         STATINPUT2 = CheckStringStart(argv[iarg],"p=", chtmp);
+         thb = atof(chtmp); 
+         if( IsNotValidP(thb) )
+            ERROR_exit("Non-valid p-value (%f) entered!", thb);
+         if( STATINPUT != STATINPUT2 )
+            ERROR_exit("Need both arguments of '-2sided ..' to be "
+                       "p-values, or neither.  Can't mix!");
+
          thr_type = 2;
          iarg++ ; continue ;
       }
@@ -499,11 +569,21 @@ int main(int argc, char *argv[]) {
       if( strcmp(argv[iarg],"-bisided") == 0 ){
          iarg++ ; if( iarg >= argc ) 
                      ERROR_exit("Need 2 arguments after '-bisided'");
-         tht = atof(argv[iarg]);
+         STATINPUT = CheckStringStart(argv[iarg],"p=", chtmp);
+         tht = atof(chtmp); 
+         if( IsNotValidP(tht) )
+            ERROR_exit("Non-valid p-value (%f) entered!", tht);
          // get second arg
          iarg++ ; if( iarg >= argc ) 
                      ERROR_exit("Need 2 arguments after '-bisided'");
-         thb = atof(argv[iarg]);
+         STATINPUT2 = CheckStringStart(argv[iarg],"p=", chtmp);
+         thb = atof(chtmp); 
+         if( IsNotValidP(thb) )
+            ERROR_exit("Non-valid p-value (%f) entered!", thb);
+         if( STATINPUT != STATINPUT2 )
+            ERROR_exit("Need both arguments of '-bisided ..' to be "
+                       "p-values, or neither.  Can't mix!");
+
          thr_type = -2;
          iarg++ ; continue ;
       }
@@ -512,11 +592,22 @@ int main(int argc, char *argv[]) {
       if( strcmp(argv[iarg],"-within_range") == 0 ){
          iarg++ ; if( iarg >= argc ) 
                      ERROR_exit("Need 2 arguments after '-within_range'");
-         tht = atof(argv[iarg]);
+         STATINPUT = CheckStringStart(argv[iarg],"p=", chtmp);
+         tht = atof(chtmp); 
+         if( IsNotValidP(tht) )
+            ERROR_exit("Non-valid p-value (%f) entered!", tht);
+
          // get second arg
          iarg++ ; if( iarg >= argc ) 
                      ERROR_exit("Need 2 arguments after '-within_range'");
-         thb = atof(argv[iarg]);
+         STATINPUT2 = CheckStringStart(argv[iarg],"p=", chtmp);
+         thb = atof(chtmp); 
+         if( IsNotValidP(thb) )
+            ERROR_exit("Non-valid p-value (%f) entered!", thb);
+         if( STATINPUT != STATINPUT2 )
+            ERROR_exit("Need both arguments of '-within_range ..' to be "
+                       "p-values, or neither.  Can't mix!");
+
          thr_type = 3;
          iarg++ ; continue ;
       }
@@ -659,6 +750,37 @@ int main(int argc, char *argv[]) {
    //                    pre-stuff, make storage
    // ****************************************************************
    // ****************************************************************
+
+   // ----------- convert p to dset stat, if necessary ------------
+
+   // ALL THIS JUST TO MAKE J. RAJENDRA HAPPY!!!
+   if( !STATINPUT ) {
+      tmpb = thb;
+      tmpt = tht;
+
+      if( thr_type == -1 ) {// 1sided, left; factor of 2 for 1sided conv
+         tht = ssgn(tht) * THD_pval_to_stat( 2*fabs(tht),
+                                             DSET_BRICK_STATCODE(insetA, ithr),
+                                             DSET_BRICK_STATAUX(insetA, ithr) );
+         INFO_message("Converted p=%f -> stat=%f", tmpt, tht);
+      }
+      else if( thr_type == 1 ) {// 1sided, right; factor of 2 for 1sided conv
+         thb = ssgn(thb) * THD_pval_to_stat( 2*fabs(thb),
+                                             DSET_BRICK_STATCODE(insetA, ithr),
+                                             DSET_BRICK_STATAUX(insetA, ithr) );
+         INFO_message("Converted p=%f -> stat=%f", tmpb, thb);
+      }
+      else {// adjust all of bisided, 2sided, and within range
+         thb = ssgn(thb) * THD_pval_to_stat( fabs(thb),
+                                             DSET_BRICK_STATCODE(insetA, ithr),
+                                             DSET_BRICK_STATAUX(insetA, ithr) );
+         tht = ssgn(tht) * THD_pval_to_stat( fabs(tht),
+                                             DSET_BRICK_STATCODE(insetA, ithr),
+                                             DSET_BRICK_STATAUX(insetA, ithr) );
+         INFO_message("Converted p=%f -> stat=%f", tmpt, tht);
+         INFO_message("Converted p=%f -> stat=%f", tmpb, thb);
+      }
+   }
 
    // ----------- mask ------------
 
@@ -1384,3 +1506,47 @@ void MCW_fc7( float qval , char * buf )
    return ;
 }
 // -----------------------------------------------------------
+
+int CheckStringStart( char *a, char *b, char *c)
+{ // look for string 'b' in 'a'; if it is at the start of it, then
+  // chop it off and make 'c' be the remainder; if 'b' is not in 'a',
+  // then just have 'c' be a copy of 'a'; else, whine.
+   int i;
+   int la, lb;
+   char *d="tmp";
+
+   la = strlen(a);
+   lb = strlen(b);
+
+   d = strstr(a,b);
+
+   // if b is NOT in a, c is null
+   if( !d ) {
+      strcpy(c, a);
+      INFO_message("User input stat threshold: %s", c);
+
+      return 1;
+   }
+   else if( d != a ) {
+      WARNING_message("Wrong threshold input format!");
+      strcpy(c, a);
+      return -1;
+   }
+
+   // else, push c to the end of the searched for string to get
+   // remainder
+   strcpy(c, a+lb);
+
+   INFO_message("User input p-value threshold: %s", c);
+
+   return 0;
+}
+
+int ssgn(float x)
+{
+   if(x>0)
+      return 1;
+   if(x<0)
+      return -1;
+   return 0;
+}
