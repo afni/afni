@@ -1380,6 +1380,13 @@ static char *gby[] = {
      " what you see is all that you will ever be. And then you accept it.\n"
      " Or you stop looking in mirrors" ,
 
+     /* from Quentin Crisp */
+
+     "Don't clean your house. After 4 years, the dirt doesn't get any worse" ,
+     "Don't keep up with the Joneses; drag them down to your level" ,
+     "To know all is not to forgive all; it is to despise everybody" ,
+     "If at first you don't succeed, failure may just be your style" ,
+
      /* from John Tukey */
 
      "\n  Better an approximate answer to the right question,\n"
