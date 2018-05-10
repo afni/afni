@@ -11,6 +11,9 @@
 # v0.5, Jan 9, 2018
 # + birth
 #
+# v0.6, May 10, 2018
+# + minor tweaks
+#
 # ----------------------------------------------------------------
 
 import numpy as np
@@ -40,7 +43,7 @@ def make_out_name(A):
             ll = i
             break
     if ll == -1:
-        return a+"_helpy.txt"
+        return A+"_helpy.txt"
     else:
         out = A[:N-1-ll]+"_helpy" + A[N-1-ll:]
         return out
@@ -59,7 +62,15 @@ def wrapify_string(x, endchar = -1):
     #x.replace("\\", "\\\\")
     #if x.__contains__("\\"):
     #    print x[:endchar]
-    return "\" "+x[:endchar]+"\\n\"\n"
+    y = x[:endchar]  # do this to get right of trailing whitespace at end
+    z = "\" "+y.rstrip()+"\\n\"\n"
+    lz = len(z)
+    if lz > 80:
+        print "Warning! The following line has %d (>80) characters!" % lz
+        print "   -> "+z
+        print "      "+"|<"+("-"*36)+" 80 "+("-"*36)+">|"
+        print ""
+    return z
 
 # ========================================================================
 
@@ -76,7 +87,7 @@ if __name__=="__main__":
     btext = []
 
     btext.append(wrapify_string(topbot))
-    btext.append(wrapify_string(emptyl))
+#    btext.append(wrapify_string(emptyl))
     for x in atext:
         # take whole line, remove \n,
         newtext = wrapify_string(x)
