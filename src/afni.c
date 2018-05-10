@@ -2829,7 +2829,7 @@ STATUS("start startup timeout") ;
           }
         }
 
-        if( AFNI_yesenv("AFNI_ENFORCE_ASPECT") ){
+        if( AFNI_yesenv("AFNI_ENFORCE_ASPECT") ){ /* 10 May 2018 */
           REPORT_PROGRESS(
             "\n++ NOTICE: AFNI_ENFORCE_ASPECT no longer has any effect!\n") ;
         }
