@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 10 , MAY , 2018 , RWC , "AFNI GUI" , MICRO , TYPE_NEW_ENV ,
+   "remove AFNI_ENFORCE_ASPECT from having any effect" ,
+   "This never did very much good, so it is now OFF." } ,
+
  { 9 , MAY , 2018 , RWC , "AFNI GUI" , MICRO , TYPE_BUG_FIX ,
    "Fix 'too many redraws' problem in imseq.c" ,
    "For some reason, could get many ConfigureNotify events for one image\n"

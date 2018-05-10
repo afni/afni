@@ -135,10 +135,6 @@ extern void machdep() ;
                              systems - this will eliminate duplicate
                              image redraws in imseq.c.
 
-    ENFORCE_ASPECT = Set this if you want image aspect ratio enforcement
-                     compiled into your system.  Can also be set at runtime
-                     using the AFNI_ENFORCE_ASPECT environment variable.
-
   Exactly one of the following flags must be set for AFNI plugins
   to work:
 
@@ -387,7 +383,6 @@ extern long   strtol() ;
 # define DONT_USE_STRPTIME
 /** # define NEED_XSETLOCALE **/  /* removed on 16 May 2005, for Tiger */
 # define NEED_NL_LANGINFO
-# define ENFORCE_ASPECT           /* 29 Apr 2003 */
 # define USE_SYSCTL               /* 02 Aug 2016 */
 #endif
 
