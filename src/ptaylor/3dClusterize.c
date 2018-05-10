@@ -26,6 +26,9 @@ void MCW_fc7( float qval , char *buf );
 int CheckStringStart( char *a, char *b, char *c);
 int ssgn(float x);
 
+int MakeBrickLab1(char *c0, char *c1, char *c2, char *c3);
+int MakeBrickLab2(char *c0, char *c1, char *c2);
+
 void usage_Clusterize(int detail) 
 {
    printf(
@@ -38,10 +41,14 @@ void usage_Clusterize(int detail)
 " of the cluster ROIs.\n"
 " \n"
 " This program is specifically meant to reproduce behavior of the muuuch\n"
-" older 3dclust, as well as to include additional clustering behavior\n"
-" such as the '-bisided ...' variety (essentially, two-sided testing\n"
-" where a cluster cannot be comprised of voxels passing both the left-\n"
-" and right-sided parts of the distribution).\n"
+" older 3dclust, but this new program:\n"
+"   + uses simpler syntax (hopefully);\n"
+"   + includes additional clustering behavior such as the '-bisided ...'\n"
+"     variety (essentially, two-sided testing where all voxels in a\n"
+"     given cluster come from either the left- or right- tail, but not\n"
+"     mixed);\n"
+"   + a mask (such as the whole brain) can be entered in;\n"
+"   + voxelwise thresholds can be input as statistic values or p-values.\n"
 " \n"
 " This program was also written to have simpler/more direct syntax of\n"
 " usage than 3dclust.  Some minor options have been carried over for\n"
@@ -346,6 +353,8 @@ int main(int argc, char *argv[]) {
    char chtmp[200]; //=NULL;
    float tmpb, tmpt;
 
+   char blab1[100]="", blab2[100]="", blab3[100]="NN";
+
    int Nvox=-1;   // tot number vox
    int *Dim=NULL;
 
@@ -522,6 +531,7 @@ int main(int argc, char *argv[]) {
 
          // STATINPUT gets acted on later, when we know thr vol for
          // possible p-value conversion
+
          STATINPUT = CheckStringStart(argv[iarg],"p=", chtmp);
          thr_1sid = atof(chtmp); // atof(argv[iarg]);
          if( IsNotValidP(thr_1sid) )
@@ -536,7 +546,10 @@ int main(int argc, char *argv[]) {
          else {
             tht = thr_1sid;
             thb = BIIIIG_NUM;
-         }
+         }         
+
+         MakeBrickLab1(blab1,argv[iarg-2]+1,argv[iarg-1],argv[iarg]);
+
          iarg++ ; continue ;
       }
 
@@ -560,8 +573,10 @@ int main(int argc, char *argv[]) {
          if( STATINPUT != STATINPUT2 )
             ERROR_exit("Need both arguments of '-2sided ..' to be "
                        "p-values, or neither.  Can't mix!");
-
          thr_type = 2;
+
+         MakeBrickLab1(blab1,argv[iarg-2]+1,argv[iarg-1],argv[iarg]);
+
          iarg++ ; continue ;
       }
       
@@ -585,6 +600,9 @@ int main(int argc, char *argv[]) {
                        "p-values, or neither.  Can't mix!");
 
          thr_type = -2;
+
+         MakeBrickLab1(blab1,argv[iarg-2]+1,argv[iarg-1],argv[iarg]);
+
          iarg++ ; continue ;
       }
 
@@ -609,6 +627,9 @@ int main(int argc, char *argv[]) {
                        "p-values, or neither.  Can't mix!");
 
          thr_type = 3;
+
+         MakeBrickLab1(blab1,argv[iarg-2]+1,argv[iarg-1],argv[iarg]);
+
          iarg++ ; continue ;
       }
       
@@ -627,6 +648,7 @@ int main(int argc, char *argv[]) {
          }
          INFO_message("Neighborhood definition (NN=%d) accepted",
                       NNTYPE);
+         strcat(blab3, argv[iarg]);
          iarg++ ; continue ;
       }
 
@@ -639,6 +661,9 @@ int main(int argc, char *argv[]) {
                         vmul);
          else if( vmul )
             vmul = -vmul; // we do this because of syntax of older progs!
+
+         MakeBrickLab2(blab2,argv[iarg-1]+1,argv[iarg]);
+
          iarg++ ; continue ;
       }
 
@@ -651,6 +676,9 @@ int main(int argc, char *argv[]) {
                         vmul);
          else if( vmul )
             vmul = -vmul; // ALSO do this because of syntax of older progs!
+
+         MakeBrickLab2(blab2,argv[iarg-1]+1,argv[iarg]);
+
          iarg++ ; continue ;
       }
 
@@ -761,26 +789,31 @@ int main(int argc, char *argv[]) {
       if( thr_type == -1 ) {// 1sided, left; factor of 2 for 1sided conv
          tht = ssgn(tht) * THD_pval_to_stat( 2*fabs(tht),
                                              DSET_BRICK_STATCODE(insetA, ithr),
-                                             DSET_BRICK_STATAUX(insetA, ithr) );
+                                             DSET_BRICK_STATAUX(insetA, ithr));
          INFO_message("Converted p=%f -> stat=%f", tmpt, tht);
       }
       else if( thr_type == 1 ) {// 1sided, right; factor of 2 for 1sided conv
          thb = ssgn(thb) * THD_pval_to_stat( 2*fabs(thb),
                                              DSET_BRICK_STATCODE(insetA, ithr),
-                                             DSET_BRICK_STATAUX(insetA, ithr) );
+                                             DSET_BRICK_STATAUX(insetA, ithr));
          INFO_message("Converted p=%f -> stat=%f", tmpb, thb);
       }
       else {// adjust all of bisided, 2sided, and within range
          thb = ssgn(thb) * THD_pval_to_stat( fabs(thb),
                                              DSET_BRICK_STATCODE(insetA, ithr),
-                                             DSET_BRICK_STATAUX(insetA, ithr) );
+                                             DSET_BRICK_STATAUX(insetA, ithr));
          tht = ssgn(tht) * THD_pval_to_stat( fabs(tht),
                                              DSET_BRICK_STATCODE(insetA, ithr),
-                                             DSET_BRICK_STATAUX(insetA, ithr) );
+                                             DSET_BRICK_STATAUX(insetA, ithr));
          INFO_message("Converted p=%f -> stat=%f", tmpt, tht);
          INFO_message("Converted p=%f -> stat=%f", tmpb, thb);
       }
    }
+
+   // final label, combining opts; for cluster map output
+   strcat(blab1, blab2);
+   strcat(blab1, blab3);
+   INFO_message("Opt code: %s", blab1);
 
    // ----------- mask ------------
 
@@ -1115,12 +1148,15 @@ int main(int argc, char *argv[]) {
 
    THD_3dim_dataset *qset=NULL;
    qset = EDIT_empty_copy(insetA);
+
    EDIT_dset_items( qset ,
                     ADN_prefix , prefix ,
                     ADN_nvals  , 1 ,
                     ADN_none );
    EDIT_substitute_brick(qset, 0, MRI_short, mmm); 
    mmm = NULL;
+
+   EDIT_BRICK_LABEL(qset, 0, blab1);
 
    tross_Copy_History( insetA , qset ) ;
    tross_Make_History( "3dClusterize", argc , argv , qset );
@@ -1143,22 +1179,25 @@ int main(int argc, char *argv[]) {
                 //"%sCluster report for file %s %s\n"
                 "%sCluster report \n"
 #if 0
-                "%s[3D Dataset Name: %s ]\n"
+                "%s[ 3D Dataset Name: %s ]\n"
                 "%s[    Short Label: %s ]\n"
 #endif
-                "%s[Connectivity radius = %.2f mm"
+                "%s[ Option summary      = %s ]\n"
+                "%s[ Nvoxel threshold    = %d;"
+                "  Connectivity radius = %.2f mm;"
                 "  Volume threshold = %.3f ]\n"
-                "%s[Single voxel volume = %.3f (microliters) ]\n"
-                "%s[Voxel datum type    = %s ]\n"
-                "%s[Voxel dimensions    = %.3f mm X %.3f mm X %.3f mm ]\n"
-                "%s[Coordinates Order   = %s ]\n",
+                "%s[ Single voxel volume = %.3f (microliters) ]\n"
+                "%s[ Voxel datum type    = %s ]\n"
+                "%s[ Voxel dimensions    = %.3f mm X %.3f mm X %.3f mm ]\n"
+                "%s[ Coordinates Order   = %s ]\n",
                 c1d,
                 c1d, //argv[iarg], do_mni ? "[MNI coords]" : "",
 #if 0
                 c1d, insetA->self_name ,
                 c1d, insetA->label1 ,
 #endif
-                c1d, rmm, ptmin*dx*dy*dz , // !!!
+                c1d, blab1,
+                c1d, ptmin, rmm, ptmin*dx*dy*dz , // !!!
                 c1d, dx*dy*dz,
                 c1d, MRI_TYPE_name[ DSET_BRICK_TYPE(insetA, ival) ],
                 c1d, dx,dy,dz,
@@ -1542,11 +1581,39 @@ int CheckStringStart( char *a, char *b, char *c)
    return 0;
 }
 
+// -----------------------------------------------------------
+
 int ssgn(float x)
 {
    if(x>0)
       return 1;
    if(x<0)
       return -1;
+   return 0;
+}
+
+// -----------------------------------------------------------
+
+int MakeBrickLab1(char *c0, char *c1, char *c2, char *c3)
+{ // string together strings to make a label; sep each with a comma
+
+   strcat(c0, c1); 
+   strcat(c0, ",");
+   strcat(c0, c2); 
+   strcat(c0, ",");
+   strcat(c0, c3); 
+   strcat(c0, ",");
+
+   return 0;
+}
+
+int MakeBrickLab2(char *c0, char *c1, char *c2)
+{ // string together strings to make a label; sep each with a comma
+
+   strcat(c0, c1); 
+   strcat(c0, ",");
+   strcat(c0, c2); 
+   strcat(c0, ",");
+
    return 0;
 }
