@@ -730,11 +730,17 @@ will turn off the checking entirely.  Or you could do
 -----------------------------
 Variable: AFNI_ENFORCE_ASPECT (editable)
 -----------------------------
-Some Linux window managers do no enforce the aspect ratio (width to height
+Some X11 window managers do no enforce the aspect ratio (width to height
 proportion) request that the image display module makes.  This means that
 image windows can become undesirably distorted when manually resized.
 Setting this YES/NO variable to YES will make AFNI itself enforce the
 aspect ratio whenever an image window is resized.
+** NOTICE **
+  As of 10 May 2018, this variable no longer has any effect. The enforcement
+  never worked well, and so you now have to manage this problem manually.
+  To fix the aspect ratio of an image viewer window, Left-click in the
+  image intensity bar (right of the image) or press the 'a' key while the
+  mouse cursor is over the image.
 
 ----------------------------------------
 Variables: AFNI_<plug_filename>_butcolor

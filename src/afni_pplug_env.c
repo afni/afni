@@ -225,9 +225,11 @@ PLUGIN_interface * ENV_init(void)
      }
    }
 
+#if 0
    ENV_add_string( "AFNI_ENFORCE_ASPECT" ,
                    "To make AFNI enforce image window aspect ratio?" ,
                    NUM_yesno_list , yesno_list , NULL  ) ;
+#endif
 
    ENV_add_numeric( "AFNI_FIM_PERCENT_LIMIT" ,
                     "Upper limit on % Change in FIM" ,

@@ -1420,6 +1420,7 @@ STATUS("no ***LAYOUT found") ;
 
    free(fbuf) ; free(linbuf) ;  /* toss the trash */
 
+#if 0
    /*-- if any image geom commands are present,
         we might need to enforce the aspect ratio --*/
 
@@ -1428,6 +1429,7 @@ STATUS("no ***LAYOUT found") ;
      putenv("AFNI_ENFORCE_ASPECT=YES") ;
      e_turnoff = 1 ;
    }
+#endif
 
    /*-- now do the commanded work --*/
 
@@ -1656,7 +1658,9 @@ STATUS("no ***LAYOUT found") ;
    }
 #endif
 
+#if 0
    if( e_turnoff ) putenv("AFNI_ENFORCE_ASPECT=NO") ;
+#endif
 
    AFNI_splashdown() ; EXRETURN ;
 }
