@@ -26,10 +26,11 @@ void usage_Clusterize(int detail)
    printf(
 " # ------------------------------------------------------------------------\n"
 " \n"
-" \n"
 " This program is for performing clusterizing: one can perform voxelwise\n"
 " thresholding on a dataset (such as a statistic), and then make a map\n"
-" of remaining clusters of voxels larger than a certain volume.\n"
+" of remaining clusters of voxels larger than a certain volume.  The\n"
+" main output of this program is a single volume dataset showing a map\n"
+" of the cluster ROIs.\n"
 " \n"
 " This program is specifically meant to reproduce behavior of the muuuch\n"
 " older 3dclust, as well as to include additional clustering behavior\n"
@@ -37,15 +38,20 @@ void usage_Clusterize(int detail)
 " where a cluster cannot be comprised of voxels passing both the left-\n"
 " and right-sided parts of the distribution).\n"
 " \n"
-" cobbled together by PA Taylor (NIMH, NIH), but importantly from code\n"
-" written by many legends: RW Cox, BD Ward, MS Beauchamp, ZS Saad, and\n"
-" more.\n"
+" This program was also written to have simpler/more direct syntax of\n"
+" usage than 3dclust.  Some minor options have been carried over for\n"
+" similar behavior, but many of the major option names have been\n"
+" altered.  Please read the helps for those below carefully.\n"
 " \n"
-"  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
+" This program was cobbled together by PA Taylor (NIMH, NIH), but it\n"
+" predominantly uses code written by many legends: RW Cox, BD Ward, MS\n"
+" Beauchamp, ZS Saad, and more.\n"
+" \n"
+" * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 " \n"
 " USAGE ~1~\n"
-"  \n"
-"      Input: \n"
+" \n"
+"      Input:\n"
 "        + A dataset of one or more bricks\n"
 "        + Specify an index of the volume to threshold\n"
 "        + Declare a voxelwise threshold, and optionally a cluster-volume\n"
@@ -57,94 +63,111 @@ void usage_Clusterize(int detail)
 " \n"
 "        + A dataset volume containing a map of cluster ROIs (sorted by\n"
 "          size) after thresholding (and clusterizing, if specified)\n"
-"        + A report about the clusters (center of mass, extent, volume, etc.)\n"
-"          that can be dumped into a text file\n"
+"        + A report about the clusters (center of mass, extent, volume,\n"
+"          etc.) that can be dumped into a text file\n"
+"        + Optional: a cluster-masked version of an input data set\n"
 "        + Optional: a mask\n"
 " \n"
-" Explanation of 3dclust text report output\n"
-" -----------------------------------------     \n"
 " \n"
-" Nvoxel       : Number of voxels in the cluster       \n"
-"                                                                      \n"
-" CM RL        : Center of mass (CM) for the cluster in the Right-Left \n"
-"                direction (i.e., the coordinates for the CM)          \n"
-"                                                                      \n"
-" CM AP        : Center of mass for the cluster in the                 \n"
-"                Anterior-Posterior direction                          \n"
-"                                                                      \n"
-" CM IS        : Center of mass for the cluster in the                 \n"
-"                Inferior-Superior direction                           \n"
-"                                                                      \n"
-" minRL, maxRL : Bounding box for the cluster, min and max             \n"
-"                coordinates in the Right-Left direction               \n"
-"                                                                      \n"
-" minAP, maxAP : Min and max coordinates in the Anterior-Posterior     \n"
-"                direction of the volume cluster                       \n"
-"                                                                      \n"
-" minIS, maxIS : Min and max coordinates in the Inferior-Superior      \n"
-"                direction of the volume cluster                       \n"
-"                                                                      \n"
-" Mean         : Mean value for the volume cluster                     \n"
-"                                                                      \n"
-" SEM          : Standard Error of the Mean for the volume cluster     \n"
-"                                                                      \n"
-" Max Int      : Maximum Intensity value for the volume cluster        \n"
-"                                                                      \n"
-" MI RL        : Coordinate of the Maximum Intensity value in the      \n"
-"                Right-Left direction of the volume cluster            \n"
-"                                                                      \n"
-" MI AP        : Coordinate of the Maximum Intensity value in the      \n"
-"                Anterior-Posterior direction of the volume cluster    \n"
-"                                                                      \n"
-" MI IS        : Coordinate of the Maximum Intensity value in the      \n"
-"                Inferior-Superior direction of the volume cluster     \n"
+" Explanation of 3dclust text report output\n"
+" -----------------------------------------\n"
+" \n"
+" Nvoxel       : Number of voxels in the cluster\n"
+" \n"
+" CM RL        : Center of mass (CM) for the cluster in the Right-Left\n"
+"                direction (i.e., the coordinates for the CM)\n"
+" \n"
+" CM AP        : Center of mass for the cluster in the\n"
+"                Anterior-Posterior direction\n"
+" \n"
+" CM IS        : Center of mass for the cluster in the\n"
+"                Inferior-Superior direction\n"
+" \n"
+" minRL, maxRL : Bounding box for the cluster, min and max\n"
+"                coordinates in the Right-Left direction\n"
+" \n"
+" minAP, maxAP : Min and max coordinates in the Anterior-Posterior\n"
+"                direction of the volume cluster\n"
+" \n"
+" minIS, maxIS : Min and max coordinates in the Inferior-Superior\n"
+"                direction of the volume cluster\n"
+" \n"
+" Mean         : Mean value for the volume cluster\n"
+" \n"
+" SEM          : Standard Error of the Mean for the volume cluster\n"
+" \n"
+" Max Int      : Maximum Intensity value for the volume cluster\n"
+" \n"
+" MI RL        : Coordinate of the Maximum Intensity value in the\n"
+"                Right-Left direction of the volume cluster\n"
+" \n"
+" MI AP        : Coordinate of the Maximum Intensity value in the\n"
+"                Anterior-Posterior direction of the volume cluster\n"
+" \n"
+" MI IS        : Coordinate of the Maximum Intensity value in the\n"
+"                Inferior-Superior direction of the volume cluster\n"
 " \n"
 "   * CM values use the absolute value of the voxel values as weights.\n"
 " \n"
-"   * The program does not work on complex- or rgb-valued datasets!      \n"
+"   * The program does not work on complex- or rgb-valued datasets!\n"
 " \n"
 "   * SEM values are not realistic for interpolated data sets!  A ROUGH\n"
 "     correction is to multiply the SEM of the interpolated data set by\n"
 "     the square root of the number of interpolated voxels per original\n"
 "     voxel.\n"
 " \n"
+"   * Some summary or 'global' values are placed at the bottoms of\n"
+"     report columns, by default.  These include the 'global' volume, CM\n"
+"     of the combined cluster ROIs, and the mean+SEM of that Pangaea.\n"
 " \n"
-"  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
+" * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 " \n"
 " COMMAND ~1~\n"
 " \n"
+" -inset  III    :Load in a dataset III of one or more bricks for\n"
+"                 thresholding and clusterizing; one can choose to use\n"
+"                 either just a single sub-brick within it for all\n"
+"                 operations (e.g., a 'statistics' brick), or to specify\n"
+"                 an additional sub-brick within it for the actual\n"
+"                 clusterizing+reporting (after the mask from the\n"
+"                 thresholding dataset has been applied to it).\n"
 " \n"
-" -inset  III    :Load in a dataset III of one or more bricks for thresholding\n"
-"                 and clusterizing; one can choose to use either just a \n"
-"                 single sub-brick within it for all operations (e.g., a\n"
-"                 'statistics' brick), or to specify an additional sub-brick\n"
-"                 within it for the actual clusterizing+reporting (after the\n"
-"                 mask from the thresholding dataset has been applied to it).\n"
-" \n"
-" -prefix  PPP   :The prefix/filename of the output map of cluster ROIs.\n"
+" -pref_map PPP  :The prefix/filename of the output map of cluster ROIs.\n"
 "                 (To save the text file report, use the redirect '>' after\n"
-"                 the 3dClusterize command and dump the text into a   \n"
-"                 separate file of your own naming.\n"
+"                 the 3dClusterize command and dump the text into a\n"
+"                 separate file of your own naming.)\n"
+" \n"
+" -pref_dat DDD  :Including this option instructs the program to output\n"
+"                 a cluster-masked version of the 'data' volume\n"
+"                 specified by the '-idat ..' index.  That is, only data\n"
+"                 values within the cluster ROIs are included in the\n"
+"                 output volume.  Requires specifying *both* '-pref_dat ..'\n"
+"                 and '-idat ..'.\n"
 " \n"
 " -mask MMM      :Load in a dataset MMM to use as a mask, within which\n"
 "                 to look for clusters.\n"
-" -mask_from_hdr :If 3dClustSim put an internal attribute into the       \n"
-"                 input dataset that describes a mask, 3dClusterize will      \n"
-"                 use this mask to eliminate voxels before clustering,   \n"
-"                 if you give this option (this is how the AFNI \n"
-"                 Clusterize GUI works by default).\n"
-"                 If there is no internal mask in the dataset header,\n"
-"                 then '-inmask' doesn't do anything. \n"
+" -mask_from_hdr :If 3dClustSim put an internal attribute into the\n"
+"                 input dataset that describes a mask, 3dClusterize will\n"
+"                 use this mask to eliminate voxels before clustering,\n"
+"                 if you give this option (this is how the AFNI\n"
+"                 Clusterize GUI works by default).  If there is no\n"
+"                 internal mask in the dataset header, then '-inmask'\n"
+"                 doesn't do anything.\n"
+" -pref_mask MO  :specify that you wanted the utilized mask dumped out\n"
+"                 as a single volume dataset MO.  This is probably only\n"
+"                 really useful if you are using '-mask_from_hdr'.  If\n"
+"                 not mask option is specified, there will be no output.\n"
 " \n"
 " -ithr   j      :Uses sub-brick [j] as the threshold source (required).\n"
+" \n"
 " -idat   k      :Uses sub-brick [k] as the data source (optional);\n"
-"                 if this option is used, thresholding is still done by the\n"
-"                 'threshold' dataset, but that threshold map is applied\n"
-"                 to this 'data' set, which is in turn used for clusterizing \n"
-"                 and the 'data' set values are used to make the report.\n"
-"                 If a 'data' dataset is NOT input with '-idat ..', then\n"
-"                 thresholding, clustering and reporting are all done using\n"
-"                 the 'threshold' dataset.\n"
+"                 if this option is used, thresholding is still done by\n"
+"                 the 'threshold' dataset, but that threshold map is\n"
+"                 applied to this 'data' set, which is in turn used for\n"
+"                 clusterizing and the 'data' set values are used to\n"
+"                 make the report.  If a 'data' dataset is NOT input\n"
+"                 with '-idat ..', then thresholding, clustering and\n"
+"                 reporting are all done using the 'threshold' dataset.\n"
 " \n"
 "    One of the following methods of clustering MUST be chosen:\n"
 " -1sided SSS TT :Perform one-sided testing. Two arguments are required:\n"
@@ -157,13 +180,13 @@ void usage_Clusterize(int detail)
 "                   RR  -> the bound of the right-side tail (i.e., lower\n"
 "                          bound of the right tail).\n"
 "                 *NOTE* that in this case, potentially a cluster could\n"
-"                 be made of both left- and right-tail survivors (e.g., \n"
-"                 both positive and negative values). For this reason, \n"
+"                 be made of both left- and right-tail survivors (e.g.,\n"
+"                 both positive and negative values). For this reason,\n"
 "                 probably '-bisided ...' is a preferable choice.\n"
 " -bisided LL RR :Same as '-2sided ...', except that the tails are tested\n"
 "                 independently, so a cluster cannot be made of both.\n"
 " -within_range AA BB\n"
-"                :Perform a kind of clustering where a different kind of \n"
+"                :Perform a kind of clustering where a different kind of\n"
 "                 thresholding is first performed, compared to the above\n"
 "                 cases;  here, one keeps values within the range [AA, BB],\n"
 "                 INSTEAD of keeping values on the tails. Is this useful?\n"
@@ -174,28 +197,30 @@ void usage_Clusterize(int detail)
 "                   1 -> 6  facewise neighbors\n"
 "                   2 -> 18 face+edgewise neighbors\n"
 "                   3 -> 26 face+edge+nodewise neighbors\n"
-"                 For example, this should match what was chosen \n"
+"                 For example, this should match what was chosen\n"
 "                 in 3dClustSim, if that program were run on the data\n"
 "                 prior to this one. (In many AFNI programs, NN=1 is\n"
 "                 a default choice, but BE SURE YOURSELF!)\n"
 " \n"
 " -clust_nvox M  :specify the minimum cluster size in terms of number\n"
-"                 of voxels M (such as output by 3dClustSim, for example).\n"
+"                 of voxels M (such as output by 3dClustSim, for\n"
+"                 example).\n"
 " \n"
 " -clust_volml V :specify the minimum cluster size in terms of volume V,\n"
-"                 in milliliters (requires knowing the voxel size). Probably\n"
-"                 '-clust_nvox ...' is more useful.\n"
+"                 in milliliters (requires knowing the voxel\n"
+"                 size). Probably '-clust_nvox ...' is more useful.\n"
 " \n"
-" -1Dformat      :Write output in 1D format (now default). You can       \n"
-"                 redirect the output to a .1D file and use the file     \n"
-"                 as input to whereami for obtaining Atlas-based         \n"
-"                 information on cluster locations.                      \n"
-"                 See whereami -help for more info.                      \n"
-" -no_1Dformat   :Do not write output in 1D format.                      \n"
+" -1Dformat      :Write output in 1D format (now default). You can\n"
+"                 redirect the output to a .1D file and use the file\n"
+"                 as input to whereami for obtaining Atlas-based\n"
+"                 information on cluster locations.\n"
+"                 See whereami -help for more info.\n"
+" -no_1Dformat   :Do not write output in 1D format.\n"
 " \n"
-" -summarize     :Write out only the total nonzero voxel                 \n"
-"                 count and volume for each dataset         \n"
-" -nosum         :Suppress printout of the totals \n"
+" -summarize     :Write out only the total nonzero voxel count and\n"
+"                 volume for each dataset\n"
+" \n"
+" -nosum         :Suppress printout of the totals\n"
 " \n"
 " -quiet         :Suppress all non-essential output\n"
 " \n"
@@ -204,16 +229,16 @@ void usage_Clusterize(int detail)
 "                 environment variable AFNI_ORIENT (see the file\n"
 "                 README.environment).\n"
 " \n"
-" -noabs         :Use the signed voxel intensities (not the absolute     \n"
-"                 value) for calculation of the mean and Standard        \n"
-"                 Error of the Mean (SEM)                \n"
+" -noabs         :Use the signed voxel intensities (not the absolute\n"
+"                 value) for calculation of the mean and Standard\n"
+"                 Error of the Mean (SEM)\n"
 " \n"
-" -binary        :This turns the output map of cluster ROIs into a binary     \n"
-"                 (0 or 1) mask, rather than a cluster-index mask.       \n"
+" -binary        :This turns the output map of cluster ROIs into a binary\n"
+"                 (0 or 1) mask, rather than a cluster-index mask.\n"
 "                 If no clusters are found, the mask is not written!\n"
 "                 (def: each cluster has separate values)\n"
 " \n"
-"  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
+" * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 " \n"
 " EXAMPLES ~1~\n"
 " \n"
@@ -223,7 +248,7 @@ void usage_Clusterize(int detail)
 "   of 3dClustSim run with NN=1 (here, a cluster threshold volume of 157\n"
 "   voxels) and perform one-sided testing with a threshold at an\n"
 "   appropriate value (here, 3.313).\n"
-"      \n"
+" \n"
 "     3dClusterize                  \\\n"
 "        -inset stats.FT+tlrc.      \\\n"
 "        -ithr 2                    \\\n"
@@ -232,13 +257,14 @@ void usage_Clusterize(int detail)
 "        -NN 1                      \\\n"
 "        -1sided RIGHT_TAIL 3.313   \\\n"
 "        -clust_nvox 157            \\\n"
-"        -prefix ClusterMap\n"
+"        -pref_map ClusterMap\n"
 " \n"
 "   2. The same as Ex. 1, but using bisided testing (two sided testing\n"
 "   where the results of each tail can't be joined into the same\n"
 "   cluster). Note, the tail thresholds do NOT have to be symmetric (but\n"
-"   often they are).\n"
-"      \n"
+"   often they are).  Also, here we output the cluster-masked 'data'\n"
+"   volume.\n"
+" \n"
 "     3dClusterize                  \\\n"
 "        -inset stats.FT+tlrc.      \\\n"
 "        -ithr 2                    \\\n"
@@ -247,10 +273,12 @@ void usage_Clusterize(int detail)
 "        -NN 1                      \\\n"
 "        -bisided -3.313 3.313      \\\n"
 "        -clust_nvox 157            \\\n"
-"        -prefix ClusterMa\n"
+"        -pref_map ClusterMap       \\\n"
+"        -pref_dat ClusterEffEst\n"
 " \n"
 " # ------------------------------------------------------------------------\n"
-);
+)
+;
 	return;
 }
 
@@ -277,8 +305,6 @@ int main(int argc, char *argv[]) {
                       // interval
    float thr_1sid = -1.1e10; 
    
-   int TEST_OK = 0;
-
    // names modeled on existing progs, like afni_vedit.c
    float vmul;        // cluster vol thr: can be neg, pos, zero
    float rmm=0;       // for now, leave as zero to flag using NN neigh val
@@ -305,6 +331,8 @@ int main(int argc, char *argv[]) {
    MCW_cluster *cl=NULL;
 
    // mainly report-related
+   char *CL_prefix  = NULL;  // output data volume, if asked for
+   char *CL_maskout = NULL;  // output WB mask volume, if asked for
    int CL_quiet     = 0;
    int CL_summarize = 0;
    int CL_do_mni    = 0; 
@@ -344,12 +372,6 @@ int main(int argc, char *argv[]) {
          exit(0);
       }
 		
-      // NO ARG:
-      if( strcmp(argv[iarg],"-TESTING") == 0) {
-         TEST_OK=1;
-         iarg++ ; continue ;
-      }
-
       if( strcmp(argv[iarg],"-inset") == 0 ){
          iarg++ ; if( iarg >= argc ) 
                      ERROR_exit("Need argument after '-inset'");
@@ -361,12 +383,30 @@ int main(int argc, char *argv[]) {
          iarg++ ; continue ;
       }
 
-      if( strcmp(argv[iarg],"-prefix") == 0 ){
+      if( strcmp(argv[iarg],"-pref_map") == 0 ){
          iarg++ ; if( iarg >= argc ) 
-                     ERROR_exit("Need argument after '-prefix'");
-         prefix = strdup(argv[iarg]) ;
+                     ERROR_exit("Need argument after '-pref_map'");
+         prefix = strdup(argv[iarg]);
          if( !THD_filename_ok(prefix) ) 
-            ERROR_exit("Illegal name after '-prefix'");
+            ERROR_exit("Illegal name after '-pref_map'");
+         iarg++ ; continue ;
+      }
+
+      if( strcmp(argv[iarg],"-pref_dat") == 0 ){
+         iarg++ ; if( iarg >= argc ) 
+                     ERROR_exit("Need argument after '-pref_dat'");
+         CL_prefix = strdup(argv[iarg]);
+         if( !THD_filename_ok(CL_prefix) ) 
+            ERROR_exit("Illegal name after '-pref_dat'");
+         iarg++ ; continue ;
+      }
+
+      if( strcmp(argv[iarg],"-pref_mask") == 0 ){
+         iarg++ ; if( iarg >= argc ) 
+                     ERROR_exit("Need argument after '-pref_mask'");
+         CL_maskout = strdup(argv[iarg]);
+         if( !THD_filename_ok(CL_maskout) ) 
+            ERROR_exit("Illegal name after '-pref_mask'");
          iarg++ ; continue ;
       }
 
@@ -580,9 +620,6 @@ int main(int argc, char *argv[]) {
    if (iarg < 3)
       ERROR_exit("Too few options. Try -help for details.\n");
 	
-   if( !TEST_OK )
-      ERROR_exit("HEY! Just testing/building mode right now!\n");
-
    if( !thr_type )
       ERROR_exit("Hey, you need to put in threshold type/value!"
                  "For example, '-2sided ...', '-1sided ...', etc.\n");
@@ -603,9 +640,13 @@ int main(int argc, char *argv[]) {
 
    if( ival > DSET_NVALS(insetA) )
       ERROR_exit("Bad index (too large) for data volume: %d", ival);
-   else if( ival < 0 )
-      INFO_message("No extra data block input: "
+   else if( ival < 0 ) {
+      INFO_message("No extra data block input (via '-idat ..'): "
                    "using threshold dset for all computations and info.");
+      if(CL_prefix)
+         WARNING_message("... even though you specified an '-pref_dat ..', "
+                         "not cluster-masked output can be made.");
+   }
 
    if( ithr < 0 || ithr > DSET_NVALS(insetA) )
       ERROR_exit("Bad index for threshold volume: %d", ithr);
@@ -668,6 +709,14 @@ int main(int argc, char *argv[]) {
    else {
       WARNING_message("No mask being used? That *could* be OK, "
                       "but thought I'd let you know...");
+      if( CL_maskout ) {
+         WARNING_message("And ANOTHER warning, since you also apparently "
+                         "asked to output a mask volume, without providing "
+                         "any means to procure mask info.  See help file.");
+         // ... and unset the masking output
+         free(CL_maskout);
+         CL_maskout = NULL;
+      }
 	}
 
    // apply masks, *IF* one was input somehow. Does nada if mask==NULL
@@ -689,15 +738,7 @@ int main(int argc, char *argv[]) {
    
    // stuff with threshold volume
    tim = DBLK_BRICK(dblk,ithr) ;
-   // !!!! doublecheck what next part does!!! ** don't think it's nec
-   // if( bisid && 
-   //    THD_stat_is_2sided(DSET_BRICK_STATCODE(insetA, ithr),0)==0 ) {
-   //  INFO_message("UNsetting bisidedness, because stat dset "
-   //              "doesn't have sidedness to use (I think).");
-   // bisid = 0;
-   // }
-   // !!!! doublecheck on necessity of next step! probably do need bc
-   // !!!! using dblk
+
    if( DSET_BRICK_FACTOR(insetA, ithr) > 0.0f ) {
       thb /= DSET_BRICK_FACTOR(insetA, ithr);
       tht /= DSET_BRICK_FACTOR(insetA, ithr);
@@ -706,7 +747,6 @@ int main(int argc, char *argv[]) {
    // ------- what dsets get clusterized and reportized?
    // ------- IF: the user input an additional dataset, then that;
    // ------- ELSE: all depends on the statistics
-
 
    if( ival < 0 ) // i.e., no data set input: use only thr dset
       cim = mri_copy(tim); 
@@ -852,9 +892,7 @@ int main(int argc, char *argv[]) {
       printf("%s** TOO MANY CLUSTERS TO SORT BY VOLUME ***\n", c1d) ;
    }
 
-   // --------------- write out map of cluster ROIs
-
-   INFO_message("Writing out map of cluster ROIs.");
+   // --------------- make array of cluster ROIs
 
    mmm = (short *) calloc(sizeof(short), nxyz);
    for( iclu=0 ; iclu < clar->num_clu ; iclu++ ) {
@@ -867,6 +905,88 @@ int main(int argc, char *argv[]) {
          mmm[ii+jj*nx+kk*nxy] = (do_binary) ? 1 : (iclu+1);
       }
    }
+
+   // --------------- write out copy of the data volume, if asked
+
+   if( CL_prefix && (ival >= 0) ) {
+
+      INFO_message("Writing out dataset masked by clusters.");
+
+      THD_3dim_dataset *dset=NULL;
+      
+      // copy the single brick we will output
+      dset = THD_copy_one_sub( insetA, ival );
+           
+      switch( DSET_BRICK_TYPE(dset, 0) ) {
+         
+      case MRI_byte: {
+         byte *bar = (byte *) DSET_ARRAY(dset, 0);
+         for( ii=0 ; ii < nxyz ; ii++ )
+            if( mmm[ii] == 0 ) bar[ii] = 0;
+      }
+         break;
+
+      case MRI_short: {
+         short *bar = (short *) DSET_ARRAY(dset, 0);
+         for( ii=0 ; ii < nxyz ; ii++ )
+            if( mmm[ii] == 0 ) bar[ii] = 0;
+      }
+         break;
+
+      case MRI_int: {
+         int *bar = (int *) DSET_ARRAY(dset, 0);
+         for( ii=0 ; ii < nxyz ; ii++ )
+            if( mmm[ii] == 0 ) bar[ii] = 0;
+      }
+         break;
+
+      case MRI_float: {
+         float *bar = (float *) DSET_ARRAY(dset, 0);
+         for( ii=0 ; ii < nxyz ; ii++ )
+            if( mmm[ii] == 0 ) bar[ii] = 0.;
+      }
+         break;
+
+      case MRI_double: {
+         double *bar = (double *) DSET_ARRAY(dset, 0);
+         for( ii=0 ; ii < nxyz ; ii++ )
+            if( mmm[ii] == 0 ) bar[ii] = 0.;
+      }
+         break;
+
+      case MRI_complex: {
+         complex *bar = (complex *) DSET_ARRAY(dset, 0);
+         for( ii=0 ; ii < nxyz ; ii++ )
+            if( mmm[ii] == 0 ) bar[ii].r = bar[ii].i = 0.0;
+      }
+         break;
+
+      case MRI_rgb: {
+         byte *bar = (byte *) DSET_ARRAY(dset, 0);
+         for( ii=0 ; ii < nxyz ; ii++ )
+            if( mmm[ii] == 0 ) bar[3*ii] = bar[3*ii+1] = bar[3*ii+2] = 0;
+      }
+         break;
+
+      default:
+         ERROR_exit("Unrecognized data file type to write out??");
+
+      }
+
+      EDIT_dset_items( dset ,
+                       ADN_prefix, CL_prefix,
+                       ADN_none );
+      tross_Copy_History( insetA , dset );
+      tross_Make_History( "3dClusterize", argc, argv, dset );
+      DSET_write(dset); 
+      WROTE_DSET(dset); 
+      DSET_delete(dset);
+
+   }
+
+   // --------------- write out map of cluster ROIs
+
+   INFO_message("Writing out map of cluster ROIs.");
 
    THD_3dim_dataset *qset=NULL;
    qset = EDIT_empty_copy(insetA);
@@ -882,6 +1002,8 @@ int main(int argc, char *argv[]) {
    DSET_write(qset); WROTE_DSET(qset); DSET_delete(qset);
    
    // ---------- write out report --------------------
+
+   INFO_message("Time to make the report...");
 
    do_mni = (CL_do_mni && insetA->view_type == VIEW_TALAIRACH_TYPE);
    THD_coorder_fill( my_getenv("AFNI_ORIENT") , &CL_cord);
@@ -1131,6 +1253,31 @@ int main(int argc, char *argv[]) {
               c1d, vol_total, glxxsum, glyysum, glzzsum, buf1, buf3 ) ;
    }
    
+   // --------------- write out utilized mask
+
+   if( CL_maskout && mask ) {
+
+      INFO_message("Writing out whole brain mask.");
+      
+      THD_3dim_dataset *mset=NULL;
+      mset = EDIT_empty_copy(insetA);
+      EDIT_dset_items( mset ,
+                       ADN_prefix , CL_maskout ,
+                       ADN_nvals  , 1 ,
+                       ADN_none );
+      EDIT_substitute_brick(mset, 0, MRI_byte, mask); 
+      mask = NULL;
+      
+      tross_Copy_History( insetA , mset ) ;
+      tross_Make_History( "3dClusterize", argc , argv , mset );
+      DSET_write(mset); 
+      WROTE_DSET(mset); 
+      DSET_delete(mset);
+
+   }
+
+
+
    // ************************************************************
    // ************************************************************
    //                    Freeing
