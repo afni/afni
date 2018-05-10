@@ -600,6 +600,8 @@ g_history = """
     6.12 May  8, 2018:
         - NL-warp dsets need only end in _WARP
         - added -combine_methods: OC_tedort, tedana_OC, tedana_OC_tedort
+        - this coincides with a fix to tedana_wrapper.py that, with scaling
+          had led to betas cut in half
 """
 
 g_version = "version 6.12, May 8, 2018"
