@@ -732,11 +732,17 @@ static char *readme_env[] = {
    "-----------------------------\n" ,
    "Variable: AFNI_ENFORCE_ASPECT (editable)\n" ,
    "-----------------------------\n" ,
-   "Some Linux window managers do no enforce the aspect ratio (width to height\n" ,
+   "Some X11 window managers do no enforce the aspect ratio (width to height\n" ,
    "proportion) request that the image display module makes.  This means that\n" ,
    "image windows can become undesirably distorted when manually resized.\n" ,
    "Setting this YES/NO variable to YES will make AFNI itself enforce the\n" ,
    "aspect ratio whenever an image window is resized.\n" ,
+   "** NOTICE **\n" ,
+   "  As of 10 May 2018, this variable no longer has any effect. The enforcement\n" ,
+   "  never worked well, and so you now have to manage this problem manually.\n" ,
+   "  To fix the aspect ratio of an image viewer window, Left-click in the\n" ,
+   "  image intensity bar (right of the image) or press the 'a' key while the\n" ,
+   "  mouse cursor is over the image.\n" ,
    "\n" ,
    "----------------------------------------\n" ,
    "Variables: AFNI_<plug_filename>_butcolor\n" ,
@@ -4154,4 +4160,4 @@ static char *readme_env[] = {
    "If set to YES, enable distance measures that are not ready for prime time in\n" ,
    "the instacorr interface.\n" ,
    NULL } ;
-#define NUM_readme_env 4153
+#define NUM_readme_env 4159
