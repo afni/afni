@@ -35,6 +35,9 @@
  *     allow new <VOLUME_DATA_SPARSE> elements.
  * 01 Feb 2008 [RWCox]
  *   - make AFNI_process_NIML_data() visible to the world!
+ * 11 Feb 2018 [PT]
+ *   - update line color opts, a la RWC. User can set 'default' across
+ *     all cases easily
  *----------------------------------------------------------------------*/
 
 /**************************************/
