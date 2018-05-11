@@ -1853,22 +1853,37 @@ ENTRY("process_NIML_SUMA_ixyz");
 #endif
 
    /* get stuff from environment, if not set by Ziad [09 May 2018] */
+   
+   INFO_message("CHECKING2!");
+   // [PT: 11 May 2018] Check #1: is there a new default for all set?
+   sprintf(ename,"AFNI_SUMA_LINECOLOR_FORCE_DEF");
+   etemp = my_getenv(ename);
+   if( etemp != NULL ) scon_lin = strdup(etemp);
 
-   sprintf(ename,"AFNI_SUMA_LINECOLOR_FORCE_%02d",surf_num+1) ;
+   // Check #2: is there something set for just this? If so, reset it
+   sprintf(ename,"AFNI_SUMA_LINECOLOR_FORCE_%03d",surf_num+1) ;
    etemp = my_getenv(ename) ;
    if( etemp != NULL ) scon_lin = strdup(etemp) ;
    if( scon_lin == NULL ){
-     sprintf(ename,"AFNI_SUMA_LINECOLOR_%02d",surf_num+1) ;
-     scon_lin = my_getenv(ename) ;
+
+      // [PT: 11 May 2018] Check #3: if no line color is *still* set
+      // (by either above or SUMA), then check for new default
+      sprintf(ename,"AFNI_SUMA_LINECOLOR_DEF");
+      etemp = my_getenv(ename);
+      if( etemp != NULL ) scon_lin = strdup(etemp);
+
+      // Check #4: check and see if a specific value is set here
+      sprintf(ename,"AFNI_SUMA_LINECOLOR_%03d",surf_num+1) ;
+      scon_lin = my_getenv(ename) ;
    }
 
    if( scon_box == NULL ){
-     sprintf(ename,"AFNI_SUMA_BOXCOLOR_%02d",surf_num+1) ;
+     sprintf(ename,"AFNI_SUMA_BOXCOLOR_%03d",surf_num+1) ;
      scon_box = my_getenv(ename) ;
    }
 
    if( scon_wid == NULL ){
-     sprintf(ename,"AFNI_SUMA_LINEWIDTH_%02d",surf_num+1) ;
+     sprintf(ename,"AFNI_SUMA_LINEWIDTH_%03d",surf_num+1) ;
      scon_wid = my_getenv(ename) ;
    }
 
