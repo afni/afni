@@ -1857,7 +1857,6 @@ ENTRY("process_NIML_SUMA_ixyz");
 
    /* get stuff from environment, if not set by Ziad [09 May 2018] */
    
-   INFO_message("CHECKING2!");
    // [PT: 11 May 2018] Check #1: is there a new default for all set?
    sprintf(ename,"AFNI_SUMA_LINECOLOR_FORCE_DEF");
    etemp = my_getenv(ename);
