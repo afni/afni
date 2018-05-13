@@ -6,7 +6,12 @@
 
 #set spec = $1
 #set surfA = $2
-#set surfB = $3
+#set 
+
+
+
+
+ = $3
 #set maskset = $4
 #set surfset = $5
 #set outpref = $6
@@ -202,7 +207,7 @@ rm temp_${outpref}_*.nii.gz
 
 # either use two surfaces to project
 if ($surfB != "") then
-   set surfB_arg = "-surfB $surfB"
+   set surfB_arg = "-surf_B $surfB"
 else
 #   or use just one surface and normal vector of some length
    set surfB_arg = "-f_pn_mm $f_pn_mm"
