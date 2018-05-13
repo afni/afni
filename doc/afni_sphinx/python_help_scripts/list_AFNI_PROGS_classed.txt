@@ -7,13 +7,14 @@
 ++ 3 :: Make/edit ROIs and clusters, resample
 5 :: 3dresample          :: Rewrite dataset, possibly in new orientation, with new voxel size
 2 :: 3dfractionize       :: Resample a mask to a different grid size
-5 :: 3dclust             :: Find clusters of voxels in a dataset and print out a table about the clusters
+3 :: 3dclust             :: Find+report about clusters in a dataset (see 3dClusterize for a newer program with newer options and easier syntax)
+5 :: 3dClusterize        :: Find clusters of voxels in a dataset and print out a table about the clusters
 4 :: 3dmerge             :: Edit datasets (e.g., blur, cluster), and optionally combine them
-3 :: 3dUndump            :: Create a 3D dataset from text data
+3 :: 3dUndump            :: Create a 3D dataset from text data; complements 3dmaskdump
 3 :: 3dROIMaker          :: Threshold and clusterize dataset, as well as inflate (esp. for tractography prep)
 1 :: 3dExtrema           :: Find local extrema within volumes
 1 :: 3dmaxima            :: Find local extrema within volumes
-1 :: 3dClustCount
+1 :: 3dClustCount        :: Apply thresholds to dsets at various levels, and just count clusters of various sizes; used mainly for simulations.
 
 
 ++ 3 :: Simple dset calcs (-> make new dsets)
@@ -608,7 +609,6 @@
 1 :: 3dAcost
 1 :: 3dbuc2fim
 1 :: 3dClipLevel
-1 :: 3dClustCount
 1 :: 3dConformist
 1 :: 3dDegreeCentrality
 1 :: 3dECM
