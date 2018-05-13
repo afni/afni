@@ -2062,8 +2062,8 @@ void RWC_destroy_nullify_cancel( Widget w, void **p )
 
 /*---------------------------------------------------------------------------*/
 
-static RWC_draw_rect( Display *dis, Window win, GC gc,
-                      int x1, int y1, int x2, int y2  )
+static int RWC_draw_rect( Display *dis, Window win, GC gc,
+                          int x1, int y1, int x2, int y2  )
 {
   int xb,yb , xt,yt ;
   unsigned int short w,h ;
@@ -2169,7 +2169,7 @@ ENTRY("RWC_drag_rectangle") ;
 
 /*---------------------------------------------------------------------------*/
 
-static RWC_draw_circle( Display *dis, Window win, GC gc, int xc, int yc, int rad )
+static void RWC_draw_circle( Display *dis, Window win, GC gc, int xc, int yc, int rad )
 {
    int xb,yb ;
    unsigned int ww ;

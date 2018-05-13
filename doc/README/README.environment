@@ -156,19 +156,20 @@ terminal stream.  For example, a csh script might look like so:
 -------------------------------
 Variable: AFNI_MESSAGE_COLORIZE   [22 Feb 2016]
 -------------------------------
-When AFNI programs print WARNING or ERROR messages, they normally print the
-'WARNING' or 'ERROR' label using inverted colors, to aid in picking out these
-messages from other text on the screen.  To turn this feature off, set this
-environment variable to 'NO'.
+When AFNI programs print WARNING or ERROR messages, they normally
+print the 'WARNING' or 'ERROR' label using inverted colors, to aid in
+picking out these messages from other text on the screen.  To turn
+this feature off, set this environment variable to 'NO'.
 
 ------------------------------------
 Variable: AFNI_DONT_SORT_ENVIRONMENT
 ------------------------------------
-If this YES/NO variable is YES, then the Edit Environment controls will
-NOT be sorted alphabetically.  The default action is to sort them
-alphabetically.  If they are unsorted, the editable environment variables
-will appear in the control panel in the order in which they were added to
-the code (that is, in an order that makes no real sense).
+If this YES/NO variable is YES, then the Edit Environment controls
+will NOT be sorted alphabetically.  The default action is to sort them
+alphabetically.  If they are unsorted, the editable environment
+variables will appear in the control panel in the order in which they
+were added to the code (that is, in an order that makes no real
+sense).
 
 ---------------------
 Variable: AFNI_ORIENT (editable)
@@ -205,11 +206,11 @@ change the orientation of the variable display within AFNI.
 -------------------------
 Variable: AFNI_PLUGINPATH
 -------------------------
-This variable should be the directory in which AFNI should search
-for plugins, executable files, atlases, templates and atlas definition files.
-See the atlas environment variable section below for more details.
-If there is more than one appropriate directory, they can be separated
-by colons, as in
+This variable should be the directory in which AFNI should search for
+plugins, executable files, atlases, templates and atlas definition
+files.  See the atlas environment variable section below for more
+details.  If there is more than one appropriate directory, they can be
+separated by colons, as in
 
    setenv AFNI_PLUGINPATH /directory/one:/directory/two
 
@@ -359,16 +360,17 @@ be disabled at runtime by setting AFNI_HINTS to "KILL".
 -------------------------
 Variable: AFNI_COMPRESSOR (cf. AFNI_AUTOGZIP) (editable)
 -------------------------
-This variable is used to control automatic compression of .BRIK files on
-output.  The legal values are "COMPRESS", "GZIP", "BZIP2", "PIGZ", which
-respectively invoke programs "compress", "gzip","bzip2" and "pigz" (these
-must be in your path for compression to work).  If AFNI_COMPRESSOR is
-equal to one of these, then all AFNI programs will automatically pass
-.BRIK data through the appropriate compression program as it is written
-to disk.  Note that this will slow down dataset write operations.  Note
-also that compressed datasets cannot be mapped directly from disk into
-memory ('mmap'), but must occupy actual memory (RAM) and swap space.  For
-more details, see file README.compression.
+This variable is used to control automatic compression of .BRIK files
+on output.  The legal values are "COMPRESS", "GZIP", "BZIP2", "PIGZ",
+which respectively invoke programs "compress", "gzip","bzip2" and
+"pigz" (these must be in your path for compression to work).  If
+AFNI_COMPRESSOR is equal to one of these, then all AFNI programs will
+automatically pass .BRIK data through the appropriate compression
+program as it is written to disk.  Note that this will slow down
+dataset write operations.  Note also that compressed datasets cannot
+be mapped directly from disk into memory ('mmap'), but must occupy
+actual memory (RAM) and swap space.  For more details, see file
+README.compression.
 
 Note that compressed (.BRIK.Z, .BRIK.gz, and .BRIK.bz2) datasets will
 automatically be uncompressed on input, no matter what the setting of
@@ -378,12 +380,13 @@ written.
 ----------------------------
 Variable: AFNI_DONT_USE_PIGZ
 ----------------------------
-On some systems, the multi-threaded version of gzip -- program pigz -- can
-fail randomly.  To prevent the use of pigz even if it is found, set
-this variable to YES.  Note that if you explicitly set AFNI_COMPRESSOR
-to PIGZ, then AFNI_DONT_USE_PIGZ will be ignored.  The purpose of
-AFNI_DONT_USE_PIGZ is to prevent the automatic use of the pigz program
-in cases where you don't provide AFNI_COMPRESSOR explicitly.
+On some systems, the multi-threaded version of gzip -- program pigz --
+can fail randomly.  To prevent the use of pigz even if it is found,
+set this variable to YES.  Note that if you explicitly set
+AFNI_COMPRESSOR to PIGZ, then AFNI_DONT_USE_PIGZ will be ignored.  The
+purpose of AFNI_DONT_USE_PIGZ is to prevent the automatic use of the
+pigz program in cases where you don't provide AFNI_COMPRESSOR
+explicitly.
 
 ------------------------
 Variable: AFNI_BYTEORDER
@@ -439,19 +442,20 @@ version 1.2.13).  You can disable mmap by 'setenv AFNI_NOMMAP YES'.
 
 The penalty for disabling mmap is that all datasets must be loaded
 into actual RAM.  AFNI does not have the ability to load a dataset
-only partially, so if a 20 Megabyte .BRIK file is accessed, all of
-it will be loaded into RAM.  With mmap, the Unix operating system will
+only partially, so if a 20 Megabyte .BRIK file is accessed, all of it
+will be loaded into RAM.  With mmap, the Unix operating system will
 decide how much of the file to load.  In this way, it is possible to
-deal with more files than you have swap space on your computer
-(since .BRIK files are mmap-ed in readonly mode, so they don't
-take up swap space, which is for saving modified memory pages).
+deal with more files than you have swap space on your computer (since
+.BRIK files are mmap-ed in readonly mode, so they don't take up swap
+space, which is for saving modified memory pages).
 
 The moral of the story: buy more memory, it's cheap.  At the time
 I write this line [Aug 1998], I have a PC with 384 MB of RAM, and
 it is great to use with AFNI.
 
-[Feb 2004] I now have a Mac G5 with 8 GB of RAM, and it is even greater!
-[Oct 2010] Now I have 32 GB of RAM (more than Ziad - ha!), and it's nice!
+[Feb 2004] I now have a Mac G5 with 8 GB of RAM, and it is even
+greater!  [Oct 2010] Now I have 32 GB of RAM (more than Ziad - ha!),
+and it's nice!
 
 ----------------------
 Variable: AFNI_PSPRINT (editable)
@@ -474,18 +478,19 @@ displays) may get the ability to print to a PostScript file or printer.
 Variable: AFNI_LEFT_IS_LEFT (editable)
 ---------------------------
 Setting this YES/NO variable to YES tells AFNI to display images with
-the left side of the subject on the left side of the window.  The default
-mode is to display the right side of the subject on the left side of
-the window - the radiology convention. This setting affects the
-coronal and axial image and graph viewers.
+the left side of the subject on the left side of the window.  The
+default mode is to display the right side of the subject on the left
+side of the window - the radiology convention. This setting affects
+the coronal and axial image and graph viewers.
 
 --------------------------------
 Variable: AFNI_LEFT_IS_POSTERIOR (editable)
 --------------------------------
 Setting this YES/NO variable to YES tells AFNI to display images with
 the posterior side of the subject on the left side of the window.  The
-default mode is to display the anterior side of the subject on the left side
-of the window. This setting affects the sagittal image and graph viewers.
+default mode is to display the anterior side of the subject on the
+left side of the window. This setting affects the sagittal image and
+graph viewers.
 
 --------------------------
 Variable: AFNI_ALWAYS_LOCK
@@ -730,81 +735,91 @@ will turn off the checking entirely.  Or you could do
 -----------------------------
 Variable: AFNI_ENFORCE_ASPECT (editable)
 -----------------------------
-Some Linux window managers do no enforce the aspect ratio (width to height
+Some X11 window managers do no enforce the aspect ratio (width to height
 proportion) request that the image display module makes.  This means that
 image windows can become undesirably distorted when manually resized.
 Setting this YES/NO variable to YES will make AFNI itself enforce the
 aspect ratio whenever an image window is resized.
+** NOTICE **
+  As of 10 May 2018, this variable no longer has any effect. The
+  enforcement never worked well, and so you now have to manage this
+  problem manually.  To fix the aspect ratio of an image viewer
+  window, Left-click in the image intensity bar (right of the image)
+  or press the 'a' key while the mouse cursor is over the image.
 
 ----------------------------------------
 Variables: AFNI_<plug_filename>_butcolor
 ----------------------------------------
-These variables (one for each AFNI plugin) let you set the menu button colors
-for the Plugins menu item.  For example
+These variables (one for each AFNI plugin) let you set the menu button
+colors for the Plugins menu item.  For example
   setenv AFNI_plug_power_butcolor red3
-will make the "Power Spectrum" button appear in a dark red color.  The format
-of the variable is exemplified above: the <plug_filename> is replaced by the
-filename of the plugin (after removing the suffix).  Note that it is possible
-for the plugin author to hardcode the menu button for his/her plugin, in
-which case the corresponding environment variable will have no effect.
+will make the "Power Spectrum" button appear in a dark red color.  The
+format of the variable is exemplified above: the <plug_filename> is
+replaced by the filename of the plugin (after removing the suffix).
+Note that it is possible for the plugin author to hardcode the menu
+button for his/her plugin, in which case the corresponding environment
+variable will have no effect.
 
-Colors are specified as described in file README.setup.  If you are using
-an X11 PseudoColor visual, then you should be economical with color usage!
+Colors are specified as described in file README.setup.  If you are
+using an X11 PseudoColor visual, then you should be economical with
+color usage!
 
-The purpose of this feature is to let you highlight the plugins that you
-use most frequently.  The size of the of plugin menu is growing, and it
-is easy to misplace what you most use in the list.
+The purpose of this feature is to let you highlight the plugins that
+you use most frequently.  The size of the of plugin menu is growing,
+and it is easy to misplace what you most use in the list.
 
 -----------------------------
 Variable: AFNI_MARKERS_NOQUAL (editable)
 -----------------------------
-If this YES/NO variable is set to YES, then the interactive AFNI program
-behaves as if the "-noqual" command line option had been included.  This
-feature was added at the request of Dr. Michael S. Beauchamp, who has a
-very rare neurological disorder called "noqaulagnosia".
+If this YES/NO variable is set to YES, then the interactive AFNI
+program behaves as if the "-noqual" command line option had been
+included.  This feature was added at the request of Dr. Michael
+S. Beauchamp, who has a very rare neurological disorder called
+"noqaulagnosia".
 
 -----------------------------
 Variable: AFNI_ENABLE_MARKERS
 -----------------------------
-As of 28 Apr 2010, the AFNI Talairach 'Define Markers' panel will no longer
-be visible by default.  To use this old feature, you must set this variable
-to YES before running AFNI.
+As of 28 Apr 2010, the AFNI Talairach 'Define Markers' panel will no
+longer be visible by default.  To use this old feature, you must set
+this variable to YES before running AFNI.
 
 ----------------------
 Variable: AFNI_OPTIONS
 ----------------------
-In the spirit of the previous variable, this variable can be used to set
-up command line options that will always be passed to the interactive
-AFNI program.  If more than one option is needed, then they should be
-separated by spaces, and the whole value of the variable will need to be
-placed in quotes.  For example
+In the spirit of the previous variable, this variable can be used to
+set up command line options that will always be passed to the
+interactive AFNI program.  If more than one option is needed, then
+they should be separated by spaces, and the whole value of the
+variable will need to be placed in quotes.  For example
 
    setenv AFNI_OPTIONS "-noqual -ncolors 60"
 
-Note that the AFNI command line option "-nomall" cannot be specified this
-way (cf. the discussion under variable AFNI_NO_MCW_MALLOC).
+Note that the AFNI command line option "-nomall" cannot be specified
+this way (cf. the discussion under variable AFNI_NO_MCW_MALLOC).
 
 ------------------------------
 Variable: AFNI_NO_SIDES_LABELS (editable)
 ------------------------------
 As of 01 Dec 1999, the interactive AFNI program now displays a label
-beneath each image window showing which side of the image is on the left
-edge of the window.  This label is based on the anatomical directions
-encoded in the anatomical dataset .HEAD file, usually when to3d was used
-to create the file.  If you do NOT want these labels displayed (why not?),
-set this YES/NO environment variable to YES.
+beneath each image window showing which side of the image is on the
+left edge of the window.  This label is based on the anatomical
+directions encoded in the anatomical dataset .HEAD file, usually when
+to3d was used to create the file.  If you do NOT want these labels
+displayed (why not?), set this YES/NO environment variable to YES.
 
 ----------------------------------
 Variable: AFNI_NO_ADOPTION_WARNING
 ----------------------------------
-AFNI now can print a warning when it forces a dataset to have an anatomy
-parent dataset (the "forced adoption" function).  This happens when
-there a dataset does not have an anatomy parent encoded into its .HEAD
-file (either via to3d or 3drefit), and there is more than one anatomical
-dataset in the directory that has Talairach transformation markers
-attached.  If you wish to enable this warning, set this YES/NO variable
-to NO.  For more information on this subject, please see
-  https://afni.nimh.nih.gov/afni/afni_faq.shtml#AnatParent .
+
+AFNI now can print a warning when it forces a dataset to have an
+anatomy parent dataset (the "forced adoption" function).  This happens
+when there a dataset does not have an anatomy parent encoded into its
+.HEAD file (either via to3d or 3drefit), and there is more than one
+anatomical dataset in the directory that has Talairach transformation
+markers attached.  If you wish to enable this warning, set this YES/NO
+variable to NO.  For more information on this subject, please see
+https://afni.nimh.nih.gov/afni/afni_faq.shtml#AnatParent .
 
 -----------------------------------
 Variable: AFNI_NO_NEGATIVES_WARNING
@@ -817,15 +832,15 @@ to stdout.)
 -----------------------------------
 Variable: AFNI_NO_OBLIQUE_WARNING
 -----------------------------------
-If this YES/NO variable is set to YES, then the AFNI GUI will skip the usual
-warning that it pops up in a message window when an oblique dataset is selected.
-(The warning will still be printed to stdout.)
+If this YES/NO variable is set to YES, then the AFNI GUI will skip the
+usual warning that it pops up in a message window when an oblique
+dataset is selected.  (The warning will still be printed to stdout.)
 
 -----------------------------------
 Variable: AFNI_ONE_OBLIQUE_WARNING
 -----------------------------------
-If this YES/NO variable is set to YES, then the AFNI GUI will pop up a warning
-just ONCE when an oblique dataset is encountered.
+If this YES/NO variable is set to YES, then the AFNI GUI will pop up a
+warning just ONCE when an oblique dataset is encountered.
 
 
 ----------------------
@@ -868,11 +883,11 @@ these environment variables are present, the only way to switch to
 "Warp" mode when "View Brick" mode is possible is to do it manually
 (by clicking on the toggle button) when you want this.
 
-When you use one of the drawing plugins ("Draw Dataset" or "Gyrus Finder"),
-you must operate directly on the dataset BRIK.  For this reason, it is
-important to be in "View Data Brick" mode on these occasions.  Setting
-these variables is one way to ensure that this will happen whenever
-possible.
+When you use one of the drawing plugins ("Draw Dataset" or "Gyrus
+Finder"), you must operate directly on the dataset BRIK.  For this
+reason, it is important to be in "View Data Brick" mode on these
+occasions.  Setting these variables is one way to ensure that this
+will happen whenever possible.
 
 When AFNI is in "Warp Anat on Demand" mode, the word "{warp}" will
 appear in the windows' titlebars.  This provides a reminder of the
@@ -1050,8 +1065,8 @@ AFNI_REALTIME_Graph        = "No", "Yes", or "Realtime"
 AFNI_REALTIME_NR           = an integer from 5 to 9999
 AFNI_REALTIME_YR           = a floating point number from 0.1 to 10.0
 
-AFNI_REALTIME_External_Dataset = name of dataset to use as external basis for
-                                 registration
+AFNI_REALTIME_External_Dataset = name of dataset to use as external
+                                 basis for registration
         * if this variable is set, then the plugin assumes that
           AFNI_REALTIME_Reg_Base_Mode is "External_Dataset"
         * but AFNI_REALTIME_Base_Image is ignored
@@ -1075,15 +1090,16 @@ AFNI_REALTIME_Mask_Vals  = String (one of the listed strings)
 
 AFNI_REALTIME_Mask_Dset  = String (the name of a dataset)
 
-        This option allows the user to set the Mask dataset, used to send ROI
-        and motion data to a program listening at a socket.  This environment
-        variable overrides the variable set in the plugin interface, allowing
-        it to change per run.
+        This option allows the user to set the Mask dataset, used to
+        send ROI and motion data to a program listening at a socket.
+        This environment variable overrides the variable set in the
+        plugin interface, allowing it to change per run.
 
-        Set the variable to None to either clear the mask or to allow the
-        interface mask to apply.  Note that this can be done via a drive afni
-        command, allowing changes after afni is already running, e.g.
-          plugout_drive -com 'SETENV AFNI_REALTIME_MASK_DSET None' -quit
+        Set the variable to None to either clear the mask or to allow
+        the interface mask to apply.  Note that this can be done via a
+        drive afni command, allowing changes after afni is already
+        running, e.g.  plugout_drive -com 'SETENV
+        AFNI_REALTIME_MASK_DSET None' -quit
 
 AFNI_REALTIME_WRITEMODE = Number
         This variable controls writing individual volumes as they are acquired
@@ -1104,38 +1120,40 @@ AFNI_REALTIME_volreg_graphgeom   = something like 320x320+59+159
 
 AFNI_REALTIME_reset_output_index = YES/NO
 
-        By default, output files will be named with a prefix, PREFIX__NNN,
-        where PREFIX is given by the AFNI_REALTIME_Root variable or the Root
-        in the interface, and where NNN increments per run.
+        By default, output files will be named with a prefix,
+        PREFIX__NNN, where PREFIX is given by the AFNI_REALTIME_Root
+        variable or the Root in the interface, and where NNN
+        increments per run.
 
-        If this variable is set to YES, then the plugin will try to use NNN=001
-        each run.
+        If this variable is set to YES, then the plugin will try to
+        use NNN=001 each run.
 
 AFNI_REALTIME_CHILDWAIT = max wait time (in sec) for child info process
         [default = 66.6]; not needed if child info process is not used
 
-AFNI_REALTIME_WRITEWAIT = if the image data pauses for this number of seconds,
-        then the datasets being constructed will be written to disk
-        [default=37.954]; since this output may take several seconds, you may
-        need to adjust this if you are in fact doing imaging with a very long
-        TR.
-        Note that after this wait, the plugin can still receive image data
-        -- even if the image source program is silent for a very long time,
-        AFNI will still be waiting patiently for data.
+AFNI_REALTIME_WRITEWAIT = if the image data pauses for this number of
+        seconds, then the datasets being constructed will be written
+        to disk [default=37.954]; since this output may take several
+        seconds, you may need to adjust this if you are in fact doing
+        imaging with a very long TR.
+        Note that after this wait, the plugin can still receive image
+        data -- even if the image source program is silent for a very
+        long time, AFNI will still be waiting patiently for data.
 
-AFNI_GRAPH_AUTOGRID     = By default, if the number of time points in an
-        AFNI graph viewer changes, the density of vertical grid lines changes.
-        If you don't want this to happen, set this variable to NO.
+AFNI_GRAPH_AUTOGRID = By default, if the number of time points in an
+        AFNI graph viewer changes, the density of vertical grid lines
+        changes.  If you don't want this to happen, set this variable
+        to NO.
 
 AFNI_REALTIME_MP_HOST_PORT = HOST:PORT
 
-        When this variable is set, the realtime plugin will attempt to open a
-        tcp socket to the corresponding host and port, and will send the six
-        registration correction parameters for each 3D volume received by the
-        plugin.  This applies only to the case of graphing 3D registration.
-        The socket will be opened at the start of each run, and will be closed
-        at the end.  A simple example of what to set this variable to is
-        localhost:53214.
+        When this variable is set, the realtime plugin will attempt to
+        open a tcp socket to the corresponding host and port, and will
+        send the six registration correction parameters for each 3D
+        volume received by the plugin.  This applies only to the case
+        of graphing 3D registration.  The socket will be opened at the
+        start of each run, and will be closed at the end.  A simple
+        example of what to set this variable to is localhost:53214.
         See 'serial_helper -help' for more details.
 
 AFNI_REALTIME_SEND_VER   = Y/N
@@ -1147,16 +1165,18 @@ AFNI_REALTIME_SEND_VER   = Y/N
                in the mask dataset (if set)
             2. motion params, along with all voxel values over the mask
                dataset (including index, i,j,k and x,y,z values)
-        If AFNI_REALTIME_SEND_VER is set to YES, then the plugin will offset
-        the last byte of the communication HELLO string by the version number
-        (0, 1 or 2).  In the case of versions 1 or 2, the plugin will send
-        the number of ROIs/voxels in a 4-byte int after the HELLO string.
+        If AFNI_REALTIME_SEND_VER is set to YES, then the plugin will
+        offset the last byte of the communication HELLO string by the
+        version number (0, 1 or 2).  In the case of versions 1 or 2,
+        the plugin will send the number of ROIs/voxels in a 4-byte int
+        after the HELLO string.
 
 AFNI_REALTIME_SHOW_TIMES = Y/N
 
-        If set, the RT plugin will output CPU times whenever motion parameters
-        are sent to the remote program, allowing evaluation of timing.  The
-        times are modulo one hour, and are at a millisecond resolution.
+        If set, the RT plugin will output CPU times whenever motion
+        parameters are sent to the remote program, allowing evaluation
+        of timing.  The times are modulo one hour, and are at a
+        millisecond resolution.
 
 AFNI_REALTIME_MAX_CONTROLLERS = Number
 
@@ -1187,9 +1207,10 @@ AFNI_REALTIME_CM_REG_MODE = Number
 
 AFNI_REALTIME_MRG_CHANLIST = String
 
-        If set, this variable specifies a list of 0-based channels to merge,
-        rather than using all channels.  The format is akin to sub-brick
-        selection.  For example '0..$' means all and '0,5..7' means 0,5,6,7.
+        If set, this variable specifies a list of 0-based channels to
+        merge, rather than using all channels.  The format is akin to
+        sub-brick selection.  For example '0..$' means all and
+        '0,5..7' means 0,5,6,7.
 
 
 For detailed information about how the realtime plugin works, read the
@@ -1326,12 +1347,13 @@ arise if you try this!
 ----------------------------
 Variable: AFNI_IMAGE_MAXFRAC
 ----------------------------
-This variable sets the maximum size of an image window, as a fraction of
-the width and height of the screen.  The default value is 0.9.  This lets
-you prevent image windows from auto-resizing to be too big when you
-change datasets.  Note that if you have turned on AFNI_ENFORCE_ASPECT, then
-this feature will prevent you from resizing a window to be larger than
-the AFNI_IMAGE_MAXFRAC fraction of the screen dimensions.
+This variable sets the maximum size of an image window, as a fraction
+of the width and height of the screen.  The default value is 0.9.
+This lets you prevent image windows from auto-resizing to be too big
+when you change datasets.  Note that if you have turned on
+AFNI_ENFORCE_ASPECT, then this feature will prevent you from resizing
+a window to be larger than the AFNI_IMAGE_MAXFRAC fraction of the
+screen dimensions.
 
 -----------------------
 Variable: AFNI_AUTOGZIP (cf. AFNI_COMPRESSOR) (editable)
@@ -1476,38 +1498,41 @@ will make the menus be narrower across the screen.
 
 Another way to get a handle on such huge menus is to Button-3 (right)
 click on the label to the left of the menu.  This will popup a one-
-column scrollable list chooser that is equivalent to the menu.  In this
-way, it is still possible to use menus that have hundreds of entries.
-The maximum number of entries shown at one time in a scrollable list
-chooser is given by variable AFNI_chooser_listmax if it exists, otherwise
-by AFNI_MENU_COLSIZE.
+column scrollable list chooser that is equivalent to the menu.  In
+this way, it is still possible to use menus that have hundreds of
+entries.  The maximum number of entries shown at one time in a
+scrollable list chooser is given by variable AFNI_chooser_listmax if
+it exists, otherwise by AFNI_MENU_COLSIZE.
 
 -----------------------------
 Variable: AFNI_GLOBAL_SESSION
 -----------------------------
 This variable, if it exists, is the name of a directory that contains
-"global" datasets - ones that you want to be visible in each "Switch Underlay"
-or "Switch Overlay" menu.  Pointers to the datasets read from this directory
-will be appended to the dataset list for each directory read from the
-command line.  In the "Switch" choosers, these datasets are marked with
-the character 'G' at the right, and they appear last in the list.
+"global" datasets - ones that you want to be visible in each "Switch
+Underlay" or "Switch Overlay" menu.  Pointers to the datasets read
+from this directory will be appended to the dataset list for each
+directory read from the command line.  In the "Switch" choosers, these
+datasets are marked with the character 'G' at the right, and they
+appear last in the list.
 
 It really only makes sense to put +tlrc datasets in the global session
-directory, since only they can be presumed to be aligned with other datasets.
-Also, it is probably best if you make sure each global anatomical dataset
-has itself as the anatomy parent; this can be enforced by issuing the command
+directory, since only they can be presumed to be aligned with other
+datasets.  Also, it is probably best if you make sure each global
+anatomical dataset has itself as the anatomy parent; this can be
+enforced by issuing the command
   3drefit -apar SELF *.HEAD
 in the global session directory.
 
-When you Switch Sessions and are viewing a global dataset, it is likely that
-you will NOT be viewing the same dataset after the Switch Session.  You will
-have to then Switch Underlay and/or Switch Overlay to get back to the same
-global dataset(s).
+When you Switch Sessions and are viewing a global dataset, it is
+likely that you will NOT be viewing the same dataset after the Switch
+Session.  You will have to then Switch Underlay and/or Switch Overlay
+to get back to the same global dataset(s).
 
-If you start AFNI and there are no datasets in the sessions given on the
-command line, then the directory specified by this variable becomes the
-default session.  If there are no datasets there, either, then AFNI makes
-up a dummy dataset (AFNI cannot operate without at least one dataset).
+If you start AFNI and there are no datasets in the sessions given on
+the command line, then the directory specified by this variable
+becomes the default session.  If there are no datasets there, either,
+then AFNI makes up a dummy dataset (AFNI cannot operate without at
+least one dataset).
 
 ------------------------------
 Variable: AFNI_DISP_SCROLLBARS (editable)
@@ -1519,21 +1544,21 @@ displays (e.g., laptops), it is now taller than their screens.  If
 activated, this option will prevent the Disp window from being so tall
 and will attach scrollbars so you can access all of its contents.
 
-Note: If you change this value interactively, via Edit Environment, the
-change will only affect Disp windows opened after you 'Set' the variable.
-That is, already opened Disp windows won't suddenly get scrollbars if
-you change this to YES.
+Note: If you change this value interactively, via Edit Environment,
+the change will only affect Disp windows opened after you 'Set' the
+variable.  That is, already opened Disp windows won't suddenly get
+scrollbars if you change this to YES.
 
 ------------------------------
 Variable: AFNI_GRAPH_TEXTLIMIT (editable)
 ------------------------------
-This numerical variable sets the upper limit on the number of rows shown
-in the Button-3 popup in a sub-graph.  If the number of rows in the popup
-would be more than this value, a text window with scrollbars is used
-instead of a "spring-loaded" menu pane.  If you set this value to 1, then
-the text window will always be used.  Note that a text window does not
-automatically popdown, but must be explicitly dismissed by the user
-pressing the "Quit" button.
+This numerical variable sets the upper limit on the number of rows
+shown in the Button-3 popup in a sub-graph.  If the number of rows in
+the popup would be more than this value, a text window with scrollbars
+is used instead of a "spring-loaded" menu pane.  If you set this value
+to 1, then the text window will always be used.  Note that a text
+window does not automatically popdown, but must be explicitly
+dismissed by the user pressing the "Quit" button.
 
 -----------------------------
 Variable: AFNI_GRAPH_BASELINE
@@ -1547,24 +1572,24 @@ menu when a graph window opens.
 -------------------------------
 Variable: AFNI_GRAPH_GLOBALBASE
 -------------------------------
-Normally, the global baseline for a graph window is set to the smallest
-value found in the entire 3D+time dataset.  This variable lets you specify
-a numerical value to be used for this purpose instead.  Probably the most
-common setting (for those who want to use this feature at all, which means
-Mike Beauchamp) would be
+Normally, the global baseline for a graph window is set to the
+smallest value found in the entire 3D+time dataset.  This variable
+lets you specify a numerical value to be used for this purpose
+instead.  Probably the most common setting (for those who want to use
+this feature at all, which means Mike Beauchamp) would be
   setenv AFNI_GRAPH_GLOBALBASE 0
-Of course, you can always change the global baseline from the Opt->Baseline
-menu.
+Of course, you can always change the global baseline from the
+Opt->Baseline menu.
 
 -------------------------
 Variable: AFNI_GRAPH_CX2R (editable)
 -------------------------
-This variable determines how the AFNI time series graphing window displays
-complex-valued datasets.  The possible values are ABS, PHASE, REAL, and IMAG.
-(Actually, only the first letter matters to the program.)  The default
-method is ABS.  (If you edit this method interactively, the graph won't
-automatically be redrawn -- you'll have to force a graph window redraw
-to see the effects.)
+This variable determines how the AFNI time series graphing window
+displays complex-valued datasets.  The possible values are ABS, PHASE,
+REAL, and IMAG.  (Actually, only the first letter matters to the
+program.)  The default method is ABS.  (If you edit this method
+interactively, the graph won't automatically be redrawn -- you'll have
+to force a graph window redraw to see the effects.)
 
 ---------------------------
 Variable: AFNI_GRAPH_BOXLAB (editable)
@@ -1579,14 +1604,15 @@ for this variable are
   MAX  (or M) = labels go at the level of the tallest box
   ZERO (or Z) = labels go at the bottom of the graph
 Labels are drawn vertically, upwards from their starting point.  Play
-with this feature to see how it works and looks, and recall that beauty
-is in the eye of the beholder.  (If you edit this method interactively,
-the graph won't automatically be redrawn -- you'll have to force a graph
-window redraw to see the effects.)  You can control the font for this
-text with AFNI_GRAPH_FONT (next).  Note that if you use the Dataset#N
-plugin with this feature, the labels will come from the underlay dataset
-rather than the Dataset#N datasets.  This bug is so recondite and intractable
-that I hope it will not cause too many problems for the adoring AFNI public.
+with this feature to see how it works and looks, and recall that
+beauty is in the eye of the beholder.  (If you edit this method
+interactively, the graph won't automatically be redrawn -- you'll have
+to force a graph window redraw to see the effects.)  You can control
+the font for this text with AFNI_GRAPH_FONT (next).  Note that if you
+use the Dataset#N plugin with this feature, the labels will come from
+the underlay dataset rather than the Dataset#N datasets.  This bug is
+so recondite and intractable that I hope it will not cause too many
+problems for the adoring AFNI public.
 
 -------------------------
 Variable: AFNI_GRAPH_FONT
@@ -1631,20 +1657,21 @@ function using the 'Edit 1Dchain' item in the Datamode->Misc menu.
 --------------------------
 Variable: AFNI_VALUE_LABEL (editable)
 --------------------------
-If this YES/NO variable is set to YES, then the data value label on the
-Define Overlay control panel will be turned on when only 1 or 2 image
-viewer windows are open.  This will consume more CPU time and redrawing
-time than the default, which is that this label is only turned on when
-all 3 image viewer windows are open.  If you are operating X11 remotely
-over a slow connection, this option should not be turned on.
+If this YES/NO variable is set to YES, then the data value label on
+the Define Overlay control panel will be turned on when only 1 or 2
+image viewer windows are open.  This will consume more CPU time and
+redrawing time than the default, which is that this label is only
+turned on when all 3 image viewer windows are open.  If you are
+operating X11 remotely over a slow connection, this option should not
+be turned on.
 
--------------------------------
-Variable: AFNI_SUMA_BOXCOLOR_xx
--------------------------------
-This string defines the color used for overlaying surface nodes transmitted
-from SUMA to AFNI. This applies to surface number 'xx', for xx=01, 02, etc.
-if this is set to "none", then these boxes (at each node near a slice)
-won't be plotted.
+--------------------------------
+Variable: AFNI_SUMA_BOXCOLOR_xxx
+--------------------------------
+This string defines the color used for overlaying surface nodes
+transmitted from SUMA to AFNI. This applies to surface number 'xxx',
+for xxx=001, 002, etc.  If this is set to "none", then these boxes (at
+each node near a slice) won't be plotted.
 **NOTE** This variable, and the immediately following AFNI_SUMA_something
          variables, can be set interactively from the 'Control Surface'
          chooser window in the AFNI GUI.
@@ -1653,65 +1680,75 @@ won't be plotted.
          in one of these AFNI_SUMA_something variables, it will be mapped
          to be the closest color on the color chooser menu.
 
---------------------------------
-Variable: AFNI_SUMA_LINECOLOR_xx
---------------------------------
+---------------------------------
+Variable: AFNI_SUMA_LINECOLOR_xxx
+---------------------------------
 This string defines the color used for overlaying surfaces transmitted
-from SUMA to AFNI. This applies to surface number 'xx', for xx=01, 02, etc.
-if this is set to "none", then these lines (intersections of surfaces
-with slices) won't be plotted.
+from SUMA to AFNI. This applies to surface number 'xxx', for xxx=001,
+002, etc.  If this is set to "none", then these lines (intersections
+of surfaces with slices) won't be plotted.
 
---------------------------------------
-Variable: AFNI_SUMA_LINECOLOR_FORCE_xx
---------------------------------------
-This variable is similar to AFNI_SUMA_LINECOLOR_xx (again, for xx=01 etc.),
-except for one detail. When SUMA sends a surface to AFNI for display, it
-can also send a color. If that happens, then AFNI_SUMA_LINECOLOR_xx will
-have no effect. But AFNI_SUMA_LINECOLOR_FORCE_xx will over-ride the choice
-SUMA makes and forces the color for surface number 'xx' to be this color.
+In the special case that xxx=DEF, then the supplied color becomes
+'default' for all lines.  Individual line colors can still be set by
+additional variables with xxx=001, 002, etc. being set.
+
+---------------------------------------
+Variable: AFNI_SUMA_LINECOLOR_FORCE_xxx
+---------------------------------------
+
+This variable is similar to AFNI_SUMA_LINECOLOR_xxx (again, for
+xxx=001 etc.), except for one detail.  When SUMA sends a surface to
+AFNI for display, it can also send a color.  If that happens, then
+AFNI_SUMA_LINECOLOR_xxx will have no effect.  But
+AFNI_SUMA_LINECOLOR_FORCE_xxx will over-ride the choice SUMA makes and
+forces the color for surface number 'xxx' to be this color.
+
+The special usage of xxx=DEF (see AFNI_SUMA_LINECOLOR_xxx) also
+applies here.
 
 ---------------------------
 Variable: AFNI_SUMA_BOXSIZE
 ---------------------------
 This variable defines the size of the boxes drawn at each surface node
-transmitted from SUMA.  The default is 0.25, which means that each box is
-plus and minus 1/4 of a voxel size about the node location. If you want a
-larger box, you could try
+transmitted from SUMA.  The default is 0.25, which means that each box
+is plus and minus 1/4 of a voxel size about the node location. If you
+want a larger box, you could try
    setenv AFNI_SUMA_BOXSIZE 0.5
 
 ----------------------------
 Variable: AFNI_SUMA_LINESIZE
 ----------------------------
-This variable sets the thickness of the lines used when drawing a surface
-intersection overlay.  The units are the width of the entire image;
-reasonable values are in the range 0..0.01; 0 means to draw the thinnest
-line possible.  Since this is editable, you can experiment with it to
-see what looks good.
+This variable sets the thickness of the lines used when drawing a
+surface intersection overlay.  The units are the width of the entire
+image; reasonable values are in the range 0..0.01; 0 means to draw the
+thinnest line possible.  Since this is editable, you can experiment
+with it to see what looks good.
 
 -------------------------
 Variable: AFNI_NIML_START
 -------------------------
-If this YES/NO variable is set to YES, then NIML listening will be engaged
-from when AFNI starts.  You can also enable NIML from the command line with
-the option "-niml", and from the Datamode->Misc menu item "Start NIML".
+If this YES/NO variable is set to YES, then NIML listening will be
+engaged from when AFNI starts.  You can also enable NIML from the
+command line with the option "-niml", and from the Datamode->Misc menu
+item "Start NIML".
 
-NIML is the mechanism by which AFNI talks to other programs - it is the
-successor to plugouts.  At this moment (Mar 2002), the only external NIML
-program is SUMA - the surface mapper.
+NIML is the mechanism by which AFNI talks to other programs - it is
+the successor to plugouts.  At this moment (Mar 2002), the only
+external NIML program is SUMA - the surface mapper.
 
 ---------------------------
 Variable: AFNI_KEEP_PANNING (editable)
 ---------------------------
-If this YES/NO variable is set to YES, then when the Zoom pan gets turned
-on in the AFNI image viewer, it will stay on until it is explicitly turned
-off.  (The default behavior is to turn panning off after the user releases
-the mouse button.)
+If this YES/NO variable is set to YES, then when the Zoom pan gets
+turned on in the AFNI image viewer, it will stay on until it is
+explicitly turned off.  (The default behavior is to turn panning off
+after the user releases the mouse button.)
 
 -------------------------------
 Variable: AFNI_IMAGE_LABEL_MODE
 -------------------------------
-This integer determines the placement of the image coordinate labels drawn
-in the AFNI image viewer windows.  The possible values are
+This integer determines the placement of the image coordinate labels
+drawn in the AFNI image viewer windows.  The possible values are
    0  =  Labels are off
    1  =  Labels in upper left
    2  =  Labels in upper right
@@ -1719,9 +1756,9 @@ in the AFNI image viewer windows.  The possible values are
    4  =  Labels in lower right
    5  =  Labels in upper middle
    6  =  Labels in lower middle
-You can also control the placement and size of the labels from the Button-3
-(right-click) popup menu attached to the intensity bar to the right of the
-image sub-window.
+You can also control the placement and size of the labels from the
+Button-3 (right-click) popup menu attached to the intensity bar to the
+right of the image sub-window.
 
 -------------------------------
 Variable: AFNI_IMAGE_LABEL_SIZE
@@ -1741,19 +1778,20 @@ This variable controls the color of the image coordinate labels.
 ----------------------------------
 Variable: AFNI_IMAGE_LABEL_SETBACK (editable)
 ----------------------------------
-This variable, a floating point value between 0 and 0.1, determines how
-far from the edge an image coordinate label will be drawn.  The units are
-fractions of the image width/height.
+This variable, a floating point value between 0 and 0.1, determines
+how far from the edge an image coordinate label will be drawn.  The
+units are fractions of the image width/height.
 
 ---------------------------------
 Variable: AFNI_IMAGE_LABEL_STRING (editable)
 ---------------------------------
-This value of this variable is a string that is appended to the automatically
-generated image slice viewer overlay label -- the viewing of this label is
-controlled from the right-click popup menu attached to the intensity bar to
-the right of the image itself.  This variable applies to any slice image
-viewer window into which the user has not specifically set a string for
-this purpose from the GUI menu item 'Label Append String'.
+This value of this variable is a string that is appended to the
+automatically generated image slice viewer overlay label -- the
+viewing of this label is controlled from the right-click popup menu
+attached to the intensity bar to the right of the image itself.  This
+variable applies to any slice image viewer window into which the user
+has not specifically set a string for this purpose from the GUI menu
+item 'Label Append String'.
 
 ------------------------------
 Variable: AFNI_IMAGE_LABEL_IJK (editable)
@@ -1765,14 +1803,14 @@ be set in the EditEnv AFNI GUI plugin (that is what 'editable' means).
 ------------------------------
 Variable: AFNI_CROSSHAIR_LINES (editable) -- THIS VARIABLE IS NOW UNUSED
 ------------------------------
-If this YES/NO variable is set to YES, then the image crosshairs will be
-drawn using lines rather than pixels.  By default (this is the original
-AFNI way), crosshair lines are drawn the same way as functional overlays:
-by putting color pixels on top of the image.  The new way draws lines on
-top of the image instead.  The difference is quite visible when the image
-is zoomed; overlay by pixels shows the crosshair lines as fat blobs, but
-the lines are drawn as thin as possible, no matter what the image window
-size and zoom factor.
+If this YES/NO variable is set to YES, then the image crosshairs will
+be drawn using lines rather than pixels.  By default (this is the
+original AFNI way), crosshair lines are drawn the same way as
+functional overlays: by putting color pixels on top of the image.  The
+new way draws lines on top of the image instead.  The difference is
+quite visible when the image is zoomed; overlay by pixels shows the
+crosshair lines as fat blobs, but the lines are drawn as thin as
+possible, no matter what the image window size and zoom factor.
 
 Good points about crosshairs drawn with lines:
  - They are less obtrusive than pixel overlay, especially if you zoom
@@ -1780,182 +1818,195 @@ Good points about crosshairs drawn with lines:
  - When doing a montage with Spacing=1, they'll look better in the
      orthogonal slices.
 Good points about crosshairs drawn with pixel overlay:
- - Pixel overlays can be rendered as translucent (on X11 TrueColor displays);
-     geometrical overlays are always solid color.
-So you have to decide what you need most.  You can change this item using
-the "Edit Environment" pseudo-plugin on the Datamode->Misc menu, so you
-can play with it interactively to get the features you want.
+ - Pixel overlays can be rendered as translucent (on X11 TrueColor
+     displays); geometrical overlays are always solid color.
+
+So you have to decide what you need most.  You can change this item
+using the "Edit Environment" pseudo-plugin on the Datamode->Misc menu,
+so you can play with it interactively to get the features you want.
 
 ----------------------------------
 Variable: AFNI_CROSSHAIR_THICKNESS
 ----------------------------------
-This numeric variable lets you set the thickness of the lines used to draw
-the image viewer crosshairs.  The default value is 0, which means thin lines.
-The units are fractions of the image size, and the legal range is 0 .. 0.05
-(which will be very thick lines, I assure you).  This variable was introduced
-in March 2015 for Corianne (if there is such a person).
+This numeric variable lets you set the thickness of the lines used to
+draw the image viewer crosshairs.  The default value is 0, which means
+thin lines.  The units are fractions of the image size, and the legal
+range is 0 .. 0.05 (which will be very thick lines, I assure you).
+This variable was introduced in March 2015 for Corianne (if there is
+such a person).
 
 ----------------------------
 Variable: AFNI_CROP_ZOOMSAVE (editable)
 ----------------------------
-When saving a zoomed image, the default is to save the entire zoomed image,
-not just the part you see.  If this YES/NO variable is set to YES, then only
-the visible part will be saved.
+When saving a zoomed image, the default is to save the entire zoomed
+image, not just the part you see.  If this YES/NO variable is set to
+YES, then only the visible part will be saved.
 
 ------------------------------
 Variable: AFNI_CROP_AUTOCENTER
 ------------------------------
 If this variable is set to YES, then the image viewer windows will
-automatically re-center the cropping sub-window (if cropping is active)
-around the crosshair position -- as far as possible.  You can also set
-this crop autocenter capability individually for each image viewer
-window from the intensity bar right-click popup menu.
+automatically re-center the cropping sub-window (if cropping is
+active) around the crosshair position -- as far as possible.  You can
+also set this crop autocenter capability individually for each image
+viewer window from the intensity bar right-click popup menu.
 
 ---------------------------
 Variables: AFNI_TLRC_BBOX_*
 ---------------------------
-These variables let you choose the size of the "Talairach Box", into which
-+tlrc datasets are transformed.  If defined, they should be positive values,
-in mm.  The 5 variables (any or all of which may be used) are:
+These variables let you choose the size of the "Talairach Box", into
+which +tlrc datasets are transformed.  If defined, they should be
+positive values, in mm.  The 5 variables (any or all of which may be
+used) are:
 
-  AFNI_TLRC_BBOX_LAT = distance from midline to maximum left/right position
-                        [default=80]
+  AFNI_TLRC_BBOX_LAT = distance from midline to maximum left/right
+                        position [default=80]
   AFNI_TLRC_BBOX_ANT = distance from AC to most anterior point in box
                         [default=80]
   AFNI_TLRC_BBOX_POS = distance from AC to most posterior point in box
                         [default=110]
-  AFNI_TLRC_BBOX_INF = distance from AC-PC line to most inferior point in box
-                        [default=55 for small box, 65 for big box]
-  AFNI_TLRC_BBOX_SUP = distance from AC-PC line to most superior point in box
-                        [default=85]
+  AFNI_TLRC_BBOX_INF = distance from AC-PC line to most inferior point
+                        in box [default=55 for small box, 65 for big
+                        box]
+  AFNI_TLRC_BBOX_SUP = distance from AC-PC line to most superior point
+                        in box [default=85]
 
-For example, "setenv AFNI_TLRC_BBOX_INF 100" lets you define the +tlrc box
-to extend 100 mm below the AC-PC line.  Please note that virtually all the
-3d* analysis programs (3dANOVA, etc.) do voxel-by-voxel analyses.  This fact
-means that you will be unable to compare datasets created in +tlrc coordinates
-with different box sizes.  Also, you will be unable to overlay regions from
-the Talairach Daemon database onto odd-sized +tlrc datasets.  Therefore, I
-recommend that these variables be used only when strictly needed, and with
-caution.
+For example, "setenv AFNI_TLRC_BBOX_INF 100" lets you define the +tlrc
+box to extend 100 mm below the AC-PC line.  Please note that virtually
+all the 3d* analysis programs (3dANOVA, etc.) do voxel-by-voxel
+analyses.  This fact means that you will be unable to compare datasets
+created in +tlrc coordinates with different box sizes.  Also, you will
+be unable to overlay regions from the Talairach Daemon database onto
+odd-sized +tlrc datasets.  Therefore, I recommend that these variables
+be used only when strictly needed, and with caution.
 
-Lastly, try hard not to mix TLRC datasets created with various box sizes in
-the same session. Strange things may happen.
+Lastly, try hard not to mix TLRC datasets created with various box
+sizes in the same session. Strange things may happen.
 
 ---------------------------
 Variables: AFNI_ACPC_BBOX_*
 ---------------------------
 The variables let you choose the size of the "ACPC Box", into which
-+acpc datasets are transformed. If defined, they should be positive values,
-in mm.  The 6 variables (any or all of which may be used) are:
++acpc datasets are transformed. If defined, they should be positive
+values, in mm.  The 6 variables (any or all of which may be used) are:
 
-  AFNI_ACPC_BBOX_LAT = distance from midline to maximum left/right position
-                        [default=95]
+  AFNI_ACPC_BBOX_LAT = distance from midline to maximum left/right
+                        position [default=95]
   AFNI_ACPC_BBOX_ANT = distance from AC to most anterior point in box
                         [default=95]
   AFNI_ACPC_BBOX_POS = distance from AC to most posterior point in box
                         [default=140]
-  AFNI_ACPC_BBOX_INF = distance from AC-PC line to most inferior point in box
-                        [default=70]
-  AFNI_ACPC_BBOX_SUP = distance from AC-PC line to most superior point in box
-                        [default=100]
+  AFNI_ACPC_BBOX_INF = distance from AC-PC line to most inferior point
+                        in box [default=70]
+  AFNI_ACPC_BBOX_SUP = distance from AC-PC line to most superior point
+                        in box [default=100]
 
-Check example and heed ALL warnings for variables AFNI_TLRC_BBOX_* above.
+Check example and heed ALL warnings for variables AFNI_TLRC_BBOX_*
+above.
 
 -------------------------
 Variable: AFNI_TTRR_SETUP
 -------------------------
-Name of a file to be loaded to define Talairach Atlas Colors, when the Atlas
-Colors control panel is first created.  Format is the same as a file created
-from this control panel's "Save" button.  This filename should be an absolute
-path (e.g., /home/yourname/.afni_ttcolors), since otherwise it will be read
-relative to the directory in which you start AFNI.
+Name of a file to be loaded to define Talairach Atlas Colors, when the
+Atlas Colors control panel is first created.  Format is the same as a
+file created from this control panel's "Save" button.  This filename
+should be an absolute path (e.g., /home/yourname/.afni_ttcolors),
+since otherwise it will be read relative to the directory in which you
+start AFNI.
 
 -----------------------------
 Variable: AFNI_LOAD_PRINTSIZE
 -----------------------------
-AFNI will print (to stderr) a warning that it is loading a large dataset from
-disk.  This value determines the meaning of "large".  For example, setting
-this variable to "40M" means that loading a dataset larger than 40 Megabytes
-will trigger the warning.  If not given, the default value is 100 Megabytes.
-The purpose of the warning is just to let the user know that it may be several
-seconds before the dataset is loaded (e.g., before the images appear).  If you
-don't want this warning at all, set this variable to the string "0".
+AFNI will print (to stderr) a warning that it is loading a large
+dataset from disk.  This value determines the meaning of "large".  For
+example, setting this variable to "40M" means that loading a dataset
+larger than 40 Megabytes will trigger the warning.  If not given, the
+default value is 100 Megabytes.  The purpose of the warning is just to
+let the user know that it may be several seconds before the dataset is
+loaded (e.g., before the images appear).  If you don't want this
+warning at all, set this variable to the string "0".
 
 -------------------------------
 Variable: AFNI_ANALYZE_DATASETS
 -------------------------------
-If this YES/NO variable is not set to NO, then ANALYZE-format files with name
-suffix .hdr will be read into the interactive AFNI program at startup, along
-with standard .HEAD/.BRIK datasets.  That is, you have to set this variable
-explicitly to NO if you don't want ANALYZE-format files to be automatically
-recognized by the interactive AFNI program.  This variable does not affect
-the ability of command line programs (3dSomething) to read .hdr input files.
+If this YES/NO variable is not set to NO, then ANALYZE-format files
+with name suffix .hdr will be read into the interactive AFNI program
+at startup, along with standard .HEAD/.BRIK datasets.  That is, you
+have to set this variable explicitly to NO if you don't want
+ANALYZE-format files to be automatically recognized by the interactive
+AFNI program.  This variable does not affect the ability of command
+line programs (3dSomething) to read .hdr input files.
 
 -----------------------------
 Variable: AFNI_ANALYZE_ORIENT
 -----------------------------
-ANALYZE .hdr files do not contain reliable information about the orientation
-of the data volumes.  By default, AFNI assumes that these datasets are
-oriented in LPI order.  You can set this variable to a different default
-order.  See AFNI_ORIENT for details on the 3 letter format for this.
+ANALYZE .hdr files do not contain reliable information about the
+orientation of the data volumes.  By default, AFNI assumes that these
+datasets are oriented in LPI order.  You can set this variable to a
+different default order.  See AFNI_ORIENT for details on the 3 letter
+format for this.
 
 ---------------------------------
 Variable: AFNI_ANALYZE_AUTOCENTER
 ---------------------------------
-ANALYZE .hdr files do not contain information about the origin of coordinates.
-The default AFNI approach mirrors that of FSL - the outermost corner of the
-first voxel in the dataset is set to (0,0,0).  If you set this variable
-(AFNI_ANALYZE_AUTOCENTER) to YES, then instead (0,0,0) will be set to the
-center of the 3D ANALYZE array.  This is the default that would be applied
-if you read the ANALYZE array into program to3d.
+ANALYZE .hdr files do not contain information about the origin of
+coordinates.  The default AFNI approach mirrors that of FSL - the
+outermost corner of the first voxel in the dataset is set to (0,0,0).
+If you set this variable (AFNI_ANALYZE_AUTOCENTER) to YES, then
+instead (0,0,0) will be set to the center of the 3D ANALYZE array.
+This is the default that would be applied if you read the ANALYZE
+array into program to3d.
 
 ----------------------------
 Variable: AFNI_VERSION_CHECK
 ----------------------------
-If this YES/NO variable is set to NO, then AFNI will not try to check if its
-version is up-to-date when it starts.  Otherwise, it will try to check the
-program version with the AFNI web server.
+If this YES/NO variable is set to NO, then AFNI will not try to check
+if its version is up-to-date when it starts.  Otherwise, it will try
+to check the program version with the AFNI web server.
 
 -------------------------
 Variable: AFNI_MOTD_CHECK
 -------------------------
-Similarly, if this YES/NO variable is set to NO, then AFNI will not display
-and fetch the AFNI "Message of the Day" at startup.  You can always check
-the MOTD by using the Datamode->Misc menu.
+Similarly, if this YES/NO variable is set to NO, then AFNI will not
+display and fetch the AFNI "Message of the Day" at startup.  You can
+always check the MOTD by using the Datamode->Misc menu.
 
 -----------------------------------
 Variable: AFNI_SLICE_SPACING_IS_GAP
 -----------------------------------
-This YES/NO variable is designed to patch a flaw in some DICOM files, where
-the "Spacing Between Slices" attribute is erroneously set to the gap between
-the slices, rather than the center-to-center slice distance specified in
-the DICOM standard.  If this variable is set to YES, then the "Slice Thickness"
-attribute will always be added to "Spacing Between Slices" to get the z voxel
-size (assuming both attributes are present in the DICOM file).
+This YES/NO variable is designed to patch a flaw in some DICOM files,
+where the "Spacing Between Slices" attribute is erroneously set to the
+gap between the slices, rather than the center-to-center slice
+distance specified in the DICOM standard.  If this variable is set to
+YES, then the "Slice Thickness" attribute will always be added to
+"Spacing Between Slices" to get the z voxel size (assuming both
+attributes are present in the DICOM file).
 
-To check if a DICOM file has this problem, you can read it into to3d with
-the command "to3d suspect_file_name".  A warning will be printed to the
-terminal window if attribute "Spacing Between Slices" is less than
-attribute "Slice Thickness".  Another way to check is with a command like so
+To check if a DICOM file has this problem, you can read it into to3d
+with the command "to3d suspect_file_name".  A warning will be printed
+to the terminal window if attribute "Spacing Between Slices" is less
+than attribute "Slice Thickness".  Another way to check is with a
+command like so
 
   dicom_hdr suspect_file_name | grep "Slice"
 
-then check if the "Spacing Between Slices" and "Slice Thickness" values are
-correct for the given acquisition.  We have only seen this problem in GE
-generated DICOM files, but that doesn't mean it won't occur elsewhere.
+then check if the "Spacing Between Slices" and "Slice Thickness"
+values are correct for the given acquisition.  We have only seen this
+problem in GE generated DICOM files, but that doesn't mean it won't
+occur elsewhere.
 
 If this variable is set to NO, then this patchup will never be made.
 The z voxel size will be set to "Spacing Between Slices" if present,
-otherwise to "Slice Thickness".  This may be needed for some Phillips pulse
-sequences, which can report "Spacing Between Slices" < "Slice Thickness".
-In such a case, if this variable is not set, the wrong z voxel size will
-be assigned!
+otherwise to "Slice Thickness".  This may be needed for some Phillips
+pulse sequences, which can report "Spacing Between Slices" < "Slice
+Thickness".  In such a case, if this variable is not set, the wrong z
+voxel size will be assigned!
 
-If this variable is not set at all, AND if "Spacing Between Slices" is less
-less than 0.99 times "Slice Thickness", it will be treated as a gap;
-that is, the z voxel size will again be set to "Spacing Between Slices" +
-"Slice Thickness" if "Spacing Between Slices" < 0.99*"Slice Thickness".
-Otherwise, the z voxel size will be set to the larger of
+If this variable is not set at all, AND if "Spacing Between Slices" is
+less less than 0.99 times "Slice Thickness", it will be treated as a
+gap; that is, the z voxel size will again be set to "Spacing Between
+Slices" + "Slice Thickness" if "Spacing Between Slices" < 0.99*"Slice
+Thickness".  Otherwise, the z voxel size will be set to the larger of
 "Spacing Between Slices" and "Slice Thickness".
 
 N.B.: "YES", "NO", and "not set" have 3 different sets of behavior!
@@ -1970,26 +2021,27 @@ N.B.: "YES", "NO", and "not set" have 3 different sets of behavior!
 
 If neither variable is set, then dz=1 mm, which is probably wrong.
 
-Sorry about this complexity, but the situation with various manufacturers
-is complicated, murky, and confusingly maddening.
+Sorry about this complexity, but the situation with various
+manufacturers is complicated, murky, and confusingly maddening.
 
 ---------------------------------------------------
 Variables: AFNI_DICOM_RESCALE and AFNI_DICOM_WINDOW
 ---------------------------------------------------
-DICOM image files can contain rescaling and windowing "tags".  If present,
-these values indicate to affinely modify the values stored in the file.
-As far as I can tell, "rescale" means that the values should always be
-modified, whereas "window" means the values should be modified for display
-purposes.  If both are present, the rescale comes before window.  These
-two YES/NO environment variables control whether the AFNI image input
-functions (used in to3d) should apply the rescale and window tags.
+DICOM image files can contain rescaling and windowing "tags".  If
+present, these values indicate to affinely modify the values stored in
+the file.  As far as I can tell, "rescale" means that the values
+should always be modified, whereas "window" means the values should be
+modified for display purposes.  If both are present, the rescale comes
+before window.  These two YES/NO environment variables control whether
+the AFNI image input functions (used in to3d) should apply the rescale
+and window tags.
 
-It is my impression from the laconic, terse, and opaque DICOM manual that
-window tags are intended for display purposes only, and that they aren't
-needed for signal processing.  But you'll have to examine your own data to
-decide whether to use these options -- manufacturers seem to differ.
-Plus, I don't have that much experience with DICOM data from many different
-sources.
+It is my impression from the laconic, terse, and opaque DICOM manual
+that window tags are intended for display purposes only, and that they
+aren't needed for signal processing.  But you'll have to examine your
+own data to decide whether to use these options -- manufacturers seem
+to differ.  Plus, I don't have that much experience with DICOM data
+from many different sources.
 
 ---------------------------------------------------
 Variable: AFNI_DICOM_VERBOSE
@@ -2000,68 +2052,73 @@ DICOM images.
 ---------------------------------------------------
 Variable: AFNI_DICOM_USE_LAST_ELEMENT
 ---------------------------------------------------
-Set this YES/NO variable to YES to force the DICOM reading routines to set
-each DICOM element based on the last occurrence, not necessarily the first.
+Set this YES/NO variable to YES to force the DICOM reading routines to
+set each DICOM element based on the last occurrence, not necessarily
+the first.
 
 -----------------------
 Variable: IDCODE_PREFIX
 -----------------------
-AFNI stores with each dataset a unique string, called an "idcode".  An example
-is "XYZ_MoNLqdNOwMNEYmKSBytfJg".  You can alter the first three characters of
-the idcode with this variable.  For example,
+AFNI stores with each dataset a unique string, called an "idcode".  An
+example is "XYZ_MoNLqdNOwMNEYmKSBytfJg".  You can alter the first
+three characters of the idcode with this variable.  For example,
   setenv IDCODE_PREFIX RWC
-sets the first 3 characters of newly generated idcodes to be the initials of
-AFNI's author.  I find this a handy way to "brand" my datasets.  Of course,
-there are only 17576 possible 3 letter combinations (140608 if you allow for
-case), so you should claim your prefix soon!!!
+sets the first 3 characters of newly generated idcodes to be the
+initials of AFNI's author.  I find this a handy way to "brand" my
+datasets.  Of course, there are only 17576 possible 3 letter
+combinations (140608 if you allow for case), so you should claim your
+prefix soon!!!
 
-Idcodes are used to store links between datasets.  For example, when SUMA
-sends a surface to AFNI, it identifies the dataset to which the surface is
-to be associated with the dataset's idcode.  Similarly, when AFNI sends a
-color overlay to SUMA, it uses the surface idcode to indicate which surface
-family the overlay is to be mapped onto.
+Idcodes are used to store links between datasets.  For example, when
+SUMA sends a surface to AFNI, it identifies the dataset to which the
+surface is to be associated with the dataset's idcode.  Similarly,
+when AFNI sends a color overlay to SUMA, it uses the surface idcode to
+indicate which surface family the overlay is to be mapped onto.
 
 -------------------------
 Variable: AFNI_AGIF_DELAY
 -------------------------
-This is the time delay between frames when writing an animated GIF file from
-an image viewer window.  The units are 100ths of seconds (centi-seconds!);
-the default value is 20 (= 5 frames per second).  Note that this value
-is NOT editable in the Edit Environment control panel, so you have to
-set it up prior to starting AFNI (e.g., by using an option like
-'-DAFNI_AGIF_DELAY=10' on the command line when starting AFNI).
+This is the time delay between frames when writing an animated GIF
+file from an image viewer window.  The units are 100ths of seconds
+(centi-seconds!); the default value is 20 (= 5 frames per second).
+Note that this value is NOT editable in the Edit Environment control
+panel, so you have to set it up prior to starting AFNI (e.g., by using
+an option like '-DAFNI_AGIF_DELAY=10' on the command line when
+starting AFNI).
 
 -----------------------------
 Variable: AFNI_MPEG_FRAMERATE
 -----------------------------
-This value sets the frame rate (per second) of the MPEG-1 output animation
-from the image viewer window.  The legal values allowed by MPEG-1 are
-24, 25, 30, 50, and 60; 24 (the slowest) is the default.  Note that the
-MPEG-1 standard does NOT allow arbitrary framerates, only these listed.
-To further slow down an MPEG-1 animation in AFNI, use the AFNI_ANIM_DUP
-variable, described below.
+This value sets the frame rate (per second) of the MPEG-1 output
+animation from the image viewer window.  The legal values allowed by
+MPEG-1 are 24, 25, 30, 50, and 60; 24 (the slowest) is the default.
+Note that the MPEG-1 standard does NOT allow arbitrary framerates,
+only these listed.  To further slow down an MPEG-1 animation in AFNI,
+use the AFNI_ANIM_DUP variable, described below.
 
 -----------------------
 Variable: AFNI_ANIM_DUP (editable)
 -----------------------
-This value sets the frame duplication factor for AGIF or MPEG animation
-output.  If this value 'd' is between 1 and 99, then each frame (image)
-will be written out 'd' times before being incorporated into the
-movie file.  Note that AFNI_AGIF_DELAY can be used to slow down an
-AGIF file more efficiently, but that there is no other way (within AFNI)
-to slow down an MPEG file.  (Some MPEG movie players will let you slow
-down the animation, but that's outside of AFNI's control.)
+This value sets the frame duplication factor for AGIF or MPEG
+animation output.  If this value 'd' is between 1 and 99, then each
+frame (image) will be written out 'd' times before being incorporated
+into the movie file.  Note that AFNI_AGIF_DELAY can be used to slow
+down an AGIF file more efficiently, but that there is no other way
+(within AFNI) to slow down an MPEG file.  (Some MPEG movie players
+will let you slow down the animation, but that's outside of AFNI's
+control.)
 
-You can control this variable directly from the Edit Environment control
-panel, or set its internal value in AFNI (or other image viewers) from
-the right-click popup menu attached to the intensity grayscale bar just
-to the right of the image sub-window in the viewer.  Note that the
-duplication factor must be greater than 1 for any slowdown to occur.
-For example, if you want 6 frames per second in an MPEG file, then a
-duplication factor of 4 would work (24 fps / 4 = 6 fps).
+You can control this variable directly from the Edit Environment
+control panel, or set its internal value in AFNI (or other image
+viewers) from the right-click popup menu attached to the intensity
+grayscale bar just to the right of the image sub-window in the viewer.
+Note that the duplication factor must be greater than 1 for any
+slowdown to occur.  For example, if you want 6 frames per second in an
+MPEG file, then a duplication factor of 4 would work (24 fps / 4 = 6
+fps).
 
-For MPEG-1 files, AFNI will set up the frame temporal encoding pattern so
-that there is very little .mpg file size overhead for this frame
+For MPEG-1 files, AFNI will set up the frame temporal encoding pattern
+so that there is very little .mpg file size overhead for this frame
 duplication.  The same is NOT true for animated GIF files, since these
 files do not have any compression along the time axis.  Therefore, you
 should use AFNI_AGIF_DELAY to control the frame rate of animated GIF
@@ -2070,58 +2127,64 @@ files, and not this frame duplication factor.
 -----------------------------
 Variable: AFNI_STARTUP_SCRIPT
 -----------------------------
-If this is set, this is the name of an AFNI Script to run when AFNI first
-starts.  (See the file README.driver for information about AFNI Scripts.)
-If this is not set, it defaults to ".afni.startup_script".  The program first
-tries to read this filename from the current working directory; if that fails,
-then it tries to read from your home directory.  No error message is given
-if neither file can be read.
+If this is set, this is the name of an AFNI Script to run when AFNI
+first starts.  (See the file README.driver for information about AFNI
+Scripts.)  If this is not set, it defaults to ".afni.startup_script".
+The program first tries to read this filename from the current working
+directory; if that fails, then it tries to read from your home
+directory.  No error message is given if neither file can be read.
 
-You can save a file ".afni.startup_script" that will recreate the window
-layout you currently have.  Use the "Datamode->Misc->Save Layout" button
-and press "Set" on the popup control without entering any filename.  Instead
-of a Layout file (cf. AFNI_LAYOUT_FILE above), you'll get a Script file
-if you leave the filename blank or enter any filename with the string
-"script" included (e.g., "coolstuff.script").
+You can save a file ".afni.startup_script" that will recreate the
+window layout you currently have.  Use the "Datamode->Misc->Save
+Layout" button and press "Set" on the popup control without entering
+any filename.  Instead of a Layout file (cf. AFNI_LAYOUT_FILE above),
+you'll get a Script file if you leave the filename blank or enter any
+filename with the string "script" included (e.g., "coolstuff.script").
 
-The capabilities of Script files are expanded from time to time.  Not all
-features of the AFNI window setup are currently save-able this way.
+The capabilities of Script files are expanded from time to time.  Not
+all features of the AFNI window setup are currently save-able this
+way.
 
-You can load a Script file interactively during an AFNI run by using the
-button "Datamode->Misc->Run Script".  As a 'secret' option, if you enter
-a line containing a blank in the the filename dialog, that line will be
-executed as a single command, rather than be used as a script filename.
+You can load a Script file interactively during an AFNI run by using
+the button "Datamode->Misc->Run Script".  As a 'secret' option, if you
+enter a line containing a blank in the the filename dialog, that line
+will be executed as a single command, rather than be used as a script
+filename.
 
 ------------------------------
 Variable: AFNI_DEFAULT_OPACITY
 ------------------------------
-This should be set to an integer from 1..9, and controls the default opacity
-setting for the color overlay in image viewer windows.
+This should be set to an integer from 1..9, and controls the default
+opacity setting for the color overlay in image viewer windows.
 
 -----------------------------
 Variable: AFNI_DEFAULT_IMSAVE
 -----------------------------
-This should be set to the suffix of the image format to which you want to save
-from an image viewer.  The suffixes AFNI knows about (as of 23 Jan 2003) are
+This should be set to the suffix of the image format to which you want
+to save from an image viewer.  The suffixes AFNI knows about (as of 23
+Jan 2003) are
  ppm = Portable PixMap format                            = cat
  jpg = Joint Photographics Experts Group (JPEG) format   = cjpeg
  gif = Compuserve Graphics Interchange File (GIF) format = ppmtogif
- tif = Tagged Image File Format (TIFF)                   = ppm2tiff or pnmtotiff
+ tif = Tagged Image File Format (TIFF)                   = ppm2tiff
+                                                           or pnmtotiff
  bmp = Windows Bitmap (BMP) format                       = ppmtobmp
  eps = Encapsulated PostScript format                    = pnmtops
  pdf = Portable Document Format                          = epstopdf
  png = Portable Network Graphics format                  = pnmtopng
-The third column is the name of the external filter program that AFNI uses to
-write the format.  If a filter is not present on your system, then that option
-is not available.  Most of these filters are part of the netpbm package.
+The third column is the name of the external filter program that AFNI
+uses to write the format.  If a filter is not present on your system,
+then that option is not available.  Most of these filters are part of
+the netpbm package.
 
 -----------------------------
 Variables: AFNI_COLORSCALE_xx  for xx=01, 02, ..., 99
 -----------------------------
-These variables let you name files to be read it at AFNI startup to define
-"continuous" colorscales for the "**" mode of the color pbar.  These files
-will be looked for in the current directory when you start AFNI, or in your
-home directory (if they aren't in the current directory).  A sample file:
+These variables let you name files to be read it at AFNI startup to
+define "continuous" colorscales for the "**" mode of the color pbar.
+These files will be looked for in the current directory when you start
+AFNI, or in your home directory (if they aren't in the current
+directory).  A sample file:
 
   Yellow-Red-Blue
   1.0 #ffff00
@@ -2130,23 +2193,25 @@ home directory (if they aren't in the current directory).  A sample file:
   0.3 #aa00aa
   0.0 #0000ff
 
-The first line is the name of this colorscale, to go in the colorscale popup
-chooser.  The succeeding lines each have a number and a color definition.
-The numbers should be decreasing, and indicate the location on the colorscale.
-The largest number corresponds to the top of the colorscale and the smallest
-to the bottom - intermediate numbers denote intermediate locations.  The colors
-at each location are specified using X11 notation (cf. "man XParseColor").
-In this example, I'm using hexadecimal colors, in the form #rrggbb, where each
-hex pair ranges from 00 to ff.  Another color format is "rgbi:rf/gf/bf",
-where each value rf,gf,bf is a number between 0.0 and 1.0 (inclusive); for
-example, yellow would be "rgbi:1.0/1.0/0.0".
+The first line is the name of this colorscale, to go in the colorscale
+popup chooser.  The succeeding lines each have a number and a color
+definition.  The numbers should be decreasing, and indicate the
+location on the colorscale.  The largest number corresponds to the top
+of the colorscale and the smallest to the bottom - intermediate
+numbers denote intermediate locations.  The colors at each location
+are specified using X11 notation (cf. "man XParseColor").  In this
+example, I'm using hexadecimal colors, in the form #rrggbb, where each
+hex pair ranges from 00 to ff.  Another color format is
+"rgbi:rf/gf/bf", where each value rf,gf,bf is a number between 0.0 and
+1.0 (inclusive); for example, yellow would be "rgbi:1.0/1.0/0.0".
 
-Colors are interpolated (linearly in RGB space) between the break locations
-given in the file.  There are actually 128 color locations on a colorscale.
+Colors are interpolated (linearly in RGB space) between the break
+locations given in the file.  There are actually 128 color locations
+on a colorscale.
 
-An alternative format for the file is to omit the numbers indicating the
-break locations.  In this case, the break locations will be taken to be
-equally spaced.  For example:
+An alternative format for the file is to omit the numbers indicating
+the break locations.  In this case, the break locations will be taken
+to be equally spaced.  For example:
 
   Yellow-Red-Blue
    #ffff00
@@ -2155,37 +2220,42 @@ equally spaced.  For example:
    #aa00aa
    #0000ff
 
-This example is not exactly the same as the other one, since the breakpoints
-are evenly spaced now (as if they had been given as 1.0, 0.75, 0.5, 0.25,
-and 0.0).  With this format, if you want to manually specify all 128 colors,
-you can do so, 1 color per line, remembering that the first line of the file
-is taken to be the colorscale title (no blanks allowed in the title!).
+This example is not exactly the same as the other one, since the
+breakpoints are evenly spaced now (as if they had been given as 1.0,
+0.75, 0.5, 0.25, and 0.0).  With this format, if you want to manually
+specify all 128 colors, you can do so, 1 color per line, remembering
+that the first line of the file is taken to be the colorscale title
+(no blanks allowed in the title!).
 
 ---------------------------------
 Variable: AFNI_COLORSCALE_DEFAULT
 ---------------------------------
-If set, this is the name of the default colorscale to use in setup.  As a
-special case, if you DO NOT want a colorscale to be setup by default at all,
-then set this variable to the string "NO".
-N.B.: This variable only applies if you are using AFNI with a TrueColor X11
-visual.  If you are using a PseudoColor visual, then this variable is ignored!
+If set, this is the name of the default colorscale to use in setup.
+As a special case, if you DO NOT want a colorscale to be setup by
+default at all, then set this variable to the string "NO".
+
+N.B.: This variable only applies if you are using AFNI with a
+TrueColor X11 visual.  If you are using a PseudoColor visual, then
+this variable is ignored!
 
 ----------------------------
 Variable: AFNI_RESCAN_METHOD
 ----------------------------
-On 28 Dec 2002, I modified the way that the "Rescan" operation in AFNI works
-when re-reading datasets from sessions.  The old way would purge and replace
-all datasets; the new way just adds datasets that didn't exist before.
-There are some differences between these methods:
-  "Replace" will detect changes to a dataset, so if you add a brick using
-    3dTcat -glueto (for example), this will be reflected in AFNI.
-  "Replace" will cause troubles if you are using a dataset in a plugin;
-    the two main examples are volume rendering and the drawing plugin.
-    This problem will occur even if you didn't do anything to the dataset
-    on disk, since the internal pointer to the dataset will have been
-    changed by the rescan, but the plugins won't know that.
-  "Add" will not detect changes to a dataset on disk, but it also won't
-    affect the pointers to the existing datasets.
+On 28 Dec 2002, I modified the way that the "Rescan" operation in AFNI
+works when re-reading datasets from sessions.  The old way would purge
+and replace all datasets; the new way just adds datasets that didn't
+exist before.  There are some differences between these methods:
+  "Replace" will detect changes to a dataset, so if you add a brick
+    using 3dTcat -glueto (for example), this will be reflected in
+    AFNI.
+  "Replace" will cause troubles if you are using a dataset in a
+    plugin; the two main examples are volume rendering and the drawing
+    plugin.  This problem will occur even if you didn't do anything to
+    the dataset on disk, since the internal pointer to the dataset
+    will have been changed by the rescan, but the plugins won't know
+    that.
+  "Add" will not detect changes to a dataset on disk, but it also
+    won't affect the pointers to the existing datasets.
 You can choose to use the "Replace" method (the old style) by setting
 this environment variable to the string "REPLACE".
 
@@ -2193,62 +2263,62 @@ this environment variable to the string "REPLACE".
 Variable: AFNI_OLD_PPMTOBMP
 ---------------------------
 The old (before 21 Feb 2003) usage of netpbm program "ppmtobmp" was to
-write a color image quantized to 255 colors.  The new usage is to write
-a 24-bit image, which is thus not color-quantized.  If you want the old
-behavior, set this environment variable to YES.  This setting (YES) will
-be necessary if you have an older version of ppmtobmp in your path, which
-doesn't support the "-bpp" option.
+write a color image quantized to 255 colors.  The new usage is to
+write a 24-bit image, which is thus not color-quantized.  If you want
+the old behavior, set this environment variable to YES.  This setting
+(YES) will be necessary if you have an older version of ppmtobmp in
+your path, which doesn't support the "-bpp" option.
 
 ------------------------------
 Variable: AFNI_1DPLOT_COLOR_xx
 ------------------------------
-This variable lets you set the colors used in the 1dplot program (and other
-similar graphs).  Here, "xx" is a number from "01" to "19".  The value of
-the environment variable must be in the form "rgbi:rf/gf/bf", where each
-color intensity (rf, gf, bf) is a number between 0.0 and 1.0.  For example,
-"rgbi:1.0/1.0/0.0" is yellow.  By default, the first 4 colors are defined
-as the equivalents of
+This variable lets you set the colors used in the 1dplot program (and
+other similar graphs).  Here, "xx" is a number from "01" to "19".  The
+value of the environment variable must be in the form "rgbi:rf/gf/bf",
+where each color intensity (rf, gf, bf) is a number between 0.0 and
+1.0.  For example, "rgbi:1.0/1.0/0.0" is yellow.  By default, the
+first 4 colors are defined as the equivalents of
   setenv AFNI_1DPLOT_COLOR_01 rgbi:0.0/0.0/0.0
   setenv AFNI_1DPLOT_COLOR_02 rgbi:0.9/0.0/0.0
   setenv AFNI_1DPLOT_COLOR_03 rgbi:0.0/0.7/0.0
   setenv AFNI_1DPLOT_COLOR_04 rgbi:0.0/0.0/0.9
-which are black, red, green, and blue, respectively.  You can alter these
-colors, or leave them unchanged and start defining colors at 05.  The largest
-color number you define will be the last color index used; if more line colors
-are needed, they will cycle back to color 01.  If you leave a gap in the
-numbering (e.g., you define color 07 but not 05 or 06), then the undefined
-colors will be fuliginous.
+which are black, red, green, and blue, respectively.  You can alter
+these colors, or leave them unchanged and start defining colors at 05.
+The largest color number you define will be the last color index used;
+if more line colors are needed, they will cycle back to color 01.  If
+you leave a gap in the numbering (e.g., you define color 07 but not 05
+or 06), then the undefined colors will be fuliginous.
 
-[Dec 2007] You can now specify the colors by using the special names 'green',
-'red', 'blue', 'gold', 'pink', and 'purple'.  Also, by using 3 or 6 digit
-hexadecimal notation as in '#8888aa' for a blueish-gray color (6 digits) or
-'#0ac' for a cyanish color (3 digits).  These are intended to make life a
-little simpler.
+[Dec 2007] You can now specify the colors by using the special names
+'green', 'red', 'blue', 'gold', 'pink', and 'purple'.  Also, by using
+3 or 6 digit hexadecimal notation as in '#8888aa' for a blueish-gray
+color (6 digits) or '#0ac' for a cyanish color (3 digits).  These are
+intended to make life a little simpler.
 
 --------------------------
 Variable: AFNI_1DPLOT_THIK (editable)
 --------------------------
-This numeric variable lets you control the thickness of lines drawn in the
-1dplot-style windows.  The units are in terms of the width of the entire
-plot, so that a value of 0.005 is 'reasonable'; 0.01 will be fairly thick
-lines, and 0.02 will be too thick for most purposes.
+This numeric variable lets you control the thickness of lines drawn in
+the 1dplot-style windows.  The units are in terms of the width of the
+entire plot, so that a value of 0.005 is 'reasonable'; 0.01 will be
+fairly thick lines, and 0.02 will be too thick for most purposes.
 
 ----------------------------
 Variable: AFNI_1DPLOT_IMSIZE
 ----------------------------
-This numeric variable sets the image size (in pixels across the screen) of
-images saved via the '-png' or '-jpg' options of 1dplot, or images saved
-when giving the '.png' or '.jpg' from 1dplot-style graphs.  The default
-value is 1024.  Values over 2048 may give odd looking results, and will
-be palpably slower to render.
+This numeric variable sets the image size (in pixels across the
+screen) of images saved via the '-png' or '-jpg' options of 1dplot, or
+images saved when giving the '.png' or '.jpg' from 1dplot-style
+graphs.  The default value is 1024.  Values over 2048 may give odd
+looking results, and will be palpably slower to render.
 
 -----------------------------
 Variable: AFNI_1DPLOT_BOXSIZE
 -----------------------------
-This variable sets the size of the boxes that are plotted with the 1dplot
-'-box' option.  The units are in terms of the width of the entire plot;
-a value of 0.006 is the default.  The largest allowed value is 0.02 and
-the smallest is 0.001.
+This variable sets the size of the boxes that are plotted with the
+1dplot '-box' option.  The units are in terms of the width of the
+entire plot; a value of 0.006 is the default.  The largest allowed
+value is 0.02 and the smallest is 0.001.
 
 -------------------------------
 Variable: AFNI_1DPLOT_RENDEROLD
@@ -2273,112 +2343,119 @@ to be seen in the cloud of data.
 ---------------------------------
 Variable: AFNI_SIEMENS_INTERLEAVE
 ---------------------------------
-The old (pre-DICOM) Siemens .ima image mosaic format sometimes stores the
-multi-slice EPI data in correct spatial order and sometimes in correct
-time acquisition order.  In the latter case, the images are stored in
-a spatially-interleaved fashion.  As far as I know, there is no way to
-tell this from the .ima file header itself.  Therefore, if you have a
-problem with such files, set this variable to YES to un-interleave the
-images when to3d reads them.  One way to tell if the images need to be
-un-interleaved is to do
+The old (pre-DICOM) Siemens .ima image mosaic format sometimes stores
+the multi-slice EPI data in correct spatial order and sometimes in
+correct time acquisition order.  In the latter case, the images are
+stored in a spatially-interleaved fashion.  As far as I know, there is
+no way to tell this from the .ima file header itself.  Therefore, if
+you have a problem with such files, set this variable to YES to
+un-interleave the images when to3d reads them.  One way to tell if the
+images need to be un-interleaved is to do
   afni -im fred.ima
-then look at the images in an Axial image viewer.  If the slices make up
-a single coherent volume, then they are NOT interleaved.  If the slices
-look like they make up 2 separate brain volumes, then they need to be
-un-interleaved, and you need to set this variable to YES.
+then look at the images in an Axial image viewer.  If the slices make
+up a single coherent volume, then they are NOT interleaved.  If the
+slices look like they make up 2 separate brain volumes, then they need
+to be un-interleaved, and you need to set this variable to YES.
 
 -----------------------------
 Variable: AFNI_TRY_DICOM_LAST
 -----------------------------
 When to3d tries to read an image file, it guesses the format from the
-filename.  However, this doesn't always work.  In particular, DICOM files
-don't have any fixed filename suffix or prefix.  If all else fails, to3d
-normally tries to read a file as a DICOM file, and as a last resort, as
-a flat binary file.  However, if a file is NOT a DICOM file, the DICOM
-reading function will print out a lot of error messages, since there is
-also no standard internal marker in all DICOM files that identify them.
-Most people don't like all these messages (perhaps hundreds per file),
-even if the program then successfully reads their flat binary files.
+filename.  However, this doesn't always work.  In particular, DICOM
+files don't have any fixed filename suffix or prefix.  If all else
+fails, to3d normally tries to read a file as a DICOM file, and as a
+last resort, as a flat binary file.  However, if a file is NOT a DICOM
+file, the DICOM reading function will print out a lot of error
+messages, since there is also no standard internal marker in all DICOM
+files that identify them.  Most people don't like all these messages
+(perhaps hundreds per file), even if the program then successfully
+reads their flat binary files.
 
-If this YES/NO variable is set to YES, then the normal last-resort order
-of reading described above is reversed.  If to3d can't read the file any
-other way, it will try it as a flat binary file.  If that fails, then
-DICOM will be the ultimate resort, instead of being the penultimate
-resort that it is by default.  This may help elide some error messages.
-However, if you have a DICOM file that is exactly 131072 bytes long
-(for example), then it will be interpreted as a headerless 256x256 image
-of shorts, instead of whatever it really is.  So only set this variable
-to YES if necessary!
+If this YES/NO variable is set to YES, then the normal last-resort
+order of reading described above is reversed.  If to3d can't read the
+file any other way, it will try it as a flat binary file.  If that
+fails, then DICOM will be the ultimate resort, instead of being the
+penultimate resort that it is by default.  This may help elide some
+error messages.  However, if you have a DICOM file that is exactly
+131072 bytes long (for example), then it will be interpreted as a
+headerless 256x256 image of shorts, instead of whatever it really is.
+So only set this variable to YES if necessary!
 
 -----------------------------
 Variable: AFNI_THRESH_BIGSTEP
 -----------------------------
-The AFNI threshold sliders (in the Define Overlay control panels and the
-Render Dataset plugins) are divided into 10000 steps from bottom to top.
-If you click in the trough or use the PageUp/PageDown keys, the default
-action is to move the slider 10 of the steps at once.  (The up and down
-arrow keys move 1 step at a time.)  You can change this big step from the
-default of 10 to any value between 1 and 1000 by setting this environment
-variable; for example
+The AFNI threshold sliders (in the Define Overlay control panels and
+the Render Dataset plugins) are divided into 10000 steps from bottom
+to top.  If you click in the trough or use the PageUp/PageDown keys,
+the default action is to move the slider 10 of the steps at once.
+(The up and down arrow keys move 1 step at a time.)  You can change
+this big step from the default of 10 to any value between 1 and 1000
+by setting this environment variable; for example
   setenv AFNI_THRESH_BIGSTEP 100
-will move the slider 1% of its height per PageUp/PageDown key or mouse click.
+will move the slider 1% of its height per PageUp/PageDown key or mouse
+click.
 
 --------------------------
 Variable: AFNI_THRESH_AUTO (editable)
 --------------------------
-If this YES/NO variable is set to YES, then whenever you switch overlay datasets,
-the function threshold slider will automatically change to some value that MIGHT
-be appropriate for the values in the new dataset.  [This is for Ziad!]
+If this YES/NO variable is set to YES, then whenever you switch
+overlay datasets, the function threshold slider will automatically
+change to some value that MIGHT be appropriate for the values in the
+new dataset.  [This is for Ziad!]
 
 -------------------------------
 Variable: AFNI_THRESH_TOP_EXPON
 -------------------------------
-This variable defines the top value for the '**' setting underneath the Overlay
-threshold slider.  By default, this value is 4, but you can change that to 5
-or 6 with this variable.  [This is for Phil Kohn]
+This variable defines the top value for the '**' setting underneath
+the Overlay threshold slider.  By default, this value is 4, but you
+can change that to 5 or 6 with this variable.  [This is for Phil Kohn]
 
 -------------------------------
 Variable: AFNI_OLD_SHORT_THRESH
 -------------------------------
-When thresholding a dataset with a sub-brick that is stored as shorts (16 bit
-integers), the AFNI GUI uses floats, but the 3dmerge and Clusterize functions
-use shorts. The difference is that the user-supplied threshold in the latter
-case is rounded to the nearest short. Thus, a threshold of 2.2 would become
-2, and then a value of 2 would pass the 'greater than or equal to threshold'
-test -- which is probably not what the user meant. Again, this would happen
-in 3dmerge and Clusterize, but NOT in the AFNI GUI without Clusterize.
-This inconsistency has been fixed, and both sets of places now threshold
-using floats. However, IF you want to stick with the old method for some
-un-imaginable reason, you need to set this variable to YES.
+When thresholding a dataset with a sub-brick that is stored as shorts
+(16 bit integers), the AFNI GUI uses floats, but the 3dmerge and
+Clusterize functions use shorts. The difference is that the
+user-supplied threshold in the latter case is rounded to the nearest
+short. Thus, a threshold of 2.2 would become 2, and then a value of 2
+would pass the 'greater than or equal to threshold' test -- which is
+probably not what the user meant. Again, this would happen in 3dmerge
+and Clusterize, but NOT in the AFNI GUI without Clusterize.  This
+inconsistency has been fixed, and both sets of places now threshold
+using floats. However, IF you want to stick with the old method for
+some un-imaginable reason, you need to set this variable to YES.
 
 ------------------------------
 Variable: AFNI_SNAPFILE_PREFIX
 ------------------------------
-Image files saved with the "snapfile" (or "record to file") by default have
-filenames of the form "S_000001.ppm".  The prefix "S" can be altered by
-setting this environment variable; for example,
+Image files saved with the "snapfile" (or "record to file") by default
+have filenames of the form "S_000001.ppm".  The prefix "S" can be
+altered by setting this environment variable; for example,
   setenv AFNI_SNAPFILE_PREFIX Elvis
-will save snapfiles with names like "Elvis_000666.ppm".  You can view snapfiles
-with the "aiv" ("AFNI Image Viewer") utility, the "xv" program, or many other
-Unix utilities.
+will save snapfiles with names like "Elvis_000666.ppm".  You can view
+snapfiles with the "aiv" ("AFNI Image Viewer") utility, the "xv"
+program, or many other Unix utilities.
 
 -------------------------------
 Variable: AFNI_STARTUP_WARNINGS
 -------------------------------
-When the interactive AFNI program starts, it may pop up warnings about the
-programming environment for which it was compiled.  At this time, there are
-two such warning messages possible:
+When the interactive AFNI program starts, it may pop up warnings about
+the programming environment for which it was compiled.  At this time,
+there are two such warning messages possible:
   LessTiff: AFNI will work with LessTif, but works better with Motif.
-  Button-3: On Solaris 2.8, Button-3 popup menus don't work quite properly.
-If you are tired of seeing these messages, set AFNI_STARTUP_WARNINGS to NO.
+  Button-3: On Solaris 2.8, Button-3 popup menus don't work quite 
+            properly.
+If you are tired of seeing these messages, set AFNI_STARTUP_WARNINGS
+to NO.
 
 ----------------------
 Variable: AFNI_1D_TIME
 ----------------------
-If this YES/NO variable is set to YES, then when a multicolumn .1D file is
-read in as an AFNI dataset, the column variable is taken to be time, and
-a time-dependent dataset is created.  The default is to create a bucket
-dataset.  Note that each row is taken to be a separate 'voxel'.
+If this YES/NO variable is set to YES, then when a multicolumn .1D
+file is read in as an AFNI dataset, the column variable is taken to be
+time, and a time-dependent dataset is created.  The default is to
+create a bucket dataset.  Note that each row is taken to be a separate
+'voxel'.
 
 -------------------------
 Variable: AFNI_1D_TRANOUT
@@ -2405,8 +2482,8 @@ to stdout if AFNI_1D_TRANOUT is NO.
 -------------------------
 Variable: AFNI_1D_TIME_TR
 -------------------------
-If this is set, and AFNI_1D_TIME is YES, then this determines the TR (in
-seconds) of a .1D file read in as an AFNI dataset.
+If this is set, and AFNI_1D_TIME is YES, then this determines the TR
+(in seconds) of a .1D file read in as an AFNI dataset.
 
 ---------------------------
 Variable: AFNI_1D_ZERO_TEXT
@@ -2468,26 +2545,28 @@ Variable: AFNI_STROKE_THRESHOLD (editable)
 -------------------------------
 If you press Button-1 in an image window, and then move it left or
 right ("stroke it") before releasing the button, the grayscale mapping
-changes in the same way as if you pressed the 'c' button up and the 'b'
-button down.  This variable sets the threshold for the stroking movement
-size in pixels; a movement of this number of pixels rightwards corresponds
-to one press of 'c' up and 'b' down, while a leftwards movement is like
-one press of 'c' down and 'b' up.  Larger movements make larger adjustments.
+changes in the same way as if you pressed the 'c' button up and the
+'b' button down.  This variable sets the threshold for the stroking
+movement size in pixels; a movement of this number of pixels
+rightwards corresponds to one press of 'c' up and 'b' down, while a
+leftwards movement is like one press of 'c' down and 'b' up.  Larger
+movements make larger adjustments.
 
-A larger threshold makes the stroking less sensitive; a smaller threshold
-makes it more sensitive.  The value you choose will depend on your personal
-taste.  The default is 32 pixels, which is the flavor I prefer.  If you set
-this variable to 0, then the stroking function is disabled.
+A larger threshold makes the stroking less sensitive; a smaller
+threshold makes it more sensitive.  The value you choose will depend
+on your personal taste.  The default is 32 pixels, which is the flavor
+I prefer.  If you set this variable to 0, then the stroking function
+is disabled.
 
 -------------------------------
 Variable: AFNI_STROKE_AUTOPLOT (editable)
 -------------------------------
-If this variable is set to YES, then the graymap-versus-data value plot
-(manually controlled by "Display Graymap Plot") is automatically popped
-up when the grayscale mapping is altered by using the stroking feature
-described above.  When the stroke is finished, the plot will pop down.
-N.B.: when the 'Draw Dataset' plugin is active, this option is disabled
-temporarily.
+If this variable is set to YES, then the graymap-versus-data value
+plot (manually controlled by "Display Graymap Plot") is automatically
+popped up when the grayscale mapping is altered by using the stroking
+feature described above.  When the stroke is finished, the plot will
+pop down.  N.B.: when the 'Draw Dataset' plugin is active, this option
+is disabled temporarily.
 
 -----------------------------
 Variable: AFNI_IMAGE_MINTOMAX (editable)
@@ -2508,28 +2587,30 @@ control, it only affects image viewer windows opened after that point.
 ----------------------------
 Variable: AFNI_IMAGE_CLIPBOT (editable)
 ----------------------------
-In the "Clipped" mode, the top level of the grayscale image is computed
-as 3.11 times the 'cliplevel' as computed by the 3dClipLevel algorithm.
-The bottom level is then a fraction of this top level -- by default, the
-fraction is 0.25, but you can change this default by setting this variable
-to a value between 0.0 and 0.5 (inclusive).  You can also use variable
-AFNI_IMAGE_CLIPTOP to scale the default top level -- this variable can take
-values between 0.6 and 1.9 (inclusive) -- the default is 1.0.
+In the "Clipped" mode, the top level of the grayscale image is
+computed as 3.11 times the 'cliplevel' as computed by the 3dClipLevel
+algorithm.  The bottom level is then a fraction of this top level --
+by default, the fraction is 0.25, but you can change this default by
+setting this variable to a value between 0.0 and 0.5 (inclusive).  You
+can also use variable AFNI_IMAGE_CLIPTOP to scale the default top
+level -- this variable can take values between 0.6 and 1.9 (inclusive)
+-- the default is 1.0.
 
 --------------------------------
 Variable: AFNI_IMAGE_GLOBALRANGE (editable)
 --------------------------------
-AFNI_IMAGE_GLOBALRANGE can be set to SLICE (default), VOLUME (SUBBRICK),
-or DSET. The GUI applies the lookup table to color the underlay with the
-range determined from the slice, sub-brick or the whole multi-sub-brick
-dataset,respectively, depending on this variable. Besides the .afnirc file,
-the GUI allows changes from the environment plugin menu, the right-click
-menu on the image viewer colorbar or by typing Control-m in an image viewer.
-The Control-m cycles among the global range types.
+AFNI_IMAGE_GLOBALRANGE can be set to SLICE (default), VOLUME
+(SUBBRICK), or DSET. The GUI applies the lookup table to color the
+underlay with the range determined from the slice, sub-brick or the
+whole multi-sub-brick dataset,respectively, depending on this
+variable. Besides the .afnirc file, the GUI allows changes from the
+environment plugin menu, the right-click menu on the image viewer
+colorbar or by typing Control-m in an image viewer.  The Control-m
+cycles among the global range types.
 
 Previous YES/NO definitions for this variable correspond to VOLUME and
-SLICE respectively and will continue to work as before. The lower right
-corner of the image viewer shows the current range setting:
+SLICE respectively and will continue to work as before. The lower
+right corner of the image viewer shows the current range setting:
 (2%-98%/Min2Max, Vol, Dset)
 
 If this variable is set to YES/VOLUME/SUBBRICK, then the image
@@ -2597,28 +2678,30 @@ This variable, if set to the string name of one of the colors in the
 color chooser menus (e.g., "Black"), will result in voxels whose value
 is 0 being set to this color in the slice viewing windows (except when
 viewing RGB images).  The main function is to avoid having to use the
-"Choose Zero Color" menu all the time, especially when you use the "Swap"
-feature to invert the grayscale map (e.g., to make a T2 weighted image
-look sort of like a T1 weighted image).
+"Choose Zero Color" menu all the time, especially when you use the
+"Swap" feature to invert the grayscale map (e.g., to make a T2
+weighted image look sort of like a T1 weighted image).
 
 ----------------------------
 Variable: AFNI_MPEG_DATASETS
 ----------------------------
-This variable can be used to allow MPEG files to be read in as AFNI datasets.
-Such datasets are inherently 3 dimensional.  How they will be organized inside
-AFNI depends on the setting of this variable.  The options are:
+This variable can be used to allow MPEG files to be read in as AFNI
+datasets.  Such datasets are inherently 3 dimensional.  How they will
+be organized inside AFNI depends on the setting of this variable.  The
+options are:
   SPACE = the frame sequence number will be the z-axis
   TIME  = the frame sequence number will be the time axis
   NO    = MPEG files won't be read as AFNI datasets
           (they can still be read as images into to3d, aiv, etc.)
 If this variable is NOT set to anything, then it is the same as NO.
 
-MPEG filenames input to AFNI programs (as sources of images or as datasets)
-must end in ".mpg", ".MPG", ".mpeg", or ".MPEG".  MPEG datasets will be read
-so that the individal images are displayed in an Axial image window.
+MPEG filenames input to AFNI programs (as sources of images or as
+datasets) must end in ".mpg", ".MPG", ".mpeg", or ".MPEG".  MPEG
+datasets will be read so that the individal images are displayed in an
+Axial image window.
 
-Note that decoding a long .mpg file that happens to be in your directory
-can slow down the AFNI startup considerably!
+Note that decoding a long .mpg file that happens to be in your
+directory can slow down the AFNI startup considerably!
 
 ---------------------------
 Variable: AFNI_MPEG_GRAYIZE
@@ -2668,9 +2751,9 @@ uses some colors of my choosing for this purpose.
 ----------------------------------
 Variable: AFNI_COLORIZE_CONTROLLER
 ----------------------------------
-If this variable is set to YES, then the background of the AFNI controllers
-and image viewers will be colorized.  The default state is that they are not
-colorized.
+If this variable is set to YES, then the background of the AFNI
+controllers and image viewers will be colorized.  The default state is
+that they are not colorized.
 
 --------------------------
 Variable: AFNI_THRESH_LOCK (editable)
@@ -2706,14 +2789,14 @@ If this variable is set to NO, then the automatic color bar switching
 -------------------------
 Variable: AFNI_PBAR_THREE
 -------------------------
-If this variable is set to YES, then the 'continuous' colorscale
-color bar in the AFNI GUI will have 3 panes rather than 1.  The
-middle pane will have the continuously variable colorscale loaded.
-The upper and lower panes will have the upper and lower colors loaded,
-OR they can be turned off.  The sashes that controls the position and
-size of the middle pane can be moved to separately set the top and bottom
-of the color-ization scale (rather than make bottom = -top or bottom = 0,
-as with the 1 pane color bar).
+If this variable is set to YES, then the 'continuous' colorscale color
+bar in the AFNI GUI will have 3 panes rather than 1.  The middle pane
+will have the continuously variable colorscale loaded.  The upper and
+lower panes will have the upper and lower colors loaded, OR they can
+be turned off.  The sashes that controls the position and size of the
+middle pane can be moved to separately set the top and bottom of the
+color-ization scale (rather than make bottom = -top or bottom = 0, as
+with the 1 pane color bar).
 
 ------------------------
 Variable: AFNI_PBAR_TICK (editable)
@@ -2732,14 +2815,14 @@ of tick marks allowed is 63, which should be enough.
 Variable: AFNI_PBAR_FULLRANGE  [03 Jun 2014]
 -----------------------------
 If this variable is set to YES, then the color pbar in Define Overlay
-will reflect the range set by the user for the colorization process.  At
-some point, this feature will become the default, and then you'll have
-to set this variable to NO to get the old behavior -- where the range
-set by the user is shown only at the bottom right of the Define Overlay
-panel, and it then multiplies the independently set top value of the
-pbar to get the colorization scale.  In the new method, the top value of
-the pbar cannot be set by the user independently of the range (or
-autorange) parameter.  The intention of this change is to make the
+will reflect the range set by the user for the colorization process.
+At some point, this feature will become the default, and then you'll
+have to set this variable to NO to get the old behavior -- where the
+range set by the user is shown only at the bottom right of the Define
+Overlay panel, and it then multiplies the independently set top value
+of the pbar to get the colorization scale.  In the new method, the top
+value of the pbar cannot be set by the user independently of the range
+(or autorange) parameter.  The intention of this change is to make the
 number -> colors process somewhat more blatant.  This variable's value
 must be set at startup (e.g., in .afnirc), and changing it later will
 have no effect. Also note that if this variable is YES, then setting
@@ -2767,35 +2850,36 @@ mockeries of a sham of reality.
 ------------------------------
 Variable: AFNI_DISABLE_CURSORS
 ------------------------------
-If this variable is set to YES, then AFNI will not try to change the X11
-cursor shape.  This feature is available because it seems that sometimes
-particular X11 installations choices of cursor and AFNI's choices don't
-work together well.  If you have unpleasant cursors in AFNI (e.g., an X),
-try setting this variable to YES.
+If this variable is set to YES, then AFNI will not try to change the
+X11 cursor shape.  This feature is available because it seems that
+sometimes particular X11 installations choices of cursor and AFNI's
+choices don't work together well.  If you have unpleasant cursors in
+AFNI (e.g., an X), try setting this variable to YES.
 
 -----------------------------
 Variable: AFNI_SLAVE_FUNCTIME (editable)
 -----------------------------
-When the underlay and overlay datasets both are time-dependent, switching
-the time index will change both the underlay and overlay sub-bricks.  If
-you want the time index control to change ONLY the underlay sub-brick,
-then set this variable to NO.
+When the underlay and overlay datasets both are time-dependent,
+switching the time index will change both the underlay and overlay
+sub-bricks.  If you want the time index control to change ONLY the
+underlay sub-brick, then set this variable to NO.
 
 ----------------------------
 Variable: AFNI_SLAVE_THROLAY
 ----------------------------
 This variable allows you to control the INITIAL setting of the widgets
 that slave (or not) the threshold index to the overlay index.  (These
-widgets are on the 'Index' right-click popup chooser and on the threshold
-slider right-click popup menu.)  The values you can set for this variable,
-and their effects, are listed below (not case sensitive):
-   'OLay'    *or*  '=='  *or*  '0'  ==> threshold index = overlay index
-   'OLay+1'  *or*  '+1'  *or*  '1'  ==> threshold index = overlay index + 1
-   ANYTHING ELSE                    ==> threshold index is free and wild
+widgets are on the 'Index' right-click popup chooser and on the
+threshold slider right-click popup menu.)  The values you can set for
+this variable, and their effects, are listed below (not case
+sensitive):
+  'OLay'    *or*  '=='  *or*  '0'  ==> threshold index = overlay index
+  'OLay+1'  *or*  '+1'  *or*  '1'  ==> threshold index = overlay index + 1
+  ANYTHING ELSE                    ==> threshold index is free and wild
 This variable replaces the 2 variables listed below.  Again, this only
-controls the INITIAL setting of the widgets -- you can change them in the
-AFNI GUI later at any time.  Setting this variable after AFNI starts
-(e.g., from plugout_drive) will have little discernable effect.
+controls the INITIAL setting of the widgets -- you can change them in
+the AFNI GUI later at any time.  Setting this variable after AFNI
+starts (e.g., from plugout_drive) will have little discernable effect.
 
 -------------------------
 Variable: AFNI_FUNC_ALPHA
@@ -2806,50 +2890,53 @@ will set the initial state of the functional overlay Alpha control
 hidden ways of the AFNI, this control is on the right-click popup menu
 attached to the label just above the 'Define Overlay' threshold slider.
 
-If Alpha is turned on, then the opacity of the overlay ranges from 1 for
-above-threshold pixels down to the 'Floor' value (default is 0) -- however,
-pixels with the threshold variable exactly equal to zero will not get
-the Floor value of opacity, but will get alpha=0. Note that the alpha
-(opacity) level at the pixel-wise level is scaled by the global opacity
-'1-9' control on the right side of the image viewer, where '9' means that
-above-threshold pixels will be 100% opaque, and '6' means they will be
-6/9=67% opaque -- and lower opacity pixels will be have their opacity scaled
-down by the same factor.
+If Alpha is turned on, then the opacity of the overlay ranges from 1
+for above-threshold pixels down to the 'Floor' value (default is 0) --
+however, pixels with the threshold variable exactly equal to zero will
+not get the Floor value of opacity, but will get alpha=0. Note that
+the alpha (opacity) level at the pixel-wise level is scaled by the
+global opacity '1-9' control on the right side of the image viewer,
+where '9' means that above-threshold pixels will be 100% opaque, and
+'6' means they will be 6/9=67% opaque -- and lower opacity pixels will
+be have their opacity scaled down by the same factor.
 
-The variable-opacity overlay usually looks better (less blocky) if you open
-'Define Datamode' and set the resampling modes for the OLay and Stat to 'Li'
-(linear) rather than the default 'NN' (you can also do this via variables
-AFNI_resam_func and AFNI_resam_thr).  Also when Alpha is turned on, the
-above-threshold pixel regions are outlined in black, unless you set the
-AFNI_EDGIZE_OVERLAY environment variable to NO -- this variable can be set
-interactively via the 'EditEnv' pseudo-plugin.  You can alter the color
-used for the outline by setting the AFNI_EDGIZE_COLOR variable; for example,
-  afni -DAFNI_EDGIZE_COLOR=hotpink -DAFNI_FUNC_ALPHA=Linear
+The variable-opacity overlay usually looks better (less blocky) if you
+open 'Define Datamode' and set the resampling modes for the OLay and
+Stat to 'Li' (linear) rather than the default 'NN' (you can also do
+this via variables AFNI_resam_func and AFNI_resam_thr).  Also when
+Alpha is turned on, the above-threshold pixel regions are outlined in
+black, unless you set the AFNI_EDGIZE_OVERLAY environment variable to
+NO -- this variable can be set interactively via the 'EditEnv'
+pseudo-plugin.  You can alter the color used for the outline by
+setting the AFNI_EDGIZE_COLOR variable; for example, afni
+-DAFNI_EDGIZE_COLOR=hotpink -DAFNI_FUNC_ALPHA=Linear
 
-The outline is done over the pixels immediately OUTSIDE the above-threshold
-regions, in the overlay image as interpolated to the underlay resolution.
-If the underlay is on a coarse matrix (e.g., native EPI), these outlines
-will look terrible -- you can alter the underlay display grid dimension in
-'Define Datamode' using the control 'Warp ULay on Demand'.
+The outline is done over the pixels immediately OUTSIDE the
+above-threshold regions, in the overlay image as interpolated to the
+underlay resolution.  If the underlay is on a coarse matrix (e.g.,
+native EPI), these outlines will look terrible -- you can alter the
+underlay display grid dimension in 'Define Datamode' using the control
+'Warp ULay on Demand'.
 
 Please note that the ALpha features described above only apply if the
 color scale is in the 'continuous' mode ('**'), not in the discrete
 panes mode. Sorry about this, but that's the situation for the nonce.
 
 ----------------------------
-Variable: AFNI_SLAVE_THRTIME       *** THIS VARIABLE IS NO LONGER USED ***
+Variable: AFNI_SLAVE_THRTIME     *** THIS VARIABLE IS NO LONGER USED ***
 ----------------------------
-When the underlay and overlay datasets both are time-dependent, switching
-the time index will change both the underlay and overlay sub-bricks, but
-NOT the threshold sub-brick.  If you want the time index control to change
-the threshold sub-brick, then set this variable to YES.
+When the underlay and overlay datasets both are time-dependent,
+switching the time index will change both the underlay and overlay
+sub-bricks, but NOT the threshold sub-brick.  If you want the time
+index control to change the threshold sub-brick, then set this
+variable to YES.
 
 --------------------------------
-Variable: AFNI_SLAVE_BUCKETS_TOO   *** THIS VARIABLE IS NO LONGER USED ***
+Variable: AFNI_SLAVE_BUCKETS_TOO  *** THIS VARIABLE IS NO LONGER USED ***
 --------------------------------
-Set this to YES if you want to make changing the time index in the underlay
-dataset change the sub-brick index in the overlay dataset even when the
-overlay is a 'bucket' dataset without a time axis.
+Set this to YES if you want to make changing the time index in the
+underlay dataset change the sub-brick index in the overlay dataset
+even when the overlay is a 'bucket' dataset without a time axis.
 
 ----------------------------
 Variable: AFNI_CLICK_MESSAGE
@@ -2862,51 +2949,54 @@ will NOT be appended to the very first popup message window that AFNI
 creates.  This message was added because some people do not realize
 that the way to get rid of these popups (before they vanish on their
 own after 30 seconds) is to click in them.  You know who you are.
-However, if you are advanced enough to read this file, then you probably
-aren't one of THEM.
+However, if you are advanced enough to read this file, then you
+probably aren't one of THEM.
 
 -----------------------------
 Variable: AFNI_X11_REDECORATE (editable)
 -----------------------------
-By default, AFNI tries to change some of the "decorations" (control buttons)
-on some of the windows it creates (e.g., removing resize handles).  If you
-don't want this to happen, set this variable to NO.  This variable only
-has an effect on windows created AFTER it is set, so if you change this
-interactively in the Edit Environment plugin, it will not affect existing
-windows.  Normally, you would want to set this in your .afnirc file.
+By default, AFNI tries to change some of the "decorations" (control
+buttons) on some of the windows it creates (e.g., removing resize
+handles).  If you don't want this to happen, set this variable to NO.
+This variable only has an effect on windows created AFTER it is set,
+so if you change this interactively in the Edit Environment plugin, it
+will not affect existing windows.  Normally, you would want to set
+this in your .afnirc file.
 
 -------------------------------
 Variable: AFNI_IMAGE_SAVESQUARE
 -------------------------------
-YES/NO: Forces images (from the image view "Save" button) to be saved with
-square pixels, even if they are stored with nonsquare pixels.
+YES/NO: Forces images (from the image view "Save" button) to be saved
+with square pixels, even if they are stored with nonsquare pixels.
 
 -------------------------------
 Variable: AFNI_BUCKET_LABELSIZE
 -------------------------------
 THIS VARIABLE HAS BEEN REMOVED FROM AFNI.
 
-Formerly, it was used to set the width of the "ULay", "OLay", and "Thr" menu
-choosers on the "Define Overlay" control panel.  As of 03 May 2005, AFNI now
-calculates the default width based on the longest sub-brick label input
-for each dataset.
+Formerly, it was used to set the width of the "ULay", "OLay", and
+"Thr" menu choosers on the "Define Overlay" control panel.  As of 03
+May 2005, AFNI now calculates the default width based on the longest
+sub-brick label input for each dataset.
 
 -------------------------
 Variable: AFNI_MAX_1DSIZE
 -------------------------
-Sets the maximum size (in bytes) of each 1D file that will be automatically
-loaded when AFNI starts.  The default is 123 Kbytes.  The intention is to
-prevent loading of very large files that are not intended to be used for
-graphing/FIMming purposes.  If you set this to 0, you get the default size.
-If you set this to 1, no 1D files will be read at the AFNI GUI startup.
+Sets the maximum size (in bytes) of each 1D file that will be
+automatically loaded when AFNI starts.  The default is 123 Kbytes.
+The intention is to prevent loading of very large files that are not
+intended to be used for graphing/FIMming purposes.  If you set this to
+0, you get the default size.  If you set this to 1, no 1D files will
+be read at the AFNI GUI startup.
 
 ---------------------------
 Variable: AFNI_TITLE_LABEL2 (editable)
 ---------------------------
-If this YES/NO variable is YES, then the AFNI window titlebars will show
-the 'label2' field from the AFNI dataset .HEAD file, rather than the
-dataset filename.  If the label2 field is set to a nontrivial value,
-that is.  You can set the label2 field with the 3drefit command.
+If this YES/NO variable is YES, then the AFNI window titlebars will
+show the 'label2' field from the AFNI dataset .HEAD file, rather than
+the dataset filename.  If the label2 field is set to a nontrivial
+value, that is.  You can set the label2 field with the 3drefit
+command.
 
 ----------------------------------
 Variable: AFNI_SKIP_ONETIME_POPUPS
@@ -2922,8 +3012,9 @@ showing these messages at all, even once, set this variable to YES.
 Variable: AFNI_SHOW_SURF_POPUPS
 -------------------------------
 If this YES/NO variable is set to YES, then when AFNI receives surface
-nodes, triangles or normals from suma, a popup message will be displayed.
-Otherwise, the message will be send to stderr (on the terminal window).
+nodes, triangles or normals from suma, a popup message will be
+displayed.  Otherwise, the message will be send to stderr (on the
+terminal window).
 
 -------------------------------
 Variable: AFNI_KILL_SURF_POPUPS
@@ -2943,139 +3034,146 @@ If set to YES, then the color overlays in the image windows will only
 have their edge pixels displayed.  Edge-izing takes place in 2 slightly
 different ways, depending on the Alpha setting in the AFNI interface
 (cf. variable AFNI_FUNC_ALPHA, above):
- * If Alpha is off, then edges shown comprise the outermost above-threshold
-   voxels. The edge color is just the color that these voxels normally
-   get from the overlay sub-brick values. In this mode, the 'blobs' are
-   hollowed out, leaving only the edges.
- * If the Alpha is on, the edges shown comprise the voxels just OUTSIDE the
-   outermost above-threshold voxels -- so that all the above-threshold
-   voxels are visible. Also, the edge color is solid black (or can be set
-   via variable AFNI_EDGIZE_COLOR). The 'blobs' are NOT hollowed out.
+
+ * If Alpha is off, then edges shown comprise the outermost
+   above-threshold voxels. The edge color is just the color that these
+   voxels normally get from the overlay sub-brick values. In this
+   mode, the 'blobs' are hollowed out, leaving only the edges.
+
+ * If the Alpha is on, the edges shown comprise the voxels just
+   OUTSIDE the outermost above-threshold voxels -- so that all the
+   above-threshold voxels are visible. Also, the edge color is solid
+   black (or can be set via variable AFNI_EDGIZE_COLOR). The 'blobs'
+   are NOT hollowed out.
 
 ---------------------------
 Variable: AFNI_EDGIZE_COLOR (editable)
 ---------------------------
-Defines the color used for the edge outline of above threshold regions,
-when Alpha is turned on.  See AFNI_FUNC_ALPHA for more information.
-This variable has no effect if Alpha is turned off.  Colors can be
-set via X11 names (e.g., "yellow", "hotpink", "#1188ff" ).
+Defines the color used for the edge outline of above threshold
+regions, when Alpha is turned on.  See AFNI_FUNC_ALPHA for more
+information.  This variable has no effect if Alpha is turned off.
+Colors can be set via X11 names (e.g., "yellow", "hotpink", "#1188ff").
 
 --------------------------
 Variable: AFNI_NIFTI_DEBUG (editable)
 --------------------------
 This integral variable determines the debug level used by the nifti_io
-library functions.  If set to 0, only errors are reported by the library.
-The maximum debug level used is currently 4.  Note that if this is changed
-from within AFNI, a 'Rescan: This' operation should probably be performed,
-which will force a re-reading of the datasets and so force an elicitation
-of the NIfTI debug messages (for .nii files, that is).
+library functions.  If set to 0, only errors are reported by the
+library.  The maximum debug level used is currently 4.  Note that if
+this is changed from within AFNI, a 'Rescan: This' operation should
+probably be performed, which will force a re-reading of the datasets
+and so force an elicitation of the NIfTI debug messages (for .nii
+files, that is).
 
 ------------------------------
 Variable: AFNI_NIFTI_TYPE_WARN
 ------------------------------
-AFNI converts 'byte' NIFTI data types to 'short', and 'int' to 'float'.
-Programs that do so will issue a warning each time such a conversion is
-carried out. When this variable is set to NO, as it is now by default,
-each program would issue just one warning at the first occurrence of a type conversion.
-Set this variable to YES if you want to see all conversion warnings.
+AFNI converts 'byte' NIFTI data types to 'short', and 'int' to
+'float'.  Programs that do so will issue a warning each time such a
+conversion is carried out. When this variable is set to NO, as it is
+now by default, each program would issue just one warning at the first
+occurrence of a type conversion.  Set this variable to YES if you want
+to see all conversion warnings.
 
 --------------------------
 Variable: AFNI_DEBUG_PLUG_VOL2SURF
 --------------------------
-Use this interger variable to initialize the debug level in plug_vol2surf.
-The current set of acceptable values is {0..5}.
+Use this interger variable to initialize the debug level in
+plug_vol2surf.  The current set of acceptable values is {0..5}.
 
 --------------------------
 Variable: AFNI_NIFTI_NOEXT
 --------------------------
-When writing a '.nii' (or '.nii.gz') file from an AFNI program, normally
-a NIfTI-1.1 extension field with some extra AFNI header information is
-written into the output file.  If you set this variable to YES, then
-this extension is not written, which will make the output be a 'pure'
-NIfTI-1.1 file.  Only use this if absolutely necessary.  You can also
-use the 'nifti_tool' program to strip extension data from a NIfTI-1.1
-dataset file.
+When writing a '.nii' (or '.nii.gz') file from an AFNI program,
+normally a NIfTI-1.1 extension field with some extra AFNI header
+information is written into the output file.  If you set this variable
+to YES, then this extension is not written, which will make the output
+be a 'pure' NIfTI-1.1 file.  Only use this if absolutely necessary.
+You can also use the 'nifti_tool' program to strip extension data from
+a NIfTI-1.1 dataset file.
 
 ---------------------------
 Variable: AFNI_OVERLAY_ZERO (editable)
 ---------------------------
-If set to YES, this variable indicates that voxels in the overlay dataset
-that have the numerical value of 0 will get colored when the Inten color
-scale on the Define Datamode panel indicates that 0 has a color that isn't
-"none".  The default way that AFNI works is NOT to colorize voxels that
-are 0, even if they should otherwise get a color.
+If set to YES, this variable indicates that voxels in the overlay
+dataset that have the numerical value of 0 will get colored when the
+Inten color scale on the Define Datamode panel indicates that 0 has a
+color that isn't "none".  The default way that AFNI works is NOT to
+colorize voxels that are 0, even if they should otherwise get a color.
 
 ---------------------------
 Variable: NIML_TRUSTHOST_xx
 ---------------------------
-These environment variables ('xx' = '01', '02', ..., '99') set the names
-and/or addresses of external computer hosts to trust with NIML TCP/IP
-connections, which are how AFNI and SUMA communicate.  Should only be
-necessary to use these if you are using AFNI and SUMA on different
-machines.  Connections from machines not on the trusted list will be
-rejected, for the sake of security.  The 'localhost' or 127.0.0.1 address
-and local class B network 192.168.0.* addresses are always trusted.
+These environment variables ('xx' = '01', '02', ..., '99') set the
+names and/or addresses of external computer hosts to trust with NIML
+TCP/IP connections, which are how AFNI and SUMA communicate.  Should
+only be necessary to use these if you are using AFNI and SUMA on
+different machines.  Connections from machines not on the trusted list
+will be rejected, for the sake of security.  The 'localhost' or
+127.0.0.1 address and local class B network 192.168.0.* addresses are
+always trusted.
 
 ---------------------------
 Variable: AFNI_DONT_LOGFILE
 ---------------------------
-Most AFNI programs write a copy of their command line to a file in your
-home directory named ".afni.log".  If you do NOT want the log to be
-kept, set this environment variable to YES.  The purpose of the log
+Most AFNI programs write a copy of their command line to a file in
+your home directory named ".afni.log".  If you do NOT want the log to
+be kept, set this environment variable to YES.  The purpose of the log
 is for you to be able to look back and see what AFNI commands you used
-in the past.  However, if you are doing a vast number of commands inside
-a script, the log file might eventually become gigantic (the Kevin Murphy
-effect).
+in the past.  However, if you are doing a vast number of commands
+inside a script, the log file might eventually become gigantic (the
+Kevin Murphy effect).
 
 -------------------------------
 Variable: AFNI_ECHO_COMMANDLINE
 -------------------------------
-If this is YES, then the command line logger will also echo the command
-line of each AFNI program to stderr, as it starts up.  This feature
-is explicitly for Daniel Handwerker, and may well eventually be considered
-his ultimate claim to fame in the Macrocosmic All.
+If this is YES, then the command line logger will also echo the
+command line of each AFNI program to stderr, as it starts up.  This
+feature is explicitly for Daniel Handwerker, and may well eventually
+be considered his ultimate claim to fame in the Macrocosmic All.
 
 -------------------------
 Variable: AFNI_WRITE_NIML
 -------------------------
-If this variable is set to YES, then AFNI .HEAD files will be written in
-the new NIML (XML subset) format, rather than the 'classic' format.  The
-volumetric image data is still in the pure binary .BRIK file, not XML-ified
-in any way.  At present (Jun 2005) this format is experimental, but will
-someday soon become the default.
+If this variable is set to YES, then AFNI .HEAD files will be written
+in the new NIML (XML subset) format, rather than the 'classic' format.
+The volumetric image data is still in the pure binary .BRIK file, not
+XML-ified in any way.  At present (Jun 2005) this format is
+experimental, but will someday soon become the default.
 
 ---------------------------------
 Variable: AFNI_ALLOW_MILLISECONDS
 ---------------------------------
-The TR value (time step) in 3D+time datasets created with to3d can be flagged
-as being in units of milliseconds (ms) or seconds (s).  This situation is
-unfortunate, as some AFNI programs assume that the units are always s, which
-doesn't work well when the TR is actually in ms.  On 15 Aug 2005, AFNI dataset
-I/O was modified to only write out TR in s units, and to convert ms units
-to s units on input.  If you absolutely need to store TR in ms, then you
-must set this environment variable to YES.  I strongly recommend against
-such a setting, but recall the AFNI philosophy: "provide mechanism, not
-policy" -- in other words, if you want to shoot yourself in the foot, go
-right ahead.  This variable is just the safety on the revolver.
+The TR value (time step) in 3D+time datasets created with to3d can be
+flagged as being in units of milliseconds (ms) or seconds (s).  This
+situation is unfortunate, as some AFNI programs assume that the units
+are always s, which doesn't work well when the TR is actually in ms.
+On 15 Aug 2005, AFNI dataset I/O was modified to only write out TR in
+s units, and to convert ms units to s units on input.  If you
+absolutely need to store TR in ms, then you must set this environment
+variable to YES.  I strongly recommend against such a setting, but
+recall the AFNI philosophy: "provide mechanism, not policy" -- in
+other words, if you want to shoot yourself in the foot, go right
+ahead.  This variable is just the safety on the revolver.
 
 --------------------------
 Variable: AFNI_AUTO_RESCAN
 --------------------------
-If this YES/NO variable is set to YES, then the interactive AFNI program
-will rescan all session directories every 15 seconds for new datasets.
-Basically, this is just a way for you to avoid pressing the 'Rescan'
-buttons.  Note that if AFNI_AUTO_RESCAN is enabled, then the rescan
-method will be 'Add', not 'Replace', no matter what you set variable
-AFNI_RESCAN_METHOD to.
+If this YES/NO variable is set to YES, then the interactive AFNI
+program will rescan all session directories every 15 seconds for new
+datasets.  Basically, this is just a way for you to avoid pressing the
+'Rescan' buttons.  Note that if AFNI_AUTO_RESCAN is enabled, then the
+rescan method will be 'Add', not 'Replace', no matter what you set
+variable AFNI_RESCAN_METHOD to.
 
 -------------------------------
 Variable: AFNI_RESCAN_AT_SWITCH
 -------------------------------
-If this YES/NO variable is set to YES, then the interactive AFNI program
-will rescan all session directories everytime you click on either of the
-'Overlay' or 'Underlay' buttons. Basically, this is just another way for
-you to avoid pressing the 'Rescan' buttons.  (Unlike with AFNI_AUTO_RESCAN,
-the AFNI_RESCAN_METHOD settings are respected.)
+If this YES/NO variable is set to YES, then the interactive AFNI
+program will rescan all session directories everytime you click on
+either of the 'Overlay' or 'Underlay' buttons. Basically, this is just
+another way for you to avoid pressing the 'Rescan' buttons.  (Unlike
+with AFNI_AUTO_RESCAN, the AFNI_RESCAN_METHOD settings are respected.)
 
 ---------------------------
 Variable: AFNI_ALL_DATASETS  [02 Jun 2016]
@@ -3090,42 +3188,44 @@ AFNI_ALL_DATASETS to NO.
 --------------------------
 Variable: AFNI_WEB_BROWSER
 --------------------------
-This variable should be set to the full executable path to a Web browser,
-as in
+This variable should be set to the full executable path to a Web 
+browser, as in
   setenv AFNI_WEB_BROWSER /usr/bin/mozilla
-If it is not set, AFNI will scan your path to see if it can find a browser,
-looking for "firefox", "mozilla", "netscape", and "opera" (in that order).
-If a browser is found, or set, then the 'hidden' popup menu (in the blank
-square to the right of the 'done' button) will have a menu item to open it.
+If it is not set, AFNI will scan your path to see if it can find a
+browser, looking for "firefox", "mozilla", "netscape", and "opera" (in
+that order).  If a browser is found, or set, then the 'hidden' popup
+menu (in the blank square to the right of the 'done' button) will have
+a menu item to open it.
 
 --------------------------
 Variable: AFNI_SELENIUM
 --------------------------
-If this YES/NO variable is set to YES, then the Selenium webdriver will be
-used to open a browser window in the places where AFNI uses webpages
-(whereami, help,...) The AFNI_WEB_BROWSER should be set to the browser of
-choice (Chrome,Firefox,Safari). The default browser will be chrome if the
-AFNI_WEB_BROWSER variable is not set. If AFNI_SELENIUM is not set or set
-to NO, AFNI will open the standard browser using a system command. Selenium
-may be installed with "pip install -U selenium" on a Mac or "sudo yum install
-selenium" on Linux. If you need to get pip, it is available from
+If this YES/NO variable is set to YES, then the Selenium webdriver
+will be used to open a browser window in the places where AFNI uses
+webpages (whereami, help,...) The AFNI_WEB_BROWSER should be set to
+the browser of choice (Chrome,Firefox,Safari). The default browser
+will be chrome if the AFNI_WEB_BROWSER variable is not set. If
+AFNI_SELENIUM is not set or set to NO, AFNI will open the standard
+browser using a system command. Selenium may be installed with "pip
+install -U selenium" on a Mac or "sudo yum install selenium" on
+Linux. If you need to get pip, it is available from
 https://pypi.python.org/pypi/pip .
 
 -----------------------------
 Variable: AFNI_WEB_DOWNLOADER
 -----------------------------
-This variable should be set to the full executable path to a Web downloader,
-as in
+This variable should be set to the full executable path to a Web
+downloader, as in
   setenv AFNI_WEB_DOWNLOADER /usr/bin/curl
-If it is not set, AFNI will scan your path to see if it can find a downloader,
-looking for "curl" and "wget" (in that order).
+If it is not set, AFNI will scan your path to see if it can find a
+downloader, looking for "curl" and "wget" (in that order).
 
 ----------------------------
 Variable: AFNI_JPEG_COMPRESS
 ----------------------------
-This variable determines the compression quality of JPEG files saved in
-the AFNI GUI and 3dDeconvolve. Its value can be set to an integer from
-1 to 100. If not set, the default value is 95%.
+This variable determines the compression quality of JPEG files saved
+in the AFNI GUI and 3dDeconvolve. Its value can be set to an integer
+from 1 to 100. If not set, the default value is 95%.
 
 ---------------------------
 Variable: AFNI_NLFIM_METHOD
@@ -3139,26 +3239,28 @@ Can be used to set the optimization method using in the NLfit plugin
 ----------------------------
 Variable: AFNI_OVERLAY_ONTOP
 ----------------------------
-If this variable is set to YES, then the 'Overlay' button will be above
-the 'Underlay' button on the AFNI control panel.  The default, from the
-olden days, is to have the 'Underlay' button above the 'Overlay' button,
-which some people find confusing.
+If this variable is set to YES, then the 'Overlay' button will be
+above the 'Underlay' button on the AFNI control panel.  The default,
+from the olden days, is to have the 'Underlay' button above the
+'Overlay' button, which some people find confusing.
 
 -----------------------------
 Variable: AFNI_DATASET_BROWSE (editable)
 -----------------------------
-If this variable is set to YES, then when you 'browse' through a dataset
-chooser ('Overlay' or 'Underlay' list) with the mouse or arrow keys, then
-as a dataset is selected in the list, AFNI will immediately switch to
-viewing that dataset.  This can be convenient for scrolling through datasets,
-but can also consume memory and CPU time very quickly.
+If this variable is set to YES, then when you 'browse' through a
+dataset chooser ('Overlay' or 'Underlay' list) with the mouse or arrow
+keys, then as a dataset is selected in the list, AFNI will immediately
+switch to viewing that dataset.  This can be convenient for scrolling
+through datasets, but can also consume memory and CPU time very
+quickly.
 
 ------------------------------
 Variable: AFNI_DISABLE_TEAROFF
 ------------------------------
-If this variable is set to YES, then the AFNI GUI will not allow popup or
-popdown menus to be 'torn off'.  The default is to enable tear off for most
-menus, but this may cause bad things on some platforms (like program death).
+If this variable is set to YES, then the AFNI GUI will not allow popup
+or popdown menus to be 'torn off'.  The default is to enable tear off
+for most menus, but this may cause bad things on some platforms (like
+program death).
 
 -------------------------------
 Variable: AFNI_PLUGOUT_TCP_BASE (BETTER USE AFNI_PORT_OFFSET)
@@ -3190,22 +3292,22 @@ Variable: AFNI_IMAGE_TICK_DIV_IN_MM (editable)
 -----------------------------------
 If this YES/NO variable is set to YES, then the Tick Div. value in an
 image window will be interpreted as a separation distance, in mm, as
-opposed to the number of tick divisions along each edge.  In the YES case,
-a larger value would produce fewer ticks, as they would be farther apart.
-In the NO case, a larger value will produce more tick marks.  Tick marks
-are controlled from the Button 3 popup menu attached to the grayscale
-intensity bar in an image viewer.
+opposed to the number of tick divisions along each edge.  In the YES
+case, a larger value would produce fewer ticks, as they would be
+farther apart.  In the NO case, a larger value will produce more tick
+marks.  Tick marks are controlled from the Button 3 popup menu
+attached to the grayscale intensity bar in an image viewer.
 
 ----------------------------
 Variable: AFNI_IMAGRA_CLOSER
 ----------------------------
-If this YES/NO variable is set to YES, then when you click in an 'Image'
-or 'Graph' button for a viewer window that is already open (so the button
-is displayed in inverted colors), then the corresponding viewer window
-will close.  The default action is to try to raise the viewer window to
-the front, but some window managers (I'm looking at you, FC5) don't allow
-this action.  So this provides a way to kill the window, at least, if you've
-lost it in desktop hell somewhere.
+If this YES/NO variable is set to YES, then when you click in an
+'Image' or 'Graph' button for a viewer window that is already open (so
+the button is displayed in inverted colors), then the corresponding
+viewer window will close.  The default action is to try to raise the
+viewer window to the front, but some window managers (I'm looking at
+you, FC5) don't allow this action.  So this provides a way to kill the
+window, at least, if you've lost it in desktop hell somewhere.
 
 -------------------------
 Variable: AFNI_DECONFLICT
@@ -3227,25 +3329,26 @@ Some programs supply their own default.
 ---------------------------------------
 Variable:  AFNI_GUI_WRITE_AS_DECONFLICT
 ---------------------------------------
-When you use the 'Write' buttons under 'Define Datamode' Panel, the default
-is to overwrite existing datasets. However, if AFNI_GUI_WRITE_AS_DECONFLICT
-is set to YES, then the decision follows the value of AFNI_DECONFLICT
+When you use the 'Write' buttons under 'Define Datamode' Panel, the
+default is to overwrite existing datasets. However, if
+AFNI_GUI_WRITE_AS_DECONFLICT is set to YES, then the decision follows
+the value of AFNI_DECONFLICT
 
-The default value for this variable is NO, which means interactive 'Write'
-operates in overwrite mode.
+The default value for this variable is NO, which means interactive
+'Write' operates in overwrite mode.
 
 --------------------------
 Variable: AFNI_SEE_OVERLAY
 --------------------------
-If this variable is set to YES, then the 'See Overlay' button will be turned
-on when a new AFNI controller is opened.
+If this variable is set to YES, then the 'See Overlay' button will be
+turned on when a new AFNI controller is opened.
 
 ------------------------------
 Variable: AFNI_INDEX_SCROLLREV
 ------------------------------
-If this variable is set to YES, then the default direction of image slice
-and time index scrolling will be reversed in the image and graph viewers,
-respectively.
+If this variable is set to YES, then the default direction of image
+slice and time index scrolling will be reversed in the image and graph
+viewers, respectively.
 
 -----------------------------
 Variable: AFNI_CLUSTER_PREFIX
@@ -3271,14 +3374,15 @@ graphs will have error bars plotted.
 -----------------------------
 Variable: AFNI_CLUSTER_REPMAX  (editable)
 -----------------------------
-This numeric variable (between 10 and 9999, inclusive) sets the maximum
-number of clusters that will be reported in a 'Clusterize' report panel,
-if scroll bars are turned off by AFNI_CLUSTER_SCROLL. The default value
-is 15.  If scroll bars are turned on, then the maximum number of clusters
-shown defaults to 999, but can be increased to 9999 if you are completely
-mad, or are named Shruti.  If scroll bars are turned off, then you probably
-don't want to make this very big, since the report window would become
-taller than your monitor, and that would be hard to deal with.
+This numeric variable (between 10 and 9999, inclusive) sets the
+maximum number of clusters that will be reported in a 'Clusterize'
+report panel, if scroll bars are turned off by
+AFNI_CLUSTER_SCROLL. The default value is 15.  If scroll bars are
+turned on, then the maximum number of clusters shown defaults to 999,
+but can be increased to 9999 if you are completely mad, or are named
+Shruti.  If scroll bars are turned off, then you probably don't want
+to make this very big, since the report window would become taller
+than your monitor, and that would be hard to deal with.
 
 ------------------------------
 Variable: AFNI_CLUSTER_WAMIMAX (editable)
@@ -3292,17 +3396,17 @@ a good plan.
 ----------------------------
 Variable: AFNI_STRLIST_INDEX
 ----------------------------
-If this variable is set to NO, then the new [12 Oct 2007] 'Index' selector
-at the bottom of a string-list chooser (e.g., the 'Overlay' button popup
-window) will NOT be shown.
+If this variable is set to NO, then the new [12 Oct 2007] 'Index'
+selector at the bottom of a string-list chooser (e.g., the 'Overlay'
+button popup window) will NOT be shown.
 
 -----------------------------
 Variable: AFNI_HISTOG_MAXDSET
 -----------------------------
-If this variable is set to a numeric value between 4 and 9 (inclusive),
-then the number of Source datasets in the 'Histogram: Multi' plugin
-will be set to this value.  The default number of Source datasets is 3 --
-this variable allows you to increase that setting.
+If this variable is set to a numeric value between 4 and 9
+(inclusive), then the number of Source datasets in the 'Histogram:
+Multi' plugin will be set to this value.  The default number of Source
+datasets is 3 -- this variable allows you to increase that setting.
 
 --------------------------------
 Variable: AFNI_HISTOG_CUMULATIVE (editable)
@@ -3315,11 +3419,11 @@ dreaded Dr Cox, but if you find it useful ....
 ----------------------------
 Variable: AFNI_SIGQUIT_DELAY
 ----------------------------
-This numeric variable (between 1 and 30) sets the number of seconds AFNI
-will delay before exiting after a SIGQUIT signal is delivered to the process.
-The default delay is 5 seconds.  If you deliver a SIGALRM signal, AFNI will
-exit immediately.  If you don't know what Unix signals are, then don't pay
-any attention to this subject!
+This numeric variable (between 1 and 30) sets the number of seconds
+AFNI will delay before exiting after a SIGQUIT signal is delivered to
+the process.  The default delay is 5 seconds.  If you deliver a
+SIGALRM signal, AFNI will exit immediately.  If you don't know what
+Unix signals are, then don't pay any attention to this subject!
 
 --------------------------------
 Variable: AFNI_NEVER_SAY_GOODBYE
@@ -3350,31 +3454,33 @@ on and off a few times to let you know this is happening
 -------------------------
 Variable: AFNI_SHELL_GLOB
 -------------------------
-'Globbing' is the Unix jargon for filename wildcard expansion.  AFNI programs
-do globbing at various points, using an adaptation of a function from the
-csh shell.  This function has been reported to fail on Mac OS X Server 10.5
-on network mounted directories.  If you set this variable to YES, then globbing
-will instead be done using the shell directly (via popen and ls).  You should
-only set this variable if you really need it, and understand the issue!
-[For Graham Wideman]
+'Globbing' is the Unix jargon for filename wildcard expansion.  AFNI
+programs do globbing at various points, using an adaptation of a
+function from the csh shell.  This function has been reported to fail
+on Mac OS X Server 10.5 on network mounted directories.  If you set
+this variable to YES, then globbing will instead be done using the
+shell directly (via popen and ls).  You should only set this variable
+if you really need it, and understand the issue!  [For Graham Wideman]
 
 -----------------------------
 Variable: AFNI_GLOB_SELECTORS
 -----------------------------
-If this variable is 'YES', then internal wildcard expansion (in AFNI programs
-that support this capability) will NOT use the '[]' , '{}' , or '<>' selectors.
-Note that '[]' is a standard shell wildcard, so using this variable will
-restrict your wildcard-ing.  On the other hand, it lets you do something like
+If this variable is 'YES', then internal wildcard expansion (in AFNI
+programs that support this capability) will NOT use the '[]' , '{}' ,
+or '<>' selectors.  Note that '[]' is a standard shell wildcard, so
+using this variable will restrict your wildcard-ing.  On the other
+hand, it lets you do something like
   3dTcat -prefix ALL_rest0.nii -relabel -verb 'rest_*.nii[0]'
-which will create a dataset from the #0 sub-brick of every dataset that matches
-the wildcard 'rest_*.nii'.
+which will create a dataset from the #0 sub-brick of every dataset
+that matches the wildcard 'rest_*.nii'.
 
 ----------------------------------
 Variable: AFNI_IGNORE_BRICK_FLTFAC
 ----------------------------------
-Under some very rare circumstances, you might want to ignore the brick scaling
-factors.  Set this variable to YES to do so.  WARNING: this is dangerous, so
-be sure to unset this variable when you are done.  Sample usage:
+Under some very rare circumstances, you might want to ignore the brick
+scaling factors.  Set this variable to YES to do so.  WARNING: this is
+dangerous, so be sure to unset this variable when you are done.
+Sample usage:
   3dBrickStat -DAFNI_IGNORE_BRICK_FLTFAC=YES -max fred+orig
 
 ----------------------------------------
@@ -3391,21 +3497,22 @@ me if you get into trouble with such filenames!
 Variable: AFNI_INSTACORR_FDR (editable)
 ----------------------------
 If you want AFNI's InstaCorr feature to compute the FDR curve for the
-on-the-fly correlation coefficient sub-brick created interactively, then set
-this variable to YES.  Since the FDR computations are the slowest part of the
-operation, the default (if this variable is not YES) is that FDR curves are
-NOT computed.
+on-the-fly correlation coefficient sub-brick created interactively,
+then set this variable to YES.  Since the FDR computations are the
+slowest part of the operation, the default (if this variable is not
+YES) is that FDR curves are NOT computed.
 
 ---------------------------------
 Variable: AFNI_INSTACORR_SEEDBLUR
 ---------------------------------
-The InstaCorr controls let you use extra spatial smoothing when selecting
-the seed voxel time series.  By default, this extra smoothing is a flat
-average over a sphere of the chosen radius: "SeedRad".  However, if this
-environment variable is set to YES, then the extra smoothing is done
-by Gaussian blurring with the chosen FWHM: "SeedBlur".  This variable
-cannot be set interactively, but can be set on the AFNI command line
-with the usual -DAFNI_INSTACORR_SEEDBLUR=YES method.
+The InstaCorr controls let you use extra spatial smoothing when
+selecting the seed voxel time series.  By default, this extra
+smoothing is a flat average over a sphere of the chosen radius:
+"SeedRad".  However, if this environment variable is set to YES, then
+the extra smoothing is done by Gaussian blurring with the chosen FWHM:
+"SeedBlur".  This variable cannot be set interactively, but can be set
+on the AFNI command line with the usual -DAFNI_INSTACORR_SEEDBLUR=YES
+method.
 
 --------------------------------
 Variable: AFNI_INSTACORR_XYZ_LPI
@@ -3420,23 +3527,23 @@ the given x and y values will be negated before being used inside
 ----------------------------------
 Variable: AFNI_BLUR_INTS_AS_OLD
 ----------------------------------
-As of 15 June 2009, the FIR (finite implulse response) method is applid to
-byte and short data.  Previously, 3dmerge had used FIR only on float data,
-meaning shorts and floats would be applied via Fourier interpolation.
-Setting AFNI_BLUR_INTS_AS_OLD to YES will revert to the Fourier method for
-such data.
+As of 15 June 2009, the FIR (finite implulse response) method is
+applid to byte and short data.  Previously, 3dmerge had used FIR only
+on float data, meaning shorts and floats would be applied via Fourier
+interpolation.  Setting AFNI_BLUR_INTS_AS_OLD to YES will revert to
+the Fourier method for such data.
 
 -----------------------------
 Variable: AFNI_IMAGE_CROPSTEP (editable)
 -----------------------------
-Numeric value sets the size of the panning step using in the image viewer,
-when you are adjusting the cropping region using the Shift+Arrow keys
-on the keyboard.  Defaults to 1.  Legal values are -9..9 (inclusive).
-Positive values means pressing Shift+LeftArrow causes the image in the
-crop window to appear to move to the left; negative values cause the
-crop window to move in the opposite direction, so the visible part of
-the image appears to move to the right.  (Mutatis mutandum for the
-other directions, of course.)
+Numeric value sets the size of the panning step using in the image
+viewer, when you are adjusting the cropping region using the
+Shift+Arrow keys on the keyboard.  Defaults to 1.  Legal values are
+-9..9 (inclusive).  Positive values means pressing Shift+LeftArrow
+causes the image in the crop window to appear to move to the left;
+negative values cause the crop window to move in the opposite
+direction, so the visible part of the image appears to move to the
+right.  (Mutatis mutandum for the other directions, of course.)
 
 -------------------------------
 Variable: AFNI_IMAGE_COLORANGLE (editable)
@@ -3488,12 +3595,13 @@ keys) was hexadecimal '10x', which corresponds to the 'mod2' value.
 ----------------------------
 Variable: AFNI_DUMMY_DATASET
 ----------------------------
-The old 'frivolous' AFNI dummy dataset was replaced with a low-resolution
-edition of the N27 dataset on 12 Feb 2010.  If for some absurd reason you
-want the old dummy dataset back, then set this variable to OLD.  (Recall
-that the dummy dataset is only created if you start the AFNI GUI without
-any input datasets at all -- AFNI is so constructed that it needs SOME
-dataset present to be able to operate: hence, the dummy dataset concept.)
+The old 'frivolous' AFNI dummy dataset was replaced with a
+low-resolution edition of the N27 dataset on 12 Feb 2010.  If for some
+absurd reason you want the old dummy dataset back, then set this
+variable to OLD.  (Recall that the dummy dataset is only created if
+you start the AFNI GUI without any input datasets at all -- AFNI is so
+constructed that it needs SOME dataset present to be able to operate:
+hence, the dummy dataset concept.)
 
 ----------------------------
 Variable: AFNI_DONT_COMMAIZE
@@ -3533,10 +3641,10 @@ Variable: AFNI_IDEAL_COLORS (editable)
 ---------------------------
 This variable, if set, allows you to specify the set of colors used
 for the FIM Ideal overlay in the graph viewer window.  Separate color
-names by colons, as in "red:green:blue".  The first column in the Ideal
-1D file gets the first color; the second column gets the second color,
-and so on.  The variable AFNI_ORT_COLORS can similarly be used to specify
-the colors for the FIM Ort overlay.
+names by colons, as in "red:green:blue".  The first column in the
+Ideal 1D file gets the first color; the second column gets the second
+color, and so on.  The variable AFNI_ORT_COLORS can similarly be used
+to specify the colors for the FIM Ort overlay.
 
 -------------------------------
 Variable: AFNI_DONT_USE_HTMLWIN
@@ -3559,15 +3667,16 @@ Variable: AFNI_USE_FGETS
 ------------------------
 The function fgets() is the Unix standard for reading text lines from
 a file.  However, it assumes that the text file lines end in the Unix
-standard end-of-line character (ASCII 0xA).  Files created on Microsoft
-platforms use a different end-of-line character (ASCII 0xD).  The result
-is that Microsoft-ized text files don't work well with fgets().  AFNI
-uses its own function, cleverly called afni_fgets(), to read text lines,
-to avoid this problem.  However, this function is 4-5 times slower than
-the system fgets() function, so if speed if crucial -- as when reading
-a giant 1D file -- then set AFNI_USE_FGETS to YES to make AFNI programs
-use the system fgets() function.  The best way to do this would be on
-the command line, as in the simple example below:
+standard end-of-line character (ASCII 0xA).  Files created on
+Microsoft platforms use a different end-of-line character (ASCII 0xD).
+The result is that Microsoft-ized text files don't work well with
+fgets().  AFNI uses its own function, cleverly called afni_fgets(), to
+read text lines, to avoid this problem.  However, this function is 4-5
+times slower than the system fgets() function, so if speed if crucial
+-- as when reading a giant 1D file -- then set AFNI_USE_FGETS to YES
+to make AFNI programs use the system fgets() function.  The best way
+to do this would be on the command line, as in the simple example
+below:
   1dcat -DAFNI_USE_FGETS=YES bigfileA.1D bigfileB.1D > bigfileAB.1D
 In such an example, you won't see a 4-5 times speedup, since actually
 most of the time is spent decoding the text in the file into numbers
@@ -3647,15 +3756,16 @@ server is 'linkrbrain.eu'.
 -----------------------------------
 Variable: AFNI_NIML_DEBUG
 -----------------------------------
-This integer sets the debugging level in some niml I/O routines, particularly
-those in thd_niml.c.  Currently used values range from 0 to 3.
+This integer sets the debugging level in some niml I/O routines,
+particularly those in thd_niml.c.  Currently used values range from 0
+to 3.
 
 -----------------------------------
 Variable: AFNI_NSD_ADD_NODES
 -----------------------------------
-If this YES/NO variable is set to YES, then when a NI_SURF_DSET dataset
-is written to disk, if it has no node list attribute, a default list will
-be created.
+If this YES/NO variable is set to YES, then when a NI_SURF_DSET
+dataset is written to disk, if it has no node list attribute, a
+default list will be created.
 
 -----------------------------------
 Variable: AFNI_NSD_TO_FLOAT
@@ -3667,8 +3777,9 @@ datasets will be written as float.
 -----------------------------------
 Variable: AFNI_NIML_TEXT_DATA
 -----------------------------------
-If this YES/NO variable is set to YES, then NI_SURF_DSET datasets will be
-written with data in text format.  Otherwise, data will be in binary.
+If this YES/NO variable is set to YES, then NI_SURF_DSET datasets will
+be written with data in text format.  Otherwise, data will be in
+binary.
 
 -----------------------------
 Variable: AFNI_SIMPLE_HISTORY
@@ -3676,9 +3787,9 @@ Variable: AFNI_SIMPLE_HISTORY
 A few programs (particularly 3dcalc) create a complicated history note
 in the output dataset header, by including the history of all inputs.
 This history can become inordinately long and pointless when 3calc is
-run in a long chain of calculations.  Setting this variable to YES will
-turn off this cumulation of all histories, and may make your dataset
-headers more manageable.
+run in a long chain of calculations.  Setting this variable to YES
+will turn off this cumulation of all histories, and may make your
+dataset headers more manageable.
 
 -------------------------------------------
 Variable: AFNI_NIML_BUFSIZE or NIML_BUFSIZE
@@ -3708,16 +3819,17 @@ lines in the 'Dataset#N' plugin from the default of 9 up to a max of 49.
 ---------------------------------
 Variable: AFNI_WRITE_1D_AS_PREFIX
 ---------------------------------
-If this variable is set to YES, then 1D formatted files will be written
-to the file based on the given prefix, rather than to an automatic 1D file.
-This allows writing surface files to NIfTI format, for example.
+If this variable is set to YES, then 1D formatted files will be
+written to the file based on the given prefix, rather than to an
+automatic 1D file.  This allows writing surface files to NIfTI format,
+for example.
 
 -----------------------------------
 Variable: AFNI_PATH_SPACES_OK
 -----------------------------------
-If this variable is set to YES, dataset names with spaces in them will go
-through "normal" reading routines, rather than using THD_open_tcat() to try
-to combine multiple datasets.
+If this variable is set to YES, dataset names with spaces in them will
+go through "normal" reading routines, rather than using
+THD_open_tcat() to try to combine multiple datasets.
 
 ----------------------
 Variable: AFNI_CREEPTO
@@ -3739,9 +3851,10 @@ string to the null string '' if you wish to hide your identity totally.
 ---------------------------
 Variable: AFNI_INCLUDE_HISTORY
 ---------------------------
-If this variable is set to YES, output datasets will have a HISTORY_NOTE which
-can be seen via 3dinfo, for example.  If set to NO, output datasets will not
-have any HISTORY.  This is one method for making datasets anonymous.
+If this variable is set to YES, output datasets will have a
+HISTORY_NOTE which can be seen via 3dinfo, for example.  If set to NO,
+output datasets will not have any HISTORY.  This is one method for
+making datasets anonymous.
 
 
 =============================================
@@ -3756,16 +3869,17 @@ have any HISTORY.  This is one method for making datasets anonymous.
 | Local Group, Virgo Supercluster           |
 =============================================
 
-############################################################################
-##### Variables that Specifically Affect the Operation of 3dDeconvolve #####
-############################################################################
+########################################################################
+### Variables that Specifically Affect the Operation of 3dDeconvolve ###
+########################################################################
 
 -----------------------------------
 Variable: AFNI_3dDeconvolve_GOFORIT
 -----------------------------------
-If this variable is set to YES, then 3dDeconvolve behaves as if you used the
-'-GOFORIT' option on the command line -- that is, it will continue to run
-even if it detects serious non-fatal problems with the problem setup.
+If this variable is set to YES, then 3dDeconvolve behaves as if you
+used the '-GOFORIT' option on the command line -- that is, it will
+continue to run even if it detects serious non-fatal problems with the
+problem setup.
 
 --------------------------------
 Variable: AFNI_3dDeconvolve_NIML
@@ -3779,27 +3893,28 @@ set this variable to NO.
 Variable: AFNI_3dDeconvolve_extend
 ----------------------------------
 If you input a stimulus time series (via the -stim_file option) to
-3dDeconvolve that is shorter than needed for the regression analysis, the
-program will normally print a warning message and extend the time series
-with zero values to the needed length.  If you would rather have the program
-stop if it detects this problem (the behavior before 22 Oct 2003), then set
-this environment variable to NO.
+3dDeconvolve that is shorter than needed for the regression analysis,
+the program will normally print a warning message and extend the time
+series with zero values to the needed length.  If you would rather
+have the program stop if it detects this problem (the behavior before
+22 Oct 2003), then set this environment variable to NO.
 
 ---------------------------------
 Variable: AFNI_3dDeconvolve_nodup
 ---------------------------------
-If this variable is set to YES, then if the 3dDeconvolve program detects
-duplicate input stimulus filenames or duplicate regressors, the program
-will fail (with an error message) rather than attempt to continue.
+If this variable is set to YES, then if the 3dDeconvolve program
+detects duplicate input stimulus filenames or duplicate regressors,
+the program will fail (with an error message) rather than attempt to
+continue.
 
 -----------------------------------------
 Variable: AFNI_3dDeconvolve_nodata_extras
 -----------------------------------------
-When using the -nodata option in 3dDeconvolve, the default printout gives
-the 'normalized standard deviation' for each stimulus parameter.  If you
-set this variable to YES, then the printout will include the -polort
-baseline parameters as well, and also the L2 norm of each column in
-the regression matrix.
+When using the -nodata option in 3dDeconvolve, the default printout
+gives the 'normalized standard deviation' for each stimulus parameter.
+If you set this variable to YES, then the printout will include the
+-polort baseline parameters as well, and also the L2 norm of each
+column in the regression matrix.
 
 -----------------------------------
 Variable: AFNI_3dDeconvolve_oneline
@@ -3814,36 +3929,38 @@ running the program.
 ----------------------------------
 Variable: AFNI_3dDeconvolve_rawAM2
 ----------------------------------
-Normally, when you use the -stim_times_AM2 option, the regression against
-the covariates is 'centered' around the mean of the values given.  If you
-want the regression to proceed directly with the covariate values as given,
-set this option to YES.  Please do NOT do this unless you understand what
-this means!!!
+Normally, when you use the -stim_times_AM2 option, the regression
+against the covariates is 'centered' around the mean of the values
+given.  If you want the regression to proceed directly with the
+covariate values as given, set this option to YES.  Please do NOT do
+this unless you understand what this means!!!
 
 --------------------------
 Variable: AFNI_XJPEG_COLOR
 --------------------------
-Determines the color of the lines drawn between the column boxes in the
-output from the -xjpeg option to 3dDeconvolve.  The color format is
-"rgbi:rf/gf/bf", where each value rf,gf,bf is a number between 0.0 and 1.0
-(inclusive); for example, yellow would be "rgbi:1.0/1.0/0.0".  As a
-special case, if this value is the string "none" or "NONE", then these
-lines will not be drawn.
+Determines the color of the lines drawn between the column boxes in
+the output from the -xjpeg option to 3dDeconvolve.  The color format
+is "rgbi:rf/gf/bf", where each value rf,gf,bf is a number between 0.0
+and 1.0 (inclusive); for example, yellow would be "rgbi:1.0/1.0/0.0".
+As a special case, if this value is the string "none" or "NONE", then
+these lines will not be drawn.
 
 -------------------------
 Variable: AFNI_XJPEG_IMXY
 -------------------------
-This variable determines the size of the image saved when via the -xjpeg
-option to 3dDeconvolve.  It should be in the format AxB, where 'A' is the
-number of pixels the image is to be wide (across the matrix rows) and 'B'
-is the number of pixels high (down the columns); for example:
+This variable determines the size of the image saved when via the
+-xjpeg option to 3dDeconvolve.  It should be in the format AxB, where
+'A' is the number of pixels the image is to be wide (across the matrix
+rows) and 'B' is the number of pixels high (down the columns); for
+example:
   setenv AFNI_XJPEG_IMXY 768x1024
-which means to set the x-size (horizontal) to 768 pixels and the y-size
-(vertical) to 1024 pixels.  These values are the default, by the way.
+which means to set the x-size (horizontal) to 768 pixels and the
+y-size (vertical) to 1024 pixels.  These values are the default, by
+the way.
 
-If the first value 'A' is negative and less than -1, its absolute value
-is the number of pixels across PER ROW.  If the second value 'B' is
-negative, its absolute value is the number of pixels down PER ROW.
+If the first value 'A' is negative and less than -1, its absolute
+value is the number of pixels across PER ROW.  If the second value 'B'
+is negative, its absolute value is the number of pixels down PER ROW.
 (Usually there are many fewer columns than rows.)
 
 -------------------------
@@ -3917,82 +4034,89 @@ this purpose.  Or just look at your data (please!).
 ##### ATLAS AND WHEREAMI ENVIRONMENT VARIABLES  #####
 #####################################################
 
-These variables control how AFNI and whereami make use of various atlases and
-template spaces. The variables may also affect how other AFNI programs use
-atlases as input datasets.
+These variables control how AFNI and whereami make use of various
+atlases and template spaces. The variables may also affect how other
+AFNI programs use atlases as input datasets.
 
 -------------------------
 Variable: AFNI_ATLAS_LIST
 -------------------------
-This list contains the names of the atlases that should be queried when no
-specific atlas has been requested. For example, the afni GUI and whereami,
-by default, do not load all the atlases specified in the AFNI_atlas_spaces.niml
-file. If this variable is not set, the TT_Daemon atlas and the cytoarchitectonic
-Eickhoff-Zilles in MNI_ANAT space are loaded. If the variable is set to a list
-like "TT_Daemon,DD_Desai_PM", then only these two atlases are loaded. The list
-of atlas names may be separated by commas or semicolons. A special case of "ALL"
-may be set, and all the available atlases will be loaded.
+This list contains the names of the atlases that should be queried
+when no specific atlas has been requested. For example, the afni GUI
+and whereami, by default, do not load all the atlases specified in the
+AFNI_atlas_spaces.niml file. If this variable is not set, the
+TT_Daemon atlas and the cytoarchitectonic Eickhoff-Zilles in MNI_ANAT
+space are loaded. If the variable is set to a list like
+"TT_Daemon,DD_Desai_PM", then only these two atlases are loaded. The
+list of atlas names may be separated by commas or semicolons. A
+special case of "ALL" may be set, and all the available atlases will
+be loaded.
 
 ----------------------------------
 Variable: AFNI_TEMPLATE_SPACE_LIST
 ----------------------------------
-This list contains the names of the template spaces that are shown when whereami
-reports the coordinates among various spaces. By default, the list contains
-"TLRC,MNI,MNI_ANAT". As with AFNI_ATLAS_LIST, this list may also be set to
-"ALL".
+This list contains the names of the template spaces that are shown
+when whereami reports the coordinates among various spaces. By
+default, the list contains "TLRC,MNI,MNI_ANAT". As with
+AFNI_ATLAS_LIST, this list may also be set to "ALL".
 
 ----------------------------
 Variable: AFNI_ATLAS_COLORS (editable)
 ----------------------------
-This variable sets which atlas to use in the AFNI GUI for "Atlas Colors",
-"Go to Atlas location", "Draw Dataset" and "Renderer" functions.
+This variable sets which atlas to use in the AFNI GUI for "Atlas
+Colors", "Go to Atlas location", "Draw Dataset" and "Renderer"
+functions.
 
 ----------------------------
 Variable: AFNI_JUMPTO_SPACE (editable)
 ----------------------------
-This variable sets which space to use in the AFNI GUI for "Jump to (spacename)"
-function where this would default to "MNI". Choose a valid spacename from the
-current list of spaces in "whereami -show_spaces". The jump function transforms
-the user input coordinates from that space to the space of the dataset.
+This variable sets which space to use in the AFNI GUI for "Jump to
+(spacename)" function where this would default to "MNI". Choose a
+valid spacename from the current list of spaces in "whereami
+-show_spaces". The jump function transforms the user input coordinates
+from that space to the space of the dataset.
 
 ----------------------------
 Variable: AFNI_ATLAS_PATH
 ----------------------------
 This variable sets which directory or directories to search for AFNI
-atlas datasets that have been defined in the AFNI_atlas_spaces.niml
-or CustomAtlases.niml file. For all afni programs and scripts that use
-atlas and template datasets, the program will preferentially use (in order)
-the file path included in the dataset filename definition, the AFNI_ATLAS_PATH,
-the AFNI_PLUGINPATH or the standard PATH values.
+atlas datasets that have been defined in the AFNI_atlas_spaces.niml or
+CustomAtlases.niml file. For all afni programs and scripts that use
+atlas and template datasets, the program will preferentially use (in
+order) the file path included in the dataset filename definition, the
+AFNI_ATLAS_PATH, the AFNI_PLUGINPATH or the standard PATH values.
 
 -------------------------
 Variable: AFNI_PLUGINPATH
 -------------------------
-Described above, this variable is used for several purposes. For whereami,
-this variable sets the directory to load atlases and NIML files if not in the
-current directory. If this variable does not exist or the referred file does
-not exist, then the atlas is searched in the user's current PATH setting.
-If this is set, atlases will be found more quickly than searching all the
-directories of the entire PATH. Searches of the PATH variable for whereami
-usage stop at the first occurrence of the searched file, so placing the AFNI
-directory earlier in the PATH will dramatically increase the speed that the
-file is found.
+Described above, this variable is used for several purposes. For
+whereami, this variable sets the directory to load atlases and NIML
+files if not in the current directory. If this variable does not exist
+or the referred file does not exist, then the atlas is searched in the
+user's current PATH setting.  If this is set, atlases will be found
+more quickly than searching all the directories of the entire
+PATH. Searches of the PATH variable for whereami usage stop at the
+first occurrence of the searched file, so placing the AFNI directory
+earlier in the PATH will dramatically increase the speed that the file
+is found.
 
 ----------------------------------
 Variable: AFNI_WHEREAMI_DEC_PLACES (editable)
 ----------------------------------
-Sets precision for whereami output.  Higher field data and animal atlases
-require higher precision. The default value used for focus point among template
-spaces is still 0 decimal places (closest mm), but animal data requires three
-decimal places. Value may range from 0 to 10.
+Sets precision for whereami output.  Higher field data and animal
+atlases require higher precision. The default value used for focus
+point among template spaces is still 0 decimal places (closest mm),
+but animal data requires three decimal places. Value may range from 0
+to 10.
 
 -------------------------
 Variable: AFNI_WAMI_DEBUG
 -------------------------
-This variable controls the output of detailed messages about various tasks
-involved in loading atlases, transformations and composing query results.
-By default, this information is not shown. This integer sets the debugging
-level in whereami routines. Currently used values range from 0 to 3.
+This variable controls the output of detailed messages about various
+tasks involved in loading atlases, transformations and composing query
+results.  By default, this information is not shown. This integer sets
+the debugging level in whereami routines. Currently used values range
+from 0 to 3.
 
 ------------------------------
 Variable: AFNI_TTATLAS_DATASET
@@ -4004,21 +4128,23 @@ is not set.
 -------------------------------
 Variable: AFNI_WHEREAMI_NO_WARN
 -------------------------------
-Turns off warnings about various whereami features - like queries that have
-reached their limit of returned results. By default, warnings are displayed
-only the first time a particular message is encountered.
+Turns off warnings about various whereami features - like queries that
+have reached their limit of returned results. By default, warnings are
+displayed only the first time a particular message is encountered.
 
 --------------------------------
 Variable: AFNI_WHEREAMI_MAX_FIND (editable)
 --------------------------------
-By default, only the first nine structures are displayed within a particular
-atlas. You may increase or decrease this to show more or fewer structures in
-the whereami results.
+By default, only the first nine structures are displayed within a
+particular atlas. You may increase or decrease this to show more or
+fewer structures in the whereami results.
 
 -------------------------------
 Variable: AFNI_WHEREAMI_MAX_SEARCH_RAD (editable)
 -------------------------------
-By default, whereami searches a radius of 7.5 mm. Set a radius up to 9.5 mm.
+
+By default, whereami searches a radius of 7.5 mm. Set a radius up to
+9.5 mm.
 
 -------------------------------
 Variable: AFNI_WHEREAMI_PROB_MIN
@@ -4028,92 +4154,96 @@ Minimum probability AFNI considers in probabilistic atlases
 --------------------------------
 Variable: AFNI_DEFAULT_STD_SPACE
 --------------------------------
-The default template space is assumed to be TLRC. This is used for coordinate
-input to whereami, the whereami GUI and for TLRC view datasets without a
-template space explicitly set in the dataset header.
+The default template space is assumed to be TLRC. This is used for
+coordinate input to whereami, the whereami GUI and for TLRC view
+datasets without a template space explicitly set in the dataset
+header.
 
 --------------------------------
 Variable: AFNI_NIFTI_VIEW
 --------------------------------
-The default view extension used for output when creating AFNI format datasets
-from NIFTI datasets.This variable is only applicable for sform and qform codes
-that do not have clearly defined views (sform/qform code = 2). Set to "tlrc"
-or "orig". See also AFNI_DEFAULT_STD_SPACE and AFNI_NIFTI_PRIORITY.
-Maybe this has to do with DARTEL output.
+The default view extension used for output when creating AFNI format
+datasets from NIFTI datasets.This variable is only applicable for
+sform and qform codes that do not have clearly defined views
+(sform/qform code = 2). Set to "tlrc" or "orig". See also
+AFNI_DEFAULT_STD_SPACE and AFNI_NIFTI_PRIORITY.  Maybe this has to do
+with DARTEL output.
 
 --------------------------------
 Variable: AFNI_NIFTI_PRIORITY
 --------------------------------
-Sets preference for NIFTI files to use sform or qform codes and matrices to
-determine space, origin and orientation. Set to 'S' or 'Q' for sform or qform
-respectively. If not set, NIFTI files are read using the non-zero form code or
-the qform code if both are set.
+Sets preference for NIFTI files to use sform or qform codes and
+matrices to determine space, origin and orientation. Set to 'S' or 'Q'
+for sform or qform respectively. If not set, NIFTI files are read
+using the non-zero form code or the qform code if both are set.
 
 -------------------------------------------
 Variable: AFNI_SUPP_ATLAS, AFNI_LOCAL_ATLAS
 -------------------------------------------
-These variables allow the addition of more atlas definitions to the global list
-of atlases, templates, spaces and transformations. The variable should be set
-to the name of a NIML file with the same format of the AFNI_atlas_spaces.niml
-file. These can be customized by site (supplemental) or by subject (local) and
-follow the same search order as the AFNI_atlas_spaces.niml file. In order to
-be included in default searches, additional atlases or template spaces would
-also need to be added to AFNI_ATLAS_SPACE_LIST and the AFNI_TEMPLATE_SPACE_LIST,
+These variables allow the addition of more atlas definitions to the
+global list of atlases, templates, spaces and transformations. The
+variable should be set to the name of a NIML file with the same format
+of the AFNI_atlas_spaces.niml file. These can be customized by site
+(supplemental) or by subject (local) and follow the same search order
+as the AFNI_atlas_spaces.niml file. In order to be included in default
+searches, additional atlases or template spaces would also need to be
+added to AFNI_ATLAS_SPACE_LIST and the AFNI_TEMPLATE_SPACE_LIST,
 unless those are set to "ALL".
 
 -------------------------------------------
 Variable: AFNI_SUPP_ATLAS_DIR
 -------------------------------------------
-Allows the addition of atlas definitions to the global list of atlases,
-templates,spaces and transformations. The variable should be set to the name
-of a directory that contains a SessionAtlases.niml file with the same format
-as the AFNI_atlas_spaces.niml file. Also see AFNI_SUPP_ATLAS, AFNI_LOCAL_ATLAS,
-AFNI_ATLAS_SPACE_LIST, AFNI_TEMPLATE_SPACE_LIST.
+Allows the addition of atlas definitions to the global list of
+atlases, templates,spaces and transformations. The variable should be
+set to the name of a directory that contains a SessionAtlases.niml
+file with the same format as the AFNI_atlas_spaces.niml file. Also see
+AFNI_SUPP_ATLAS, AFNI_LOCAL_ATLAS, AFNI_ATLAS_SPACE_LIST,
+AFNI_TEMPLATE_SPACE_LIST.
 
 ------------------------------
 Variable: AFNI_TTATLAS_CAUTION (editable)
 ------------------------------
-If this YES/NO variable is set to NO, then the warning about the potential
-errors in the "Where am I?" popup will not appear.
-(This is purely for cosmetic purposes, Ziad.)
+If this YES/NO variable is set to NO, then the warning about the
+potential errors in the "Where am I?" popup will not appear.  (This is
+purely for cosmetic purposes, Ziad.)
 
 -------------------------------
 Variable: AFNI_TTATLAS_FONTSIZE (editable)
 -------------------------------
-If this variable is not set, the default font size is used in the 'Where am I?'
-popup window.
-If this variable is set to 'BIG' or a positive number, then a larger font
-size is used.
-If this variable is set to 'SMALL' or a negative number, then a smaller font
-size is used.
+If this variable is not set, the default font size is used in the
+'Where am I?'  popup window.
+If this variable is set to 'BIG' or a positive number, then a larger
+font size is used.
+If this variable is set to 'SMALL' or a negative number, then a
+smaller font size is used.
 
 -------------------------
 Variable: AFNI_WEBBY_WAMI
 -------------------------
-When set to YES, the Where Am I GUI becomes 'web-enabled', i.e. the report
-becomes clickable to open web pages from the output. Most features are
-still experimental. See AFNI_NEUROSYNTH and AFNI_SUMSDB below for examples.
-The default value is 'NO'.
+When set to YES, the Where Am I GUI becomes 'web-enabled', i.e. the
+report becomes clickable to open web pages from the output. Most
+features are still experimental. See AFNI_NEUROSYNTH and AFNI_SUMSDB
+below for examples.  The default value is 'NO'.
 
 -------------------------
 Variable: AFNI_NEUROSYNTH
 -------------------------
-When set to YES, provides link for MNI coordinate in Where Am I GUI to the
-Neurosynth site. Requires AFNI_WEBBY_WAMI to also be set to YES. The default
-value is 'NO'.
+When set to YES, provides link for MNI coordinate in Where Am I GUI to
+the Neurosynth site. Requires AFNI_WEBBY_WAMI to also be set to
+YES. The default value is 'NO'.
 
 ---------------------
 Variable: AFNI_SUMSDB
 ---------------------
-When set to YES, provides link for MNI coordinate in Where Am I GUI to the
-SumsDB site. Requires AFNI_WEBBY_WAMI to also be set to YES. The default
-value is 'NO'.
+When set to YES, provides link for MNI coordinate in Where Am I GUI to
+the SumsDB site. Requires AFNI_WEBBY_WAMI to also be set to YES. The
+default value is 'NO'.
 
 -------------------------------
 Variable:  AFNI_NO_OPTION_HINT
 -------------------------------
-If this variable is set, do NOT make suggestions if a program parsing error
-is encountered.
+If this variable is set, do NOT make suggestions if a program parsing
+error is encountered.
 
 --------------------------
 Variable:  AFNI_GUI_EDITOR
@@ -4134,20 +4264,20 @@ Set this variable to your favorite pdf viewer.
 ------------------------------------
 Variable:  AFNI_LOG_BEST_PROG_OPTION
 ------------------------------------
-If set to YES, allow approximate searching functions to log their behavior in
-a file named ~/.afni/help/aps.log.txt
+If set to YES, allow approximate searching functions to log their
+behavior in a file named ~/.afni/help/aps.log.txt
 
 ------------------------------------
 Variable:  AFNI_HISTDB_SCRIPT
 ------------------------------------
-If set to a non-empty string, an attribute called HISTDB_SCRIPT is added to the
-header of AFNI datasets at write time. The value of the attribute is that of
-the variable AFNI_HISTDB_SCRIPT.
-At the moment, this variable is solely for Tom Ross's nefarious history
-databasing schemes.
+If set to a non-empty string, an attribute called HISTDB_SCRIPT is
+added to the header of AFNI datasets at write time. The value of the
+attribute is that of the variable AFNI_HISTDB_SCRIPT.
+At the moment, this variable is solely for Tom Ross's nefarious
+history databasing schemes.
 
 ------------------------------------
 Variable:  AFNI_ICORR_UBER_USER
 ------------------------------------
-If set to YES, enable distance measures that are not ready for prime time in
-the instacorr interface.
+If set to YES, enable distance measures that are not ready for prime
+time in the instacorr interface.

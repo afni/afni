@@ -31,7 +31,7 @@ static char *INIT_labovr[DEFAULT_NCOLOVR] = {
 static int nx,nts , sep=1, sepscl=0;
 static float **yar , *xar ;
 static MCW_DC *dc ;
-static char *title = NULL , *wintitle = NULL, *xlabel = NULL , *ylabel = NULL ;
+static char *title=NULL , *wintitle=NULL, *xlabel=NULL , *ylabel=NULL ;
 
 static char *dfile_nar[6] = {
          "Roll [\\degree]" , "Pitch [\\degree]" , "Yaw [\\degree]"    ,
@@ -589,6 +589,11 @@ int main( int argc , char *argv[] )
 
       if( strcmp(argv[iarg],"-naked") == 0 ){          /* 03 May 2018 */
         plot_ts_do_naked(1) ;
+        plot_ts_setthik(0.003f) ;
+        iarg++ ; continue ;
+      }
+      if( strcmp(argv[iarg],"-NAKED") == 0 ){          /* 09 May 2018 */
+        plot_ts_do_naked(2) ;
         iarg++ ; continue ;
       }
 

@@ -580,7 +580,15 @@ static char *tip[] = {
   "This method is how you can get the most up-to-date information about using\n"
   "an AFNI program. All '-help' output are also formatted as Web pages and\n"
   "are available here:\n"
-  "  https://afni.nimh.nih.gov/afni/doc/program_help/index.html\n"
+  "  https://afni.nimh.nih.gov/afni/doc/program_help/index.html"
+ ,
+  "Script @grayplot will read the errts (regression residuals) time series\n"
+  "datasets from an afni_proc.py results directory, and make PNG-formatted\n"
+  "grayplots, partitioned into gray matter, white matter, and CSF segments.\n"
+  "The plots are good for looking at the structure of the residuals -- in\n"
+  "an ideal world (alas, hard to find), there would be little spatial or\n"
+  "temporal structure in the errts datasets, which are the 'noise' from\n"
+  "which the variance parts of single subject t/F statistics are computed."
 
 } ;
 
@@ -1379,6 +1387,13 @@ static char *gby[] = {
      "\n There comes a time when you look into the mirror and you realize\n"
      " what you see is all that you will ever be. And then you accept it.\n"
      " Or you stop looking in mirrors" ,
+
+     /* from Quentin Crisp */
+
+     "Don't clean your house. After 4 years, the dirt doesn't get any worse" ,
+     "Don't keep up with the Joneses; drag them down to your level" ,
+     "To know all is not to forgive all; it is to despise everybody" ,
+     "If at first you don't succeed, failure may just be your style" ,
 
      /* from John Tukey */
 
