@@ -44,6 +44,17 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 10 , MAY , 2018 , RWC , "AFNI GUI" , MICRO , TYPE_NEW_ENV ,
+   "remove AFNI_ENFORCE_ASPECT from having any effect" ,
+   "This never did very much good, so it is now OFF." } ,
+
+ { 9 , MAY , 2018 , RWC , "AFNI GUI" , MICRO , TYPE_BUG_FIX ,
+   "Fix 'too many redraws' problem in imseq.c" ,
+   "For some reason, could get many ConfigureNotify events for one image\n"
+   "resize, each event causing a redraw. Now if the redraw ordered by a\n"
+   "ConfigureNotify is exactly the same size as the previous one, it will be\n"
+   "skipped." } ,
+
  { 7 , MAY , 2018 , RWC , "@grayplot" , MINOR , TYPE_NEW_PROG ,
    "Script to drive 3dGrayplot in afni_proc.py output directory" ,
    "Will grayplot errts* and all_runs datasets, with motion indicator graph\n"
