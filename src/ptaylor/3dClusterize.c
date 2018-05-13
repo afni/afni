@@ -1,7 +1,10 @@
 /* 
    Description
 
-   2018-05-08
+   2018 05 08: inception for this version
+
+   2018 05 12: working version, new options for p-to-stat, new report
+               labels
 */
 
 
@@ -20,7 +23,7 @@
 #define BIIIIG_NUM 1.e9
 
 // allow 'negative p-value', for syntax reasons
-#define IsNotValidP(p) ( ( (p<-1.) || (p>1.) ) ? 1 : 0 )
+#define IsNotValidP(p, nsides) ( ( (p<0) || (p>(0.5*nsides)) ) ? 1 : 0 )
 
 void MCW_fc7( float qval , char *buf );
 int CheckStringStart( char *a, char *b, char *c);
@@ -32,6 +35,7 @@ int MakeBrickLab2(char *c0, char *c1, char *c2);
 void usage_Clusterize(int detail) 
 {
    printf(
+" # ------------------------------------------------------------------------\n"
 " # ------------------------------------------------------------------------\n"
 " \n"
 " This program is for performing clusterizing: one can perform voxelwise\n"
@@ -63,74 +67,75 @@ void usage_Clusterize(int detail)
 " \n"
 " USAGE ~1~\n"
 " \n"
-"      Input:\n"
-"        + A dataset of one or more bricks\n"
-"        + Specify an index of the volume to threshold\n"
-"        + Declare a voxelwise threshold, and optionally a cluster-volume\n"
-"          threshold\n"
-"        + Optionally specify the index an additional 'data' brick\n"
-"        + Optionally specify a mask\n"
+"   Input: ~2~\n"
 " \n"
-"      Output:\n"
+"     + A dataset of one or more bricks\n"
+"     + Specify an index of the volume to threshold\n"
+"     + Declare a voxelwise threshold, and optionally a cluster-volume\n"
+"       threshold\n"
+"     + Optionally specify the index an additional 'data' brick\n"
+"     + Optionally specify a mask\n"
 " \n"
-"        + A dataset volume containing a map of cluster ROIs (sorted by\n"
-"          size) after thresholding (and clusterizing, if specified)\n"
-"        + A report about the clusters (center of mass, extent, volume,\n"
-"          etc.) that can be dumped into a text file\n"
-"        + Optional: a cluster-masked version of an input data set\n"
-"        + Optional: a mask\n"
+"   Output: ~2~\n"
+" \n"
+"     + A dataset volume containing a map of cluster ROIs (sorted by\n"
+"       size) after thresholding (and clusterizing, if specified)\n"
+"     + A report about the clusters (center of mass, extent, volume,\n"
+"       etc.) that can be dumped into a text file\n"
+"     + Optional: a cluster-masked version of an input data set\n"
+"     + Optional: a mask\n"
 " \n"
 " \n"
-" Explanation of 3dclust text report output\n"
-" -----------------------------------------\n"
+"   Explanation of 3dClusterize text report: ~2~\n"
 " \n"
-" Nvoxel       : Number of voxels in the cluster\n"
+"     Nvoxel       : Number of voxels in the cluster\n"
 " \n"
-" CM RL        : Center of mass (CM) for the cluster in the Right-Left\n"
-"                direction (i.e., the coordinates for the CM)\n"
+"     CM RL        : Center of mass (CM) for the cluster in the Right-Left\n"
+"                    direction (i.e., the coordinates for the CM)\n"
 " \n"
-" CM AP        : Center of mass for the cluster in the\n"
-"                Anterior-Posterior direction\n"
+"     CM AP        : Center of mass for the cluster in the\n"
+"                    Anterior-Posterior direction\n"
 " \n"
-" CM IS        : Center of mass for the cluster in the\n"
-"                Inferior-Superior direction\n"
+"     CM IS        : Center of mass for the cluster in the\n"
+"                    Inferior-Superior direction\n"
 " \n"
-" minRL, maxRL : Bounding box for the cluster, min and max\n"
-"                coordinates in the Right-Left direction\n"
+"     minRL, maxRL : Bounding box for the cluster, min and max\n"
+"                    coordinates in the Right-Left direction\n"
 " \n"
-" minAP, maxAP : Min and max coordinates in the Anterior-Posterior\n"
-"                direction of the volume cluster\n"
+"     minAP, maxAP : Min and max coordinates in the Anterior-Posterior\n"
+"                    direction of the volume cluster\n"
 " \n"
-" minIS, maxIS : Min and max coordinates in the Inferior-Superior\n"
-"                direction of the volume cluster\n"
+"     minIS, maxIS : Min and max coordinates in the Inferior-Superior\n"
+"                    direction of the volume cluster\n"
 " \n"
-" Mean         : Mean value for the volume cluster\n"
+"     Mean         : Mean value for the volume cluster\n"
 " \n"
-" SEM          : Standard Error of the Mean for the volume cluster\n"
+"     SEM          : Standard Error of the Mean for the volume cluster\n"
 " \n"
-" Max Int      : Maximum Intensity value for the volume cluster\n"
+"     Max Int      : Maximum Intensity value for the volume cluster\n"
 " \n"
-" MI RL        : Coordinate of the Maximum Intensity value in the\n"
-"                Right-Left direction of the volume cluster\n"
+"     MI RL        : Coordinate of the Maximum Intensity value in the\n"
+"                    Right-Left direction of the volume cluster\n"
 " \n"
-" MI AP        : Coordinate of the Maximum Intensity value in the\n"
-"                Anterior-Posterior direction of the volume cluster\n"
+"     MI AP        : Coordinate of the Maximum Intensity value in the\n"
+"                    Anterior-Posterior direction of the volume cluster\n"
 " \n"
-" MI IS        : Coordinate of the Maximum Intensity value in the\n"
-"                Inferior-Superior direction of the volume cluster\n"
+"     MI IS        : Coordinate of the Maximum Intensity value in the\n"
+"                    Inferior-Superior direction of the volume cluster\n"
 " \n"
-"   * CM values use the absolute value of the voxel values as weights.\n"
+"     * CM values use the absolute value of the voxel values as weights.\n"
 " \n"
-"   * The program does not work on complex- or rgb-valued datasets!\n"
+"     * The program does not work on complex- or rgb-valued datasets!\n"
 " \n"
-"   * SEM values are not realistic for interpolated data sets!  A ROUGH\n"
-"     correction is to multiply the SEM of the interpolated data set by\n"
-"     the square root of the number of interpolated voxels per original\n"
-"     voxel.\n"
+"     * SEM values are not realistic for interpolated data sets!  A\n"
+"       ROUGH correction is to multiply the SEM of the interpolated data\n"
+"       set by the square root of the number of interpolated voxels per\n"
+"       original voxel.\n"
 " \n"
-"   * Some summary or 'global' values are placed at the bottoms of\n"
-"     report columns, by default.  These include the 'global' volume, CM\n"
-"     of the combined cluster ROIs, and the mean+SEM of that Pangaea.\n"
+"     * Some summary or 'global' values are placed at the bottoms of\n"
+"       report columns, by default.  These include the 'global' volume,\n"
+"       CM of the combined cluster ROIs, and the mean+SEM of that\n"
+"       Pangaea.\n"
 " \n"
 " * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 " \n"
@@ -158,6 +163,7 @@ void usage_Clusterize(int detail)
 " \n"
 " -mask MMM      :Load in a dataset MMM to use as a mask, within which\n"
 "                 to look for clusters.\n"
+" \n"
 " -mask_from_hdr :If 3dClustSim put an internal attribute into the\n"
 "                 input dataset that describes a mask, 3dClusterize will\n"
 "                 use this mask to eliminate voxels before clustering,\n"
@@ -165,8 +171,9 @@ void usage_Clusterize(int detail)
 "                 Clusterize GUI works by default).  If there is no\n"
 "                 internal mask in the dataset header, then '-inmask'\n"
 "                 doesn't do anything.\n"
-" -pref_mask MO  :specify that you wanted the utilized mask dumped out\n"
-"                 as a single volume dataset MO.  This is probably only\n"
+" \n"
+" -out_mask OM   :specify that you wanted the utilized mask dumped out\n"
+"                 as a single volume dataset OM.  This is probably only\n"
 "                 really useful if you are using '-mask_from_hdr'.  If\n"
 "                 not mask option is specified, there will be no output.\n"
 " \n"
@@ -181,42 +188,45 @@ void usage_Clusterize(int detail)
 "                 with '-idat ..', then thresholding, clustering and\n"
 "                 reporting are all done using the 'threshold' dataset.\n"
 " \n"
-"    One of the following methods of clustering MUST be chosen (and read\n"
-"    just below for using p-values as thresholds):\n"
 " -1sided SSS TT :Perform one-sided testing. Two arguments are required:\n"
 "                   SSS -> either 'RIGHT_TAIL' or 'LEFT_TAIL', to specify\n"
 "                          which side of the distribution to test.\n"
 "                   TT  -> the threshold value itself.\n"
+"                 See 'NOTES' below to use a p-value as threshold.\n"
+" \n"
 " -2sided  LL RR :Perform two-sided testing. Two arguments are required:\n"
-"                   LL  -> the bound of the left-side tail (i.e., upper\n"
-"                          bound of the left tail).\n"
-"                   RR  -> the bound of the right-side tail (i.e., lower\n"
-"                          bound of the right tail).\n"
+"                   LL  -> the upper bound of the left tail.\n"
+"                   RR  -> lower bound of the right tail.\n"
 "                 *NOTE* that in this case, potentially a cluster could\n"
 "                 be made of both left- and right-tail survivors (e.g.,\n"
 "                 both positive and negative values). For this reason,\n"
 "                 probably '-bisided ...' is a preferable choice.\n"
+"                 See 'NOTES' below to use a p-value as threshold.\n"
+" \n"
 " -bisided LL RR :Same as '-2sided ...', except that the tails are tested\n"
 "                 independently, so a cluster cannot be made of both.\n"
+"                 See 'NOTES' below to use a p-value as threshold.\n"
+" \n"
 " -within_range AA BB\n"
 "                :Perform a kind of clustering where a different kind of\n"
 "                 thresholding is first performed, compared to the above\n"
 "                 cases;  here, one keeps values within the range [AA, BB],\n"
 "                 INSTEAD of keeping values on the tails. Is this useful?\n"
 "                 Who knows, but it exists.\n"
+"                 See 'NOTES' below to use a p-value as threshold.\n"
 " \n"
-" -NN {1|2|3} :Necessary option to specify how many neighbors a voxel\n"
-"                 has; one MUST put one of 1, 2 or 3 after it: 1 -> 6\n"
-"                 facewise neighbors 2 -> 18 face+edgewise neighbors 3\n"
-"                 -> 26 face+edge+nodewise neighbors For example, this\n"
-"                 should match what was chosen in 3dClustSim, if that\n"
-"                 program were run on the data prior to this one. (In\n"
+" -NN {1|2|3}    :Necessary option to specify how many neighbors a voxel\n"
+"                 has; one MUST put one of 1, 2 or 3 after it:\n"
+"                   1 -> 6 facewise neighbors\n"
+"                   2 -> 18 face+edgewise neighbors\n"
+"                   3 -> 26 face+edge+nodewise neighbors\n"
+"                 If using 3dClustSim (or any other method), make sure\n"
+"                 that this NN value matches what was used there. (In\n"
 "                 many AFNI programs, NN=1 is a default choice, but BE\n"
 "                 SURE YOURSELF!)\n"
 " \n"
 " -clust_nvox M  :specify the minimum cluster size in terms of number\n"
-"                 of voxels M (such as output by 3dClustSim, for\n"
-"                 example).\n"
+"                 of voxels M (such as output by 3dClustSim).\n"
 " \n"
 " -clust_volml V :specify the minimum cluster size in terms of volume V,\n"
 "                 in milliliters (requires knowing the voxel\n"
@@ -227,6 +237,7 @@ void usage_Clusterize(int detail)
 "                 as input to whereami for obtaining Atlas-based\n"
 "                 information on cluster locations.\n"
 "                 See whereami -help for more info.\n"
+" \n"
 " -no_1Dformat   :Do not write output in 1D format.\n"
 " \n"
 " -summarize     :Write out only the total nonzero voxel count and\n"
@@ -252,31 +263,44 @@ void usage_Clusterize(int detail)
 " \n"
 " * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 " \n"
-" + NOTE ABOUT USING P-VALUES AS THRESHOLD VALUES:\n"
+" NOTES ~1~\n"
 " \n"
-"     By default, numbers entered as voxelwise thresholds are\n"
-"     assumed to be appropriate statistic values that you have\n"
-"     calculated for your desired significance (e.g., using\n"
-"     p2dsetstat).  HOWEVER, if you just want to enter p-values and\n"
-"     have the program do the conversion work for you, then do as\n"
-"     follows: prepend 'p=' to your threshold number; and if you\n"
-"     want the negative statistic, then put 'p=-' before the value,\n"
-"     which gets translated as '-STAT(abs(p))'.  The numbers entered\n"
-"     in this way must be in the range [-1, 1].\n"
+"   + Using p-values as thresholds: ~2~\n"
 " \n"
-"     Examples of using p-values:\n"
-"         -1sided RIGHT_SIDED p=0.005\n"
-"         -1sided LEFT_SIDED p=-0.001\n"
-"         -bisided p=-0.001 p=0.001\n"
+"     By default, numbers entered as voxelwise thresholds are assumed to\n"
+"     be appropriate statistic values that you have calculated for your\n"
+"     desired significance (e.g., using p2dsetstat).  HOWEVER, if you\n"
+"     just want to enter p-values and have the program do the conversion\n"
+"     work for you, then do as follows: prepend 'p=' to your threshold\n"
+"     number.\n"
+" \n"
+"     - For one-sided tests, the *_TAIL specification is still used, so\n"
+"       in either case the p-value just represents the area in the\n"
+"       statistical distribution's tail (i.e., you don't have to worry\n"
+"       about doing '1-p').  Examples:\n"
+"         -1sided RIGHT_TAIL p=0.005\n"
+"         -1sided LEFT_TAIL  p=0.001\n"
+" \n"
+"     - For the two-sided/bi-sided tests, the a single p-value is\n"
+"       entered to represent the total area under both tails in the\n"
+"       statistical distribution, which are assumed to be symmetric.\n"
+"       Examples:\n"
+"         -bisided p=0.001\n"
+"         -2sided  p=0.005\n"
+" \n"
+"       If you want asymmetric tails, you will have to enter both\n"
+"       threshold values as statistic values (NB: you could use\n"
+"       p2dsetstat to convert each desired p-value to a statistic, and\n"
+"       then put in those stat values to this program).\n"
 " \n"
 "     You will probably NEED to have negative signs for the cases of\n"
-"     '-1sided LEFT_SIDED ..', and for the first entries of '-bisided ..'\n"
+"     '-1sided LEFT_TAIL ..', and for the first entries of '-bisided ..'\n"
 "     or '-2sided ..'.\n"
 " \n"
 "     You cannot mix p-values and statistic values (for two-sided\n"
-"     things, enter either both p-values or both stats).\n"
+"     things, enter either the single p-value or both stats).\n"
 " \n"
-" + NOTE ABOUT APPROPRIATE TESTING\n"
+"   + Performing appropriate testing: ~2~\n"
 " \n"
 "     Don't use a pair of one-sided tests when you *should* be using a\n"
 "     two-sided test!\n"
@@ -319,8 +343,8 @@ void usage_Clusterize(int detail)
 "        -pref_map ClusterMap       \\\n"
 "        -pref_dat ClusterEffEst\n"
 " \n"
-"   3. The same as Ex. 2, but using p-values instead of statistic values\n"
-"   as voxelwise thresholds.\n"
+"   3. The same as Ex. 2, but specifying a p-value to set the voxelwise\n"
+"   thresholds (in this case, tails DO have to be symmetric).\n"
 " \n"
 "     3dClusterize                  \\\n"
 "        -inset stats.FT+tlrc.      \\\n"
@@ -328,14 +352,15 @@ void usage_Clusterize(int detail)
 "        -idat 1                    \\\n"
 "        -mask mask_group+tlrc.     \\\n"
 "        -NN 1                      \\\n"
-"        -bisided p=-0.001 p=0.001  \\\n"
+"        -bisided p=0.001           \\\n"
 "        -clust_nvox 157            \\\n"
 "        -pref_map ClusterMap       \\\n"
 "        -pref_dat ClusterEffEst\n"
 " \n"
 " # ------------------------------------------------------------------------\n"
-          )
-;
+" \n"
+" # ------------------------------------------------------------------------\n"
+);
 	return;
 }
 
@@ -391,9 +416,12 @@ int main(int argc, char *argv[]) {
    int iclu, ipt, ii, jj, kk, ptmin;
    MCW_cluster *cl=NULL;
 
+   char repstr[200] = "";
+
    // mainly report-related
    char *CL_prefix  = NULL;  // output data volume, if asked for
    char *CL_maskout = NULL;  // output WB mask volume, if asked for
+   char *CL_mritype = NULL;
    int CL_quiet     = 0;
    int CL_summarize = 0;
    int CL_do_mni    = 0; 
@@ -462,12 +490,13 @@ int main(int argc, char *argv[]) {
          iarg++ ; continue ;
       }
 
-      if( strcmp(argv[iarg],"-pref_mask") == 0 ){
+      if( strcmp(argv[iarg],"-out_mask") == 0 ){
          iarg++ ; if( iarg >= argc ) 
-                     ERROR_exit("Need argument after '-pref_mask'");
+                     ERROR_exit("Need argument after '%s'",
+                                argv[iarg-1]);
          CL_maskout = strdup(argv[iarg]);
          if( !THD_filename_ok(CL_maskout) ) 
-            ERROR_exit("Illegal name after '-pref_mask'");
+            ERROR_exit("Illegal name after '%s'", argv[iarg-1]);
          iarg++ ; continue ;
       }
 
@@ -534,18 +563,21 @@ int main(int argc, char *argv[]) {
 
          STATINPUT = CheckStringStart(argv[iarg],"p=", chtmp);
          thr_1sid = atof(chtmp); // atof(argv[iarg]);
-         if( IsNotValidP(thr_1sid) )
-            ERROR_exit("Non-valid p-value (%f) entered!", thr_1sid);
+         if( !STATINPUT )
+            if( IsNotValidP(thr_1sid, 1) )
+               ERROR_exit("Non-valid p-value (%f) entered!", thr_1sid);
 
          // assign one thr to user's value, and other effectively to
          // -/+ infty
-         if( thr_type == 1 ) {
+         if( thr_type == 1 ) { // R
             thb = thr_1sid;
             tht = - BIIIIG_NUM;
+            sprintf(repstr, "right-tail stat=%f", thb);
          }
-         else {
+         else { // L
             tht = thr_1sid;
             thb = BIIIIG_NUM;
+            sprintf(repstr, "left-tail stat=%f", tht);
          }         
 
          MakeBrickLab1(blab1,argv[iarg-2]+1,argv[iarg-1],argv[iarg]);
@@ -553,89 +585,58 @@ int main(int argc, char *argv[]) {
          iarg++ ; continue ;
       }
 
-      // 2 necessary args needed after this opt
-      if( strcmp(argv[iarg],"-2sided") == 0 ){
+      // if 'p=..' is entered, just one argument; else, 2 args
+      // necessary; 2sided, bisided and within_range all have same
+      // input syntax!
+      if( ( strcmp(argv[iarg],"-2sided") == 0 ) ||
+          ( strcmp(argv[iarg],"-bisided") == 0 ) ||
+          ( strcmp(argv[iarg],"-within_range") == 0 ) ) {
          iarg++ ; if( iarg >= argc ) 
-                     ERROR_exit("Need 2 arguments after '-2sided'");
+                     ERROR_exit("Need at least one argument after '%s'",
+                                argv[iarg-1]);
+
+         if( strcmp(argv[iarg-1],"-2sided") == 0 )
+            thr_type = 2;
+         else if( strcmp(argv[iarg-1],"-bisided") == 0 )
+            thr_type = -2;
+         else if( strcmp(argv[iarg-1],"-within_range") == 0 )
+            thr_type = 3;
+         else
+            ERROR_exit("Problem keeping track of input arguments for test");
 
          STATINPUT = CheckStringStart(argv[iarg],"p=", chtmp);
-         tht = atof(chtmp); 
-         if( IsNotValidP(tht) )
-            ERROR_exit("Non-valid p-value (%f) entered!", tht);
+         tht = atof(chtmp); // for top of L tail
 
-         // get second arg
-         iarg++ ; if( iarg >= argc ) 
-                     ERROR_exit("Need 2 arguments after '-2sided'");
-         STATINPUT2 = CheckStringStart(argv[iarg],"p=", chtmp);
-         thb = atof(chtmp); 
-         if( IsNotValidP(thb) )
-            ERROR_exit("Non-valid p-value (%f) entered!", thb);
-         if( STATINPUT != STATINPUT2 )
-            ERROR_exit("Need both arguments of '-2sided ..' to be "
-                       "p-values, or neither.  Can't mix!");
-         thr_type = 2;
+         if( !STATINPUT ) {
+            if( IsNotValidP(tht, 2) )
+               ERROR_exit("Non-valid p-value (%f) entered!", tht);
+            thb = tht;
+            // ... and we're done here with 1 arg
+         }
+         else { // get second arg: must not be 'p=...'
+            iarg++ ; if( iarg >= argc ) 
+                        ERROR_exit("Need 2 arguments after '%s' here",
+                                   argv[iarg-2]);
+            STATINPUT2 = CheckStringStart(argv[iarg],"p=", chtmp);
+            if( !STATINPUT ) 
+               ERROR_exit("If using 'p=...', only use one argument!");
+            
+            thb = atof(chtmp); // for bot of R tail
+            sprintf(repstr, "left-tail stat=%f;\n                     "
+                    "    right-tail stat=%f", tht, thb);
+         }
 
-         MakeBrickLab1(blab1,argv[iarg-2]+1,argv[iarg-1],argv[iarg]);
+         if( STATINPUT )
+            MakeBrickLab1(blab1,argv[iarg-2]+1,argv[iarg-1],argv[iarg]);
+         else
+            MakeBrickLab2(blab1,argv[iarg-1],argv[iarg]);
 
          iarg++ ; continue ;
       }
-      
-      // 2 necessary args needed after this opt
-      if( strcmp(argv[iarg],"-bisided") == 0 ){
-         iarg++ ; if( iarg >= argc ) 
-                     ERROR_exit("Need 2 arguments after '-bisided'");
-         STATINPUT = CheckStringStart(argv[iarg],"p=", chtmp);
-         tht = atof(chtmp); 
-         if( IsNotValidP(tht) )
-            ERROR_exit("Non-valid p-value (%f) entered!", tht);
-         // get second arg
-         iarg++ ; if( iarg >= argc ) 
-                     ERROR_exit("Need 2 arguments after '-bisided'");
-         STATINPUT2 = CheckStringStart(argv[iarg],"p=", chtmp);
-         thb = atof(chtmp); 
-         if( IsNotValidP(thb) )
-            ERROR_exit("Non-valid p-value (%f) entered!", thb);
-         if( STATINPUT != STATINPUT2 )
-            ERROR_exit("Need both arguments of '-bisided ..' to be "
-                       "p-values, or neither.  Can't mix!");
-
-         thr_type = -2;
-
-         MakeBrickLab1(blab1,argv[iarg-2]+1,argv[iarg-1],argv[iarg]);
-
-         iarg++ ; continue ;
-      }
-
-      // 2 necessary args needed after this opt
-      if( strcmp(argv[iarg],"-within_range") == 0 ){
-         iarg++ ; if( iarg >= argc ) 
-                     ERROR_exit("Need 2 arguments after '-within_range'");
-         STATINPUT = CheckStringStart(argv[iarg],"p=", chtmp);
-         tht = atof(chtmp); 
-         if( IsNotValidP(tht) )
-            ERROR_exit("Non-valid p-value (%f) entered!", tht);
-
-         // get second arg
-         iarg++ ; if( iarg >= argc ) 
-                     ERROR_exit("Need 2 arguments after '-within_range'");
-         STATINPUT2 = CheckStringStart(argv[iarg],"p=", chtmp);
-         thb = atof(chtmp); 
-         if( IsNotValidP(thb) )
-            ERROR_exit("Non-valid p-value (%f) entered!", thb);
-         if( STATINPUT != STATINPUT2 )
-            ERROR_exit("Need both arguments of '-within_range ..' to be "
-                       "p-values, or neither.  Can't mix!");
-
-         thr_type = 3;
-
-         MakeBrickLab1(blab1,argv[iarg-2]+1,argv[iarg-1],argv[iarg]);
-
-         iarg++ ; continue ;
-      }
-      
+            
       // ---------- control pars
 
-      if( strcmp(argv[iarg],"-NN") == 0 ){
+      if( strcmp(argv[iarg],"-NN") == 0 ) {
          iarg++ ; if( iarg >= argc ) 
                      ERROR_exit("Need argument after '-NN'");
          NNTYPE = atoi(argv[iarg]);
@@ -787,26 +788,31 @@ int main(int argc, char *argv[]) {
       tmpt = tht;
 
       if( thr_type == -1 ) {// 1sided, left; factor of 2 for 1sided conv
-         tht = ssgn(tht) * THD_pval_to_stat( 2*fabs(tht),
-                                             DSET_BRICK_STATCODE(insetA, ithr),
-                                             DSET_BRICK_STATAUX(insetA, ithr));
-         INFO_message("Converted p=%f -> stat=%f", tmpt, tht);
+         tht = - THD_pval_to_stat( 2*tht,
+                                   DSET_BRICK_STATCODE(insetA, ithr),
+                                   DSET_BRICK_STATAUX(insetA, ithr));
+         INFO_message("Converted left-tail p=%f -> stat=%f", tmpt, tht);
+         sprintf(repstr, "left-tail p=%f -> stat=%f", tmpt, tht);
+         
       }
       else if( thr_type == 1 ) {// 1sided, right; factor of 2 for 1sided conv
-         thb = ssgn(thb) * THD_pval_to_stat( 2*fabs(thb),
-                                             DSET_BRICK_STATCODE(insetA, ithr),
-                                             DSET_BRICK_STATAUX(insetA, ithr));
-         INFO_message("Converted p=%f -> stat=%f", tmpb, thb);
+         thb = THD_pval_to_stat( 2*thb,
+                                 DSET_BRICK_STATCODE(insetA, ithr),
+                                 DSET_BRICK_STATAUX(insetA, ithr));
+         INFO_message("Converted right-tail p=%f -> stat=%f", tmpb, thb);
+         sprintf(repstr, "right-tail p=%f -> stat=%f", tmpb, thb);
       }
       else {// adjust all of bisided, 2sided, and within range
-         thb = ssgn(thb) * THD_pval_to_stat( fabs(thb),
-                                             DSET_BRICK_STATCODE(insetA, ithr),
-                                             DSET_BRICK_STATAUX(insetA, ithr));
-         tht = ssgn(tht) * THD_pval_to_stat( fabs(tht),
-                                             DSET_BRICK_STATCODE(insetA, ithr),
-                                             DSET_BRICK_STATAUX(insetA, ithr));
-         INFO_message("Converted p=%f -> stat=%f", tmpt, tht);
-         INFO_message("Converted p=%f -> stat=%f", tmpb, thb);
+         thb = THD_pval_to_stat( thb,
+                                 DSET_BRICK_STATCODE(insetA, ithr),
+                                 DSET_BRICK_STATAUX(insetA, ithr));
+         tht = - THD_pval_to_stat( tht,
+                                   DSET_BRICK_STATCODE(insetA, ithr),
+                                   DSET_BRICK_STATAUX(insetA, ithr));
+         INFO_message("Converted left-tail p=%f -> stat=%f", tmpt, tht);
+         INFO_message("Converted right-tail p=%f -> stat=%f", tmpb, thb);
+         sprintf(repstr, "left-tail p=%f -> stat=%f;\n                     "
+                 "    right-tail p=%f -> stat=%f", tmpt, tht, tmpb, thb);
       }
    }
 
@@ -865,20 +871,25 @@ int main(int argc, char *argv[]) {
       WARNING_message("No mask being used? That *could* be OK, "
                       "but thought I'd let you know...");
       if( CL_maskout ) {
-         WARNING_message("And ANOTHER warning, since you also apparently "
-                         "asked to output a mask volume, without providing "
-                         "any means to procure mask info.  See help file.");
+         WARNING_message("And ANOTHER warning, since you also apparently\n"
+                         "\tasked to output a mask volume, without providing\n"
+                         "\tany means to procure mask info.  See help file.");
          // ... and unset the masking output
          free(CL_maskout);
          CL_maskout = NULL;
       }
 	}
 
+   if( !no_inmask && !mask )
+      ERROR_exit("User asked to use a mask from a header, but \n"
+                 "\tthere doesn't appear to be one stored.");
+
    // apply masks, *IF* one was input somehow. Does nada if mask==NULL
    if( mask ) {
       INFO_message("Applying mask.");
-      mri_maskify( DSET_BRICK(insetA, ival), mask );
       mri_maskify( DSET_BRICK(insetA, ithr), mask );
+      if( ival >= 0 )
+         mri_maskify( DSET_BRICK(insetA, ival), mask );
    }
 
    // ---------- make intermed dsets and pointers -------------
@@ -887,10 +898,12 @@ int main(int argc, char *argv[]) {
    // stuff with data volume
    dblk = insetA->dblk;
 
-   dim = DBLK_BRICK(dblk,ival);
-   if( dim == NULL || mri_data_pointer(dim) == NULL ) 
-      ERROR_exit("Bad properties of dset to be clusterized");
-   
+   if( ival > 0 ) {
+      dim = DBLK_BRICK(dblk,ival);
+      if( dim == NULL || mri_data_pointer(dim) == NULL ) 
+         ERROR_exit("Bad properties of dset to be clusterized");
+   }
+
    // stuff with threshold volume
    tim = DBLK_BRICK(dblk,ithr) ;
 
@@ -903,10 +916,14 @@ int main(int argc, char *argv[]) {
    // ------- IF: the user input an additional dataset, then that;
    // ------- ELSE: all depends on the statistics
 
-   if( ival < 0 ) // i.e., no data set input: use only thr dset
+   if( ival < 0 ) { // i.e., no data set input: use only thr dset
       cim = mri_copy(tim); 
-   else // use extra dset
+      CL_mritype = strdup(MRI_TYPE_name[ DSET_BRICK_TYPE(insetA, ithr) ]);
+      }
+   else { // use extra dset
       cim = mri_copy(dim); 
+      CL_mritype = strdup(MRI_TYPE_name[ DSET_BRICK_TYPE(insetA, ival) ]);
+      }
 
    car = mri_data_pointer(cim);
    if( car == NULL ){ 
@@ -929,9 +946,9 @@ int main(int argc, char *argv[]) {
 
    // ---------- somewhat odd but nec quants ----------------
 
-   dim->dx = fabs(DSET_DX(insetA));
-   dim->dy = fabs(DSET_DY(insetA));
-   dim->dz = fabs(DSET_DZ(insetA));
+   cim->dx = fabs(DSET_DX(insetA));
+   cim->dy = fabs(DSET_DY(insetA));
+   cim->dz = fabs(DSET_DZ(insetA));
 
    nx    = insetA->daxes->nxx;
    ny    = insetA->daxes->nyy;
@@ -1177,16 +1194,18 @@ int main(int argc, char *argv[]) {
          printf( 
                 "%s\n"
                 //"%sCluster report for file %s %s\n"
-                "%sCluster report \n"
+                "%s  Cluster report \n"
 #if 0
                 "%s[ 3D Dataset Name: %s ]\n"
                 "%s[    Short Label: %s ]\n"
 #endif
                 "%s[ Option summary      = %s ]\n"
+                "%s[ Threshold value(s)  = %s ]\n"
                 "%s[ Nvoxel threshold    = %d;"
-                "  Connectivity radius = %.2f mm;"
+                //"  Connectivity radius = %.2f mm;"
                 "  Volume threshold = %.3f ]\n"
                 "%s[ Single voxel volume = %.3f (microliters) ]\n"
+                "%s[ Neighbor type, NN   = %d ]\n"
                 "%s[ Voxel datum type    = %s ]\n"
                 "%s[ Voxel dimensions    = %.3f mm X %.3f mm X %.3f mm ]\n"
                 "%s[ Coordinates Order   = %s ]\n",
@@ -1197,9 +1216,11 @@ int main(int argc, char *argv[]) {
                 c1d, insetA->label1 ,
 #endif
                 c1d, blab1,
-                c1d, ptmin, rmm, ptmin*dx*dy*dz , // !!!
+                c1d, repstr,
+                c1d, ptmin, ptmin*dx*dy*dz , // !!!
                 c1d, dx*dy*dz,
-                c1d, MRI_TYPE_name[ DSET_BRICK_TYPE(insetA, ival) ],
+                c1d, NNTYPE,
+                c1d, CL_mritype,
                 c1d, dx,dy,dz,
                 c1d, CL_cord.orcode );
 
@@ -1208,19 +1229,21 @@ int main(int argc, char *argv[]) {
          //printf("%s[Fake voxel dimen    = %.3f mm X %.3f mm X %.3f mm ]\n",
          //       c1d, dxf,dyf,dzf);
          
-         if( nmask > 0 && mask != NULL )           
-            printf("%s[Using internal mask]\n", c1d);
+         if( mask && nmask ==0 ) 
+            printf("%s[ Using user's input mask ]\n", c1d);
+         else if( !no_inmask && mask != NULL )           
+            printf("%s[ Using internal mask ]\n", c1d);
          else if( nmask > 0 )
-            printf("%s[Skipping internal mask]\n", c1d);
+            printf("%s[ Skipping internal mask ]\n", c1d);
          else if( nmask < 0 )
-            printf("%s[Un-usable internal mask]\n", c1d); // shd not happen
+            printf("%s[ Un-usable internal mask ]\n", c1d); // shd not happen
          
          if (CL_noabs)
-            printf ("%sMean and SEM based on "
-                    "Signed voxel intensities: \n%s\n", c1d, c1d);
+            printf ("%s[ Mean and SEM based on "
+                    "signed voxel intensities ]\n%s\n", c1d, c1d);
          else
-            printf ("%sMean and SEM based on Absolute Value "
-                    "of voxel intensities: \n%s\n", c1d, c1d);
+            printf ("%s Mean and SEM based on absolute value "
+                    "of voxel intensities ]\n%s\n", c1d, c1d);
 
          printf (
                  "%sVolume  CM %s  CM %s  CM %s  min%s  max%s  min%s  max%s  min%s  max%s    Mean     SEM    Max Int  MI %s  MI %s  MI %s\n"
