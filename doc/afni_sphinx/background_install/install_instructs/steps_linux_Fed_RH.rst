@@ -13,7 +13,8 @@ What to do?
 
 Here we describe installation and system setup for reasonably modern
 Linux versions of Fedora (21+) and Red Hat (RHEL) 7, along with the
-corresponding CentOS 7.
+corresponding CentOS 7.  For most steps, internet connection is
+required.
 
 .. include:: substep_intro.rst
 
@@ -39,6 +40,7 @@ Install prerequisite packages
 don't have to reinvent the wheel!).
          
 .. _setup_FRH_tcsh:
+
 Make "tcsh" default shell (optional/recommended)
 ------------------------------------------------
 
@@ -89,22 +91,19 @@ a. Copy+paste the following:
        setenv R_LIBS $HOME/R
        mkdir $R_LIBS
        echo 'setenv R_LIBS ~/R' >> ~/.cshrc
-       curl -O https://afni.nimh.nih.gov/pub/dist/src/scripts_src/@add_rcran_ubuntu.tcsh
-       sudo tcsh @add_rcran_ubuntu.tcsh
+       . ~/.cshrc
 
    * *for* ``bash``::
    
        export R_LIBS=$HOME/R
        mkdir $R_LIBS
        echo 'export R_LIBS=$HOME/R' >> ~/.bashrc
-       curl -O https://afni.nimh.nih.gov/pub/dist/src/scripts_src/@add_rcran_ubuntu.tcsh
-       sudo tcsh @add_rcran_ubuntu.tcsh
+       . ~/.bashrc
 
    **Purpose:** Setup modern R from scratch. This relies on the
    environment variable ``$R_LIBS``, which specifies where to install
    the packages and where to read them from later (when R programs
-   run).  The file obtained using ``curl`` contains instructions to
-   add a more uptodate set of R libraries to the source list.
+   run).  
 
 #. Copy+paste the following::
      
@@ -141,3 +140,32 @@ Keep up-to-date (remember!)
 
 .. include:: substep_update.rst
 
+.. 
+    comment: the OLD install R stuff for this version
+
+    Install R
+    ---------
+
+    a. Copy+paste the following:
+
+       * *for* ``tcsh``::
+
+           setenv R_LIBS $HOME/R
+           mkdir $R_LIBS
+           echo 'setenv R_LIBS ~/R' >> ~/.cshrc
+           curl -O https://afni.nimh.nih.gov/pub/dist/src/scripts_src/@add_rcran_ubuntu.tcsh
+           sudo tcsh @add_rcran_ubuntu.tcsh
+
+       * *for* ``bash``::
+
+           export R_LIBS=$HOME/R
+           mkdir $R_LIBS
+           echo 'export R_LIBS=$HOME/R' >> ~/.bashrc
+           curl -O https://afni.nimh.nih.gov/pub/dist/src/scripts_src/@add_rcran_ubuntu.tcsh
+           sudo tcsh @add_rcran_ubuntu.tcsh
+
+       **Purpose:** Setup modern R from scratch. This relies on the
+       environment variable ``$R_LIBS``, which specifies where to install
+       the packages and where to read them from later (when R programs
+       run).  The file obtained using ``curl`` contains instructions to
+       add a more uptodate set of R libraries to the source list.

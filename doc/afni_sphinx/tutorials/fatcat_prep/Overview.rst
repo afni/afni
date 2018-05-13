@@ -232,7 +232,6 @@ the global brain alignment by this part of the brain, with the idea
 that the final result of axialization might be closer to what AC-PC
 alignment would provide.  This was done for the T2w and T1w volumes in
 the MNI set, which are shown below and can be downloaded from `here
-
 <https://afni.nimh.nih.gov/pub/dist/tgz/fatcat_proc_mni_ref.tgz>`_ on
 the AFNI website.
 
