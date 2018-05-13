@@ -324,6 +324,7 @@
 1 :: @IsoMasks
 4 :: 3dSurf2Vol                :: Compute volume equivalent from surface or pair of surfaces
 4 :: 3dVol2Surf                :: Assign values to surface nodes from volumetric data
+3 :: @surf_to_vol_spackle      :: Project values from surface to volume and fill holes 
 5 :: @SUMA_Make_Spec_FS        :: Convert Freesurfer surfaces to SUMA spec files
 1 :: @SUMA_Make_Spec_SF        :: Convert SureFit surfaces to SUMA spec files
 4 :: DriveSuma                 :: Send commands to SUMA program from script
