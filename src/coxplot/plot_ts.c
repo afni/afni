@@ -535,7 +535,10 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
    init_colors() ;
 
    if( do_naked ){  /* 03 May 2018 */
-     lab_xxx = lab_yyy = lab_top = NULL ; nam_yyy = NULL ;
+     lab_xxx = lab_yyy = NULL ; nam_yyy = NULL ;
+   }
+   if( do_naked > 1 ){
+     lab_top = NULL ;
    }
 
    /*-- make up an x-axis if none given --*/
@@ -702,7 +705,10 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
      }
    }
 
-   if( do_naked ){ xobot = yobot = 0.0f ; xotop = 1.3f ; } /* 03 May 2018 */
+   if( do_naked ) /* 03 May 2018 */{
+     xobot = yobot = 0.0f ; xotop = 1.3f ;
+     yotop = (STGOOD(lab_top)) ? 0.89 : 0.98 ;
+   }
 
    /* x-axis label? */
 
@@ -724,7 +730,7 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
 
    set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
    if( STGOOD(lab_top) )
-     plotpak_pwritf( xobot+0.01 , yotop+0.01 , lab_top , 18 , 0 , -2 ) ;
+     plotpak_pwritf( xobot+(do_naked)?0.05:0.01 , yotop+0.01 , lab_top , 18 , 0 , -2 ) ;
 
    /*-- plot all on same vertical scale --*/
 
@@ -1138,7 +1144,10 @@ MEM_topshell_data * plot_ts_init( Display * dpy ,
    init_colors() ;
 
    if( do_naked ){  /* 03 May 2018 */
-     lab_xxx = lab_yyy = lab_top = NULL ; nam_yyy = NULL ;
+     lab_xxx = lab_yyy = NULL ; nam_yyy = NULL ;
+   }
+   if( do_naked > 1 ){
+     lab_top = NULL ;
    }
 
    /*-- push range of x outwards --*/
@@ -1202,7 +1211,10 @@ MEM_topshell_data * plot_ts_init( Display * dpy ,
    if( STGOOD(lab_top) ){ yotop -= 0.02 ; yobot -= 0.01 ; }
    if( nam_yyy != NULL ){ xotop -= 0.16 ; xobot -= 0.02 ; }
 
-   if( do_naked ){ xobot = yobot = 0.0f ; xotop = 1.3f ; } /* 03 May 2018 */
+   if( do_naked ) /* 03 May 2018 */{
+     xobot = yobot = 0.0f ; xotop = 1.3f ;
+     yotop = (STGOOD(lab_top)) ? 0.89 : 0.98 ;
+   }
 
    /* x-axis label? */
 
@@ -1220,7 +1232,7 @@ MEM_topshell_data * plot_ts_init( Display * dpy ,
 
    set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
    if( STGOOD(lab_top) )
-      plotpak_pwritf( xobot+0.01 , yotop+0.01 , lab_top , 18 , 0 , -2 ) ;
+     plotpak_pwritf( xobot+(do_naked)?0.05:0.01 , yotop+0.01 , lab_top , 18 , 0 , -2 ) ;
 
    /*-- plot all on same vertical scale --*/
 
