@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 12, May , 2018 , PT , "3dClusterize" , MAJOR , TYPE_NEW_PROG,
+   "Perform clusterizing (voxelwise and volume-wise thresholding) on a dset.",
+   "Basically like 3dclust but has some new options and easier syntax.\n"
+},
+
 { 22, Apr , 2018 , PT , "fat_proc_axialize_anat" , MINOR , TYPE_BUG_FIX,
    "When using '-remove_inf_sli', the wrong volume was being warped at end.",
    "Final warped volume had lower slice reduction, when it shouldn't have.\n"
