@@ -95,7 +95,10 @@
 1 :: @Atlasize               :: Make an atlas from a dataset and label text files
 1 :: @MakeLabelTable         :: Assign labels to values
 1 :: AFNI_atlas_spaces.niml  :: space, atlas, transformations definitions file
-
+4 :: @measure_bb_thick       :: measure thickness using ball and box method
+4 :: @measure_erosion_thick  :: measure thickness using erosion method
+4 :: @measure_in2out         :: measure thickness between in and out masks
+4 :: @thickness_master       :: compare thickness measurement methods
 
 ++ 5 :: Voxelwise calcs, esp. stats and tests
 4 :: 3dMean                 :: Compute the average of a number of datasets
