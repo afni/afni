@@ -4,18 +4,6 @@
 # h_view help instead of regular help (opens editor with -help output)
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
-#set spec = $1
-#set surfA = $2
-#set 
-
-
-
-
- = $3
-#set maskset = $4
-#set surfset = $5
-#set outpref = $6
-
 # set some defaults
 # number of steps on line segment to apply surface data
 set nsteps = 10
@@ -35,6 +23,8 @@ set ignore_unknown_options = ""
 set surfB = ""
 # set stat type nzmedian (non-zero median) / mode
 set stat = "nzmedian"
+# surface volume defaults to mask volume below
+set svset = ""
 
 # help
 if ($# < 1) then
@@ -166,6 +156,14 @@ while ( $ac <= $#argv )
     else if ( "$argv[$ac]" == "-mode" ) then
         set stat = "mode"
         @ ac ++; continue;
+    else if ( "$argv[$ac]" == "-sv" ) then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-sv'"
+            exit 1
+        endif
+        set svset = $argv[$ac]
+        @ ac ++; continue;
     else if ( "$argv[$ac]" == "-ignore_unknown_options" ) then
         set ignore_unknown_options = "yes"
         @ ac ++; continue;
@@ -213,12 +211,20 @@ else
    set surfB_arg = "-f_pn_mm $f_pn_mm"
 endif
 set f_inout_frac = "-f_p1_fr -0.1 -f_pn_fr 0.1"
+
+# if there is a separate aligned surface volume, use it
+if ($svset != "") then
+    set sv_arg = "-sv $svset"
+else
+    set sv_arg = "-sv $maskset"
+endif
+ 
 # project from surface to volume
 # fill in line segment connecting surfaces with maximum value
 # using new "stop_gap" option to stop when reaching gap in mask
 3dSurf2Vol -spec $spec $surfB_arg -surf_A $surfA $f_inout_frac \
    -grid_parent $maskset -sdata $surfset  -stop_gap \
-   -map_func $stat -prefix temp_${outpref}_f00.nii.gz -sv $maskset \
+   -map_func $stat -prefix temp_${outpref}_f00.nii.gz $sv_arg \
    -f_steps $nsteps -stop_gap -overwrite
 
 # resulting dataset has holes
