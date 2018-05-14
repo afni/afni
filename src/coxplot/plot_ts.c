@@ -728,10 +728,13 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
 
    /* label at top? */
 
-   set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
-   if( STGOOD(lab_top) )
+   if( STGOOD(lab_top) ){
+     if( do_naked ) set_color_memplot( 0.2 , 0.2 , 0.2 ) ;
+     else           set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
      plotpak_pwritf( xobot+(do_naked)?0.05:0.02 , yotop+0.01 ,
                      lab_top , 18 , 0 , (do_naked)?-1:-2 ) ;
+     if( do_naked ) set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
+   }
 
    /*-- plot all on same vertical scale --*/
 
@@ -1231,10 +1234,13 @@ MEM_topshell_data * plot_ts_init( Display * dpy ,
 
    /* label at top? */
 
-   set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
-   if( STGOOD(lab_top) )
+   if( STGOOD(lab_top) ){
+     if( do_naked ) set_color_memplot( 0.2 , 0.2 , 0.2 ) ;
+     else           set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
      plotpak_pwritf( xobot+(do_naked)?0.05:0.02 , yotop+0.01 ,
                      lab_top , 18 , 0 , (do_naked)?-1:-2 ) ;
+     if( do_naked ) set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
+   }
 
    /*-- plot all on same vertical scale --*/
 
