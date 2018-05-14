@@ -8299,7 +8299,39 @@ g_help_examples = """
                   -regress_censor_motion 0.2                    \\
                   -regress_censor_outliers 0.1                  \\
                   -regress_apply_mot_types demean deriv         \\
-                  -regress_est_blur_epits                       \\
+                  -regress_est_blur_epits
+
+       Example 12c. Multi-echo data processing - ME-ICA resting state. ~2~
+
+         As above, but run tedana.py for MEICA denoising.
+
+         o Since tedana.py will mask the data, it may be preferable to
+           blur only within that mask (-blur_in_mask yes).
+         o A task analysis using tedana might look much the same,
+           but with the extra -regress options for the tasks.
+
+                afni_proc.py -subj_id FT.12a.ME                 \\
+                  -blocks tshift align tlrc volreg mask combine \\
+                          blur scale regress                    \\
+                  -copy_anat FT_anat+orig                       \\
+                  -dsets_me_run epi_run1_echo*.nii              \\
+                  -echo_times 15 30.5 41                        \\
+                  -reg_echo 2                                   \\
+                  -tcat_remove_first_trs 2                      \\
+                  -align_opts_aea -cost lpc+ZZ                  \\
+                  -tlrc_base MNI152_T1_2009c+tlrc               \\
+                  -tlrc_NL_warp                                 \\
+                  -volreg_align_to MIN_OUTLIER                  \\
+                  -volreg_align_e2a                             \\
+                  -volreg_tlrc_warp                             \\
+                  -mask_epi_anat yes                            \\
+                  -combine_method tedana                        \\
+                  -blur_in_mask yes                             \\
+                  -regress_motion_per_run                       \\
+                  -regress_censor_motion 0.2                    \\
+                  -regress_censor_outliers 0.1                  \\
+                  -regress_apply_mot_types demean deriv         \\
+                  -regress_est_blur_epits
 
     --------------------------------------------------
     -ask_me EXAMPLES:  ** NOTE: -ask_me is antiquated ** ~2~
