@@ -5,6 +5,9 @@
 
    2018 05 12: working version, new options for p-to-stat, new report
                labels
+
+   2018 05 13: [PT] bug fix: wouldn't work with extra data set entered
+
 */
 
 
@@ -449,7 +452,7 @@ int main(int argc, char *argv[]) {
    // ****************************************************************
    // ****************************************************************
 
-   // INFO_message("version: NU");
+   INFO_message("3dClusterize: go!");
 	
    /** scan args **/
    if (argc == 1) { usage_Clusterize(1); exit(0); }
@@ -898,7 +901,7 @@ int main(int argc, char *argv[]) {
    // stuff with data volume
    dblk = insetA->dblk;
 
-   if( ival > 0 ) {
+   if( ival >= 0 ) {
       dim = DBLK_BRICK(dblk,ival);
       if( dim == NULL || mri_data_pointer(dim) == NULL ) 
          ERROR_exit("Bad properties of dset to be clusterized");
@@ -928,7 +931,7 @@ int main(int argc, char *argv[]) {
    car = mri_data_pointer(cim);
    if( car == NULL ){ 
       mri_free(cim) ;
-      ERROR_exit("Badness in internal copy");
+      ERROR_exit("Badness in first internal copy");
    }
 
    if( (thr_type==-2 ) ) { // in case of bisidedness
@@ -940,7 +943,7 @@ int main(int argc, char *argv[]) {
       car2 = mri_data_pointer(cim2);
       if( car2 == NULL ){ 
          mri_free(cim2) ;
-         ERROR_exit("Badness in internal copy");
+         ERROR_exit("Badness in second internal copy");
       }
    }
 
