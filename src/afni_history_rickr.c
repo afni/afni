@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14, May, 2018, RCR, "@stim_analyze_modern", MINOR, TYPE_NEW_PROG,
+   "added this sample script to doc/misc_scripts",
+   "This uses the advanced form of make_random_timing.py."
+ } ,
+
  {  8, May, 2018, RCR, "afni_proc.py", MAJOR, TYPE_NEW_OPT,
    "add multi-echo combine methods: OC_tedort, tedana_OC, tedana_OC_tedort",
    "With this, afni_proc.py can run tedana.py and extract projection\n"
