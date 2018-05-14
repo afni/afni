@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 13, May , 2018 , PT , "3dClusterize" , MINOR , TYPE_BUG_FIX,
+   "Wouldn't work with extra dset entered- fixed now.",
+   "Can enter extra beta/effect estimate set for clusterizing.\n"
+},
+
 { 12, May , 2018 , PT , "3dClusterize" , MAJOR , TYPE_NEW_PROG,
    "Perform clusterizing (voxelwise and volume-wise thresholding) on a dset.",
    "Basically like 3dclust but has some new options and easier syntax.\n"
