@@ -62,18 +62,21 @@ C
       CALL ZZSTRO( CHLOC,NCHLOC , NSTR,XSTR,YSTR,LSTR )
       IF( NSTR .LE. 0 )RETURN
 C
-C  Find min, max of x and y
+C  Find min, max of x and y [edited 11 May 2018]
 C
-      XBOT = XSTR(1)
-      YBOT = YSTR(1)
-      XTOP = XBOT
-      YTOP = YBOT
+      XBOT = 6.66e+33
+      YBOT = XBOT
+      XTOP = -XBOT
+      YTOP = -YBOT
       DO 100 I=2,NSTR
-         XBOT = MIN( XBOT , XSTR(I) )
-         XTOP = MAX( XTOP , XSTR(I) )
-         YBOT = MIN( YBOT , YSTR(I) )
-         YTOP = MAX( YTOP , YSTR(I) )
+         IF( LSTR(I) .EQ. 1 )THEN
+           XBOT = MIN( XBOT , XSTR(I) , XSTR(I-1) )
+           XTOP = MAX( XTOP , XSTR(I) , XSTR(I-1) )
+           YBOT = MIN( YBOT , YSTR(I) , YSTR(I-1) )
+           YTOP = MAX( YTOP , YSTR(I) , YSTR(I-1) )
+         ENDIF
 100   CONTINUE
+      IF( XBOT .GT. XTOP .OR. YBOT .GT. YTOP )RETURN
 C
 C  Now compute origin of string, based on centering option;
 C  the origin of the string goes at (XX,YY)
@@ -87,6 +90,9 @@ C
       ELSEIF( ICENT .EQ. +1 )THEN
          XORG = XTOP
          YORG = 0.5*(YBOT+YTOP)
+      ELSEIF( ICENT .EQ. -3 )THEN
+         XORG = MAX(XBOT,0.0)
+         YORG = MAX(YBOT,0.0)
       ELSE
          XORG = XBOT
          YORG = YBOT

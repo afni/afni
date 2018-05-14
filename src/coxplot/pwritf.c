@@ -126,27 +126,36 @@ L20:
 	return 0;
     }
 
-/*  Find min, max of x and y */
+/*  Find min, max of x and y [edited 11 May 2018] */
 
-    zzzplt_1.xbot = xstr[0];
-    zzzplt_1.ybot = ystr[0];
-    zzzplt_1.xtop = zzzplt_1.xbot;
-    zzzplt_1.ytop = zzzplt_1.ybot;
+    zzzplt_1.xbot = 6.66e33f;
+    zzzplt_1.ybot = zzzplt_1.xbot;
+    zzzplt_1.xtop = -zzzplt_1.xbot;
+    zzzplt_1.ytop = -zzzplt_1.ybot;
     i__1 = nstr;
     for (i__ = 2; i__ <= i__1; ++i__) {
+	if (lstr[i__ - 1] == 1) {
 /* Computing MIN */
-	r__1 = zzzplt_1.xbot, r__2 = xstr[i__ - 1];
-	zzzplt_1.xbot = dmin(r__1,r__2);
+	    r__1 = zzzplt_1.xbot, r__2 = xstr[i__ - 1], r__1 = min(r__1,r__2),
+		     r__2 = xstr[i__ - 2];
+	    zzzplt_1.xbot = dmin(r__1,r__2);
 /* Computing MAX */
-	r__1 = zzzplt_1.xtop, r__2 = xstr[i__ - 1];
-	zzzplt_1.xtop = dmax(r__1,r__2);
+	    r__1 = zzzplt_1.xtop, r__2 = xstr[i__ - 1], r__1 = max(r__1,r__2),
+		     r__2 = xstr[i__ - 2];
+	    zzzplt_1.xtop = dmax(r__1,r__2);
 /* Computing MIN */
-	r__1 = zzzplt_1.ybot, r__2 = ystr[i__ - 1];
-	zzzplt_1.ybot = dmin(r__1,r__2);
+	    r__1 = zzzplt_1.ybot, r__2 = ystr[i__ - 1], r__1 = min(r__1,r__2),
+		     r__2 = ystr[i__ - 2];
+	    zzzplt_1.ybot = dmin(r__1,r__2);
 /* Computing MAX */
-	r__1 = zzzplt_1.ytop, r__2 = ystr[i__ - 1];
-	zzzplt_1.ytop = dmax(r__1,r__2);
+	    r__1 = zzzplt_1.ytop, r__2 = ystr[i__ - 1], r__1 = max(r__1,r__2),
+		     r__2 = ystr[i__ - 2];
+	    zzzplt_1.ytop = dmax(r__1,r__2);
+	}
 /* L100: */
+    }
+    if (zzzplt_1.xbot > zzzplt_1.xtop || zzzplt_1.ybot > zzzplt_1.ytop) {
+	return 0;
     }
 
 /*  Now compute origin of string, based on centering option; */
@@ -161,6 +170,9 @@ L20:
     } else if (*icent == 1) {
 	xorg = zzzplt_1.xtop;
 	yorg = (zzzplt_1.ybot + zzzplt_1.ytop) * .5f;
+    } else if (*icent == -3) {
+	xorg = 0.f;
+	yorg = 0.f;
     } else {
 	xorg = zzzplt_1.xbot;
 	yorg = zzzplt_1.ybot;
