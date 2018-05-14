@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14, May, 2018, RCR, "afni.c", MICRO, TYPE_BUG_FIX,
+   "check at 'only if do_css' should be css, not gss",
+   "Without GLOBAL_SESSION, this blocked the All_Datasets session."
+ } ,
+
  { 14, May, 2018, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
    "add epi_anat as opt for -mask_apply; if tedana, suggest -blur_in_mask yes",
    NULL
