@@ -602,9 +602,12 @@ g_history = """
         - added -combine_methods: OC_tedort, tedana_OC, tedana_OC_tedort
         - this coincides with a fix to tedana_wrapper.py that, with scaling
           had led to betas cut in half
+    6.13 May 14, 2018:
+        - if tedana, suggest -blur_in_mask yes
+        - added epi_anat as option for -mask_apply
 """
 
-g_version = "version 6.12, May 8, 2018"
+g_version = "version 6.13, May 14, 2018"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -1259,7 +1262,7 @@ class SubjProcSream:
                         helpstr='additional options directly for 3dmerge')
 
         self.valid_opts.add_opt('-mask_apply', 1, [],
-                        acplist=['epi', 'anat', 'group', 'extents'],
+                        acplist=['epi', 'anat', 'epi_anat', 'group', 'extents'],
                         helpstr="select mask to apply in regression")
         self.valid_opts.add_opt('-mask_dilate', 1, [],
                         helpstr="dilation to be applied in automask")

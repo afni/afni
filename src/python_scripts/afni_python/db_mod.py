@@ -2667,6 +2667,15 @@ def db_mod_combine(block, proc, user_opts):
    apply_uopt_to_block('-combine_opts_tedana', user_opts, block)
    apply_uopt_to_block('-combine_tedana_path', user_opts, block)
 
+   # if using tedana for data and later blurring, suggest -blur_in_mask
+   ocmeth, rv = block.opts.get_string_opt('-combine_method', default='OC')
+   if not rv:
+      if ocmeth[0:6] == 'tedana' and \
+            proc.find_block_order('combine', 'blur') == -1 :
+         if not proc.user_opts.have_yes_opt('-blur_in_mask'):
+            # okay, finally whine here
+            print("** when using tedana results, consider '-blur_in_mask yes'")
+
    block.valid = 1
 
 def db_cmd_combine(proc, block):
@@ -3697,6 +3706,7 @@ def db_cmd_mask(proc, block):
         mtype = opt.parlist[0]
         if   mtype == 'epi':     proc.mask = proc.mask_epi
         elif mtype == 'anat':    proc.mask = proc.mask_anat
+        elif mtype == 'epi_anat':proc.mask = proc.mask_epi_anat
         elif mtype == 'group':   proc.mask = proc.mask_group
         elif mtype == 'extents': proc.mask = proc.mask_extents
         if proc.verb > 1: print("++ applying mask as '%s'" % mtype)
@@ -4034,13 +4044,15 @@ def anat_mask_command(proc, block):
     if proc.mask_epi and proc.mask_anat:
        proc.mask_epi_anat = proc.mask_epi.new('mask_epi_anat.$subj')
        if block.opts.have_yes_opt('-mask_epi_anat'):
-           if proc.verb: print("++ mask: use epi_anat mask in place of EPI one")
+           if proc.verb: 
+              print("++ mask: using epi_anat mask in place of EPI one")
            proc.mask = proc.mask_epi_anat
        rcmd = "# compute tighter EPI mask by intersecting with anat mask\n" \
               "3dmask_tool -input %s %s \\\n"                               \
               "            -inter -prefix %s\n\n"                           \
               % (proc.mask_epi.shortinput(), proc.mask_anat.shortinput(),
                  proc.mask_epi_anat.out_prefix())
+       proc.mask_epi_anat.created = 1  # so this mask 'exists' now
        cmd += rcmd
 
     if block.opts.have_yes_opt('-mask_test_overlap', default=1):
@@ -8332,6 +8344,8 @@ g_help_examples = """
                   -regress_censor_outliers 0.1                  \\
                   -regress_apply_mot_types demean deriv         \\
                   -regress_est_blur_epits
+
+         Consider an alternative combine method, 'tedana_OC_tedort'.
 
     --------------------------------------------------
     -ask_me EXAMPLES:  ** NOTE: -ask_me is antiquated ** ~2~
