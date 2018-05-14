@@ -5875,7 +5875,7 @@ STATUS("normalizing directory list") ;
       qlist = THD_normalize_flist( dlist ) ;
       if( qlist != NULL ){ DESTROY_SARR(dlist); dlist = qlist; }
 
-      if( dlist->num == 1 & css != NULL && gss == NULL ){ /* 02 Jun 2016 */
+      if( dlist->num == 1 && css != NULL && gss == NULL ){ /* 02 Jun 2016 */
         myXtFree(css) ; do_css = 0 ; num_css = 0 ;
       }
 
