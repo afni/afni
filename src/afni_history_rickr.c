@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 15, May, 2018, RCR, "tedana_wrapper.py", MICRO, TYPE_MODIFY,
+   "back-port for python 2.6",
+   "Use local check_output(), rather than from subprocess."
+ } ,
+
  { 14, May, 2018, RCR, "afni.c", MICRO, TYPE_BUG_FIX,
    "check at 'only if do_css' should be css, not gss",
    "Without GLOBAL_SESSION, this blocked the All_Datasets session."
