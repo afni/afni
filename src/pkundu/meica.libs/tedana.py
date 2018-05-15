@@ -29,6 +29,7 @@ from sys import stdout,argv
 import scipy.stats as stats
 import time
 import datetime
+
 if __name__=='__main__':
 	selfuncfile='%s/select_model.py' % os.path.dirname(argv[0])
 	execfile(selfuncfile)
@@ -56,7 +57,7 @@ def scoreatpercentile(a, per, limit=(), interpolation_method='lower'):
 
     idx = per /100. * (values.shape[0] - 1)
     if (idx % 1 == 0):
-        score = values[idx]
+        score = values[int(idx)]
     else:
         if interpolation_method == 'fraction':
             score = _interpolate(values[int(idx)], values[int(idx) + 1],
@@ -89,7 +90,7 @@ def spatclust(data,mask,csize,thr,header,aff,infile=None,dindex=0,tindex=0):
 		niwrite(unmask(data,mask),aff,'__clin.nii.gz',header)
 		infile='__clin.nii.gz'
 	addopts=""
-	if data!=None and len(np.squeeze(data).shape)>1 and dindex+tindex==0: addopts="-doall"
+	if data is not None and len(np.squeeze(data).shape)>1 and dindex+tindex==0: addopts="-doall"
 	else: addopts="-1dindex %s -1tindex %s" % (str(dindex),str(tindex))
 	os.system('3dmerge -overwrite %s -dxyz=1  -1clust 1 %i -1thresh %.02f -prefix __clout.nii.gz %s' % (addopts,int(csize),float(thr),infile))
 	clustered = fmask(nib.load('__clout.nii.gz').get_data(),mask)!=0
@@ -472,6 +473,7 @@ def write_split_ts(data,comptable,mmix,suffix=''):
 	dmdata = mdata.T-mdata.T.mean(0)
 	varexpl = (1-((dmdata.T-betas.dot(mmix.T))**2.).sum()/(dmdata**2.).sum())*100
 	print 'Variance explained: ', varexpl , '%'
+
 	midkts = betas[:,midk].dot(mmix.T[midk,:])
 	lowkts = betas[:,rej].dot(mmix.T[rej,:])
 	if len(acc)!=0:
