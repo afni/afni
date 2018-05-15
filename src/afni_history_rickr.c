@@ -49,8 +49,9 @@
 
 afni_history_struct rickr_history[] = {
 
- { 15, May, 2018, RCR, "tedana.py", MICRO, TYPE_MODIFY,
-   "updates for modern numpy",
+ { 15, May, 2018, RCR, "tedana.py", MICRO, TYPE_NEW_OPT,
+   "add --seed, update for modern numpy",
+   "New option --seed can be used for regression testing.\n"
    "Use integer subscripts in arrays; replace some '== None' with 'is None'."
  } ,
 
