@@ -46,6 +46,15 @@ def _interpolate(a, b, fraction):
     """
     return a + (b - a)*fraction;
 
+
+# for reproducibility           15 May 2018 [rickr]
+def init_random_seeds(seed):
+    import random
+    from scipy import random as numx_rand
+    random.seed(seed)
+    numx_rand.seed(seed)
+
+
 def scoreatpercentile(a, per, limit=(), interpolation_method='lower'):
     """
     This function is grabbed from scipy
@@ -605,6 +614,7 @@ if __name__=='__main__':
 	parser.add_option('',"--denoiseTE",dest='e2d',help="TE to denoise. Default middle",default=None)	
 	parser.add_option('',"--initcost",dest='initcost',help="Initial cost func. for ICA: pow3,tanh(default),gaus,skew",default='tanh')
 	parser.add_option('',"--finalcost",dest='finalcost',help="Final cost func, same opts. as initial",default='tanh')	
+	parser.add_option('',"--seed",dest='seed',help="Init random number seeds",default=None)
 	parser.add_option('',"--stabilize",dest='stabilize',action='store_true',help="Stabilize convergence by reducing dimensionality, for low quality data",default=False)
 	parser.add_option('',"--fout",dest='fout',help="Output TE-dependence Kappa/Rho SPMs",action="store_true",default=False)
 	parser.add_option('',"--label",dest='label',help="Label for output directory.",default=None)
@@ -616,6 +626,10 @@ if __name__=='__main__':
 	if options.tes==None or options.data==None: 
 		print "*+ Need at least data and TEs, use -h for help."		
 		sys.exit()
+
+        # maybe init seeds
+        if options.seed is not None:
+                init_random_seeds(int(options.seed))
 
 	print "++ Loading Data"
 	tes = np.fromstring(options.tes,sep=',',dtype=np.float32)
