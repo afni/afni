@@ -725,15 +725,20 @@ ENTRY("AFNI_niml_redisplay_CB") ;
         rdata = NULL;   /* if we want these values, send them to A_vol2surf */
         rthresh = 0.0;
 
-        if( ldp_list.list[kldp].use_v2s ){        /* vol2surf was requested */
+        /* if vol2surf was specifically requested */
+        if( ldp_list.list[kldp].use_v2s ){
+
+          /* if map_all, reset last_node */
+          if( gv2s_plug_opts.map_all ) gv2s_plug_opts.sopt.last_node = 0;
+
           nmap = AFNI_vol2surf_func_overlay(im3d, &map, sA,sB,
                                             0, NULL, &rthresh);
-        } else if ( ldp_list.list[kldp].nsurf > 1 ){  /* use v2s with defaults */
+        } else if ( ldp_list.list[kldp].nsurf > 1 ){  /* use v2s with defs    */
           nmap = AFNI_vol2surf_func_overlay(im3d, &map, sA,sB,
                                             1, NULL, &rthresh);
         } else {  /* one surface, no request: use vnlist */
-          /* okay, no more vnlist...  :(                   25 Oct 2004 [rickr] */
-          /* nmap = AFNI_vnlist_func_overlay( im3d, sA, &map,&nvused ) ;       */
+          /* okay, no more vnlist...  :(                  25 Oct 2004 [rickr] */
+          /* nmap = AFNI_vnlist_func_overlay( im3d, sA, &map,&nvused ) ;      */
           nmap = AFNI_vol2surf_func_overlay(im3d, &map, sA, -1,
                                             1, NULL, &rthresh);
         }
@@ -1080,13 +1085,21 @@ static int slist_check_user_surfs( ldp_surf_list * lsurf, int * surfs,
                                    v2s_plugin_opts * po )
 {
    int done = 0, posn;
+   int mapall = 0;
    ENTRY("slist_check_user_surfs");
 
    /* the easiest check */
    if ( ! po->ready ) RETURN(0);
    if ( ! po->use0 && ! po->use1 ) RETURN(0);
 
-   if ( po->use0 ) {
+   /* if mapping all surfaces, do not do anything but set use_v2s */
+   if ( po->map_all ) {
+      if ( po->sopt.debug>2 ) fprintf(stderr,"++ v2s: mapping all surfaces\n");
+      lsurf->use_v2s = 1;                            /* ready for v2s   */
+      RETURN(0);
+   }
+
+   if ( !done && po->use0 ) {
       posn = int_list_posn(surfs, lsurf->nsurf, po->s0A);
       if ( posn >= 0 ) {
          done = 1;

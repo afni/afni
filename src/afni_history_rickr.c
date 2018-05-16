@@ -49,6 +49,14 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, May, 2018, RCR, "plug_vol2surf", MINOR, TYPE_NEW_OPT,
+   "added map_all option for the main 'use vol2surf?' plugin menu",
+   "The 'map_all' option applies plugin parameters to all mappable surfaces,\n"
+   "rather than applying defaults to any surface not specified as surf_A/B.\n"
+   "This allows one to use normals and the various mapping functions.\n"
+   "Done for D Glen."
+ } ,
+
  { 15, May, 2018, RCR, "tedana.py", MICRO, TYPE_NEW_OPT,
    "add --seed, update for modern numpy",
    "New option --seed can be used for regression testing.\n"
