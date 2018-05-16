@@ -6253,6 +6253,10 @@ else fprintf(stderr,"  -- too soon to enforce aspect!\n") ;
 INFO_message("ConfigureNotify") ;
 #endif
                ISQ_show_image( seq ) ;
+            } else {
+#if 0
+INFO_message("reject image ConfigureNotify") ;
+#endif
             }
 
          } else if( w == seq->wbar ){
@@ -6264,6 +6268,10 @@ INFO_message("ConfigureNotify") ;
 
                KILL_2ndXIM( seq->given_xbar , seq->sized_xbar ) ;
                ISQ_show_bar( seq ) ;
+            } else {
+#if 0
+INFO_message("reject wbar ConfigureNotify") ;
+#endif
             }
          }
 
