@@ -43,6 +43,10 @@ static char g_help[] =
     " the 'mask' function for 1 surface, and the midpoint function for more\n"
     " than 1.  The 'num steps' and 'seg index' will not be applicable.\n"
     " \n"
+    " As of May, 2018, there is a 'map_all' option under 'use vol2surf'.  In\n"
+    " that case, all mappable surfaces will be processed using the plugin\n"
+    " options, rather than the simple defaults.\n"
+    " \n"
     " ---\n"
     " \n"
     " The minimum choices that must be made are on the 'function' line:\n"
@@ -60,6 +64,8 @@ static char g_help[] =
     " function:\n"
     " \n"
     "   use vol2surf? : choose 'yes' to make the plugin options active\n"
+    "                   choose 'map_all' to apply options to all surfaces,\n"
+    "                   not simply those in pair 0 and/or 1\n"
     "   map func      : choose a function to apply to values along node pair\n"
     "                   segments, embedded in the AFNI volume\n"
     "   seg index     : apply all values along a each segment, or only those\n"
@@ -177,10 +183,12 @@ static char g_help[] =
 
 #define P_MAP_NAMES_NVALS      15       /* should match enum for global maps */
 #define P_NY_NVALS              2
+#define P_NYA_NVALS             3
 #define P_KEEP_NVALS            3
 #define P_STEP_NVALS            2
 
 static char * gp_ny_list[]   = { "no", "yes" };
+static char * gp_nyA_list[]  = { "no", "yes", "map_all" };
 static char * gp_keep_list[] = { "no check yet", "keep", "reverse" };
 static char * gp_step_list[] = { "voxel", "node" };
 
@@ -244,7 +252,7 @@ ENTRY("vol2surf: PLUGIN_init");
     /* first input : do we use vol2surf? */
     PLUTO_add_option( plint, "function", "op_st", TRUE );
     PLUTO_add_hint  ( plint, "decide whether to use vol2surf" );
-    PLUTO_add_string( plint, "use vol2surf? ", P_NY_NVALS, gp_ny_list, 0 );
+    PLUTO_add_string( plint, "use vol2surf? ", P_NYA_NVALS, gp_nyA_list, 0 );
     PLUTO_add_hint  ( plint, "use vol2surf (or basic intersection)" );
     PLUTO_add_string( plint, "map func",P_MAP_NAMES_NVALS,globs.maps,0);
     PLUTO_add_hint  ( plint, "choose a filter to apply to segment values" );
@@ -434,14 +442,17 @@ ENTRY("PV2S_process_args");
         if ( ! strcmp(tag, "op_st") )
         {
             str = PLUTO_get_string(plint);
-            val = PLUTO_string_index(str, P_NY_NVALS, gp_ny_list);
+            val = PLUTO_string_index(str, P_NYA_NVALS, gp_nyA_list);
 
-            if ( (val < 0) || (val >= P_NY_NVALS) )
+            if ( (val < 0) || (val >= P_NYA_NVALS) )
             {
-                PV2S_BAIL_VALUE(mesg,"bad NY vals", val);
+                PV2S_BAIL_VALUE(mesg,"bad NYA vals", val);
                 RETURN(1);
             }
-            ready = val;                /* this is the interface to "ready" */
+            /* option to process v2s on all surfaces  16 May 2018 [rickr] */
+            if ( val == 2 ) lvpo.map_all = 1;
+
+            ready = (val>0);            /* this is the interface to "ready" */
 
             /* now get map */
             str = PLUTO_get_string(plint);

@@ -109,7 +109,8 @@ typedef struct
 
 typedef struct
 {
-    int                ready, use0, use1;
+    int                ready, map_all;  /* map_all  16 May 2018 [rickr]  */
+    int                use0, use1;
     int                s0A, s0B;
     int                s1A, s1B;
     int                gpt_index;       /* grid_parent thres ind (init -1) */
