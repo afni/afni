@@ -471,6 +471,7 @@ extern void plotpak_point( float x1 , float y1 ) ;
 extern void plotpak_points( float *x , float *y , int n , int ipen ) ;
 extern void plotpak_pwrit( float x , float y , char * ch , int isiz , int ior , int icent ) ;
 extern void plotpak_pwritf( float x , float y , char * ch , int isiz , int ior , int icent ) ;
+extern void plotpak_pwritf_phys( float x , float y , char * ch , int isiz , int ior , int icent ) ;
 extern void plotpak_set( float xo1,float xo2 , float yo1,float yo2 ,
                          float xs1,float xs2 , float ys1,float ys2 , int code ) ;
 extern void plotpak_setdsh( int nd , float * xd ) ;

@@ -727,16 +727,8 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
 
    /* label at top? */
 
-   if( STGOOD(lab_top) ){
-#if 1
-     float xb , yb ;
-     if( do_naked ){ xb = xobot + 0.05 ; yb = yotop + 0.02 ; }
-     else          { xb = xobot + 0.02 ; yb = yotop + 0.01 ; }
-     plotpak_pwritf( xb , yb , lab_top , 18 , 0 , (do_naked)?-1:-2 ) ;
-#else
-     plotpak_pwritf( xobot+(do_naked)?0.05:0.02 , yotop+0.01 ,
-                     lab_top , 18 , 0 , (do_naked)?-1:-2 ) ;
-#endif
+   if( STGOOD(lab_top) && !do_naked ){
+     plotpak_pwritf( xobot , yotop+0.01 , lab_top , 18 , 0 , -2 ) ;
    }
 
    /*-- plot all on same vertical scale --*/
@@ -1072,6 +1064,10 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
       }
    }
 
+   if( STGOOD(lab_top) && do_naked ){
+     plotpak_pwritf_phys( xobot+0.05 , yotop+0.02 , lab_top , 18 , 0 , -1 ) ;
+   }
+
    /*-- exit, stage left --*/
 
    set_thick_memplot( 0.0 ) ;
@@ -1236,16 +1232,8 @@ MEM_topshell_data * plot_ts_init( Display * dpy ,
 
    /* label at top? */
 
-   if( STGOOD(lab_top) ){
-#if 1
-     float xb , yb ;
-     if( do_naked ){ xb = xobot + 0.05 ; yb = yotop + 0.02 ; }
-     else          { xb = xobot + 0.02 ; yb = yotop + 0.01 ; }
-     plotpak_pwritf( xb , yb , lab_top , 18 , 0 , (do_naked)?-1:-2 ) ;
-#else
-     plotpak_pwritf( xobot+(do_naked)?0.05:0.02 , yotop+0.01 ,
-                     lab_top , 18 , 0 , (do_naked)?-1:-2 ) ;
-#endif
+   if( STGOOD(lab_top) && !do_naked ){
+     plotpak_pwritf( xobot , yotop+0.01 , lab_top , 18 , 0 , -2 ) ;
    }
 
    /*-- plot all on same vertical scale --*/
@@ -1336,6 +1324,10 @@ MEM_topshell_data * plot_ts_init( Display * dpy ,
             plotpak_setlin(1) ;
          }
       }
+   }
+
+   if( STGOOD(lab_top) && do_naked ){
+     plotpak_pwritf_phys( xobot+0.05 , yotop+0.02 , lab_top , 18 , 0 , -1 ) ;
    }
 
    /*-- display --*/
