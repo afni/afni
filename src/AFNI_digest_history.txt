@@ -1,3 +1,45 @@
+AFNI Digest, week of 2018/05/16.
+
+00) New executable script @grayplot reads a results directory created
+by afni_proc.py and creates a grayplot of each errts*+tlrc.HEAD
+dataset it finds. The output Grayplot.*.png images have a motion
+magnitude trace on top (with the censored intervals marked), and the
+time series grayscale plot below. The voxels (downwards) are ordered
+with Gray Matter on top, White Matter below, and CSF at the bottom,
+with tissue types separated by black-and-white dashed lines. These
+images are quick way to see if there are any strange artifacts left in
+the data after processing, and also to see how much the censoring has
+affected the dataset time series.
+
+01) A program called BayesianGroupAna.py is available now for running
+ROI-based group analysis. The underlying mechanism is laid out in a
+manuscript at:
+https://www.biorxiv.org/content/early/2018/02/20/238998. 
+Please read the program help for more details: BayesianGroupAna.py -help.
+
+02) afni_proc.py now has options for extracting orthogonalized terms
+from tedana.py for cleaning multi-echo time series data.  They can be
+applied via -combine_choice methods 'OC_tedort' and
+'tedana_OC_tedort'.  Please see the output of '@extract_meica_ortvec
+-help' for details.
+
+Also, afni_proc.py will now suggest '-blur_in_mask yes' when combining
+echoes via tedana.py.
+
+03) The full_mask dataset created by afni_proc.py will no longer be
+slightly dilated by default.  This will not typically affect results,
+but it will affect some of the mask-based quality control measures
+output by @ss_review_basic.
+
+04) There is a new clusterizing sheriff in town-- 3dClusterize.  It
+actual just takes a lot of the existing clusterizing functionality
+from 3dclust but simplifies the syntax and adds in some more
+functionality, such as being able to include a mask, run bi-sided
+tests, or threshold based on p-values.  Along with p2dsetstat and
+'1d_tool.py -csim_alpha ... -csim_pthr ...', this should make
+scripting easier all along the clusterizing process.
+
+========================================================================
 
 AFNI Digest, week of 2018/04/30.
 
@@ -23,13 +65,13 @@ https://brainhacknih.github.io/NIHBrainHack2018
 
 02) Processing of multi-echo data using afni_proc.py.
 Recent updates have been made to afni_proc.py for processing
-multi-echo data.  Processing for all steps leading up to the “combine”
+multi-echo data.  Processing for all steps leading up to the "combine"
 block is run on each echo. Registration of the data is driven by a
-“favorite” echo (default 2nd), which is then applied to all echoes,
+"favorite" echo (default 2nd), which is then applied to all echoes,
 and can include typical transformations: blip distortion correction,
 EPI to EPI base, EPI to anat, affine anat to template, and subsequent
 anat to template non-linear registration.  The multi-echo data can
-then be combined using the “optimally combined” method from Posse
+then be combined using the "optimally combined" method from Posse
 et. al., 1999, applied by Kundu et. al., 2011.
 Alternatively, echoes can be combined running ME-ICA via tedana.py,
 called from the resulting proc script, with control over passed
@@ -109,7 +151,7 @@ statistics NOW NOW NOW, and so he has added 3dTstat Insta-calculation
 capability to the AFNI GUI, as described here:
 https://afni.nimh.nih.gov/afni/community/board/read.php?1,157684,157684#msg-157684
 New statistics were added to 3dTstat to measure the fluctuations of
-time series volumes, including Von Neumann’s MSSD (mean square of
+time series volumes, including Von Neumann's MSSD (mean square of
 successive differences) https://www.jstor.org/stable/2235765
 
 03) fat_proc* diffusion tools: default updates + new demo.
@@ -148,7 +190,7 @@ https://afni.nimh.nih.gov/bootcamp/
 The current practice of handling multiple testing through controlling
 the overall FPR in neuroimaging under the null hypothesis significance
 testing (NHST) paradigm excessively penalizes the statistical power
-with inflated type II errors (“false negatives” or “low power”). An
+with inflated type II errors ("false negatives" or "low power"). An
 ROI-based approach has been proposed to handling neuroimaging group
 analysis using Bayesian hierarchical modeling (BHM) to achieve two
 goals: 1) improving modeling efficiency via one integrative (instead
@@ -318,7 +360,7 @@ contains a link to the AFNI work now available arXiv, as well as to
 the Mueller et al. article.
 
 01) New program: 3dBrainSync
-This program “synchronizes” one dataset’s time series with another
+This program "synchronizes" one dataset's time series with another
 dataset, in the sense of maximizing the average time series
 correlation of the transformed dataset with the reference dataset. Two
 different methods for the transformation are provided: orthogonal
@@ -501,7 +543,7 @@ http://jamanetwork.com/journals/jama/fullarticle/2630954
 ===========================================================================
 AFNI Digest, week of 2017/05/26.
 
-00) AFNI is starting a new “Digest” email distribution-- welcome!
+00) AFNI is starting a new "Digest" email distribution-- welcome!
 
 01) FMRI Clustering has been a widely discussed topic this year. These
 recent papers by the AFNI group discuss the work by Eklund et
@@ -509,7 +551,7 @@ al. (with useful summaries of their results) and discuss both old and
 new AFNI clustering functionality.
 + Full Brain Connectivity paper:
   http://online.liebertpub.com/doi/full/10.1089/brain.2016.0475
-+ And its “Executive Summary”:
++ And its "Executive Summary":
   https://drive.google.com/file/d/0B6Sn11ZTBrhvR2VYWmhvYmpZU2M/view
 + PNAS reply Letter:
   http://www.pnas.org/content/114/17/E3370.full
