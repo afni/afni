@@ -4,20 +4,31 @@
 ## 03/2018 Justin Rajendra
 ## prep data from afni_proc.py for tedana.py
 ## 05/07/2018: removed the mean addition 
+## 05/15/2018: added local check_output [rickr]
 
 ## system libraries
 import sys, os, glob, subprocess, re, argparse, signal, textwrap, shutil
 
-## locations of stuff
-afni_bin = subprocess.check_output("which afni",shell=True)
-# afni_dir = os.path.dirname(afni_bin)
-afni_dir = sys.path[0]
-
 # sys.path.insert(0,afni_dir)
 import afni_base, afni_util
 
+
 ########################################################################
 ## functions
+
+
+# Local check_output(), since subprocess.check_output did
+# not exist prior to p2.7.            15 May 2018 [rickr]
+def check_output(cmd, showerr=1):
+    """return text output from the given command, executed via 'tcsh -c cmd'
+
+       if showerr and there is a command error, show it
+    """
+    status, output = afni_util.exec_tcsh_command(cmd)
+    if status and showerr:
+        print(cmd)
+        print(output)
+    return output
 
 # p = subprocess.Popen("ls -a -l", stdout=subprocess.PIPE,shell=True)
 # output = p.communicate()[0]
@@ -40,6 +51,17 @@ def exec_or_error(cmd_str,error_msg="ERROR!!!"):
         print("\n"+error_msg+"\n\n"+cmd_output)
         sys.exit(1)
     return p.returncode,cmd_output
+
+
+########################################################################
+## locations of stuff
+
+# use local check_output, subprocess might not have it 
+# afni_bin = subprocess.check_output("which afni",shell=True)
+afni_bin = check_output("which afni")
+# afni_dir = os.path.dirname(afni_bin)
+afni_dir = sys.path[0]
+
 
 ########################################################################
 ## parse command line arguments / build help
@@ -271,7 +293,8 @@ Zcat_all.new_view()
 ## stack up into NIFTI
 afni_cmd = ("3dZcat "+overwrite+" -prefix "+Zcat_all.pp()+" "+
             OutFolder+OutName+"_echo_*_preZcat"+out_view+".HEAD")
-subprocess.check_output(afni_cmd,shell=True)
+# subprocess.check_output(afni_cmd,shell=True)
+check_output(afni_cmd)
 
 ## clean up
 if not save_all:
@@ -281,7 +304,8 @@ else:
     ## compress the intermediates
     print("\nCompressing intermediate datasets....\n")
     afni_cmd = ("gzip -v "+OutFolder+"*.BRIK")
-    subprocess.check_output(afni_cmd,shell=True)
+    # subprocess.check_output(afni_cmd,shell=True)
+    check_output(afni_cmd)
     print("\nCompression complete!!\n")
 
 ## stop here?
