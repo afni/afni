@@ -1,7 +1,7 @@
 #!/bin/tcsh
 
 # ----------------------------------------------------------------------
-# Script: s.nimh_subject_level_02_ap.tcsh
+# Script: s.nimh_group_level_02_mema.tcsh
 # Run on: openfmri/ds001_R2.0.4
 # Date  : April, 2018
 #
