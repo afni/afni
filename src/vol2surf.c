@@ -177,7 +177,7 @@ static int    validate_v2s_inputs(v2s_opts_t * sopt, v2s_param_t * p);
 /*----------------------------------------------------------------------*/
 /* globals to be accessed by plugin and in afni_suma.c                  */
 v2s_plugin_opts gv2s_plug_opts = {
-        0,0,0,                    /* ready, use0, use1     */
+        0,0,0,0,                  /* ready, map_all, use0, use1 */
         -1,-1,-1,-1,              /* s0A, s0B, s1A, s1B    */
         -1,0.0,                   /* threshold index/value */
         {NULL, NULL, NULL, NULL}, /* surface labels [4]    */
@@ -2063,6 +2063,7 @@ ENTRY("disp_v2s_plugin_opts");
 
     fprintf(stderr, "v2s_plugin_opts @ %p\n"
                     "    ready      = %d\n"
+                    "    map_all    = %d\n"
                     "    use0, use1 = %d, %d\n"
                     "    s0A, s0B   = %d, %d\n"
                     "    s1A, s1B   = %d, %d\n"
@@ -2071,7 +2072,7 @@ ENTRY("disp_v2s_plugin_opts");
                     "    label[0,1] = %s, %s\n"
                     "    label[2,3] = %s, %s\n"
                     "    surf_vol   = %s\n",
-                    d, d->ready, d->use0, d->use1,
+                    d, d->ready, d->map_all, d->use0, d->use1,
                     d->s0A, d->s0B, d->s1A, d->s1B,
                     d->gpt_index, d->gpt_thresh,
                     CHECK_NULL_STR(d->label[0]),
