@@ -34,9 +34,9 @@ text_label = ".. _edu_class_prog:"
 text_title_desc = \
 '''
 
-***********************
-Classified Program list
-***********************
+***************************
+**Classified program list**
+***************************
 
 All AFNI programs, great and small, are listed here and classified
 based on functionality.  That is, they are grouped into some general

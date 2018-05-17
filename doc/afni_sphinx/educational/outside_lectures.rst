@@ -1,9 +1,9 @@
 .. _outside_lectures:
 
 
-*************************
-(Useful) Outside lectures
-*************************
+*****************************
+**(Useful) Outside lectures**
+*****************************
 
 .. contents::
    :depth: 3

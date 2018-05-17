@@ -17,9 +17,9 @@ text_label = ".. _edu_afni_cbars:"
 text_title_desc = \
 '''
 
-**************************
-List of all AFNI colorbars
-**************************
+******************************
+**List of all AFNI colorbars**
+******************************
 
 This is a list of all AFNI colorbars at present, showing both the
 colorbar itself and an image that has a full overlay spectrum

@@ -16,9 +16,9 @@ text_label = ".. _edu_startup_tips:"
 text_title_desc = \
 '''
 
-************************
-List of all startup tips
-************************
+****************************
+**List of all startup tips**
+****************************
 
 This is a list of *possibly* useful tips that the AFNI gurus have
 thought up, which may inform you, Dear User, of cool features within

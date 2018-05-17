@@ -1,8 +1,8 @@
 .. _class_recordings:
 
-********************************
-AFNI Bootcamp Lecture Recordings
-********************************
+************************************
+**AFNI Bootcamp Lecture Recordings**
+************************************
 
 .. contents::
    :depth: 3
