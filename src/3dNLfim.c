@@ -208,9 +208,17 @@ void display_help_menu()
      "input AFNI 3d+time data set.  The nonlinear regression is calculated  \n"
      "by means of a least squares fit to the signal plus noise models which \n"
      "are specified by the user.                                            \n"
-     "                                                                      \n"
-     "Usage:                                                                \n"
-     "3dNLfim                                                               \n"
+     "\n"
+     "Usage with terminal options:\n"
+     "\n"
+     "3dNLfim\n"
+     "    -help         show this help\n"
+     "    -help_models  show model help from any that have it\n"
+     "                  (can come via AFNI_MODEL_HELP_ALL)\n"
+     "\n"
+     "Usage:\n"
+     "\n"
+     "3dNLfim\n"
      "-input fname       fname = filename of 3d + time data file for input  \n"
      "[-mask mset]       Use the 0 sub-brick of dataset 'mset' as a mask    \n"
      "                     to indicate which voxels to analyze (a sub-brick \n"
@@ -681,6 +689,13 @@ void get_options
   /*----- add to program log -----*/
   AFNI_logger (PROGRAM_NAME,argc,argv);
 
+  /*----- to get help on all models, set general env var, load models -----*/
+  /*      and bail                                17 May 2018 [rickr]      */
+  if (strcmp(argv[1], "-help_models") == 0) {
+     AFNI_setenv("AFNI_MODEL_HELP_ALL YES");
+     model_array = NLFIT_get_many_MODELs ();
+     exit(0);
+  }
 
   /*----- initialize the model array -----*/
   model_array = NLFIT_get_many_MODELs ();
