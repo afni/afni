@@ -45,10 +45,8 @@ We might add more over time.
    * - anatomical dset
      - ROI dset
    * - .. image:: media/cbar_refs/FIG_ref_anat.axi.png
-          :height: 3in
           :align: center
      - .. image:: media/cbar_refs/FIG_ref_rois.axi.png
-          :height: 3in
           :align: center
 
 |
@@ -63,7 +61,7 @@ table_head = \
 
 .. list-table:: 
    :header-rows: 1
-   :widths: 15 10 35 35
+   :widths: 15 8 36 36
 
 '''
 
@@ -155,6 +153,7 @@ def write_out_edu_rst(ofile, lll, relpath=""):
 
         fff.write("   * - %s\n" % (x[:-4]))
         fff.write("     - .. image:: %s\n" % (my_cbar))
+        fff.write("          :height: 3in\n")
         fff.write("          :align: center\n")
         fff.write("     - .. image:: %s\n" % (my_brain1))
         fff.write("          :align: center\n")
