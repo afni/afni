@@ -1,12 +1,16 @@
 /* 
    Description
 
-   2018 05 08: inception for this version
+   2018 05 08: + inception for this version
 
-   2018 05 12: working version, new options for p-to-stat, new report
-               labels
+   2018 05 12: + working version, new options for p-to-stat, new
+                 report labels
 
-   2018 05 13: [PT] bug fix: wouldn't work with extra data set entered
+   2018 05 13: + [PT] bug fix: wouldn't work with extra data set
+                 entered
+
+   2018 05 17: + [PT] new report fields, more labels and stat_aux info
+               + [PT] can use brick_labels to specify vols, too
 
 */
 
@@ -18,8 +22,6 @@
 #include <debugtrace.h>
 #include <mrilib.h>    
 #include <3ddata.h>    
-//#include <rsfc.h>    
-//#include <gsl/gsl_rng.h>
 #include "DoTrackit.h"
 #include "basic_boring.h"
 
@@ -34,6 +36,8 @@ int ssgn(float x);
 
 int MakeBrickLab1(char *c0, char *c1, char *c2, char *c3);
 int MakeBrickLab2(char *c0, char *c1, char *c2);
+
+int mycheck_is_int(char *x);
 
 void usage_Clusterize(int detail) 
 {
@@ -180,10 +184,12 @@ void usage_Clusterize(int detail)
 "                 really useful if you are using '-mask_from_hdr'.  If\n"
 "                 not mask option is specified, there will be no output.\n"
 " \n"
-" -ithr   j      :Uses sub-brick [j] as the threshold source (required).\n"
+" -ithr   j      :Uses sub-brick [j] as the threshold source (required);\n"
+"                 'j' can be either an integer *or* a brick_label string.\n"
 " \n"
 " -idat   k      :Uses sub-brick [k] as the data source (optional);\n"
-"                 if this option is used, thresholding is still done by\n"
+"                 'j' can be either an integer *or* a brick_label string.\n"
+"                 If this option is used, thresholding is still done by\n"
 "                 the 'threshold' dataset, but that threshold map is\n"
 "                 applied to this 'data' set, which is in turn used for\n"
 "                 clusterizing and the 'data' set values are used to\n"
@@ -398,7 +404,9 @@ int main(int argc, char *argv[]) {
    float vmul;        // cluster vol thr: can be neg, pos, zero
    float rmm=0;       // for now, leave as zero to flag using NN neigh val
    float thb, tht;    // bot thr val for Rtail; top thr val for Ltail
-   int   ival=-1, ithr=-1; // idxs for data and thr vols
+   int   ival=-1, ithr=-1;    // idxs for dat and thr vols
+   char cval[THD_MAX_SBLABEL]=""; // for opt brick_label input...
+   char cthr[THD_MAX_SBLABEL]=""; // ... of dat and thr vols
    int   posfunc = 0;      // use for "pos only" behavior-- not needed here
    int   no_inmask = 1 ;   // about reading mask from header
    byte *mask=NULL;        // can be input or read from header
@@ -409,9 +417,9 @@ int main(int argc, char *argv[]) {
    MCW_cluster_array *clar=NULL, *clar2=NULL, *clbig=NULL;
    char c1d[2] = {""}, c1dn[2] = {""};
 
-   MRI_IMAGE *tim=NULL, *dim=NULL;        // NB: 'dim' is other ex. 'bim'
    THD_datablock *dblk=NULL;
-   MRI_IMAGE *cim=NULL; void *car=NULL;   // copies of thr vol to apply thr
+   MRI_IMAGE *tim=NULL, *dim=NULL;        // NB: 'dim' is other ex. 'bim'
+   MRI_IMAGE *cim=NULL;  void *car=NULL;  // copies of thr vol to apply thr
    MRI_IMAGE *cim2=NULL; void *car2=NULL; // same as cim, but for bisided
 
    int qv; 
@@ -419,7 +427,14 @@ int main(int argc, char *argv[]) {
    int iclu, ipt, ii, jj, kk, ptmin;
    MCW_cluster *cl=NULL;
 
-   char repstr[200] = "";
+   char repstr[200]  = "";
+   char repstat[200] = "";
+   int  istatfunc    = -1;
+   char rrstr[50]    = "";
+
+   char repthr[200]  = "";
+   char repval[200] = "";
+   char repmask[200] = "";
 
    // mainly report-related
    char *CL_prefix  = NULL;  // output data volume, if asked for
@@ -511,34 +526,39 @@ int main(int argc, char *argv[]) {
          if( INMASK == NULL )
             ERROR_exit("Can't open time series dataset '%s'.",
                        argv[iarg]);
-
          DSET_load(INMASK); CHECK_LOAD_ERROR(INMASK);
+         sprintf(repmask,"%s",argv[iarg]);
          iarg++ ; continue ;
       }
 
       // the same as "-inmask" in 3dclust
       if( strcmp(argv[iarg],"-mask_from_hdr") == 0) {
          no_inmask = 0;
+         sprintf(repmask,"(mask from header)");
          iarg++ ; continue ;
       }
 
       // ---------- which vols are data and thr vols
 
-      // !!!!!!! also want to select by bricklabel!!!
-
-      // index for vol to be thresholded
+      // index for vol to be thresholded; can also be brick_label str
       if( strcmp(argv[iarg],"-ithr") == 0 ){
          iarg++ ; if( iarg >= argc ) 
                      ERROR_exit("Need argument after '-ithr'");         
-         ithr = atoi(argv[iarg]);
+         if( mycheck_is_int(argv[iarg]) )
+            ithr = atoi(argv[iarg]);
+         else
+            sprintf(cthr,"%s",argv[iarg]);
          iarg++ ; continue ;
       }
 
-      // index for vol to be clusterized
+      // index for vol to be clusterized; can also be brick_label str
       if( strcmp(argv[iarg],"-idat") == 0 ){
          iarg++ ; if( iarg >= argc ) 
                      ERROR_exit("Need argument after '-idat'");         
-         ival = atoi(argv[iarg]);
+         if( mycheck_is_int(argv[iarg]) )
+            ival = atoi(argv[iarg]);
+         else
+            sprintf(cval,"%s",argv[iarg]);
          iarg++ ; continue ;
       }
 
@@ -761,6 +781,25 @@ int main(int argc, char *argv[]) {
    if ( !no_inmask && INMASK )
       ERROR_exit("Can't input a mask AND ask to use any mask from header!");
 
+   // check if str labels were input
+   if( strlen(cthr) ) {
+      for( i=0 ; i<Dim[3] ; i++)
+         if( !strcmp (DSET_BRICK_LABEL(insetA, i), cthr) )
+            ithr = i;
+      if( ithr < 0 )
+         ERROR_exit("Could not find string label: %s", cthr);
+      INFO_message("Found string label '%s' as volume [%d]", cthr, ithr);
+   }
+
+   if( strlen(cval) ) {
+      for( i=0 ; i<Dim[3] ; i++)
+         if( !strcmp (DSET_BRICK_LABEL(insetA, i), cval) )
+            ival = i;
+      if( ival < 0 )
+         ERROR_exit("Could not find string label: %s", cval);
+      INFO_message("Found string label '%s' as volume [%d]", cval, ival);
+   }
+
    if( ival > DSET_NVALS(insetA) )
       ERROR_exit("Bad index (too large) for data volume: %d", ival);
    else if( ival < 0 ) {
@@ -769,10 +808,28 @@ int main(int argc, char *argv[]) {
       if(CL_prefix)
          WARNING_message("... even though you specified an '-pref_dat ..', "
                          "not cluster-masked output can be made.");
+      sprintf(repval, "(none)");
+   }
+   else {
+      if ( DSET_HAS_LABEL(insetA, ival) )
+         sprintf(repval, "[%d] '%s'", ival, DSET_BRICK_LAB(insetA, ival));
+      else
+         sprintf(repval, "[%d]", ival);
+      INFO_message("Data volume:      %s", repval);
    }
 
    if( ithr < 0 || ithr > DSET_NVALS(insetA) )
       ERROR_exit("Bad index for threshold volume: %d", ithr);
+   else {
+      if ( DSET_HAS_LABEL(insetA, ithr) )
+         sprintf(repthr, "[%d] '%s'", ithr, DSET_BRICK_LAB(insetA, ithr));
+      else
+         sprintf(repthr, "[%d]", ithr);
+      INFO_message("Threshold volume: %s", repthr);
+   }
+
+
+
 
    if ( !NNTYPE ) 
       ERROR_exit("Need to choose a neighborhood type: '-NN ?'");
@@ -913,6 +970,18 @@ int main(int argc, char *argv[]) {
    if( DSET_BRICK_FACTOR(insetA, ithr) > 0.0f ) {
       thb /= DSET_BRICK_FACTOR(insetA, ithr);
       tht /= DSET_BRICK_FACTOR(insetA, ithr);
+   }
+
+   // useful integer for decoding stat_aux stuff
+   istatfunc = dblk->brick_statcode[ithr]; 
+
+   // build string of supplementary pars for report
+   if( FUNC_need_stat_aux[istatfunc] > 0 ) {
+      sprintf(repstat, "%s :", FUNC_label_stat_aux[istatfunc]); 
+      for( i=0 ; i < FUNC_need_stat_aux[istatfunc] ; i++ ) {
+         sprintf(rrstr," %g ", DBLK_BRICK_STATPAR(dblk, ithr, i));
+         strcat(repstat, rrstr);
+      }
    }
 
    // ------- what dsets get clusterized and reportized?
@@ -1186,6 +1255,7 @@ int main(int argc, char *argv[]) {
 
    INFO_message("Time to make the report...");
 
+
    do_mni = (CL_do_mni && insetA->view_type == VIEW_TALAIRACH_TYPE);
    THD_coorder_fill( my_getenv("AFNI_ORIENT") , &CL_cord);
    if( CL_do_mni )
@@ -1202,8 +1272,12 @@ int main(int argc, char *argv[]) {
                 "%s[ 3D Dataset Name: %s ]\n"
                 "%s[    Short Label: %s ]\n"
 #endif
+                "%s[ Dataset prefix      = %s ]\n"
+                "%s[ Threshold vol       = %s ]\n"
+                "%s[ Supplement dat vol  = %s ]\n"
                 "%s[ Option summary      = %s ]\n"
                 "%s[ Threshold value(s)  = %s ]\n"
+                "%s[ Aux. stat. info.    = %s ]\n"
                 "%s[ Nvoxel threshold    = %d;"
                 //"  Connectivity radius = %.2f mm;"
                 "  Volume threshold = %.3f ]\n"
@@ -1218,8 +1292,12 @@ int main(int argc, char *argv[]) {
                 c1d, insetA->self_name ,
                 c1d, insetA->label1 ,
 #endif
+                c1d, DSET_PREFIX(insetA),
+                c1d, repthr,
+                c1d, repval,
                 c1d, blab1,
                 c1d, repstr,
+                c1d, repstat,
                 c1d, ptmin, ptmin*dx*dy*dz , // !!!
                 c1d, dx*dy*dz,
                 c1d, NNTYPE,
@@ -1233,13 +1311,13 @@ int main(int argc, char *argv[]) {
          //       c1d, dxf,dyf,dzf);
          
          if( mask && nmask ==0 ) 
-            printf("%s[ Using user's input mask ]\n", c1d);
+            printf("%s[ Mask                = %s ]\n", c1d, repmask);
          else if( !no_inmask && mask != NULL )           
-            printf("%s[ Using internal mask ]\n", c1d);
+            printf("%s[ Mask                = %s ]\n", c1d, repmask);
          else if( nmask > 0 )
-            printf("%s[ Skipping internal mask ]\n", c1d);
-         else if( nmask < 0 )
-            printf("%s[ Un-usable internal mask ]\n", c1d); // shd not happen
+            printf("%s[ Mask                = (skipping internal) ]\n", c1d);
+         else if( nmask < 0 ) // shd not happen
+            printf("%s[ Mask                = (un-usable internal) ]\n", c1d);
          
          if (CL_noabs)
             printf ("%s[ Mean and SEM based on "
@@ -1642,4 +1720,20 @@ int MakeBrickLab2(char *c0, char *c1, char *c2)
    strcat(c0, ",");
 
    return 0;
+}
+
+// -----------------------------------------------------------
+
+int mycheck_is_int(char *x)
+{
+   int n, i=0;
+   
+   n = strlen(x);
+   while( i<n && isdigit(x[i]) ) 
+      i++;
+
+   if( n-i ) 
+      return 0;
+   else 
+      return 1;
 }
