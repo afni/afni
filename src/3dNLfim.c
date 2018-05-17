@@ -212,11 +212,23 @@ void display_help_menu()
      "Usage with terminal options:\n"
      "\n"
      "3dNLfim\n"
-     "    -help         show this help\n"
-     "    -help_models  show model help from any that have it\n"
-     "                  (can come via AFNI_MODEL_HELP_ALL)\n"
+     "    -help                 show this help\n"
+     "    -help_models          show model help from any that have it\n"
+     "                          (can come via AFNI_MODEL_HELP_ALL)\n"
      "\n"
-     "Usage:\n"
+     "        One can get help for an individual model, *if* it exists, by\n"
+     "        setting a similar environment variable, and providing some\n"
+     "        non-trivial function option (like -load_models), e.g.,\n"
+     "\n"
+     "            3dNLfim -DAFNI_MODEL_HELP_CONV_PRF_6=Y -load_models\n"
+     "\n"
+     "        Indifidual help should be available for any model with help\n"
+     "        via -help_models.\n"
+     "\n"
+     "    -load_models          simply load all models and exit\n"
+     "                          (this is for testing or getting model help)\n"
+     "\n"
+     "General usage:\n"
      "\n"
      "3dNLfim\n"
      "-input fname       fname = filename of 3d + time data file for input  \n"
@@ -691,8 +703,9 @@ void get_options
 
   /*----- to get help on all models, set general env var, load models -----*/
   /*      and bail                                17 May 2018 [rickr]      */
-  if (strcmp(argv[1], "-help_models") == 0) {
-     AFNI_setenv("AFNI_MODEL_HELP_ALL YES");
+  if ( !strcmp(argv[1], "-help_models") || !strcmp(argv[1], "-load_models") ) {
+     if ( !strcmp(argv[1], "-help_models") )
+        AFNI_setenv("AFNI_MODEL_HELP_ALL YES");
      model_array = NLFIT_get_many_MODELs ();
      exit(0);
   }
