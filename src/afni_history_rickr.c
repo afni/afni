@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17, May, 2018, RCR, "3dNLfim", MICRO, TYPE_NEW_OPT,
+   "add -help_models",
+   "This is easier than: '3dNLfim -DAFNI_MODEL_HELP_ALL=Y -signal eggs'."
+ } ,
+
  { 16, May, 2018, RCR, "plug_vol2surf", MINOR, TYPE_NEW_OPT,
    "added map_all option for the main 'use vol2surf?' plugin menu",
    "The 'map_all' option applies plugin parameters to all mappable surfaces,\n"
