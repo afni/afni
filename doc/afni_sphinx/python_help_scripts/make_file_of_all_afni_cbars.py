@@ -155,13 +155,10 @@ def write_out_edu_rst(ofile, lll, relpath=""):
 
         fff.write("   * - %s\n" % (x[:-4]))
         fff.write("     - .. image:: %s\n" % (my_cbar))
-        fff.write("          :height: 3in\n")
         fff.write("          :align: center\n")
         fff.write("     - .. image:: %s\n" % (my_brain1))
-        fff.write("          :height: 3in\n")
         fff.write("          :align: center\n")
         fff.write("     - .. image:: %s\n" % (my_brain2))
-        fff.write("          :height: 3in\n")
         fff.write("          :align: center\n")
 
     fff.close()
