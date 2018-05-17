@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 17, May , 2018 , PT , "3dClusterize" , MINOR , TYPE_GENERAL,
+   "String subbrick selectors now work for -idat and -ithr.",
+   "Also, the text report contains more (useful?) information.\n"
+},
+
 { 13, May , 2018 , PT , "3dClusterize" , MINOR , TYPE_BUG_FIX,
    "Wouldn't work with extra dset entered- fixed now.",
    "Can enter extra beta/effect estimate set for clusterizing.\n"
