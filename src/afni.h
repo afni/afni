@@ -2376,6 +2376,7 @@ extern void adpt_wt_mn19( int, double,double, float * ) ; /* 29 Sep 2016 */
 extern void adpt_wt_mnXX( int, double,double, float * ) ; /* 30 Sep 2016 */
 extern void despike7_func  (int, double,double, float *); /* 07 Oct 2010 */
 extern void despike9_func  (int, double,double, float *); /* 08 Oct 2010 */
+extern void DES_despike25  (int, double,double, float *); /* 18 May 2018 */
 extern void hrfdecon_func  (int, double,double, float *); /* 29 Oct 2010 */
 
 extern void L1normalize_func( int, double,double, float * ) ; /* 03 Sep 2009 */
