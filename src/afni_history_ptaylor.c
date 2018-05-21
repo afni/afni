@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 21, May , 2018 , PT , "p2dsetstat" , MINOR , TYPE_NEW_OPT,
+   "Include '-bisided' as a type of test, explicitly.",
+   "Same behavior as '-2sided', just easier for scripting.\n"
+},
+
 { 17, May , 2018 , PT , "3dClusterize" , MINOR , TYPE_GENERAL,
    "String subbrick selectors now work for -idat and -ithr.",
    "Also, the text report contains more (useful?) information.\n"
