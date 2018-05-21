@@ -2,11 +2,13 @@
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
-# .... IN PROGRESS WRITING HELP ....
-
 set version   = "1.0";  set rev_dat   = "April 16, 2018"
 # + convert p value to a stat, using header info from a dset brick to
 #   get supplementary requirements like DOF, etc.
+#
+set version   = "1.1";  set rev_dat   = "May 21, 2018"
+# + allow "bisided" as a type of test (=2sided, for p-to-stat
+#   conversion)
 #
 # ---------------------------------------------------------------
 
@@ -20,7 +22,7 @@ set here = $PWD
 
 set ibrick    = ""      # a single brick of a volume
 set ipval     = ""      # to be p-value
-set MULTFAC   = 0       # this MUST be set with either -1sided or -2sided
+set MULTFAC   = 0       # this MUST be set with: -1sided|-2sided|-bisided
 set NOQUIET   = 1
 
 # Get info stored in header about: what kind of stat is stored, what
@@ -68,6 +70,8 @@ while ( $ac <= $#argv )
     else if ( "$argv[$ac]" == "-1sided" ) then
         set MULTFAC = 2
     else if ( "$argv[$ac]" == "-2sided" ) then
+        set MULTFAC = 1
+    else if ( "$argv[$ac]" == "-bisided" ) then
         set MULTFAC = 1
 
     # can specify quietude
@@ -119,7 +123,7 @@ if ( $check2 ) then
 endif
 
 if ( $MULTFAC == 0 ) then
-    echo "** ERROR! Specify either '-2sided' or '-1sided' testing."
+    echo "** ERROR! Specify one of: '-bisided', '-2sided' or '-1sided' testing."
     goto BAD_EXIT
 endif
 
@@ -208,10 +212,10 @@ cat << EOF
     like ccalc and cdf, but with less work by the user.
 
     **Note that the user will have to choose explicitly whether they
-      are doing one-sided or two-sided testing!** This is equivalent
-      to choosing "Pos&Neg" or just "Pos" (or just "Neg", if the user
-      multiplies the output by a negative) in the AFNI GUI's clickable
-      p-to-statistic calculator.
+      are doing one-sided or bi-sided/two-sided testing!** This is
+      equivalent to choosing "Pos&Neg" or just "Pos" (or just "Neg",
+      if the user multiplies the output by a negative) in the AFNI
+      GUI's clickable p-to-statistic calculator.
 
     Ver. $version (PA Taylor, ${rev_dat})
 
@@ -222,7 +226,7 @@ cat << EOF
   $this_prog  \
         -inset   DDD'[i]'                     \
         -pval    P                            \
-        -2sided|-1sided                       \
+        -bisided|-2sided|-1sided              \
         {-quiet}
 
   where:
@@ -234,6 +238,8 @@ cat << EOF
 
     -pval  P   :input p-value P, which MUST be in the interval [0,1].
 
+    -bisided
+       or
     -2sided
        or
     -1sided    :one of these two options MUST be chosen, and it is up
@@ -277,7 +283,7 @@ cat << EOF
     $this_prog  \
         -inset stats.sub01+tlrc'[2]'            \
         -pval 0.001                             \
-        -2sided
+        -bisided
     
     # 2) Do a calculation and just display a single number:
     $this_prog  \
@@ -291,7 +297,7 @@ cat << EOF
     set my_stat = \`$this_prog  \
                     -inset stats.sub02+tlrc'[8]'            \
                     -pval 0.001                             \
-                    -2sided                                 \
+                    -bisided                                \
                     -quiet\`
 
     # 4) Do a calculation and store the output number into a text
@@ -299,7 +305,7 @@ cat << EOF
     $this_prog  \
         -inset stats.sub02+tlrc'[8]'            \
         -pval 0.001                             \
-        -2sided                                 \
+        -bisided                                \
         -quiet > MY_STAT_FILE.txt
 
 -------------------------------------------------------------------------
