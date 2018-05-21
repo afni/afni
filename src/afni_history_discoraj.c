@@ -51,6 +51,15 @@
 afni_history_struct discoraj_history[] = {
 
  /* can copy to and change one of the examples here */
+ { 18 , MAY , 2018 , JKR , "abids_lib.py" , SUPER , TYPE_NEW_PROG ,
+   "New library to handle data from json files. Useful for BIDS data."
+ } ,
+ { 18 , MAY , 2018 , JKR , "abids_tool.py" , SUPER , TYPE_NEW_PROG ,
+   "New program to modify BIDS datasets."
+ } ,
+ { 18 , MAY , 2018 , JKR , "abids_json_info.py" , SUPER , TYPE_NEW_PROG ,
+   "New program to extract data from json files. Useful for BIDS data."
+ } ,
  { 04 , MAY , 2018 , JKR , "BayesianGroupAna.py" , SUPER , TYPE_NEW_PROG ,
    "New program to preform Bayesian group analysis on ROI level data."
  } ,
