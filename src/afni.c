@@ -2606,7 +2606,8 @@ STATUS("call 13") ;
           }
         }
 
-        AFNI_register_1D_function( "Despike"   , despike9_func);       /* 08 Oct 2010 */
+        AFNI_register_1D_function( "Despike9"  , despike9_func);       /* 08 Oct 2010 */
+        AFNI_register_1D_function( "Despike25" , DES_despike25);       /* 18 May 2018 */
         AFNI_register_1D_function( "HRF decon" , hrfdecon_func);       /* 29 Oct 2010 */
         AFNI_register_1D_function( "|FFT()|"   , absfft_func ) ;
 #if 0

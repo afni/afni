@@ -1227,7 +1227,7 @@ class Afni1D:
          print("** ClustSim: no attribute object")
          return 1
 
-      if not self.csim_has_all_attrs():
+      if not self.csim_has_all_attrs(verb=verb):
          print("** ClustSim attributes are missing\n")
 
       print("")
@@ -1263,7 +1263,12 @@ class Afni1D:
       for aname in alist:
          if not aname in attrs:
             hasall = 0
-            if verb: print('** csim obj, missing attribute %s' % aname)
+            if verb and not cobj.whined:
+               print('** csim obj, missing attribute %s' % aname)
+
+      # only whine once
+      if verb and not cobj.whined and not hasall:
+         cobj.whined = 1
 
       return hasall
 
@@ -1285,6 +1290,7 @@ class Afni1D:
          import lib_vars_object as VO
          self.VO = VO
          cobj = self.VO.VarsObject()
+         cobj.whined = 0
          for cline in self.header:
             csplit = cline.split()
             if UTIL.starts_with(cline, '# 3dClustSim '):
@@ -1302,6 +1308,9 @@ class Afni1D:
                      cobj.btype = 'acf'
                      bval = float(csplit[ind+1])
                      cobj.bvals = [bval, bval, bval]
+                  elif csplit[ind] == '-insdat':
+                     cobj.btype = 'NONE'
+                     cobj.bvals = []
                   else:
                      continue
                   

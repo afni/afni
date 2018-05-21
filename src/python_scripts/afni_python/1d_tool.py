@@ -1134,9 +1134,11 @@ g_history = """
    1.28 Apr 17, 2017
         - clarify source in -show_censored_trs (if Xmat, use header info)
    2.00 Nov  7, 2017 - python3 compatible
+   2.01 Apr 18, 2018 - added -csim_show_clustsize and related options
+   2.02 May 18, 2018 - handle '3dttest++ -Clustsim' files, with no blur
 """
 
-g_version = "1d_tool.py version 2.00, November 7, 2017"
+g_version = "1d_tool.py version 2.02, May 18, 2018"
 
 
 class A1DInterface:
