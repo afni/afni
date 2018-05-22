@@ -68,10 +68,14 @@
 #set version = "3.5"; set rev_dat = "Mar 5, 2018"
 #   + update QC snapshotting and output dir; file names/locs
 #
-set version = "3.6"; set rev_dat = "Mar 14, 2018"
+#set version = "3.6"; set rev_dat = "Mar 14, 2018"
 #   + bug fix: program would crash if bval was used, because the
 #     selector wasn't being copied in the correct location; thanks for
 #     finding, G. Cabras!
+#
+set version = "3.7"; set rev_dat = "May 22, 2018"
+#   + bug fix: was doing union, not intersection, of lists of string
+#     selectors.  NOW intersecting.
 #
 # ----------------------------------------------------------------
  
@@ -611,17 +615,23 @@ cat << EOF
                      volumes in a data set: 
                         '0..3,5,7..\$' 
                      This string gets applied to the volume, bval|bvec|bmat
-                     files for an input set. Required.
+                     files for an input set. Either this or '-select_file ..',
+                     below, is required.
                      NB: there are neither square nor curly brackets used
                      here!
-                     NB2: Always use the single quotes around the
+                     NB2: Always use single or double quotes around the
                      selector expression. 
+                     NB3: User can enter a list of strings here, such as:
+                       '0..3,5,7..\$' '1..3,6..\$' 
+                     which then get joined by intersection.
        or
   -select_file SF   :where SF is a file name whose only contents are a nice 
                      string of indices and index ranges for selecting which
                      volumes/grads/bvals to *keep*.  Like, literally just
                         0..3,5,7..\$
                      sitting alone in a file-- no apostrophes needed/wanted.
+                     User can enter more than one file here, to be joined
+                     by intersection.
 
   -prefix    PPP    :output prefix for all the volumes and text files.
                      Required.
