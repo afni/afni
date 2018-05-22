@@ -4,10 +4,11 @@
 
 # simple program for combining string selectors
 
-VERSION   = "1.0"
-VER_DATE  = "Feb 13, 2018"
+VERSION   = "1.1"
+VER_DATE  = "May 22, 2018"
 AUTHOR    = "PA Taylor (NIMH, NIH)"
 
+# "May 22, 2018":  change "union" -> intersection of lists
 
 import sys       as sys
 import numpy     as np
@@ -78,10 +79,15 @@ if __name__=="__main__":
     print "++ Command line:\n   ", ' '.join(sys.argv)
     (ofile, maxind, lstr)  =  get_arg(sys.argv[1:])
 
+    # [PT: May 22, 2018] want INTERSECTION, not union...
+    Nlstr = len(lstr)
+    if Nlstr < 1:
+        sys.exit("Couldn't find any number strings??")
     # put all selectors together
-    sss = set()
-    for ll in lstr:
-        sss = set.union(sss, set(au.decode_1D_ints(ll, imax=maxind)))
+    sss = set(au.decode_1D_ints(lstr[0], imax=maxind))
+    for i in range(1,Nlstr):
+        ll = lstr[i]
+        sss = set.intersection(sss, set(au.decode_1D_ints(ll, imax=maxind)))
 
     # listify and sort
     list_final = list(sss)
