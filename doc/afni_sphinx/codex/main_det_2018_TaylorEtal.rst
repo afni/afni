@@ -1,7 +1,7 @@
 .. _public_ex_fmri_2018_TaylorEtal_det:
 
 ====================
-Taylor et al. (2018)
+**Taylor et al. (2018).** FMRI processing with AFNI: Some comments and corrections on "Exploring the Impact of Analysis Software on Task fMRI Results
 ====================
 
 .. pub title

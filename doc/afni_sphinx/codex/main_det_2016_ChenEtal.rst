@@ -1,8 +1,8 @@
 .. _public_ex_fmri_2016_ChenEtal_det:
 
-==================
-Chen et al. (2016)
-==================
+===================================
+**Chen et al. (2016).** Untangling the Relatedness among Correlations, Part II: Inter-Subject Correlation Group Analysis through Linear Mixed-Effects Modeling
+===================================
 
 .. pub title
 .. include:: fmri_proc/2016_ChenEtal/all_data.rst
