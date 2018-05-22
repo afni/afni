@@ -91,10 +91,10 @@ OnlyOne.add_argument('-add_TR',action="store_true",default=False,
 OnlyOne.add_argument('-add_slice_times',action="store_true",default=False,
                      help=('Add the slice times from the BIDS json file'+
                            ' to the input dataset using 3drefit.'))
-OnlyOne.add_argument('-rename',type=str,nargs='+',metavar='PREFIX',
-                     help=('Rename the dataset(s) AND matching .json file(s) '+
-                            'to PREFIX. Must have the same number of prefixes '+
-                            'as datasets!'))
+OnlyOne.add_argument('-copy',type=str,nargs='+',metavar='PREFIX',
+                     help=('Copy both the NIFTI dataset(s) AND matching '+
+                           '.json file(s) to PREFIX. Must have the same '+
+                           'number of prefixes as datasets!'))
 ## if nothing, show help
 if len(sys.argv) == 1:
     parser.print_help()
@@ -107,7 +107,7 @@ dset_list = args.input
 add_slice_times = args.add_slice_times
 TR_match = args.TR_match
 add_TR = args.add_TR
-new_prefix = args.rename
+new_prefix = args.copy
 
 ## verify rename lengths
 if new_prefix is not None:
@@ -241,10 +241,15 @@ for i in range(0,len(dset_list)):
     ########################################################################
     ## rename both the dataset and json file
     if new_prefix is not None:
-        os.rename(json_file,new_prefix[i]+".json")
+        if os.path.isfile(new_prefix[i]+".json"):
+            print("\nError: "+new_prefix[i]+".json already exists. "+
+                 "Not overwritting!!\n")
+            sys.exit(1)
+        else:
+            os.system("cp "+json_file+" "+new_prefix[i]+".json")
+
         afni_cmd = ("3dcopy "+dset.rppv()+" "+new_prefix[i]+".nii.gz")
         abids_lib.exec_or_error(afni_cmd,"ERROR: Failed 3dcopy!!")
-        dset.delete()
 
 ## end dset loop
 sys.exit(0)
