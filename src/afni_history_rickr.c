@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 23, May, 2018, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
+   "add -ushort2float",
+   "This will add the option to any to3d command via -gert_create_dataset.\n"
+   "Done for H Brice."
+ } ,
+
  { 18, May, 2018, RCR, "1d_tool.py", MICRO, TYPE_ENHANCE,
    "handle '3dttest++ -Clustsim' files, with no blur",
    NULL
