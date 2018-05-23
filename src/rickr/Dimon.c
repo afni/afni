@@ -151,10 +151,11 @@ static char * g_history[] =
     " 4.21 Sep  6, 2017 [rickr]:\n"
     "      - apply xim in realtime.c, so not sending short end of run\n"
     " 4.22 Dec 10, 2017 [rickr]: apply -gert_to3d_prefix for GEMS\n"
+    " 4.23 May 23, 2018 [rickr]: add -ushort2float\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 4.22 (December 10, 2017)"
+#define DIMON_VERSION "version 4.23 (May 23, 2018)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
@@ -3291,6 +3292,11 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
 
             A->zorder = argv[ac];
         }
+        else if ( ! strcmp( argv[ac], "-ushort2float" ) )
+        {
+            p->opts.ushort2float = 1;
+            want_ushort2float = 1;
+        }
         else
         {
             fprintf( stderr, "error: invalid option <%s>\n\n", argv[ac] );
@@ -3738,7 +3744,8 @@ static int read_dicom_image( char * pathname, finfo_t * fp, int get_data )
 
     im = imarr->imarr[0];       /* for convenience */
 
-    /* check whether short overflow to unsigned */
+    /* check whether short overflow to unsigned                           */
+    /* If the user requested it, it is already set.   23 May 2018 [rickr] */
     if( MRILIB_dicom_s16_overflow ) want_ushort2float = 1;
 
     /* process oblique info only once */
@@ -4303,6 +4310,7 @@ static int idisp_opts_t( char * info, opts_t * opt )
             "   use_last_elem      = %d\n"
             "   use_slice_loc      = %d\n"
             "   use_obl_origin     = %d\n"
+            "   ushort2float       = %d\n"
             "   show_sorted_list   = %d\n"
             "   gert_reco          = %d\n"
             "   gert_filename      = %s\n"
@@ -4343,7 +4351,7 @@ static int idisp_opts_t( char * info, opts_t * opt )
             opt->debug, opt->quit, opt->no_wait,
             opt->assume_dicom_mosaic,
             opt->use_last_elem, opt->use_slice_loc, opt->use_obl_origin,
-            opt->show_sorted_list, opt->gert_reco,
+            opt->ushort2float, opt->show_sorted_list, opt->gert_reco,
             CHECK_NULL_STR(opt->gert_filename),
             CHECK_NULL_STR(opt->gert_prefix),
             CHECK_NULL_STR(opt->chan_prefix),
@@ -5596,6 +5604,22 @@ printf(
     "        \n"
     "        Use this option to set slice offsets according to SLoc.\n"
     "\n"
+    "    -ushort2float      : convert short datasets to float in to3d\n"
+    "\n"
+    "        By default, if short integer datasets appear to be unsigned\n"
+    "        shorts, Dimon will add a similar -ushort2float to the to3d\n"
+    "        command when creating AFNI datasets (via -gert_create_dataset).\n"
+    "\n"
+    "        But if some runs need conversion and others do not, one can\n"
+    "        have a mix of types across runs.  Then one basically needs to\n"
+    "        decide whether to use floats for all subjects, one subject at a\n"
+    "        time, or to perform some conversion that removes the large\n"
+    "        shorts.\n"
+    "\n"
+    "        Applying -ushort2float in Dimon will result in passing it to\n"
+    "        any to3d commands (if -gert_create_dataset is applied), which\n"
+    "        would have all short datasets converted to float32.\n"
+    "\n"
     "    -version           : show the version information\n"
     "\n",
     prog, prog, prog, prog, prog, prog, prog
@@ -6066,9 +6090,14 @@ static int create_gert_dicom( stats_t * s, param_t * p )
     fclose( fp );
 
     /* warn user about conversion to floats */
-    if( want_ushort2float )
+    if( want_ushort2float ) {
+      if( opts->ushort2float )
+        fprintf(stderr,"-- applying requested -ushort2float in GERT_Reco"
+                       " to3d command\n\n");
+      else
         fprintf(stderr,"** warning, have signed short overflow to unsigned,\n"
                 "   applying -ushort2float in GERT_Reco to3d command\n\n");
+    }
 
     /* now make it an executable */
     sprintf(command, "chmod u+x %s", sfile );
