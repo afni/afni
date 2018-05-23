@@ -10,72 +10,102 @@ float adaptive_weighted_mean( int num , float *x )
 {
    float med,mad, wt,wsum, xsum ; int ii ;
 
-        if( num <= 0 || x == NULL ) return (0.0f) ;
-   else if( num == 1              ) return (x[0]) ;
-   else if( num == 2              ) return (0.5f*(x[0]+x[1])) ;
+ENTRY("adaptive_weighted_mean") ;
+
+        if( num <= 0 || x == NULL ) RETURN (0.0f) ;
+   else if( num == 1              ) RETURN (x[0]) ;
+   else if( num == 2              ) RETURN (0.5f*(x[0]+x[1])) ;
 
    qmedmad_float( num , x , &med , &mad ) ;
-   if( mad <= 0.0f ) return (med) ;
+   if( mad <= 0.0f ) RETURN (med) ;
 
    wsum = xsum = 0.0f ; mad = 0.56789f / mad ;
    for( ii=0 ; ii < num ; ii++ ){
      wt = mad*fabsf(x[ii]-med); wt = 1.0f / (1.0f+wt*wt*wt); wsum += wt;
      xsum += wt * x[ii] ;
    }
-   return (xsum/wsum) ;
+   RETURN (xsum/wsum) ;
 }
 
 /*--------------------------------------------------------------------------*/
 
-static int nXX=0 , nHH=0 ;
+static int nXX=0 , nHH_adapt=0 ;
 static float *aXX=NULL ;
-static float *tvv=NULL ;
+static float *tvv=NULL , *uvv=NULL ;
 static int    ntv=0 ;
 
 void setup_adaptive_filter( int hwid , int num )
 {
+ENTRY("setup_adaptive_filter") ;
+   if( hwid > 0 && num > 0 && num < 4*hwid+1 ){
+     ERROR_message(
+       "Illegal setup_adaptive_filter: 4*hwid+1=%d > num=%d",4*hwid+1,num) ;
+     EXRETURN ;
+   }
    if( hwid > 0 ){
-     nHH = hwid ; nXX = 2*nHH+1 ;
+     nHH_adapt = hwid ; nXX = 2*nHH_adapt+1 ;
      aXX = (float *)realloc(aXX,sizeof(float)*nXX) ;
-   } else if( hwid <= 0 && nHH > 0 ){
-     nHH = nXX = 0 ;
+   } else if( hwid <= 0 && nHH_adapt > 0 ){  /* cleanup */
+     nHH_adapt = nXX = 0 ;
      if( aXX != NULL ){ free(aXX) ; aXX = NULL ; }
    }
-   if( num > 0 ){
-     tvv = (float *)realloc(tvv,sizeof(float)*num) ; ntv = num ;
-   } else if( num <= 0 && tvv != NULL ){
-     free(tvv) ; tvv = NULL ; ntv = 0 ;
+   if( hwid > 0 && num > 0 ){
+     ntv = num + nXX ;
+     tvv = (float *)realloc(tvv,sizeof(float)*ntv) ;
+     uvv = (float *)realloc(uvv,sizeof(float)*ntv) ;
+   } else if( hwid <= 0 || num <= 0 ){
+     if( tvv != NULL ) free(tvv) ;
+     if( uvv != NULL ) free(uvv) ;
+     tvv = uvv = NULL ; ntv = 0 ;
    }
-   return ;
+   EXRETURN ;
 }
 
 /*--------------------------------------------------------------------------*/
 
-void adaptive_filter( int num , float *vec )
-{
-   int ii,jj,kk , n1=num-1 ;
+static int dosub=0 ;
 
-   if( num < 2 || vec == NULL || nHH <= 0 ) return ;
+void FILTER_adaptive( int num , float *vec )
+{
+   int ii,jj,kk , nn1=num-1 , nn2=num-2 , nph = num+nHH_adapt ;
+
+ENTRY("FILTER_adaptive") ;
+
+   if( num < 2 || vec == NULL || nHH_adapt <= 0 ) EXRETURN ;
 
    if( aXX == NULL ){ aXX = (float *)malloc(sizeof(float)*nXX) ; }
-   if( ntv < num ){ tvv = (float *)realloc(tvv,sizeof(float)*num) ; ntv = num ; }
 
-   for( ii=0 ; ii < num ; ii++ ){
-     for( jj=-nHH ; jj <= nHH ; jj++ ){
-       kk = ii+jj ; if( kk < 0 ) kk = 0 ; else if( kk > n1 ) kk = n1 ;
-       aXX[jj+nHH] = vec[kk] ;
-     }
-     tvv[ii] = adaptive_weighted_mean( nXX , aXX ) ;
+   if( ntv < num+nXX ){
+     ntv = num+nXX ;
+     tvv = (float *)realloc(tvv,sizeof(float)*ntv) ;
+     uvv = (float *)realloc(uvv,sizeof(float)*ntv) ;
    }
 
-   memcpy(vec,tvv,sizeof(float)*num) ; return ;
+   memcpy( tvv+nHH_adapt , vec , sizeof(float)*num ) ;
+   for( ii=0 ; ii < nHH_adapt ; ii++ ){  /* end reflections */
+     tvv[ii]     = vec[nHH_adapt-ii] ;
+     tvv[nph+ii] = vec[nn2-ii] ;
+   }
+
+   for( ii=0 ; ii < num ; ii++ ){
+     memcpy( aXX , tvv+ii , sizeof(float)*nXX ) ;
+     uvv[ii] = adaptive_weighted_mean( nXX , aXX ) ;
+   }
+
+   if( dosub ){
+     for( ii=0 ; ii < num ; ii++ ) vec[ii] -= uvv[ii] ;
+   } else {
+     memcpy(vec,uvv,sizeof(float)*num) ;
+   }
+
+   EXRETURN ;
 }
 
 /*--------------------------------------------------------------------------*/
 
 static int polort=-1 ;
 
-void polort_filter( int num , float *vec )
+void FILTER_polort( int num , float *vec )
 {
    THD_generic_detrend_LSQ( num , vec , polort , 0,NULL,NULL ) ;
    return ;
@@ -111,7 +141,7 @@ static INLINE float median9f(float *p)
 #undef  mead9
 #define mead9(j)                                               \
  { float qqq[9] ; int jj = (j)-4 ;                             \
-   if( jj < 0 ) jj = 0; else if( jj+8 >= num ) jj = num-9;     \
+   if( jj < 0 ) jj = 0; else if( jj+9 > num ) jj = num-9;      \
    qqq[0] = vec[jj+0]; qqq[1] = vec[jj+1]; qqq[2] = vec[jj+2]; \
    qqq[3] = vec[jj+3]; qqq[4] = vec[jj+4]; qqq[5] = vec[jj+5]; \
    qqq[6] = vec[jj+6]; qqq[7] = vec[jj+7]; qqq[8] = vec[jj+8]; \
@@ -131,9 +161,9 @@ void DES_despike9( int num , float *vec )
 {
    int ii , nsp ; float *zma,*zme , med,mad,val ;
 
-   if( num < 9 || vec == NULL ) return ;
+   if( num < 9 || vec == NULL ) return ; /* nada */
 
-   if( deswks == NULL ) deswks = (float *)malloc(sizeof(float *)*(4*num)) ;
+   if( deswks == NULL ) deswks = (float *)malloc(sizeof(float)*(4*num)) ;
 
    zme = deswks ; zma = zme + num ;
 
@@ -198,7 +228,7 @@ static INLINE float median25f(float *p)
 #undef  mead25
 #define mead25(j)                                              \
  { float qqq[25] ; int jj=(j)-12 ; register int pp;            \
-   if( jj < 0 ) jj = 0; else if( jj+24 >= num ) jj = num-24;   \
+   if( jj < 0 ) jj = 0; else if( jj+25 > num ) jj = num-25;    \
    for( pp=0 ; pp < 25 ; pp++ ) qqq[pp] = vec[jj+pp] ;         \
    med = median25f(qqq) ;                                      \
    for( pp=0 ; pp < 25 ; pp++ ) qqq[pp] = fabsf(qqq[pp]-med) ; \
@@ -208,7 +238,7 @@ void DES_despike25( int num , float *vec )
 {
    int ii , nsp ; float *zma,*zme , med,mad,val ;
 
-   if( deswks == NULL ) deswks = (float *)malloc(sizeof(float *)*(4*num)) ;
+   if( deswks == NULL ) deswks = (float *)malloc(sizeof(float)*(4*num)) ;
 
    if( vec == NULL ) return ;
    if( num <  25   ) { DES_despike9(num,vec) ; return ; }
@@ -220,7 +250,7 @@ void DES_despike25( int num , float *vec )
    }
    mad = qmed_float(num,zma) ;
    if( mad <= 0.0f ) return ;
-   mad *= 6.789f ;  /* threshold value */
+   mad *= 6.234f ;  /* threshold value */
 
    for( nsp=ii=0 ; ii < num ; ii++ )
      if( fabsf(vec[ii]-zme[ii]) > mad ){ vec[ii] = zme[ii]; nsp++; }
@@ -230,6 +260,65 @@ void DES_despike25( int num , float *vec )
 #undef mead25
 #undef SORT2
 #undef SWAP
+
+/*--------------- Generalized to arbitrary widths ----------------*/
+
+#undef  meadHH
+#define meadHH(j)                                               \
+ { int jj=(j)-hwid ; register int pp;                           \
+   if( jj < 0 ) jj = 0; else if( jj+nqqq > num ) jj = num-nqqq; \
+   for( pp=0 ; pp < nqqq ; pp++ ) qqq[pp] = vec[jj+pp] ;        \
+   qmedmad_float(nqqq,qqq,&med,&mad) ;                          \
+ }
+
+void DES_despikeHH( int num , float *vec , int hwid )
+{
+   int ii , nsp ; float *zma,*zme , med,mad,val ;
+   static float *qqq=NULL ; static int nhold=0 , nqqq=0 ;
+
+ENTRY("DES_despikeHH") ;
+
+   if( vec == NULL || num < 9 || hwid < 4 ) EXRETURN ;
+
+   if( deswks == NULL ) deswks = (float *)malloc(sizeof(float)*(4*num)) ;
+
+   if( hwid == 12 ){
+     DES_despike25(num,vec) ; EXRETURN ;
+   } else if( hwid == 4 ){
+     DES_despike9(num,vec) ; EXRETURN ;
+   }
+
+   if( hwid > nhold ){
+     nhold = hwid ;
+     qqq = (float *)realloc(qqq,sizeof(float)*(2*nhold+1)) ;
+   }
+   nqqq = 2*hwid+1 ;
+
+   zme = deswks ; zma = zme + num ;
+
+   for( ii=0 ; ii < num ; ii++ ){
+     meadHH(ii) ; zme[ii] = med ; zma[ii] = mad ;
+   }
+   mad = qmed_float(num,zma) ;
+   if( mad <= 0.0f ) EXRETURN ;
+   mad *= 6.234f ;  /* threshold value */
+
+   for( nsp=ii=0 ; ii < num ; ii++ )
+     if( fabsf(vec[ii]-zme[ii]) > mad ){ vec[ii] = zme[ii]; nsp++; }
+
+   EXRETURN ;
+}
+#undef meadHH
+#undef SORT2
+#undef SWAP
+
+static int nHH_despike=0 ;
+
+void FILTER_despikeHH( int num , float *vec )
+{
+   DES_despikeHH( num , vec , nHH_despike ) ;
+   return ;
+}
 
 /*--------------------------------------------------------------------------*/
 /* Array of filter functions to apply to time series */
@@ -242,20 +331,33 @@ static generic_func **ffunc=NULL ;
      ffunc[nffunc++] = (generic_func *)(ff) ;                                  \
  } while(0)
 
+/*----------------------------------------------------------------------------*/
+
+static int vstep = 6666 ;
+
+static void vstep_print(void)   /* pacifier */
+{
+   static char xx[10] = "0123456789" ; static int vn=0 ;
+   fprintf(stderr , "%c" , xx[vn%10] ) ;
+   if( vn%10 == 9) fprintf(stderr,".") ; vn++ ;
+}
+
 /*--------------------------------------------------------------------------*/
 
 void FILTER_tsfunc( double tzero , double tdelta ,
                     int npts , float *ts , double ts_mean ,
                     double ts_slope , void *ud , int nbriks, float *val )
 {
-   int qq ;
+   int qq ; static int ncalls=0 ;
 
    if( ts == NULL || val == NULL ) return ;  /* setup/cleanup calls */
 
    memcpy(val,ts,sizeof(float)*npts) ;
 
-   for( qq=0 ; qq < npts ; qq++ ) if( val[qq] != 0.0f ) break ;
+   for( qq=1 ; qq < npts ; qq++ ) if( val[qq] != val[0] ) break ;
    if( qq == npts ) return ;
+
+   ncalls++ ; if( ncalls%vstep == 77 ) vstep_print() ;
 
    for( qq=0 ; qq < nffunc ; qq++ )
      AFNI_CALL_VOID_2ARG( ffunc[qq] , int,npts , float *,val ) ;
@@ -269,7 +371,7 @@ int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *old_dset=NULL , *new_dset=NULL ;
    char *prefix = "Filtered" ;
-   int hh=0 ;
+   int hwid=0 ;
    int nvals , nopt ;
 
    if( argc < 2 || strcasecmp(argv[1],"-help") == 0 ){
@@ -317,12 +419,26 @@ int main( int argc , char *argv[] )
       "                        'footprint', with values far away from\n"
       "                        the local median being weighted less.\n"
       "\n"
-      "        detrend:P  = (least squares) detrend with polynomials of up\n"
-      "                     order 'P' for P=0, 1, 2, ....\n"
-      "                     ** At most one 'detrend' filter can be used!\n"
+      "        adetrend:H = apply adaptive mean filter with half-width\n"
+      "                     of 'H' time points to get a local baseline,\n"
+      "                     then subtract this baseline from the actual\n"
+      "                     data, to provide an adaptive detrending.\n"
+      "                     ** At most one 'adaptive' OR 'adetrend' filter\n"
+      "                        can be used.\n"
       "\n"
       "        despike    = apply the 'NEW25' despiking algorithm, as in\n"
       "                     program 3dDespike.\n"
+      "\n"
+      "        despike:H  = apply the despiking algorithm over a window\n"
+      "                     of half-with 'H' time points (667 > H > 3).\n"
+      "                     ** H=12 is the same as 'despike'.\n"
+      "                     ** At most one 'despike' filter can be used.\n"
+      "\n"
+      "        detrend:P  = (least squares) detrend with polynomials of up\n"
+      "                     order 'P' for P=0, 1, 2, ....\n"
+      "                     ** At most one 'detrend' filter can be used!\n"
+      "                     ** You can use both '-adetrend' and '-detrend',\n"
+      "                        but I don't know why you would try this.\n"
       "\n"
       "Example:\n"
       "--------\n"
@@ -370,22 +486,36 @@ int main( int argc , char *argv[] )
        if( ++nopt >= argc ) ERROR_exit("%s needs an argument!",argv[nopt-1]);
 
        if( strcasecmp(argv[nopt],"rank") == 0 ){
-         ADD_FILTER(rank_order_float) ;
+         ADD_FILTER(rank_order_float) ;             /* external function */
          INFO_message("Filter #%d = rank",nffunc) ;
 
        } else if( strncasecmp(argv[nopt],"adaptive:",9) == 0 ){
          char *cpt=argv[nopt]+9 ;
-         if( hh > 0 )
+         if( hwid > 0 )
            ERROR_exit("You can't use more than one 'adaptive' filter :(") ;
          if( !isdigit(*cpt) )
            ERROR_exit("'%s' is not a valid 'adaptive' filter name",argv[nopt]) ;
-         hh = (int)strtod(cpt,NULL) ;
-         if( hh > 29 )
+         hwid = (int)strtod(cpt,NULL) ;
+         if( hwid > 29 )
            WARNING_message("Very long filter '%s' will be very slow",argv[nopt]) ;
-         else if( hh <= 0 )
+         else if( hwid <= 0 )
            ERROR_exit("'%s' is not a legal 'adaptive' filter name",argv[nopt]) ;
-         ADD_FILTER(adaptive_filter) ;
-         INFO_message("Filter #%d = adaptive:%d",nffunc,hh) ;
+         ADD_FILTER(FILTER_adaptive) ; dosub = 0 ;
+         INFO_message("Filter #%d = adaptive:%d",nffunc,hwid) ;
+
+       } else if( strncasecmp(argv[nopt],"adetrend:",9) == 0 ){
+         char *cpt=argv[nopt]+9 ;
+         if( hwid > 0 )
+           ERROR_exit("You can't use more than one 'adaptive' filter :(") ;
+         if( !isdigit(*cpt) )
+           ERROR_exit("'%s' is not a valid 'adetrend' filter name",argv[nopt]) ;
+         hwid = (int)strtod(cpt,NULL) ;
+         if( hwid > 29 )
+           WARNING_message("Very long filter '%s' will be very slow",argv[nopt]) ;
+         else if( hwid <= 0 )
+           ERROR_exit("'%s' is not a legal 'adaptive' filter name",argv[nopt]) ;
+         ADD_FILTER(FILTER_adaptive) ; dosub = 1 ;
+         INFO_message("Filter #%d = adetrend:%d",nffunc,hwid) ;
 
        } else if( strncasecmp(argv[nopt],"detrend:",8) == 0 ){
          char *cpt=argv[nopt]+8 ;
@@ -396,12 +526,28 @@ int main( int argc , char *argv[] )
          polort = (int)strtod(cpt,NULL) ;
          if( polort < 0 )
            ERROR_exit("'%s' is not a legal 'detrend' filter name",argv[nopt]) ;
-         ADD_FILTER(polort_filter) ;
+         ADD_FILTER(FILTER_polort) ;
          INFO_message("Filter #%d = detrend:%d",nffunc,polort) ;
 
        } else if( strcasecmp(argv[nopt],"despike") == 0 ){
-         ADD_FILTER(DES_despike25) ;
-         INFO_message("Filter #%d = despike",nffunc) ;
+         if( nHH_despike > 0 )
+           ERROR_exit("You can't use more than one 'despike' filter :(") ;
+         ADD_FILTER(FILTER_despikeHH) ; nHH_despike = 12 ;
+         INFO_message("Filter #%d = despike:12",nffunc) ;
+
+       } else if( strncasecmp(argv[nopt],"despike:",8) == 0 ){
+         char *cpt=argv[nopt]+8 ;
+         if( nHH_despike > 0 )
+           ERROR_exit("You can't use more than one 'despike' filter :(") ;
+         if( !isdigit(*cpt) )
+           ERROR_exit("'%s' is not a valid 'despike' filter name",argv[nopt]) ;
+         nHH_despike = (int)strtod(cpt,NULL) ;
+         if( nHH_despike < 4 || nHH_despike > 666 )
+           ERROR_exit("'%s' is not a legal 'despike' filter name",argv[nopt]) ;
+         if( nHH_despike > 39 )
+           WARNING_message("Very long filter '%s' will be very slow",argv[nopt]) ;
+         ADD_FILTER(FILTER_despikeHH) ;
+         INFO_message("Filter #%d = despike:%d",nffunc,nHH_despike) ;
 
        } else {
          ERROR_exit("Unkown filter type '%s'",argv[nopt]) ;
@@ -421,9 +567,20 @@ int main( int argc , char *argv[] )
    }
 
    nvals = DSET_NVALS(old_dset) ;
-   if( nvals < 2 ) ERROR_exit("Input dataset too short to filter!") ;
+   if( nvals < 9 )
+     ERROR_exit("Input dataset too short to filter: nvals=%d < 9",nvals) ;
 
-   if( hh > 0 ) setup_adaptive_filter( hh , nvals ) ;
+   if( 4*hwid+1 > nvals )
+     ERROR_exit(
+       "adaptive filter half-width %d is too big for data length %d",
+       hwid,nvals) ;
+
+   if( 4*nHH_despike > nvals )
+     ERROR_exit(
+       "despike filter half-width %d is too big for data length %d",
+       nHH_despike,nvals) ;
+
+   if( hwid > 0 ) setup_adaptive_filter( hwid , nvals ) ;
 
    INFO_message("Load input dataset") ;
 
@@ -431,7 +588,8 @@ int main( int argc , char *argv[] )
 
    /** do the work **/
 
-   INFO_message("Start processing") ;
+   fprintf(stderr,"++ Voxel processing: ") ;
+   vstep = DSET_NVOX(old_dset) / 50 ;
 
    new_dset = MAKER_4D_to_typed_fbuc(
                     old_dset ,             /* input dataset */
@@ -445,6 +603,8 @@ int main( int argc , char *argv[] )
                     NULL,                  /* mask */
                     0                      /* Allow auto scaling of output */
                  ) ;
+
+   fprintf(stderr,"!\n") ;
 
    DSET_unload(old_dset) ;
 

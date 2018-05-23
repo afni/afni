@@ -340,7 +340,7 @@ void DES_despike25( int num , double to,double dt , float *vec )
    if( num <  25 ) { despike9_func( num , to,dt , vec ) ; return ; }
 
    if( ndeswks < num ){
-      deswks = (float *)realloc(deswks,sizeof(float *)*(4*num)) ;
+      deswks = (float *)realloc(deswks,sizeof(float)*(4*num)) ;
      ndeswks = num ;
    }
 
