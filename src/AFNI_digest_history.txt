@@ -1,3 +1,16 @@
+========================================================================
+
+AFNI Digest, week of 2018/05/22.
+
+00) AFNI Bootcamp spots available for Boston, MA, USA, *next week*.
+There are a couple recent openings for the AFNI Bootcamp being held at
+MIT in Boston during the week of May 28-June 1, 2018. For more
+information, including registration information and contact details
+for the organizers, please see here:
+https://afni.nimh.nih.gov/afni/community/board/read.php?1,158136,158136#msg-158136
+
+========================================================================
+
 AFNI Digest, week of 2018/05/16.
 
 00) New executable script @grayplot reads a results directory created
