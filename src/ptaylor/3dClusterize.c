@@ -21,6 +21,9 @@
                    stat itself is multisided;  else, fail.
                  - allow RIGHT and LEFT as -1sided flags
                  - no datasets output unless asked for
+
+   2018 05 23: + [PT] Adding in more D. Glen suggestions/fixes:
+                 - but who runs a 1sided-LEFT test on an Fstat???
 */
 
 
@@ -859,9 +862,13 @@ int main(int argc, char *argv[]) {
    STAT_nsides = STAT_SIDES(DSET_BRICK_STATCODE(insetA, ithr));
    INFO_message("How many sides to this stat? %d",
                 STAT_nsides);
-   if ( (STAT_nsides) < 2 && ( abs(thr_type) >=2 ) )
+   if ( (STAT_nsides < 2) && ( abs(thr_type) >=2 ) )
       ERROR_exit("You are asking for multisided clustering on a "
                  "single-sided stat!");
+   else if( (STAT_nsides < 2) && (thr_type == -1) )
+      ERROR_exit("The Glen Rule applies here: \n\t"
+                 "Can't run a left-sided test on this stat, as "
+                 "it only has one (positive) side.");
 
    if ( !NNTYPE ) 
       ERROR_exit("Need to choose a neighborhood type: '-NN ?'");
@@ -1133,16 +1140,21 @@ int main(int argc, char *argv[]) {
 
    // Now apply cluster size threshold
    INIT_CLARR(clbig);
-   for( iclu=0 ; iclu < clar->num_clu ; iclu++ ){
-      cl = clar->clar[iclu];
-      if( cl != NULL && cl->num_pt >= ptmin ){ // big enough 
-         ADDTO_CLARR(clbig,cl);                // copy pointer 
-         clar->clar[iclu] = NULL;              // null out original 
-      }
-   }
-   DESTROY_CLARR(clar);
 
-   if ( thr_type == -2 ) { // also add in other side, if bisided ON
+   if( clar ) {
+      for( iclu=0 ; iclu < clar->num_clu ; iclu++ ){
+         cl = clar->clar[iclu];
+         if( cl != NULL && cl->num_pt >= ptmin ){ // big enough 
+            ADDTO_CLARR(clbig,cl);                // copy pointer 
+            clar->clar[iclu] = NULL;              // null out original 
+         }
+      }
+      DESTROY_CLARR(clar);
+   }
+
+   // also add in other side, if bisided ON; and if any clusters were
+   // found in other side
+   if ( (thr_type == -2) && clar2 ) { 
       for( iclu=0 ; iclu < clar2->num_clu ; iclu++ ){
          cl = clar2->clar[iclu];
          if( cl != NULL && cl->num_pt >= ptmin ){ // big enough 
