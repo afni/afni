@@ -12,6 +12,15 @@
    2018 05 17: + [PT] new report fields, more labels and stat_aux info
                + [PT] can use brick_labels to specify vols, too
 
+   2018 05 23: + [PT] Adding in D. Glen suggestions/fixes (thanks!):
+                 - cleaning up some stuff, pointer errors if no clusters
+                 - default prefixes for output
+                 - case of Fstat -> no bisided/twosided allowed! More
+                   generally, there is a check to make sure that when
+                   the user asks for multi-sided clusterizing that the
+                   stat itself is multisided;  else, fail.
+                 - allow RIGHT and LEFT as -1sided flags
+                 - no datasets output unless asked for
 */
 
 
@@ -85,11 +94,18 @@ void usage_Clusterize(int detail)
 " \n"
 "   Output: ~2~\n"
 " \n"
-"     + A dataset volume containing a map of cluster ROIs (sorted by\n"
-"       size) after thresholding (and clusterizing, if specified)\n"
 "     + A report about the clusters (center of mass, extent, volume,\n"
 "       etc.) that can be dumped into a text file\n"
-"     + Optional: a cluster-masked version of an input data set\n"
+"\n"
+"     + Optional: A dataset volume containing a map of cluster ROIs \n"
+"       (sorted by size) after thresholding (and clusterizing, if\n"
+"       specified).\n"
+"       That is, a data set where the voxels in the largest cluster all\n"
+"       have a value 1, those in the next largest are all 2, etc.\n"
+"     + Optional: a cluster-masked version of an input data set. That is,\n"
+"       the values of a selected data set (e.g., effect estimate) that fall\n"
+"       within a cluster are output unchanged, and those outside a cluster\n"
+"       are zeroed.\n"
 "     + Optional: a mask\n"
 " \n"
 " \n"
@@ -160,13 +176,14 @@ void usage_Clusterize(int detail)
 "                 (To save the text file report, use the redirect '>' after\n"
 "                 the 3dClusterize command and dump the text into a\n"
 "                 separate file of your own naming.)\n"
+"                 (def:  no map of clusters output).\n"
 " \n"
 " -pref_dat DDD  :Including this option instructs the program to output\n"
 "                 a cluster-masked version of the 'data' volume\n"
 "                 specified by the '-idat ..' index.  That is, only data\n"
 "                 values within the cluster ROIs are included in the\n"
-"                 output volume.  Requires specifying *both* '-pref_dat ..'\n"
-"                 and '-idat ..'.\n"
+"                 output volume.  Requires specifying '-idat ..'.\n"
+"                 (def:  no cluster-masked dataset output).\n"
 " \n"
 " -mask MMM      :Load in a dataset MMM to use as a mask, within which\n"
 "                 to look for clusters.\n"
@@ -198,8 +215,9 @@ void usage_Clusterize(int detail)
 "                 reporting are all done using the 'threshold' dataset.\n"
 " \n"
 " -1sided SSS TT :Perform one-sided testing. Two arguments are required:\n"
-"                   SSS -> either 'RIGHT_TAIL' or 'LEFT_TAIL', to specify\n"
-"                          which side of the distribution to test.\n"
+"                   SSS -> either 'RIGHT_TAIL' (or 'RIGHT') or 'LEFT_TAIL'\n"
+"                          (or 'LEFT') to specify which side of the \n"
+"                          distribution to test.\n"
 "                   TT  -> the threshold value itself.\n"
 "                 See 'NOTES' below to use a p-value as threshold.\n"
 " \n"
@@ -228,7 +246,7 @@ void usage_Clusterize(int detail)
 "                 has; one MUST put one of 1, 2 or 3 after it:\n"
 "                   1 -> 6 facewise neighbors\n"
 "                   2 -> 18 face+edgewise neighbors\n"
-"                   3 -> 26 face+edge+nodewise neighbors\n"
+"                   3 -> 26 face+edge+cornerwise neighbors\n"
 "                 If using 3dClustSim (or any other method), make sure\n"
 "                 that this NN value matches what was used there. (In\n"
 "                 many AFNI programs, NN=1 is a default choice, but BE\n"
@@ -380,7 +398,7 @@ int main(int argc, char *argv[]) {
 
    THD_3dim_dataset *insetA = NULL;
    THD_3dim_dataset *INMASK=NULL;
-   char *prefix="PREFIX" ;
+   char *prefix=NULL; 
 
    int STATINPUT  = 1; // flag for whether user input stat (1) or pval (0)
    int STATINPUT2 = 1;
@@ -395,9 +413,12 @@ int main(int argc, char *argv[]) {
    int NNTYPE = 0;   // user *needs* to choose? or just make 1 by
    // default?
    int thr_type = 0;  // user needs to choose with -1sided, -2sided,
-                      // etc.; 1 -> 1sided,right; -1 -> 1sided,left;
-                      // 2 -> 2sided; -2 -> bisided; 3 -> within 
-                      // interval
+                      // etc.; 
+                      //  1 -> 1sided, right; 
+                      // -1 -> 1sided, left;
+                      //  2 -> 2sided; 
+                      // -2 -> bisided; 
+                      //  3 -> within_range
    float thr_1sid = -1.1e10; 
    
    // names modeled on existing progs, like afni_vedit.c
@@ -458,6 +479,9 @@ int main(int argc, char *argv[]) {
    int nvox_total;
    float vol_total;
    int ndet, nopt, do_mni;
+
+   int FOUND_CLUSTERS = 0; 
+   int STAT_nsides = -1;
 
    mainENTRY("3dClusterize"); machdep(); 
   
@@ -569,9 +593,11 @@ int main(int argc, char *argv[]) {
          iarg++ ; if( iarg >= argc ) 
                      ERROR_exit("Need 2 arguments after '-1sided'");
          // get first arg
-         if( strcmp(argv[iarg],"RIGHT_TAIL") == 0 ) 
+         if( ( strcmp(argv[iarg],"RIGHT_TAIL") == 0 ) ||
+             ( strcmp(argv[iarg],"RIGHT") == 0 ) )
             thr_type = 1; // def: full FOV
-         else if( strcmp(argv[iarg],"LEFT_TAIL") == 0 )
+         else if( ( strcmp(argv[iarg],"LEFT_TAIL") == 0 ) ||
+                  ( strcmp(argv[iarg],"LEFT") == 0 ) )
             thr_type = -1; // only where A or B is nonzero
          else 
             // out of tails
@@ -806,8 +832,8 @@ int main(int argc, char *argv[]) {
       INFO_message("No extra data block input (via '-idat ..'): "
                    "using threshold dset for all computations and info.");
       if(CL_prefix)
-         WARNING_message("... even though you specified an '-pref_dat ..', "
-                         "not cluster-masked output can be made.");
+       WARNING_message("... even though you specified an '-pref_dat ..', "
+                         "no cluster-masked output can be made.");
       sprintf(repval, "(none)");
    }
    else {
@@ -828,8 +854,14 @@ int main(int argc, char *argv[]) {
       INFO_message("Threshold volume: %s", repthr);
    }
 
-
-
+   // how many sides to this stat?  Check that user has appropriate
+   // number of tails tested for it
+   STAT_nsides = STAT_SIDES(DSET_BRICK_STATCODE(insetA, ithr));
+   INFO_message("How many sides to this stat? %d",
+                STAT_nsides);
+   if ( (STAT_nsides) < 2 && ( abs(thr_type) >=2 ) )
+      ERROR_exit("You are asking for multisided clustering on a "
+                 "single-sided stat!");
 
    if ( !NNTYPE ) 
       ERROR_exit("Need to choose a neighborhood type: '-NN ?'");
@@ -1125,37 +1157,41 @@ int main(int argc, char *argv[]) {
    clar = clbig ;
    clbig = NULL;
    if( clar == NULL || clar->num_clu == 0 ) {
+      WARNING_message("No clusters found!");
       printf("%s** NO CLUSTERS FOUND ***\n", c1d);
       if( AFNI_yesenv("AFNI_3dclust_report_zero") ) printf(" 0\n");
       if( clar != NULL ) DESTROY_CLARR(clar);
    }
+   else {
+      FOUND_CLUSTERS = 1;
 
-   // Sort clusters by size
-   if( clar->num_clu < 3333 ) {
-      INFO_message("Sorting clusters by size.");
-      SORT_CLARR(clar);
-   } 
-   else if( CL_summarize != 1 ){
-      printf("%s** TOO MANY CLUSTERS TO SORT BY VOLUME ***\n", c1d) ;
-   }
-
-   // --------------- make array of cluster ROIs
-
-   mmm = (short *) calloc(sizeof(short), nxyz);
-   for( iclu=0 ; iclu < clar->num_clu ; iclu++ ) {
-      cl = clar->clar[iclu] ; 
-      if( cl == NULL ) continue ;
-      for( ipt=0 ; ipt < cl->num_pt ; ipt++ ) {
-         ii = cl->i[ipt]; 
-         jj = cl->j[ipt];
-         kk = cl->k[ipt];
-         mmm[ii+jj*nx+kk*nxy] = (do_binary) ? 1 : (iclu+1);
+      // Sort clusters by size
+      if( clar->num_clu < 3333 ) {
+         INFO_message("Sorting clusters by size.");
+         SORT_CLARR(clar);
+      } 
+      else if( CL_summarize != 1 ){
+         printf("%s** TOO MANY CLUSTERS TO SORT BY VOLUME ***\n", c1d) ;
+      }
+      
+      // --------------- make array of cluster ROIs
+      
+      mmm = (short *) calloc(sizeof(short), nxyz);
+      for( iclu=0 ; iclu < clar->num_clu ; iclu++ ) {
+         cl = clar->clar[iclu] ; 
+         if( cl == NULL ) continue ;
+         for( ipt=0 ; ipt < cl->num_pt ; ipt++ ) {
+            ii = cl->i[ipt]; 
+            jj = cl->j[ipt];
+            kk = cl->k[ipt];
+            mmm[ii+jj*nx+kk*nxy] = (do_binary) ? 1 : (iclu+1);
+         }
       }
    }
 
    // --------------- write out copy of the data volume, if asked
 
-   if( CL_prefix && (ival >= 0) ) {
+   if( CL_prefix && (ival >= 0) && FOUND_CLUSTERS ) {
 
       INFO_message("Writing out dataset masked by clusters.");
 
@@ -1233,296 +1269,290 @@ int main(int argc, char *argv[]) {
 
    // --------------- write out map of cluster ROIs
 
-   INFO_message("Writing out map of cluster ROIs.");
-
-   THD_3dim_dataset *qset=NULL;
-   qset = EDIT_empty_copy(insetA);
-
-   EDIT_dset_items( qset ,
-                    ADN_prefix , prefix ,
-                    ADN_nvals  , 1 ,
-                    ADN_none );
-   EDIT_substitute_brick(qset, 0, MRI_short, mmm); 
-   mmm = NULL;
-
-   EDIT_BRICK_LABEL(qset, 0, blab1);
-
-   tross_Copy_History( insetA , qset ) ;
-   tross_Make_History( "3dClusterize", argc , argv , qset );
-   DSET_write(qset); WROTE_DSET(qset); DSET_delete(qset);
-   
-   // ---------- write out report --------------------
-
-   INFO_message("Time to make the report...");
-
-
-   do_mni = (CL_do_mni && insetA->view_type == VIEW_TALAIRACH_TYPE);
-   THD_coorder_fill( my_getenv("AFNI_ORIENT") , &CL_cord);
-   if( CL_do_mni )
-     THD_coorder_fill( "LPI", &CL_cord );
-
-   if( !CL_quiet ) {
+   if ( FOUND_CLUSTERS ) {
       
-      if( CL_summarize != 1 ) {
-         printf( 
-                "%s\n"
-                //"%sCluster report for file %s %s\n"
-                "%s  Cluster report \n"
-#if 0
-                "%s[ 3D Dataset Name: %s ]\n"
-                "%s[    Short Label: %s ]\n"
-#endif
-                "%s[ Dataset prefix      = %s ]\n"
-                "%s[ Threshold vol       = %s ]\n"
-                "%s[ Supplement dat vol  = %s ]\n"
-                "%s[ Option summary      = %s ]\n"
-                "%s[ Threshold value(s)  = %s ]\n"
-                "%s[ Aux. stat. info.    = %s ]\n"
-                "%s[ Nvoxel threshold    = %d;"
-                //"  Connectivity radius = %.2f mm;"
-                "  Volume threshold = %.3f ]\n"
-                "%s[ Single voxel volume = %.3f (microliters) ]\n"
-                "%s[ Neighbor type, NN   = %d ]\n"
-                "%s[ Voxel datum type    = %s ]\n"
-                "%s[ Voxel dimensions    = %.3f mm X %.3f mm X %.3f mm ]\n"
-                "%s[ Coordinates Order   = %s ]\n",
-                c1d,
-                c1d, //argv[iarg], do_mni ? "[MNI coords]" : "",
-#if 0
-                c1d, insetA->self_name ,
-                c1d, insetA->label1 ,
-#endif
-                c1d, DSET_PREFIX(insetA),
-                c1d, repthr,
-                c1d, repval,
-                c1d, blab1,
-                c1d, repstr,
-                c1d, repstat,
-                c1d, ptmin, ptmin*dx*dy*dz , // !!!
-                c1d, dx*dy*dz,
-                c1d, NNTYPE,
-                c1d, CL_mritype,
-                c1d, dx,dy,dz,
-                c1d, CL_cord.orcode );
-
-         // always fake voxel dims-- just confusing to put; only refers
-         // to internal/calculation considerations.
-         //printf("%s[Fake voxel dimen    = %.3f mm X %.3f mm X %.3f mm ]\n",
-         //       c1d, dxf,dyf,dzf);
+      if ( prefix ) {
+         INFO_message("Writing out map of cluster ROIs.");
          
-         if( mask && nmask ==0 ) 
-            printf("%s[ Mask                = %s ]\n", c1d, repmask);
-         else if( !no_inmask && mask != NULL )           
-            printf("%s[ Mask                = %s ]\n", c1d, repmask);
-         else if( nmask > 0 )
-            printf("%s[ Mask                = (skipping internal) ]\n", c1d);
-         else if( nmask < 0 ) // shd not happen
-            printf("%s[ Mask                = (un-usable internal) ]\n", c1d);
+         THD_3dim_dataset *qset=NULL;
+         qset = EDIT_empty_copy(insetA);
          
-         if (CL_noabs)
-            printf ("%s[ Mean and SEM based on "
-                    "signed voxel intensities ]\n%s\n", c1d, c1d);
-         else
-            printf ("%s Mean and SEM based on absolute value "
-                    "of voxel intensities ]\n%s\n", c1d, c1d);
-
-         printf (
-                 "%sVolume  CM %s  CM %s  CM %s  min%s  max%s  min%s  max%s  min%s  max%s    Mean     SEM    Max Int  MI %s  MI %s  MI %s\n"
-                 "%s------  -----  -----  -----  -----  -----  -----  -----  -----  -----  -------  -------  -------  -----  -----  -----\n",
-              c1d,
-              ORIENT_tinystr[ CL_cord.xxor ] ,
-              ORIENT_tinystr[ CL_cord.yyor ] ,
-              ORIENT_tinystr[ CL_cord.zzor ] ,
-              ORIENT_tinystr[ CL_cord.xxor ] , ORIENT_tinystr[ CL_cord.xxor ] ,
-              ORIENT_tinystr[ CL_cord.yyor ] , ORIENT_tinystr[ CL_cord.yyor ] ,
-              ORIENT_tinystr[ CL_cord.zzor ] , ORIENT_tinystr[ CL_cord.zzor ] ,
-              ORIENT_tinystr[ CL_cord.xxor ] ,
-              ORIENT_tinystr[ CL_cord.yyor ] ,
-              ORIENT_tinystr[ CL_cord.zzor ] ,
-              c1d
-             );
-
-      } else {
-         if (CL_noabs) 
-            printf ("%sMean and SEM based on Signed voxel intensities: \n", 
-                    c1d);
-         else
-            printf ("%sMean and SEM based on Absolute Value "
-                    "of voxel intensities: \n", c1d);
-         printf("%sCluster summary for file %s %s\n" ,
-                c1d, argv[iarg] , do_mni ? "[MNI coords]" : "");
-         printf("%sVolume  CM %s  CM %s  CM %s  Mean    SEM    \n", 
-                c1d, 
-                ORIENT_tinystr[ CL_cord.xxor ],
-                ORIENT_tinystr[ CL_cord.yyor ],
-                ORIENT_tinystr[ CL_cord.zzor ]);
+         EDIT_dset_items( qset ,
+                          ADN_prefix , prefix ,
+                          ADN_nvals  , 1 ,
+                          ADN_none );
+         EDIT_substitute_brick(qset, 0, MRI_short, mmm); 
+         mmm = NULL;
+         
+         EDIT_BRICK_LABEL(qset, 0, blab1);
+         
+         tross_Copy_History( insetA , qset ) ;
+         tross_Make_History( "3dClusterize", argc , argv , qset );
+         DSET_write(qset); WROTE_DSET(qset); DSET_delete(qset);
       }
-   } // end of report header
 
-   ndet = 0;
+      // ---------- write out report --------------------
 
-   vol_total = nvox_total = 0;
-   glmmsum = glmssum = glsqsum = glxxsum = glyysum = glzzsum = 0;
-   
-   for( iclu=0; iclu < clar->num_clu; iclu++ ){
-      cl = clar->clar[iclu];
-      if( cl == NULL || cl->num_pt < ptmin ) continue;  // no good
+      INFO_message("Time to make the report...");
+
+
+      do_mni = (CL_do_mni && insetA->view_type == VIEW_TALAIRACH_TYPE);
+      THD_coorder_fill( my_getenv("AFNI_ORIENT") , &CL_cord);
+      if( CL_do_mni )
+         THD_coorder_fill( "LPI", &CL_cord );
+
+      if( !CL_quiet ) {
       
-      volsum = cl->num_pt * dxf*dyf*dzf;
-      xxsum = yysum = zzsum = mmsum = mssum = 0.0;
-      xxmax = yymax = zzmax = mmmax = msmax = 0.0;
-      sqsum = sem = 0;
-      
-      // These should be pegged at whatever actual max/min values are 
-      RLmax = APmax = ISmax = -1000;
-      RLmin = APmin = ISmin = 1000;
-      
-      for( ipt=0; ipt < cl->num_pt; ipt++ ){
+         if( CL_summarize != 1 ) {
+            printf( 
+                   "%s\n"
+                   //"%sCluster report for file %s %s\n"
+                   "%s  Cluster report \n"
+                   "%s[ Dataset prefix      = %s ]\n"
+                   "%s[ Threshold vol       = %s ]\n"
+                   "%s[ Supplement dat vol  = %s ]\n"
+                   "%s[ Option summary      = %s ]\n"
+                   "%s[ Threshold value(s)  = %s ]\n"
+                   "%s[ Aux. stat. info.    = %s ]\n"
+                   "%s[ Nvoxel threshold    = %d;"
+                   //"  Connectivity radius = %.2f mm;"
+                   "  Volume threshold = %.3f ]\n"
+                   "%s[ Single voxel volume = %.3f (microliters) ]\n"
+                   "%s[ Neighbor type, NN   = %d ]\n"
+                   "%s[ Voxel datum type    = %s ]\n"
+                   "%s[ Voxel dimensions    = %.3f mm X %.3f mm X %.3f mm ]\n"
+                   "%s[ Coordinates Order   = %s ]\n",
+                   c1d,
+                   c1d, //argv[iarg], do_mni ? "[MNI coords]" : "",
+                   c1d, DSET_PREFIX(insetA),
+                   c1d, repthr,
+                   c1d, repval,
+                   c1d, blab1,
+                   c1d, repstr,
+                   c1d, repstat,
+                   c1d, ptmin, ptmin*dx*dy*dz , // !!!
+                   c1d, dx*dy*dz,
+                   c1d, NNTYPE,
+                   c1d, CL_mritype,
+                   c1d, dx,dy,dz,
+                   c1d, CL_cord.orcode );
 
-#if 0
-         // this is obsolete and nonfunctional code 
-         IJK_TO_THREE( cl->ijk[ipt] , ii,jj,kk , nx,nxy );
-#endif
-         ii = cl->i[ipt]; jj = cl->j[ipt]; kk = cl->k[ipt];
+            // always fake voxel dims-- just confusing to put; only refers
+            // to internal/calculation considerations.
+            //printf("%s[Fake voxel dimen    = %.3f mm X %.3f mm X %.3f mm ]\n",
+            //       c1d, dxf,dyf,dzf);
          
-         fv = THD_3dind_to_3dmm( insetA, TEMP_IVEC3(ii,jj,kk) );
-         fv = THD_3dmm_to_dicomm( insetA, fv );
-         xx = fv.xyz[0]; yy = fv.xyz[1]; zz = fv.xyz[2];
-         if( !do_mni )
-            THD_dicom_to_coorder( &CL_cord , &xx,&yy,&zz );
-         else
-            THD_3tta_to_3mni( &xx , &yy , &zz );
+            if( mask && nmask ==0 ) 
+               printf("%s[ Mask                = %s ]\n", c1d, repmask);
+            else if( !no_inmask && mask != NULL )           
+               printf("%s[ Mask                = %s ]\n", c1d, repmask);
+            else if( nmask > 0 )
+               printf("%s[ Mask                = (skipping internal) ]\n", c1d);
+            else if( nmask < 0 ) // shd not happen
+               printf("%s[ Mask                = (un-usable internal) ]\n", c1d);
          
-         ms = cl->mag[ipt];
-         mm = fabs(ms);
-         
-         mssum += ms;
-         mmsum += mm; 
-         
-         sqsum += mm * mm;
+            if (CL_noabs)
+               printf ("%s[ Mean and SEM based on "
+                       "signed voxel intensities ]\n%s\n", c1d, c1d);
+            else
+               printf ("%s Mean and SEM based on absolute value "
+                       "of voxel intensities ]\n%s\n", c1d, c1d);
 
-         // PT: forward looking note-- to calculate center of mass of
-         // clusters *without* using the value of the voxel, could
-         // probably edit here (or the 'mm' values above).  Note that
-         // one would have to check about the global ones, to see how
-         // those are affected, as well as mssum.
-         xxsum += mm * xx ; yysum += mm * yy ; zzsum += mm * zz ;
-         if( mm > mmmax ){
-            xxmax = xx ; yymax = yy ; zzmax = zz ;
-            mmmax = mm ; msmax = ms ;
+            printf (
+                    "%sVolume  CM %s  CM %s  CM %s  min%s  max%s  min%s  max%s  min%s  max%s    Mean     SEM    Max Int  MI %s  MI %s  MI %s\n"
+                    "%s------  -----  -----  -----  -----  -----  -----  -----  -----  -----  -------  -------  -------  -----  -----  -----\n",
+                    c1d,
+                    ORIENT_tinystr[ CL_cord.xxor ] ,
+                    ORIENT_tinystr[ CL_cord.yyor ] ,
+                    ORIENT_tinystr[ CL_cord.zzor ] ,
+                    ORIENT_tinystr[ CL_cord.xxor ] , ORIENT_tinystr[ CL_cord.xxor ] ,
+                    ORIENT_tinystr[ CL_cord.yyor ] , ORIENT_tinystr[ CL_cord.yyor ] ,
+                    ORIENT_tinystr[ CL_cord.zzor ] , ORIENT_tinystr[ CL_cord.zzor ] ,
+                    ORIENT_tinystr[ CL_cord.xxor ] ,
+                    ORIENT_tinystr[ CL_cord.yyor ] ,
+                    ORIENT_tinystr[ CL_cord.zzor ] ,
+                    c1d
+                    );
+
+         } else {
+            if (CL_noabs) 
+               printf ("%sMean and SEM based on Signed voxel intensities: \n", 
+                       c1d);
+            else
+               printf ("%sMean and SEM based on Absolute Value "
+                       "of voxel intensities: \n", c1d);
+            printf("%sCluster summary for file %s %s\n" ,
+                   c1d, argv[iarg] , do_mni ? "[MNI coords]" : "");
+            printf("%sVolume  CM %s  CM %s  CM %s  Mean    SEM    \n", 
+                   c1d, 
+                   ORIENT_tinystr[ CL_cord.xxor ],
+                   ORIENT_tinystr[ CL_cord.yyor ],
+                   ORIENT_tinystr[ CL_cord.zzor ]);
          }
-         
-         /* Dimensions: */
-         if ( xx > RLmax )
-            RLmax = xx;
-         if ( xx < RLmin )
-            RLmin = xx;	
-         if ( yy > APmax )
-            APmax = yy;
-         if ( yy < APmin )
-            APmin = yy;		
-         if ( zz > ISmax )
-            ISmax = zz;
-         if ( zz < ISmin )
-            ISmin = zz;
-      }
-      if( mmsum == 0.0 ) continue ;
-      
-      // PT: I think that the "gl*" parameters are "global" ones.
-      glmssum += mssum;
-      glmmsum += mmsum;
-      glsqsum += sqsum;
-      glxxsum += xxsum;
-      glyysum += yysum;
-      glzzsum += zzsum;
-      
-      ndet++ ;
-      xxsum /= mmsum; 
-      yysum /= mmsum; 
-      zzsum /= mmsum;
-    
-      if (CL_noabs)   
-         mean = mssum / cl->num_pt;
-      else            
-         mean = mmsum / cl->num_pt;
-    
-      if( fimfac != 0.0 ) {
-         mean  *= fimfac;  
-         msmax *= fimfac;
-         sqsum *= fimfac*fimfac; 
-      }  
+      } // end of report header
 
-      /* MSB 11/1/96  Calculate SEM using SEM^2=s^2/N,
-         where s^2 = (SUM Y^2)/N - (Ymean)^2
-         where sqsum = (SUM Y^2 ) 
-      */
+      ndet = 0;
+
+      vol_total = nvox_total = 0;
+      glmmsum = glmssum = glsqsum = glxxsum = glyysum = glzzsum = 0;
+   
+      for( iclu=0; iclu < clar->num_clu; iclu++ ){
+         cl = clar->clar[iclu];
+         if( cl == NULL || cl->num_pt < ptmin ) continue;  // no good
+      
+         volsum = cl->num_pt * dxf*dyf*dzf;
+         xxsum = yysum = zzsum = mmsum = mssum = 0.0;
+         xxmax = yymax = zzmax = mmmax = msmax = 0.0;
+         sqsum = sem = 0;
+      
+         // These should be pegged at whatever actual max/min values are 
+         RLmax = APmax = ISmax = -1000;
+         RLmin = APmin = ISmin = 1000;
+      
+         for( ipt=0; ipt < cl->num_pt; ipt++ ) {
+
+            ii = cl->i[ipt]; jj = cl->j[ipt]; kk = cl->k[ipt];
+         
+            fv = THD_3dind_to_3dmm( insetA, TEMP_IVEC3(ii,jj,kk) );
+            fv = THD_3dmm_to_dicomm( insetA, fv );
+            xx = fv.xyz[0]; yy = fv.xyz[1]; zz = fv.xyz[2];
+            if( !do_mni )
+               THD_dicom_to_coorder( &CL_cord , &xx,&yy,&zz );
+            else
+               THD_3tta_to_3mni( &xx , &yy , &zz );
+         
+            ms = cl->mag[ipt];
+            mm = fabs(ms);
+         
+            mssum += ms;
+            mmsum += mm; 
+         
+            sqsum += mm * mm;
+
+            // PT: forward looking note-- to calculate center of mass of
+            // clusters *without* using the value of the voxel, could
+            // probably edit here (or the 'mm' values above).  Note that
+            // one would have to check about the global ones, to see how
+            // those are affected, as well as mssum.
+            xxsum += mm * xx ; yysum += mm * yy ; zzsum += mm * zz ;
+            if( mm > mmmax ){
+               xxmax = xx ; yymax = yy ; zzmax = zz ;
+               mmmax = mm ; msmax = ms ;
+            }
+         
+            /* Dimensions: */
+            if ( xx > RLmax )
+               RLmax = xx;
+            if ( xx < RLmin )
+               RLmin = xx;	
+            if ( yy > APmax )
+               APmax = yy;
+            if ( yy < APmin )
+               APmin = yy;		
+            if ( zz > ISmax )
+               ISmax = zz;
+            if ( zz < ISmin )
+               ISmin = zz;
+         }
+         if( mmsum == 0.0 ) continue ;
+      
+         // PT: I think that the "gl*" parameters are "global" ones.
+         glmssum += mssum;
+         glmmsum += mmsum;
+         glsqsum += sqsum;
+         glxxsum += xxsum;
+         glyysum += yysum;
+         glzzsum += zzsum;
+      
+         ndet++ ;
+         xxsum /= mmsum; 
+         yysum /= mmsum; 
+         zzsum /= mmsum;
     
-      if (cl->num_pt > 1) {
-         sem = (sqsum - (cl->num_pt * mean * mean)) / (cl->num_pt - 1);
-         if (sem > 0.0) 
-            sem = sqrt( sem / cl->num_pt );
-         else 
+         if (CL_noabs)   
+            mean = mssum / cl->num_pt;
+         else            
+            mean = mmsum / cl->num_pt;
+    
+         if( fimfac != 0.0 ) {
+            mean  *= fimfac;  
+            msmax *= fimfac;
+            sqsum *= fimfac*fimfac; 
+         }  
+
+         /* MSB 11/1/96  Calculate SEM using SEM^2=s^2/N,
+            where s^2 = (SUM Y^2)/N - (Ymean)^2
+            where sqsum = (SUM Y^2 ) 
+         */
+    
+         if (cl->num_pt > 1) {
+            sem = (sqsum - (cl->num_pt * mean * mean)) / (cl->num_pt - 1);
+            if (sem > 0.0) 
+               sem = sqrt( sem / cl->num_pt );
+            else 
+               sem = 0.0;
+         }
+         else
             sem = 0.0;
+    
+         if( CL_summarize != 1 ) {
+            MCW_fc7(mean,  buf1);
+            MCW_fc7(msmax, buf2);
+            MCW_fc7(sem,   buf3);
+       
+            printf("%s%6.0f  %5.1f  %5.1f  %5.1f  %5.1f  %5.1f  %5.1f  %5.1f  %5.1f  %5.1f  %7s  %7s  %7s  %5.1f  %5.1f  %5.1f \n",
+                   c1dn, volsum, xxsum, yysum, zzsum, 
+                   RLmin, RLmax, APmin, APmax, ISmin, ISmax, 
+                   buf1, buf3, buf2, xxmax, yymax, zzmax );
+         }
+    
+         nvox_total += cl->num_pt;
+         vol_total  += volsum;
+      }
+
+      DESTROY_CLARR(clar);
+      if( ndet == 0 ) {
+         printf("%s** NO CLUSTERS FOUND ABOVE THRESHOLD VOLUME ***\n", c1d);
+         if( AFNI_yesenv("AFNI_3dclust_report_zero") ) 
+            printf(" 0\n");
+      }
+   
+      // Calculate global SEM 
+      if (CL_noabs)   glmean = glmssum / nvox_total; 
+      else            glmean = glmmsum / nvox_total;
+   
+      if( fimfac != 0.0 ) { 
+         glsqsum *= fimfac*fimfac; 
+         glmean *= fimfac; 
+      }
+      if (nvox_total > 1) {
+         sem = (glsqsum - (nvox_total*glmean*glmean)) / (nvox_total - 1);
+         if (sem > 0.0) sem = sqrt( sem / nvox_total );  
+         else sem = 0.0;
       }
       else
          sem = 0.0;
-    
-      if( CL_summarize != 1 ) {
-         MCW_fc7(mean,  buf1);
-         MCW_fc7(msmax, buf2);
-         MCW_fc7(sem,   buf3);
-       
-         printf("%s%6.0f  %5.1f  %5.1f  %5.1f  %5.1f  %5.1f  %5.1f  %5.1f  %5.1f  %5.1f  %7s  %7s  %7s  %5.1f  %5.1f  %5.1f \n",
-                c1dn, volsum, xxsum, yysum, zzsum, 
-                RLmin, RLmax, APmin, APmax, ISmin, ISmax, 
-                buf1, buf3, buf2, xxmax, yymax, zzmax );
+
+      glxxsum /= glmmsum ; glyysum /= glmmsum ; glzzsum /= glmmsum ;
+   
+      // Modified so that mean and SEM would print in correct column
+      if( CL_summarize == 1 ) {
+         if( !CL_quiet )
+            printf( "%s------  -----  -----  ----- -------- -------- \n", c1d);
+         printf("%s%6.0f  %5.1f  %5.1f  %5.1f %8.1f %6.3f\n", 
+                c1d, vol_total, glxxsum, glyysum, glzzsum, glmean, sem);
       }
-    
-      nvox_total += cl->num_pt;
-      vol_total  += volsum;
+      else if( ndet > 1 && CL_summarize != -1 ) {
+         MCW_fc7(glmean ,buf1) ;
+         MCW_fc7(sem    ,buf3) ;
+         if( !CL_quiet )
+            printf ("%s------  -----  -----  -----  -----  -----  -----  -----  -----  -----  -------  -------  -------  -----  -----  -----\n", c1d);
+         printf ("%s%6.0f  %5.1f  %5.1f  %5.1f                                            %7s  %7s                             \n",
+                 c1d, vol_total, glxxsum, glyysum, glzzsum, buf1, buf3 ) ;
+      }
+   
    }
 
-   DESTROY_CLARR(clar);
-   if( ndet == 0 ) {
-      printf("%s** NO CLUSTERS FOUND ABOVE THRESHOLD VOLUME ***\n", c1d);
-      if( AFNI_yesenv("AFNI_3dclust_report_zero") ) 
-         printf(" 0\n");
-   }
-   
-   // Calculate global SEM 
-   if (CL_noabs)   glmean = glmssum / nvox_total; 
-   else            glmean = glmmsum / nvox_total;
-   
-   if( fimfac != 0.0 ) { 
-      glsqsum *= fimfac*fimfac; 
-      glmean *= fimfac; 
-   }
-   if (nvox_total > 1) {
-      sem = (glsqsum - (nvox_total*glmean*glmean)) / (nvox_total - 1);
-      if (sem > 0.0) sem = sqrt( sem / nvox_total );  
-      else sem = 0.0;
-	}
-   else
-      sem = 0.0;
-
-   glxxsum /= glmmsum ; glyysum /= glmmsum ; glzzsum /= glmmsum ;
-   
-   // Modified so that mean and SEM would print in correct column
-   if( CL_summarize == 1 ) {
-      if( !CL_quiet )
-         printf( "%s------  -----  -----  ----- -------- -------- \n", c1d);
-      printf("%s%6.0f  %5.1f  %5.1f  %5.1f %8.1f %6.3f\n", 
-             c1d, vol_total, glxxsum, glyysum, glzzsum, glmean, sem);
-   }
-   else if( ndet > 1 && CL_summarize != -1 ) {
-      MCW_fc7(glmean ,buf1) ;
-      MCW_fc7(sem    ,buf3) ;
-      if( !CL_quiet )
-         printf ("%s------  -----  -----  -----  -----  -----  -----  -----  -----  -----  -------  -------  -------  -----  -----  -----\n", c1d);
-      printf ("%s%6.0f  %5.1f  %5.1f  %5.1f                                            %7s  %7s                             \n",
-              c1d, vol_total, glxxsum, glyysum, glzzsum, buf1, buf3 ) ;
-   }
-   
    // --------------- write out utilized mask
 
    if( CL_maskout && mask ) {
@@ -1543,10 +1573,7 @@ int main(int argc, char *argv[]) {
       DSET_write(mset); 
       WROTE_DSET(mset); 
       DSET_delete(mset);
-
    }
-
-
 
    // ************************************************************
    // ************************************************************
