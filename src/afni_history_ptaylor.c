@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 23, May , 2018 , PT , "3dClusterize" , MINOR , TYPE_GENERAL,
+   "Some bug fixes if dsets are left out, some new checks on what user asks.",
+   "User can't run multi-sided tests on single-sided stats now...\n"
+},
+
 { 22, May , 2018 , PT , "fat_proc_filter_dwis" , MAJOR , TYPE_BUG_FIX,
    "Was unioning, not intersecting, multiple selector strings.",
    "Fixed the issue in subprogram @djunct_combin_str.py.\n"
