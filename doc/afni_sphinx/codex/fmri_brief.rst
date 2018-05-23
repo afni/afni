@@ -21,13 +21,19 @@ Publications with example scripts
 
 :2016:
 
-   .. _public_ex_fmri_2016_ChenEtal_brief:
-   .. include:: fmri_proc/2016_ChenEtal/brief.rst
+   |
+
+   * .. _public_ex_fmri_2016_ChenEtal_brief:
+     .. include:: fmri_proc/2016_ChenEtal/brief.rst
 
 ==========
 
 :2018:
 
-   .. _public_ex_fmri_2018_TaylorEtal_brief:
-   .. include:: fmri_proc/2018_TaylorEtal/brief.rst
+   |
 
+   * .. _public_ex_fmri_2018_TaylorEtal_brief:
+     .. include:: fmri_proc/2018_TaylorEtal/brief.rst
+
+   * .. _public_ex_fmri_2018_ChenEtal_brief:
+     .. include:: fmri_proc/2018_ChenEtal/brief.rst

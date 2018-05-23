@@ -2,11 +2,14 @@
 .. begin_title
 
 .. title(s) with links; usually just a single paper here
+**Chen GC, Cox RW, Glen DR, Rajendra JK, Reynolds RC, Taylor PA (2018).**
+`A tail of two sides: Artificially doubled false positive rates in
+neuroimaging due to the sidedness choice with t-tests`
 
-**Taylor PA, Chen GC, Glen DR, Rajendra JK, Reynolds RC, Cox RW
-(2018).** `FMRI processing with AFNI: Some comments and corrections on
-"Exploring the Impact of Analysis Software on Task fMRI Results"
-<https://www.biorxiv.org/content/early/2018/04/28/308643>`_
+bioRxiv (in press).
+
+.. asdf
+   <https://www.ncbi.nlm.nih.gov/pubmed/27751943Neuroimage>`_.
 
 .. end_title
 
@@ -64,24 +67,12 @@
    :header-rows: 0
 
    * - |s01|
-     - BMN-AFNI processing with afni_proc.py
-   * - |s02|
-     - NIMH-AFNI processing: skullstripping and alignment to standard
-       space (via @SSwarper)
-   * - |s03|
-     - NIMH-AFNI processing with afni_proc.py
-   * - |s04|
-     - NIMH-AFNI group level processing: 3dMEMA, 3dClustSim, clusterizing
+     - An example of group level analyses with two-tailed testing
+       (using 3dMEMA, 3dClustSim and 3dClusterize, among others)
 
 
 .. aliases for scripts, so above is easier to read
-.. |s01| replace:: :download:`s.bmn_subject_level_02_ap.tcsh
-                   <fmri_proc/2018_TaylorEtal/s.bmn_subject_level_02_ap.tcsh>`
-.. |s02| replace:: :download:`s.nimh_subject_level_01_qwarp.tcsh
-                   <fmri_proc/2018_TaylorEtal/s.nimh_subject_level_01_qwarp.tcsh>`
-.. |s03| replace:: :download:`s.nimh_subject_level_02_ap.tcsh
-                   <fmri_proc/2018_TaylorEtal/s.nimh_subject_level_02_ap.tcsh>`
-.. |s04| replace:: :download:`s.nimh_group_level_02_mema.tcsh
-                   <fmri_proc/2018_TaylorEtal/s.nimh_group_level_02_mema.tcsh>`
+.. |s01| replace:: :download:`s.nimh_group_level_02_mema_bisided.tcsh
+                   <fmri_proc/2018_ChenEtal/s.nimh_group_level_02_mema_bisided.tcsh>`
 
 .. end_script_table
