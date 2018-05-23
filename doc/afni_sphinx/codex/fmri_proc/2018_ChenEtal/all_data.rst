@@ -2,14 +2,11 @@
 .. begin_title
 
 .. title(s) with links; usually just a single paper here
-**Chen GC, Cox RW, Glen DR, Rajendra JK, Reynolds RC, Taylor PA (2018).**
-`A tail of two sides: Artificially doubled false positive rates in
-neuroimaging due to the sidedness choice with t-tests`
 
-bioRxiv (in press).
-
-.. asdf
-   <https://www.ncbi.nlm.nih.gov/pubmed/27751943Neuroimage>`_.
+**Chen GC, Cox RW, Glen DR, Rajendra JK, Reynolds RC, Taylor PA
+(2018).** `A tail of two sides: Artificially doubled false positive
+rates in neuroimaging due to the sidedness choice with t-tests
+<https://www.biorxiv.org/content/early/2018/05/23/328567>`_
 
 .. end_title
 
