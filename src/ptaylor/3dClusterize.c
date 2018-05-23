@@ -20,6 +20,7 @@
                    the user asks for multi-sided clusterizing that the
                    stat itself is multisided;  else, fail.
                  - allow RIGHT and LEFT as -1sided flags
+                 - no datasets output unless asked for
 */
 
 
@@ -93,11 +94,18 @@ void usage_Clusterize(int detail)
 " \n"
 "   Output: ~2~\n"
 " \n"
-"     + A dataset volume containing a map of cluster ROIs (sorted by\n"
-"       size) after thresholding (and clusterizing, if specified)\n"
 "     + A report about the clusters (center of mass, extent, volume,\n"
 "       etc.) that can be dumped into a text file\n"
-"     + Optional: a cluster-masked version of an input data set\n"
+"\n"
+"     + Optional: A dataset volume containing a map of cluster ROIs \n"
+"       (sorted by size) after thresholding (and clusterizing, if\n"
+"       specified).\n"
+"       That is, a data set where the voxels in the largest cluster all\n"
+"       have a value 1, those in the next largest are all 2, etc.\n"
+"     + Optional: a cluster-masked version of an input data set. That is,\n"
+"       the values of a selected data set (e.g., effect estimate) that fall\n"
+"       within a cluster are output unchanged, and those outside a cluster\n"
+"       are zeroed.\n"
 "     + Optional: a mask\n"
 " \n"
 " \n"
@@ -168,14 +176,14 @@ void usage_Clusterize(int detail)
 "                 (To save the text file report, use the redirect '>' after\n"
 "                 the 3dClusterize command and dump the text into a\n"
 "                 separate file of your own naming.)\n"
-"                 (def:  'Clust_map').\n"
+"                 (def:  no map of clusters output).\n"
 " \n"
 " -pref_dat DDD  :Including this option instructs the program to output\n"
 "                 a cluster-masked version of the 'data' volume\n"
 "                 specified by the '-idat ..' index.  That is, only data\n"
 "                 values within the cluster ROIs are included in the\n"
 "                 output volume.  Requires specifying '-idat ..'.\n"
-"                 (def:  'Clust_dat').\n"
+"                 (def:  no cluster-masked dataset output).\n"
 " \n"
 " -mask MMM      :Load in a dataset MMM to use as a mask, within which\n"
 "                 to look for clusters.\n"
@@ -390,7 +398,7 @@ int main(int argc, char *argv[]) {
 
    THD_3dim_dataset *insetA = NULL;
    THD_3dim_dataset *INMASK=NULL;
-   char *prefix="Clust_map" ;
+   char *prefix=NULL; 
 
    int STATINPUT  = 1; // flag for whether user input stat (1) or pval (0)
    int STATINPUT2 = 1;
@@ -450,7 +458,7 @@ int main(int argc, char *argv[]) {
    char repmask[200] = "";
 
    // mainly report-related
-   char *CL_prefix  = "Clust_dat";  // output data volume, if asked for
+   char *CL_prefix  = NULL;  // output data volume, if asked for
    char *CL_maskout = NULL;  // output WB mask volume, if asked for
    char *CL_mritype = NULL;
    int CL_quiet     = 0;
@@ -823,9 +831,9 @@ int main(int argc, char *argv[]) {
    else if( ival < 0 ) {
       INFO_message("No extra data block input (via '-idat ..'): "
                    "using threshold dset for all computations and info.");
-      //if(CL_prefix)
-      // WARNING_message("... even though you specified an '-pref_dat ..', "
-      //                   "no cluster-masked output can be made.");
+      if(CL_prefix)
+       WARNING_message("... even though you specified an '-pref_dat ..', "
+                         "no cluster-masked output can be made.");
       sprintf(repval, "(none)");
    }
    else {
@@ -1262,24 +1270,26 @@ int main(int argc, char *argv[]) {
    // --------------- write out map of cluster ROIs
 
    if ( FOUND_CLUSTERS ) {
-      INFO_message("Writing out map of cluster ROIs.");
       
-      THD_3dim_dataset *qset=NULL;
-      qset = EDIT_empty_copy(insetA);
-
-      EDIT_dset_items( qset ,
-                       ADN_prefix , prefix ,
-                       ADN_nvals  , 1 ,
-                       ADN_none );
-      EDIT_substitute_brick(qset, 0, MRI_short, mmm); 
-      mmm = NULL;
-
-      EDIT_BRICK_LABEL(qset, 0, blab1);
-
-      tross_Copy_History( insetA , qset ) ;
-      tross_Make_History( "3dClusterize", argc , argv , qset );
-      DSET_write(qset); WROTE_DSET(qset); DSET_delete(qset);
-   
+      if ( prefix ) {
+         INFO_message("Writing out map of cluster ROIs.");
+         
+         THD_3dim_dataset *qset=NULL;
+         qset = EDIT_empty_copy(insetA);
+         
+         EDIT_dset_items( qset ,
+                          ADN_prefix , prefix ,
+                          ADN_nvals  , 1 ,
+                          ADN_none );
+         EDIT_substitute_brick(qset, 0, MRI_short, mmm); 
+         mmm = NULL;
+         
+         EDIT_BRICK_LABEL(qset, 0, blab1);
+         
+         tross_Copy_History( insetA , qset ) ;
+         tross_Make_History( "3dClusterize", argc , argv , qset );
+         DSET_write(qset); WROTE_DSET(qset); DSET_delete(qset);
+      }
 
       // ---------- write out report --------------------
 
@@ -1589,8 +1599,8 @@ int main(int argc, char *argv[]) {
    if(mask)
       free(mask);
 
-   //if(prefix)
-   //  free(prefix);
+   if(prefix)
+      free(prefix);
 
    if(Dim)
       free(Dim);
