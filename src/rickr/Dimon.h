@@ -95,6 +95,7 @@ typedef struct  /* user options */
     int              use_last_elem; /* use last element in DICOM images */
     int              use_slice_loc; /* use Slice Loc for zoff           */
     int              use_obl_origin;/* maybe apply to3d -oblique_origin */
+    int              ushort2float;  /* convert all shorts to float      */
     int              show_sorted_list; /* display sorted list and quit  */
 
     /* GERT_Reco options */
