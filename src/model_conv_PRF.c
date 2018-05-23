@@ -1,5 +1,5 @@
 /*****************************************************************************
-   Details for this model are in prf_common_circular.c, #incuded.
+   Details for this model are in prf_common_circular.c, #included.
 
    This file now just holds functionality that is specific to the
    basic 4-parameter method.

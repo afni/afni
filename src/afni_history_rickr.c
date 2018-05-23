@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 23, May, 2018, RCR, "get_afni_model_PRF", MINOR, TYPE_NEW_PROG,
+   "this is just a wrapper for model parameter evaluation",
+   "See model Conv_PRF in model_conv_PRF.c."
+ } ,
+
+ { 23, May, 2018, RCR, "get_afni_model_PRF_6", MINOR, TYPE_NEW_PROG,
+   "this is just a wrapper for model parameter evaluation",
+   "See model Conv_PRF_6 in model_conv_PRF_6.c."
+ } ,
+
  { 23, May, 2018, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
    "add -ushort2float",
    "This will add the option to any to3d command via -gert_create_dataset.\n"
