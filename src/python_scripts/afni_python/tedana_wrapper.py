@@ -3,7 +3,7 @@
 ########################################################################
 ## 03/2018 Justin Rajendra
 ## prep data from afni_proc.py for tedana.py
-## 05/07/2018: removed the mean addition 
+## 05/07/2018: removed the mean addition
 ## 05/15/2018: added local check_output [rickr]
 
 ## system libraries
@@ -56,7 +56,7 @@ def exec_or_error(cmd_str,error_msg="ERROR!!!"):
 ########################################################################
 ## locations of stuff
 
-# use local check_output, subprocess might not have it 
+# use local check_output, subprocess might not have it
 # afni_bin = subprocess.check_output("which afni",shell=True)
 afni_bin = check_output("which afni")
 # afni_dir = os.path.dirname(afni_bin)
@@ -133,6 +133,8 @@ tedana.add_argument("-tedana_prog",type=str,
                     help=("Path and name of the version of tedana.py that "+
                           "will be run."+"Default is meica.libs/tedana.py "+
                           "in the afni binaries directory."))
+tedana.add_argument('-tedana_is_exec',action='store_true',default=False,
+                    help="Run 'tedana.py' rather than 'python tedana.py'. Not yet active...")
 # tedana.add_argument('-sourceTEs',type=int,default="-1",nargs='+',metavar="STEs",
 #                       help=("Source TEs for models. Examples: -sourceTEs 2 3; "+
 #                             "-sourceTEs 0 for all; -sourceTEs -1 for "+
@@ -169,6 +171,7 @@ OutName = args.prefix
 save_all = args.save_all
 prep_only = args.prep_only
 ted_bin = args.tedana_prog
+tedana_is_exec = args.tedana_is_exec
 # kdaw = str(args.kdaw)
 # rdaw = str(args.rdaw)
 

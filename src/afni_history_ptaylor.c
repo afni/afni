@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 22, May , 2018 , PT , "fat_proc_filter_dwis" , MAJOR , TYPE_BUG_FIX,
+   "Was unioning, not intersecting, multiple selector strings.",
+   "Fixed the issue in subprogram @djunct_combin_str.py.\n"
+},
+
 { 21, May , 2018 , PT , "p2dsetstat" , MINOR , TYPE_NEW_OPT,
    "Include '-bisided' as a type of test, explicitly.",
    "Same behavior as '-2sided', just easier for scripting.\n"
