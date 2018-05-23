@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 23 , MAY , 2018 , RWC , "3dTfilter" , MICRO , TYPE_NEW_OPT ,
+   "Updates to add capability" ,
+   "Now can set half-width for despike as well as adaptive filter.\n"
+   "Now can use adaptive detrending with new filter 'adetrend'." } ,
+
  { 10 , MAY , 2018 , RWC , "AFNI GUI" , MICRO , TYPE_NEW_ENV ,
    "remove AFNI_ENFORCE_ASPECT from having any effect" ,
    "This never did very much good, so it is now OFF." } ,
