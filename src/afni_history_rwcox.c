@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 24 , MAY , 2018 , RWC , "AFNI driver" , MINOR , TYPE_ENHANCE ,
+   "Add SNAP_VIEWER command, for the Neon man." ,
+   NULL } ,
+
  { 23 , MAY , 2018 , RWC , "3dTfilter" , MICRO , TYPE_NEW_OPT ,
    "Updates to add capability" ,
    "Now can set half-width for despike as well as adaptive filter.\n"

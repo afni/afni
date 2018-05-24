@@ -869,7 +869,7 @@ ENTRY("SNAP_grab_image") ;
     it into a PPM file. See also ISQ_snapfile2()
 ------------------------------------------------------------------------*/
 
-void ISQ_snapfile( Widget w )
+int ISQ_snapfile( Widget w )
 {
    MRI_IMAGE *tim ;
    Window win ;
@@ -878,9 +878,9 @@ void ISQ_snapfile( Widget w )
 
 ENTRY("ISQ_snapfile") ;
 
-   if( w == NULL || !XtIsWidget(w) )         EXRETURN ;
-   if( !XtIsRealized(w) || !XtIsManaged(w) ) EXRETURN ;
-   win = XtWindow(w); if( win == (Window)0 ) EXRETURN ;
+   if( w == NULL || !XtIsWidget(w) )         RETURN(-1) ;
+   if( !XtIsRealized(w) || !XtIsManaged(w) ) RETURN(-1) ;
+   win = XtWindow(w); if( win == (Window)0 ) RETURN(-1) ;
 
    /* create display context if we don't have one */
 
@@ -892,7 +892,7 @@ ENTRY("ISQ_snapfile") ;
    /* try to get image */
 
    tim = SNAP_grab_image( w , snap_dc ) ;
-   if( tim == NULL )                         EXRETURN ;
+   if( tim == NULL )                         RETURN(-1) ;
 
    eee = getenv("AFNI_SNAPFILE_PREFIX") ;
    if( eee == NULL ){
@@ -907,12 +907,15 @@ ENTRY("ISQ_snapfile") ;
    }
    if( ii <= 999999 ) mri_write_pnm( fname , tim ) ;
    mri_free(tim) ; last_ii = ii ;
-   EXRETURN ;
+   RETURN(0) ;
 }
 
+/*------------------------------------------------------*/
 /* A variant on ISQ_snapfile that allows direct control 
    of filename                                          */
-void ISQ_snapfile2( Widget w , char *fout)
+/*------------------------------------------------------*/
+
+int ISQ_snapfile2( Widget w , char *fout)
 {
    MRI_IMAGE *tim ;
    Window win ;
@@ -922,18 +925,22 @@ void ISQ_snapfile2( Widget w , char *fout)
 ENTRY("ISQ_snapfile2") ;
 
    if( w == NULL || !XtIsWidget(w) ) {
-      ERROR_message("%p is not a valid widget", w);
-      EXRETURN ;
+      ERROR_message("ISQ_snapfile2: %p is not a valid widget", w);
+      RETURN(-1) ;
    }
-   if( !XtIsRealized(w) || !XtIsManaged(w) ) {
-      ERROR_message("widget not managed (%d) or realized (%d) yet",
-                     XtIsManaged(w), XtIsRealized(w));
-      EXRETURN ;
+   if( !XtIsRealized(w) ){
+     ERROR_message("ISQ_snapfile2: widget not realized") ;
+     RETURN(-1) ;
+   }
+   if( !XtIsManaged(w) ){
+     ERROR_message("ISQ_snapfile2: widget not managed") ;
+     RETURN(-1) ;
    }
    win = XtWindow(w); if( win == (Window)0 ) {
-      ERROR_message("win is 0");
-      EXRETURN ;
+      ERROR_message("ISQ_snapfile2: widget doesn't have a window :(") ;
+      RETURN(-1) ;
    }
+
    /* create display context if we don't have one */
 
    if( snap_dc == NULL ){
@@ -945,8 +952,8 @@ ENTRY("ISQ_snapfile2") ;
 
    tim = SNAP_grab_image( w , snap_dc ) ;
    if( tim == NULL ) {
-      ERROR_message("Failed to grab image");
-      EXRETURN ;
+      ERROR_message("ISQ_snapfile2: Failed to grab image");
+      RETURN(-1) ;
    }
    if (!fout) {
       eee = getenv("AFNI_SNAPFILE_PREFIX") ;
@@ -960,31 +967,36 @@ ENTRY("ISQ_snapfile2") ;
          sprintf(fname,"%s%06d.ppm",prefix,ii) ;
          if( ! THD_is_ondisk(fname) ) break ;
       }
-      if( ii <= 999999 ) mri_write_pnm( fname , tim ) ;
+      if( ii <= 999999 ){
+        INFO_message("snapping PNM image %s",fname) ;
+        mri_write_pnm( fname , tim ) ;
+      }
       last_ii = ii ;
    } else {
              if (STRING_HAS_SUFFIX(fout, ".jpg")) {
+         INFO_message("snapping jpg image %s",fout) ;
          mri_write_jpg( fout , tim ) ;
       } else if (STRING_HAS_SUFFIX(fout, ".pnm")) {
+         INFO_message("snapping png image %s",fout) ;
          mri_write_pnm( fout , tim ) ;
       } else if (STRING_HAS_SUFFIX(fout, ".png")) {
+         INFO_message("snapping png image %s",fout) ;
          mri_write_png( fout , tim ) ;
       } else if (STRING_HAS_SUFFIX(fout, ".1D")) {
+         INFO_message("snapping 1D file %s",fout) ;
          mri_write_1D( fout , tim ) ;
       } else {
          snprintf(fname,59,"%s", fout);
          strcat(fname,".jpg");
-         WARNING_message("Format not recognized, saving in jpg format to %s",
-                         fname);
+         WARNING_message(
+           "ISQ_snapfile2: Format not recognized, saving in jpg format to %s",
+           fname ) ;
          mri_write_jpg( fname , tim ) ;
       }
    }
    mri_free(tim) ; 
-   EXRETURN ;
+   RETURN(0) ;
 }
-
-
-
 
 /*-----------------------------------------------------------------------*/
 static MCW_DC       *cur_dc  = NULL ;
