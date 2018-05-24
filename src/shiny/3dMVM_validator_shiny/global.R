@@ -79,10 +79,10 @@ allVars <- c(catVar,qntVar)
 InputFile.str <- paste(data.df$InputFile,collapse=' ')
 
 ## copy one dataset to temp folder for the master
-master.dset <- paste0(out.dir,'/',basename(as.character(data.df$InputFile[1])))
+master.dset <- 'BassMaster.nii.gz'
 system(paste0('cd ',cur.dir,' ; ',
-              afni.path,'/3dcopy ',as.character(data.df$InputFile[1]),' ',
-              master.dset) )
+              afni.path,'/3dbucket -prefix ',master.dset,' -session ',
+              out.dir,' ',as.character(data.df$InputFile[1])) )
 
 ## launch afni
-afni_launch(master.dset,out.dir)
+afni_launch(paste0(out.dir,'/',master.dset),out.dir)
