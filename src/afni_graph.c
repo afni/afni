@@ -182,6 +182,8 @@ ENTRY("new_MCW_grapher") ;
                     XmNinitialResourcesPersistent , False ,
               NULL ) ;
 
+    grapher->top_form = form_tmp ; /* save this [24 May 2018] */
+
    /** make a drawing area to get everything **/
 
    grapher->draw_fd =
