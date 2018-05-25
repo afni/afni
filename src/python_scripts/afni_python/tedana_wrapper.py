@@ -134,7 +134,7 @@ tedana.add_argument("-tedana_prog",type=str,
                           "will be run."+"Default is meica.libs/tedana.py "+
                           "in the afni binaries directory."))
 tedana.add_argument('-tedana_is_exec',action='store_true',default=False,
-                    help="Run 'tedana.py' rather than 'python tedana.py'. Not yet active...")
+                    help="Run 'tedana.py' rather than 'python tedana.py'.")
 # tedana.add_argument('-sourceTEs',type=int,default="-1",nargs='+',metavar="STEs",
 #                       help=("Source TEs for models. Examples: -sourceTEs 2 3; "+
 #                             "-sourceTEs 0 for all; -sourceTEs -1 for "+
@@ -317,12 +317,20 @@ print("Output Zcat dataset is "+Zcat_all.pp()+"\n")
 ###################################
 ## tedana
 if not prep_only:
+
     ## generate the script
-    tedana_script = ("\npython "+ted_bin+" \\\n"+
-                     "--label "+TED_label+" \\\n"+
-                     "--orig_data "+Zcat_all.pp()+" \\\n"+
-                     "--TEs "+TEs+" \\\n"+
-                     tedana_opts+"\n")
+    if tedana_is_exec:
+        tedana_script = ("\npython "+ted_bin+" \\\n"+
+                         "--label "+TED_label+" \\\n"+
+                         "--orig_data "+Zcat_all.pp()+" \\\n"+
+                         "--TEs "+TEs+" \\\n"+
+                         tedana_opts+"\n")
+    else:
+        tedana_script = ("\n"+ted_bin+" \\\n"+
+                         "--label "+TED_label+" \\\n"+
+                         "--orig_data "+Zcat_all.pp()+" \\\n"+
+                         "--TEs "+TEs+" \\\n"+
+                         tedana_opts+"\n")
 
     ## change directory
     os.chdir(OutFolder)
