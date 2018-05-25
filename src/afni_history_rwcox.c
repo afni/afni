@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 25 , MAY , 2018 , RWC , "various" , MICRO , TYPE_MODIFY ,
+   "Replace DC_find_overlay_color with DC_find_closest_overlay_color" ,
+   "So that incorrect color names can get some sort of love." } ,
+
  { 24 , MAY , 2018 , RWC , "AFNI driver" , MINOR , TYPE_ENHANCE ,
    "Add SNAP_VIEWER command, for the Neon man." ,
    NULL } ,

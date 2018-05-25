@@ -1751,7 +1751,8 @@ if( PRINT_TRACING ){
    newseq->vgize_fac = INDEX_TO_VGFAC(2) ;
 
    newseq->zer_color = 0 ;
-   ii = DC_find_overlay_color( newseq->dc , getenv("AFNI_IMAGE_ZEROCOLOR") ) ;
+   ii = DC_find_closest_overlay_color( newseq->dc ,
+                                       getenv("AFNI_IMAGE_ZEROCOLOR") ) ;
    if( ii > 0 ) newseq->zer_color = ii ;
 
    { char *blab[1] = { "Crop Autocenter?" } ;

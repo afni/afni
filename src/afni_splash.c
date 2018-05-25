@@ -1505,7 +1505,7 @@ STATUS("no ***LAYOUT found") ;
             if( nn >= 2 && mww >= 1 && mww <= MONT_NMAX && mhh >= 1 && mhh <= MONT_NMAX ){
                int mp[5] ;
                mp[0] = mww ; mp[1] = mhh ; mp[2] = msp ; mp[3] = mgap ;
-               mp[4] = DC_find_overlay_color(GLOBAL_library.controllers[cc]->dc,mcol);
+               mp[4] = DC_find_closest_overlay_color(GLOBAL_library.controllers[cc]->dc,mcol);
                drive_MCW_imseq( isq , isqDR_setmontage , (XtPointer) mp ) ;
 
                if( msp == 1 ) singleton++ ;

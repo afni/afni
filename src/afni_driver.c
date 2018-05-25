@@ -906,7 +906,7 @@ ENTRY("AFNI_drive_open_window") ;
         if( nn >= 2 && mww >= 1 && mww <= MONT_NMAX && mhh >= 1 && mhh <= MONT_NMAX ){
           int mp[5] ;
           mp[0] = mww ; mp[1] = mhh ; mp[2] = msp ; mp[3] = mgap ;
-          mp[4] = DC_find_overlay_color(im3d->dc,mcol);
+          mp[4] = DC_find_closest_overlay_color(im3d->dc,mcol);
           drive_MCW_imseq( isq , isqDR_setmontage , (XtPointer)mp ) ;
         }
         ms += mww*mhh ;
@@ -2201,7 +2201,7 @@ ENTRY("AFNI_drive_set_pbar_all") ;
        sscanf( cmd+dadd , "%f=%255s%n" , &val,str,&nn ) ;
        if( str[0] == '\0' || nn == 0 ) RETURN(-1) ;  /* can't parse */
 
-       col = DC_find_overlay_color( GLOBAL_library.dc , str ) ;
+       col = DC_find_closest_overlay_color( GLOBAL_library.dc , str ) ;
        if( col < 0 )                   RETURN(-1) ;  /* bad color name */
 
        for( jj=0 ; jj < ii ; jj++ )                  /* check ordering */
