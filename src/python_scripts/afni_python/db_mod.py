@@ -2665,6 +2665,7 @@ def db_mod_combine(block, proc, user_opts):
 
    apply_uopt_to_block('-combine_method', user_opts, block)
    apply_uopt_to_block('-combine_opts_tedana', user_opts, block)
+   apply_uopt_to_block('-combine_opts_tedwrap', user_opts, block)
    apply_uopt_to_block('-combine_tedana_path', user_opts, block)
 
    # if using tedana for data and later blurring, suggest -blur_in_mask
@@ -2801,6 +2802,18 @@ def cmd_combine_tedana(proc, block, method='tedana'):
 
    # gather any extra options
    exopts = []
+   oname = '-combine_opts_tedwrap'
+   opt = block.opts.find_opt(oname)
+   if opt:
+      olist, rv = block.opts.get_string_list(oname)
+      if rv: return
+      if len(olist) > 0:
+         exopts.append("%s%s \\\n" % (oindent,' '.join(olist)))
+      else:
+         print("** found -combine_opts_tedwrap without any options")
+         return
+
+   # gather any extra tedana options
    oname = '-combine_opts_tedana'
    opt = block.opts.find_opt(oname)
    if opt:
@@ -11587,15 +11600,19 @@ g_help_options = """
 
         -combine_opts_tedana OPT OPT ... : specify extra options for tedana.py
 
-                e.g. -combine_tedana_path ~/testbin/meica.libs/tedana.py
-                default: from under afni binaries directory
+                e.g. -combine_opts_tedana --sourceTEs=-1 --kdaw=10 --rdaw=1
 
-            If one wishes to use a version of tedana.py other than what comes
-            with AFNI, this option allows one to specify that file.
-
+            Use this option to pass extra options through to tedana.py.
             This applies to any tedana-based -combine_method.
 
             See also -combine_method.
+
+        -combine_opts_tedwrap OPT OPT ... : pass options to tedana_wrapper.py
+
+                e.g. -combine_opts_tedwrap -tedana_is_exec
+
+            Use this option to pass extra options to tedana_wrapper.py.
+            This applies to any tedana-based -combine_method.
 
         -combine_tedana_path PATH : specify path to tedana.py
 

@@ -605,9 +605,10 @@ g_history = """
     6.13 May 14, 2018:
         - if tedana, suggest -blur_in_mask yes
         - added epi_anat as option for -mask_apply
+    6.14 May 25, 2018: added -combine_opts_tedwrap
 """
 
-g_version = "version 6.13, May 14, 2018"
+g_version = "version 6.14, May 25, 2018"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -1237,6 +1238,8 @@ class SubjProcSream:
                         helpstr='specify method for combining echoes per run')
         self.valid_opts.add_opt('-combine_opts_tedana', -1, [],
                         helpstr='specify extra options for tedana.py')
+        self.valid_opts.add_opt('-combine_opts_tedwrap', -1, [],
+                        helpstr='specify extra options for tedana_wrapper.py')
         self.valid_opts.add_opt('-combine_tedana_path', 1, [],
                         helpstr='specify path to tedana.py')
         self.valid_opts.add_opt('-combine_tedana_save_all', 1, [],
