@@ -320,13 +320,13 @@ if not prep_only:
 
     ## generate the script
     if tedana_is_exec:
-        tedana_script = ("\npython "+ted_bin+" \\\n"+
+        tedana_script = ("\n"+ted_bin+" \\\n"+
                          "--label "+TED_label+" \\\n"+
                          "--orig_data "+Zcat_all.pp()+" \\\n"+
                          "--TEs "+TEs+" \\\n"+
                          tedana_opts+"\n")
     else:
-        tedana_script = ("\n"+ted_bin+" \\\n"+
+        tedana_script = ("\npython "+ted_bin+" \\\n"+
                          "--label "+TED_label+" \\\n"+
                          "--orig_data "+Zcat_all.pp()+" \\\n"+
                          "--TEs "+TEs+" \\\n"+
