@@ -199,7 +199,7 @@ void usage_Clusterize(int detail)
 "                 'j' can be either an integer *or* a brick_label string.\n"
 " \n"
 " -idat   k      :Uses sub-brick [k] as the data source (optional);\n"
-"                 'j' can be either an integer *or* a brick_label string.\n"
+"                 'k' can be either an integer *or* a brick_label string.\n"
 "                 If this option is used, thresholding is still done by\n"
 "                 the 'threshold' dataset, but that threshold map is\n"
 "                 applied to this 'data' set, which is in turn used for\n"
