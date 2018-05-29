@@ -3991,17 +3991,17 @@ STATUS("zeropad weight dataset") ;
                         ADN_datum_all , MRI_float ,
                       ADN_none ) ;
        if( DSET_NUM_TIMES(dset_targ) > 1 )
-       EDIT_dset_items( dset_out ,
-                          ADN_ntt   , DSET_NVALS(dset_targ) ,
-                          ADN_ttdel , DSET_TR(dset_targ) ,
-                          ADN_tunits, UNITS_SEC_TYPE ,
-                          ADN_nsl   , 0 ,
-                        ADN_none ) ;
-     else
-       EDIT_dset_items( dset_out ,
-                          ADN_func_type , ISANAT(dset_out) ? ANAT_BUCK_TYPE
-                                                           : FUNC_BUCK_TYPE ,
-                        ADN_none ) ;
+         EDIT_dset_items( dset_out ,
+                            ADN_ntt   , DSET_NVALS(dset_targ) ,
+                            ADN_ttdel , DSET_TR(dset_targ) ,
+                            ADN_tunits, UNITS_SEC_TYPE ,
+                            ADN_nsl   , 0 ,
+                          ADN_none ) ;
+       else
+         EDIT_dset_items( dset_out ,
+                            ADN_func_type , ISANAT(dset_out) ? ANAT_BUCK_TYPE
+                                                             : FUNC_BUCK_TYPE ,
+                          ADN_none ) ;
 
      /* copy brick info into output */
 
