@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 29 , MAY , 2018 , RWC , "3dTcorrelate" , MICRO , TYPE_MODIFY ,
+   "Replace DSET_NUM_TIMES with DSET_NVALS" ,
+   "To allow datasets that are not marked with a time axis to be used. Also\n"
+   "in a couple other programs (e.g., 3dDespike)." } ,
+
  { 29 , MAY , 2018 , RWC , "AFNI GUI" , MICRO , TYPE_NEW_ENV ,
    "AFNI_GRAPH_ALLOW_SHIFTN" ,
    "Needs to be set to YES to enable the old FD-style N<digits><Enter>\n"
