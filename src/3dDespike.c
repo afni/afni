@@ -485,7 +485,7 @@ int main( int argc , char *argv[] )
      INFO_message("Input dataset is in short format, but output will be in float format") ;
    }
 
-   nvals = DSET_NUM_TIMES(dset) ; nuse = nvals - ignore ;
+   nvals = DSET_NVALS(dset) ; nuse = nvals - ignore ;
    if( nuse < 15 )
      ERROR_exit("Can't use dataset with < 15 time points per voxel!") ;
 
