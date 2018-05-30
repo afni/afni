@@ -2821,7 +2821,7 @@ void PLUG_choose_dataset_CB( Widget w , XtPointer cd , XtPointer cbs )
    static char ** strlist = NULL ;
    char label[64] ;
    int llen , ltop ;
-   char qnam[THD_MAX_NAME] ;
+   char qnam[THD_MAX_NAME+2048] ;
 
    int          num_old = 0 , qold ;  /* multi-choice stuff */
    MCW_idcode * old_chosen = NULL ;
@@ -3070,7 +3070,7 @@ ENTRY("PLUG_finalize_dataset_CB") ;
 void make_PLUGIN_dataset_link( THD_3dim_dataset * dset ,
                                PLUGIN_dataset_link * dsl )
 {
-   char nam[THD_MAX_NAME] ;
+   char nam[THD_MAX_NAME+2048] ;
    char * tnam ;
 
 ENTRY("make_PLUGIN_dataset_link") ;
@@ -3079,8 +3079,8 @@ ENTRY("make_PLUGIN_dataset_link") ;
 
    if( dsl == NULL ) EXRETURN ;
 
-   if( ! ISVALID_3DIM_DATASET(dset) ){
-      strcpy( dsl->title , "* garbage *" ) ;
+   if( ! ISVALID_3DIM_DATASET(dset) ){  /* should not happen */
+      strcpy( dsl->title , "* garbage :( *" ) ;
       ZERO_IDCODE( dsl->idcode ) ;
       EXRETURN ;
    }
