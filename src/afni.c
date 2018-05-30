@@ -1002,7 +1002,8 @@ ENTRY("AFNI_parse_args") ;
    env = getenv( "AFNI_SESSTRAIL" ) ;
    if( env != NULL ){
      SESSTRAIL = strtol(env,NULL,10) ;
-     if( SESSTRAIL < 0 ) SESSTRAIL = 0 ;  /* 24 Aug 2000 */
+          if( SESSTRAIL < 0 ) SESSTRAIL = 0 ;  /* 24 Aug 2000 */
+     else if( SESSTRAIL > 4 ) SESSTRAIL = 4 ;  /* 30 May 2018 */
    }
 
    GLOBAL_argopt.elide_quality = AFNI_yesenv("AFNI_MARKERS_NOQUAL") ;
