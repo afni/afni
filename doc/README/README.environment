@@ -1640,6 +1640,21 @@ of the AFNI graph window is turned on for all graph viewers when
 they open.  Otherwise, you have to turn this feature on via the
 'F' key or the toggle control in the Opt menu.
 
+---------------------------------
+Variable: AFNI_GRAPH_ALLOW_SHIFTN
+---------------------------------
+If set to YES, this variable allows the use of the following keystroke
+sequence in the AFNI graph viewer:
+  shift-N
+  digit [digit ...]
+  <Enter>
+The result is to immediately shift the graph matrix count (number of
+sub-graphs) to the decimal integer expressed by the digits. For example:
+  N7<Enter>
+will set the graph window to show a 7x7 matrix of sub-graphs. By default,
+this is disabled, since it confuses some beginners -- until you press
+the <Enter> key, the graph window will be unresponsive to other keys.
+
 ------------------------------
 Variable: AFNI_AdptMeanWidth1D
 ------------------------------
