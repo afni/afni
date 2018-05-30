@@ -1,3 +1,55 @@
+AFNI Digest, week of 2018/05/30.
+
+00) Some important thoughts on how to do basic statistical testing.
+... and some equally important thoughts on how *not* to do it.  Anyone
+performing statistical tests, please check out the following:
+https://www.biorxiv.org/content/early/2018/05/23/328567
+for some straightforward guidelines that apply to both voxelwise and
+clusterwise testing (and beyond!).  Additionally, descriptions of
+"bi-sided" clustering in AFNI are given.  Finally, there is perhaps
+some useful scripting to also check out with this, for clusterizing
+~efficiently from the command line:
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/codex/main_det_2018_ChenEtal.html
+
+01) There are a couple of new scripts to deal with BIDS data and json files.
+They all start with "abids". Short for afni BIDS. There are a few
+changes that need to be made, so they won’t be up to date until the
+next update...
++ abids_tool.py is basically a wrapper for 3drefit that pulls info
+  from the matching .json file and modifies the NIFTI dataset.
++ abids_json_info.py pulls information from .json files. Most options
+  are specific for BIDS formatted .json files but it can also pull any
+  field in a .json file and list the entries available in the file.
+
+02) Changing syntax to @SSwarper.
+The tool, @SSwarper, which provides functionality of both nonlinear
+alignment to a template space and skullstripping, will soon have a new
+syntax.  Presently, just a few arguments are given (e.g., "@SSwarper A
+B C"); however, in order to generalize its behavior, it will start
+having command line options (e.g., "@SSwarper -input A -prefix B
+-subid C ...").  There will also be new template space maps (which
+aren't so special, but do require having a few different
+subbrick's-worth of information).  So, this is just a "save the date"
+for updating your scripts (we will write more when the changes take
+place).
+
+03) New MNI152_2009_template surfaces for SUMA.
+Surfaces for display on the MNI152_2009_template dataset have been
+created using FreeSurfer+@SUMA_Make_Spec_FS, and are available here:
+https://afni.nimh.nih.gov/pub/dist/tgz/suma_MNI152_2009.tgz
+This is the same dataset that currently is the target space for
+@SSwarper.  Similar surfaces for the TT_N27 and its MNI-ish version
+are also available:
+https://afni.nimh.nih.gov/pub/dist/tgz/suma_TT_N27.tgz
+https://afni.nimh.nih.gov/pub/dist/tgz/suma_MNI_N27.tgz
+
+04) All AFNI colormaps shown.
+On a somewhat lighter note, examples of all AFNI colormaps are now
+provided here:
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/educational/all_afni_cbars.html
+This may be convenient when you are trying to decide what colorbar to
+use.  Or not.
+
 ========================================================================
 
 AFNI Digest, week of 2018/05/22.
