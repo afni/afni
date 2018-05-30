@@ -24,6 +24,11 @@
 
    2018 05 23: + [PT] Adding in more D. Glen suggestions/fixes:
                  - but who runs a 1sided-LEFT test on an Fstat???
+
+   2018 05 27: + [PT] Adding in more D. Glen suggestions/fixes:
+                 - INT_CMAP attribute set for pref_map output (cluster map)
+                 - fix report strings, all hashed
+
 */
 
 
@@ -194,7 +199,7 @@ void usage_Clusterize(int detail)
 "                 'j' can be either an integer *or* a brick_label string.\n"
 " \n"
 " -idat   k      :Uses sub-brick [k] as the data source (optional);\n"
-"                 'j' can be either an integer *or* a brick_label string.\n"
+"                 'k' can be either an integer *or* a brick_label string.\n"
 "                 If this option is used, thresholding is still done by\n"
 "                 the 'threshold' dataset, but that threshold map is\n"
 "                 applied to this 'data' set, which is in turn used for\n"
@@ -678,8 +683,8 @@ int main(int argc, char *argv[]) {
                ERROR_exit("If using 'p=...', only use one argument!");
             
             thb = atof(chtmp); // for bot of R tail
-            sprintf(repstr, "left-tail stat=%f;\n                     "
-                    "    right-tail stat=%f", tht, thb);
+            sprintf(repstr, "left-tail stat=%f;  "
+                    "right-tail stat=%f", tht, thb);
          }
 
          if( STATINPUT )
@@ -914,8 +919,8 @@ int main(int argc, char *argv[]) {
                                    DSET_BRICK_STATAUX(insetA, ithr));
          INFO_message("Converted left-tail p=%f -> stat=%f", tmpt, tht);
          INFO_message("Converted right-tail p=%f -> stat=%f", tmpb, thb);
-         sprintf(repstr, "left-tail p=%f -> stat=%f;\n                     "
-                 "    right-tail p=%f -> stat=%f", tmpt, tht, tmpb, thb);
+         sprintf(repstr, "left-tail p=%f -> stat=%f;  "
+                 "right-tail p=%f -> stat=%f", tmpt, tht, tmpb, thb);
       }
    }
 
@@ -1300,6 +1305,8 @@ int main(int argc, char *argv[]) {
          EDIT_substitute_brick(qset, 0, MRI_short, mmm); 
          mmm = NULL;
          
+         // useful props: integer colormap and brick labelling
+         qset->int_cmap = INT_CMAP;
          EDIT_BRICK_LABEL(qset, 0, blab1);
          
          tross_Copy_History( insetA , qset ) ;
