@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 30, May , 2018 , PT , "@suma_reprefixize_spec" , MICRO , TYPE_BUG_FIX,
+   "Changing 'more' -> 'cat', internally.",
+   "Think 'more' gave oddness at times- dumped weird chars and broke files.\n"
+},
+
 { 29, May , 2018 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
    "Can crop the saved images.",
    "See the '-crop_*' options.\n"
