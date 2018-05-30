@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 30, May , 2018 , PT , "fat_proc_map_to_dti" , MINOR , TYPE_NEW_OPT,
+   "User can specify matching cost and warp.",
+   "How exciting is that??  (Well, mostly for test comparisons...).\n"
+},
+
 { 30, May , 2018 , PT , "@suma_reprefixize_spec" , MICRO , TYPE_BUG_FIX,
    "Changing 'more' -> 'cat', internally.",
    "Think 'more' gave oddness at times- dumped weird chars and broke files.\n"
