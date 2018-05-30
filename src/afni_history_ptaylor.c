@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 29, May , 2018 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
+   "Can crop the saved images.",
+   "See the '-crop_*' options.\n"
+},
+
 { 27, May , 2018 , PT , "3dClusterize" , MINOR , TYPE_GENERAL,
    "Make report cleaner, and add in INT_MAP property to output clust map.",
    "Thanks, D. Glen for more useful suggestions.\n"
