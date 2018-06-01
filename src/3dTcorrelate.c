@@ -214,7 +214,7 @@ int main( int argc , char *argv[] )
    if( xset == NULL ){
       fprintf(stderr,"** Can't open dataset %s\n",argv[nopt]); exit(1);
    }
-   if( DSET_NUM_TIMES(xset) < 2 ){
+   if( DSET_NVALS(xset) < 2 ){
       fprintf(stderr,"** Input dataset %s is not 3D+time\n",argv[nopt]);
       exit(1);
    }
@@ -222,7 +222,7 @@ int main( int argc , char *argv[] )
    if( yset == NULL ){
       fprintf(stderr,"** Can't open dataset %s\n",argv[nopt]); exit(1);
    }
-   if( DSET_NUM_TIMES(yset) != DSET_NUM_TIMES(xset) ){
+   if( DSET_NVALS(yset) != DSET_NVALS(xset) ){
       fprintf(stderr,"** Input dataset %s is different length than %s\n",
               argv[nopt],argv[nopt-1]) ;
       exit(1) ;
@@ -232,7 +232,7 @@ int main( int argc , char *argv[] )
               argv[nopt],argv[nopt-1]) ;
       exit(1) ;
    }
-   if( im_ort != NULL && im_ort->nx < DSET_NUM_TIMES(xset) ){
+   if( im_ort != NULL && im_ort->nx < DSET_NVALS(xset) ){
       fprintf(stderr,"** Input datsets are longer than -ort file!\n"); exit(1);
    }
    if( !EQUIV_GRIDS(xset,yset) )

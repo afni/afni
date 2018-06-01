@@ -35,8 +35,8 @@ extern void rectzero_XImage( MCW_DC *dc , XImage *image ,
 #define X2M_USE_CMAP  (1<<0)  /* masks for XImage_to_mri() 3rd arg */
 #define X2M_FORCE_RGB (1<<1)
 
-extern void ISQ_snapfile( Widget w ) ;  /* 25 Jun 2003 */
-extern void ISQ_snapfile2( Widget w, char *fout ) ;  /* 3 Nov. 2014 */
+extern int ISQ_snapfile( Widget w ) ;  /* 25 Jun 2003 */
+extern int ISQ_snapfile2( Widget w, char *fout ) ;  /* 3 Nov. 2014 */
 extern MRI_IMAGE * SNAP_grab_image( Widget , MCW_DC * ) ;
 
 extern void memplot_to_X11_set_DC( MCW_DC *dc ) ;  /* 30 Apr 2012 */

@@ -55,6 +55,7 @@ static int AFNI_drive_write_underlay( char *cmd ) ; /* 16 Jun 2014 */
 static int AFNI_drive_write_overlay( char *cmd ) ;  /* 16 Jun 2014 */
 static int AFNI_drive_write_cont_spxhelp(char *cmd);/* 08 Apr 2015 */
 static int AFNI_drive_snap_cont( char *cmd );       /* 08 Apr 2015 */
+static int AFNI_drive_snap_viewer( char *cmd );     /* 23 May 2018 */
 
 static FILE * AFNI_drive_get_outstream(void);       /* 02 Jun 2015 */
 static int AFNI_drive_set_outstream(char *outfile); /* 02 Jun 2015 */
@@ -226,6 +227,7 @@ static AFNI_driver_pair dpair[] = {
  { "WRITE_UNDERLAY"     , AFNI_drive_write_underlay    } ,
  { "WRITE_CONT_SPX_HELP", AFNI_drive_write_cont_spxhelp} ,
  { "SNAP_CONT"          , AFNI_drive_snap_cont         } ,
+ { "SNAP_VIEWER"        , AFNI_drive_snap_viewer       } ,
 
 
  { NULL , NULL }  /* flag that we've reached the end times */
@@ -904,7 +906,7 @@ ENTRY("AFNI_drive_open_window") ;
         if( nn >= 2 && mww >= 1 && mww <= MONT_NMAX && mhh >= 1 && mhh <= MONT_NMAX ){
           int mp[5] ;
           mp[0] = mww ; mp[1] = mhh ; mp[2] = msp ; mp[3] = mgap ;
-          mp[4] = DC_find_overlay_color(im3d->dc,mcol);
+          mp[4] = DC_find_closest_overlay_color(im3d->dc,mcol);
           drive_MCW_imseq( isq , isqDR_setmontage , (XtPointer)mp ) ;
         }
         ms += mww*mhh ;
@@ -2199,7 +2201,7 @@ ENTRY("AFNI_drive_set_pbar_all") ;
        sscanf( cmd+dadd , "%f=%255s%n" , &val,str,&nn ) ;
        if( str[0] == '\0' || nn == 0 ) RETURN(-1) ;  /* can't parse */
 
-       col = DC_find_overlay_color( GLOBAL_library.dc , str ) ;
+       col = DC_find_closest_overlay_color( GLOBAL_library.dc , str ) ;
        if( col < 0 )                   RETURN(-1) ;  /* bad color name */
 
        for( jj=0 ; jj < ii ; jj++ )                  /* check ordering */
@@ -2848,9 +2850,9 @@ ENTRY("AFNI_drive_save_1image") ;
    /* extract the filename to save into */
 
    junk[0] = fname[0] = '\0' ;
-   sscanf( cmd+dadd , "%255s%255s" , junk , fname ) ;
+   sscanf( cmd+dadd , "%255s %255s" , junk , fname ) ;
    if( junk[0] == '\0' || fname[0] == '\0' ){
-     ERROR_message("Image save '%s': something is missing",cmd); RETURN(-1);
+     ERROR_message("Image save '%s': something is missing",cmd) ;
      RETURN(-1) ;
    }
    if( fname[0] == '\'' || fname[0] == '\"' ){
@@ -2993,7 +2995,7 @@ ENTRY("AFNI_drive_save_allimages") ;
    /* extract the filename to save into */
 
    junk[0] = fname[0] = '\0' ;
-   sscanf( cmd+dadd , "%255s%255s" , junk , fname ) ;
+   sscanf( cmd+dadd , "%255s %255s" , junk , fname ) ;
    if( junk[0] == '\0' || fname[0] == '\0' ){
      ERROR_message("Saving All Images '%s': something is missing",cmd); RETURN(-1);
    }
@@ -3716,34 +3718,118 @@ static int AFNI_drive_write_cont_spxhelp( char *cmd )
 
 /*--------------------------------------------------------------------*/
 /* SNAP_CONT prefix
-   Take a selfie of the main controller*/
+   Take a selfie of a main AFNI controller. */
+/*--------------------------------------------------------------------*/
+
 static int AFNI_drive_snap_cont( char *cmd )
 {
    int ic, dadd=2 , ii ;
    Three_D_View *im3d ;
    char *prefix;
 
-   if( strlen(cmd) < 3 ) return -1 ;
+ENTRY("AFNI_drive_snap_cont") ;
+
+   if( strlen(cmd) < 3 ) RETURN(-1) ;
 
    ic = AFNI_controller_code_to_index( cmd ) ;
    if( ic < 0 ){ ic = 0 ; dadd = 0 ; }
    im3d = GLOBAL_library.controllers[ic] ;
-   if( !IM3D_OPEN(im3d) ||  !im3d->vwid->top_form) return -1 ;
+   if( !IM3D_OPEN(im3d) ||  !im3d->vwid->top_form) RETURN(-1) ;
    if ( ! XtIsManaged(im3d->vwid->top_form) ||
         ! XtIsRealized(im3d->vwid->top_form) )  {
       fprintf(stderr,"im3d->vwid->top_form ot realized (%d) or managed (%d)\n",
          XtIsRealized(im3d->vwid->top_form), XtIsManaged(im3d->vwid->top_form));
-      return -1 ;
+      RETURN(-1) ;
    }
 
    /* skip blanks */
 
    for( ii=dadd ; cmd[ii] != '\0' && isspace(cmd[ii]) ; ii++ ) ; /*nada*/
-   prefix = cmd+ii ; if( !THD_filename_ok(prefix) ) return -1 ;
+   prefix = cmd+ii ; if( !THD_filename_ok(prefix) ) RETURN(-1) ;
 
-   ISQ_snapfile2 ( im3d->vwid->top_form,  prefix);
+   ii = ISQ_snapfile2 ( im3d->vwid->top_form,  prefix);
 
-   return 0 ;
+   RETURN(ii) ;
+}
+
+/*--------------------------------------------------------------------*/
+/* SNAP_VIEWER A.viewer prefix
+   Take a selfie of a viewer window. */
+/*--------------------------------------------------------------------*/
+
+static int AFNI_drive_snap_viewer( char *cmd )
+{
+   int ic, dadd=2 , ii ;
+   Three_D_View *im3d ;
+   char *prefix;
+   MCW_imseq   *isq=NULL ;
+   MCW_grapher *gra=NULL ;
+   char junk[256] , fname[599] , *cpt ;
+   Widget wsnap=(Widget)NULL ;
+
+ENTRY("AFNI_drive_snap_viewer") ;
+
+   if( strlen(cmd) < 3 ) RETURN(-1) ;
+
+   /* make sure the controller itself is open */
+
+   ic = AFNI_controller_code_to_index( cmd ) ;
+   if( ic < 0 ){ ic = 0 ; dadd = 0 ; }
+   im3d = GLOBAL_library.controllers[ic] ;
+   if( !IM3D_VALID(im3d) ){
+     ERROR_message("Viewer snapshot '%s': controller not open",cmd) ;
+     RETURN(-1) ;
+   }
+
+   /* find graph or image window */
+
+        if( HAS_axialimage   (cmd+dadd) ) isq = im3d->s123 ;
+   else if( HAS_sagittalimage(cmd+dadd) ) isq = im3d->s231 ;
+   else if( HAS_coronalimage (cmd+dadd) ) isq = im3d->s312 ;
+   else if( HAS_axialgraph   (cmd+dadd) ) gra = im3d->g123 ;
+   else if( HAS_sagittalgraph(cmd+dadd) ) gra = im3d->g231 ;
+   else if( HAS_coronalgraph (cmd+dadd) ) gra = im3d->g312 ;
+
+   if( isq == NULL && gra == NULL ){
+     ERROR_message("Viewer snapshot '%s': no viewer window specified",cmd) ;
+     RETURN(-1) ;
+   }
+
+   /* extract the filename to save into */
+
+   junk[0] = fname[0] = '\0' ;
+   sscanf( cmd+dadd , "%255s %255s" , junk , fname ) ;
+   if( junk[0] == '\0' || fname[0] == '\0' ){
+     ERROR_message("Viewer snapshot '%s': filename is missing",cmd) ;
+     RETURN(-1) ;
+   }
+   if( fname[0] == '\'' || fname[0] == '\"' ){
+     char qt=fname[0] , *q1 , *q2 ; int imm ;
+     q1 = strchr(cmd+dadd,qt)+1 ;
+     q2 = strchr(q1,qt) ; if( q2 == NULL ) q2 = cmd+strlen(cmd) ;
+     if( (imm=q2-q1) > 0 && imm < 599 ){
+       strncpy(fname,q1,imm) ; fname[imm] = '\0' ;
+     } else {
+       ERROR_message("Viewer snapshot '%s': filename is bad",cmd);
+       RETURN(-1);
+     }
+   }
+
+        if( isq != NULL ) wsnap = isq->wform ;
+   else if( gra != NULL ) wsnap = gra->top_form ;
+   else {
+     ERROR_message("Viewer snapshot '%s': no valid viewer specified",cmd);
+     RETURN(-1);
+   }
+
+   if( wsnap != (Widget)NULL )
+     ii = ISQ_snapfile2(wsnap,fname) ;
+   else {
+     ERROR_message("Viewer snapshot '%s': viewer window doesn't exist",cmd);
+     RETURN(-1);
+   }
+
+   RETURN(ii) ;
 }
 
 /*--------------------------------------------------------------------*/

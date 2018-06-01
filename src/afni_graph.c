@@ -182,6 +182,8 @@ ENTRY("new_MCW_grapher") ;
                     XmNinitialResourcesPersistent , False ,
               NULL ) ;
 
+    grapher->top_form = form_tmp ; /* save this [24 May 2018] */
+
    /** make a drawing area to get everything **/
 
    grapher->draw_fd =
@@ -3738,7 +3740,7 @@ STATUS(str); }
 
    /* first 'N' */
 
-   if( grapher->key_Nlock==0 && buf[0]=='N' ){
+   if( AFNI_yesenv("AFNI_GRAPH_ALLOW_SHIFTN") && grapher->key_Nlock==0 && buf[0]=='N' ){
      grapher->key_Nlock = 1 ;
      HAND_cursorize( grapher->fdw_graph ) ;
      HAND_cursorize( grapher->draw_fd ) ;

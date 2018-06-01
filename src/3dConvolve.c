@@ -860,7 +860,7 @@ void read_input_data
 	  DC_error (message);
 	}  
       DSET_load(*dset_time) ; CHECK_LOAD_ERROR(*dset_time) ;
-      nt = DSET_NUM_TIMES (*dset_time);
+      nt = DSET_NVALS (*dset_time);
       nxyz = DSET_NVOX (*dset_time);
 
       /*----- Read the input mask dataset -----*/

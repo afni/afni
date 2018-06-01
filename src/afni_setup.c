@@ -264,12 +264,12 @@ if(PRINT_TRACING)
                     icol = (jj < INIT_ncolovr) ? jj+1 : PAL_IIGNORE ;
                  }
                } else if( mode == SETUP_LATER_MODE ){
-                  icol = DC_find_overlay_color( dc , right ) ;
+                  icol = DC_find_closest_overlay_color( dc , right ) ;
                   if( icol < 0 ) icol = PAL_IIGNORE ;
 
 if(PRINT_TRACING)
 { char str[256] ;
-  sprintf(str,"  DC_find_overlay_color(%s) returns %d\n",right,icol) ;
+  sprintf(str,"  DC_find_closest_overlay_color(%s) returns %d\n",right,icol) ;
   STATUS(str) ; }
 
                }
