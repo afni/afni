@@ -29,6 +29,9 @@
                  - INT_CMAP attribute set for pref_map output (cluster map)
                  - fix report strings, all hashed
 
+   2018 06 01: + [PT] null map output in case of no clusts, if user desires:
+                 - for troublemaking users, only!
+
 */
 
 
@@ -282,6 +285,14 @@ void usage_Clusterize(int detail)
 " \n"
 " -quiet         :Suppress all non-essential output\n"
 " \n"
+" -outvol_if_no_clust: flag to still output an (empty) vol if no \n"
+"                 clusters are found.  Even in this case, no report is\n"
+"                 is produced if no clusters are found.  This option is\n"
+"                 likely used for some scripting scenarios; also, the\n"
+"                 user would still need to specify '-pref_* ...' options\n"
+"                 as above in order to output any volumes with this opt.\n"
+"                 (def: no volumes output if no clusters found).\n"
+"\n"
 " -orient OOO    :change the coordinate output order to 'OOO' (def:\n"
 "                 is DICOM, RAI); alternatively, one could set the\n"
 "                 environment variable AFNI_ORIENT (see the file\n"
@@ -495,6 +506,7 @@ int main(int argc, char *argv[]) {
    int ndet, nopt, do_mni;
 
    int FOUND_CLUSTERS = 0; 
+   int OUTVOL_IF_NO_CLUST = 0; 
    int STAT_nsides = -1;
 
    mainENTRY("3dClusterize"); machdep(); 
@@ -741,6 +753,11 @@ int main(int argc, char *argv[]) {
 
          MakeBrickLab2(blab2,argv[iarg-1]+1,argv[iarg]);
 
+         iarg++ ; continue ;
+      }
+
+      if( strcmp(argv[iarg],"-outvol_if_no_clust") == 0 ) {
+         OUTVOL_IF_NO_CLUST = 1 ;
          iarg++ ; continue ;
       }
 
@@ -1117,7 +1134,6 @@ int main(int argc, char *argv[]) {
    } 
    else if( thr_type == -2 ) { // bisided
 
-
       // threshold data CIM:
       mri_threshold( -BIIIIG_NUM, thb, tim, cim );
       
@@ -1182,6 +1198,12 @@ int main(int argc, char *argv[]) {
       printf("%s** NO CLUSTERS FOUND ***\n", c1d);
       if( AFNI_yesenv("AFNI_3dclust_report_zero") ) printf(" 0\n");
       if( clar != NULL ) DESTROY_CLARR(clar);
+
+      // [PT: June 1, 2018] will still output a volume if outvol if no
+      // clust were found, IF the user ask for it.
+      // Here, make array of cluster ROIs
+      if ( OUTVOL_IF_NO_CLUST )
+          mmm = (short *) calloc(sizeof(short), nxyz);
    }
    else {
       FOUND_CLUSTERS = 1;
@@ -1212,10 +1234,11 @@ int main(int argc, char *argv[]) {
 
    // --------------- write out copy of the data volume, if asked
 
-   if( CL_prefix && (ival >= 0) && FOUND_CLUSTERS ) {
+   if( CL_prefix && (ival >= 0) && 
+       ( FOUND_CLUSTERS || OUTVOL_IF_NO_CLUST) ) {
 
       INFO_message("Writing out dataset masked by clusters.");
-
+      
       THD_3dim_dataset *dset=NULL;
       
       // copy the single brick we will output
@@ -1290,7 +1313,7 @@ int main(int argc, char *argv[]) {
 
    // --------------- write out map of cluster ROIs
 
-   if ( FOUND_CLUSTERS ) {
+   if ( FOUND_CLUSTERS || OUTVOL_IF_NO_CLUST ) {
       
       if ( prefix ) {
          INFO_message("Writing out map of cluster ROIs.");
@@ -1314,10 +1337,10 @@ int main(int argc, char *argv[]) {
          DSET_write(qset); WROTE_DSET(qset); DSET_delete(qset);
       }
 
-      // ---------- write out report --------------------
+   }
 
-      //INFO_message("Time to make the report...");
-
+   // ---------- write out report --------------------
+   if ( FOUND_CLUSTERS ) { // still only if clusters found
 
       do_mni = (CL_do_mni && insetA->view_type == VIEW_TALAIRACH_TYPE);
       THD_coorder_fill( my_getenv("AFNI_ORIENT") , &CL_cord);
