@@ -24,6 +24,11 @@
 
    2018 05 23: + [PT] Adding in more D. Glen suggestions/fixes:
                  - but who runs a 1sided-LEFT test on an Fstat???
+
+   2018 05 27: + [PT] Adding in more D. Glen suggestions/fixes:
+                 - INT_CMAP attribute set for pref_map output (cluster map)
+                 - fix report strings, all hashed
+
 */
 
 
@@ -54,7 +59,6 @@ int mycheck_is_int(char *x);
 void usage_Clusterize(int detail) 
 {
    printf(
-" # ------------------------------------------------------------------------\n"
 " # ------------------------------------------------------------------------\n"
 " \n"
 " This program is for performing clusterizing: one can perform voxelwise\n"
@@ -98,7 +102,7 @@ void usage_Clusterize(int detail)
 "   Output: ~2~\n"
 " \n"
 "     + A report about the clusters (center of mass, extent, volume,\n"
-"       etc.) that can be dumped into a text file\n"
+"       etc.) that can be dumped into a text file.\n"
 "\n"
 "     + Optional: A dataset volume containing a map of cluster ROIs \n"
 "       (sorted by size) after thresholding (and clusterizing, if\n"
@@ -109,7 +113,7 @@ void usage_Clusterize(int detail)
 "       the values of a selected data set (e.g., effect estimate) that fall\n"
 "       within a cluster are output unchanged, and those outside a cluster\n"
 "       are zeroed.\n"
-"     + Optional: a mask\n"
+"     + Optional: a mask.\n"
 " \n"
 " \n"
 "   Explanation of 3dClusterize text report: ~2~\n"
@@ -175,19 +179,6 @@ void usage_Clusterize(int detail)
 "                 clusterizing+reporting (after the mask from the\n"
 "                 thresholding dataset has been applied to it).\n"
 " \n"
-" -pref_map PPP  :The prefix/filename of the output map of cluster ROIs.\n"
-"                 (To save the text file report, use the redirect '>' after\n"
-"                 the 3dClusterize command and dump the text into a\n"
-"                 separate file of your own naming.)\n"
-"                 (def:  no map of clusters output).\n"
-" \n"
-" -pref_dat DDD  :Including this option instructs the program to output\n"
-"                 a cluster-masked version of the 'data' volume\n"
-"                 specified by the '-idat ..' index.  That is, only data\n"
-"                 values within the cluster ROIs are included in the\n"
-"                 output volume.  Requires specifying '-idat ..'.\n"
-"                 (def:  no cluster-masked dataset output).\n"
-" \n"
 " -mask MMM      :Load in a dataset MMM to use as a mask, within which\n"
 "                 to look for clusters.\n"
 " \n"
@@ -196,7 +187,7 @@ void usage_Clusterize(int detail)
 "                 use this mask to eliminate voxels before clustering,\n"
 "                 if you give this option (this is how the AFNI\n"
 "                 Clusterize GUI works by default).  If there is no\n"
-"                 internal mask in the dataset header, then '-inmask'\n"
+"                 internal mask in the dataset header, then this\n"
 "                 doesn't do anything.\n"
 " \n"
 " -out_mask OM   :specify that you wanted the utilized mask dumped out\n"
@@ -204,11 +195,11 @@ void usage_Clusterize(int detail)
 "                 really useful if you are using '-mask_from_hdr'.  If\n"
 "                 not mask option is specified, there will be no output.\n"
 " \n"
-" -ithr   j      :Uses sub-brick [j] as the threshold source (required);\n"
+" -ithr   j      :(required) Uses sub-brick [j] as the threshold source;\n"
 "                 'j' can be either an integer *or* a brick_label string.\n"
 " \n"
 " -idat   k      :Uses sub-brick [k] as the data source (optional);\n"
-"                 'j' can be either an integer *or* a brick_label string.\n"
+"                 'k' can be either an integer *or* a brick_label string.\n"
 "                 If this option is used, thresholding is still done by\n"
 "                 the 'threshold' dataset, but that threshold map is\n"
 "                 applied to this 'data' set, which is in turn used for\n"
@@ -258,9 +249,23 @@ void usage_Clusterize(int detail)
 " -clust_nvox M  :specify the minimum cluster size in terms of number\n"
 "                 of voxels M (such as output by 3dClustSim).\n"
 " \n"
-" -clust_volml V :specify the minimum cluster size in terms of volume V,\n"
-"                 in milliliters (requires knowing the voxel\n"
+" -clust_vol   V :specify the minimum cluster size in terms of volume V,\n"
+"                 in microliters (requires knowing the voxel\n"
 "                 size). Probably '-clust_nvox ...' is more useful.\n"
+" \n"
+" -pref_map PPP  :The prefix/filename of the output map of cluster ROIs.\n"
+"                 The 'map' shows each cluster as a set of voxels with the\n"
+"                 same integer.  The clusters are ordered by size, so the\n"
+"                 largest cluster is made up of 1s, the next largest of 2s,\n"
+"                 etc.\n"
+"                 (def:  no map of clusters output).\n"
+" \n"
+" -pref_dat DDD  :Including this option instructs the program to output\n"
+"                 a cluster-masked version of the 'data' volume\n"
+"                 specified by the '-idat ..' index.  That is, only data\n"
+"                 values within the cluster ROIs are included in the\n"
+"                 output volume.  Requires specifying '-idat ..'.\n"
+"                 (def:  no cluster-masked dataset output).\n"
 " \n"
 " -1Dformat      :Write output in 1D format (now default). You can\n"
 "                 redirect the output to a .1D file and use the file\n"
@@ -294,6 +299,12 @@ void usage_Clusterize(int detail)
 " * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 " \n"
 " NOTES ~1~\n"
+" \n"
+"   + Saving the text report: ~2~\n"
+" \n"
+"     To save the text file report, use the redirect '>' after the\n"
+"     3dClusterize command and dump the text into a separate file of\n"
+"     your own naming.\n"
 " \n"
 "   + Using p-values as thresholds: ~2~\n"
 " \n"
@@ -493,8 +504,6 @@ int main(int argc, char *argv[]) {
    //                    load AFNI stuff
    // ****************************************************************
    // ****************************************************************
-
-   INFO_message("3dClusterize: go!");
 	
    /** scan args **/
    if (argc == 1) { usage_Clusterize(1); exit(0); }
@@ -674,8 +683,8 @@ int main(int argc, char *argv[]) {
                ERROR_exit("If using 'p=...', only use one argument!");
             
             thb = atof(chtmp); // for bot of R tail
-            sprintf(repstr, "left-tail stat=%f;\n                     "
-                    "    right-tail stat=%f", tht, thb);
+            sprintf(repstr, "left-tail stat=%f;  "
+                    "right-tail stat=%f", tht, thb);
          }
 
          if( STATINPUT )
@@ -720,9 +729,9 @@ int main(int argc, char *argv[]) {
          iarg++ ; continue ;
       }
 
-      if( strcmp(argv[iarg],"-clust_volml") == 0 ){
+      if( strcmp(argv[iarg],"-clust_vol") == 0 ){
          iarg++ ; if( iarg >= argc ) 
-                     ERROR_exit("Need argument after '-clust_volml'");
+                     ERROR_exit("Need argument after '-clust_vol'");
          vmul = atof(argv[iarg]);
          if ( vmul <= 0 )
             ERROR_exit( "Need the volume threshold to be >=0 (not %f)",
@@ -860,8 +869,8 @@ int main(int argc, char *argv[]) {
    // how many sides to this stat?  Check that user has appropriate
    // number of tails tested for it
    STAT_nsides = STAT_SIDES(DSET_BRICK_STATCODE(insetA, ithr));
-   INFO_message("How many sides to this stat? %d",
-                STAT_nsides);
+   //INFO_message("How many sides to this stat? %d",
+   //             STAT_nsides);
    if ( (STAT_nsides < 2) && ( abs(thr_type) >=2 ) )
       ERROR_exit("You are asking for multisided clustering on a "
                  "single-sided stat!");
@@ -910,8 +919,8 @@ int main(int argc, char *argv[]) {
                                    DSET_BRICK_STATAUX(insetA, ithr));
          INFO_message("Converted left-tail p=%f -> stat=%f", tmpt, tht);
          INFO_message("Converted right-tail p=%f -> stat=%f", tmpb, thb);
-         sprintf(repstr, "left-tail p=%f -> stat=%f;\n                     "
-                 "    right-tail p=%f -> stat=%f", tmpt, tht, tmpb, thb);
+         sprintf(repstr, "left-tail p=%f -> stat=%f;  "
+                 "right-tail p=%f -> stat=%f", tmpt, tht, tmpb, thb);
       }
    }
 
@@ -985,7 +994,7 @@ int main(int argc, char *argv[]) {
 
    // apply masks, *IF* one was input somehow. Does nada if mask==NULL
    if( mask ) {
-      INFO_message("Applying mask.");
+      //INFO_message("Applying mask.");
       mri_maskify( DSET_BRICK(insetA, ithr), mask );
       if( ival >= 0 )
          mri_maskify( DSET_BRICK(insetA, ival), mask );
@@ -1093,7 +1102,7 @@ int main(int argc, char *argv[]) {
    // **************************************************************
    // **************************************************************
    
-   INFO_message("Thresholding...");
+   //INFO_message("Thresholding...");
 
    // for 1sided or 2sided, do this
    if( (thr_type == 1) || (thr_type == -1) || (thr_type == 2) ) {
@@ -1136,7 +1145,7 @@ int main(int argc, char *argv[]) {
                                 0 );
    }
 
-   INFO_message("Obtaining suprathreshold clusters...");
+   //INFO_message("Obtaining suprathreshold clusters...");
 
    // Now apply cluster size threshold
    INIT_CLARR(clbig);
@@ -1296,6 +1305,8 @@ int main(int argc, char *argv[]) {
          EDIT_substitute_brick(qset, 0, MRI_short, mmm); 
          mmm = NULL;
          
+         // useful props: integer colormap and brick labelling
+         qset->int_cmap = INT_CMAP;
          EDIT_BRICK_LABEL(qset, 0, blab1);
          
          tross_Copy_History( insetA , qset ) ;
@@ -1305,7 +1316,7 @@ int main(int argc, char *argv[]) {
 
       // ---------- write out report --------------------
 
-      INFO_message("Time to make the report...");
+      //INFO_message("Time to make the report...");
 
 
       do_mni = (CL_do_mni && insetA->view_type == VIEW_TALAIRACH_TYPE);
@@ -1593,7 +1604,7 @@ int main(int argc, char *argv[]) {
    // ************************************************************
    // ************************************************************
 	
-   INFO_message("Cleaning");
+   //INFO_message("Cleaning");
 
    if( mmm )
       free(mmm);
@@ -1626,7 +1637,7 @@ int main(int argc, char *argv[]) {
    if( cim2 ) 
       free(cim2);
 
-   INFO_message("Done!");
+   //INFO_message("Done!");
 
    return 0;
 }

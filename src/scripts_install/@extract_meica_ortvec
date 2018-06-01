@@ -13,7 +13,10 @@ modification history for $prog :
 
    0.1   3 May 2018 : basic program
    0.2   7 May 2018 : add -ver, -meica_dir, -work_dir, init history
-
+   0.3  24 May 2018 :
+           - remove entries that are duplicated across either
+             rejected/midk-rejected or accepted/ignored
+           - Thanks to L Dowdle for noting the problem.
 
 EOF
 exit
@@ -21,7 +24,7 @@ POSTHIST:
 
 # ----------------------------------------------------------------------
 # init vars
-set VERSION = "0.1  May, 2018"
+set VERSION = "0.3  May 24, 2018"
 set prog = `basename $0`
 
 # ----------------------------------------------------------------------
@@ -158,6 +161,24 @@ if ( "$param_ign" != "" ) then
    endif
 endif
 
+# -------------------------------------------------
+# remove any duplicates
+set set dupes = ( `echo $pall_good | tr , '\n' | sort | uniq -d` )
+if ( $#dupes > 0 ) then
+   echo "++ have $#dupes duplicate good entries: $dupes"
+   set pall_tmp = ( `echo $pall_good | tr , '\n' | sort | uniq` )
+   set pall_good = `echo $pall_tmp | tr ' ' ,`
+endif
+
+set set dupes = ( `echo $pall_bad | tr , '\n' | sort | uniq -d` )
+if ( $#dupes > 0 ) then
+   echo "++ have $#dupes duplicate bad entries: $dupes"
+   set pall_tmp = ( `echo $pall_bad | tr , '\n' | sort | uniq` )
+   set pall_bad = `echo $pall_tmp | tr ' ' ,`
+endif
+
+
+# chatter
 if ( $verb ) then
    echo ""
    echo "-- now have `echo $pall_bad | tr , ' ' | wc -w` bad terms"

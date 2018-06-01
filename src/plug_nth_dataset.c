@@ -459,7 +459,7 @@ if( cname != NULL ) ININFO_message(" cname = %s",cname) ;
      if( dss == NULL )                          continue ; /* bad */
 
      icol = 0 ;
-     if( cname != NULL ) icol = DC_find_overlay_color(im3d->dc,cname) ;
+     if( cname != NULL ) icol = DC_find_closest_overlay_color(im3d->dc,cname) ;
      if( icol <= 0 )     icol = ctab[nfound%NCTAB] ;
      ovc[nfound]  = icol ;
      dset[nfound] = dss ;
