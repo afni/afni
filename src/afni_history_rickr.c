@@ -49,6 +49,19 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25, May, 2018, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add option -combine_opts_tedwrap, to pass to tedana_wrapper.py",
+   "This is currently for passing -tedana_is_exec, say.\n"
+   "Done for M Vaziri-Pashkam."
+ } ,
+
+ { 24, May, 2018, RCR, "@extract_meica_ortvec", MINOR, TYPE_ENHANCE,
+   "remove any duplicates from merged lists",
+   "The 4 categories (accepted/ignored, rejected/midk-rej) might not be\n"
+   "a clean partition.\n"
+   "Thanks to L Dowdle for noting the problem."
+ } ,
+
  { 23, May, 2018, RCR, "get_afni_model_PRF", MINOR, TYPE_NEW_PROG,
    "this is just a wrapper for model parameter evaluation",
    "See model Conv_PRF in model_conv_PRF.c."

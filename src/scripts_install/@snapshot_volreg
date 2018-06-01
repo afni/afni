@@ -220,14 +220,15 @@ if( $?xdisplay == 0 )then
     if( -e /tmp/.X${xdisplay}-lock ) continue
     echo " -- trying to start Xvfb :${xdisplay}"
     Xvfb :${xdisplay} -screen 0 1024x768x24 >& /dev/null &
-    sleep 1
+    sleep 2
     jobs > zzerm.$ranval.txt
     grep -q Xvfb zzerm.$ranval.txt
     set Xnotfound = $status
     \rm -f zzerm.$ranval.txt
     if( $Xnotfound == 0 )break ;
+    killall Xvfb ; sleep 1
     @ ntry++
-    if( $ntry > 39 )then
+    if( $ntry > 9 )then
       echo "** ERROR: can't start Xvfb -- exiting"
       exit 1
     endif

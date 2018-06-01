@@ -444,6 +444,20 @@ WRITE_OVERLAY [c] prefix
      ** Note that these WRITE_ commands will over-write existing **
      ** datasets with the same name, so you must use care here!  **
 
+SNAP_CONT image.jpg
+  Take a snapshot of the main AFNI controller and save it into image.jpg.
+
+SNAP_VIEWER [c].windowname imagename
+  Take a snapshot of a graph or image viewer, including the buttons (etc.)
+  and save it into an image file. For example:
+    SNAP_VIEWER axialimage   Frodo.png
+    SNAP_VIEWER B.axialgraph Samwise.jpg
+  The snapshot does not include any windowing system additions, such as
+  the titlebar, resizing controls, etc. The main purpose of this command
+  is to help make documentation.
+  NOTE: This command requires the NETPBM package be installed, otherwise
+        the image saving won't work (except for .jpg files).
+
 SET_DICOM_XYZ [c] x y z
 SET_SPM_XYZ   [c] x y z
 SET_IJK       [c] i j k
@@ -601,6 +615,9 @@ NOISY_PLUGOUTS
 
 TRACE {YES | NO}
   Turns debug tracing on or off.  Mostly for AFNI developers.
+
+WRITE_CONT_SPX_HELP filename
+   Write the help for the main controller GUI in SPHINX form to filename
 
 ==============================================================================
 Sample Script Using Xvfb
@@ -813,10 +830,3 @@ SET_GRAPH_GEOM gname geom=X-geometry-string
     300x100+50+90   = set window size and location at the same time
 
 --------------------------
-
-WRITE_CONT_SPX_HELP filename
-   Write the help for the main controller GUI in SPHINX form to filename
-
-SNAP_CONT image.jpg
-   Take a snapshot of the main controller and save into image.jpg
-

@@ -8,9 +8,11 @@
 
 # --------------------- revision history -------------------------
 
-set version   = "1.0";  set rev_dat   = "Aug 8, 2017"
+#set version   = "1.0";  set rev_dat   = "Aug 8, 2017"
 #   + let the games begin
-
+set version   = "1.1";  set rev_dat   = "May 30, 2018"
+#   + more -> cat.  Think "more" is giving odd behavior
+#
 # ---------------------------------------------------------------
 
 set this_prog = "@suma_reprefixize_spec"
@@ -181,7 +183,7 @@ echo "### ARTIFICIAL SPEC FILE" > $ofile
 echo "### Made via:"            >> $ofile
 echo "###   $this_prog $argv\n\n" >> $ofile
 
-more $wfile >> $ofile
+\cat $wfile >> $ofile
 
 # clean, by default
 if ( "$DO_CLEAN" == "1" ) then

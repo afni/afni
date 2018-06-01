@@ -605,9 +605,13 @@ g_history = """
     6.13 May 14, 2018:
         - if tedana, suggest -blur_in_mask yes
         - added epi_anat as option for -mask_apply
+    6.14 May 25, 2018: added -combine_opts_tedwrap
+    6.15 May 29, 2018: 
+        - fixed a couple of problems in error reporting
+        - Thanks to J Reed for mentioning them.
 """
 
-g_version = "version 6.13, May 14, 2018"
+g_version = "version 6.14, May 25, 2018"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -1237,6 +1241,8 @@ class SubjProcSream:
                         helpstr='specify method for combining echoes per run')
         self.valid_opts.add_opt('-combine_opts_tedana', -1, [],
                         helpstr='specify extra options for tedana.py')
+        self.valid_opts.add_opt('-combine_opts_tedwrap', -1, [],
+                        helpstr='specify extra options for tedana_wrapper.py')
         self.valid_opts.add_opt('-combine_tedana_path', 1, [],
                         helpstr='specify path to tedana.py')
         self.valid_opts.add_opt('-combine_tedana_save_all', 1, [],
@@ -1803,6 +1809,8 @@ class SubjProcSream:
         # (populate self.dsets, self.dsets_me, self.num_echo, self.have_me)
         if self.get_dsets(): return 1
 
+        errs = 0
+
         # if ME, then fill reg_echo via -reg_echo (registration echo)
         # also, try to get echo times
         if self.have_me:
@@ -2256,7 +2264,7 @@ class SubjProcSream:
                   if err: return 1
                   if reps != self.reps_all[rind]:
                      print("run %d reps vary between echo 1 and echo %d" \
-                           (rind+1, eind+1))
+                           % (rind+1, eind+1))
                      return 1
                   if tr != self.tr:
                       print('** TR of %g != run 1 echo 1 TR %g'%(tr, self.tr))

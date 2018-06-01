@@ -436,6 +436,7 @@ typedef struct {
    /* X11 stuff */
 
    Pixmap  fd_pxWind ;   /* graphs are drawn into this for speed's sake */
+   Widget  top_form ;    /* 24 May 2018 */
    Widget  fdw_graph ;   /* top level widget */
    Widget  draw_fd ;     /* drawing area */
    Pixmap  glogo_pixmap ; /* for the corner */

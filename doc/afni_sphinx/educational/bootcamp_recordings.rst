@@ -60,10 +60,17 @@ Monday
      - AFNI datasets; image viewer; side controls
        (brightness/contrast, zoom); help; display panel; montage;
        multiple controllers
-   * - `AFNI Interactive (Glen), Pt 1
-       <https://afni.nimh.nih.gov/pub/dist/edu/class_lectures/2017-10-NIH/Day1/AFNI_Interactive_DG_Pt1.mp4>`_,
-       `Pt 2
-       <https://afni.nimh.nih.gov/pub/dist/edu/class_lectures/2017-10-NIH/Day1/AFNI_Interactive_DG_Pt2.mp4>`_
+   * - `AFNI Interactive, pt1 (Glen)
+       <https://afni.nimh.nih.gov/pub/dist/edu/class_lectures/2017-10-NIH/Day1/AFNI_Interactive_DG_Pt1.mp4>`_      
+     - `AFNI_interactive2.pdf
+       <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/AFNI_interactive2.pdf>`_,
+       `afni03_interactive.pdf
+       <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni03_interactive.pdf>`_
+     - graphing across time, overlay control (opacity and
+       thresholding); clusterize plugin; other plugins; "driving" AFNI
+       viewer from command line
+   * - `AFNI Interactive, pt2 (Glen)
+       <https://afni.nimh.nih.gov/pub/dist/edu/class_lectures/2017-10-NIH/Day1/AFNI_Interactive_DG_Pt2.mp4>`_   
      - `AFNI_interactive2.pdf
        <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/AFNI_interactive2.pdf>`_,
        `afni03_interactive.pdf
@@ -74,9 +81,12 @@ Monday
    * - Single Subject Analysis (Cox)
      - 
      -
-   * - `Regression Hands-On (Reynolds), Pt 1
-       <https://afni.nimh.nih.gov/pub/dist/edu/class_lectures/2017-10-NIH/Day1/HandsOn_Regression_RR_Pt1.mp4>`_, 
-       `Pt 2
+   * - `Regression Hands-On, pt1 (Reynolds)
+       <https://afni.nimh.nih.gov/pub/dist/edu/class_lectures/2017-10-NIH/Day1/HandsOn_Regression_RR_Pt1.mp4>`_
+     - `afni05_regression.pdf
+       <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni05_regression.pdf>`_
+     - hands-on: preprocessing overview and simple linear regression example
+   * - `Regression Hands-On, pt2 (Reynolds)
        <https://afni.nimh.nih.gov/pub/dist/edu/class_lectures/2017-10-NIH/Day1/HandsOn_Regression_RR_Pt2.mp4>`_ 
      - `afni05_regression.pdf
        <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni05_regression.pdf>`_
@@ -97,44 +107,44 @@ Tuesday
      - Associated handouts
      - Contents, notes
    * - `Alignment and Registration, pt1 (Glen)
-       <https://afni.nimh.nih.gov/pub/dist/edu/class_lectures/2017-10-NIH/Day2/Alignment_Registration_DG_Pt1.mp4>`_, 
+       <https://afni.nimh.nih.gov/pub/dist/edu/class_lectures/2017-10-NIH/Day2/Alignment_Registration_DG_Pt1.mp4>`_
      - `afni10_volreg_talairach.pdf
        <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni10_volreg_talairach.pdf>`_
-     - definitions and overview (rigid; linear affine; motion
+     - Definitions and overview (rigid; linear affine; motion
        correction and regressors (3dvolreg); cross-modality (anat to
        epi); cost functions (esp. lpc and lpa); cross-modality (anat
        to epi; align_epi_anat.py); programs for visualization of
        alignment
    * - `Alignment and Registration, pt2 (Glen)
-       <https://afni.nimh.nih.gov/pub/dist/edu/class_lectures/2017-10-NIH/Day2/Alignment_Registration_DG_Pt1.mp4>`_, 
+       <https://afni.nimh.nih.gov/pub/dist/edu/class_lectures/2017-10-NIH/Day2/Alignment_Registration_DG_Pt1.mp4>`_ 
      - `afni10_volreg_talairach.pdf
        <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni10_volreg_talairach.pdf>`_
        (`3dQwarp.pdf
        <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/3dQwarp.pdf>`_)
-     - visualization in GUI; checking alignment quality; left-right
+     - Visualization in GUI; checking alignment quality; left-right
        flipping; alignment to standard space; non-human alignment;
        afni_proc.py alignment; nonlinear warping (3dQwarp);
        blip-up/down (EPI distortion) correction; atlas definitions;
        templates; @auto_tlrc
    * - `FMRI Analysis: Start-to-Middle (Reynolds)
-       <https://afni.nimh.nih.gov/pub/dist/edu/class_lectures/2017-10-NIH/Day2/FMRI_Analysis_STM_RR_Day2_Pt1.mp4>`_, 
+       <https://afni.nimh.nih.gov/pub/dist/edu/class_lectures/2017-10-NIH/Day2/FMRI_Analysis_STM_RR_Day2_Pt1.mp4>`_ 
 
      - `afni16_start_to_finish.pdf
        <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni16_start_to_finish.pdf>`_
-     - hands-on: afni_proc.py; detailed analysis (preprocessing through linear
+     - Hands-on: afni_proc.py; detailed analysis (preprocessing through linear
        regression) of FT_analysis data; looking at data
    * - `FMRI Analysis: Middle-to-End (Reynolds)
-       <https://afni.nimh.nih.gov/pub/dist/edu/class_lectures/2017-10-NIH/Day2/FMRI_Analysis_STM_RR_Day2_Pt2.mp4>`_, 
+       <https://afni.nimh.nih.gov/pub/dist/edu/class_lectures/2017-10-NIH/Day2/FMRI_Analysis_STM_RR_Day2_Pt2.mp4>`_ 
      - `afni16_start_to_finish.pdf
        <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni16_start_to_finish.pdf>`_
-     - continuation of Start-to-Middle; @ss_review_driver
+     - Continuation of Start-to-Middle; @ss_review_driver
    * - Exercises and Consultations (class) 
      - `afni19_jazz.pdf
-       <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni19_jazz.pdf>`_,
+       <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni19_jazz.pdf>`_
        `afni19_jazz_hints.pdf
        <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni19_jazz_hints.pdf>`_,
        `afni19_jazz_answers.pdf
-       <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni19_jazz_answers.pdf>`_,
+       <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni19_jazz_answers.pdf>`_
      - *This session does not contain any lecture; students can ask
        questions, and/or work on the AFNI Jazzercise questions, which
        are provided here.  These PDFs are meant to help new users gain
@@ -158,27 +168,29 @@ Wednesday
    * - Group Analysis in FMRI (Chen)
      - `afni24_GroupAna.pdf
        <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni24_GroupAna.pdf>`_
-     - basic concepts and terminologies in group analysis;
+     - Basic concepts and terminologies in group analysis;
        group analysis approaches: t-tests, GLM, ANOVA, ANCOVA, LME;
        miscellaneous issues: centering, intraclass correlation,
        inter-subject correlation
-   * - Atlases, ROIs & Driving AFNI, pt1 (Glen)
+   * - `Atlases, ROIs & Driving AFNI, pt1 (Glen)
+       <https://afni.nimh.nih.gov/pub/dist/edu/class_lectures/2017-10-NIH/Day3/Atlases_ROI_DG_Pt1.mp4>`_
      - `afni10_volreg_talairach.pdf
        <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni10_volreg_talairach.pdf>`_
-     - standard space/template definitions; atlas definitions;
+     - Standard space/template definitions; atlas definitions;
        nonlinear alignment to template; choosing a template/examples;
        coordinate order/systems; visualizing atlases; "whereami"
        function (GUI+command line); atlas GUI features ("Go to atlas"
        location; atlas colors); "other" atlases (pediatric, infant,
        cerebellum, macaque, marmoset, rat)
-   * - Atlases, ROIs & Driving AFNI, pt2 (Glen)
+   * - `Atlases, ROIs & Driving AFNI, pt2 (Glen)
+       <https://afni.nimh.nih.gov/pub/dist/edu/class_lectures/2017-10-NIH/Day3/Atlases_ROI_DG_Pt2.mp4>`_
      - `afni10_volreg_talairach.pdf
        <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni10_volreg_talairach.pdf>`_,
        `afni11_roi.pdf
        <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni11_roi.pdf>`_,
        `afni11_roi_cmds.txt
        <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni11_roi_cmds.txt>`_
-     - creating templates+atlases using AFNI; ROI definitions; methods
+     - Creating templates+atlases using AFNI; ROI definitions; methods
        to create ROIs (draw; clusterize; from atlas); AFNI draw
        plugin; resampling ROIs; extracting quantities from ROIs
        (averages, masks); clustering ROIs; ROIs from atlas regions;
@@ -190,9 +202,22 @@ Wednesday
        available group analysis programs in AFNI: 3dttest++, 3dMEMA,
        3dANOVAx, 3dMVM, 3dLME;
        a few hands-on group analysis examples
-   * - Advanced Regression++ (Cox)
-     - a
-     - b
+   * - `Advanced Regression++, pt1 (Cox)
+       <https://afni.nimh.nih.gov/pub/dist/edu/class_lectures/2017-10-NIH/Day2/Advanced_Regression_RW_Pt1.mp4>`_
+     - `afni07_advanced.pdf
+       <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni07_advanced.pdf>`_, `afni_proc.pdf
+       <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni_proc.pdf>`_
+     - Regression features in AFNI and afni_proc.py
+   * - `Advanced Regression++, pt2 (Cox)
+       <https://afni.nimh.nih.gov/pub/dist/edu/class_lectures/2017-10-NIH/Day2/Advanced_Regression_RW_Pt2.mp4>`_
+     - `afni07_advanced.pdf
+       <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni07_advanced.pdf>`_, `afni_proc.pdf
+       <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni_proc.pdf>`_
+     - regression features in AFNI and afni_proc.py... and more
+
+
+
+
 
 .. _class_recordings_thurs:
 
@@ -215,21 +240,35 @@ Thursday
      - Surface mapping in AFNI; what are surfaces/meshes; how to
        create surfaces for SUMA; how surface analysis complements
        volumetric analysis; SUMA data visualization (interactive).
-   * - *More* SUMA & Surface Analysis (Reynolds)
+   * - `*More* SUMA & Surface Analysis, pt1 (Reynolds)
+       <https://afni.nimh.nih.gov/pub/dist/edu/class_lectures/2017-10-NIH/Day4/More_SUMA_RR_Day4_Pt2.mp4>`_
      - `suma.pdf
-       <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/suma.pdf>`_,
-     - hands-on: SUMA continuation; surface ROI drawing and mapping to volume;
+       <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/suma.pdf>`_
+     - Hands-on: SUMA continuation; surface ROI drawing and mapping to volume;
+       complete single subject surface-based analysis with afni_proc.py;
+       viewing effects of processing on surface data
+   * - `*More* SUMA & Surface Analysis, pt2 (Reynolds)
+       <https://afni.nimh.nih.gov/pub/dist/edu/class_lectures/2017-10-NIH/Day4/More_SUMA_RR_Day4_Pt2.mp4>`_
+     - `suma.pdf
+       <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/suma.pdf>`_
+     - Hands-on: SUMA continuation; surface ROI drawing and mapping to volume;
        complete single subject surface-based analysis with afni_proc.py;
        viewing effects of processing on surface data
    * - Group Analysis Hands-On++ (Chen)
      - `afni25_GroupAna_HO.pdf
        <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni25_GroupAna_HO.pdf>`_
-     - available group analysis programs in AFNI: 3dttest++, 3dMEMA,
+     - Available group analysis programs in AFNI: 3dttest++, 3dMEMA,
        3dANOVAx, 3dMVM, 3dLME;
        a few hands-on group analysis examples
-   * - Resting State & InstaCorr (Cox)
-     - 
-     -
+   * - Resting State & InstaCorr, pt1 (Cox)
+     - [tbd]
+     - regression features in AFNI
+   * - `Resting State & InstaCorr, pt2 (Cox)
+       <https://afni.nimh.nih.gov/pub/dist/edu/class_lectures/2017-10-NIH/Day4/Resting-State_InstaCorr_RW_Pt2.mp4>`_
+     - `afni20_instastuff.pdf
+       <https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni20_instastuff.pdf>`_
+     - Using AFNI GUI interactively to investigate single subject and
+       group level correlation/statistic maps
 
 .. _class_recordings_fri:
 
@@ -244,12 +283,17 @@ Friday
    * - Video
      - Associated handouts
      - Contents, notes
-   * - FMRI Clustering (Cox)
-     - 
-     -
+   * - `FMRI Clustering, pt1 (Cox)
+       <https://afni.nimh.nih.gov/pub/dist/edu/class_lectures/2017-10-NIH/Day5/FMRI_Clustering_RW_Pt1.mp4>`_
+     - [tbd]
+     - [tbd]
+   * - `FMRI Clustering, pt2 (Cox)
+       <https://afni.nimh.nih.gov/pub/dist/edu/class_lectures/2017-10-NIH/Day5/FMRI_Clustering_RW_Pt2.mp4>`_
+     - [tbd]
+     - [tbd]
    * - DTI, FATCAT & more SUMA (Taylor)
      - 
-     - *see the "DTI & FATCAT videos" section, and in particular the
+     - *Please see the "DTI & FATCAT videos" section, and in particular the
        "FATCAT Hands-On Demo" lecture, below.*
 
 

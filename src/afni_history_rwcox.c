@@ -44,6 +44,25 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 29 , MAY , 2018 , RWC , "3dTcorrelate" , MICRO , TYPE_MODIFY ,
+   "Replace DSET_NUM_TIMES with DSET_NVALS" ,
+   "To allow datasets that are not marked with a time axis to be used. Also\n"
+   "in a couple other programs (e.g., 3dDespike)." } ,
+
+ { 29 , MAY , 2018 , RWC , "AFNI GUI" , MICRO , TYPE_NEW_ENV ,
+   "AFNI_GRAPH_ALLOW_SHIFTN" ,
+   "Needs to be set to YES to enable the old FD-style N<digits><Enter>\n"
+   "method of changing the graph matrix. Some people just can't handle the\n"
+   "freedumb." } ,
+
+ { 25 , MAY , 2018 , RWC , "various" , MICRO , TYPE_MODIFY ,
+   "Replace DC_find_overlay_color with DC_find_closest_overlay_color" ,
+   "So that incorrect color names can get some sort of love." } ,
+
+ { 24 , MAY , 2018 , RWC , "AFNI driver" , MINOR , TYPE_ENHANCE ,
+   "Add SNAP_VIEWER command, for the Neon man." ,
+   NULL } ,
+
  { 23 , MAY , 2018 , RWC , "3dTfilter" , MICRO , TYPE_NEW_OPT ,
    "Updates to add capability" ,
    "Now can set half-width for despike as well as adaptive filter.\n"
