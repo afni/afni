@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 1, June , 2018 , PT , "fat_proc_axialize_anat" , MINOR , TYPE_NEW_OPT,
+   "New pre-alignment opt, -pre_align_center_mass.",
+   "Probably more useful than older -pre_center_mass.\n"
+},
+
 { 1, June , 2018 , PT , "3dClusterize" , MICRO , TYPE_NEW_OPT,
    "New opt to output vols even if no clusters are found.",
    "These would be empty vols-- juuuust if the user wants.\n"
