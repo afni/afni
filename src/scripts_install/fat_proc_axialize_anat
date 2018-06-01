@@ -77,9 +77,13 @@
 #set version   = "3.8b";  set rev_dat   = "Mar 2, 2018"
 #   + update rel path loc of QC/ dir
 #
-set version   = "3.9";  set rev_dat   = "Apr 20, 2018"
+#set version   = "3.9";  set rev_dat   = "Apr 20, 2018"
 #   + show existence of -pre_center_mass option
 #   + fix how -remove_inf_sli N works -- thanks, lzhyoung!
+#
+set version   = "4.0";  set rev_dat   = "June 1, 2018"
+#   + introduce -pre_align_center_mass, as better/more useful
+#     than -pre_center_mass
 #
 # ----------------------------------------------------------------
 
@@ -230,11 +234,15 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set final_al_wtmask = "$argv[$ac]"
-
+ 
     else if ( "$argv[$ac]" == "-no_clean" ) then
         set DO_CLEAN = 0
         
     else if ( "$argv[$ac]" == "-pre_center_mass" ) then
+        set DO_CM = "2"
+
+    # [PT: June 1, 2018] prealign centers of mass-- probably better
+    else if ( "$argv[$ac]" == "-pre_align_center_mass" ) then
         set DO_CM = "1"
 
     # turn it *off* if desired-- on by default
@@ -524,6 +532,23 @@ if ( "$imask" != "" ) then
 endif
 
 if ( "$DO_CM" == "1" ) then
+    echo "++ Pre-step: align input center of mass to that of refset."
+    set fin  = "$fout"
+    @Align_Centers   \
+        -cm          \
+        -no_cp       \
+        -base $rout  \
+        -dset $fin   \
+
+    # and reset origin of inp0 to use
+    if ( "$inp0" != "$fin" ) then
+        echo "++ ... and bring along the input."
+        3drefit -echo_edu    \
+            -duporigin $fin  \
+            $inp0
+    endif
+
+else if ( "$DO_CM" == "2" ) then
     echo "++ Pre-step: make input's center of mass sit at (x,y,z)=(0,0,0)."
     set fin  = "$fout"
     3dCM              \
@@ -995,6 +1020,7 @@ cat << EOF
         {-extra_al_opts SS}                   \
         {-focus_mask MMM}                     \
         {-remove_inf_sli II}                  \
+        {-pre_align_center_mass}              \
         {-pre_center_mass}                    \
         {-post_lr_symm}                       \
         {-no_pre_lr_symm}                     \
@@ -1078,9 +1104,14 @@ cat << EOF
                     far lower than it should be.  You can get rid of this
                     by applying this option, to remove 'II' number of 
                     slices from the inferior part of the FOV.
-  -pre_center_mass :pre-align the centers of mass of the volumes; might help
+
+  -pre_align_center_mass :
+                    pre-align the centers of mass of the volumes; might help
                     in conjunction with '-remove_inf_sli ...' above, when
                     there is a large amount of non-brain material
+  -pre_center_mass :pre-recenter input center of mass to (0, 0, 0); probably
+                    the '-pre_align_center_mass' would be more useful, but
+                    this can be used similarly.
 
   -no_pre_lr_symm  :a pre-alignment left-right symmetrization is
                     performed by default, but you can turn it off if you
