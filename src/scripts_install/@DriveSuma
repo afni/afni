@@ -36,11 +36,9 @@ cd $outdir
 #show_surf action
         CreateIcosahedron -rd 4
         
-        #Launch suma -niml in a new terminal, just to keep terminal clean
-        xterm -name SUMA -geometry 80x30+10+450 -bg white -fg black   \
-         -e 'suma -niml' &
-        
-        set l = `prompt_user -pause \
+        #Launch suma
+        suma -niml &
+        sleep 3; set l = `prompt_user -pause \
 "The script will pop up messages informing of the upcoming DriveSuma commands.\n\
 Those commands will be echoed in the shell from which this script was run.\n\
 After reading and acknowledging the notice for the upcomming command, take\n\
@@ -61,7 +59,7 @@ Now that you have read all this, make sure suma is up, then press OK."`
         ConvertSurface -i_fs CreateIco.asc \
                        -o_1D radcoord radcoord \
                        -radial_to_sphere 100
-        set l = `prompt_user -pause \
+        sleep 3; set l = `prompt_user -pause \
 'The next command will assign new coordinates to ICO,\n\
 projecting all the nodes to a sphere.\n\
 Press OK when done reading.'` ; if ( $l == '0') goto STEND
@@ -73,7 +71,7 @@ Press OK when done reading.'` ; if ( $l == '0') goto STEND
         1deval -a radcoord.1D.coord'[0]' -expr 'sin(a)*50' \
             > xmess.1D ;1dcat xmess.1D radcoord.1D.coord'[1,2]' \
             > somecoord.1D.coord ; rm xmess.1D
-        set l = `prompt_user -pause \
+        sleep 3; set l = `prompt_user -pause \
 'DriveSuma will make another new coordinates assignment,\n\
 just for kicks'`; if ( $l == '0') goto STEND
 
@@ -82,20 +80,19 @@ just for kicks'`; if ( $l == '0') goto STEND
                        -xyz_1D somecoord.1D.coord
         
 #viewer_cont action
-       set l = `prompt_user -pause \
+       sleep 3; set l = `prompt_user -pause \
        'The next commands control the viewer.   \n\
 The syntax of the commands is intended to mimick what you \n\
 press with the mouse or click on the keyboard when running SUMA interactively.'` 
       if ( $l == '0') goto STEND
 
-      set l = `prompt_user -pause \
+      sleep 3; set l = `prompt_user -pause \
 'Now DriveSuma will turn on the movie recorder and press ctrl+right key'` 
       if ( $l == '0') goto STEND
 
       DriveSuma -echo_edu   \
                   -com  viewer_cont -key R -key ctrl+right
-      
-      set l = `prompt_user -pause \
+      sleep 3; set l = `prompt_user -pause \
 'Then DriveSuma will make SUMA Jump to location 100, 0, 0 \n\
 as if one used the "ctrl+j" in SUMA '` 
       if ( $l == '0') goto STEND
@@ -103,7 +100,8 @@ as if one used the "ctrl+j" in SUMA '`
       DriveSuma -echo_edu   \
                   -com  viewer_cont '-key:v"100.0 0.0 0.0"' ctrl+j  
 
-      
+      sleep 3
+     
       set l = `prompt_user -pause \
 'Here is what the DriveSuma command will do in the next command:\n\
 Press the up key 3 times, sleep for 0.3 seconds between presses.\n\
@@ -115,8 +113,7 @@ Then press the left key 5 times.'`; if ( $l == '0') goto STEND
                   -com  viewer_cont -key:r3:s0.3 up  \
                        -key:r2:p left -key:r5:d right \
                        -key:r5 left
-       
-       set l = `prompt_user -pause \
+       sleep 3; set l = `prompt_user -pause \
 'Next, momentum is turned on, and the down arrow is pressed.\n\
 The DriveSuma program sleeps for 2 seconds, then presses "m" again\n\
 thereby toggling momentum mode off.\n\
@@ -124,20 +121,20 @@ Lastly, DriveSuma sends a ctrl+right arrow key press.'`; if ( $l == '0') goto ST
 
        DriveSuma -echo_edu   \
                  -com  viewer_cont -key m -key down \
-                 -com  sleep 2s -com viewer_cont -key m \
+                 -com  sleep 3s -com viewer_cont -key m \
                        -key ctrl+right
-       
-       set l = `prompt_user -pause \
+
+       sleep 3; set l = `prompt_user -pause \
 "Instead of sleeping, DriveSuma can pause with a GUI message\n\
 and won't resume until the user acknowledges it."`; if ( $l == '0') goto STEND
 
        DriveSuma -echo_edu   \
-                 -com  viewer_cont -key p  \
+                 -com  viewer_cont -key p -com sleep 3s \
                  -com  pause press enter to get back to mesh mode \
                  -com  viewer_cont -key:r3 p  
        
 #recorder_cont action
-       set l = `prompt_user -pause \
+       sleep 3; set l = `prompt_user -pause \
 "Next is a series of commands that illustrate how \n\
 to save images from the recoder window.\n\
 If you have recorded too many images, saving\n\
@@ -165,11 +162,11 @@ All these files will be saved to the directory $outdir"`
        quickspec -spec cubo.spec -tn ply cubo.ply
        SurfaceMetrics -curv -spec cubo.spec \
                       -surf_A cubo -prefix cubo
-       set l = `prompt_user -pause \
+       sleep 3; set l = `prompt_user -pause \
 "Now we illustrate how to load data and manipulate the way it is displayed."`
       if ( $l == '0') goto STEND
       
-      set l = `prompt_user -pause \
+      sleep 3; set l = `prompt_user -pause \
 "First DriveSuma will ask suma to load a new surface called cubo"`
       if ( $l == '0') goto STEND                      
       
@@ -177,7 +174,7 @@ All these files will be saved to the directory $outdir"`
                 -com show_surf -surf_label cubo \
                       -i_ply cubo.ply -surf_winding cw \
                       -surf_state elcubo
-       set l = `prompt_user -pause \
+       sleep 3; set l = `prompt_user -pause \
 "Then DriveSuma will load a dataset called cubo.curv.1D.dset onto the\n\
 surface, then open the surface controller."`
        if ( $l == '0') goto STEND           
@@ -186,7 +183,7 @@ surface, then open the surface controller."`
                  -com surf_cont -load_dset cubo.curv.1D.dset \
                       -surf_label cubo -view_surf_cont y
        
-       set l = `prompt_user -pause \
+       sleep 3; set l = `prompt_user -pause \
 "Now DriveSuma will select the 7th column (sub-brick) as intensity,\n\
 8th for threshold, and set the threshold value to 0.0"`
        if ( $l == '0') goto STEND           
@@ -194,48 +191,48 @@ surface, then open the surface controller."`
        DriveSuma -echo_edu   \
                  -com surf_cont -I_sb 7 -T_sb 8 -T_val 0.0
        
-       set l = `prompt_user -pause \
+       sleep 3; set l = `prompt_user -pause \
 "Now set the intensity range to 0.05, and turn off thresholding"`
        if ( $l == '0') goto STEND           
 
        DriveSuma -echo_edu   \
                  -com surf_cont -I_range 0.05 -T_sb -1
        
-       set l = `prompt_user -pause \
+       sleep 3; set l = `prompt_user -pause \
 "Switch to intensity subbrick 8, range from -0.1 to 0.1 and threshold at 0.02"`
        if ( $l == '0') goto STEND           
        
        DriveSuma -echo_edu   \
                  -com surf_cont -I_sb 8 -I_range -0.1 0.1 \
                       -T_val 0.02
-       set l = `prompt_user -pause \
+       sleep 3; set l = `prompt_user -pause \
 "Turning on color brightness modulation"`
        if ( $l == '0') goto STEND  
          
        DriveSuma -echo_edu   \
                  -com surf_cont -B_sb 7 -B_range 0.1 \
                       -B_scale 0.1 0.9 
-       set l = `prompt_user -pause \
+       sleep 3; set l = `prompt_user -pause \
 "Switching to the convexity dataset and turning on '1_only' display"`
        if ( $l == '0') goto STEND  
        DriveSuma -echo_edu   \
                  -com surf_cont -switch_dset Convexity -1_only y
        
-       set l = `prompt_user -pause \
+       sleep 3; set l = `prompt_user -pause \
 "Switching colormap to one named roi64 and turning '1_only' off"`
        if ( $l == '0') goto STEND  
        
        DriveSuma -echo_edu   \
                  -com surf_cont -switch_cmap ROI_i64 -1_only n
        
-       set l = `prompt_user -pause \
+       sleep 3; set l = `prompt_user -pause \
 "Hiding the convexity dataset, and forcing redisplay"`
        if ( $l == '0') goto STEND  
        DriveSuma -echo_edu   \
                  -com surf_cont -view_dset n \
                  -com viewer_cont -key:r2:d m 
        
-       set l = `prompt_user -pause \
+       sleep 3; set l = `prompt_user -pause \
 "Switching dataset back to cubo.curv.1D.dset,\n\
 hiding surface controller,\n\
 and setting the range to -0.05 to 0.14"`
@@ -245,16 +242,16 @@ and setting the range to -0.05 to 0.14"`
                  -com surf_cont -switch_dset cubo.curv.1D.dset \
                       -view_surf_cont n -I_range -0.05 0.14
        
-       set l = `prompt_user -pause \
+       sleep 3; set l = `prompt_user -pause \
 "And lastly, load a new colormap named bbr.1D.cmap"`
        if ( $l == '0') goto STEND 
        
        DriveSuma -echo_edu   \
                  -com surf_cont -load_cmap bbr.1D.cmap
 
-set l = `prompt_user -pause \
+sleep 3; set l = `prompt_user -pause \
 "This concludes the demo.\n\
-The intension was to familiarize you with the workings of DriveSuma.\n\
+The intention was to familiarize you with the workings of DriveSuma.\n\
 You should be able to script SUMA (and AFNI, see @DriveAfni) to help\n\
 navigate large numbers of datasets, or automatically generate images\n\
 for quality control.\n\n\
