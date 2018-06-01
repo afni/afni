@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 1, June , 2018 , PT , "3dClusterize" , MICRO , TYPE_NEW_OPT,
+   "New opt to output vols even if no clusters are found.",
+   "These would be empty vols-- juuuust if the user wants.\n"
+},
+
 { 30, May , 2018 , PT , "fat_proc_map_to_dti" , MINOR , TYPE_NEW_OPT,
    "User can specify matching cost and warp.",
    "How exciting is that??  (Well, mostly for test comparisons...).\n"
