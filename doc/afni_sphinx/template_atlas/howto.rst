@@ -37,7 +37,7 @@ If you are also using a new template, you might need to create a new
 **template "space"** too:
 
 i.  :ref:`Add the new template and the new space
-    <tempatl_howto_new_temp_space>` to the same file from :ref:`Step 3
+    <tempatl_howto_new_temp_space>` to the same file from :ref:`Step iii
     <tempatl_howto_add_atlas_file>` that contains the atlas
     information.
 
