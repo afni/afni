@@ -261,7 +261,7 @@ Update AFNI environment list (for GUI functionality)
 
 Finally, for AFNI to use the atlas automatically, add the new atlas to
 AFNI environment list. If you only want to see the new atlas and no
-others when you use whereami or the AFNI GUI, add this to your .afnirc
+others when you use whereami or the AFNI GUI, add this to your ``~/.afnirc``
 file or type on the command line::
   
   setenv AFNI_ATLAS_LIST "MyAtlas"
