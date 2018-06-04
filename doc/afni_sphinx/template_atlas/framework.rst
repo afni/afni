@@ -138,13 +138,13 @@ Re. **Spaces**
 #. *"whereami" in the AFNI GUI*
 
    The AFNI GUI uses the template space of the dataset in the
-   interactive whereami GUI when computing the current location by
+   interactive ``whereami`` GUI when computing the current location by
    transforming the position in the dataset's space to the position in
    the space of each of the atlases defined in the
    AFNI_atlas_spaces.niml. The transformations between MNI and TLRC
    spaces are computed using the Brett transform, a two-step affine
    transformation procedure. The coordinates are reported in the
-   whereami GUI for a selected group of spaces. By default, the
+   ``whereami`` GUI for a selected group of spaces. By default, the
    coordinates are displayed in TLRC, MNI and MNI_ANAT spaces, but
    this selection of spaces may be set using the environment variable,
    AFNI_TEMPLATE_SPACE_LIST (see environment variable section for
@@ -152,10 +152,11 @@ Re. **Spaces**
 
 #. *"whereami" on the command line*
 
-   The whereami command has the option -space to include support for
-   coordinate input in any of the allowed spaces. Alternatively,
-   the -dset option supplied with a dataset name will use the space of
-   the dataset to compute the transformations to use with its atlases.
+   The ``whereami`` command has the option ``-space`` to include
+   support for coordinate input in any of the allowed
+   spaces. Alternatively, the ``-dset`` option supplied with a dataset
+   name will use the space of the dataset to compute the
+   transformations to use with its atlases.
 
 #. *Environment variables and default behavior*
 
@@ -215,18 +216,19 @@ Re. **Transformations**
 
 #. *whereami command*
 
-   The whereami command includes support for transformations among
+   The ``whereami`` command includes support for transformations among
    spaces even when there is no direct transformation but instead must
    go through intermediate spaces. Coordinates may be transformed from
    any defined space to any other as long as a connection may be
    found. A Dijkstra search method determines the shortest path
-   between a source space and destination space. The whereami command
-   can show the chain of spaces, transformations (``-show_chain``) and
-   concatenated transformations (``-calc_chain``) between a source and
-   a destination space. The transformation from a dataset in TT_N27
-   space follows a transformation chain that first computes a 12-piece
-   transformation from TT_N27 to MNI space and then an affine
-   transformation from MNI space to MNI_ANAT space.
+   between a source space and destination space. The ``whereami``
+   command can show the chain of spaces, transformations
+   (``-show_chain``) and concatenated transformations
+   (``-calc_chain``) between a source and a destination space. The
+   transformation from a dataset in TT_N27 space follows a
+   transformation chain that first computes a 12-piece transformation
+   from TT_N27 to MNI space and then an affine transformation from MNI
+   space to MNI_ANAT space.
 
 
 Re. **Templates**
@@ -283,7 +285,7 @@ Re. **Atlases**
    Here the entry is demarcated by the "<ATLAS" to "></ATLAS>" lines.
    The first field within the entry, atlas_name, gives the short name
    of the atlas that can be used to specify a specific atlas to
-   whereami or to other AFNI programs for specific atlas regions. The
+   ``whereami`` or to other AFNI programs for specific atlas regions. The
    dset_name contains the name of the atlas dataset. This name may
    contain the full or partial path. If no path is included, as in the
    above example, the current directory, the AFNI_PLUGINPATH and then
@@ -311,24 +313,25 @@ Re. **Atlases**
 Re. **Environment Variables**
 --------------------------------------
 
-#. Several variables control how AFNI uses the whereami
+#. Several variables control how AFNI uses the ``whereami``
    features. The most important ones are:
 
    **AFNI_ATLAS_LIST**
-     This list contains the names of the atlases that should be queried
-     when no specific atlas has been requested. For example, the afni GUI
-     and whereami, by default, do not load all the atlases specified in
-     the AFNI_atlas_spaces.niml file. If this variable is not set, the
-     TT_Daemon atlas and the cytoarchitectonic Eickhoff-Zilles in
-     MNI_ANAT space are loaded. If the variable is set to a list like
-     "TT_Daemon,DD_Desai_PM", then only these two atlases are loaded. The
-     list of atlas names may be separated by commas or semicolons. A
-     special case of "ALL" may be set, and all the available atlases will
-     be loaded.
+     This list contains the names of the atlases that should be
+     queried when no specific atlas has been requested. For example,
+     the afni GUI and ``whereami``, by default, do not load all the
+     atlases specified in the AFNI_atlas_spaces.niml file. If this
+     variable is not set, the TT_Daemon atlas and the
+     cytoarchitectonic Eickhoff-Zilles in MNI_ANAT space are
+     loaded. If the variable is set to a list like
+     "TT_Daemon,DD_Desai_PM", then only these two atlases are
+     loaded. The list of atlas names may be separated by commas or
+     semicolons. A special case of "ALL" may be set, and all the
+     available atlases will be loaded.
 
    **AFNI_TEMPLATE_SPACE_LIST**
      This list contains the names of the template spaces that are shown
-     when whereami reports the coordinates among various spaces. By
+     when ``whereami`` reports the coordinates among various spaces. By
      default, the list contain "TLRC,MNI,MNI_ANAT". As for the
      AFNI_ATLAS_LIST, this list may also be set to "ALL".
 
@@ -349,7 +352,7 @@ Re. **Environment Variables**
      more quickly than searching all the directories of the entire PATH.
 
    **AFNI_WHEREAMI_DEC_PLACES**
-     Sets precision for whereami output.  Higher field data and animal
+     Sets precision for ``whereami`` output.  Higher field data and animal
      atlases require higher precision. The default value used for focus
      point among template spaces is still 0 decimal places (closest mm),
      but animal data requires three decimal places. Value may range from
@@ -366,24 +369,25 @@ Re. **Environment Variables**
      compatibility. By default, this is not set.
 
    **AFNI_WHEREAMI_NO_WARN**
-     Turns off warnings about various whereami features -- like queries
-     that reached their limit of returned results. By default, warnings
-     are displayed the first time a particular message is encountered.
+     Turns off warnings about various ``whereami`` features -- like
+     queries that reached their limit of returned results. By default,
+     warnings are displayed the first time a particular message is
+     encountered.
 
    **AFNI_WHEREAMI_MAX_FIND**
      By default, only the first nine structures are displayed within a
      particular atlas. You may increase or decrease this to show more or
-     fewer structures in the whereami results.
+     fewer structures in the ``whereami`` results.
 
    **AFNI_WHEREAMI_MAX_SEARCH_RAD** 
-     By default, whereami searches a radius of 7.5 mm. Set a radius up to
-     9.5 mm.
+     By default, ``whereami`` searches a radius of 7.5 mm. Set a
+     radius up to 9.5 mm.
 
    **AFNI_DEFAULT_STD_SPACE**
-     The default template space is assumed to be TLRC. This is used for
-     coordinate input to whereami, the whereami GUI and for TLRC view
-     datasets without a template space explicitly set in the dataset
-     header.
+     The default template space is assumed to be TLRC. This is used
+     for coordinate input to ``whereami``, the ``whereami`` GUI and
+     for TLRC view datasets without a template space explicitly set in
+     the dataset header.
 
    **AFNI_SUPP_ATLAS, AFNI_LOCAL_ATLAS**
      These variables allow the addition of more atlas definitions to the
