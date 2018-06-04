@@ -146,7 +146,7 @@ void usage_3dSetupGroupInCorr(int detail)
  "\n"
  "* See the help for 3dGroupInCorr for information on running that program.\n"
  "* The PDF file\n"
- "  https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/instastuff.pdf\n"
+ "  https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni20_instastuff.pdf\n"
  "  also has some information on the Group InstaCorr process (as well as all\n"
  "  the other 'Insta' functions added to AFNI).\n"
  "\n"
