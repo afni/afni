@@ -31,7 +31,7 @@ i. :ref:`Identify a structures and regions <tempatl_howto_id_a_struc>`
 #. :ref:`If you want AFNI to use it by default in the AFNI GUI
    <tempatl_howto_add_gui_env>`, add the atlas to an AFNI
    environment variable, and the structures will show up in the
-   whereami output.
+   ``whereami`` output.
 
 If you are also using a new template, you might need to create a new
 **template "space"** too:
@@ -92,7 +92,7 @@ Add the atlas-y-ness information to the dataset header
 
 The remaining steps have been incorporated into a single script to
 make this all easier. First, put all the custom atlases in a specific
-directory. Then add them with @Atlasize. The script takes an atlas
+directory. Then add them with ``@Atlasize``. The script takes an atlas
 dataset and a file with two columns specifying intensity level and
 structure name. See ``@Atlasize -help`` for more details on the
 options::
@@ -163,11 +163,13 @@ the intensity value that is associated with that structure in the
 "VAL=" line. The structure name can have spaces, but punctuation will
 make it difficult to work with later. Again, the value should be a
 positive integer. Other attributes are less important and not strictly
-required.  If there had been a different value used previously for the
-atlas, you may set the original key value, OKEY, (not important for
-this example). GyoAR sets whether the structure should be identified
-as gyrus or area. If you don't want to distinguish between the two,
-leave it as 0; otherwise, set it to 1 or 2 for gyrus or area,
+required.  
+
+If there had been a different value used previously for the atlas, you
+may set the original key value, OKEY, (not important for this
+example). GyoAR sets whether the structure should be identified as
+gyrus or area. If you don't want to distinguish between the two, leave
+it as 0; otherwise, set it to 1 or 2 for gyrus or area,
 respectively. Finally, the "COG" attribute sets the center of gravity
 position in RAI coordinates. Use a position that you would like as a
 center (maybe a maximum probability or a center of mass). This
@@ -209,7 +211,7 @@ using this command::
 
   3drefit -cmap INT_CMAP MyAtlas+tlrc
 
-Use CONT_CMAP for a continuous colormap for probabilistic
+Use ``CONT_CMAP`` for a continuous colormap for probabilistic
 atlases. Probabilistic atlases also need the additional attribute,
 ``ATLAS_PROB_MAP``::
 
@@ -261,8 +263,8 @@ Update AFNI environment list (for GUI functionality)
 
 Finally, for AFNI to use the atlas automatically, add the new atlas to
 AFNI environment list. If you only want to see the new atlas and no
-others when you use whereami or the AFNI GUI, add this to your ``~/.afnirc``
-file or type on the command line::
+others when you use ``whereami`` or the AFNI GUI, add this to your
+``~/.afnirc`` file or type on the command line::
   
   setenv AFNI_ATLAS_LIST "MyAtlas"
 
@@ -272,8 +274,9 @@ those here::
   setenv AFNI_ATLAS_LIST "MyAtlas,TT_Daemon,CA_EZ_ML,Desai_DD_MPM"
 
 For the other places in the AFNI GUI where atlases are used besides
-the whereami menu, like "Show atlas colors" or "Go to atlas location",
-you can also set this variable to use your new atlas by default::
+the ``whereami`` menu, like "Show atlas colors" or "Go to atlas
+location", you can also set this variable to use your new atlas by
+default::
 
   setenv AFNI_ATLAS_COLORS MyAtlas
 
@@ -304,15 +307,17 @@ assuming a completely new space.
 In the same file, you may also add a definition for a new template and
 transformations from or to this space from any other defined template
 spaces. The template definition isn't strictly required yet, but will
-likely be used in future versions of programs like @auto_tlrc. The
+likely be used in future versions of programs like ``@auto_tlrc``. The
 transformations are a little more complicated to describe, but these
 transformations provide a connection between a pair of spaces so that
 AFNI knows how to use atlases made in one space with a dataset that is
-in another space. If you want to use the TLRC or MNI_ANAT atlases that
-come with AFNI, and your data is not in either of these spaces, you
-can define that transformation in the same file. There will be another
-page describing the different ways to define these transformations,
-but look at the existing AFNI_atlas_spaces.niml file for reference.
+in another space. 
+
+If you want to use the TLRC or MNI_ANAT atlases that come with AFNI,
+and your data is not in either of these spaces, you can define that
+transformation in the same file. There will be another page describing
+the different ways to define these transformations, but look at the
+existing AFNI_atlas_spaces.niml file for reference.
 
 .. _tempatl_howto_add_default_list:
 
@@ -320,8 +325,8 @@ Add the template space to the environment variable
 ------------------------------------------
 
 Add the template space to the environment variable for the default
-list of spaces to include in the whereami and AFNI GUI whereami
-output::
+list of spaces to include in the ``whereami`` and AFNI GUI
+``whereami`` output::
 
   setenv AFNI_TEMPLATE_SPACE_LIST "MySpace,TLRC,MNI,MNI_ANAT"
 
