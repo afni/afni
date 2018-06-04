@@ -126,7 +126,7 @@ void usage_SUMA_getPatch (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "              Assume you have the spec file and surfaces already. You can\n"
 "              get the same files from the SUMA directory in the AFNI \n"
 "              workshop SUMA's archive which you can get with: \n"
-"         curl -O https://afni.nimh.nih.gov/pub/dist/edu/data/SUMA_demo.tgz\n"
+"                 afni_open -aw suma_demo.tgz\n"
 "\n"
 "              Draw an ROI on the surface and save it as: lh.manualroi.1D.roi\n"
 "\n"
