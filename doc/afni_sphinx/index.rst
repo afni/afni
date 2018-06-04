@@ -21,6 +21,7 @@ Welcome to AFNI's documentation!
    SUMA/main_toc
    FATCAT/main_toc
    STATISTICS/main_toc
+   template_atlas/main_toc
    tutorials/main_toc
    installations/main_toc
    glossary
