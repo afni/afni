@@ -552,7 +552,7 @@ void AFNI_process_NIML_data( int chan, void *nini, int ct_start )
 {
    int tt=NI_element_type(nini) ;
    NI_element *nel ;
-   char msg[256] ;
+   char msg[512] ;
 
 ENTRY("AFNI_process_NIML_data") ;
 
