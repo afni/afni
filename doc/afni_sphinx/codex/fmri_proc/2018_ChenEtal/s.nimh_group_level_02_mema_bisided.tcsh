@@ -219,6 +219,14 @@ echo "++ The voxelwise stat value threshold is:  $voxstat_thr"
 #      -pref_dat   :name for cluster-masked EE output vol
 #      > ${csim_pref}_report.txt :dump text table of cluster report to file
 #
+# Note: one-sided testing would require slightly different syntax:
+# '-1sided ...' would not be followed by 2 numbers, as used here for
+# '-bisided ...', but instead by specifying a tail (i.e.,
+# "RIGHT_TAIL") and then a single number (its threshold value).  Also,
+# if you use the "p=..." form of specifying a threshold value in
+# 3dClusterize, then the syntax would be a bit different, just using
+# that single argument after even '-bisided ...', for example.  Please
+# see the help file for a more full description of the option(s).
 
 3dClusterize                                   \
     -inset  ${omema}                           \
