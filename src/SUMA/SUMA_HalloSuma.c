@@ -551,6 +551,7 @@ int Hallo_niml_workproc( void *thereiselvis )
    Look at the NIML API documentation to 
    learn how to unpack the data from a NIML element 
    https://afni.nimh.nih.gov/afni/doc/misc/NIML_documentation/NIML_manual/document_view
+   https://afni.nimh.nih.gov/pub/dist/doc/misc/niml/NIML_base.html
 */
 int Hallo_process_NIML_data(NI_element *nini)
 {

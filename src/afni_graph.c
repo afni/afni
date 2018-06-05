@@ -3740,7 +3740,7 @@ STATUS(str); }
 
    /* first 'N' */
 
-   if( grapher->key_Nlock==0 && buf[0]=='N' ){
+   if( AFNI_yesenv("AFNI_GRAPH_ALLOW_SHIFTN") && grapher->key_Nlock==0 && buf[0]=='N' ){
      grapher->key_Nlock = 1 ;
      HAND_cursorize( grapher->fdw_graph ) ;
      HAND_cursorize( grapher->draw_fd ) ;

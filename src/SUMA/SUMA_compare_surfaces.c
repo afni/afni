@@ -500,7 +500,7 @@ void cmp_surf_usage ()
           "              for debugging runs.\n"
           "\n"
           "%s"
-          "\n   For more help: https://afni.nimh.nih.gov/ssc/ziad/SUMA/SUMA_doc.htm\n"
+          "\n   For more help: https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/SUMA/main_toc.html\n"
           "\n"
           "\n   If you can't get help here, please get help somewhere.\n", s);
   SUMA_free(s); s = NULL;
@@ -510,6 +510,8 @@ void cmp_surf_usage ()
     printf ("\n   [-dev]: This option will give access to options that are not well polished for consumption.\n");
     printf ("\n           \n");
   */
+
+  // [PT: June 4, 2018] former link above: https://afni.nimh.nih.gov/ssc/ziad/SUMA/SUMA_doc.htm
   exit (0);
 }
 

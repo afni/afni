@@ -369,6 +369,14 @@ static char *tip[] = {
   "Set environment variable AFNI_ALLOW_ALL_PLUGINS to YES in your\n"
   ".afnirc file."
  ,
+  "Setting environment variable AFNI_GRAPH_ALLOW_SHIFTN to YES in your .afnirc\n"
+  "file will allow you to set the graph viewer matrix size directly using\n"
+  "keyboard presses, as in\n"
+  "  N7<Enter>\n"
+  "which will make the graph window have a matrix of 7x7 sub-graphs. It is\n"
+  "important to press the <Enter> (or <Return>) key at the end of the digit(s)\n"
+  "after N, otherwise the graph window will not respond to any other key presses."
+ ,
 
 /*-- tips below here are for non-GUI programs --*/
 

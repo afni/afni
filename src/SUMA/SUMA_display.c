@@ -6219,8 +6219,9 @@ void SUMA_cb_helpWeb (Widget w, XtPointer data, XtPointer callData)
    static char FuncName[] = {"SUMA_cb_helpWeb"};
    
    SUMA_ENTRY;
-    whereami_browser("https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/sumatoc1.html");
-   
+    whereami_browser("https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/SUMA/Viewer.html");
+    //whereami_browser("https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/sumatoc1.html");
+
    SUMA_RETURNe;
 
 }

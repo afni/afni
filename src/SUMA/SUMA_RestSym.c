@@ -54,7 +54,7 @@ void RestSymHelp(void)
       "Usage: RestSym [options]\n"
       "\n"
       "* Also see\n"
-      "  https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/instastuff.pdf\n"
+      "  https://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni20_instastuff.pdf\n"
       "\n"
       "* This program operates as a server for AFNI or SUMA.  It reads in dataset\n"
       "  collections that have been prepared by 3dSetupGroupInCorr, and then\n"
