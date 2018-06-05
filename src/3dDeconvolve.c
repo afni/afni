@@ -4174,7 +4174,7 @@ ENTRY("read_input_data") ;
                      ttt) ;
       }
 
-      nt   = DSET_NUM_TIMES (*dset_time); lmax = nt ;
+      nt   = DSET_NVALS(*dset_time); lmax = nt ;
       nxyz = DSET_NVOX (*dset_time);
       nxd  = DSET_NX(*dset_time) ;
       nyd  = DSET_NY(*dset_time) ;
@@ -6231,7 +6231,7 @@ void extract_ts_array
 
 
   /*----- Now extract time series from MRI_IMAGE -----*/
-  ts_length = DSET_NUM_TIMES (dset_time);
+  ts_length = DSET_NVALS(dset_time);
   ar = MRI_FLOAT_PTR (im);
 #if 0
   for (it = 0;  it < ts_length;  it++)
@@ -8071,7 +8071,7 @@ void write_bucket_data
   /*----- Initialize local variables -----*/
   nxyz = old_dset->daxes->nxx * old_dset->daxes->nyy * old_dset->daxes->nzz;
   num_stimts = option_data->num_stimts;
-  nt = DSET_NUM_TIMES (old_dset);
+  nt = DSET_NVALS(old_dset);
   num_glt = option_data->num_glt;
   glt_rows = option_data->glt_rows;
 

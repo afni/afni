@@ -66,6 +66,36 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 1, June , 2018 , PT , "fat_proc_axialize_anat" , MINOR , TYPE_NEW_OPT,
+   "New pre-alignment opt, -pre_align_center_mass.",
+   "Probably more useful than older -pre_center_mass.\n"
+},
+
+{ 1, June , 2018 , PT , "3dClusterize" , MICRO , TYPE_NEW_OPT,
+   "New opt to output vols even if no clusters are found.",
+   "These would be empty vols-- juuuust if the user wants.\n"
+},
+
+{ 30, May , 2018 , PT , "fat_proc_map_to_dti" , MINOR , TYPE_NEW_OPT,
+   "User can specify matching cost and warp.",
+   "How exciting is that??  (Well, mostly for test comparisons...).\n"
+},
+
+{ 30, May , 2018 , PT , "@suma_reprefixize_spec" , MICRO , TYPE_BUG_FIX,
+   "Changing 'more' -> 'cat', internally.",
+   "Think 'more' gave oddness at times- dumped weird chars and broke files.\n"
+},
+
+{ 29, May , 2018 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
+   "Can crop the saved images.",
+   "See the '-crop_*' options.\n"
+},
+
+{ 27, May , 2018 , PT , "3dClusterize" , MINOR , TYPE_GENERAL,
+   "Make report cleaner, and add in INT_MAP property to output clust map.",
+   "Thanks, D. Glen for more useful suggestions.\n"
+},
+
 { 23, May , 2018 , PT , "3dClusterize" , MINOR , TYPE_GENERAL,
    "Some bug fixes if dsets are left out, some new checks on what user asks.",
    "User can't run multi-sided tests on single-sided stats now...\n"

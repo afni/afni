@@ -24,6 +24,14 @@
 
    2018 05 23: + [PT] Adding in more D. Glen suggestions/fixes:
                  - but who runs a 1sided-LEFT test on an Fstat???
+
+   2018 05 27: + [PT] Adding in more D. Glen suggestions/fixes:
+                 - INT_CMAP attribute set for pref_map output (cluster map)
+                 - fix report strings, all hashed
+
+   2018 06 01: + [PT] null map output in case of no clusts, if user desires:
+                 - for troublemaking users, only!
+
 */
 
 
@@ -54,7 +62,7 @@ int mycheck_is_int(char *x);
 void usage_Clusterize(int detail) 
 {
    printf(
-" # ------------------------------------------------------------------------\n"
+" PURPOSE ~1~\n"
 " \n"
 " This program is for performing clusterizing: one can perform voxelwise\n"
 " thresholding on a dataset (such as a statistic), and then make a map\n"
@@ -81,7 +89,6 @@ void usage_Clusterize(int detail)
 " predominantly uses code written by many legends: RW Cox, BD Ward, MS\n"
 " Beauchamp, ZS Saad, and more.\n"
 " \n"
-" * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 " \n"
 " USAGE ~1~\n"
 " \n"
@@ -109,7 +116,6 @@ void usage_Clusterize(int detail)
 "       within a cluster are output unchanged, and those outside a cluster\n"
 "       are zeroed.\n"
 "     + Optional: a mask.\n"
-" \n"
 " \n"
 "   Explanation of 3dClusterize text report: ~2~\n"
 " \n"
@@ -162,9 +168,8 @@ void usage_Clusterize(int detail)
 "       CM of the combined cluster ROIs, and the mean+SEM of that\n"
 "       Pangaea.\n"
 " \n"
-" * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 " \n"
-" COMMAND ~1~\n"
+" COMMAND OPTIONS ~1~\n"
 " \n"
 " -inset  III    :Load in a dataset III of one or more bricks for\n"
 "                 thresholding and clusterizing; one can choose to use\n"
@@ -194,7 +199,7 @@ void usage_Clusterize(int detail)
 "                 'j' can be either an integer *or* a brick_label string.\n"
 " \n"
 " -idat   k      :Uses sub-brick [k] as the data source (optional);\n"
-"                 'j' can be either an integer *or* a brick_label string.\n"
+"                 'k' can be either an integer *or* a brick_label string.\n"
 "                 If this option is used, thresholding is still done by\n"
 "                 the 'threshold' dataset, but that threshold map is\n"
 "                 applied to this 'data' set, which is in turn used for\n"
@@ -277,6 +282,14 @@ void usage_Clusterize(int detail)
 " \n"
 " -quiet         :Suppress all non-essential output\n"
 " \n"
+" -outvol_if_no_clust: flag to still output an (empty) vol if no \n"
+"                 clusters are found.  Even in this case, no report is\n"
+"                 is produced if no clusters are found.  This option is\n"
+"                 likely used for some scripting scenarios; also, the\n"
+"                 user would still need to specify '-pref_* ...' options\n"
+"                 as above in order to output any volumes with this opt.\n"
+"                 (def: no volumes output if no clusters found).\n"
+"\n"
 " -orient OOO    :change the coordinate output order to 'OOO' (def:\n"
 "                 is DICOM, RAI); alternatively, one could set the\n"
 "                 environment variable AFNI_ORIENT (see the file\n"
@@ -291,17 +304,16 @@ void usage_Clusterize(int detail)
 "                 If no clusters are found, the mask is not written!\n"
 "                 (def: each cluster has separate values)\n"
 " \n"
-" * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 " \n"
 " NOTES ~1~\n"
 " \n"
-"   + Saving the text report: ~2~\n"
+"   Saving the text report ~2~\n"
 " \n"
 "     To save the text file report, use the redirect '>' after the\n"
 "     3dClusterize command and dump the text into a separate file of\n"
 "     your own naming.\n"
 " \n"
-"   + Using p-values as thresholds: ~2~\n"
+"   Using p-values as thresholds ~2~\n"
 " \n"
 "     By default, numbers entered as voxelwise thresholds are assumed to\n"
 "     be appropriate statistic values that you have calculated for your\n"
@@ -336,12 +348,11 @@ void usage_Clusterize(int detail)
 "     You cannot mix p-values and statistic values (for two-sided\n"
 "     things, enter either the single p-value or both stats).\n"
 " \n"
-"   + Performing appropriate testing: ~2~\n"
+"   Performing appropriate testing ~2~\n"
 " \n"
 "     Don't use a pair of one-sided tests when you *should* be using a\n"
 "     two-sided test!\n"
 " \n"
-" * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 " \n"
 " EXAMPLES ~1~\n"
 " \n"
@@ -392,8 +403,6 @@ void usage_Clusterize(int detail)
 "        -clust_nvox 157            \\\n"
 "        -pref_map ClusterMap       \\\n"
 "        -pref_dat ClusterEffEst\n"
-" \n"
-" # ------------------------------------------------------------------------\n"
 " \n"
 " # ------------------------------------------------------------------------\n"
 );
@@ -490,6 +499,7 @@ int main(int argc, char *argv[]) {
    int ndet, nopt, do_mni;
 
    int FOUND_CLUSTERS = 0; 
+   int OUTVOL_IF_NO_CLUST = 0; 
    int STAT_nsides = -1;
 
    mainENTRY("3dClusterize"); machdep(); 
@@ -678,8 +688,8 @@ int main(int argc, char *argv[]) {
                ERROR_exit("If using 'p=...', only use one argument!");
             
             thb = atof(chtmp); // for bot of R tail
-            sprintf(repstr, "left-tail stat=%f;\n                     "
-                    "    right-tail stat=%f", tht, thb);
+            sprintf(repstr, "left-tail stat=%f;  "
+                    "right-tail stat=%f", tht, thb);
          }
 
          if( STATINPUT )
@@ -736,6 +746,11 @@ int main(int argc, char *argv[]) {
 
          MakeBrickLab2(blab2,argv[iarg-1]+1,argv[iarg]);
 
+         iarg++ ; continue ;
+      }
+
+      if( strcmp(argv[iarg],"-outvol_if_no_clust") == 0 ) {
+         OUTVOL_IF_NO_CLUST = 1 ;
          iarg++ ; continue ;
       }
 
@@ -914,8 +929,8 @@ int main(int argc, char *argv[]) {
                                    DSET_BRICK_STATAUX(insetA, ithr));
          INFO_message("Converted left-tail p=%f -> stat=%f", tmpt, tht);
          INFO_message("Converted right-tail p=%f -> stat=%f", tmpb, thb);
-         sprintf(repstr, "left-tail p=%f -> stat=%f;\n                     "
-                 "    right-tail p=%f -> stat=%f", tmpt, tht, tmpb, thb);
+         sprintf(repstr, "left-tail p=%f -> stat=%f;  "
+                 "right-tail p=%f -> stat=%f", tmpt, tht, tmpb, thb);
       }
    }
 
@@ -1112,7 +1127,6 @@ int main(int argc, char *argv[]) {
    } 
    else if( thr_type == -2 ) { // bisided
 
-
       // threshold data CIM:
       mri_threshold( -BIIIIG_NUM, thb, tim, cim );
       
@@ -1177,6 +1191,12 @@ int main(int argc, char *argv[]) {
       printf("%s** NO CLUSTERS FOUND ***\n", c1d);
       if( AFNI_yesenv("AFNI_3dclust_report_zero") ) printf(" 0\n");
       if( clar != NULL ) DESTROY_CLARR(clar);
+
+      // [PT: June 1, 2018] will still output a volume if outvol if no
+      // clust were found, IF the user ask for it.
+      // Here, make array of cluster ROIs
+      if ( OUTVOL_IF_NO_CLUST )
+          mmm = (short *) calloc(sizeof(short), nxyz);
    }
    else {
       FOUND_CLUSTERS = 1;
@@ -1207,10 +1227,11 @@ int main(int argc, char *argv[]) {
 
    // --------------- write out copy of the data volume, if asked
 
-   if( CL_prefix && (ival >= 0) && FOUND_CLUSTERS ) {
+   if( CL_prefix && (ival >= 0) && 
+       ( FOUND_CLUSTERS || OUTVOL_IF_NO_CLUST) ) {
 
       INFO_message("Writing out dataset masked by clusters.");
-
+      
       THD_3dim_dataset *dset=NULL;
       
       // copy the single brick we will output
@@ -1285,7 +1306,7 @@ int main(int argc, char *argv[]) {
 
    // --------------- write out map of cluster ROIs
 
-   if ( FOUND_CLUSTERS ) {
+   if ( FOUND_CLUSTERS || OUTVOL_IF_NO_CLUST ) {
       
       if ( prefix ) {
          INFO_message("Writing out map of cluster ROIs.");
@@ -1300,6 +1321,8 @@ int main(int argc, char *argv[]) {
          EDIT_substitute_brick(qset, 0, MRI_short, mmm); 
          mmm = NULL;
          
+         // useful props: integer colormap and brick labelling
+         qset->int_cmap = INT_CMAP;
          EDIT_BRICK_LABEL(qset, 0, blab1);
          
          tross_Copy_History( insetA , qset ) ;
@@ -1307,10 +1330,10 @@ int main(int argc, char *argv[]) {
          DSET_write(qset); WROTE_DSET(qset); DSET_delete(qset);
       }
 
-      // ---------- write out report --------------------
+   }
 
-      //INFO_message("Time to make the report...");
-
+   // ---------- write out report --------------------
+   if ( FOUND_CLUSTERS ) { // still only if clusters found
 
       do_mni = (CL_do_mni && insetA->view_type == VIEW_TALAIRACH_TYPE);
       THD_coorder_fill( my_getenv("AFNI_ORIENT") , &CL_cord);

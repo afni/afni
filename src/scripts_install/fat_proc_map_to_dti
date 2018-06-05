@@ -46,9 +46,13 @@
 #   + also, movie $imtrx loop above, don't need to Unifize
 #     if the matrix is input directly: save time.
 #
-set version   = "2.0";    set rev_dat   = "Feb 15, 2018"
+#set version   = "2.0";    set rev_dat   = "Feb 15, 2018"
 #   + make QC dir for images
 #   + rename output QC files more succinctly
+# 
+set version   = "2.1";    set rev_dat   = "May 30, 2018"
+#   + allow for restricted warps (e.g., solid body only)
+#   + allow for other cost functions (not just lpc)
 # 
 # ---------------------------------------------------------------
 
@@ -95,6 +99,9 @@ set WDIR_EX  = "1"               # put opref on wdir (unless user names)
 set output_cmd = 1               # def: output copy of this command
 set cmd_file   = ""              # def: same name as viewer
 set qc_prefix  = ""              # def: autoname; user can enter
+
+set allin_cost = "lpc"
+set allin_warp = "affine_general"
 
 # ------------------- process options, a la rr ----------------------
 
@@ -151,6 +158,18 @@ while ( $ac <= $#argv )
         @ ac += 1
         set wdir = "$argv[$ac]"
         set WDIR_EX  = "0"
+
+    # [PT: May 30, 2018] allow for other 3dAllineate costs
+    else if ( "$argv[$ac]" == "-cost" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set allin_cost = "$argv[$ac]"
+
+    # [PT: May 30, 2018] allow for other 3dAllineate costs
+    else if ( "$argv[$ac]" == "-warp" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set allin_warp = "$argv[$ac]"
 
     # -------------- get followers --------------------
     # can be arbitrary list (a bit clunky method...)
@@ -488,7 +507,8 @@ if ( "$imtrx" == "" ) then
         -prefix         "$t1align"        \
         -base           "$ibase"          \
         -twopass                          \
-        -cost lpc                         \
+        -cost $allin_cost                 \
+        -warp $allin_warp                 \
         -cmass                            \
         -source_automask                  \
         -autoweight                       \
@@ -923,6 +943,17 @@ cat << EOF
  
    -matrix MMM    :one can apply a pre-made matrix that has been made by
                    3dAllineate previously.  With this option.  If you want.
+
+   -cost CCC      :one can apply any cost function CCC that is
+                   accepted by 3dAllineate.  The default is for
+                   matching dsets of opposite contrast, such as a T1w
+                   to a b=0 DWI, which is like a T2w contrast (def:
+                   lpc).
+
+   -warp xxx      :one can set the linear affine warp type through the 
+                   same warp arguments accepted by 3dAllineate: shift_only,
+                   shift_rotate, shift_rotate_scale, affine_general, etc.
+                   (def: affine_general).
 
    -workdir WWW   :specify a working directory, which can be removed;
                    (default name = '$wdir')
