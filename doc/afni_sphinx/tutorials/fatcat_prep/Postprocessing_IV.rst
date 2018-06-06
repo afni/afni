@@ -6,6 +6,8 @@ Post-preproc, IV: Tracking
 .. contents::
    :depth: 3
 
+.. highlight:: Tcsh
+
 Overview
 --------
 

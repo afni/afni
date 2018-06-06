@@ -31,5 +31,6 @@
 
 .. script(s)
 .. literalinclude:: fmri_proc/2018_ChenEtal/s.nimh_group_level_02_mema_bisided.tcsh
-    :linenos:
+   :language: Tcsh
+   :linenos:
 

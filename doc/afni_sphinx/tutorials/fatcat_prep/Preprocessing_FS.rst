@@ -7,6 +7,8 @@ Preproc: FreeSurfer (+ @SUMA_Make_Spec_FS)
 .. contents::
    :depth: 3
 
+.. highlight:: Tcsh
+
 Re. recon-all (FS)
 ------------------
 

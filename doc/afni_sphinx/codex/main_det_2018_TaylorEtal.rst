@@ -31,13 +31,17 @@
 
 .. script(s)
 .. literalinclude:: fmri_proc/2018_TaylorEtal/s.bmn_subject_level_02_ap.tcsh
-    :linenos:
+   :language: Tcsh
+   :linenos:
 
 .. literalinclude:: fmri_proc/2018_TaylorEtal/s.nimh_subject_level_01_qwarp.tcsh
-    :linenos:
+   :language: Tcsh
+   :linenos:
 
 .. literalinclude:: fmri_proc/2018_TaylorEtal/s.nimh_subject_level_02_ap.tcsh
-    :linenos:
+   :language: Tcsh
+   :linenos:
 
 .. literalinclude:: fmri_proc/2018_TaylorEtal/s.nimh_group_level_02_mema.tcsh
-    :linenos:
+   :language: Tcsh
+   :linenos:
