@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  6, Jun, 2018, RCR, "model_conv_PRF_6", MICRO, TYPE_MODIFY,
+   "be clear that AFNI_MODEL_PRF_ON_GRID is not ready for this model",
+   NULL
+ } ,
+
  { 25, May, 2018, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "add option -combine_opts_tedwrap, to pass to tedana_wrapper.py",
    "This is currently for passing -tedana_is_exec, say.\n"
