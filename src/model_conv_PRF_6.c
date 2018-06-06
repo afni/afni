@@ -142,8 +142,8 @@ static int set_env_vars(void)
    genv_debug = (int)AFNI_numenv_def("AFNI_MODEL_DEBUG", 0);
    fprintf(stderr,"-- PRF: debug %d, iter %d\n", genv_debug, genv_diter);
 
-   /* on grid - default to yes */
-   genv_on_grid  = 1-AFNI_noenv("AFNI_MODEL_PRF_ON_GRID"); /* flag */
+   /* on grid - default to no (yes->no 6 Jun 2013) */
+   genv_on_grid  = AFNI_yesenv("AFNI_MODEL_PRF_ON_GRID"); /* flag */
    fprintf(stderr,"-- PRF: results on grid: %s\n", genv_on_grid?"yes":"no");
 
    genv_sigma_max = AFNI_numenv_def("AFNI_MODEL_PRF_SIGMA_MAX", genv_sigma_max);
@@ -610,6 +610,16 @@ static void conv_model( float *  gs      , int     ts_length ,
    /*   it may be used in reset_stim_aperture_dset */
 
    if( refnum <= 0 ) conv_set_ref( 0 , NULL ) ;
+
+   if ( genv_on_grid ) {
+      int pad = (g_iter % 76) - 38;
+      if ( pad < 0 ) pad = -pad;
+      fprintf(stderr,"%*s** not ready for AFNI_MODEL_PRF_ON_GRID **\n",
+              pad,"");
+      for ( ii=0; ii < ts_length; ii++ )
+         ts_array[ii] = 0;
+      return;
+   }
 
    /* create stim aperture dset */
    if( g_iter == 0 ) {
@@ -1170,6 +1180,11 @@ static int model_help(void)
 "      It might be reasonable to have this be 100 or 200 (or 101 or 201)\n"
 "      voxels on a side.\n"
 "\n"
+"\n"
+"    **** Years have gone by, and I still have not implemented the speed-up\n"
+"         for AFNI_MODEL_PRF_ON_GRID.  Please leave it set to NO for now.\n"
+"\n"
+"\n"
 "    * The amount of memory used for the precomputation should be the size\n"
 "      of this dataset (in float format) times AFNI_MODEL_PRF_SIGMA_NSTEPS.\n"
 "      It is converted to floats because it is blurred internally.\n"
@@ -1238,24 +1253,10 @@ static int model_help(void)
 "\n"
 "      AFNI_MODEL_PRF_ON_GRID      : Y/N - use pre-computed solutions\n"
 "\n"
-"         e.g. setenv AFNI_MODEL_PRF_ON_GRID NO\n"
-"         e.g. default YES\n"
 "\n"
-"         Recommended.\n"
+"         *** This has not been coded yet.  If there is strong interest,\n"
+"             please let me know, though no promises are being made.\n"
 "\n"
-"         When set, the model function will actually pre-compute all possible\n"
-"         (unscaled) fit solutions on the first pass.  Since all of these\n"
-"         parameters have a smooth effect on the result, this method should\n"
-"         be sufficient.\n"
-"\n"
-"         Note that the resolution of x0, y0 parameters comes directly from\n"
-"         the stimulus dataset (AFNI_MODEL_PRF_STIM_DSET), while the sigma\n"
-"         resolution comes from the maximum (AFNI_MODEL_PRF_SIGMA_MAX) and\n"
-"         the number of computed values (AFNI_MODEL_PRF_SIGMA_NSTEPS).\n"
-"\n"
-"         The more voxels to solve for in the input EPI, the more useful this\n"
-"         is.  For a single voxel, it is slow.  For a large dataset, it can\n"
-"         speed up the solution by a factor of 1000.\n"
 "\n"
 "      AFNI_MODEL_PRF_SIGMA_MAX    : specify maximum allowable sigma\n"
 "\n"
@@ -1293,7 +1294,7 @@ static int model_help(void)
 "\n"
 "         or more directly (without setenv):\n"
 "\n"
-"            3dNLfim -DAFNI_MODEL_HELP_CONV_PRF_6=Y -signal Conv_PRF_6\n"
+"            3dNLfim -DAFNI_MODEL_HELP_CONV_PRF_6=Y -signal Conv_PRF_6 \n"
 "\n"
 "      AFNI_MODEL_DEBUG            : specify debug/verbosity level\n"
 "\n"
