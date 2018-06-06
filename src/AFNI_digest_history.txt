@@ -1,3 +1,23 @@
+AFNI Digest, week of 2018/06/05.
+
+00) *Important* notice for Mac users.
+AFNI binary package "macosx_10.7_Intel_64" will no longer receive
+updates after June 30, 2018 (after OHBM/ISMRM...).  The basically
+identical macosx_10.7_local package will still be updated.
+
+If "afni -ver" shows "macosx_10.7_Intel_64", then the next time you
+would update your binaries, please consider updating them to
+macosx_10.7_local or macosx_10.12_local. Updating can be done by
+running, for example:
+
+  @update.afni.binaries -defaults -package macosx_10.7_local
+
+Verification of the update can be done with "afni -ver", which should
+then show macosx_10.7_local.  *NB: An update is not necessary now-now,
+only when one would otherwise be done (so, then-now).
+
+========================================================================
+
 AFNI Digest, week of 2018/05/30.
 
 00) Some important thoughts on how to do basic statistical testing.
