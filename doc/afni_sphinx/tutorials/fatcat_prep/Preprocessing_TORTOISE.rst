@@ -7,6 +7,8 @@ Preproc: TORTOISE
 .. contents::
    :depth: 3
 
+.. highlight:: Tcsh
+
 Comments
 --------
 

@@ -6,6 +6,8 @@ Pre-preproc, I: convert and niceify
 .. contents::
    :depth: 3
 
+.. highlight:: Tcsh
+
 Description
 -----------
 

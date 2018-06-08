@@ -31,7 +31,9 @@
 
 .. script(s)
 .. literalinclude:: fmri_proc/2016_ChenEtal/s.2016_ChenEtal_01_init.tcsh
-    :linenos:
+   :language: Tcsh
+   :linenos:
 
 .. literalinclude:: fmri_proc/2016_ChenEtal/s.2016_ChenEtal_02_ap.tcsh
-    :linenos:
+   :language: Tcsh
+   :linenos:
