@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  8, Jun, 2018, RCR, "3ddata.h", MICRO, TYPE_BUG_FIX,
+   "have DUMP_MAT44 write to stdout again (might re-do stderr later)",
+   "Need to fix align_epi_anat.py for stderr, but must check shell use.\n"
+   "Thanks to T Radman for noting the problem."
+ } ,
+
  {  6, Jun, 2018, RCR, "model_conv_PRF_6", MICRO, TYPE_MODIFY,
    "be clear that AFNI_MODEL_PRF_ON_GRID is not ready for this model",
    NULL
