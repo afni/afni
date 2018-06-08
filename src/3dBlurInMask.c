@@ -40,10 +40,11 @@ int main( int argc , char *argv[] )
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf(
-      "Usage: 3dBlurInMask [options]\n"
-      "Blurs a dataset spatially inside a mask.  That's all.  Experimental.\n"
+      "Usage: ~1~\n"
+      "3dBlurInMask [options]\n"
+      "Blurs a dataset spatially inside a mask. That's all. Experimental.\n"
       "\n"
-      "OPTIONS\n"
+      "OPTIONS ~1~\n"
       "-------\n"
       " -input  ddd = This required 'option' specifies the dataset\n"
       "               that will be smoothed and output.\n"
@@ -78,7 +79,7 @@ int main( int argc , char *argv[] )
       "                      force an all-shorts input dataset to be saved\n"
       "                      as all-floats after blurring.\n"
       "\n"
-      "NOTES\n"
+      "NOTES ~1~\n"
       "-----\n"
       " * If you don't provide a mask, then all voxels will be included\n"
       "     in the blurring.  (But then why are you using this program?)\n"
