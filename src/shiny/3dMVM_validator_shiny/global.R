@@ -40,6 +40,17 @@ afni.path <- dirname(system('which afni',intern=TRUE))
 data.df <- fread(table.file,stringsAsFactors=TRUE,data.table=FALSE)
 data.str <- fread(table.file,stringsAsFactors=FALSE)
 
+## fix the quotes for the InputFile
+data.df$InputFile <- gsub("'","",data.df$InputFile)
+data.df$InputFile <- gsub('"',"",data.df$InputFile)
+data.df$InputFile <- gsub('\\[','"[',data.df$InputFile)
+data.df$InputFile <- gsub('\\]',']"',data.df$InputFile)
+
+data.str$InputFile <- gsub("'","",data.str$InputFile)
+data.str$InputFile <- gsub('"',"",data.str$InputFile)
+data.str$InputFile <- gsub('\\[','"[',data.str$InputFile)
+data.str$InputFile <- gsub('\\]',']"',data.str$InputFile)
+
 ## get the number of subjects
 n.subj <- length(levels(data.df$Subj))
 
