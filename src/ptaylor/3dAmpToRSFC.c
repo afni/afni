@@ -578,9 +578,16 @@ void Spect_to_RSFC( THD_3dim_dataset *A,
          for( i=0 ; i<Dim[0] ; i++ ) {
             if( mskd[i][j][k] ) {
                // fALFF and fRSFA need no further scaling.
-               ap[0][idx]/= facLMmin1; //sqrt(nt_cen-1); //  ALFF-- don't need sqrt(2) ! normalize properly, I think
+               ap[0][idx]/= (facL*facL); // [PT: JUn 12 2018]: have rescaled
+                                  // AMPS-> don't need/want the
+                                  // 'Mmin1' here now;Mmin1;
+                                  // //sqrt(nt_cen-1); // ALFF-- don't
+                                  // need sqrt(2) ! normalize
+                                  // properly, I think
                ap[1][idx]/= mean_alff;   // mALFF
-               ap[3][idx]/= facLMmin1;   //  RSFA
+               ap[3][idx]/= facL * sqrt(Dim[3]-1); // [PT: JUn 12 2018]: have rescaled
+                                  // AMPS-> don't need/want the
+                                  // 'Mmin1' here now; // RSFA
                ap[4][idx]/= mean_rsfa;   // mRSFA
             }
             idx++;

@@ -8,6 +8,13 @@
    [PT: Sept 26, 2014] Add in attribute output for Ntpts pre- and
    post-censoring.
 
+   [PT: June 12, 2018] 
+   + no more norm(al)ize
+   + don't scale output by number of tpts after censoring
+     -> with accompanying change in 3dAmpToRSFC
+   + for now, leave in factor of 2 in Amps here...
+
+
 */
 
 
@@ -189,9 +196,8 @@ void usage_LombScargle(int detail)
 "                    instead of the periodogram.  In the formulation used\n"
 "                    here, for a time series of length N, the power spectral\n"
 "                    value S is related to the amplitude value X as:\n"
-"                    S = (X)**2.\n"
-"      NB --> You can both normalize and amplitude-ize the output values,\n"
-"            if you wish. Or do neither. Or just do one of them. Your choice.\n"
+"                    S = (X)**2. (Without this opt, default output is \n"
+"                    amplitude spectrum.)\n"
 "\n"
 "  -nyq_mult N2     :L-S periodograms can include frequencies above what\n"
 "                    would typically be considered Nyquist (here defined\n"
@@ -460,11 +466,11 @@ int main(int argc, char *argv[]) {
          iarg++ ; continue ;
       }
 
-      if( strcmp(argv[iarg],"-do_normize") == 0) {
+      /*if( strcmp(argv[iarg],"-do_normize") == 0) {
          INFO_message("Will normalize output");
 			DO_NORMALIZE=1;
 			iarg++ ; continue ;
-		}
+         }*/
 
       if( strcmp(argv[iarg],"-out_pow_spec") == 0) {
          INFO_message("Will output the *power spectrum*, "
@@ -850,9 +856,10 @@ int main(int argc, char *argv[]) {
                }
                for( l=0 ; l<Npts_out ; l++ ) { 
                   // normalizing and accounting for wins
-                  all_ls[l][idx]*= ((float) Npts_cen) / NWIN; 
-                  if( DO_NORMALIZE)
-                     all_ls[l][idx]/= Npts_cen; //Dim[3];
+                  //all_ls[l][idx]*= ((float) Npts_cen) / NWIN; 
+                  all_ls[l][idx]/= (float) NWIN; 
+                  //if( DO_NORMALIZE)
+                  // all_ls[l][idx]/= Npts_cen; //Dim[3];
                   if( DO_AMPLITUDEIZE )
                      all_ls[l][idx] = sqrt(all_ls[l][idx]);
                }
