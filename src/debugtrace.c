@@ -5,6 +5,7 @@
 #include "AFNI_version.h"
 #include "debugtrace.h"  /* contains 1 function */
 #include <ctype.h>
+#include <stdarg.h>
 
 /*--------------------------------------------------------------------------*/
 
