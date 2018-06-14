@@ -114,6 +114,7 @@ static unsigned char PADDING[64] = {
  (a) += (b); \
   }
 
+#undef  II
 #define II(a, b, c, d, x, s, ac) { \
  (a) += I ((b), (c), (d)) + (x) + (UINT4)(ac); \
  (a) = ROTATE_LEFT ((a), (s)); \

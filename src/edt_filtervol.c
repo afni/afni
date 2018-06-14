@@ -127,6 +127,13 @@ ENTRY("EDIT_filter_volume") ;
 
       wt = (float *) malloc(sizeof(float)*(mnum+1)) ;
 
+#undef  II
+#undef  II
+#undef  KK
+#undef  RR
+#undef  XX
+#undef  YY
+#undef  ZZ
 #define II  8  /* a=0 b=1 ... i=8 ... z=25 */
 #define JJ  9
 #define KK 10

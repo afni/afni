@@ -13,6 +13,7 @@
 extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
 #endif
 
+#undef  FREEUP
 #define FREEUP(x) do{if((x) != NULL){free((x)); (x)=NULL;}}while(0)
 
 extern int g_thd_maker_allow_1brick;   /* 2 Nov 2010 [rickr] */

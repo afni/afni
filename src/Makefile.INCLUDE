@@ -1948,7 +1948,7 @@ testdsetio: SUMA/SUMA_TestDsetIO.c suma_datasets.o suma_algorithms.o suma_utils.
 ### Sort of clean
 
 clean: clean_version
-	$(RM) `find . -name \*.o -print` mrilib_raw.h mrilib_all.c
+	$(RM) `find . -name \*.o -print` mrilib_raw.h mrilib_all.c mrilib_raw.c
 
 cleann: clean_version
 	$(RM) `find . -name \*.o -print`
@@ -2442,6 +2442,13 @@ NETCDF_OBJS =  netcdf_attr.o   netcdf_dim.o   netcdf_error.o netcdf_libvers.o \
                netcdf_string.o netcdf_v1hpg.o netcdf_v2i.o   netcdf_var.o     \
                thd_mincread.o
 
+NETCDF_DIR = netcdf-3.5.0/libsrc/src
+
+NETSCR_SRCS = $(NETCDF_DIR)/attr.c   $(NETCDF_DIR)/dim.c    $(NETCDF_DIR)/error.c   \
+              $(NETCDF_DIR)/libvers.c $(NETCDF_DIR)/nc.c     $(NETCDF_DIR)/ncio.c   \
+              $(NETCDF_DIR)/ncx.c    $(NETCDF_DIR)/putget.c $(NETCDF_DIR)/string.c  \
+              $(NETCDF_DIR)/v1hpg.c  $(NETCDF_DIR)/v2i.c    $(NETCDF_DIR)/var.c    
+
 SUMA_OBJS = suma_afni_surface.o suma_datasets.o suma_utils.o \
             suma_string_manip.o suma_algorithms.o suma_help.o
 
@@ -2459,12 +2466,18 @@ MISC_SRCS  = afni_suma.c vol2surf.c nifti/nifti2/nifti2_io.c nifti/znzlib/znzlib
 # to make a completely resolved version of the header for Python
 
 mrilib_raw.h: AFNI_version.h 3ddata.h mrilib.h
-	gcc -E $(INFLAGS) mrilib.h > mrilib_raw.h
+	gcc -E $(INFLAGS) mrilib.h netcdf.h | uniq > mrilib_raw.h
 
-# to make one big file with all libmri source code (for Python?)
+# to make one big file with all libmri source code (for Python)
 
 mrilib_all.c: AFNI_version.h 3ddata.h mrilib.h
-	cat $(NIML_SRCS) $(EDT_SRCS) $(CS_SRCS) $(SUMA_SRCS) $(MISC_SRCS) $(EIS_SRCS) > mrilib_all.c
+	cat $(NIML_SRCS) $(EDT_SRCS) $(CS_SRCS) $(SUMA_SRCS) $(MISC_SRCS) \
+            $(EIS_SRCS) $(NETCDF_SRCS) > mrilib_all.c
+
+# same thing, but pre-processed
+
+mrilib_raw.c: mrilib_all.c
+	gcc -E $(INFLAGS) -Iniml -Igifti mrilib_all.c | uniq > mrilib_raw.c
 
 # the library of libraries
 

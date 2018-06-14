@@ -670,12 +670,18 @@ static void sha256_process( sha256_context *ctx, uint8 data[64] )
 #define  SHR(x,n) ((x & 0xFFFFFFFF) >> n)
 #define ROTR(x,n) (SHR(x,n) | (x << (32 - n)))
 
+#undef  S0
+#undef  S1
 #define S0(x) (ROTR(x, 7) ^ ROTR(x,18) ^  SHR(x, 3))
 #define S1(x) (ROTR(x,17) ^ ROTR(x,19) ^  SHR(x,10))
 
+#undef  S2
+#undef  S3
 #define S2(x) (ROTR(x, 2) ^ ROTR(x,13) ^ ROTR(x,22))
 #define S3(x) (ROTR(x, 6) ^ ROTR(x,11) ^ ROTR(x,25))
 
+#undef  F0
+#undef  F1
 #define F0(x,y,z) ((x & y) | (z & (x | y)))
 #define F1(x,y,z) (z ^ (x & (y ^ z)))
 

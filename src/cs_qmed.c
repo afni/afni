@@ -435,6 +435,7 @@ static float median_float9(float *p)
  *------- Code mildly adapted from Al Paeth's Median.c --------*
  *//*----------------------------------------------------------*/
 
+#undef  S2
 #define S2(i,j) if(A[i-1]>A[j-1]){temp=A[i-1];A[i-1]=A[j-1];A[j-1]=temp;}
 
 static float median_float25( float *A )
