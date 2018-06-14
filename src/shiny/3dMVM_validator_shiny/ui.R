@@ -95,8 +95,8 @@ body <-  dashboardBody(
              fluidRow(column(
                width=12,
                textInput('qnt_vars_center',
-                         'Specify -qVars centering (comma separated, matching
-                         above order): -qVarCenters',
+                         'Specify -qVars centering (comma separated numbers,
+                          matching above order): -qVarCenters',
                          value="",width="100%"))
              ),br(),
              fluidRow(box(title='Model result:',
@@ -108,10 +108,11 @@ body <-  dashboardBody(
     tabPanel('Script',icon=icon("newspaper-o"),br(),
              fluidRow(
                box(width=9,title='Enter script file name:',
-                      textInput('script_name',NULL,
-                                value="My_MVM.txt",width='100%') ),
+                      textInput('script_name',NULL,width='100%',
+                                value=paste0(cur.dir,"/MyMVM.txt")) ),
                box(width=3,
-                      downloadButton('downloadScript','Download Script') )
+                   actionButton('downloadScript','Save Script'),
+                   checkboxInput('OverwriteScript','Overwrite script?') )
              ),
              fluidRow(
                box(width=12,title='Execute script at terminal with:',
