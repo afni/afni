@@ -26,6 +26,9 @@ static void isort_double( int n , double * ar )
    return ;
 }
 
+#undef  QS_CUTOFF
+#undef  QS_SWAP
+#undef  QS_SWAPI
 #define QS_CUTOFF     20       /* cutoff to switch from qsort to isort */
 #define QS_SWAP(x,y)  (temp=(x), (x)=(y),(y)=temp )
 #define QS_SWAPI(x,y) (itemp=(x),(x)=(y),(y)=itemp)

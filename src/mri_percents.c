@@ -19,6 +19,10 @@ void qsrec_int  ( int , int   * , int ) ;
 void qsrec_float( int , float * , int ) ;
 void qsrec_pair ( int , float * , int * , int ) ;
 
+#undef  QS_CUTOFF
+#undef  QS_SWAP
+#undef  QS_SWAPI
+#undef  QS_SMALL
 #define QS_CUTOFF     40       /* cutoff to switch from qsort to isort */
 #define QS_SMALL      21
 #define QS_SWAP(x,y)  (temp=(x), (x)=(y),(y)=temp)

@@ -106,6 +106,8 @@ fprintf(stderr,"%d colors in input image with mask=%d\n",ncol,(int)mask) ;
 
 /******************************************************************************/
 
+#undef  QS_CUTOFF
+#undef  QS_SWAP
 #define QS_CUTOFF     40       /* cutoff to switch from qsort to isort */
 #define QS_SWAP(x,y)  (temp=(x), (x)=(y),(y)=temp)
 #ifndef QS_STACK
