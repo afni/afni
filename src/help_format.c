@@ -406,6 +406,9 @@ static void isort_intchar( int n , int *ar , char **iar )
 /********************************************************************************/
 /* qsrec : recursive part of quicksort (stack implementation)                   */
 
+#undef  QS_SWAPF
+#undef  QS_SWAPI
+#undef  QS_SWAPV
 #define QS_SWAPF(x,y) ( temp=(x),(x)=(y),(y)= temp)
 #define QS_SWAPI(i,j) (itemp=(i),(i)=(j),(j)=itemp)
 #define QS_SWAPV(i,j) (vtemp=(i),(i)=(j),(j)=vtemp)

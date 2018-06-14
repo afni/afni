@@ -59,6 +59,8 @@ static void ISORT_NAME( int n , STYPE * ar )
 /********************************************************************************/
 /* qsrec : recursive part of quicksort (stack implementation)                   */
 
+#undef  QS_SWAPF
+#undef  QS_SWAPI
 #define QS_SWAPF(x,y) ( temp=(x),(x)=(y),(y)= temp)
 #define QS_SWAPI(i,j) (itemp=(i),(i)=(j),(j)=itemp)
 #ifndef QS_STACK

@@ -7152,6 +7152,12 @@ STATUS("setting image view to be L-R mirrored") ;
 #endif
 
 #ifdef USE_SIDES
+#undef  LL
+#undef  RR
+#undef  AA
+#undef  PP
+#undef  SS
+#undef  II
 #define LL 0
 #define RR 1
 #define AA 2

@@ -670,6 +670,9 @@ static void isort_intint( int n , int * ar , int * iar )
 /*------------------------------------------------------*/
 /*! Recursive part of quicksort (stack implementation). */
 
+#undef  QS_STACK
+#undef  QS_SWAPF
+#undef  QS_SWAPI
 #define QS_STACK  1024  /* stack size */
 #define QS_SWAPF(x,y) ( temp=(x),(x)=(y),(y)= temp)
 #define QS_SWAPI(i,j) (itemp=(i),(i)=(j),(j)=itemp)
