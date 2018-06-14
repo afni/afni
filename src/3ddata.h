@@ -4333,7 +4333,7 @@ typedef struct {
 /************************************************************************/
 /******************* rest of prototypes *********************************/
 
-#include <stdarg.h>
+/** #include <stdarg.h> **/
 #ifdef  __cplusplus
 extern "C" {
 #endif

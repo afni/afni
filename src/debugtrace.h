@@ -422,7 +422,7 @@ extern void clock_time_atexit(void) ;
 
 /*---------------------------------------------------------------*/
 
-#include <stdarg.h>
+/** #include <stdarg.h> **/
 
 #ifdef  __cplusplus
 extern "C" {

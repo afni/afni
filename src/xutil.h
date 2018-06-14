@@ -69,7 +69,7 @@ extern void MCW_scale_widget_bg( Widget w , float fac , MCW_DC *dc ) ;  /* 18 Fe
      if( eee != NULL ) MCW_set_widget_fg((w),eee) ;   \
  } while(0)
 
-#include <stdarg.h>
+/** #include <stdarg.h> **/
 extern void MCW_flash_widget_list( int ntime , ... ) ;
 
 extern Colormap MCW_get_colormap( Widget ) ;            /* 01 Sep 1998 */
