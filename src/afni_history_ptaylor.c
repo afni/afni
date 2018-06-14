@@ -66,6 +66,16 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 1, June , 2018 , PT , "3dAmpToRSFC" , MINOR , TYPE_GENERAL,
+   "Adapted to changes of 3dLombScargle.",
+   "Simpler scaling to match Parseval.\n"
+},
+
+{ 1, June , 2018 , PT , "3dLombScargle" , MINOR , TYPE_GENERAL,
+   "Change scaling of output.",
+   "Simpler scaling to match Parseval.\n"
+},
+
 { 1, June , 2018 , PT , "fat_proc_axialize_anat" , MINOR , TYPE_NEW_OPT,
    "New pre-alignment opt, -pre_align_center_mass.",
    "Probably more useful than older -pre_center_mass.\n"
