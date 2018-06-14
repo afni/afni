@@ -16,7 +16,7 @@
 #include <sys/types.h>      /* to fix a bug in gcc */
 #include <stddef.h>
 #include <X11/Intrinsic.h>  /* only for XtFree, etc */
-#include <stdarg.h>         /* for variable number of arguments processing */
+/** #include <stdarg.h> **/        /* for variable number of arguments processing */
 
 #include "mrilib.h"
 #include "afni_warp.h"

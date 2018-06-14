@@ -15,9 +15,6 @@ F2C = f2c -A
 INFLAGS  = $(IFLAGS) -Inifti/nifti2 -Inifti/niftilib -Inifti/nifticdf -Inifti/znzlib -I3DEdge/src -Irickr $(USE_ZLIB) $(USE_GIFTI)
 ISFLAGS  = $(IFLAGS) -Inifti/nifti2 -I../nifti/niftilib -I../nifti/nifticdf -I../nifti/znzlib -I../nifti/nifti2 -I../3DEdge/src -I../rickr $(USE_ZLIB)
 
-mrilib_raw.h: AFNI_version.h 3ddata.h mrilib.h
-	gcc -E $(INFLAGS) mrilib.h > mrilib_raw.h
-
 DOCS     = ../doc/ps/*.ps ../doc/README/README*                    \
            rickr/AFNI.changes.rickr rhammett/AFNI.changes.rhammett \
            AFNI.changes.dglen
@@ -1951,7 +1948,7 @@ testdsetio: SUMA/SUMA_TestDsetIO.c suma_datasets.o suma_algorithms.o suma_utils.
 ### Sort of clean
 
 clean: clean_version
-	$(RM) `find . -name \*.o -print`
+	$(RM) `find . -name \*.o -print` mrilib_raw.h mrilib_all.c
 
 cleann: clean_version
 	$(RM) `find . -name \*.o -print`
@@ -2367,6 +2364,14 @@ NIML_OBJS = niml_b64.o     niml_element.o   niml_elemio.o niml_registry.o \
             niml_dataset.o niml_vector.o    niml_stat.o   niml_dtable.o   \
             niml_sucker.o
 
+NIML_DIR  = niml
+NIML_SRCS = $(NIML_DIR)/niml_b64.c     $(NIML_DIR)/niml_element.c   $(NIML_DIR)/niml_elemio.c $(NIML_DIR)/niml_registry.c \
+            $(NIML_DIR)/niml_util.c    $(NIML_DIR)/niml_byteorder.c $(NIML_DIR)/niml_header.c $(NIML_DIR)/niml_malloc.c   \
+            $(NIML_DIR)/niml_rowtype.c $(NIML_DIR)/niml_uuid.c      $(NIML_DIR)/niml_do.c     $(NIML_DIR)/niml_htable.c   \
+            $(NIML_DIR)/niml_md5.c     $(NIML_DIR)/niml_url.c       $(NIML_DIR)/niml_stream.c $(NIML_DIR)/niml_struct.c   \
+            $(NIML_DIR)/niml_dataset.c $(NIML_DIR)/niml_vector.c    $(NIML_DIR)/niml_stat.c   $(NIML_DIR)/niml_dtable.c   \
+            $(NIML_DIR)/niml_sucker.c
+
 EDT_OBJS = edt_addbrick.o edt_blur.o edt_buildmask.o edt_checkargv.o \
            edt_clust.o edt_clustarr.o edt_coerce.o edt_dsetitems.o   \
            edt_emptycopy.o edt_filtervol.o edt_help.o edt_onedset.o  \
@@ -2375,12 +2380,27 @@ EDT_OBJS = edt_addbrick.o edt_blur.o edt_buildmask.o edt_checkargv.o \
            edt_clust2.o edt_wodcopy.o edt_clustalpha.o edt_geomcon.o \
            edt_floatize.o
 
+EDT_SRCS = edt_addbrick.c edt_blur.c edt_buildmask.c edt_checkargv.c \
+           edt_clust.c edt_clustarr.c edt_coerce.c edt_dsetitems.c   \
+           edt_emptycopy.c edt_filtervol.c edt_help.c edt_onedset.c  \
+           edt_scl2max.c edt_substbrick.c edt_volamax.c edt_zscore.c \
+           edt_fullcopy.c edt_calcmask.c edt_volpad.c edt_sortmask.c \
+           edt_clust2.c edt_wodcopy.c edt_clustalpha.c edt_geomcon.c \
+           edt_floatize.c
+
 CS_OBJS  = cs_sort_fi.o cs_sort_di.o cs_symeig.o cs_sort_ii.o cs_sort_ff.o \
            cs_addto_args.o multivector.o afni_environ.o cs_qmed.o cl2.o    \
            cs_sort_fv.o cs_laguerre.o machdep.o cs_qhull.o afni_logger.o   \
            cl1.o cs_misc.o powell_int.o powell_newuoa.o cs_sort_dv.o       \
            rhdd.o zfun.o cs_pv.o cs_sort_iv.o cs_sort_d.o cs_fgets.o       \
            svdlib.o cs_gamfit.o cs_sort_str.o
+
+CS_SRCS  = cs_sort_fi.c cs_sort_di.c cs_symeig.c cs_sort_ii.c cs_sort_ff.c \
+           cs_addto_args.c multivector.c afni_environ.c cs_qmed.c cl2.c    \
+           cs_sort_fv.c cs_laguerre.c machdep.c cs_qhull.c afni_logger.c   \
+           cl1.c cs_misc.c powell_int.c powell_newuoa.c cs_sort_dv.c       \
+           rhdd.c zfun.c cs_pv.c cs_sort_iv.c cs_sort_d.c cs_fgets.c       \
+           svdlib.c cs_gamfit.c cs_sort_str.c
 
 EIS_OBJS = eis_bakvec.o eis_balanc.o eis_balbak.o eis_bandr.o              \
            eis_bandv.o eis_bisect.o eis_bqr.o eis_cbabk2.o eis_cbal.o      \
@@ -2399,6 +2419,24 @@ EIS_OBJS = eis_bakvec.o eis_balanc.o eis_balbak.o eis_bandr.o              \
            eis_trbak3.o eis_tred1.o eis_tred2.o eis_tred3.o                \
            eis_tridib.o eis_tsturm.o
 
+EIS_DIR  = eispack
+EIS_SRCS = $(EIS_DIR)/eis_bakvec.c $(EIS_DIR)/eis_balanc.c $(EIS_DIR)/eis_balbak.c $(EIS_DIR)/eis_bandr.c                         \
+           $(EIS_DIR)/eis_bandv.c $(EIS_DIR)/eis_bisect.c $(EIS_DIR)/eis_bqr.c $(EIS_DIR)/eis_cbabk2.c $(EIS_DIR)/eis_cbal.c      \
+           $(EIS_DIR)/eis_cdiv.c $(EIS_DIR)/eis_cg.c $(EIS_DIR)/eis_ch.c $(EIS_DIR)/eis_cinvit.c $(EIS_DIR)/eis_combak.c          \
+           $(EIS_DIR)/eis_comhes.c $(EIS_DIR)/eis_comlr.c $(EIS_DIR)/eis_comlr2.c $(EIS_DIR)/eis_comqr.c $(EIS_DIR)/eis_comqr2.c  \
+           $(EIS_DIR)/eis_cortb.c $(EIS_DIR)/eis_corth.c $(EIS_DIR)/eis_csroot.c $(EIS_DIR)/eis_elmbak.c $(EIS_DIR)/eis_elmhes.c  \
+           $(EIS_DIR)/eis_eltran.c $(EIS_DIR)/eis_epslon.c $(EIS_DIR)/eis_figi.c $(EIS_DIR)/eis_figi2.c $(EIS_DIR)/eis_hqr.c      \
+           $(EIS_DIR)/eis_hqr2.c $(EIS_DIR)/eis_htrib3.c $(EIS_DIR)/eis_htribk.c $(EIS_DIR)/eis_htrid3.c $(EIS_DIR)/eis_htridi.c  \
+           $(EIS_DIR)/eis_imtql1.c $(EIS_DIR)/eis_imtql2.c $(EIS_DIR)/eis_imtqlv.c $(EIS_DIR)/eis_invit.c $(EIS_DIR)/eis_minfit.c \
+           $(EIS_DIR)/eis_ortbak.c $(EIS_DIR)/eis_orthes.c $(EIS_DIR)/eis_ortran.c $(EIS_DIR)/eis_pythag.c $(EIS_DIR)/eis_qzhes.c \
+           $(EIS_DIR)/eis_qzit.c $(EIS_DIR)/eis_qzval.c $(EIS_DIR)/eis_qzvec.c $(EIS_DIR)/eis_ratqr.c $(EIS_DIR)/eis_rebak.c      \
+           $(EIS_DIR)/eis_rebakb.c $(EIS_DIR)/eis_reduc.c $(EIS_DIR)/eis_reduc2.c $(EIS_DIR)/eis_rg.c $(EIS_DIR)/eis_rgg.c        \
+           $(EIS_DIR)/eis_rs.c $(EIS_DIR)/eis_rsb.c $(EIS_DIR)/eis_rsg.c $(EIS_DIR)/eis_rsgab.c $(EIS_DIR)/eis_rsgba.c            \
+           $(EIS_DIR)/eis_rsm.c $(EIS_DIR)/eis_rsp.c $(EIS_DIR)/eis_rst.c $(EIS_DIR)/eis_rt.c  $(EIS_DIR)/eis_svd.c               \
+           $(EIS_DIR)/eis_tinvit.c $(EIS_DIR)/eis_tql1.c $(EIS_DIR)/eis_tql2.c $(EIS_DIR)/eis_tqlrat.c $(EIS_DIR)/eis_trbak1.c    \
+           $(EIS_DIR)/eis_trbak3.c $(EIS_DIR)/eis_tred1.c $(EIS_DIR)/eis_tred2.c $(EIS_DIR)/eis_tred3.c                           \
+           $(EIS_DIR)/eis_tridib.c $(EIS_DIR)/eis_tsturm.c
+
 NETCDF_OBJS =  netcdf_attr.o   netcdf_dim.o   netcdf_error.o netcdf_libvers.o \
                netcdf_nc.o     netcdf_ncio.o  netcdf_ncx.o   netcdf_putget.o  \
                netcdf_string.o netcdf_v1hpg.o netcdf_v2i.o   netcdf_var.o     \
@@ -2407,9 +2445,28 @@ NETCDF_OBJS =  netcdf_attr.o   netcdf_dim.o   netcdf_error.o netcdf_libvers.o \
 SUMA_OBJS = suma_afni_surface.o suma_datasets.o suma_utils.o \
             suma_string_manip.o suma_algorithms.o suma_help.o
 
+SUMA_SRCS = suma_afni_surface.c suma_datasets.c suma_utils.c \
+            suma_string_manip.c suma_algorithms.c suma_help.c
+
 MISC_OBJS  = afni_suma.o vol2surf.o nifti2_io.o znzlib.o list_struct.o  \
 	     nifti_statlib.o nifticdf.o r_new_resam_dset.o r_idisp.o    \
 	     r_misc.o matrix.o gifti_choice.o misc_math.o
+
+MISC_SRCS  = afni_suma.c vol2surf.c nifti/nifti2/nifti2_io.c nifti/znzlib/znzlib.c list_struct.c  \
+	     nifti_statlib.c nifti/nifticdf/nifticdf.c rickr/r_new_resam_dset.c rickr/r_idisp.c    \
+	     rickr/r_misc.c matrix.c gifti_choice.c misc_math.c
+
+# to make a completely resolved version of the header for Python
+
+mrilib_raw.h: AFNI_version.h 3ddata.h mrilib.h
+	gcc -E $(INFLAGS) mrilib.h > mrilib_raw.h
+
+# to make one big file with all libmri source code (for Python?)
+
+mrilib_all.c: AFNI_version.h 3ddata.h mrilib.h
+	cat $(NIML_SRCS) $(EDT_SRCS) $(CS_SRCS) $(SUMA_SRCS) $(MISC_SRCS) $(EIS_SRCS) > mrilib_all.c
+
+# the library of libraries
 
 libmri.a: niml.h mrilib.h Aomp.h 3ddata.h                       \
 	$(NIML_OBJS) $(MRI_OBJS) $(THD_OBJS) thd_selenium.o     \
