@@ -134,7 +134,7 @@ int main(int argc, char * argv[])
 
    if (argc < 2 || strcmp(argv[1], "-help") == 0) {
        TRIC_printhelp();
-       exit(-1);
+       exit(0);
    }
 
    mainENTRY("3dretroicor main"); PRINT_VERSION("3dretroicor") ;
