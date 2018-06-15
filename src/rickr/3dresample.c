@@ -109,8 +109,10 @@ int main( int argc , char * argv[] )
     mainENTRY("3dresample"); machdep(); AFNI_logger("3dresample",argc,argv);
 
     /* validate inputs and init options structure */
-    if ( (ret_val = init_options(&opts, argc, argv)) != 0 )
-        return ret_val;
+    if ( (ret_val = init_options(&opts, argc, argv)) != 0 ) {
+        if( ret_val < 0 ) return 1;
+        else              return 0;
+    }
 
     /* actually resample and/or reorient the dataset */
     dout = r_new_resam_dset_eng(opts.dset, opts.mset, opts.dx,opts.dy,opts.dz,
@@ -140,24 +142,24 @@ int init_options ( options_t * opts, int argc, char * argv [] )
     opts->dset   = opts->mset   = NULL;  
 
     /* show help if there are no arguments */
-    if ( argc < 2 ) { usage( argv[0], USE_LONG ); return FAIL; }
+    if ( argc < 2 ) { usage( argv[0], USE_LONG ); return 1; }
 
     for ( ac = 1; ac < argc; ac++ )
     {
         if ( ! strncmp(argv[ac], "-help", 5) )
         {
             usage( argv[0], USE_LONG );
-            return FAIL;
+            return 1;
         }
         else if ( ! strncmp(argv[ac], "-hist", 5) )
         {
             usage( argv[0], USE_HISTORY );
-            return FAIL;
+            return 1;
         }
         else if ( ! strncmp(argv[ac], "-version", 2) )
         {
             usage( argv[0], USE_VERSION );
-            return FAIL;
+            return 1;
         }
         else if ( ! strncmp(argv[ac], "-bound_type", 6) ) /* 26 Jun 2014 */
         {
@@ -641,7 +643,7 @@ int write_results ( THD_3dim_dataset * dout, options_t * opts,
     if ( DSET_write( dout ) != True )
     {
         fputs( "failure: cannot write dataset, exiting...\n", stderr );
-        return FAIL;
+        return 1;
     }
 
     if ( opts->debug >= RL_DEBUG_LOW )

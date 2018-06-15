@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 15, Jun, 2018, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "update some programs so that -help is valid and return 0",
+   "Update 3dGrayplot 3dresample 3dretroicor @2dwarper @FSlabel2dset tokens."
+ } ,
+
  {  8, Jun, 2018, RCR, "3ddata.h", MICRO, TYPE_BUG_FIX,
    "have DUMP_MAT44 write to stdout again (might re-do stderr later)",
    "Need to fix align_epi_anat.py for stderr, but must check shell use.\n"

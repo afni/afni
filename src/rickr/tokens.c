@@ -36,15 +36,18 @@ int is_C_word_char ( int c );
 int main ( int argc, char * argv[] )
 {
     control_s * C = &gcs;
+    int         rv = 0;
 
-    if ( read_args( argc, argv, C ) )
-	return 1;
+    rv = read_args( argc, argv, C );
+    if( rv == 1 ) return 0;
+    if( rv <  0 ) return 1;
+    /* else, continue */
 
     if ( print_list( C ) )
 	return 1;
 
     if ( cleanup( C ) )
-	return -1;
+	return 1;
 
     return 0;
 }
