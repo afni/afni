@@ -2508,9 +2508,10 @@ vol2surf.o:vol2surf.h
 # shared objects (go into the shared_lib directory)
 
 # same as .a, but build as a shared object
-libmri.so:$(NIML_OBJS) $(MRI_OBJS) $(THD_OBJS)                               \
+libmri.so: mrilib.h                                                          \
+          $(NIML_OBJS) $(MRI_OBJS) $(THD_OBJS)                               \
           $(EDT_OBJS)  $(CS_OBJS)  $(EIS_OBJS) $(NETCDF_OBJS)                \
-          $(SUMA_OBJS) $(MISC_OBJS) $(SOMEAFOBJS) niml.h mrilib.h 3ddata.h   \
+          $(SUMA_OBJS) $(MISC_OBJS) $(SOMEAFOBJS) niml.h 3ddata.h            \
           Aomp.h shared_netcdf_attr thd_selenium_off.o                       \
           libf2c.a libvolpack.a libmrix.a libcoxplot.a
 	$(RM) $@
