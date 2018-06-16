@@ -14,16 +14,17 @@ ffibuilder = FFI()
 
 if __name__ == "__main__":
     header_file = Path('mrilib.h')
-    pp = subprocess.run("gcc -E -P -D'__attribute__(x)=' -I. -Ipycparser/utils/fake_libc_include -Inifti/nifti2 -Inifti/niftilib -Inifti/nifticdf -Inifti/znzlib -Irickr -I/usr/local/Cellar/openmotif/2.3.8/include -I/usr/X11/include -nostdinc mrilib.h > mrilib_processed.h",
+    # header_file = Path('cs.h')
+    pp = subprocess.run("gcc -E -P -D'__attribute__(x)=' -I. -Ipycparser/utils/fake_libc_include -Inifti/nifti2 -Inifti/niftilib -Inifti/nifticdf -Inifti/znzlib -Irickr -I/sw/include -I/usr/X11/include -nostdinc mrilib.h > mrilib_processed.h",
        shell =True,
         stdout= subprocess.PIPE,
         stderr = subprocess.PIPE)
 
     # pycparser.parse_file('mrilib_processed.h')
     ffibuilder.cdef(Path('mrilib_processed.h').read_text())
-    ffibuilder.set_source("_pyafni",None,
+    ffibuilder.set_source("_pyafni",'/* Hi John */',
          libraries=["mri"],
-         library_dirs=[]
+         library_dirs=[Path.cwd().absolute()]
     )
 
     ffibuilder.compile(verbose=True)

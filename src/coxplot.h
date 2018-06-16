@@ -503,27 +503,33 @@ extern int find_color_name( char *cnam, float *rr, float *gg, float *bb ) ;
 #  define EXT extern
 #endif
 
-EXT struct {
+typedef struct {
     real xpgmin, ypgmin, xpgmax, ypgmax, xclbot, yclbot, xcltop, ycltop, xbot,
              ybot, xtop, ytop, xmin, ymin, xmax, ymax;
     integer ixcoor, iycoor;
     real alphxx, betaxx, alphyy, betayy, tmajx, tminx, tmajy, tminy;
     integer majrx, minrx, majry, minry, isizx, isizy;
     real xphold, yphold;
-} zzzplt_;
+} zzzplt_type ;
 
-EXT struct {
+EXT zzzplt_type zzzplt_ ;
+
+typedef struct {
     real xphmax, yphmax;
     integer ixpmax, iypmax;
     real xpscal, ypscal;
     integer iflip, nplotr;
     char cfile[64];
-} zzpltr_;
+} zzpltr_type ;
 
-EXT struct {
+EXT zzpltr_type zzpltr_ ;
+
+typedef struct {
     integer ndash;
     real xldash[8], xid;
-} zzdash_;
+} zzdash_type ;
+
+EXT zzdash_type zzdash_ ;
 
 #ifdef  __cplusplus
 }
