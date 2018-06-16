@@ -1585,7 +1585,7 @@ extern char * SYM_test_gltsym( char *varlist , char *gltsym ) ; /* 01 May 2015 *
 #include "rcmat.h"            /* 30 Dec 2008 */
 
 #ifdef HAVE_ZLIB
-#include "zlib.h"             /* 02 Mar 2009 */
+#include <zlib.h>             /* 02 Mar 2009 */
 #endif
 
 #include "misc_math.h"        /* 21 Jun 2010 [rickr] */
