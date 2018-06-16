@@ -21,11 +21,9 @@ if __name__ == "__main__":
 
     # pycparser.parse_file('mrilib_processed.h')
     ffibuilder.cdef(Path('mrilib_processed.h').read_text())
-    ffibuilder.set_source("_afni1","""
-            float qmed_float     ( int , float * ) ;
-        """,
-        libraries=["mri"],
-        library_dirs=["/Users/rwcox/cffi_test",],
+    ffibuilder.set_source("_pyafni",None,
+         libraries=["mri"],
+         library_dirs=[]
     )
 
-    # ffibuilder.compile(verbose=True)
+    ffibuilder.compile(verbose=True)
