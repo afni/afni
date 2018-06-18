@@ -2874,7 +2874,17 @@ tokens: rickr/tokens.c
 	$(RM) $@
 	$(CC) -o 3dTto1D 3dTto1D.o $(LFLAGS) $(LLIBS)
 
+get_afni_model_PRF.o : get_afni_model_PRF.c
+get_afni_model_PRF: get_afni_model_PRF.o model_conv_PRF.c libmri.a
+	$(RM) $@
+	$(CC) -o get_afni_model_PRF get_afni_model_PRF.o $(LFLAGS) $(LLIBS)
 
+get_afni_model_PRF_6.o : get_afni_model_PRF_6.c
+get_afni_model_PRF_6: get_afni_model_PRF_6.o model_conv_PRF_6.c libmri.a
+	$(RM) $@
+	$(CC) -o get_afni_model_PRF_6 get_afni_model_PRF_6.o $(LFLAGS) $(LLIBS)
+
+#######
 
 selenium_test: selenium_test.o
 	$(RM) $@
