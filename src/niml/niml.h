@@ -681,8 +681,6 @@ extern int NI_stream_setb64( NI_stream_type * , int ) ;   /* 20 Apr 2005 */
 
 extern int NI_stream_reopen( NI_stream_type *, char * ) ; /* 23 Aug 2002 */
 
-extern void NI_binary_threshold( NI_stream_type *, int ) ;
-
 extern void * NI_read_element ( NI_stream_type *, int ) ;
 extern int    NI_write_element( NI_stream_type *, void *, int ) ;
 extern int    NI_write_procins( NI_stream_type *, char * ) ; /* 17 Mar 2005 */
