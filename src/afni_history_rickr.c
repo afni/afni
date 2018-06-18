@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18, Jun, 2018, RCR, "file_tool", MICRO, TYPE_MODIFY,
+   "return status 0 on options like -help",
+   NULL
+ } ,
+
  { 15, Jun, 2018, RCR, "afni-general", MINOR, TYPE_MODIFY,
    "update some programs so that -help is valid and return 0",
    "Update 3dGrayplot 3dresample 3dretroicor @2dwarper @FSlabel2dset tokens."

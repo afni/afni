@@ -142,9 +142,10 @@ static char g_history[] =
  " 3.18 Aug 23, 2016\n"
  "      - fix rich-text single or double quotes; added -fix_rich_quotes\n"
  "      - add any missing newline character at end of file\n"
+ " 3.19 Jun 18, 2018    - return status 0 on options like -help\n"
  "----------------------------------------------------------------------\n";
 
-#define VERSION         "3.18 (August 23, 2015)"
+#define VERSION         "3.19 (June 18, 2018)"
 
 
 /* ----------------------------------------------------------------------
@@ -221,9 +222,11 @@ int main ( int argc, char * argv[] )
     param_t P;
     int     rv;
 
-    if ( (rv = set_params( &P, argc, argv ) ) < 0 )
-        return rv;
-    else if ( rv > 0 )
+    if ( (rv = set_params( &P, argc, argv ) ) != 0 ) {
+        /* non-zero means early return, with error or not */
+        if( rv > 0 ) return 0;
+        else         return 1;
+    } else if ( rv > 0 )
         return 0;
 
     if ( (rv = attack_files( &P ) ) != 0 )
@@ -1203,6 +1206,10 @@ int mtype_size( int type )
 /*------------------------------------------------------------
  *  Read user arguments, and fill param_t struct.
  *
+ *  return      1 : success, but terminate (e.g. -help)
+ *              0 : success, and continue
+ *             -1 : failure, terminate
+ *
  *  - if modifying, verify arguments
  *------------------------------------------------------------
 */
@@ -1214,7 +1221,7 @@ set_params( param_t * p, int argc, char * argv[] )
     if ( argc < 2 )
     {
         usage( argv[0], USE_LONG );
-        return -1;
+        return 1;
     }
 
     if ( !p || !argv )
@@ -1234,18 +1241,24 @@ set_params( param_t * p, int argc, char * argv[] )
         if ( ! strncmp(argv[ac], "-help_ge", 8 ) )
         {
             usage( argv[0], USE_GE );
-            return -1;
+            return 1;
         }
         else if ( ! strncmp(argv[ac], "-help", 5 ) )
         {
             usage( argv[0], USE_LONG );
-            return -1;
+            return 1;
         }
         else if ( ! strncmp(argv[ac], "-hist", 5 ) )
         {
             usage( argv[0], USE_HISTORY );
-            return -1;
+            return 1;
         }
+        else if ( ! strncmp(argv[ac], "-ver", 2 ) )
+        {
+            usage( argv[0], USE_VERSION );
+            return 1;
+        }
+
         else if ( ! strncmp(argv[ac], "-debug", 6 ) )
         {
             if ( (ac+1) >= argc )
@@ -1323,10 +1336,10 @@ set_params( param_t * p, int argc, char * argv[] )
         {
             ac++;
             CHECK_NEXT_OPT2(ac, argc, "-mod_field", "FIELD and VALUE");
-            if( add_string(&p->mod_fields, argv[ac]) ) return 1;
+            if( add_string(&p->mod_fields, argv[ac]) ) return -1;
             ac++;
             CHECK_NEXT_OPT2(ac, argc, "-mod_field", "VALUE");
-            if( add_string(&p->mod_list, argv[ac]) ) return 1;
+            if( add_string(&p->mod_list, argv[ac]) ) return -1;
         }
         else if( ! strncmp(argv[ac], "-mod_ana_hdr", 8) )
         {
@@ -1402,11 +1415,6 @@ set_params( param_t * p, int argc, char * argv[] )
         else if ( ! strncmp(argv[ac], "-swap_bytes", 3 ) )
         {
             p->swap = 1;
-        }
-        else if ( ! strncmp(argv[ac], "-ver", 2 ) )
-        {
-            usage( argv[0], USE_VERSION );
-            return 1;
         }
         else if ( ! strncmp(argv[ac], "-infiles", 4 ) )
         {
