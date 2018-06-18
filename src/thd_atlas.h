@@ -154,7 +154,6 @@ void AFNI_atlas_list_to_niml(void);
 void atlas_list_to_niml(ATLAS_POINT_LIST *atp, char *atlas_file);
 NI_element *atlas_point_to_niml_element(ATLAS_POINT *at_pt);
 char *atlas_point_to_niml_string(ATLAS_POINT *at_pt);
-int genx_load_atlas_dset(ATLAS *atlas);
 int atlas_dup_atlas(ATLAS *srcatlas, ATLAS *destatlas);
 int atlas_max_label_length(ATLAS_POINT *ap, int n_points);
 int atlas_level(ATLAS_POINT *ap, int n_points);
