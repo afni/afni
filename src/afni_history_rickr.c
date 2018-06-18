@@ -49,8 +49,8 @@
 
 afni_history_struct rickr_history[] = {
 
- { 18, Jun, 2018, RCR, "file_tool", MICRO, TYPE_MODIFY,
-   "return status 0 on options like -help",
+ { 18, Jun, 2018, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "more status 0 updates: file_tool, serial_helper",
    NULL
  } ,
 
