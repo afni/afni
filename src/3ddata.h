@@ -4466,7 +4466,6 @@ extern float THD_dset_extent(THD_3dim_dataset *dset, char ret,float *RL_AP_IS);
 extern void THD_show_dataset_names( THD_3dim_dataset *dset,
                                     char *head, FILE *out);
 extern const char * storage_mode_str(int);
-extern char * THD_zzprintf( char * sss , char * fmt , ... ) ;
 extern int dset_obliquity(THD_3dim_dataset *dset , float *anglep);
 double dset_obliquity_angle_diff(THD_3dim_dataset *dset1,
                                  THD_3dim_dataset *dset2,
@@ -5754,27 +5753,6 @@ extern char * tross_breakup_string( char *, int , int ) ;
 
 void tross_multi_Append_History( THD_3dim_dataset * , ... ) ;
 
-/*-----------------------------------------------------------------------*/
-
-extern void B64_to_binary( int, byte *, int *, byte ** ) ; /* thd_base64.c */
-extern void B64_to_base64( int, byte *, int *, byte ** ) ;
-extern void B64_set_linelen( int ) ;
-extern void B64_set_crlf( int ) ;
-
-extern char * MD5_static_array ( int , char * ) ;          /* thd_md5.c */
-extern char * MD5_malloc_array ( int , char * ) ;
-extern char * MD5_static_string(char *) ;
-extern char * MD5_malloc_string(char *) ;
-extern char * MD5_static_file  (char *) ;
-extern char * MD5_malloc_file  (char *) ;
-
-extern char * MD5_B64_array ( int , char * ) ;
-extern char * MD5_B64_string( char * ) ;
-extern char * MD5_B64_file  (char * ) ;
-extern char * UNIQ_idcode(void) ;            /* 27 Sep 2001 */
-extern void   UNIQ_idcode_fill(char *) ;
-
-/*------------------------------------------------------------------------*/
 #define ATLAS_CMAX    64   /* If you change this parameter,edit constant in
                               CA_EZ_Prep.m (MaxLbl* checks) */
 
@@ -5809,8 +5787,6 @@ typedef struct {
 
 extern int atlas_n_points(char *atname);
 extern ATLAS_POINT *atlas_points(char *atname);
-extern char **atlas_reference_string_list(char *atname, int *N_refs);
-extern char *atlas_version_string(char *atname);
 
 extern char * TT_whereami( float , float , float,
                            char *, void *) ;

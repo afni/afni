@@ -1186,7 +1186,6 @@ extern void mri_flatfilter_usedxyz  ( int i ) ;
 
 void mri_Set_KO_catwrap(void);
 void mri_Set_OK_catwrap(void);
-void mri_Set_OK_catwrap(void);
 void mri_Set_OK_catrandwrap(void);
 extern MRI_IMAGE * mri_cat2D( int,int,int,void *,MRI_IMARR *) ;
 extern MRI_IMARR * mri_uncat2D( int , int , MRI_IMAGE * im ) ; /* 09 May 2000 */
@@ -1585,7 +1584,7 @@ extern char * SYM_test_gltsym( char *varlist , char *gltsym ) ; /* 01 May 2015 *
 #include "rcmat.h"            /* 30 Dec 2008 */
 
 #ifdef HAVE_ZLIB
-#include "zlib.h"             /* 02 Mar 2009 */
+#include <zlib.h>             /* 02 Mar 2009 */
 #endif
 
 #include "misc_math.h"        /* 21 Jun 2010 [rickr] */
@@ -2047,7 +2046,6 @@ extern void GA_interp_wsinc5_2D( MRI_IMAGE *fim ,
 extern int GA_gcd(int,int) ;
 extern int GA_find_relprime_fixed(int) ;
 extern MRI_IMAGE * GA_smooth( MRI_IMAGE *im, int meth, float rad ) ;
-extern void GA_set_outval(float) ;
 
 extern MRI_IMAGE * GA_indexwarp( MRI_IMAGE *, int, MRI_IMAGE * ) ;
 extern MRI_IMAGE * GA_indexwarp_plus( MRI_IMAGE *, int, MRI_IMAGE *,
@@ -2089,18 +2087,6 @@ extern MRI_IMARR * mri_genalign_scalar_xyzwarp(      /* 10 Dec 2010 */
 
 
 extern void mri_genalign_scalar_clrwght( GA_setup * ) ;  /* 18 Oct 2006 */
-
-/*--------------------------------------------------------------------------*/
-/* Prototypes for functions in nifti_stats.c */
-
-extern int nifti_intent_code    ( char * ) ;
-extern double nifti_stat2cdf    ( double, int, double,double,double ) ;
-extern double nifti_stat2rcdf   ( double, int, double,double,double ) ;
-extern double nifti_cdf2stat    ( double, int, double,double,double ) ;
-extern double nifti_rcdf2stat   ( double, int, double,double,double ) ;
-extern double nifti_stat2zscore ( double, int, double,double,double ) ;
-extern double nifti_stat2hzscore( double, int, double,double,double ) ;
-/*------------------------------------------------------------------*/
 
 extern THD_fvec3 mri_estimate_FWHM_1dif( MRI_IMAGE * , byte * ) ;
 extern MRI_IMAGE * THD_estimate_FWHM_all( THD_3dim_dataset *, byte *, int,int ) ;
