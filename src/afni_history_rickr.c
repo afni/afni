@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18, Jun, 2018, RCR, "model_conv_PRF_6", MINOR, TYPE_ENHANCE,
+   "add AFNI_MODEL_PRF_GAUSS_FILE env var, to write image of Gaussian",
+   "Done for model_conv_PRF and model_conv_PRF_6, should to _DOG, too."
+ } ,
+
  { 18, Jun, 2018, RCR, "afni-general", MICRO, TYPE_ENHANCE,
    "add build targets for get_afni_model_PRF/PRF_6",
    NULL

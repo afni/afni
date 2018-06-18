@@ -97,6 +97,7 @@ static int inputs_to_coords(THD_3dim_dataset * dset, float x, float y,
 			    float sigma, float sigrat, float theta);
 
 static int   disp_floats(char * mesg, float * p, int len);
+static int   write_gauss_file(char * fname, float * curve, int nx, int ny);
 static int   model_help(void);
 static int   convolve_by_ref(float *, int, float *, int, int, int);
 
@@ -116,6 +117,7 @@ static void conv_model( float *  gs      , int     ts_length ,
 /* interface to the environment */
 static char * genv_conv_ref = NULL;    /* AFNI_CONVMODEL_REF */
 static char * genv_prf_stim = NULL;    /* AFNI_MODEL_PRF_STIM_DSET */
+static char * genv_gauss_file = NULL;  /* AFNI_MODEL_PRF_GAUSS_FILE */
 static int    genv_diter    = -1;      /* debug iteration */
 static int    genv_debug    = 0;       /* AFNI_MODEL_DEBUG */
 
@@ -163,6 +165,9 @@ static int set_env_vars(void)
    /* help */
    genv_get_help = AFNI_yesenv("AFNI_MODEL_HELP_CONV_PRF_6")
                 || AFNI_yesenv("AFNI_MODEL_HELP_ALL");
+
+   /* write a Gaussian mask? */
+   genv_gauss_file = my_getenv("AFNI_MODEL_PRF_GAUSS_FILE");
 
    return 0;
 }
@@ -1011,8 +1016,57 @@ static int fill_computed_farray(float * ts, int tslen, THD_3dim_dataset * dset,
       ts[tind] = A * sum;
    }
 
+   /* if requested, write this 2D image (one time only) */
+   if( genv_gauss_file ) {
+      fprintf(stderr, "++ writing PRF model curve to %s\n", genv_gauss_file);
+      fprintf(stderr, "   params: x0 = %f, y0 = %f, sigma = %f\n"
+                      "           sigrat = %f, theta = %f\n\n",
+                      x0, y0, sigma, sigrat, theta);
+      write_gauss_file(genv_gauss_file, sexpgrid, nx, ny);
+
+      genv_gauss_file = NULL;  /* clear - no further writes */
+   }
+
    return 0;
 }
+
+/* ------------------------------------------------------------ */
+/* write_gauss_curve */
+static int write_gauss_file(char * fname, float * curve, int nx, int ny)
+{
+   THD_3dim_dataset * dout;
+   THD_ivec3 inxyz;
+   THD_fvec3 origin, delta;
+
+   fprintf(stderr,"++ creating gauss dset (%dx%d)", nx, ny);
+   dout = EDIT_empty_copy(NULL);
+   LOAD_IVEC3(inxyz, nx, ny, 1);                               /* nxyz   */
+   origin.xyz[0] = origin.xyz[1] = -1.0;                       /* origin */
+   origin.xyz[2] = 0.0;
+   delta.xyz[0] = delta.xyz[1] = 2.0/(nx-1);                   /* delta */
+   delta.xyz[2] = 1.0;
+
+   EDIT_dset_items(dout, ADN_nxyz,      inxyz,
+                         ADN_xyzorg,    origin,
+                         ADN_xyzdel,    delta,
+                         ADN_prefix,    fname,
+                         ADN_nvals,     1,
+                         ADN_none);
+   EDIT_substitute_brick(dout, 0, MRI_float, curve);
+
+   dout->daxes->xxorient = ORI_L2R_TYPE;
+   dout->daxes->yyorient = ORI_P2A_TYPE;
+   dout->daxes->zzorient = ORI_I2S_TYPE;
+
+   fprintf(stderr,", writing");
+   DSET_write(dout);
+
+   DSET_delete(dout);
+   fprintf(stderr,", done\n");
+
+   return 0;
+}
+
 
 /* ------------------------------------------------------------ */
 /* A = [R^2cos^2(theta) + sin^2(theta)] / [2R^2sigma^2]
