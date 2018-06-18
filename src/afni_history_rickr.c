@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18, Jun, 2018, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "add build targets for get_afni_model_PRF/PRF_6",
+   NULL
+ } ,
+
  { 18, Jun, 2018, RCR, "afni-general", MINOR, TYPE_MODIFY,
    "more status 0 updates: file_tool, serial_helper",
    NULL
