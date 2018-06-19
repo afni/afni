@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19, Jun, 2018, RCR, "model_conv_PRF_6", MINOR, TYPE_BUG_FIX,
+   "fix rotation term, B should be 2*B",
+   "Thanks to R Le, G Usabiaga and B Wandell for suggesting a review."
+ } ,
+
  { 18, Jun, 2018, RCR, "model_conv_PRF_6", MINOR, TYPE_ENHANCE,
    "add AFNI_MODEL_PRF_GAUSS_FILE env var, to write image of Gaussian",
    "Done for model_conv_PRF and model_conv_PRF_6, should to _DOG, too."

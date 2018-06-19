@@ -25,7 +25,7 @@
         1. generate a 2-D Gaussian density function, centered at x0, y0,
            with given sigma, R (=sigma_y/sigma_x), and theta:
 
-           -> pRF model g(x,y) = e^-(A(x-x0)^2 + B(x-x0)(y-y0) + C(y-y0)^2)
+           -> pRF model g(x,y) = e^-(A(x-x0)^2 + 2*B(x-x0)(y-y0) + C(y-y0)^2)
 
               where A = cos^2(theta)
                         ------------
@@ -950,7 +950,7 @@ static int inputs_to_coords(THD_3dim_dataset * dset, float x, float y,
    else if( k >= nz ) k = nz-1;
 
    get_ABC(sigma, sigrat, theta, &A, &B, &C);  /* get exp coefficients */
-   eval = A*x*x + B*x*y + C*y*y;
+   eval = A*x*x + 2*B*x*y + C*y*y;
 
    fprintf(stderr,"-- fill_array from x=%f, y=%f, s=%f\n"
                   "   at i=%d, j=%d, k=%d\n",
@@ -1123,7 +1123,7 @@ static int get_ABC(float sigma, float sigrat, float theta,
  *   centered at x0, y0, with the given sigma, sigrat and theta
  *
  * old: fill with e^-[((x-x0)^2 + (y-y0)^2) / (2*sigma^2)]
- * new: e^-[A(x-x0)^2 + B(x-x0)(y-y0) + C(y-y0)^2], where
+ * new: e^-[A(x-x0)^2 + 2*B(x-x0)(y-y0) + C(y-y0)^2], where
  *      A = [R^2cos^2(theta) + sin^2(theta)] / [2R^2sigma^2]
  *      B = -(R^2-1) * sin(2theta) / [4R^2sigma^2]
  *      C = [R^2sin^2(theta) + cos^2(theta)] / [2R^2sigma^2]
@@ -1157,7 +1157,7 @@ static int compute_e_x_grid(float * e, int nx, int ny, float x0, float y0,
          yoff = iy*wscale - 1.0f - y0;
 
          /* compute (positive) power of e, will scale by g_exp_ipieces */
-         eval = A*xoff*xoff + B*xoff*yoff + C*yoff*yoff;
+         eval = A*xoff*xoff + 2*B*xoff*yoff + C*yoff*yoff;
          if( eval > g_exp_maxval ) {
            *eptr++ = 0.0f;
            continue;
@@ -1219,7 +1219,7 @@ static int model_help(void)
 "\n"
 "            -> pRF model g(x,y) = generalized 2-D Gaussian\n"
 "\n"
-"                e^-(A(x-x0)^2 + B(x-x0)(y-y0) + C(y-y0)^2), where\n"
+"                e^-(A(x-x0)^2 + 2*B(x-x0)(y-y0) + C(y-y0)^2), where\n"
 "\n"
 "                     cos^2(theta)     sin^2(theta)\n"
 "                 A = ------------  +  ------------\n"
