@@ -62,7 +62,7 @@ static float * refts     = NULL;   /* reference time series */
 static int   * refin     = NULL;   /* indexes of nonzero pts */
 static int     g_iter    = -1;     /* iteration number */
 
-static char  * g_model_ver = "model_conv_PRF_6, version 1.1, 7 Aug, 2015";
+static char  * g_model_ver = "model_conv_PRF_6, version 1.2, 19 Jun, 2018";
 
 /* exp variables, parameters */
 static float g_exp_maxval  = 8.0;  /* max x in exp(-x) */
@@ -97,7 +97,8 @@ static int inputs_to_coords(THD_3dim_dataset * dset, float x, float y,
 			    float sigma, float sigrat, float theta);
 
 static int   disp_floats(char * mesg, float * p, int len);
-static int   write_gauss_file(char * fname, float * curve, int nx, int ny);
+static int   write_gauss_file(char * fname, float * curve,
+                              int nx, int ny, char *hist);
 static int   model_help(void);
 static int   convolve_by_ref(float *, int, float *, int, int, int);
 
@@ -933,16 +934,18 @@ static int inputs_to_coords(THD_3dim_dataset * dset, float x, float y,
    nx = DSET_NX(dset);  ny = DSET_NY(dset);  nz = DSET_NZ(dset);
 
    /* for i,j, map [-1,1] to [0, nx-1] */
-   i = (int)(0.5+nx*(x+1.0)/2.0);
+   /* note, (nx*(x+1.0)/2.0) is in [0,nx], with p(val=nx) very small,  */
+   /*       so it should be enough to just limit floor(result) to nx-1 */
+   i = (int)(nx*(x+1.0)/2.0);
    if     (i <  0 )   i = 0;
    else if(i >= nx )  i = nx-1;
 
-   j = (int)(0.5+ny*(y+1.0)/2.0);
+   j = (int)(ny*(y+1.0)/2.0);
    if     (j <  0 )   j = 0;
    else if(j >= ny )  j = ny-1;
 
    /* init to round(nsteps * fraction of max) */
-   k = (int)(0.5 + genv_sigma_nsteps * sigma / genv_sigma_max);
+   k = (int)(genv_sigma_nsteps * sigma / genv_sigma_max);
    if     ( k <  0 )  k = 0;
    else if( k >= nz ) k = nz-1;
 
@@ -984,7 +987,7 @@ static int fill_computed_farray(float * ts, int tslen, THD_3dim_dataset * dset,
          fprintf(stderr,"++ alloc egrid, snxy = %d, nxy = %d\n", snxy, nx*ny);
       snxy = nx*ny;
       if( sexpgrid ) free(sexpgrid);    /* nuke any old copy - maybe never */
-      sexpgrid = (float *)calloc(snxy, sizeof(float *));
+      sexpgrid = (float *)calloc(snxy, sizeof(float));
       if( !sexpgrid ) {
          fprintf(stderr,"** PRF egrid alloc failure, nxy = %d\n", snxy);
          return 1;
@@ -1018,11 +1021,13 @@ static int fill_computed_farray(float * ts, int tslen, THD_3dim_dataset * dset,
 
    /* if requested, write this 2D image (one time only) */
    if( genv_gauss_file ) {
-      fprintf(stderr, "++ writing PRF model curve to %s\n", genv_gauss_file);
-      fprintf(stderr, "   params: x0 = %f, y0 = %f, sigma = %f\n"
-                      "           sigrat = %f, theta = %f\n\n",
-                      x0, y0, sigma, sigrat, theta);
-      write_gauss_file(genv_gauss_file, sexpgrid, nx, ny);
+      char hist[256];
+      sprintf(hist, "== %s\n   x = %g, y = %g, "
+                    "sigma = %g, sigrat = %g, theta = %g\n",
+                    g_model_ver, x0, y0, sigma, sigrat, theta);
+      fprintf(stderr, "++ writing PRF model curve to %s\n%s\n",
+              genv_gauss_file, hist);
+      write_gauss_file(genv_gauss_file, sexpgrid, nx, ny, hist);
 
       genv_gauss_file = NULL;  /* clear - no further writes */
    }
@@ -1032,11 +1037,15 @@ static int fill_computed_farray(float * ts, int tslen, THD_3dim_dataset * dset,
 
 /* ------------------------------------------------------------ */
 /* write_gauss_curve */
-static int write_gauss_file(char * fname, float * curve, int nx, int ny)
+static int write_gauss_file(char * fname, float * curve, int nx, int ny,
+                            char * hist)
 {
    THD_3dim_dataset * dout;
-   THD_ivec3 inxyz;
-   THD_fvec3 origin, delta;
+   THD_ivec3          inxyz;
+   THD_fvec3          origin, delta;
+   float            * mptr, * dptr;
+   byte             * bptr;
+   int                ind;
 
    fprintf(stderr,"++ creating gauss dset (%dx%d)", nx, ny);
    dout = EDIT_empty_copy(NULL);
@@ -1050,13 +1059,31 @@ static int write_gauss_file(char * fname, float * curve, int nx, int ny)
                          ADN_xyzorg,    origin,
                          ADN_xyzdel,    delta,
                          ADN_prefix,    fname,
-                         ADN_nvals,     1,
+                         ADN_nvals,     2,
                          ADN_none);
-   EDIT_substitute_brick(dout, 0, MRI_float, curve);
+
+   /* first is gaussian, second is first mask (to compare orientations) */
+   /* use NULL to create space, then copy results */
+   EDIT_substitute_brick(dout, 0, MRI_float, NULL);
+   EDIT_substitute_brick(dout, 1, MRI_float, NULL);
+
+   /* first copy 'curve' to slice 0 */
+   mptr = DBLK_ARRAY(dout->dblk, 0);
+   dptr = curve;
+   for(ind = 0; ind < nx*ny; ind++)
+      *mptr++ = *dptr++;
+
+   /* now fill mask slice */
+   mptr = DBLK_ARRAY(dout->dblk, 1);
+   bptr = DBLK_ARRAY(g_saset->dblk, 0);
+   for(ind = 0; ind < nx*ny; ind++, bptr++)
+      *mptr++ = (float)*bptr;
 
    dout->daxes->xxorient = ORI_L2R_TYPE;
    dout->daxes->yyorient = ORI_P2A_TYPE;
    dout->daxes->zzorient = ORI_I2S_TYPE;
+
+   if( hist ) tross_Append_History(dout, hist);
 
    fprintf(stderr,", writing");
    DSET_write(dout);
