@@ -9,7 +9,7 @@
    
 #include "NLfit_model.h"
 
-static char  * g_model_ver = "model_conv_PRF, version 2.3, 7 Aug, 2015";
+static char  * g_model_ver = "model_conv_PRF, version 2.4, 19 Jun, 2018";
 
 /* prototypes */
 static int  signal_model( float * , int , float ** , float *, int );
