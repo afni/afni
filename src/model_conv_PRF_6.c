@@ -10,9 +10,9 @@
    Given stimulus images over time s(x,y,t), find x0, y0, sigma, R and theta
    values that produce a best fit of the model to the data.  Here x0, y0 are
    taken to be the center of the population receptive field, sigma is the
-   basic width of it, R is the ratio of axis lengths (sigma_y / sigma_x), and
-   theta is the rotation from the y-direction major axis (so zero is in the
-   positive y-direction).
+   basic width of it, R is the ratio of axis lengths (sigma_x / sigma_y), and
+   theta is the rotation from the x-direction major axis (so zero is in the
+   positive x-direction).
 
    domains:
       x,y       : [-1,1], scaled by the mask, itself
@@ -23,7 +23,7 @@
    The model function of x0, y0, sigma, R and theta is constructed as follows:
 
         1. generate a 2-D Gaussian density function, centered at x0, y0,
-           with given sigma, R (=sigma_y/sigma_x), and theta:
+           with given sigma, R (=sigma_x/sigma_y), and theta:
 
            -> pRF model g(x,y) = e^-(A(x-x0)^2 + 2*B(x-x0)(y-y0) + C(y-y0)^2)
 
@@ -812,8 +812,8 @@ MODEL_interface * initialize_model ()
          gs[1] = x0     = x-coordinate of gaussian center
          gs[2] = y0     = y-coordinate of gaussian center
          gs[3] = sigma  = "width" of gaussian curve
-         gs[4] = sigrat = sigma ratio = sigma_y / sigma_x
-         gs[5] = theta  = angle from "due north"
+         gs[4] = sigrat = sigma ratio = sigma_x / sigma_y
+         gs[5] = theta  = angle from "due east"
 
   For each TR, integrate g(x,y) over stim aperture dset.
 
@@ -1096,9 +1096,9 @@ static int write_gauss_file(char * fname, float * curve, int nx, int ny,
 
 
 /* ------------------------------------------------------------ */
-/* A = [R^2cos^2(theta) + sin^2(theta)] / [2R^2sigma^2]
+/* A = [cos^2(theta) + R^2*sin^2(theta)] / [2R^2sigma^2]
  * B = -(R^2-1) * sin(2theta) / [4R^2sigma^2]
- * C = [R^2sin^2(theta) + cos^2(theta)] / [2R^2sigma^2]
+ * C = [sin^2(theta) + R^2*cos^2(theta)] / [2R^2sigma^2]
  */
 static int get_ABC(float sigma, float sigrat, float theta,
             double * A, double * B, double * C)
@@ -1111,9 +1111,9 @@ static int get_ABC(float sigma, float sigrat, float theta,
    S2   = sin(theta)*sin(theta);
    So2  = sin(2*theta);
 
-   *A = (R2 * C2 + S2) / R2S2;
+   *A = (C2 + R2 * S2) / R2S2;
    *B = -(R2 - 1.0) * So2 / (2.0 * R2S2);
-   *C = (R2 * S2 + C2) / R2S2;
+   *C = (S2 + R2 * C2) / R2S2;
 
    return 0;
 }
@@ -1124,9 +1124,9 @@ static int get_ABC(float sigma, float sigrat, float theta,
  *
  * old: fill with e^-[((x-x0)^2 + (y-y0)^2) / (2*sigma^2)]
  * new: e^-[A(x-x0)^2 + 2*B(x-x0)(y-y0) + C(y-y0)^2], where
- *      A = [R^2cos^2(theta) + sin^2(theta)] / [2R^2sigma^2]
+ *      A = [cos^2(theta) + R^2*sin^2(theta)] / [2R^2sigma^2]
  *      B = -(R^2-1) * sin(2theta) / [4R^2sigma^2]
- *      C = [R^2sin^2(theta) + cos^2(theta)] / [2R^2sigma^2]
+ *      C = [sin^2(theta) + R^2*cos^2(theta)] / [2R^2sigma^2]
  *
  * We do not have to be too efficient in computing A,B,C, since those
  * are constant across the image.  Only x-x0 and y-y0 vary.
@@ -1214,8 +1214,8 @@ static int model_help(void)
 "      follows:\n"
 "\n"
 "         1. generate a 2-D elliptical Gaussian density function,\n"
-"            centered at x0, y0, with given sigma, R (=sigma_y/sigma_x),\n"
-"            and theta (rotation of major direction from positive y):\n"
+"            centered at x0, y0, with given sigma, R (=sigma_x/sigma_y),\n"
+"            and theta (CCW rotation of major direction from positive x):\n"
 "\n"
 "            -> pRF model g(x,y) = generalized 2-D Gaussian\n"
 "\n"
@@ -1233,9 +1233,9 @@ static int model_help(void)
 "                 C = ------------  +  ------------\n"
 "                      2sigma_x^2       2sigma_y^2\n"
 "\n"
-"            Substituting sigma_x = sigma, sigma_y = Rsigma_x yields,\n"
-"                           \n"
-"                     R^2cos^2(theta) + sin^2(theta)\n"
+"            Substituting sigma_x = sigma, sigma_y = R*sigma_x yields,\n"
+"\n"
+"                     cos^2(theta) + R^2*sin^2(theta)\n"
 "                 A = ------------------------------\n"
 "                              2R^2sigma^2\n"
 "\n"
@@ -1243,7 +1243,7 @@ static int model_help(void)
 "                 B = -(R^2-1) -----------\n"
 "                              4R^2sigma^2\n"
 "\n"
-"                     R^2sin^2(theta) + cos^2(theta)\n"
+"                     sin^2(theta) + R^2*cos^2(theta)\n"
 "                 C = ------------------------------\n"
 "                              2R^2sigma^2\n"
 "\n"
