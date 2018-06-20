@@ -27,8 +27,18 @@
 
            -> pRF model g(x,y) = e^-(A(x-x0)^2 + 2*B(x-x0)(y-y0) + C(y-y0)^2)
 
-              where A = cos^2(theta)
-                        ------------
+           where,
+                       cos^2(theta) + R^2*sin^2(theta)
+                  A =  -------------------------------
+                             2 * R^2 * sigma^2
+                        
+                           (1-R^2) * sin(2theta)
+                  B =      ---------------------
+                             4 * R^2 * sigma^2
+                        
+                       sin^2(theta) + R^2*cos^2(theta)
+                  C =  -------------------------------
+                             2 * R^2 * sigma^2
                         
 
         2. integrate (dot product) over binary stimulus image per time point
@@ -62,7 +72,7 @@ static float * refts     = NULL;   /* reference time series */
 static int   * refin     = NULL;   /* indexes of nonzero pts */
 static int     g_iter    = -1;     /* iteration number */
 
-static char  * g_model_ver = "model_conv_PRF_6, version 1.2, 19 Jun, 2018";
+static char  * g_model_ver = "model_conv_PRF_6, version 1.2, 20 Jun, 2018";
 
 /* exp variables, parameters */
 static float g_exp_maxval  = 8.0;  /* max x in exp(-x) */
@@ -1097,7 +1107,7 @@ static int write_gauss_file(char * fname, float * curve, int nx, int ny,
 
 /* ------------------------------------------------------------ */
 /* A = [cos^2(theta) + R^2*sin^2(theta)] / [2R^2sigma^2]
- * B = -(R^2-1) * sin(2theta) / [4R^2sigma^2]
+ * B = (1-R^2) * sin(2theta) / [4R^2sigma^2]
  * C = [sin^2(theta) + R^2*cos^2(theta)] / [2R^2sigma^2]
  */
 static int get_ABC(float sigma, float sigrat, float theta,
@@ -1111,9 +1121,9 @@ static int get_ABC(float sigma, float sigrat, float theta,
    S2   = sin(theta)*sin(theta);
    So2  = sin(2*theta);
 
-   *A = (C2 + R2 * S2) / R2S2;
-   *B = -(R2 - 1.0) * So2 / (2.0 * R2S2);
-   *C = (S2 + R2 * C2) / R2S2;
+   *A = (C2 + R2 * S2)   / R2S2;
+   *B = (1.0 - R2) * So2 / (2.0 * R2S2);
+   *C = (S2 + R2 * C2)   / R2S2;
 
    return 0;
 }
@@ -1125,7 +1135,7 @@ static int get_ABC(float sigma, float sigrat, float theta,
  * old: fill with e^-[((x-x0)^2 + (y-y0)^2) / (2*sigma^2)]
  * new: e^-[A(x-x0)^2 + 2*B(x-x0)(y-y0) + C(y-y0)^2], where
  *      A = [cos^2(theta) + R^2*sin^2(theta)] / [2R^2sigma^2]
- *      B = -(R^2-1) * sin(2theta) / [4R^2sigma^2]
+ *      B = (1-R^2) * sin(2theta) / [4R^2sigma^2]
  *      C = [sin^2(theta) + R^2*cos^2(theta)] / [2R^2sigma^2]
  *
  * We do not have to be too efficient in computing A,B,C, since those
@@ -1192,20 +1202,37 @@ static int model_help(void)
 "----------------------------------------------------------------------\n"
 "PRF_6  - 6 parameter population receptive field (in visual cortex)\n"
 "\n"
+"      Revisions from 19 Jun, 2018\n"
+"\n"
+"         - A factor of 2 was missing on the 'B' term.  The help text\n"
+"           was accurate in terms of what the model did, but the equation\n"
+"           should have read and now does read '... + 2*B()() + ...\n"
+"\n"
+"         - Sigma has been changed to be sigma_x/sigma_y, making theta=0\n"
+"           wide along the x-axis.  Previously y/x had it along the y-axis.\n"
+"\n"
+"         - Rotations are now CCW.\n"
+"\n"
+"         - AFNI_MODEL_PRF_GAUSS_FILE can be used to specify a dataset\n"
+"           to write a Gassian curve image to.\n"
+"\n"
 "      Given stimulus images over time s(x,y,t), find x0, y0, sigma, R and\n"
 "      theta values that produce a best fit of the model to the data.  Here\n"
 "      x0, y0 are taken to be the center of the population receptive field,\n"
-"      sigma is the minor width of it (sigma_x, below), sigrat R is the ratio\n"
-"      (sigma_y / sigma_x), and theta is the rotation from the y-direction\n"
-"      major axis (so zero is in the positive y-direction).\n"
+"      sigma is the minor width of it (sigma_y, below), sigrat R is the ratio\n"
+"      (sigma_x / sigma_y), and theta is the counter clockwise rotation from\n"
+"      the x-direction major axis (so zero is in the positive x-direction).\n"
 "\n"
-"      We assume sigma_y >= sigma_x and refer to sigrat >= 1, since that\n"
+"      We assume sigma_x >= sigma_y and refer to sigrat >= 1, since that\n"
 "      sufficiently represents all possibilities.  The reciprocol would\n"
 "      come from the negative complimentary angle, and would therefore be a\n"
-"      redundant solution.\n"
+"      redundant solution (if we allowed sigrat < 1).\n"
+"\n"
+"      So theta represents the CCW rotation of the major axis from x+.\n"
 "\n"
 "      parameter domains:\n"
-"         x,y        : [-1,1], scaled by the mask, itself\n"
+"         x,y        : [-1,1] (x=-1 means left edge of mask, +1 means right)\n"
+                              (similarly for y)
 "         sigma      : (0,1], where 1 means the mask radius\n"
 "         R (sigrat) : [1,inf), since sigma defines the smaller size\n"
 "         theta      : [-PI/2, PI/2), since rotation by PI has no effect\n"
@@ -1226,26 +1253,26 @@ static int model_help(void)
 "                      2sigma_x^2       2sigma_y^2\n"
 "\n"
 "                       sin(2theta)     sin(2theta)\n"
-"                 B = - -----------  +  -----------\n"
+"                 B =   -----------  -  -----------\n   (signs mean CCW rot)"
 "                       4sigma_x^2      4sigma_y^2\n"
 "\n"
 "                     sin^2(theta)     cox^2(theta)\n"
 "                 C = ------------  +  ------------\n"
 "                      2sigma_x^2       2sigma_y^2\n"
 "\n"
-"            Substituting sigma_x = sigma, sigma_y = R*sigma_x yields,\n"
+"            Substituting sigma_x = R*sigma_y, sigma_y = sigma yields,\n"
 "\n"
 "                     cos^2(theta) + R^2*sin^2(theta)\n"
-"                 A = ------------------------------\n"
-"                              2R^2sigma^2\n"
+"                 A = -------------------------------\n"
+"                               2*R^2sigma^2\n"
 "\n"
-"                              sin(2theta)\n"
-"                 B = -(R^2-1) -----------\n"
-"                              4R^2sigma^2\n"
+"                               sin(2theta)\n"
+"                 B = (1-R^2) * -----------\n"
+"                               4*R^2sigma^2\n"
 "\n"
 "                     sin^2(theta) + R^2*cos^2(theta)\n"
-"                 C = ------------------------------\n"
-"                              2R^2sigma^2\n"
+"                 C = -------------------------------\n"
+"                               2*R^2sigma^2\n"
 "\n"
 "--------------------------------------------------\n"
 "To use this model function:\n"
@@ -1388,6 +1415,14 @@ static int model_help(void)
 "         e.g. setenv AFNI_MODEL_DITER 999\n"
 "\n"
 "         Get extra debug info at some iteration.\n"
+"\n"
+"      AFNI_MODEL_PRF_GAUSS_FILE   : specify dataset prefix for Gauss curve\n"
+"\n"
+"         e.g. setenv AFNI_MODEL_PRF_GAUSS_FILE guass_curve\n"
+"\n"
+"         Write a 2-D image with the Gaussian curve, which is helpful\n"
+"         for checking the parameters.  This works best when used via\n"
+"         the get_afni_model_PRF_6 program.\n"
 "\n"
 "----------------------------------------------------------------------\n"
 "   Written for E Silson and C Baker.\n"
