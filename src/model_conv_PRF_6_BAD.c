@@ -62,7 +62,7 @@ static float * refts     = NULL;   /* reference time series */
 static int   * refin     = NULL;   /* indexes of nonzero pts */
 static int     g_iter    = -1;     /* iteration number */
 
-static char  * g_model_ver = "model_conv_PRF_6_BAD, version 1.1, 7 Aug, 2015";
+static char  * g_model_ver = "model_conv_PRF_6_BAD, version 1.3, 21 Jun, 2018";
 
 /* exp variables, parameters */
 static float g_exp_maxval  = 8.0;  /* max x in exp(-x) */
@@ -97,6 +97,8 @@ static int inputs_to_coords(THD_3dim_dataset * dset, float x, float y,
 			    float sigma, float sigrat, float theta);
 
 static int   disp_floats(char * mesg, float * p, int len);
+static int   write_gauss_file(char * fname, float * curve,
+                              int nx, int ny, char *hist);
 static int   model_help(void);
 static int   convolve_by_ref(float *, int, float *, int, int, int);
 
@@ -116,6 +118,7 @@ static void conv_model( float *  gs      , int     ts_length ,
 /* interface to the environment */
 static char * genv_conv_ref = NULL;    /* AFNI_CONVMODEL_REF */
 static char * genv_prf_stim = NULL;    /* AFNI_MODEL_PRF_STIM_DSET */
+static char * genv_gauss_file = NULL;  /* AFNI_MODEL_PRF_GAUSS_FILE */
 static int    genv_diter    = -1;      /* debug iteration */
 static int    genv_debug    = 0;       /* AFNI_MODEL_DEBUG */
 
@@ -163,6 +166,9 @@ static int set_env_vars(void)
    /* help */
    genv_get_help = AFNI_yesenv("AFNI_MODEL_HELP_CONV_PRF_6_BAD")
                 || AFNI_yesenv("AFNI_MODEL_HELP_ALL");
+
+   /* write a Gaussian mask? */
+   genv_gauss_file = my_getenv("AFNI_MODEL_PRF_GAUSS_FILE");
 
    return 0;
 }
@@ -1011,8 +1017,81 @@ static int fill_computed_farray(float * ts, int tslen, THD_3dim_dataset * dset,
       ts[tind] = A * sum;
    }
 
+   /* if requested, write this 2D image (one time only) */
+   if( genv_gauss_file ) {
+      char hist[256];
+      sprintf(hist, "== %s\n   x = %g, y = %g, "
+                    "sigma = %g, sigrat = %g, theta = %g\n",
+                    g_model_ver, x0, y0, sigma, sigrat, theta);
+      fprintf(stderr, "++ writing PRF model curve to %s\n%s\n",
+              genv_gauss_file, hist);
+      write_gauss_file(genv_gauss_file, sexpgrid, nx, ny, hist);
+
+      genv_gauss_file = NULL;  /* clear - no further writes */
+   }
+
    return 0;
 }
+
+/* ------------------------------------------------------------ */
+/* write_gauss_curve */
+static int write_gauss_file(char * fname, float * curve, int nx, int ny,
+                            char * hist)
+{
+   THD_3dim_dataset * dout;
+   THD_ivec3          inxyz;
+   THD_fvec3          origin, delta;
+   float            * mptr, * dptr;
+   byte             * bptr;
+   int                ind;
+
+   fprintf(stderr,"++ creating gauss dset (%dx%d)", nx, ny);
+   dout = EDIT_empty_copy(NULL);
+   LOAD_IVEC3(inxyz, nx, ny, 1);                               /* nxyz   */
+   origin.xyz[0] = origin.xyz[1] = -1.0;                       /* origin */
+   origin.xyz[2] = 0.0;
+   delta.xyz[0] = delta.xyz[1] = 2.0/(nx-1);                   /* delta */
+   delta.xyz[2] = 1.0;
+
+   EDIT_dset_items(dout, ADN_nxyz,      inxyz,
+                         ADN_xyzorg,    origin,
+                         ADN_xyzdel,    delta,
+                         ADN_prefix,    fname,
+                         ADN_nvals,     2,
+                         ADN_none);
+
+   /* first is gaussian, second is first mask (to compare orientations) */
+   /* use NULL to create space, then copy results */
+   EDIT_substitute_brick(dout, 0, MRI_float, NULL);
+   EDIT_substitute_brick(dout, 1, MRI_float, NULL);
+
+   /* first copy 'curve' to slice 0 */
+   mptr = DBLK_ARRAY(dout->dblk, 0);
+   dptr = curve;
+   for(ind = 0; ind < nx*ny; ind++)
+      *mptr++ = *dptr++;
+
+   /* now fill mask slice */
+   mptr = DBLK_ARRAY(dout->dblk, 1);
+   bptr = DBLK_ARRAY(g_saset->dblk, 0);
+   for(ind = 0; ind < nx*ny; ind++, bptr++)
+      *mptr++ = (float)*bptr;
+
+   dout->daxes->xxorient = ORI_L2R_TYPE;
+   dout->daxes->yyorient = ORI_P2A_TYPE;
+   dout->daxes->zzorient = ORI_I2S_TYPE;
+
+   if( hist ) tross_Append_History(dout, hist);
+
+   fprintf(stderr,", writing");
+   DSET_write(dout);
+
+   DSET_delete(dout);
+   fprintf(stderr,", done\n");
+
+   return 0;
+}
+
 
 /* ------------------------------------------------------------ */
 /* A = [R^2cos^2(theta) + sin^2(theta)] / [2R^2sigma^2]
@@ -1110,6 +1189,14 @@ static int model_help(void)
    printf(
 "----------------------------------------------------------------------\n"
 "PRF_6_BAD  - 6 parameter population receptive field (in visual cortex)\n"
+"\n"
+"       ------------------------------------------------------------\n"
+"       This is the bad, naughty version of PRF_6, which is missing a\n"
+"       scalar of 2 on the B term in the main PRF model equation.\n"
+"       It is left for comparison.  Sorry Ed.\n"
+"\n"
+"       This also applies AFNI_MODEL_PRF_GAUSS_FILE, if requested\n"
+"       ------------------------------------------------------------\n"
 "\n"
 "      Given stimulus images over time s(x,y,t), find x0, y0, sigma, R and\n"
 "      theta values that produce a best fit of the model to the data.  Here\n"
@@ -1307,6 +1394,14 @@ static int model_help(void)
 "         e.g. setenv AFNI_MODEL_DITER 999\n"
 "\n"
 "         Get extra debug info at some iteration.\n"
+"\n"
+"      AFNI_MODEL_PRF_GAUSS_FILE   : specify dataset prefix for Gauss curve\n"
+"\n"
+"         e.g. setenv AFNI_MODEL_PRF_GAUSS_FILE guass_curve\n"
+"\n"
+"         Write a 2-D image with the Gaussian curve, which is helpful\n"
+"         for checking the parameters.  This works best when used via\n"
+"         the get_afni_model_PRF_6 program.\n"
 "\n"
 "----------------------------------------------------------------------\n"
 "   Written for E Silson and C Baker.\n"

@@ -1232,7 +1232,7 @@ static int model_help(void)
 "\n"
 "      parameter domains:\n"
 "         x,y        : [-1,1] (x=-1 means left edge of mask, +1 means right)\n"
-                              (similarly for y)
+"                             (similarly for y)\n"
 "         sigma      : (0,1], where 1 means the mask radius\n"
 "         R (sigrat) : [1,inf), since sigma defines the smaller size\n"
 "         theta      : [-PI/2, PI/2), since rotation by PI has no effect\n"
