@@ -1,18 +1,6 @@
 /*****************************************************************************
    Based on model_conv_PRF.c, but this is with 6 parameters.
 
-      --------------------------------------------------------------
-      * The 'bad' version.  Help is accurate, but shows pRF model
-        missing a factor of 2 in the B term.  Intentended updates
-        for the 'good' version include:
-                - applying the scalar of 2 in the B term
-                - defining sigrat as sigma_x / sigma_y, and negating
-                  the rotation
-                  ==> this will make the thetas CCW from x+ axis
-                - adding the ability to write out a Gaussian image
-        Sorry Ed.
-     --------------------------------------------------------------
-
    The original (4 parameter) model is from:
 
         Population receptive field estimates in human visual cortex
@@ -74,7 +62,7 @@ static float * refts     = NULL;   /* reference time series */
 static int   * refin     = NULL;   /* indexes of nonzero pts */
 static int     g_iter    = -1;     /* iteration number */
 
-static char  * g_model_ver = "model_conv_PRF_6, version 1.1, 7 Aug, 2015";
+static char  * g_model_ver = "model_conv_PRF_6_BAD, version 1.1, 7 Aug, 2015";
 
 /* exp variables, parameters */
 static float g_exp_maxval  = 8.0;  /* max x in exp(-x) */
@@ -173,7 +161,7 @@ static int set_env_vars(void)
               genv_sigma_ratio_nsteps, genv_theta_nsteps);
 
    /* help */
-   genv_get_help = AFNI_yesenv("AFNI_MODEL_HELP_CONV_PRF_6")
+   genv_get_help = AFNI_yesenv("AFNI_MODEL_HELP_CONV_PRF_6_BAD")
                 || AFNI_yesenv("AFNI_MODEL_HELP_ALL");
 
    return 0;
@@ -761,7 +749,7 @@ MODEL_interface * initialize_model ()
   MODEL_interface * mi = NULL;
 
   /*----- first, see if the user wants help -----*/
-  if ( AFNI_yesenv("AFNI_MODEL_HELP_CONV_PRF_6") ||
+  if ( AFNI_yesenv("AFNI_MODEL_HELP_CONV_PRF_6_BAD") ||
        AFNI_yesenv("AFNI_MODEL_HELP_ALL") ) model_help();
 
   /*----- allocate memory space for model interface -----*/
@@ -770,7 +758,7 @@ MODEL_interface * initialize_model ()
 
   /*----- name of this model -----*/
 
-  strcpy (mi->label, "Conv_PRF_6");
+  strcpy (mi->label, "Conv_PRF_6_BAD");
 
   /*----- this is a signal model -----*/
 
@@ -1121,7 +1109,7 @@ static int model_help(void)
 {
    printf(
 "----------------------------------------------------------------------\n"
-"PRF_6  - 6 parameter population receptive field (in visual cortex)\n"
+"PRF_6_BAD  - 6 parameter population receptive field (in visual cortex)\n"
 "\n"
 "      Given stimulus images over time s(x,y,t), find x0, y0, sigma, R and\n"
 "      theta values that produce a best fit of the model to the data.  Here\n"
@@ -1227,7 +1215,7 @@ static int model_help(void)
 "\n"
 "      3dNLfim -input epi.scale.demean+tlrc \\\n"
 "              -noise Zero                  \\\n"
-"              -signal Conv_PRF_6           \\\n"
+"              -signal Conv_PRF_6_BAD       \\\n"
 "              -sconstr 0 -10.0 10.0        \\\n"
 "              -sconstr 1 -1.0 1.0          \\\n"
 "              -sconstr 2 -1.0 1.0          \\\n"
@@ -1294,19 +1282,19 @@ static int model_help(void)
 "   -----------------------------------\n"
 "   helpful:\n"
 "\n"
-"      AFNI_MODEL_HELP_CONV_PRF_6  : Y/N - output this help\n"
+"      AFNI_MODEL_HELP_CONV_PRF_6_BAD  : Y/N - output this help\n"
 "\n"
-"         e.g. setenv AFNI_MODEL_HELP_CONV_PRF_6 YES\n"
+"         e.g. setenv AFNI_MODEL_HELP_CONV_PRF_6_BAD YES\n"
 "\n"
 "         When set, the model initialization function will output this help.\n"
 "\n"
 "         Consider:\n"
 "\n"
-"            3dNLfim -signal Conv_PRF_6\n"
+"            3dNLfim -signal Conv_PRF_6_BAD\n"
 "\n"
 "         or more directly (without setenv):\n"
 "\n"
-"            3dNLfim -DAFNI_MODEL_HELP_CONV_PRF_6=Y -signal Conv_PRF_6 \n"
+"            3dNLfim -DAFNI_MODEL_HELP_CONV_PRF_6_BAD=Y -signal Conv_PRF_6_BAD \n"
 "\n"
 "      AFNI_MODEL_DEBUG            : specify debug/verbosity level\n"
 "\n"
