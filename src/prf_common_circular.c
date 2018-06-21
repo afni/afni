@@ -1109,7 +1109,7 @@ static int get_signal_computed(float * ts, int tslen, THD_3dim_dataset * dset,
    /* if requested, write this 2D image (one time only) */
    if( genv_gauss_file ) {
       char hist[256];
-      sprintf(hist, "== %s\n   x = %g, y = %g, sigma = %g\n",
+      sprintf(hist, "\n   == %s\n   x = %g, y = %g, sigma = %g\n",
                     g_model_ver, x0, y0, sigma);
       fprintf(stderr, "++ writing PRF model curve to %s\n%s\n",
               genv_gauss_file, hist);

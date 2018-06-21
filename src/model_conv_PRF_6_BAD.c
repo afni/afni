@@ -1020,7 +1020,7 @@ static int fill_computed_farray(float * ts, int tslen, THD_3dim_dataset * dset,
    /* if requested, write this 2D image (one time only) */
    if( genv_gauss_file ) {
       char hist[256];
-      sprintf(hist, "== %s\n   x = %g, y = %g, "
+      sprintf(hist, "\n   == %s\n   x = %g, y = %g, "
                     "sigma = %g, sigrat = %g, theta = %g\n",
                     g_model_ver, x0, y0, sigma, sigrat, theta);
       fprintf(stderr, "++ writing PRF model curve to %s\n%s\n",
