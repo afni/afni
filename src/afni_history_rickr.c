@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21, Jun, 2018, RCR, "get_afni_model_PRF_6_BAD", MICRO, TYPE_NEW_PROG,
+   "wrapper for model Conv_PRF_6_BAD",
+   "See model Conv_PRF_6_BAD in model_conv_PRF_6_BAD.c."
+ } ,
+
+ { 21, Jun, 2018, RCR, "model_PRF_6_BAD", MINOR, TYPE_NEW_PROG,
+   "old model_PRF_6, but with version and gauss_file udpates",
+   "This is for result comparison."
+ } ,
+
  { 19, Jun, 2018, RCR, "model_conv_PRF_6", MINOR, TYPE_BUG_FIX,
    "fix rotation term, B should be 2*B",
    "Thanks to R Le, G Usabiaga and B Wandell for suggesting a review."
