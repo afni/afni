@@ -1,8 +1,8 @@
+#include <stdbool.h> //requires VS 2015 or later
 #include <sys/types.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include "jpg_0XC3.h"
 #include "print.h"
 
@@ -291,8 +291,8 @@ unsigned char *  decode_JPEG_SOF_0XC3 (const char *fn, int skipBytes, bool verbo
         lIncI++;
         lIncO++;
     } while (lIncO > 0);
-    if (lIsRestartSegments != 0) //detects both restart and corruption https://groups.google.com/forum/#!topic/comp.protocols.dicom/JUuz0B_aE5o
-        printWarning("Detected restart segments, decompress with dcmdjpeg or gdcmconv 0xFF%02X.\n", lIsRestartSegments);
+    //if (lIsRestartSegments != 0) //detects both restart and corruption https://groups.google.com/forum/#!topic/comp.protocols.dicom/JUuz0B_aE5o
+    //    printWarning("Detected restart segments, decompress with dcmdjpeg or gdcmconv 0xFF%02X.\n", lIsRestartSegments);
     //NEXT: some RGB images use only a single Huffman table for all 3 colour planes. In this case, replicate the correct values
     //NEXT: prepare lookup table
     for (int lFrameCount = 1; lFrameCount <= lnHufTables; lFrameCount ++) {

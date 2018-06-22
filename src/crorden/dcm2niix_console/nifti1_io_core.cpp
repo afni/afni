@@ -15,11 +15,11 @@
 /*****  incidental or otherwise, caused by any use of this document.     *****/
 /*****===================================================================*****/
 
+#include <stdbool.h> //requires VS 2015 or later
 #include "nifti1_io_core.h"
 #include <math.h>
 #include <stdlib.h>
 #include <sys/stat.h>
-#include <stdbool.h>
 #include <ctype.h>
 #include <string.h>
 #include <stddef.h>
@@ -82,6 +82,10 @@ void nifti_swap_2bytes( size_t n , void *ar )    // 2 bytes at a time
 
 int isSameFloat (float a, float b) {
     return (fabs (a - b) <= FLT_EPSILON);
+}
+
+int isSameDouble (double a, double b) {
+    return (fabs (a - b) <= DBL_EPSILON);
 }
 
 ivec3 setiVec3(int x, int y, int z)

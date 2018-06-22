@@ -28,10 +28,9 @@
 
 //#define mydebugtest //automatically process directory specified in main, ignore input arguments
 
-
+#include <stdbool.h> //requires VS 2015 or later
 #include <stdlib.h>
 #include <sys/stat.h>
-#include <stdbool.h>
 #include <ctype.h>
 #include <string.h>
 #include <stddef.h>
@@ -77,7 +76,8 @@ void showHelp(const char * argv[], struct TDCMopts opts) {
     printf("  -b : BIDS sidecar (y/n/o [o=only: no NIfTI], default %c)\n", bidsCh);
     if (opts.isAnonymizeBIDS) bidsCh = 'y'; else bidsCh = 'n';
     printf("   -ba : anonymize BIDS (y/n, default %c)\n", bidsCh);
-    printf("  -c : comment stored as NIfTI aux_file (up to 24 characters)\n");
+    printf("  -c : comment stored in NIfTI aux_file (up to 24 characters)\n");
+    printf("  -d : directory search depth. Convert DICOMs in sub-folders of in_folder? (0..9, default %d)\n", opts.dirSearchDepth);
     if (opts.isSortDTIbyBVal) bidsCh = 'y'; else bidsCh = 'n';
     //printf("  -d : diffusion volumes sorted by b-value (y/n, default %c)\n", bidsCh);
     #ifdef mySegmentByAcq
@@ -86,9 +86,12 @@ void showHelp(const char * argv[], struct TDCMopts opts) {
      #define kQstr ""
     #endif
     printf("  -f : filename (%%a=antenna  (coil) number, %%c=comments, %%d=description, %%e=echo number, %%f=folder name, %%i=ID of patient, %%j=seriesInstanceUID, %%k=studyInstanceUID, %%m=manufacturer, %%n=name of patient, %%p=protocol,%s %%s=series number, %%t=time, %%u=acquisition number, %%v=vendor, %%x=study ID; %%z=sequence name; default '%s')\n", kQstr, opts.filename);
-    printf("  -g : generate defaults file (y/n/o [o=only: reset and write defaults], default n)\n");
+    printf("  -g : generate defaults file (y/n/o/i [o=only: reset and write defaults; i=ignore: reset defaults], default n)\n");
     printf("  -h : show help\n");
     printf("  -i : ignore derived, localizer and 2D images (y/n, default n)\n");
+    char max16Ch = 'n';
+    if (opts.isMaximize16BitRange) max16Ch = 'y';
+    printf("  -l : losslessly scale 16-bit integers to use dynamic range (y/n, default %c)\n", max16Ch);
     printf("  -m : merge 2D slices from same series regardless of study time, echo, coil, orientation, etc. (y/n, default n)\n");
     printf("  -n : only convert this series number - can be used up to %i times (default convert all)\n", MAX_NUM_SERIES);
     printf("  -o : output directory (omit to save to input folder)\n");
@@ -111,7 +114,7 @@ void showHelp(const char * argv[], struct TDCMopts opts) {
     	#ifdef myDisableMiniZ
     	printf("  -z : gz compress images (y/i/n/3, default %c) [y=pigz, i=internal:zlib, n=no, 3=no,3D]\n", gzCh);
 		#else
-		printf("  -z : gz compress images (y/i/n/3, default %c) [y=pigz, i=internal, n=no, 3=no,3D]\n", gzCh);
+		printf("  -z : gz compress images (y/i/n/3, default %c) [y=pigz, i=internal:miniz, n=no, 3=no,3D]\n", gzCh);
 		#endif
     #endif
 
@@ -238,7 +241,11 @@ int main(int argc, const char * argv[])
                 	if (invalidParam(i, argv)) return 0;
                 	if ((argv[i][0] == 'n') || (argv[i][0] == 'N')  || (argv[i][0] == '0'))
                     	opts.isCreateBIDS = false;
-                	else {
+                	else if ((argv[i][0] == 'i') || (argv[i][0] == 'I')) {
+                    	//input only mode (for development): does not create NIfTI or BIDS outputs!
+                    	opts.isCreateBIDS = false;
+                    	opts.isOnlyBIDS = true;
+                	} else {
                     	opts.isCreateBIDS = true;
                     	if ((argv[i][0] == 'o') || (argv[i][0] == 'O'))
                     		opts.isOnlyBIDS = true;
@@ -257,19 +264,19 @@ int main(int argc, const char * argv[])
                 snprintf(opts.imageComments,24,"%s",argv[i]);
             } else if ((argv[i][1] == 'd') && ((i+1) < argc)) {
                 i++;
-                if (invalidParam(i, argv)) return 0;
-                if ((argv[i][0] == 'n') || (argv[i][0] == 'N')  || (argv[i][0] == '0'))
-                    opts.isSortDTIbyBVal = false;
-                else {
-                    opts.isSortDTIbyBVal = true;
-                    printf("Warning: sorting by b-value is deprecated: do not do this before undistortion.");
-                    printf(" https://www.nitrc.org/forum/message.php?msg_id=22867");
-                }
+                if ((argv[i][0] >= '0') && (argv[i][0] <= '9'))
+                	opts.dirSearchDepth = abs((int)strtol(argv[i], NULL, 10));
             } else if ((argv[i][1] == 'g') && ((i+1) < argc)) {
                 i++;
                 if (invalidParam(i, argv)) return 0;
                 if ((argv[i][0] == 'y') || (argv[i][0] == 'Y'))
                     isSaveIni = true;
+                if (((argv[i][0] == 'i') || (argv[i][0] == 'I')) && (!isResetDefaults)) {
+                    isResetDefaults = true;
+                    printf("Defaults reset\n");
+                    setDefaultOpts(&opts, argv);
+                    i = 0; //re-read all settings for this pass, e.g. "dcm2niix -f %p_%s -d o" should save filename as "%p_%s"
+                }
                 if (((argv[i][0] == 'o') || (argv[i][0] == 'O')) && (!isResetDefaults)) {
                 	//reset defaults - do not read, but do write defaults
                     isSaveIni = true;
@@ -286,6 +293,13 @@ int main(int argc, const char * argv[])
                     opts.isIgnoreDerivedAnd2D = false;
                 else
                     opts.isIgnoreDerivedAnd2D = true;
+            } else if ((argv[i][1] == 'l') && ((i+1) < argc)) {
+                i++;
+                if (invalidParam(i, argv)) return 0;
+                if ((argv[i][0] == 'n') || (argv[i][0] == 'N')  || (argv[i][0] == '0'))
+                    opts.isMaximize16BitRange = false;
+                else
+                    opts.isMaximize16BitRange = true;
             } else if ((argv[i][1] == 'm') && ((i+1) < argc)) {
                 i++;
                 if (invalidParam(i, argv)) return 0;
@@ -324,11 +338,7 @@ int main(int argc, const char * argv[])
                 if (invalidParam(i, argv)) return 0;
                 if ((argv[i][0] == 'n') || (argv[i][0] == 'N')  || (argv[i][0] == '0')) //0: verbose OFF
                     opts.isVerbose = 0;
-                else if ((argv[i][0] == 'o') || (argv[i][0] == 'O')) {//-1: experimental SQ skipping: 'O'ptimized!? faster, does not get confused with Philips tags
-                    opts.isVerbose = -1;
-                    printf(">> Experimental SQ skipping enabled\n");
-
-                } else if ((argv[i][0] == 'h') || (argv[i][0] == 'H')  || (argv[i][0] == '2')) //2: verbose HYPER
+                else if ((argv[i][0] == 'h') || (argv[i][0] == 'H')  || (argv[i][0] == '2')) //2: verbose HYPER
                     opts.isVerbose = 2;
                 else
                     opts.isVerbose = 1; //1: verbose ON
@@ -339,6 +349,17 @@ int main(int argc, const char * argv[])
                     opts.isCrop = false;
                 else
                     opts.isCrop = true;
+            } else if ((argv[i][1] == 'y') && ((i+1) < argc)) {
+                i++;
+                bool isFlipY = opts.isFlipY;
+                if (invalidParam(i, argv)) return 0;
+                if ((argv[i][0] == 'y') || (argv[i][0] == 'Y') ) {
+                    opts.isFlipY = true; //force use of internal compression instead of pigz
+                	strcpy(opts.pigzname,"");
+                } else if ((argv[i][0] == 'n') || (argv[i][0] == 'N'))
+                    opts.isFlipY = false;
+                if (isFlipY != opts.isFlipY)
+                	printf("Advanced feature: You are flipping the default order of rows in your image.\n");
             } else if ((argv[i][1] == 'z') && ((i+1) < argc)) {
                 i++;
                 if (invalidParam(i, argv)) return 0;
@@ -346,8 +367,10 @@ int main(int argc, const char * argv[])
                     opts.isGz = false; //uncompressed 3D
                 	opts.isSave3D = true;
                 } else if ((argv[i][0] == 'i') || (argv[i][0] == 'I') ) {
-                    opts.isGz = true; //force use of internal compression instead of pigz
-                	strcpy(opts.pigzname,"");
+                    opts.isGz = true;
+                    #ifndef myDisableZLib
+                	strcpy(opts.pigzname,""); //force use of internal compression instead of pigz
+                	#endif
                 } else if ((argv[i][0] == 'n') || (argv[i][0] == 'N')  || (argv[i][0] == '0'))
                     opts.isGz = false;
                 else
@@ -376,6 +399,12 @@ int main(int argc, const char * argv[])
         } //if parameter is a command
         i ++; //read next parameter
     } //while parameters to read
+    #ifndef myDisableZLib
+    if ((opts.isGz) && (opts.dirSearchDepth < 1) && (strlen(opts.pigzname)>0)) {
+    	strcpy(opts.pigzname,"");
+    	printf("n.b. Setting directory search depth of zero invokes internal gz (network mode)\n");
+	}
+	#endif
     if (isSaveIni)
     	saveIniFile(opts);
     //printf("%d %d",argc,lastCommandArg);

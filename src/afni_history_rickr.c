@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22, Jun, 2018, RCR, "dcm2niix_afni", MAJOR, TYPE_ENHANCE,
+   "version v1.0.20180614, including JPEG-LS support",
+   "Update from C Rorden."
+ } ,
+
  { 21, Jun, 2018, RCR, "get_afni_model_PRF_6_BAD", MICRO, TYPE_NEW_PROG,
    "wrapper for model Conv_PRF_6_BAD",
    "See model Conv_PRF_6_BAD in model_conv_PRF_6_BAD.c."
