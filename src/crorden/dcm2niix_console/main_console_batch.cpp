@@ -3,6 +3,7 @@
 //  Copyright (c) 2014 Chris Rorden. All rights reserved.
 //  yaml batch suport by Benjamin Irving, 2016 - maintains copyright
 
+#include <stdbool.h> //requires VS 2015 or later
 #ifdef _MSC_VER
 	#include  <io.h> //access()
 	#ifndef F_OK
@@ -14,7 +15,6 @@
 #include <cmath>
 #include <fstream>
 #include <iostream>
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
@@ -108,6 +108,7 @@ int main(int argc, const char * argv[]) {
     readIniFile(&opts, argv); //setup defaults, e.g. path to pigz
     opts.isCreateBIDS = config["Options"]["isCreateBIDS"].as<bool>();
     opts.isOnlySingleFile = config["Options"]["isOnlySingleFile"].as<bool>();
+    opts.isFlipY = config["Options"]["isFlipY"].as<bool>();
     opts.isCreateText = false;
     opts.isVerbose = 0;
     opts.isGz = config["Options"]["isGz"].as<bool>(); //save data as compressed (.nii.gz) or raw (.nii)
