@@ -1,4 +1,4 @@
-#include <stdbool.h>
+#include <stdbool.h> //requires VS 2015 or later
 #include <string.h>
 #include <stdint.h>
 #include "nifti1_io_core.h"
@@ -17,13 +17,18 @@ extern "C" {
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
 
+ #if defined(myEnableJPEGLS) || defined(myEnableJPEGLS1)
+   #define kLSsuf " (JP-LS:CharLS)"
+ #else
+   #define kLSsuf ""
+ #endif
  #ifdef myEnableJasper
-  #define kDCMsuf " (JasPer build)"
+  #define kJP2suf " (JP2:JasPer)"
  #else
   #ifdef myDisableOpenJPEG
-    #define kDCMsuf ""
+    #define kJP2suf ""
   #else
-    #define kDCMsuf " (OpenJPEG build)"
+    #define kJP2suf " (JP2:OpenJPEG)"
   #endif
  #endif
 #if defined(__ICC) || defined(__INTEL_COMPILER)
@@ -38,10 +43,10 @@ extern "C" {
 	#define kCCsuf " CompilerNA" //unknown compiler!
 #endif
 
-#define kDCMvers "v1.0.20180403" kDCMsuf kCCsuf
+#define kDCMvers "v1.0.20180614" kJP2suf kLSsuf kCCsuf
 
 static const int kMaxEPI3D = 1024; //maximum number of EPI images in Siemens Mosaic
-static const int kMaxDTI4D = 4096; //maximum number of DTI directions for 4D (Philips) images, also maximum number of 3D slices for Philips 3D and 4D images
+static const int kMaxDTI4D = 18000; //maximum number of DTI directions for 4D (Philips) images, also maximum number of 3D slices for Philips 3D and 4D images
 static const int kMaxSlice2D = 64000; //maximum number of 2D slices in 4D (Philips) images
 
 #define kDICOMStr 64
@@ -60,6 +65,13 @@ static const int kMaxSlice2D = 64000; //maximum number of 2D slices in 4D (Phili
 #define kMODALITY_PT  4
 #define kMODALITY_US  5
 
+//GE phase encoding
+#define kGE_PHASE_DIRECTION_UNKNOWN  0
+#define kGE_PHASE_DIRECTION_BOTTOM_UP  1
+#define kGE_PHASE_DIRECTION_TOP_DOWN  2
+#define kGE_PHASE_DIRECTION_CENTER_OUT_REV  3
+#define kGE_PHASE_DIRECTION_CENTER_OUT  4
+
 #define kEXIT_NO_VALID_FILES_FOUND  2
 static const int kSliceOrientUnknown = 0;
 static const int kSliceOrientTra = 1;
@@ -71,6 +83,17 @@ static const int kCompressYes = 1;
 static const int kCompressC3 = 2; //obsolete JPEG lossless
 static const int kCompress50 = 3; //obsolete JPEG lossy
 static const int kCompressRLE = 4; //run length encoding
+static const int kCompressPMSCT_RLE1 = 5; //see rle2img: Philips/ELSCINT1 run-length compression 07a1,1011= PMSCT_RLE1
+static const int kCompressJPEGLS = 5; //LoCo JPEG-LS
+#ifdef myEnableJasper
+    static const int kCompressSupport = kCompressYes; //JASPER for JPEG2000
+#else
+    #ifdef myDisableOpenJPEG
+        static const int kCompressSupport = kCompressNone; //no decompressor
+    #else
+        static const int kCompressSupport = kCompressYes; //OPENJPEG for JPEG2000
+    #endif
+#endif
 
 // Maximum number of dimensions for .dimensionIndexValues, i.e. possibly the
 // number of axes in the output .nii.
@@ -84,7 +107,9 @@ static const uint8_t MAX_NUMBER_OF_DIMENSIONS = 8;
         struct TDTI S[kMaxDTI4D];
         int sliceOrder[kMaxSlice2D]; // [7,3,2] means the first slice on disk should be moved to 7th position
         int gradDynVol[kMaxDTI4D]; //used to parse dimensions of Philips data, e.g. file with multiple dynamics, echoes, phase+magnitude
-        float TE[kMaxDTI4D], intenScale[kMaxDTI4D], intenIntercept[kMaxDTI4D], intenScalePhilips[kMaxDTI4D];
+        float triggerDelayTime[kMaxDTI4D], TE[kMaxDTI4D], RWVScale[kMaxDTI4D], RWVIntercept[kMaxDTI4D], intenScale[kMaxDTI4D], intenIntercept[kMaxDTI4D], intenScalePhilips[kMaxDTI4D];
+        bool isReal[kMaxDTI4D];
+        bool isImaginary[kMaxDTI4D];
         bool isPhase[kMaxDTI4D];
     };
 
@@ -117,7 +142,7 @@ static const uint8_t MAX_NUMBER_OF_DIMENSIONS = 8;
 #endif
     struct TCSAdata {
     	float sliceTiming[kMaxEPI3D], dtiV[4], sliceNormV[4], bandwidthPerPixelPhaseEncode, sliceMeasurementDuration;
-        int numDti, SeriesHeader_offset, SeriesHeader_length, multiBandFactor, sliceOrder, slice_start, slice_end, mosaicSlices,protocolSliceNumber1,phaseEncodingDirectionPositive;
+        int numDti, SeriesHeader_offset, SeriesHeader_length, multiBandFactor, sliceOrder, slice_start, slice_end, mosaicSlices, protocolSliceNumber1, phaseEncodingDirectionPositive;
     	bool isPhaseMap;
 
     };
@@ -127,19 +152,19 @@ static const uint8_t MAX_NUMBER_OF_DIMENSIONS = 8;
         //numberOfDynamicScans, patientPositionNumPhilips
         //patientPositionSequentialRepeats,patientPositionRepeats,
         //maxGradDynVol, gradDynVol,
-        int protocolBlockStartGE, protocolBlockLengthGE, modality, dwellTime, effectiveEchoSpacingGE, phaseEncodingLines, phaseEncodingSteps, echoTrainLength, coilNum, echoNum, sliceOrient, manufacturer, converted2NII, acquNum, imageNum, imageStart, imageBytes, bitsStored, bitsAllocated, samplesPerPixel,locationsInAcquisition, compressionScheme;
+        int phaseEncodingGE, protocolBlockStartGE, protocolBlockLengthGE, modality, dwellTime, effectiveEchoSpacingGE, phaseEncodingLines, phaseEncodingSteps, echoTrainLength, coilNum, echoNum, sliceOrient, manufacturer, converted2NII, acquNum, imageNum, imageStart, imageBytes, bitsStored, bitsAllocated, samplesPerPixel,locationsInAcquisition, compressionScheme;
         float patientWeight, zSpacing, zThick, pixelBandwidth, SAR, phaseFieldofView, accelFactPE, flipAngle, fieldStrength, TE, TI, TR, intenScale, intenIntercept, intenScalePhilips, gantryTilt, lastScanLoc, angulation[4];
         float orient[7], patientPosition[4], patientPositionLast[4], xyzMM[4], stackOffcentre[4];
         float radionuclidePositronFraction, radionuclideTotalDose, radionuclideHalfLife, doseCalibrationFactor; //PET ISOTOPE MODULE ATTRIBUTES (C.8-57)
 		float ecat_isotope_halflife, ecat_dosage;
-        double dateTime, acquisitionTime, acquisitionDate, bandwidthPerPixelPhaseEncode;
+        double triggerDelayTime, RWVScale, RWVIntercept, dateTime, acquisitionTime, acquisitionDate, bandwidthPerPixelPhaseEncode;
         //char mrAcquisitionType[kDICOMStr]
         char scanOptions[kDICOMStr], stationName[kDICOMStr], softwareVersions[kDICOMStr], deviceSerialNumber[kDICOMStr], institutionAddress[kDICOMStr], institutionName[kDICOMStr], referringPhysicianName[kDICOMStr], seriesInstanceUID[kDICOMStr], studyInstanceUID[kDICOMStr], bodyPartExamined[kDICOMStr], procedureStepDescription[kDICOMStr], imageType[kDICOMStr], institutionalDepartmentName[kDICOMStr], manufacturersModelName[kDICOMStr], patientID[kDICOMStr], patientOrient[kDICOMStr], patientName[kDICOMStr],seriesDescription[kDICOMStr], studyID[kDICOMStr], sequenceName[kDICOMStr], protocolName[kDICOMStr],sequenceVariant[kDICOMStr],scanningSequence[kDICOMStr], patientBirthDate[kDICOMStr], patientAge[kDICOMStr],  studyDate[kDICOMStr],studyTime[kDICOMStr];
         char imageComments[kDICOMStrLarge];
         uint32_t dimensionIndexValues[MAX_NUMBER_OF_DIMENSIONS];
         struct TCSAdata CSA;
         //isSlicesSpatiallySequentialPhilips
-        bool isSegamiOasis, isScaleOrTEVaries,  isDerived, isXRay, isMultiEcho, isValid, is3DAcq, is2DAcq, isExplicitVR, isLittleEndian, isPlanarRGB, isSigned, isHasPhase,isHasMagnitude,isHasMixed, isFloat, isResampled, isLocalizer;
+        bool isSegamiOasis, isScaleOrTEVaries,  isDerived, isXRay, isMultiEcho, isValid, is3DAcq, is2DAcq, isExplicitVR, isLittleEndian, isPlanarRGB, isSigned, isHasPhase, isHasImaginary, isHasReal, isHasMagnitude,isHasMixed, isFloat, isResampled, isLocalizer;
         char phaseEncodingRC, patientSex;
         //uint32_t *totalSlicesIn4DOrder; //Reordering array for Philips slices
     };
