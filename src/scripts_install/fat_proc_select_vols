@@ -22,8 +22,13 @@
 #set version   = "1.4";    set rev_dat   = "Apr 28, 2017"
 #   + path stuff corrected, for arbitrary locations
 #
-set version   = "1.5";    set rev_dat   = "Sep 04, 2017"
+#set version   = "1.5";    set rev_dat   = "Sep 04, 2017"
 #   + update to use new @chauffeur* calling
+#
+set version   = "1.6";    set rev_dat   = "Jun 25, 2018"
+#   + switch from @djuct_dwi_selector.bash -> @djuct_dwi_selector.tcsh
+#     This change is necessary due to Mac 10.12.5+ not passing
+#     DYLD* variables to bash script
 #
 # ---------------------------------------------------------------
 
@@ -47,7 +52,7 @@ endif
 
 # default location of viewer: user could modify!
 set my_viewer    = "$adir/@chauffeur_afni"
-set my_selector  = "$adir/@djunct_dwi_selector.bash"
+set my_selector  = "$adir/@djunct_dwi_selector.tcsh" # [PT: Jun 25, 2018] tcsh
 set my_encoder   = "$adir/@djunct_select_str.py"
 set my_viewer_4d = "$adir/@djunct_4d_imager"
 
@@ -59,7 +64,7 @@ set obads      = ""              # NOT required input
 
 set odir       = ""
 set opref      = ""
-set DO_OUTVOL  = "0"               # don't apply to DWI by default
+set DO_OUTVOL  = "0"             # don't apply to DWI by default
 
 set DO_VIEWER  = "1"             # def: do viewing
 set DO_CLEAN   = 1
