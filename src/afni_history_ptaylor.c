@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 25, June , 2018 , PT , "fat_proc_select_vols" , MINOR , TYPE_GENERAL,
+   "The adjunct program, @djunct_dwi_selector.bash, was changed to be tcsh.",
+   "No output diffs; but bash one couldn't run on new Mac OS (bad Mac)...\n"
+},
+
 { 1, June , 2018 , PT , "3dAmpToRSFC" , MINOR , TYPE_GENERAL,
    "Adapted to changes of 3dLombScargle.",
    "Simpler scaling to match Parseval.\n"
