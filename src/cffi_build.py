@@ -22,9 +22,13 @@ if __name__ == "__main__":
 
     # pycparser.parse_file('mrilib_processed.h')
     ffibuilder.cdef(Path('mrilib_processed.h').read_text())
-    ffibuilder.set_source("_pyafni",'/* Hi John */',
+    ffibuilder.set_source("_pyafni",'#include "mrilib_processed.h"',
          libraries=["mri"],
-         library_dirs=[Path.cwd().absolute()]
+         library_dirs=[Path.cwd().absolute()],
+         include_dirs=[".","nifti/nifti2","nifti/niftilib",
+                       "nifti/nifticdf","nifti/znzlib",
+                       "rickr","/usr/X11R6/include","/sw/include"],
+         extra_compile_args=["-std=c99"]
     )
 
     ffibuilder.compile(verbose=True)
