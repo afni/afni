@@ -46,12 +46,14 @@ int main( int argc , char *argv[] )
    /*-- help the poor user? --*/
 
    if( argc > 1 && strcmp(argv[1],"-help") == 0 ){
-     printf("Usage: afni_version\n"
+     printf("Usage: afni_vcheck\n"
+            "Overview ~1~\n"
             " Prints out the AFNI version with which it was compiled,\n"
             " and checks across the Web for the latest version available.\n"
-            "N.B.: Doing the check across the Web will mean that your\n"
-            "      computer's access to our server will be logged here.\n"
-            "      If you don't want this, don't use this program!\n" ) ;
+            "N.B. ~1~\n"
+            " Doing the check across the Web will mean that your\n"
+            " computer's access to our server will be logged here.\n"
+            " If you don't want this, don't use this program!\n" ) ;
      exit(0) ;
    }
 
