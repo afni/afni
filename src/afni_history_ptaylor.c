@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 26, June , 2018 , PT , "fat_proc_axialize_anat" , MINOR , TYPE_NEW_OPT,
+   "New opt '-focus_by_ss' to do skullstripping before alignment stuff.",
+   "Final dset is *not* skullstripped, but it helps with center of mass.\n"
+},
+
 { 26, June , 2018 , PT , "fat_proc_select_vols" , MINOR , TYPE_BUG_FIX,
    "Bug fixed in supplementary program to *this* program.",
    "Used to get an error when no bad vols were selected.\n"
