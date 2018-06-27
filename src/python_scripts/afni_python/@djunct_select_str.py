@@ -5,10 +5,12 @@
 # simple program for inverting a list of unwanted subbrick indices
 # into a list of *wanted* indices!
 
-VERSION   = "1.0"
-VER_DATE  = "March 30, 2017"
+#VERSION   = "1.0"
+#VER_DATE  = "March 30, 2017"
+VERSION   = "1.1"
+VER_DATE  = "June 26, 2018"
+# fixed issue when NO bads were selected
 AUTHOR    = "PA Taylor (NIMH, NIH)"
-
 
 import sys       as sys
 import numpy     as np
@@ -75,7 +77,12 @@ def Convert_StrList_to_NumArr(LL):
 
 def Invert_BadInd_List(LL, NMAX=-1):
 
-    Lmax = max(LL)
+    # [PT: June 26, 2018] fix to a silly error when LL was empty
+    if len(LL):
+        Lmax = max(LL)
+    else:
+        Lmax = 0
+    
     if Lmax > NMAX:
         sys.exit("** ERROR: `bad list` max (%d) is greater than\n"
                  "   the apparent max subrick index (%d).\n" %

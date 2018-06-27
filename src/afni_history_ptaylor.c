@@ -66,6 +66,16 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 26, June , 2018 , PT , "fat_proc_select_vols" , MINOR , TYPE_BUG_FIX,
+   "Bug fixed in supplementary program to *this* program.",
+   "Used to get an error when no bad vols were selected.\n"
+},
+
+{ 26, June , 2018 , PT , "@djunct_select_str.py" , MINOR , TYPE_BUG_FIX,
+   "Would return an error when *no* bad vols were selected.",
+   "Note about fixing it in Jan, 2018; must have forgot to push that ver!\n"
+},
+
 { 26, June , 2018 , PT , "fat_proc_convert_anat" , MINOR , TYPE_NEW_OPT,
    "Can provide a NIFTI file as input, not just a directory of dicoms.",
    "All niceifying steps can thus be applied to already-converted vol.\n"
