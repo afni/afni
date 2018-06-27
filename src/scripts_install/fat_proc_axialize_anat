@@ -81,9 +81,15 @@
 #   + show existence of -pre_center_mass option
 #   + fix how -remove_inf_sli N works -- thanks, lzhyoung!
 #
-set version   = "4.0";  set rev_dat   = "June 1, 2018"
+#set version   = "4.0";  set rev_dat   = "June 1, 2018"
 #   + introduce -pre_align_center_mass, as better/more useful
 #     than -pre_center_mass
+#
+set version   = "4.1";  set rev_dat   = "June 26, 2018"
+#   + perform skullstripping internally to make a "focus mask"
+#     ... rather than require user to make one externally.  Even
+#     a not-so-great-but-still-reasonable mask should be find for
+#     this purpose. Opt name:  '-focus_by_ss'.
 #
 # ----------------------------------------------------------------
 
@@ -120,6 +126,7 @@ set wdir     = "__WORKING_$tpname"  # working directory
 set WDIR_EX  = "1"                  # put opref on wdir (unless user names)
 set DO_CLEAN  = "1"                 # default: keep working dir
 
+set DO_SS   = "0"                   # for making skull strip focus
 set PRE_LR  = "1"
 set POST_LR = "0"
 set DO_CM   = "0"                   # initial center of mass calc
@@ -174,6 +181,10 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set imask = "$argv[$ac]"
+
+    # [PT: June 26, 2018] internally SS for mask
+    else if ( "$argv[$ac]" == "-focus_by_ss" ) then
+        set DO_SS = "1"
 
     else if ( "$argv[$ac]" == "-refset" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
@@ -351,9 +362,7 @@ endif
 
 set odirqc = "$odir/QC"
 if ( "$DO_VIEWER" == "1" ) then
-    if ( ! -e "$odirqc" ) then
-        mkdir "$odirqc"
-    endif
+    \mkdir -p "$odirqc"
 endif
 set odirqc_wdir = "../QC" # loc from $wdir
 
@@ -483,6 +492,35 @@ if ( "$imask" != "" ) then
         -prefix "$wdir/$mout"    \
         -byte                    \
         -overwrite
+else if ( "$DO_SS" == "1" ) then
+    # [PT: June 26, 2018] If doing internal focus mask
+    set mout = "${tpref}_${iidx}_mask.nii"
+    3dSkullStrip                                \
+        -overwrite                              \
+        -prefix   "$wdir/$mout"                 \
+        -input    "$wdir/$inp0"
+
+    if ( $DO_VIEWER ) then
+
+        if( $qc_prefix == "" ) then
+            set vpref_ss = ${opref}_qc_inss
+        else
+            set vpref_ss = ${qc_prefix}_qc_inss
+        endif
+
+        echo "++ QC image (input vol skullstripped, for focus): $vpref_ss"
+        @chauffeur_afni                           \
+            -ulay "$wdir/$inp0"                   \
+            -olay "$wdir/$mout"                   \
+            -func_range 1                         \
+            -prefix "${odirqc}/$vpref_ss"         \
+            -cbar RedBlueGreen                    \
+            -opacity 6                            \
+            -montx 3 -monty 3                     \
+            -set_xhairs MULTI                     \
+            -label_mode 1 -label_size 3           \
+            -do_clean
+    endif
 endif
 @ idx += 1
 
@@ -503,7 +541,7 @@ if ( $INF_SLI != "" ) then
         -prefix $fout          \
         $fin
 
-    if ( "$imask" != "" ) then
+    if ( "$imask" != "" || "$DO_SS" == "1" ) then
         set min  = "$mout"
         set mout = "${tpref}_${iidx}_mask.nii"
         3dcalc    -echo_edu          \
@@ -517,7 +555,7 @@ if ( $INF_SLI != "" ) then
     @ idx += 1
 endif
 
-if ( "$imask" != "" ) then
+if ( "$imask" != "" || "$DO_SS" == "1" ) then
     set fin  = "$fout"
     set min  = "$mout"
     set fout = "${tpref}_${iidx}_mask.nii"
@@ -1019,6 +1057,7 @@ cat << EOF
         {-extra_al_inps II}                   \
         {-extra_al_opts SS}                   \
         {-focus_mask MMM}                     \
+        {-focus_by_ss}                        \
         {-remove_inf_sli II}                  \
         {-pre_align_center_mass}              \
         {-pre_center_mass}                    \
@@ -1090,6 +1129,13 @@ cat << EOF
                     being useful would be having "-newgrid X", where X
                     is desired final resolution of the data.
 
+  -focus_by_ss     :make a mask by simply skullstripping input data
+                    set, which gets applied early on to focus the
+                    processing+alignment; the final, axialized volume
+                    will not have the mask applied, it's just used to
+                    help get rid of non-brain garbage.  Might be very 
+                    useful if the input volume has lots of non-brain 
+                    material!
   -focus_mask MMM  :input a mask of the inset that gets applied early
                     on to focus the processing+alignment; the final,
                     axialized volume will not have the mask applied,
@@ -1161,10 +1207,11 @@ cat << EOF
   EXAMPLE:
     
    $this_prog  \
-        -inset  SUB001/ANATOM/T2.nii.gz                            \
+        -inset  SUB001/ANATOM/T1.nii.gz                            \
         -refset /somewhere/mni_icbm152_t1_tal_nlin_sym_09a_MSKD.nii.gz \
         -mode_t1w                                                  \
         -extra_al_opts "-newgrid 1.0"                              \
+        -focus_by_ss                                               \
         -prefix t2w_axlz
 
     or
@@ -1184,6 +1231,12 @@ cat << EOF
          -extra_al_inps "-nomask"
       Using this, 3dAllineate won't try to mask a subregion for 
       warping/alignment, and I often find this helpful for T1w volumes.
+
+    + If the input volume has lots of non-brain material (lots of neck or
+      even shoulders included), then consider "-focus_by_ss" or 
+      "-focus_mask ..".  It helps when trying to roughly align vols initially
+      with center of mass, esp. if using "-pre_align_center_mass".  Also, for
+      T1w vols this might be particularly effective.
 
     + For centering data, using the '-out_match_ref' switch might be 
       useful; it might also somewhat, veeeery roughly help standardize
