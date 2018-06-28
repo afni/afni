@@ -2257,10 +2257,25 @@ int csfft_nextup_one35( int idim )
 int csfft_nextup_even( int idim )
 {
    int jj = idim ;
+#ifdef USE_FFTN             /* Jun 2018 */
+   if( jj%2 == 1 ) jj++ ;
+   return jj ;
+#endif
    do{
       jj = csfft_nextup(jj) ;
       if( jj%2 == 1 ) jj++ ;
       else            return jj ;
    } while(1) ;
    return 0 ; /* cannot be reached */
+}
+
+/*------------------------------------------------------------------------*/
+
+int csfft_allows_anything(void)             /* Jun 2018 */
+{
+#ifdef USE_FFTN
+   return 1 ;
+#else
+   return 0 ;
+#endif
 }
