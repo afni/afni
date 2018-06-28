@@ -45,6 +45,7 @@ data.df$InputFile <- gsub("'","",data.df$InputFile)
 data.df$InputFile <- gsub('"',"",data.df$InputFile)
 data.df$InputFile <- gsub('\\[','"[',data.df$InputFile)
 data.df$InputFile <- gsub('\\]',']"',data.df$InputFile)
+data.df$InputFile <- factor(data.df$InputFile)
 
 data.str$InputFile <- gsub("'","",data.str$InputFile)
 data.str$InputFile <- gsub('"',"",data.str$InputFile)
@@ -53,6 +54,7 @@ data.str$InputFile <- gsub('\\]',']"',data.str$InputFile)
 
 ## get the number of subjects
 n.subj <- length(levels(data.df$Subj))
+
 
 ## get categorical variables (first and last are Subj and InputFile)
 catVar <- c(names(data.df)[sapply(data.df,is.factor)])
