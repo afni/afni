@@ -36,6 +36,7 @@ int main( int argc , char * argv[] )
             "                [default = use them all, Frank]\n"
             "  -nfft nnn   = Set FFT length to 'nnn'.\n"
             "                [default = length of data (# of lines used)]\n"
+            "                [          but will be +1 if data length is odd]\n"
             "  -tocx       = Save Re and Im parts of transform in 2 columns.\n"
             "  -fromcx     = Convert 2 column complex input into 1 column\n"
             "                  real output.\n"
@@ -47,9 +48,11 @@ int main( int argc , char * argv[] )
             " * Each input time series has any quadratic trend of the\n"
             "     form 'a+b*t+c*t*t' removed before the FFT, where 't'\n"
             "     is the line number.\n"
+#if 0
             " * The FFT length will be a power-of-2 times at most one\n"
             "     factor of 3 and one factor of 5.  The smallest such\n"
             "     length >= to the specified FFT length will be used.\n"
+#endif
             " * If the FFT length is longer than the file length, the\n"
             "     data is zero-padded to make up the difference.\n"
             " * Do NOT call the output of this program the Power Spectrum!\n"
