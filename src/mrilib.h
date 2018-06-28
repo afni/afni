@@ -829,6 +829,7 @@ extern int csfft_nextup_one35(int) ;
 extern int csfft_nextup_even(int) ;
 extern void csfft_scale_inverse(int) ;
 extern void csfft_force_fftn(int) ; /* 08 Oct 2017 */
+extern int csfft_allows_anything(void) /* Jun 2018 */
 
 extern void mri_fftshift( MRI_IMAGE *, float,float,float, int ) ; /* 13 May 2003 */
 
@@ -1396,10 +1397,11 @@ extern double poisson_p2t ( double qq , double lambda ) ;
 }
 #endif
 
-/*----------*/
+/*-----------------------------------------------------*/
+/* Add extra int 'kk' to floatvec struct [26 Jun 2018] */
 
-typedef struct { int nar ; float  *ar , dx,x0 ; } floatvec ;
-typedef struct { int nar ; double *ar , dx,x0 ; } doublevec ;
+typedef struct { int nar ; float  *ar , dx,x0 ; int kk ; } floatvec ;
+typedef struct { int nar ; double *ar , dx,x0 ; int kk ; } doublevec ;
 #define KILL_floatvec(fv)                      \
   do{ if( (fv) != NULL ){                      \
         if( (fv)->ar != NULL ) free((fv)->ar); \
@@ -1411,6 +1413,7 @@ typedef struct { int nar ; double *ar , dx,x0 ; } doublevec ;
   do{ (fv) = (floatvec *)malloc(sizeof(floatvec)) ;     \
       (fv)->nar = (n) ; (fv)->dx=1.0f; (fv)->x0=0.0f;   \
       (fv)->ar  = (float *)calloc(sizeof(float),(n)) ;  \
+      (fv)->kk  = 0 ;                                   \
       if( (fv)->ar == NULL ) fprintf(stderr,"** ERROR: MAKE_floatvec malloc fails\n"); \
   } while(0)
 
@@ -1418,6 +1421,7 @@ typedef struct { int nar ; double *ar , dx,x0 ; } doublevec ;
   do{ (dv) = (doublevec *)malloc(sizeof(doublevec)) ;     \
       (dv)->nar = (n) ; (dv)->dx=1.0; (dv)->x0=0.0;       \
       (dv)->ar  = (double *)calloc(sizeof(double),(n)) ;  \
+      (dv)->kk  = 0 ;                                     \
       if( (dv)->ar == NULL ) fprintf(stderr,"** ERROR: MAKE_doublevec malloc fails\n"); \
   } while(0)
 
@@ -1425,6 +1429,7 @@ typedef struct { int nar ; double *ar , dx,x0 ; } doublevec ;
  do{ int n = (fv)->nar ; MAKE_floatvec((ev),n) ;      \
      (ev)->dx = (fv)->dx ; (ev)->x0 = (fv)->x0 ;      \
      memcpy( (ev)->ar, (fv)->ar, sizeof(float)*n ) ;  \
+     (ev)->kk = (fv)->kk ;                            \
  } while(0)
 
 #define RESIZE_floatvec(fv,m)                                     \
@@ -1442,7 +1447,7 @@ extern float interp_inverse_floatvec( floatvec *fv , float y ) ;
 
 typedef struct { int nvec ; floatvec *fvar ; } floatvecvec ;
 
-/*----------*/
+/*-----------------------------------------------------*/
 
 typedef struct { int nar ; int *ar ; } intvec ;
 #define KILL_intvec(iv)                        \
@@ -1473,7 +1478,7 @@ typedef struct { int nvec ; intvec *ivar ; } intvecvec ;
       memcpy( (iv)->ar+ni, (jv)->ar, sizeof(int)*(jv)->nar ) ; \
   } while(0)
 
-/*----------*/  /* 20 Jan 2016 */
+/*--------------------------------------------------*/  /* 20 Jan 2016 */
 
 typedef struct { int nar ; int64_t *ar ; } int64vec ;
 #define KILL_int64vec(iv)                      \
@@ -1490,7 +1495,7 @@ typedef struct { int nar ; int64_t *ar ; } int64vec ;
       if( (iv)->ar == NULL ) fprintf(stderr,"** ERROR: MAKE_int64vec malloc fails\n"); \
   } while(0)
 
-/*----------*/
+/*--------------------------------------------------*/
 
 typedef struct { int nar ; short *ar ; } shortvec ;
 #define KILL_shortvec(iv)                    \
@@ -1513,7 +1518,7 @@ typedef struct { int nar ; short *ar ; } shortvec ;
         if( (iv)->ar == NULL ) fprintf(stderr,"** ERROR: RESIZE_shortvec malloc fails\n"); \
   }} while(0)
 
-/*----------*/
+/*--------------------------------------------------*/
 /* Jul 2010 */
 
 typedef struct { int nar ; byte *ar ; } bytevec ;
@@ -1537,7 +1542,7 @@ typedef struct { int nar ; byte *ar ; } bytevec ;
         if( (iv)->ar == NULL ) fprintf(stderr,"** ERROR: RESIZE_bytevec malloc fails\n"); \
   }} while(0)
 
-/*----------*/
+/*--------------------------------------------------*/
 
 typedef struct {
   int nbot, ntop , gbot ;

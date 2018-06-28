@@ -104,7 +104,7 @@ int main( int argc , char * argv[] )
         if( nfft <= 2 ){
           WARNING_message("Illegal -nfft value on command line") ;
           nfft = 0 ;
-        } else {
+        } else if( !csfft_allows_anything() ){
           ii = csfft_nextup_even(nfft) ;
           if( ii > nfft ){
             WARNING_message("Replacing -nfft=%d with next largest legal value=%d",
@@ -156,7 +156,8 @@ int main( int argc , char * argv[] )
 
    /* Calculate size for FFT */
 
-   ii = csfft_nextup_even(nvals);
+   ii = csfft_allows_anything() ? nvals : csfft_nextup_even(nvals) ;
+
    if( nfft <= 2 ){
      INFO_message("Data length = %d ; FFT length = %d",nvals,ii) ;
    } else if( ii > nfft ){
