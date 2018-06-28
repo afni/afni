@@ -36,9 +36,13 @@
 #set version = "3.2"; set rev_dat = "Sep 04, 2017"
 #   + work with new @chauffeur*, '-prefix ...' only
 #
-set version = "3.3"; set rev_dat = "Feb 20, 2018"
+#set version = "3.3"; set rev_dat = "Feb 20, 2018"
 #   + output QC dir for images
 #   + default orientation RAI
+#
+set version = "3.4"; set rev_dat = "June 26, 2018"
+#   + allow a NIFTI anatomical to be input, and then do rest of 
+#     niceifying steps
 #
 # ----------------------------------------------------------------
 
@@ -74,6 +78,7 @@ endif
 # ----------------------- set defaults --------------------------
 
 set idir     = ""
+set inii     = ""
 set odir     = ""
 set tpref    = "ttt"
 
@@ -111,6 +116,13 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set idir = "$argv[$ac]"
+
+    # [PT: June 26, 2018] Input nifti instead of just directory to be
+    # converted
+    else if ( "$argv[$ac]" == "-innii" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set inii = "$argv[$ac]"
 
     # ------------- output(s) ----------------
     else if ( "$argv[$ac]" == "-prefix" ) then
@@ -166,30 +178,48 @@ echo "++ Start script version: $version"
 
 # ============================= dicom dir ===============================
 
-if ( "$idir" == "" ) then
-    echo "** ERROR: need to input DICOM directory, after '-indir':"
+if ( "$idir" == "" && "$inii" == "" ) then
+    echo "** ERROR: need to either"
+    echo "          A) input DICOM directory, after '-indir'; or"
+    echo "          B) input NIFTI file, after '-innii'"
+    goto BAD_EXIT
+else if ( "$idir" != "" && "$inii" != "" ) then
+    echo "** ERROR: need to choose *either* '-indir' or  '-innii' input."
     goto BAD_EXIT
 endif
 
-if ( ! -e "$idir" ) then
-    echo "\n** ERROR: can't find input DICOM directory: $idir !"
-    goto BAD_EXIT
+# ---------- if input dir, check existence, and more
+if ( "$idir" != "" ) then
+    if ( ! -e "$idir" ) then
+        echo "\n** ERROR: can't find input DICOM directory: $idir !"
+        goto BAD_EXIT
+    endif
+
+    # check for old relics
+    cd $idir
+    echo "++ Checking $PWD for preexisting NIFTIs ... "
+
+    if ( (`find . -maxdepth 1 -type f -name "*nii" | wc -l` > 0 ) || \
+         (`find . -maxdepth 1 -type f -name "*nii.gz" | wc -l` > 0 ) ) then
+        echo "\n** ERROR: already some NIFTI files in $idir !"
+        goto BAD_EXIT
+    endif
+
+    # get back home for running stuff
+    cd $here 
 endif
 
-# check for old relics
-
-cd $idir
-
-echo "++ Checking $PWD for preexisting NIFTIs ... "
-
-if ( (`find . -maxdepth 1 -type f -name "*nii" | wc -l` > 0 ) || \
-     (`find . -maxdepth 1 -type f -name "*nii.gz" | wc -l` > 0 ) ) then
-    echo "\n** ERROR: already some NIFTI files in $idir !"
-    goto BAD_EXIT
+# ---------- if input nifti, check existence
+if ( "$inii" != "" ) then
+    set ff    = "$inii"
+    set check = `3dinfo "$ff"`
+    if ( "$#check" == "0" ) then
+        echo "** ERROR: can't find input file:  $ff !"
+        goto BAD_EXIT
+    else
+        echo "++ Found input file:   $ff"
+    endif
 endif
-
-# get back home for running stuff
-cd $here 
 
 # ========================= output/working dir ==========================
 
@@ -233,7 +263,7 @@ endif
 # make the working directory
 if ( ! -e $wdir ) then
     echo "++ Making working directory: $wdir"
-    mkdir $wdir
+    \mkdir -p $wdir
 else
     echo "+* WARNING: Somehow found a premade working directory (?):"
     echo "     $wdir"
@@ -279,33 +309,50 @@ endif
 
 # ======================== convert dicoms ===============================
 
-# place output into wdir, using gzipped files. 
-# [PT: May 24, 2017] Control for multiecho files now
-dcm2niix_afni  \
-        -z y              \
-        -x n              \
-        -p y              \
-        -f ${npref}_%e    \
-        -o "$wdir"        \
-        $idir/
+if ( "$idir" != "" ) then
+    # place output into wdir, using gzipped files. 
+    # [PT: May 24, 2017] Control for multiecho files now
+    dcm2niix_afni  \
+            -z y              \
+            -x n              \
+            -p y              \
+            -f ${npref}_%e    \
+            -o "$wdir"        \
+            $idir/
 
-# ================ clean up possible extraneous files ===================
+    # clean up possible extraneous files
 
-cd $wdir
+    cd $wdir
+    set all_nii = `\ls ${npref}*.nii.gz`
 
-set all_nii = `\ls ${npref}*.nii.gz`
-
-# =========== put into proper orientation, simplify name =================
-
-if ( ${#all_nii} < "1" ) then
-    echo "\n** ERROR: no anatomical found"
-    echo "\t(at least not with expected filename '2*')\n"
-    goto BAD_EXIT
-else if ( ${#all_nii} >= "2" ) then
-    echo ""
-    echo "+* Warning: multiple possible volumes, just choosing first one (?)"
-    echo ""
+    if ( ${#all_nii} < "1" ) then
+        echo "\n** ERROR: no anatomical found"
+        echo "\t(at least not with expected filename '2*')\n"
+        goto BAD_EXIT
+    else if ( ${#all_nii} >= "2" ) then
+        echo ""
+        echo "+* Warning: multiple possible vols, just choosing first one (?)"
+        echo ""
+    endif
 endif
+
+# ======================== copy input vol to wdir =======================
+
+if ( "$inii" != "" ) then
+    # just copy the vol to the wdir
+    set fout = "_init_vol.nii.gz"
+    3dcalc                              \
+        -overwrite                      \
+        -a "$inii"                      \
+        -expr 'a'                       \
+        -prefix $wdir/$fout
+
+    # ... and match with where things would be from "$idir" input
+    cd $wdir
+    set all_nii = "$fout" 
+endif
+
+# ======================== process! ==================================
 
 # ---------- try to anonymize -------------
 echo "++ Using nifti_tool to remove ID info, if possible."
@@ -317,7 +364,7 @@ nifti_tool                          \
     -prefix  $fout                  \
     -infiles $fin
 
-# ---------- center nicely, if desired -------------
+# ---------- reorient + center nicely, if desired -------------
 
 if ( $DO_REORI ) then
 
@@ -416,7 +463,7 @@ cat << EOF
   RUNNING:
 
   $this_prog  \
-        -indir    DIR_IN                       \
+        {-indir  DIR_IN  | -innii  NII_IN}     \
         -prefix  PPP                           \
         {-workdir WWW}                         \
         {-orient  ORIENT}                      \
@@ -427,8 +474,12 @@ cat << EOF
         {-no_qc_view} 
 
   where:
-    -indir  DIR_IN  :required input directory; DIR_IN should contain
+    -indir  DIR_IN  :input as dicom directory; DIR_IN should contain
                      only DICOM files; all will be selected.
+    -innii  NII_IN  :input as NIFTI file (zipped or unzipped fine).
+                     Alternative to '-indir ..'. The point of this option
+                     is to have all other "niceifying" steps applied
+                     to an already-converted volume.
 
     -prefix   PPP   :set prefix (and path) for output data; required.
 
@@ -464,10 +515,16 @@ cat << EOF
 
 -------------------------------------------------------------------------
 
-  EXAMPLE:
+  EXAMPLES:
 
     $this_prog  \
        -indir  "ANAT_DICOMS"                 \
+       -prefix outdir/anat                   \
+       -orient RAI
+    
+    $this_prog  \
+       -innii  t1w.nii.gz                    \
+       -prefix outdir/anat                   \
        -orient RAI
     
 -------------------------------------------------------------------------
