@@ -514,6 +514,8 @@ FFTRADIX (REAL Re [],
    Re--;
    Im--;
 
+/* fprintf(stderr,"FFTRADIX: nTotal=%d\n",(int)nTotal) ; */
+
    if (nPass < 2)
      return 0;
 
@@ -613,6 +615,8 @@ FFTRADIX (REAL Re [],
       sd = sin (sd + sd);
       kk = 1;
       ii++;
+
+/* fprintf(stderr,"FFTRADIX factor=%d\n",factor[ii-1]) ; */
 
       switch (factor [ii - 1]) {
        case 2:

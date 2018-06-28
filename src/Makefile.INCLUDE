@@ -1752,7 +1752,7 @@ afni_vcheck:afni_vcheck.o
 	$(RM) $@
 	$(CC) -o afni_vcheck afni_vcheck.o $(LFLAGS) $(LLIBS)
 
-1dfft:1dfft.o
+1dfft:1dfft.o libmri.a
 	$(RM) $@
 	$(CC) -o 1dfft 1dfft.o $(LFLAGS) $(LLIBS)
 
@@ -2109,7 +2109,7 @@ afni_suma.o:afni_suma.c afni_suma.h cs_sort_template.h
 	$(RM) $@
 	$(CCFAST) -c afni_suma.c $(INFLAGS)
 
-csfft.o:csfft.c
+csfft.o:csfft.c fftn.c
 	$(RM) $@
 	$(CCFAST) -c csfft.c $(INFLAGS)
 
