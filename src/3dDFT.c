@@ -119,6 +119,7 @@ int main( int argc , char * argv[] )
             nfft = ii ;
           }
         }
+        if( nfft > 0 ) INFO_message("-nfft set to %d",nfft) ;
         iarg++ ; continue ;
       }
 
@@ -165,13 +166,8 @@ int main( int argc , char * argv[] )
 
    ii = csfft_allows_anything() ? nvals : csfft_nextup_even(nvals) ;
 
-   if( nfft <= 2 ){
-     INFO_message("Data length = %d ; FFT length = %d",nvals,ii) ;
-   } else if( ii > nfft ){
-     WARNING_message("Data length = %d ; replacing -nfft=%d with %d",
-                     nvals,nfft,ii);
-   }
-   nfft = ii ;
+   if( nfft <= 2 || ii > nfft ) nfft = ii ;
+   INFO_message("Data length = %d ; FFT length = %d",nvals,nfft) ;
 
    if( ftap > 0.0f )
      xtap = mri_setup_taper( nvals , ftap ) ;  /* 27 Nov 2007 */
