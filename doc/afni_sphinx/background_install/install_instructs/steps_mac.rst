@@ -75,11 +75,20 @@ a. Do the following for your system number:
 Install AFNI binaries
 ---------------------
 
-Copy+paste the following::
+a. Copy+paste the following::
 
-  cd
-  curl -O https://afni.nimh.nih.gov/pub/dist/bin/macosx_10.7_local/@update.afni.binaries
-  tcsh @update.afni.binaries -defaults
+     cd
+     curl -O https://afni.nimh.nih.gov/pub/dist/bin/macosx_10.7_local/@update.afni.binaries
+
+#. Then,
+
+   *  *For OS X >= 10.12*, copy+paste::
+
+        tcsh @update.afni.binaries -defaults -package macos_10.12_local
+
+   *  *For OS X < 10.12*, copy+paste::
+
+        tcsh @update.afni.binaries -defaults -package macosx_10.7_local
 
 **Purpose:** download and unpack the current binaries into your
 ``$HOME`` directory; set the AFNI binary directory name to
