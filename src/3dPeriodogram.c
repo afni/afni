@@ -45,12 +45,16 @@ int main( int argc , char *argv[] )
         "* Data is not scaled exactly as in the AFNI Power plugin.\n"
         "* Each time series is linearly detrended prior to FFT-ization.\n"
         "* FFT length defaults to be the next legal length >= input dataset.\n"
+#if 0
         "* The program can only do FFT lengths that are factorable\n"
         "   into a product of powers of 2, 3, and 5, and are even.\n"
         "  ++ The largest power of 3 that is allowed is 3^3 = 27.\n"
         "  ++ The largest power of 5 that is allowed is 5^3 = 125.\n"
         "  ++ e.g., FFT of length 3*5*8=120 is possible.\n"
         "  ++ e.g., FFT of length 4*31 =124 is not possible.\n"
+#else
+        "* The program can only do FFT lengths that are positive even integers.\n"
+#endif
         "  ++ '-nfft' with an illegal value will cause the program to fail.\n"
         "* If you want to do smaller FFTs, then average the periodograms\n"
         "   (to reduce random fluctuations), you can use 3dPeriodogram in\n"

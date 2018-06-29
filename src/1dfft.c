@@ -13,17 +13,18 @@
 
 int main( int argc , char * argv[] )
 {
-   MRI_IMAGE * inim , * outim ;
+   MRI_IMAGE *inim , *outim ;
    int ii , jj , nx,nfft=0,ny , nopt,nby2 , ignore=0,nxi , use=0 ;
-   complex * cxar ;
-   float * iar , * oar , * far ;
+   complex *cxar ;
+   float *iar , *oar , *far ;
    int nodetrend=0 , cxop=0 ;     /* 29 Nov 1999 */
    int hilbert=0 ;                /* 09 Dec 1999 */
 
    /*-- help? --*/
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
-     printf("Usage: 1dfft [options] infile outfile\n"
+     printf("\n"
+            "Usage: 1dfft [options] infile outfile\n"
             "where infile is an AFNI *.1D file (ASCII list of numbers arranged\n"
             "in columns); outfile will be a similar file, with the absolute\n"
             "value of the FFT of the input columns.  The length of the file\n"
@@ -52,12 +53,18 @@ int main( int argc , char * argv[] )
             " * The FFT length will be a power-of-2 times at most one\n"
             "     factor of 3 and one factor of 5.  The smallest such\n"
             "     length >= to the specified FFT length will be used.\n"
+#else
+            " * The FFT length can be any positive even integer, but\n"
+            "   the Fast Fourier Transform algorithm will be slower if\n"
+            "   any prime factors of the FFT length are large (say > 29)\n"
+            "   Unless you are applying this program to VERY long files,\n"
+            "   this slowdown will probably not be appreciable.\n"
 #endif
             " * If the FFT length is longer than the file length, the\n"
             "     data is zero-padded to make up the difference.\n"
             " * Do NOT call the output of this program the Power Spectrum!\n"
             "     That is something else entirely.\n"
-            " * If 'outfile' is '-', the output appears on stdout.\n"
+            " * If 'outfile' is '-' (or missing), the output appears on stdout.\n"
            ) ;
       PRINT_COMPILE_DATE ; exit(0) ;
    }

@@ -67,12 +67,17 @@ int main( int argc , char *argv[] )
        "=====\n"
        " * In the present avatar, only 1 sub-brick will be processed.\n"
        "\n"
+#if 0
        " * The program can only do FFT lengths that are factorable\n"
        "    into a product of powers of 2, 3, and 5, and are even.\n"
        "   + The largest power of 3 that is allowed is 3^3 = 27.\n"
        "   + The largest power of 5 that is allowed is 5^3 = 125.\n"
        "   + e.g., FFT of length 3*5*8=120 is possible.\n"
        "   + e.g., FFT of length 4*31 =124 is not possible.\n"
+#else
+       " * The program can only do FFT lengths that are positive\n"
+       "   even integers.\n"
+#endif
        "\n"
        " * The 'x', 'y', and 'z' axes here refer to the order the\n"
        "    data is stored, not DICOM coordinates; cf. 3dinfo.\n"
@@ -86,7 +91,11 @@ int main( int argc , char *argv[] )
        " * If you don't force an FFT length along a particular axis,\n"
        "    the program will pick the smallest legal value that is\n"
        "    greater than or equal to the corresponding dataset dimension.\n"
+#if 0
        "   + e.g., 124 would be increased to 128.\n"
+#else
+       "   + e.g., 123 would be increased to 124.\n"
+#endif
        "\n"
        " * If an FFT length is longer than an axis length, then the\n"
        "    input data in that direction is zero-padded at the end.\n"
@@ -102,7 +111,7 @@ int main( int argc , char *argv[] )
        " * Inverse FFT = sum_{k=0..N-1} [ exp(+2*PI*i*k/N) * data(k) ] / N\n"
        "\n"
        " * Started a long time ago, but only finished in Aug 2009 at the\n"
-       "    request of John Butman, because he asked so nicely.  (Now pay up!)\n"
+       "    request of John Butman, because he asked so nicely. (Now pay up!)\n"
      ) ;
      PRINT_COMPILE_DATE ; exit(0) ;
    }
