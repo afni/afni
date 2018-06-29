@@ -37,10 +37,11 @@ int main( int argc , char * argv[] )
             "                [default = use them all, Frank]\n"
             "  -nfft nnn   = Set FFT length to 'nnn'.\n"
             "                [default = length of data (# of lines used)]\n"
-            "                [          but will be +1 if data length is odd]\n"
             "  -tocx       = Save Re and Im parts of transform in 2 columns.\n"
             "  -fromcx     = Convert 2 column complex input into 1 column\n"
             "                  real output.\n"
+            "                [-fromcx will not work if the original]\n"
+            "                [data FFT length was an odd number! :(]\n"
             "  -hilbert    = When -fromcx is used, the inverse FFT will\n"
             "                  do the Hilbert transform instead.\n"
             "  -nodetrend  = Skip the detrending of the input.\n"
@@ -56,7 +57,7 @@ int main( int argc , char * argv[] )
 #else
             " * The FFT length can be any positive even integer, but\n"
             "   the Fast Fourier Transform algorithm will be slower if\n"
-            "   any prime factors of the FFT length are large (say > 29)\n"
+            "   any prime factors of the FFT length are large (say > 997)\n"
             "   Unless you are applying this program to VERY long files,\n"
             "   this slowdown will probably not be appreciable.\n"
 #endif
@@ -200,7 +201,7 @@ int main( int argc , char * argv[] )
 
    if( cxop != FROMCX ){                     /* real input */
       if( nfft < nxi ) nfft = nxi ;
-      nfft = csfft_nextup_even(nfft) ;
+      /* nfft = csfft_nextup_even(nfft) ; */
       fprintf(stderr,"++ 1dfft length = %d\n",nfft) ;
       nby2 = nfft/2 ;
 
