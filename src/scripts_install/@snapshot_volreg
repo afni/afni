@@ -2,6 +2,9 @@
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
+# [PT: July 2, 2018] 
+# + Edited to allow for inclusion of path when naming output JPGs
+
 # help?
 
 if( $#argv < 2 )then
@@ -45,6 +48,8 @@ if( $#argv < 2 )then
   echo 'file -- if it does not end in ".jpg", that suffix will be added.'
   echo 'If you do NOT supply a 3rd argument, the script will invent a name:'
   echo 'it is probably better for you to supply a 3rd argument.'
+  echo 'It is now permitted to include an output path as part of the third'
+  echo 'argument.'
   echo
   echo 'The fourth (and very optional) argument is the display number'
   echo 'of an ALREADY RUNNING copy of Xvfb, as in'
@@ -167,12 +172,16 @@ set anat  = `basename $anat  +acpc.`
 # set output image prefix
 
 if( $#argv > 2 )then
+  # [PT: July 2, 2018] Include output path with filename
+  set jdir = `dirname $argv[3]`
+
   set jnam = $argv[3]
   set jnam = `basename "$jnam" .jpg`
   set jnam = `basename "$jnam" .JPG`
   set jnam = `basename "$jnam" .jpeg`
   set jnam = `basename "$jnam" .JPEG`
 else
+  set jdir = "."
   set jnam = $anat.$epi
 endif
 
@@ -311,13 +320,13 @@ pnmcat -tb -jcenter -black ${zpref}.sag.pnm ${zpref}.axi.pnm ${zpref}.cor.pnm   
 pbmtext -builtin fixed "$jnam"   | pnmcrop | pbmtopgm 1 1 | pnmscale 2                  > ${zpref}.t1.pgm
 pbmtext -builtin fixed "<- Left"           | pbmtopgm 1 1                               > ${zpref}.t2.pgm
 $pcprog -align=right -valign=bottom ${zpref}.t1.pgm ${zpref}.pnm                        > ${zpref}.t3.pnm
-$pcprog -align=right -valign=top    ${zpref}.t2.pgm ${zpref}.t3.pnm | cjpeg -quality 95 > "$jnam.jpg"
+$pcprog -align=right -valign=top    ${zpref}.t2.pgm ${zpref}.t3.pnm | cjpeg -quality 95 > "$jdir/$jnam.jpg"
 
 # delete the trash data
 
 \rm -f ${zpref}.*
 
-echo "@snapshot_volreg output image = $jnam.jpg"
+echo "@snapshot_volreg output image = $jdir/$jnam.jpg"
 
 # stop Xvfb if we started it ourselves
 
