@@ -13,19 +13,28 @@
      optionally include installing the Bootcamp data, so then you will
      be all set):
 
-     - for Ubuntu Linux: :ref:`versions 15.10 and earlier
-       <install_steps_linux_ubuntu>` or :ref:`versions 16.04 through
-       17.10 <install_steps_linux_ubuntu16>`
+     - for Ubuntu Linux: 
 
-     - for :ref:`Linux (RedHat/CentOS/Fedora) <install_steps_linux_Fed_RH>`
+       a. :ref:`versions 15.10 and earlier
+          <install_steps_linux_ubuntu>`, or
+       #. :ref:`versions 16.04 through 17.10
+          <install_steps_linux_ubuntu16>`
 
-     - for Mac OS X: :ref:`old-school instructions
-       <install_steps_mac>` or the :ref:`App-ified version
-       <install_steps_mac_app>`
+     - for other Linux:
 
-     - for Windows 10: :ref:`the modern "Fall Creators Update" version
-       <install_steps_windows10>` or :ref:`older (and now out of date)
-       "Creators Update" version <install_steps_windows10_beta>`
+       a. :ref:`RedHat, CentOS or Fedora <install_steps_linux_Fed_RH>`
+
+     - for Mac OS X: 
+       
+       a. :ref:`old-school instructions <install_steps_mac>`, or
+       #. :ref:`App-ified version <install_steps_mac_app>`
+
+     - for Windows 10: 
+       
+       a. :ref:`the modern "Fall Creators Update" version
+          <install_steps_windows10>`, or 
+       #. :ref:`older (and now out of date)
+          "Creators Update" version <install_steps_windows10_beta>`
 
      - for other Windows users... eek.
 
