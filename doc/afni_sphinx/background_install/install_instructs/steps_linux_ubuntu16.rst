@@ -3,7 +3,7 @@
 .. _install_steps_linux_ubuntu16:
 
 
-**Ubuntu Linux (16.04 and some higher)**: *The essential system setup*
+**Ubuntu Linux (16.04 through 17.10)**: *The essential system setup*
 =================================================================
 
 .. contents:: :local:
