@@ -1,3 +1,20 @@
+AFNI Digest, week of 2018/07/02.
+
+00) Registration for next AFNI Bootcamp at NIH now open.
+The next AFNI Bootcamp at NIH (Bethesda, Maryland, USA) will be held
+October 22-26, 2018.  Registration is now open, and information such
+as the registration form, a preliminary schedule (for both the main
+AFNI lectures and the DTI Breakout day), campus map and practical
+information for attending can be obtained at this top secret web
+address:
+https://afni.nimh.nih.gov/bootcamp/
+There is no charge to attend the Bootcamp, but attendees must pay all
+of their own expenses if traveling, sleeping indoors, eating, etc. (if
+you do *none* of those things, then it is an exceptional bargain, I
+suppose).
+
+========================================================================
+
 AFNI Digest, week of 2018/06/05.
 
 00) *Important* notice for Mac users.
