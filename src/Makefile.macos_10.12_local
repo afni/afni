@@ -111,6 +111,9 @@ LLIBS  = -lmri -lf2c $(XLIBS) -lXft -lfontconfig \
          -lpng16 -liconv -lXmu -lXp -lXpm -lXext -lX11      \
          $(LZLIB) $(LGIFTI) $(LDPYTHON) -lm -lc
 
+# this is called a hack - command to convert dyname -lXm to static for R_io.so
+RLIB_CONVERT = | sed 's/-lXm/\/sw\/lib\/libXm.a/'
+
 # vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 # For suma
 # ZSS Aug. 08. LibGLw.a now made locally and called libGLws.a

@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  2, Jul, 2018, RCR, "Makefile", MICRO, TYPE_MODIFY,
+   "modify setup for Makefile.macos_10.12_local",
+   "Use RLIB_CONVERT variable to apply libXm.a just for R_io.so."
+ } ,
+
  { 22, Jun, 2018, RCR, "dcm2niix_afni", MAJOR, TYPE_ENHANCE,
    "version v1.0.20180614, including JPEG-LS support",
    "Update from C Rorden."
