@@ -66,6 +66,16 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 1, July , 2018 , PT , "@SSwarper" , MAJOR , TYPE_NEW_OPT,
+   "New opt:  well, actually, it is new to *have* explicit options now!",
+   "Same great functionality, but with more flexible options/names/outputs.\n"
+},
+
+{ 1, July , 2018 , PT , "@snapshot_volreg" , MINOR , TYPE_GENERAL,
+   "Now respects including a path in the third argument (prefix/filename).",
+   "Useful for scripting and selecting directory for output images.\n"
+},
+
 { 26, June , 2018 , PT , "fat_proc_axialize_anat" , MINOR , TYPE_NEW_OPT,
    "New opt '-focus_by_ss' to do skullstripping before alignment stuff.",
    "Final dset is *not* skullstripped, but it helps with center of mass.\n"

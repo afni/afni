@@ -3,155 +3,26 @@
 # Make AFNI's help readable in a text editor again!
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
-### This is not fully adapted yet -- Zhark
+# --------------------- revision history -------------------------
+#
+#set version   = "1.0"; 
+#set rev_dat   = "some prior event in the spacetime continuum"
+#   + RWC started and developed this program
+#
+#set version   = "1.1"; set rev_dat   = "May 18, 2018"
+#   + PT started optionizing this program
+#
+set version   = "1.1"; set rev_dat   = "July 1, 2018"
+#   + fixed searching for path of dset, use explicit check first
+#
+# ----------------------------------------------------------------
 
-if( $#argv < 2 )then
-  echo
-  echo "Script to skull-strip and warp to the MNI 2009 template."
-  echo
-  echo "Usage: @SSwarper T1dataset SubID [minp]"
-  echo
-  echo "T1dataset = a T1-weighted dataset, not skull-stripped,"
-  echo "            with resolution about 1 mm."
-  echo "SubID     = name code for output datasets (e.g., 'sub007')."
-  echo "minp      = optional: minimum patch size on final 3dQwarp"
-  echo "                      (if not given, 11 is used)"
-  echo
-  echo "The template dataset MNI152_2009_template.nii.gz is supplied"
-  echo "with AFNI binaries and is described later in this help."
-  echo
-  echo "Outputs:"
-  echo "--------"
-  echo "Suppose the SubID is 'sub007' (because you scanned Bond, James Bond?)."
-  echo "Then the outputs from this script will be"
-  echo
-  echo "  anatU.sub007.nii        = intensity uniform-ized original dataset;"
-  echo "  anatS.sub007.nii        = first pass skull-stripped original dataset;"
-  echo "  anatSS.sub007.nii       = second pass skull-stripped original dataset;"
-  echo "  anatQQ.sub007.nii       = skull-stripped dataset nonlinearly warped to"
-  echo "                            MNI template space;"
-  echo "  anatQQ.sub007.aff12.1D  = affine matrix to transform original dataset"
-  echo "                            to MNI template space;"
-  echo "  anatQQ.sub007_WARP.nii  = incremental warp from affine transformation"
-  echo "                            to nonlinearly aligned dataset;"
-  echo "  AMsub007.jpg            = 3x3 snapshot image of the anatQQ.sub007.nii"
-  echo "                            dataset with the edges from the MNI template"
-  echo "                            overlaid -- to check the alignment;"
-  echo "  MAsub007.jpg            = similar to the above, with the roles of the"
-  echo "                            template and the anatomical datasets reversed."
-  echo
-  echo "* The .aff12.1D and _WARP.nii transformations need to be catenated to get"
-  echo "  the full warp from orginal space to MNI space; example:"
-  echo "    3dNwarpApply -nwarp 'anatQQ.sub007_WARP.nii anatQQ.sub007.aff12.1D' ..."
-  echo
-  echo "* It is important to examine (at least) the two .jpg snapshot images to"
-  echo "  make sure that the skull-stripping and nonlinear warping worked well."
-  echo
-  echo "* The inputs needed for the '-tlrc_NL_warped_dsets' option to afni_proc.py"
-  echo "  are (in this order):"
-  echo "    anatQQ.sub007.nii anatQQ.sub007.aff12.1D anatQQ.sub007_WARP.nii"
-  echo
-  echo "* When B-O-B uses this script for skull-stripping plus warping, He"
-  echo "  gives afni_proc.py these options (among others), after running"
-  echo "  @SSwarper successfully -- here, 'subj' is the subject identifier:"
-  echo
-  echo '  set tpath = `@FindAfniDsetPath MNI152_2009_template.nii.gz`'
-  echo '  if( "$tpath" == "" ) exit 1'
-  echo '  afni_proc.py [...other stuff here...]                             \'
-  echo '    -copy_anat anatSS.${subj}.nii -anat_has_skull no                \'
-  echo '    -align_opts_aea -ginormous_move -deoblique on -cost lpc+ZZ      \'
-  echo '    -volreg_align_to MIN_OUTLIER -volreg_align_e2a                  \'
-  echo '    -volreg_tlrc_warp -tlrc_base $tpath/MNI152_2009_template.nii.gz \'
-  echo '    -tlrc_NL_warp                                                   \'
-  echo '    -tlrc_NL_warped_dsets                                           \'
-  echo '       anatQQ.${subj}.nii                                           \'
-  echo '       anatQQ.aff12.1D                                              \'
-  echo '       anatQQ.${subj}_WARP.nii'
-  echo
-  echo "The Template Dataset"
-  echo "--------------------"
-  echo "The file MNI152_2009_template.nii.gz has 5 volumes:"
-  echo "  [0] = skull-stripped template brain volume"
-  echo "  [1] = skull-on template brain volume"
-  echo "  [2] = weight mask for nonlinear registration, with the"
-  echo "        brain given greater weight than the skull"
-  echo "  [3] = binary mask for the brain"
-  echo "  [4] = binary mask for gray matter plus some CSF (slightly dilated)"
-  echo "        -- this volume is not used in this script"
-  echo "        -- it is intended for use in restricting FMRI analyses"
-  echo "           to the 'interesting' parts of the brain"
-  echo "        -- this mask should be resampled to your EPI spatial"
-  echo "           resolution (see program 3dfractionize), and then"
-  echo "           combined with a mask from your experiment reflecting"
-  echo "           your EPI brain coverage (see program 3dmask_tool)."
-  echo
-  echo "You Know My Methods, Watson"
-  echo "---------------------------"
-  echo "#1: Uniform-ize the input dataset's intensity via 3dUnifize."
-  echo "     ==> anatU.sub007.nii"
-  echo "#2: Strip the skull with 3dSkullStrip, with mildly agressive settings."
-  echo "     ==> anatS.sub007.nii"
-  echo "#3: Nonlinearly warp (3dQwarp) the result from #1 to the skull-on"
-  echo "    template, driving the warping to a medium level of refinement."
-  echo "#4: Use a slightly dilated brain mask from the template to"
-  echo "    crop off the non-brain tissue resulting from #3 (3dcalc)."
-  echo "#5: Warp the output of #4 back to original anatomical space,"
-  echo "    along with the template brain mask, and combine those"
-  echo "    with the output of #2 to get a better skull-stripped"
-  echo "    result in original space (3dNwarpApply and 3dcalc)."
-  echo "     ==> anatSS.sub007.nii"
-  echo "#6  Restart the nonlinear warping, registering the output"
-  echo "    of #5 to the skull-off template brain volume (3dQwarp)."
-  echo "     ==> anatQQ.sub007.nii (et cetera)"
-  echo "#7  Use @snapshot_volreg3 to make the pretty pictures."
-  echo "     ==> AMsub007.jpg and MAsub007.jpg"
-  echo
-  echo "Temporary Files"
-  echo "---------------"
-  echo "If the script crashes for some reason, it might leave behind files"
-  echo "whose names start with 'junk.SSwarper' -- you should delete these"
-  echo "files manually."
-  echo
-  echo "-------------------------------------------------------"
-  echo "Author: Bob, Bob, there is one Bob, He spells it B-O-B."
-  echo "-------------------------------------------------------"
-  echo
-  exit 0
-endif
+### This is not fully adapted yet -- Zhark
 
 # some AFNI environment variables
 
 setenv AFNI_DONT_LOGFILE  YES
 setenv AFNI_COMPRESSOR    NONE
-
-# set the subject ID and the minimum warp patch size
-
-set Adataset = "$argv[1]"
-set SubID    = "$argv[2]"
-
-if( $#argv > 2 )then
-  set minp = "$argv[3]"
-else
-  set minp = 11
-endif
-
-if( ! -f "$Adataset" )then
-  set chad = `@CheckForAfniDset "$Adataset"`
-  if( "$chad" == "0" || "$chad" == "1" )then
-    echo "***** @SSwarper -- Failed to find dataset $Adataset -- exiting :(("
-    exit 1
-  endif
-endif
-
-if( "$SubID" == "" )then
-  echo "***** @SSwarper -- second argument is empty -- exiting :("
-  exit 1
-endif
-
-# set random prefix for temp files
-
-set pppp = "`3dnewid -fun11`"
-set pref = junk.SSwarper.${pppp}_
 
 # set number of threads if run via SLURM
 
@@ -159,86 +30,437 @@ if( $?SLURM_CPUS_PER_TASK )then
  setenv OMP_NUM_THREADS $SLURM_CPUS_PER_TASK
 endif
 
-## find the MNI template dataset
+# ===================================================================
 
-set Basedset = MNI152_2009_template.nii.gz
-set tpath = `@FindAfniDsetPath $Basedset`
-if( "$tpath" == '' ) then
-  echo "***** @SSwarper -- Failed to find template $Basedset -- exiting :("
-  exit 1
+set this_prog = "@SSwarper"
+
+set Adataset = ""    # req/ input dataset
+set SubID    = ""    # req/ the subject ID 
+set Basedset = ""    # req/ reference dset- must have 4 bricks
+set odir     = ""    # opt/ output dir
+
+set minp     = "11"  # opt/ the minimum warp patch size
+
+set btemplate = '$btemplate'
+set tpath     = '$tpath'
+set subj      = '$subj'
+set str_msg   = '`@FindAfniDsetPath $btemplate`'
+
+# ------------------- process options, a la rr ----------------------
+
+if ( $#argv == 0 ) goto SHOW_HELP
+
+set ac = 1
+while ( $ac <= $#argv )
+    # terminal options
+    if ( ("$argv[$ac]" == "-h" ) || ("$argv[$ac]" == "-help" )) then
+        goto SHOW_HELP
+    endif
+    if ( "$argv[$ac]" == "-ver" ) then
+        goto SHOW_VERSION
+    endif
+
+    # --------- required ---------------
+
+    if ( "$argv[$ac]" == "-input" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set Adataset = "$argv[$ac]"
+        
+    else if ( "$argv[$ac]" == "-subid" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set SubID = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-base" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set Basedset = "$argv[$ac]"
+
+    # --------- optional ---------------
+
+    # min patch
+    else if ( "$argv[$ac]" == "-minp" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set minp = "$argv[$ac]"
+
+    # output dir
+    else if ( "$argv[$ac]" == "-odir" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set odir = "$argv[$ac]"
+
+    # ---------- fin ------------------
+
+    else
+        echo "** unexpected option #$ac = '$argv[$ac]'"
+        goto BAD_EXIT
+
+    endif
+    @ ac += 1
+end
+
+# ====================================================================
+
+echo "++ Starting: $this_prog."
+echo "++ OMP_NUM_THREADS is: $OMP_NUM_THREADS"
+
+if( ! -f "$Adataset" )then
+  set chad = `@CheckForAfniDset "$Adataset"`
+  if( "$chad" == "0" || "$chad" == "1" )then
+    echo "***** ${this_prog} -- Not finding dset $Adataset -- exiting :(("
+    goto BAD_EXIT
+  endif
 endif
-set Basedset = $tpath/$Basedset
+
+if( "$SubID" == "" )then
+  echo "***** ${this_prog} -- no subject ID entered? :("
+  goto BAD_EXIT
+endif
+
+# output dir from $Adataset, if not set by user
+if ( "$odir" == "" ) then
+    set odir = `dirname $Adataset`
+    echo ""
+    echo "++ Based on input, the output directory will be:"
+    echo "     $odir"
+    echo ""
+endif
+
+\mkdir -p ${odir}
+
+# set random prefix for temp files
+
+set pppp = "`3dnewid -fun11`"
+set pref = $odir/junk.SSwarper.${pppp}_
+
+# ---------------------------- !! this will change !! -------------------
+#### ----> also add check that it has multiple subbricks
+
+## find the base template dataset: start by seeing if it has been
+## given directly (not just needing @Find*Path):
+if ( -e "$Basedset" ) then
+    set tpath = `dirname "$Basedset"`
+else
+    set tpath = `@FindAfniDsetPath "$Basedset"`
+    if( "$tpath" == '' ) then
+        echo "** ${this_prog} -- Failed to find template $Basedset -- exiting :("
+        goto BAD_EXIT
+    endif
+    set Basedset = $tpath/$Basedset
+endif
+
+## Require it to have enough bricks to really be a ref
+set nvolbase = `3dinfo -nv "$Basedset"`
+if ( $nvolbase < 5 ) then
+    echo "** Base $Basedset only has $nvolbase volumes:"
+    echo "   to serve as a reference for $this_prog, it needs 4!"
+    echo "   See '$this_prog -help' -> 'The Template Dataset' for more info"
+    goto BAD_EXIT
+endif
+
+# --------------------------------------------------------------------
 
 ## start the work
 
 ## Step #1: Unifize the input T1
 
-if( ! -f anatU."${SubID}".nii )then
-  3dUnifize -prefix anatU."$SubID".nii -GM -input "$Adataset"
+if( ! -f $odir/anatU."${SubID}".nii ) then
+  3dUnifize -prefix $odir/anatU."$SubID".nii -GM -input "$Adataset"
 endif
 
 # Step #2: Strip Skull (Ziad's way)
 
-if( ! -f anatS."${SubID}".nii )then
-  3dSkullStrip -input  anatU."$SubID".nii  \
-               -prefix anatS."$SubID".nii  \
-               -debug 1 -ld 33 -niter 777  \
-               -shrink_fac_bot_lim 0.777 -exp_frac 0.0666 -orig_vol
+if( ! -f $odir/anatS."${SubID}".nii ) then
+    3dSkullStrip \
+    -input  $odir/anatU."$SubID".nii  \
+    -prefix $odir/anatS."$SubID".nii  \
+    -debug 1 -ld 33 -niter 777        \
+    -shrink_fac_bot_lim 0.777         \
+    -exp_frac 0.0666 -orig_vol
 endif
 
 ## Step #3: run 3dQwarp first time to a moderate level (skull on)
 
-3dQwarp -base "${Basedset}[1]" -source anatU."$SubID".nii -weight "${Basedset}[2]"   \
-        -allineate -noneg -maxlev 5 -zeasy -iwarp -awarp -prefix "${pref}TAL5.nii"
+3dQwarp \
+    -base   "${Basedset}[1]"                          \
+    -source $odir/anatU."$SubID".nii                  \
+    -weight "${Basedset}[2]"                          \
+    -allineate -noneg -maxlev 5 -zeasy -iwarp -awarp  \
+    -prefix "${pref}TAL5.nii"
 
 ## Step #4: mask off the skull from the template (second skull-strip)
 
-3dmask_tool -input "${Basedset}[3]" -dilate_input 1 -prefix "${pref}MASK.nii"
-3dcalc -a "${pref}MASK.nii" -b "${pref}TAL5.nii" -expr 'step(a)*b' -prefix "${pref}TAL5mm.nii"
+3dmask_tool                          \
+    -input "${Basedset}[3]"          \
+    -dilate_input 1                  \
+    -prefix "${pref}MASK.nii"
+
+3dcalc                             \
+    -a "${pref}MASK.nii"           \
+    -b "${pref}TAL5.nii"           \
+    -expr 'step(a)*b'              \
+    -prefix "${pref}TAL5mm.nii"
 
 ## Step #5: warp this masked dataset back to original space
 
-3dNwarpApply -nwarp "${pref}TAL5_WARPINV.nii" -master anatS."$SubID".nii \
-             -source "${pref}TAL5mm.nii" -prefix "${pref}TAL5ww.nii"
+3dNwarpApply \
+    -nwarp "${pref}TAL5_WARPINV.nii"   \
+    -master $odir/anatS."$SubID".nii   \
+    -source "${pref}TAL5mm.nii"        \
+    -prefix "${pref}TAL5ww.nii"
 
 ## warp the mask itself (dilated by 2) back to orig space
 
 \rm -f "${pref}MASK.nii"
-3dmask_tool -input "${Basedset}[3]" -dilate_input 2 -prefix "${pref}MASK.nii"
-3dNwarpApply -nwarp "${pref}TAL5_WARPINV.nii" -master anatS."$SubID".nii \
-             -source "${pref}MASK.nii" -prefix "${pref}MASKO.nii" -ainterp NN
+3dmask_tool                      \
+    -input "${Basedset}[3]"      \
+    -dilate_input 2              \
+    -prefix "${pref}MASK.nii"
+3dNwarpApply \
+    -nwarp "${pref}TAL5_WARPINV.nii"   \
+    -master $odir/anatS."$SubID".nii   \
+    -source "${pref}MASK.nii"          \
+    -prefix "${pref}MASKO.nii"         \
+    -ainterp NN
 
 ## merge these backward warped datasets with the 3dSkullStrip
 ## output to get a better original skull-stripped result
 
-3dcalc -a "anatS.${SubID}.nii"        \
+3dcalc -a "$odir/anatS.${SubID}.nii"  \
        -b "${pref}TAL5ww.nii"         \
        -c "${pref}MASKO.nii"          \
        -expr 'step(c)*max(a,b)'       \
-       -prefix "anatSS.${SubID}.nii"
+       -prefix "$odir/anatSS.${SubID}.nii"
 
 ## Step #6: affine transform that result to template space
 
-3dAllineate -1Dmatrix_apply "${pref}TAL5_Allin.aff12.1D"              \
-            -source anatSS."${SubID}".nii -master "${pref}TAL5mm.nii" \
-            -final wsinc5 -prefix "${pref}AffSS.nii"
+3dAllineate \
+    -1Dmatrix_apply "${pref}TAL5_Allin.aff12.1D"   \
+    -source $odir/anatSS."${SubID}".nii            \
+    -master "${pref}TAL5mm.nii"                    \
+    -final wsinc5                                  \
+    -prefix "${pref}AffSS.nii"
 
 ## warp to template space (skull off),
 ## initializing using the previous 3dQwarp -awarp output
 
-3dQwarp -base "${Basedset}[0]" -source "${pref}AffSS.nii"  \
-        -iniwarp "${pref}TAL5_AWARP.nii" -inilev 3         \
-        -pblur -minpatch $minp -Qfinal -workhard:5:8       \
-        -prefix anatQQ."${SubID}".nii
+3dQwarp \
+    -base "${Basedset}[0]"               \
+    -source "${pref}AffSS.nii"           \
+    -iniwarp "${pref}TAL5_AWARP.nii"     \
+    -inilev 3                            \
+    -pblur -minpatch $minp               \
+    -Qfinal -workhard:5:8                \
+    -prefix $odir/anatQQ."${SubID}".nii
 
 ## Cleanup
 
-\mv -f "${pref}TAL5_Allin.aff12.1D" anatQQ."${SubID}".aff12.1D
+\mv -f "${pref}TAL5_Allin.aff12.1D" $odir/anatQQ."${SubID}".aff12.1D
 \rm -f ${pref}*
 
 ## Step #7: Make two pretty pictures, and scram
 
-@snapshot_volreg3 anatQQ."${SubID}".nii $Basedset AM"${SubID}"
-@snapshot_volreg3 $Basedset anatQQ."${SubID}".nii MA"${SubID}"
+@snapshot_volreg $odir/anatQQ."${SubID}".nii $Basedset $odir/AM"${SubID}"
+@snapshot_volreg $Basedset $odir/anatQQ."${SubID}".nii $odir/MA"${SubID}"
 
-exit 0
+goto GOOD_EXIT
+
+# ========================================================================
+# ========================================================================
+
+SHOW_HELP:
+
+cat <<EOF
+ EOF
+
+This script has dual purposes for processing a given subject's
+anatomical volume:
+    + to skull-strip the brain, and 
+    + to calculate the warp to a reference template/standard space.
+Automatic snapshots of the registration are created, as well, to help 
+the QC process.
+
+This program cordially ties in directly with afni_proc.py, so you can
+run it beforehand, check the results, and then provide both the
+skull-stripped volume and the warps to the processing program.  That
+is convenient!
+
+Current version = $version
+Authorship      = RW Cox
+
+# -----------------------------------------------------------------
+
+USAGE
+
+    ${this_prog}          \
+        -input  AA        \
+        -base   BB        \
+        -subid  SS        \
+       {-odir OD}         \
+       {-minp MP}
+
+where:
+
+  -input  AA :(req) an anatomical dataset, *not* skull-stripped, with
+              resolution about 1 mm.
+
+  -base   BB :(req) a base template dataset, with contrast similar to
+              the input AA dset, probably from some kind of standard
+              template.  
+              NB: this dataset is not *just* a standard template,
+              because it is not a single volume-- read about its
+              composition in the NOTES on the 'The Template Dataset', 
+              below.
+              The program first checks if the dset BB exists as
+              specified; if not, then if just the filename has been
+              provided it searches the AFNI_GLOBAL_SESSION,
+              AFNI_PLUGINPATH, and afni bin directory (in that order)
+              for the named dataset.
+
+  -subid  SS :(req) name code for output datasets (e.g., 'sub007').
+
+  -odir   OD :(opt) output directory for all files from this program
+              (def: directory of the '-input AA').
+
+  -minp   MP :(opt) minimum patch size on final 3dQwarp (def: 11).
+
+The template dataset 'MNI152_2009_template_SSW.nii.gz' is supplied
+with AFNI binaries and is described later in this help (it is
+identical to the originally-named 'MNI152_2009_template.nii.gz').  You
+can make other reference base templates in whatever space you prefer,
+but note that it must have several subvolumes of information
+included-- see NOTES on the 'The Template Dataset', below.
+
+# ----------------------------------------------------------------------
+
+OUTPUTS
+
+Suppose the -prefix is 'sub007' (because you scanned Bond, JamesBond?).  
+Then the outputs from this script will be"
+
+  anatU.sub007.nii        = intensity uniform-ized original dataset;
+  anatS.sub007.nii        = first pass skull-stripped original dataset;
+  anatSS.sub007.nii       = second pass skull-stripped original dataset;
+  anatQQ.sub007.nii       = skull-stripped dataset nonlinearly warped to
+                            the base template space;
+  anatQQ.sub007.aff12.1D  = affine matrix to transform original dataset
+                            to base template space;
+  anatQQ.sub007_WARP.nii  = incremental warp from affine transformation
+                            to nonlinearly aligned dataset;
+  AMsub007.jpg            = 3x3 snapshot image of the anatQQ.sub007.nii
+                            dataset with the edges from the base template
+                            overlaid -- to check the alignment;
+  MAsub007.jpg            = similar to the above, with the roles of the
+                            template and the anatomical datasets reversed.
+
+* The .aff12.1D and _WARP.nii transformations need to be catenated to get
+  the full warp from orginal space to the base space; example:
+    3dNwarpApply -nwarp 'anatQQ.sub007_WARP.nii anatQQ.sub007.aff12.1D' ...
+
+* It is important to examine (at least) the two .jpg snapshot images to
+  make sure that the skull-stripping and nonlinear warping worked well.
+
+* The inputs needed for the '-tlrc_NL_warped_dsets' option to afni_proc.py
+  are (in this order):
+    anatQQ.sub007.nii anatQQ.sub007.aff12.1D anatQQ.sub007_WARP.nii
+
+* When B-O-B uses this script for skull-stripping plus warping, He
+  gives afni_proc.py these options (among others), after running
+  ${this_prog} successfully -- here, 'subj' is the subject
+  identifier:
+
+  |  set btemplate = MNI152_2009_template_SSW.nii.gz    
+  |  set tpath = \`@FindAfniDsetPath \${btemplate}\`
+  |  if( "$tpath" == "" ) exit 1                    
+  |                                                 
+  |  afni_proc.py                                                  \
+  |    [...other stuff here: processing blocks, options...]        \
+  |    -copy_anat anatSS.\${subj}.nii                               \
+  |    -anat_has_skull no                                          \
+  |    -align_opts_aea -ginormous_move -deoblique on -cost lpc+ZZ  \
+  |    -volreg_align_to MIN_OUTLIER                                \
+  |    -volreg_align_e2a                                           \
+  |    -volreg_tlrc_warp -tlrc_base $tpath/$btemplate              \
+  |    -tlrc_NL_warp                                               \
+  |    -tlrc_NL_warped_dsets                                       \
+  |       anatQQ.\${subj}.nii                                       \
+  |       anatQQ.aff12.1D                                          \
+  |       anatQQ.\${subj}_WARP.nii
+
+# -------------------------------------------------------------------
+
+NOTES
+
++ The Template dataset
+
+  Any reference base template dataset, such as
+  MNI152_2009_template_SSW.nii.gz, must have the first *4* volumes here
+  (and can have the optional 5th for later uses, as described):
+    [0] = skull-stripped template brain volume
+    [1] = skull-on template brain volume
+    [2] = weight mask for nonlinear registration, with the
+          brain given greater weight than the skull
+    [3] = binary mask for the brain
+    [4] = binary mask for gray matter plus some CSF (slightly dilated)
+          ++ this volume is not used in this script
+          ++ it is intended for use in restricting FMRI analyses
+             to the 'interesting' parts of the brain
+          ++ this mask should be resampled to your EPI spatial
+             resolution (see program 3dfractionize), and then
+             combined with a mask from your experiment reflecting
+             your EPI brain coverage (see program 3dmask_tool).
+
++ You Know My Methods, Watson
+
+  #1: Uniform-ize the input dataset's intensity via 3dUnifize.
+       ==> anatU.sub007.nii
+  #2: Strip the skull with 3dSkullStrip, with mildly agressive settings.
+       ==> anatS.sub007.nii
+  #3: Nonlinearly warp (3dQwarp) the result from #1 to the skull-on
+      template, driving the warping to a medium level of refinement.
+  #4: Use a slightly dilated brain mask from the template to
+      crop off the non-brain tissue resulting from #3 (3dcalc).
+  #5: Warp the output of #4 back to original anatomical space,
+      along with the template brain mask, and combine those
+      with the output of #2 to get a better skull-stripped
+      result in original space (3dNwarpApply and 3dcalc).
+       ==> anatSS.sub007.nii
+  #6  Restart the nonlinear warping, registering the output
+      of #5 to the skull-off template brain volume (3dQwarp).
+       ==> anatQQ.sub007.nii (et cetera)
+  #7  Use @snapshot_volreg3 to make the pretty pictures.
+       ==> AMsub007.jpg and MAsub007.jpg
+
++ Temporary files
+
+  If the script crashes for some reason, it might leave behind files
+  whose names start with 'junk.SSwarper' -- you should delete these
+  files manually.
+
+# -------------------------------------------------------
+  Author: Bob, Bob, there is one Bob, He spells it B-O-B.
+# -------------------------------------------------------
+
+EOF
+
+   goto GOOD_EXIT
+
+SHOW_VERSION:
+   echo "version  $version (${rev_dat})"
+   goto GOOD_EXIT
+
+FAIL_MISSING_ARG:
+    echo "** ERROR! Missing an argument after option flag: '$argv[$ac]'"
+    goto BAD_EXIT
+
+BAD_EXIT:
+    exit 1
+
+GOOD_EXIT:
+    exit 0
+
+
+
+EOF
