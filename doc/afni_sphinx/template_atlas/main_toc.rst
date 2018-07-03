@@ -9,3 +9,4 @@ Templates & Atlases
 
    framework
    howto
+   sswarper_base
