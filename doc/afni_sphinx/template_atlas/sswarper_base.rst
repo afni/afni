@@ -53,21 +53,24 @@ Reference template for @SSwarper
 
 In order to use ``@SSwarper``, the user needs to provide a
 specially-created, multi-volume dataset as a reference.  It has five
-volumes to it, and (reading from the program's help), these are::
+volumes to it, and (reading from the program's help), these are:
 
-  [0] = skull-stripped template brain volume
-  [1] = skull-on template brain volume
-  [2] = weight mask for nonlinear registration, with the
-        brain given greater weight than the skull
-  [3] = binary mask for the brain
-  [4] = binary mask for gray matter plus some CSF (slightly dilated)
-        -- this volume is not used in this script
-        -- it is intended for use in restricting FMRI analyses
-           to the 'interesting' parts of the brain
-        -- this mask should be resampled to your EPI spatial
-           resolution (see program 3dfractionize), and then
-           combined with a mask from your experiment reflecting
-           your EPI brain coverage (see program 3dmask_tool).
+
+.. code-block:: none
+
+   [0] = skull-stripped template brain volume
+   [1] = skull-on template brain volume
+   [2] = weight mask for nonlinear registration, with the
+         brain given greater weight than the skull
+   [3] = binary mask for the brain
+   [4] = binary mask for gray matter plus some CSF (slightly dilated)
+         -- this volume is not used in this script
+         -- it is intended for use in restricting FMRI analyses
+            to the 'interesting' parts of the brain
+         -- this mask should be resampled to your EPI spatial
+            resolution (see program 3dfractionize), and then
+            combined with a mask from your experiment reflecting
+            your EPI brain coverage (see program 3dmask_tool).
 
 We now distribute such volumes for a growing number of spaces.  They
 can typically be identified by having "_SSW" attached after their
