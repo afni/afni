@@ -123,6 +123,11 @@ a. | Click on this link: https://cran.r-project.org/bin/macosx
 
    **Purpose:** Get specific R packages needed for AFNI programs.
 
+Install Netpbm
+--------------
+
+.. include:: substep_netpbm.rst
+
 .. ---------- HERE/BELOW: copy for all installs --------------
 
 Make AFNI/SUMA profiles
