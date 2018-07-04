@@ -1,3 +1,34 @@
+AFNI Digest, week of 2018/07/04.
+
+00) The syntax of running @SSwarper is changed now in the latest AFNI.
+As foretold in the 2018/05/30 Digest, the way that @SSwarper is run is
+now changing, in order to allow more generalized running (changing
+output directory, unlimited variety of template targets, etc.).  Note
+that the inner workings of the program have not changed, nor have its
+outputs files, nor has its method of integration into afni_proc.py.
+In summary: New look, same great taste!
+
+01) New target template(s) for @SSwarper.  
+The program @SSwarper uses a specific, multi-volume type of dataset to
+be a target volume for its skullstripping+nonlinear registration.
+Traditionally, there was only one set for this; however, now this
+program has more generalized behavior, including the ability to use
+different reference volumes.  We are now distributing a couple of
+these, and plan to probably make more.  Please see this MB post for
+more description and links to documentation:
+https://afni.nimh.nih.gov/afni/community/board/read.php?1,158536,158536#msg-158536
+
+02) Including "netpbm" on Macs.
+We have now started to include an additional step on Mac OS installs:
+installing "netpbm", which is an image toolkit used in a few programs.
+(For other OSs, it was already included).  There are just a few lines
+to copy+paste in order to install this, as described here:
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/background_install/install_instructs/steps_mac.html#install-netpbm
+(Applicable whether you installed AFNI with the either the "App"
+version or old-school instructions.)
+
+========================================================================
+
 AFNI Digest, week of 2018/07/02.
 
 00) Registration for next AFNI Bootcamp at NIH now open.
