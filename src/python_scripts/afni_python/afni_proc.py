@@ -609,9 +609,10 @@ g_history = """
     6.15 May 29, 2018: 
         - fixed a couple of problems in error reporting
         - Thanks to J Reed for mentioning them.
+    6.16 Jul  5, 2018: added -mask_opts_automask for L Atlas
 """
 
-g_version = "version 6.14, May 25, 2018"
+g_version = "version 6.16, July 5, 2018"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -1272,6 +1273,8 @@ class SubjProcSream:
                         helpstr="select mask to apply in regression")
         self.valid_opts.add_opt('-mask_dilate', 1, [],
                         helpstr="dilation to be applied in automask")
+        self.valid_opts.add_opt('-mask_opts_automask', -1, [],
+                        helpstr="additional options for 3dAutomask")
         self.valid_opts.add_opt('-mask_epi_anat', 1, [],
                         acplist=['yes','no'],
                         helpstr='use epi_anat rather than EPI mask (yes/no)')
@@ -1436,9 +1439,9 @@ class SubjProcSream:
         self.valid_opts.add_opt('-regress_no_motion', 0, [],
                         helpstr="do not apply motion parameters in regression")
         self.valid_opts.add_opt('-regress_opts_3dD', -1, [],
-                        helpstr='additional options directly to 3dDeconvolve')
+                        helpstr='additional options for 3dDeconvolve')
         self.valid_opts.add_opt('-regress_opts_reml', -1, [],
-                        helpstr='additional options directly to 3dREMLfit')
+                        helpstr='additional options for 3dREMLfit')
         self.valid_opts.add_opt('-regress_reml_exec', 0, [],
                         helpstr="execute 3dREMLfit command script")
         self.valid_opts.add_opt('-regress_ROI', -1, [], okdash=0,
