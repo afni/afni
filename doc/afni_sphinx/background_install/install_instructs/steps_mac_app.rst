@@ -75,6 +75,12 @@ Break It Down Again [#f3]_
 
     *The icon is a work in progress.
     If you have some design skills, please send me alternatives.*
+
+Install Netpbm
+--------------
+
+.. include:: substep_netpbm.rst
+
 .. ---------- HERE/BELOW: copy for all installs --------------
 
 Prepare for Bootcamp
