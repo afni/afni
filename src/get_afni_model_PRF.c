@@ -6,7 +6,10 @@
  * R Reynolds   2014
  */
 
-#include <malloc.h>
+#if defined(LINUX)
+# include <malloc.h>
+#endif
+
 #include "mrilib.h"
 
 #include "model_conv_PRF.c"
