@@ -12,8 +12,12 @@
 #set version   = "1.1"; set rev_dat   = "May 18, 2018"
 #   + PT started optionizing this program
 #
-set version   = "1.1"; set rev_dat   = "July 1, 2018"
+#set version   = "1.1"; set rev_dat   = "July 1, 2018"
 #   + fixed searching for path of dset, use explicit check first
+#
+set version   = "1.2"; set rev_dat   = "July 5, 2018"
+#   + set check if OMP_NUM_THREADS is explicitly set, so echoing don't
+#     break it -- thanks P. Molfese et al.!
 #
 # ----------------------------------------------------------------
 
@@ -104,7 +108,12 @@ end
 # ====================================================================
 
 echo "++ Starting: $this_prog."
-echo "++ OMP_NUM_THREADS is: $OMP_NUM_THREADS"
+if ( ! $?OMP_NUM_THREADS ) then
+    echo "++ OMP_NUM_THREADS is: not set by user, "
+    echo "   so probably just using one CPU :("
+else
+    echo "++ OMP_NUM_THREADS is: $OMP_NUM_THREADS"
+endif
 
 if( ! -f "$Adataset" )then
   set chad = `@CheckForAfniDset "$Adataset"`
