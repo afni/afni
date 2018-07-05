@@ -54,6 +54,11 @@ afni_history_struct rickr_history[] = {
    "Done for L Atlas."
  } ,
 
+ {  5, Jul, 2018, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "use >! for writing rm.bpass.1D, in case of noclobber",
+   "Thanks for D Handwerker for noting it."
+ } ,
+
  {  2, Jul, 2018, RCR, "Makefile", MICRO, TYPE_MODIFY,
    "modify setup for Makefile.macos_10.12_local",
    "Use RLIB_CONVERT variable to apply libXm.a just for R_io.so."
