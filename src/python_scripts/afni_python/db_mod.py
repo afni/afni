@@ -6579,7 +6579,7 @@ def db_cmd_regress_bandpass(proc, block):
         cmd += 'foreach index ( `count -digits 1 1 $#runs` )\n'               \
                '    set nt = $tr_counts[$index]\n'                            \
                '    set run = $runs[$index]\n'                                \
-               '    1dBport -nodata $nt %g -band %g %g -invert -nozero > %s\n'\
+               '    1dBport -nodata $nt %g -band %g %g -invert -nozero >! %s\n'\
                % (proc.tr, freq[0], freq[1], tfile)
         cmd += '    1d_tool.py -infile %s -pad_into_many_runs $run $#runs \\\n'\
                '               -set_run_lengths $tr_counts \\\n'              \
