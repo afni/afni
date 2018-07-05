@@ -3600,6 +3600,7 @@ def db_mod_mask(block, proc, user_opts):
             return 1
 
     apply_uopt_to_block('-mask_apply',        user_opts, block)
+    apply_uopt_to_block('-mask_opts_automask',user_opts, block)
     apply_uopt_to_block('-mask_epi_anat',     user_opts, block)
     apply_uopt_to_block('-mask_rm_segsy',     user_opts, block)
     apply_uopt_to_block('-mask_segment_anat', user_opts, block)
@@ -3686,13 +3687,17 @@ def db_cmd_mask(proc, block):
     if nsteps > 0: dstr = '-dilate %d ' % nsteps
     else:          dstr = ''
 
+    olist, rv = block.opts.get_string_list(opt_name='-mask_opts_automask')
+    if olist != None: aopts = (' '.join(olist) + ' ')
+    else:             aopts = ''
+
     prev = proc.prev_dset_form_wild(block)
     prev = proc.prev_prefix_form_run(block, view=1, eind=-1)
     cmd = cmd + "# %s\n"                                                \
                 "# create 'full_mask' dataset (%s mask)\n"              \
                 "foreach run ( $runs )\n"                               \
-                "    3dAutomask %s-prefix rm.mask_r$run %s\n"  \
-                "end\n\n" % (block_header('mask'), mtype, dstr, prev)
+                "    3dAutomask %s%s-prefix rm.mask_r$run %s\n"  \
+                "end\n\n" % (block_header('mask'), mtype, aopts, dstr, prev)
     proc.have_rm = 1            # rm.* files exist
 
     # make the mask (3dMean/3dcalc/3dcopy -> 3dmask_tool 26 Jun 2014 [rickr])
@@ -6574,7 +6579,7 @@ def db_cmd_regress_bandpass(proc, block):
         cmd += 'foreach index ( `count -digits 1 1 $#runs` )\n'               \
                '    set nt = $tr_counts[$index]\n'                            \
                '    set run = $runs[$index]\n'                                \
-               '    1dBport -nodata $nt %g -band %g %g -invert -nozero > %s\n'\
+               '    1dBport -nodata $nt %g -band %g %g -invert -nozero >! %s\n'\
                % (proc.tr, freq[0], freq[1], tfile)
         cmd += '    1d_tool.py -infile %s -pad_into_many_runs $run $#runs \\\n'\
                '               -set_run_lengths $tr_counts \\\n'              \
