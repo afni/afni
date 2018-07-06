@@ -258,7 +258,7 @@ void csfft_cox( int mode , int idim , complex *xc )
        m = csfft_nextup_even(idim) ; last_idim = idim ;
        internal_check = 0 ;
        last_fftn = (force_fftn || idim != m || idim > 32768 ) ;
-#if 1
+#if 0
        INFO_message("csfft_cox(%d) %s replaced by fftn",
                     idim , (last_fftn) ? "IS" : "IS NOT" ) ;
 #endif
