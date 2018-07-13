@@ -5,7 +5,7 @@ copy+paste these individually::
   bash
   ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)" < /dev/null 2> /dev/null
 
-::
+then::
 
   brew install netpbm
 
