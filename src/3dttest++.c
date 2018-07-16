@@ -4771,7 +4771,7 @@ LABELS_ARE_DONE:  /* target for goto above */
          sprintf(fname,"%s/%s.%04d.minmax.1D",tempdir,prefix_clustsim,pp) ;
          inim = mri_read_1D(fname) ;
          if( inim == NULL ){  /* should not happen */
-           ERROR_message("Can't read file %s",fname) ; nbad++ ; continue ;
+           WARNING_message("Can't read file %s",fname) ; nbad++ ; continue ;
          }
          ADDTO_IMARR(inar,inim) ; remove(fname) ;
        }
@@ -4822,6 +4822,9 @@ LABELS_ARE_DONE:  /* target for goto above */
              mri_free(allim) ;
            }
          }
+       } else {
+         WARNING_message("COULD NOT read all .minmax.1D files for unknown reasons!") ;
+         ININFO_message ("  ==> the global threshold .5percent.txt file is not output :(") ;
        }
        DESTROY_IMARR(inar) ;
      } /*-- end of 5percent stuff --*/
