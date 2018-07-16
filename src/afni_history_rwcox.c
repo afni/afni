@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 16 , JUL , 2018 , RWC , "@snapshot_volreg" , MICRO , TYPE_MODIFY ,
+   "Turn ALPHA on, and median smooth EPI dataset to improve edges" ,
+   NULL } ,
+
  { 29 , MAY , 2018 , RWC , "3dTcorrelate" , MICRO , TYPE_MODIFY ,
    "Replace DSET_NUM_TIMES with DSET_NVALS" ,
    "To allow datasets that are not marked with a time axis to be used. Also\n"
