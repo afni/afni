@@ -8,6 +8,9 @@
 #define INPTR(i,j,k)  ( cin  + dsize*( ((k)*nyin +(j))*nxin +(i) ) )
 
 /*----------------------------------------------------------------------------*/
+/* This xx catvol is modified to allow for NULL input images.
+   At this time [17 Jul 2018], the yy and zz catvol do NOT work with NULLs!
+*//*--------------------------------------------------------------------------*/
 
 static MRI_IMAGE * mri_catvol_1D_xx( MRI_IMARR *imar , int na, int nb )
 {
@@ -29,10 +32,16 @@ ENTRY("mri_catvol_1D_xx") ;
    imin = IMARR_SUBIM(imar,na) ;
    if( na == nb ){ imout = mri_copy(imin) ; RETURN(imout) ; }
 
+   for( nn=na ; nn <= nb ; nn++ ){ /* find first non-NULL image */
+     imin = IMARR_SUBIM(imar,nn) ;
+     if( imin != NULL ) break ;
+   }
+   if( imin == NULL ) RETURN(NULL) ;
+
    nyout = nyin = imin->ny ; nzout = nzin = imin->nz ; nxout = imin->nx ;
    datum = imin->kind ;
-   for( nn=na+1 ; nn <= nb ; nn++ ){
-     imin = IMARR_SUBIM(imar,nn) ;
+   for( nn=na ; nn <= nb ; nn++ ){
+     imin = IMARR_SUBIM(imar,nn) ; if( imin == NULL ) continue ;
      if( nyin != imin->ny || nzin != imin->nz || datum != imin->kind ) RETURN(NULL);
      nxout += imin->nx ;
    }
@@ -46,7 +55,8 @@ ENTRY("mri_catvol_1D_xx") ;
    for( kk=0 ; kk < nzin ; kk++ ){
      for( jj=0 ; jj < nyin ; jj++ ){
        for( ii=0,nn=na ; nn <= nb ; nn++ ){
-         imin = IMARR_SUBIM(imar,nn); nxin = imin->nx; cin = mri_data_pointer(imin);
+         imin = IMARR_SUBIM(imar,nn); if( imin == NULL ) continue ;
+         nxin = imin->nx; cin = mri_data_pointer(imin);
          memcpy( OUTPTR(ii,jj,kk) , INPTR(0,jj,kk) , dsize*nxin ) ;
          ii += nxin ;
        }
