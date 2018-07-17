@@ -4778,8 +4778,12 @@ LABELS_ARE_DONE:  /* target for goto above */
        if( nbad < num_clustsim*ncase ){ /* if at least some files were OK */
          if( nbad > 0 ){
            ININFO_message(
-             "  %d/%d minmax.1D files failed: will try to proceed with 5percent.txt anyway",
+             " %d/%d minmax.1D files failed: will try to proceed with 5percent.txt anyway",
              nbad , num_clustsim*ncase ) ;
+         } else {
+           ININFO_message(
+             " successfully read all %d minmax.1D files; computing 5percent.txt outputs",
+             num_clustsim*ncase ) ;
          }
          for( icase=0 ; icase < ncase ; icase++ ){
            /* glue this case's minmax results together from a sub-array of images */
