@@ -47,14 +47,15 @@ foreach ff ( $allfile )
         set rgb = ( 204 0 153 )
     endif
 
-    imcat \
-        -echo_edu \
-        -gap 5 \
-        -gap_col $rgb \
-        -nx 3 \
-        -ny $nv \
-        -prefix $odir/ALL_${bb}.jpg \
-        $odir/${bb}*
+    # should still be ordered correctly when expanded...
+    imcat                            \
+        -echo_edu                    \
+        -gap 5                       \
+        -gap_col $rgb                \
+        -nx $nv                      \
+        -ny 3                        \
+        -prefix $odir/ALL_${bb}.jpg  \
+        $odir/${bb}*sag* $odir/${bb}*cor* $odir/${bb}*axi*
         
 
     @ idx = $idx + 1

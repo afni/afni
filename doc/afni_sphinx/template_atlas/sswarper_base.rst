@@ -88,32 +88,33 @@ of the above examples were made, to give you some help along the way.
 
 .. list-table:: 
    :header-rows: 1
-   :widths: 50 50
+   :widths: 100
 
-   * - MNI152_2009_template_SSW.nii.gz (5 volumes; one volume per row;
-       axi, cor, sag views)
-     - TT_N27_SSW.nii.gz (5 volumes; one volume per
-       row; axi, cor, sag views)
+   * - MNI152_2009_template_SSW.nii.gz (5 volumes; one volume per
+       column; axi, cor, sag views)
    * - .. image:: media/ALL_MNI152_2009_template_SSW.jpg
           :width: 100%   
           :align: center
+
+.. list-table:: 
+   :header-rows: 1
+   :widths: 100
+
+   * - TT_N27_SSW.nii.gz (5 volumes; one volume per column; axi, cor,
+       sag views)
      - .. image:: media/ALL_TT_N27_SSW.jpg
           :width: 100%   
           :align: center
 
-|
-
 .. list-table:: 
    :header-rows: 1
-   :widths: 50 50
+   :widths: 100
 
    * - HaskinsPeds_NL_template1.0_SSW.nii.gz (5 volumes; one volume
-       per row; axi, cor, sag views)
-     - 
+       per column; axi, cor, sag views)
    * - .. image:: media/ALL_HaskinsPeds_NL_template1.0_SSW.jpg
           :width: 100%   
           :align: center
-     - 
 
 Example for making a reference dset: TT_N27_SSW.nii.gz
 ------------------------------------------------------
