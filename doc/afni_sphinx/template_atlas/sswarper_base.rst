@@ -102,7 +102,7 @@ of the above examples were made, to give you some help along the way.
 
    * - TT_N27_SSW.nii.gz (5 volumes; one volume per column; axi, cor,
        sag views)
-     - .. image:: media/ALL_TT_N27_SSW.jpg
+   * - .. image:: media/ALL_TT_N27_SSW.jpg
           :width: 100%   
           :align: center
 
