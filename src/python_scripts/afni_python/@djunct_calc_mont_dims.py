@@ -1,14 +1,18 @@
 #!/usr/bin/env python
 
-import numpy as np
-import sys as sys
-import scipy.constants as spc
-
 # written by PA Taylor (NIMH, NIH), Feb 2017
 #
 # find out a good ratio to make montage dimensions; if necessary, add
 # some to get closer to golden ratio, but we have a reasonable
 # tolerance, as well.
+
+# [PT: July 17, 2018] CONVERTED__python__2to3
+
+# --------------------------------------------------------------------
+
+import numpy as np
+import sys as sys
+import scipy.constants as spc
 
 help_string = '''
 Just a simple helper function for the fat_proc* scripts.  
@@ -24,7 +28,7 @@ OKOK_dist  = 0.4   # allowable distance, to minimize adding
 def get_arg(aa):
     Narg = len(aa)
     if Narg < 2:
-        print help_string
+        print(help_string)
         sys.exit(0)
     elif Narg == 2:
         sys.exit("** ERROR: too few args! Need exactly one integer\n"
@@ -35,7 +39,7 @@ def get_arg(aa):
     else:
         aaint = int(aa[1])
         apref = aa[2]
-        print "++ OK, have my integer argument:", aaint
+        print("++ OK, have my integer argument:", aaint)
 
     return aaint, apref
 
@@ -87,9 +91,9 @@ def get_best_rat(AA):
     for j in range(check_dist):
         (AA_l, AA_h) = get_facs(AA+j)
         (idx, dist) = find_best_rat( calc_ratios(AA_h, AA_l) )
-        print AA_l
-        print AA_h
-        print idx, AA_h[idx], AA_l[idx], dist
+        print(AA_l)
+        print(AA_h)
+        print(idx, AA_h[idx], AA_l[idx], dist)
         all_rats[j] = dist
         all_vals[j, 0] = idx
         all_vals[j, 1] = AA_h[idx]
@@ -100,7 +104,7 @@ def get_best_rat(AA):
         # put this in as a "good enough" ratio, even if not ideal
         # within dist, so we don't needlessly add vols
         if min_dist < OKOK_dist:
-            print "++ OK! Good enough"
+            print("++ OK! Good enough")
             break
 
     if idx < 0:
@@ -110,7 +114,7 @@ def get_best_rat(AA):
 
 if __name__=="__main__":
 
-    print "++ Command line:", sys.argv
+    print("++ Command line:", sys.argv)
 
     (AA, Apref)     = get_arg(sys.argv)
     (Afinal, Arats) = get_best_rat(AA)
@@ -119,10 +123,10 @@ if __name__=="__main__":
     Acol = Arats[1]
     Arow = Arats[2]
 
-    print "\n---------------------------------------------"
-    print "++ final Nslices = "+str(Afinal)+" (pad = "+str(Apad)+")"
-    print "++ -> Ncol x Nrow = "+str(Acol)+" x "+str(Arow)
-    print "---------------------------------------------\n"
+    print("\n---------------------------------------------")
+    print("++ final Nslices = "+str(Afinal)+" (pad = "+str(Apad)+")")
+    print("++ -> Ncol x Nrow = "+str(Acol)+" x "+str(Arow))
+    print("---------------------------------------------\n")
 
     f = open(Apref, 'w')
     f.write('# %10s %10s %10s %10s\n' % ("Final", "Pad", "Ncol", "Nrow"))
