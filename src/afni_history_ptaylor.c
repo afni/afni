@@ -66,6 +66,21 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 17, July , 2018 , PT , "@djunct_select_str.py" , MICRO , TYPE_GENERAL,
+   "Converted to python3 compatible, using 2to3.",
+   "Tested; seems fine.\n"
+},
+
+{ 17, July , 2018 , PT , "@djunct_combine_str.py" , MICRO , TYPE_GENERAL,
+   "Converted to python3 compatible, using 2to3.",
+   "Tested; seems fine.\n"
+},
+
+{ 17, July , 2018 , PT , "@djunct_calc_mont_dims.py" , MICRO , TYPE_GENERAL,
+   "Converted to python3 compatible, using 2to3.",
+   "Tested; seems fine.\n"
+},
+
 { 1, July , 2018 , PT , "@SSwarper" , MAJOR , TYPE_NEW_OPT,
    "New opt:  well, actually, it is new to *have* explicit options now!",
    "Same great functionality, but with more flexible options/names/outputs.\n"
