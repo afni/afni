@@ -1,14 +1,21 @@
 #!/usr/bin/env python
 
-# written by PA Taylor (NIMH, NIH), Feb 2018
-
 # simple program for combining string selectors
 
-VERSION   = "1.1"
-VER_DATE  = "May 22, 2018"
 AUTHOR    = "PA Taylor (NIMH, NIH)"
-
-# "May 22, 2018":  change "union" -> intersection of lists
+#VERSION   = "1.0"
+#VER_DATE  = "Feb 18, 2018"
+# + birth
+#
+#VERSION   = "1.1"
+#VER_DATE  = "May 22, 2018"
+# + change "union" -> intersection of lists
+#
+VERSION   = "1.2"
+VER_DATE  = "July 17, 2018"
+# + [PT] CONVERTED__python__2to3
+#
+# =================================================================
 
 import sys       as sys
 import numpy     as np
@@ -34,9 +41,9 @@ Takes >= %d arguments:
       just use the max number in the input strings)
    3) 1 or more string selector strings of *goods* to keep
 
-Converts those string selectors to a list of ints, then unionizes all
-the lists, and then spits out a new string selector (with ',' and '..'
-notation) to the output file.
+Converts those string selectors to a list of ints, then
+intersectionizes all the lists, and then spits out a new string
+selector (with ',' and '..'  notation) to the output file.
 
 --------------------------------------------------------------------
 
@@ -48,7 +55,7 @@ def get_arg(aa):
     Narg = len(aa)
     
     if Narg == 0:
-        print help_string
+        print(help_string)
         sys.exit(0)
     elif Narg < MIN_NUM_ARGS:
         sys.exit("** ERROR: too few args!\n"
@@ -61,12 +68,12 @@ def get_arg(aa):
         maxind = int(aa[1])    # max index or -1 flag
 
         lstr = []
-        print "++ string selector list:", ofile
+        print("++ string selector list:", ofile)
         for i in range(2, Narg):
             lstr.append(aa[i])
-            print "   %s" % ( aa[i] )
+            print("   %s" % ( aa[i] ))
 
-        print "++ Out file:", ofile
+        print("++ Out file:", ofile)
 
     return ofile, maxind, lstr
 
@@ -76,7 +83,7 @@ if __name__=="__main__":
 
     # --------------------- get input ------------------------
 
-    print "++ Command line:\n   ", ' '.join(sys.argv)
+    print("++ Command line:\n   ", ' '.join(sys.argv))
     (ofile, maxind, lstr)  =  get_arg(sys.argv[1:])
 
     # [PT: May 22, 2018] want INTERSECTION, not union...
@@ -97,14 +104,14 @@ if __name__=="__main__":
 
     # ------------------- write out -------------------------
 
-    print "++ OK, the list of good indices in AFNI selector format is:"
-    print "\n    %s\n" % good_encoded
+    print("++ OK, the list of good indices in AFNI selector format is:")
+    print("\n    %s\n" % good_encoded)
 
     f = open(ofile, 'w')
     f.write(good_encoded)
     f.close()
 
-    print "   ... which has been written to file: %s" % ofile
-    print "++ Done."
+    print("   ... which has been written to file: %s" % ofile)
+    print("++ Done.")
 
     sys.exit(0)

@@ -1,16 +1,22 @@
 #!/usr/bin/env python
 
-# written by PA Taylor (NIMH, NIH), March 2017
-
 # simple program for inverting a list of unwanted subbrick indices
 # into a list of *wanted* indices!
 
+AUTHOR    = "PA Taylor (NIMH, NIH)"
 #VERSION   = "1.0"
 #VER_DATE  = "March 30, 2017"
-VERSION   = "1.1"
-VER_DATE  = "June 26, 2018"
-# fixed issue when NO bads were selected
-AUTHOR    = "PA Taylor (NIMH, NIH)"
+# + [PT] birth, in current form
+#
+#VERSION   = "1.1"
+#VER_DATE  = "June 26, 2018"
+# + [PT] fixed issue when NO bads were selected
+#
+VERSION   = "1.2"
+VER_DATE  = "July 17, 2018"
+# + [PT] CONVERTED__python__2to3
+#
+# --------------------------------------------------------------------
 
 import sys       as sys
 import numpy     as np
@@ -44,7 +50,7 @@ def get_arg(aa):
     Narg = len(aa)
     
     if Narg == 0:
-        print help_string
+        print(help_string)
         sys.exit(0)
     elif Narg < NUM_ARGS:
         sys.exit("** ERROR: too few args!\n"
@@ -58,9 +64,9 @@ def get_arg(aa):
         inumb = int(aa[1])    # number of bricks in dset
         ofile = aa[2]         # output file name
 
-        print "++ Input file    :", ifile
-        print "++ Input Nbricks :", inumb
-        print "++ Out file      :", ofile
+        print("++ Input file    :", ifile)
+        print("++ Input Nbricks :", inumb)
+        print("++ Out file      :", ofile)
 
     return ifile, inumb, ofile
 
@@ -103,7 +109,7 @@ if __name__=="__main__":
 
     # --------------------- get input ------------------------
 
-    print "++ Command line:\n   ", ' '.join(sys.argv)
+    print("++ Command line:\n   ", ' '.join(sys.argv))
     (ifile, inumb, ofile)  =  get_arg(sys.argv[1:])
 
     # --------------------- proc it ------------------------
@@ -116,14 +122,14 @@ if __name__=="__main__":
 
     # ------------------- write out -------------------------
 
-    print "++ OK, the list of good indices in AFNI selector format is:"
-    print "\n    %s\n" % good_encoded
+    print("++ OK, the list of good indices in AFNI selector format is:")
+    print("\n    %s\n" % good_encoded)
 
     f = open(ofile, 'w')
     f.write(good_encoded)
     f.close()
 
-    print "   ... which has been written to file: %s" % ofile
-    print "++ Done."
+    print("   ... which has been written to file: %s" % ofile)
+    print("++ Done.")
 
     sys.exit(0)
