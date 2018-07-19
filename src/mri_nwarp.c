@@ -8039,6 +8039,17 @@ static float Hcostt = 0.0f ;
 #undef  BASIM /* macro for which base image to use */
 #define BASIM ( (Hbasim_blur != NULL ) ? Hbasim_blur : Hbasim )
 
+/*---------- Code and variables for '-inedge' enhancement [Jul 2018] ---------*/
+
+#define ALLOW_INEDGE
+
+#ifdef ALLOW_INEDGE
+# include "mri_intedge.c"
+  static int   Hinedge_erode = 4 ;
+  static float Hinedge_frac  = 0.222f ;
+  static int   Hinedge_doit  = 0 ;
+#endif
+
 /*----------------------------------------------------------------------------*/
 /* Process the QUIT signal, as in 'kill -s QUIT <processID>' */
 
@@ -10484,6 +10495,14 @@ ENTRY("IW3D_setup_for_improvement") ;
    Hnx = bim->nx; Hny = bim->ny; Hnz = bim->nz; Hnxy=Hnx*Hny; Hnxyz = Hnxy*Hnz;
    Hbasim = mri_to_float(bim) ;
    Hsrcim = mri_to_float(sim);
+
+#ifdef ALLOW_INEDGE /* Jul 2018 */
+   if( Hinedge_doit ){
+     if( Hverb > 1 ) ININFO_message("  enhancing interior edges of base and source") ;
+     mri_interior_edgeize( Hbasim , Hinedge_erode , Hinedge_frac ) ;
+     mri_interior_edgeize( Hsrcim , Hinedge_erode , Hinedge_frac ) ;
+   }
+#endif
 
    if( Hpblur_b > 0.0f && Hblur_b == 0.0f ) Hblur_b = 0.1f ;
    if( Hpblur_s > 0.0f && Hblur_s == 0.0f ) Hblur_s = 0.1f ;

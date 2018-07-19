@@ -1508,6 +1508,17 @@ int main( int argc , char *argv[] )
 
      /*---------------*/
 
+     if( strcasecmp(argv[nopt],"-inedge") == 0 ){  /* Jul 2018 */
+#ifdef ALLOW_INEDGE
+       Hinedge_doit = 1 ;
+#else
+       ERROR_message("Option %s is disabled now -- ignoring it",argv[nopt]) ;
+#endif
+       nopt++ ; continue ;
+     }
+
+     /*---------------*/
+
      if( strcasecmp(argv[nopt],"-noneg") == 0 ){  /* 24 May 2013 */
        noneg =  1 ; nopt++ ; continue ;
      }

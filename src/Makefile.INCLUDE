@@ -888,8 +888,11 @@ d3dmerge:3dmerge.c
 
 3dedge3:lib3DEdge.a 3dedge3.o
 	$(RM) $@
-	$(CC) -o 3dedge3 3dedge3.o -I3DEdge/src            \
-              $(LFLAGS) -l3DEdge $(LLIBS)
+	$(CC) -o 3dedge3 3dedge3.o $(LFLAGS) -l3DEdge $(LLIBS)
+
+mri_intedge.o:mri_intedge.c
+	$(RM) $@
+	$(CC) -c mri_intedge.c $(INFLAGS)
 
 3dNormalizer:3dNormalizer.o
 	$(RM) $@
@@ -1436,9 +1439,9 @@ AlphaSim:AlphaSim.o
 
 3dQwarp:3dQwarp.o libmri.a
 	$(RM) $@
-	$(CCOMP) -o 3dQwarp 3dQwarp.o $(LFLAGS) $(LLIBS)
+	$(CCOMP) -o 3dQwarp 3dQwarp.o $(LFLAGS) $(LLIBS) -l3DEdge
 
-3dQwarp.o:3dQwarp.c mri_genalign.c mri_genalign_util.c thd_incorrelate.c mri_nwarp.c powell_int.c powell_newuoa.c
+3dQwarp.o:3dQwarp.c mri_genalign.c mri_genalign_util.c thd_incorrelate.c mri_nwarp.c powell_int.c powell_newuoa.c mri_intedge.c
 	$(RM) $@
 	$(CCOMP) -c 3dQwarp.c $(INFLAGS)
 
@@ -2449,7 +2452,7 @@ NETCDF_DIR = netcdf-3.5.0/libsrc/src
 NETSCR_SRCS = $(NETCDF_DIR)/attr.c   $(NETCDF_DIR)/dim.c    $(NETCDF_DIR)/error.c   \
               $(NETCDF_DIR)/libvers.c $(NETCDF_DIR)/nc.c     $(NETCDF_DIR)/ncio.c   \
               $(NETCDF_DIR)/ncx.c    $(NETCDF_DIR)/putget.c $(NETCDF_DIR)/string.c  \
-              $(NETCDF_DIR)/v1hpg.c  $(NETCDF_DIR)/v2i.c    $(NETCDF_DIR)/var.c    
+              $(NETCDF_DIR)/v1hpg.c  $(NETCDF_DIR)/v2i.c    $(NETCDF_DIR)/var.c
 
 SUMA_OBJS = suma_afni_surface.o suma_datasets.o suma_utils.o \
             suma_string_manip.o suma_algorithms.o suma_help.o
