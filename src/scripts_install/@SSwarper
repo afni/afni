@@ -255,13 +255,19 @@ endif
 ## warp to template space (skull off),
 ## initializing using the previous 3dQwarp -awarp output
 
+if( "$minp" > "13" )then
+  set doQfinal = "-Qfinal"
+else
+  set doQfinal = " "
+endif
+
 3dQwarp \
     -base "${Basedset}[0]"               \
     -source "${pref}AffSS.nii"           \
     -iniwarp "${pref}TAL5_AWARP.nii"     \
-    -inilev 3                            \
+    -inilev 1                            \
     -pblur -minpatch $minp               \
-    -Qfinal -workhard:5:8                \
+    $doQfinal -workhard:5:8              \
     -prefix $odir/anatQQ."${SubID}".nii
 
 ## Cleanup
