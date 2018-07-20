@@ -1437,7 +1437,7 @@ AlphaSim:AlphaSim.o
 	$(RM) $@
 	$(CCOMP) -o 3dAllineate 3dAllineate.o $(LFLAGS) $(LLIBS)
 
-3dQwarp:3dQwarp.o libmri.a
+3dQwarp:3dQwarp.o libmri.a lib3DEdge.a
 	$(RM) $@
 	$(CCOMP) -o 3dQwarp 3dQwarp.o $(LFLAGS) $(LLIBS) -l3DEdge
 
