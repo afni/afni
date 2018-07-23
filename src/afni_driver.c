@@ -57,6 +57,7 @@ static int AFNI_drive_write_cont_spxhelp(char *cmd);/* 08 Apr 2015 */
 static int AFNI_drive_snap_cont( char *cmd );       /* 08 Apr 2015 */
 static int AFNI_drive_snap_viewer( char *cmd );     /* 23 May 2018 */
 static int AFNI_drive_underlay_range( char *cmd );  /* 23 Jul 2018 */
+static int AFNI_drive_nothing( char *cmd );         /* 23 Jul 2018 */
 
 static FILE * AFNI_drive_get_outstream(void);       /* 02 Jun 2015 */
 static int AFNI_drive_set_outstream(char *outfile); /* 02 Jun 2015 */
@@ -232,6 +233,7 @@ static AFNI_driver_pair dpair[] = {
  { "SNAP_VIEWER"        , AFNI_drive_snap_viewer       } ,
 
  { "SET_ULAY_RANGE"     , AFNI_drive_underlay_range    } , /* 23 Jul 2018 */
+ { "DO_NOTHING"         , AFNI_drive_nothing           } ,
 
  { NULL , NULL }  /* flag that we've reached the end times */
 } ;
@@ -342,6 +344,13 @@ ENTRY("AFNI_driver") ;
          "       apsearch -view_readme driv \n",cmd) ;  /* 22 Feb 2007 */
 
    free(dmd) ; RETURN(-1) ;  /* not in the lists */
+}
+
+/*---------------------------------------------------------------*/
+
+int AFNI_drive_nothing( char *cmd ) /* not the hardest code to write */
+{
+  RETURN(0) ;
 }
 
 /*---------------------------------------------------------------*/
