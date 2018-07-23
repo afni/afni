@@ -330,6 +330,14 @@ OPEN_WINDOW [c.]windowname [options]
      more sense if you are using this to apply some change to an already
      open viewer window.
 
+SET_ULAY_RANGE [c.]windowname bot top
+  This command sets the grayscale range for the given image viewer window
+  to be from 'bot' to 'top'. Examples:
+    SET_ULAY_RANGE A.axialimage 0 200
+    SET_ULAY_RANGE A.all        20 150
+  The second example shows that you can use 'all' to change all the open
+  image viewers (for a given controller) in one operation.
+
 CLOSE_WINDOW [c.]windowname
   Closes a window from controller 'c'.  You can only close graph and image
   viewer windows this way, not plugin windows.
