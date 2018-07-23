@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 23, July , 2018 , PT , "3dClusterize" , MICRO , TYPE_GENERAL,
+   "Check about overwriting files before trying to write.",
+   "This way, failure to write file exits nonzeroly.\n"
+},
+
 { 17, July , 2018 , PT , "@djunct_select_str.py" , MICRO , TYPE_GENERAL,
    "Converted to python3 compatible, using 2to3.",
    "Tested; seems fine.\n"
