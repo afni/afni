@@ -11053,6 +11053,7 @@ ENTRY("IW3D_warpomatic") ;
    IW3D_setup_for_improvement( bim, wbim, sim, WO_iwarp, meth_code, warp_flags ) ;
 
    /* compute range of indexes over which to warp */
+   /* imin..imax jmin..jmax kmin..kmax = autobox = contains all nonzeros */
 
    MRI_autobbox( Hwtim , &imin,&imax , &jmin,&jmax , &kmin,&kmax ) ;
 
@@ -11414,8 +11415,8 @@ ENTRY("IW3D_warpomatic") ;
      /* at this point, we have just about finished with this level's patches */
 
      if( Hdone == 0 ){  /* if nothing was done at this level, try -something- */
-       ibot = (imin+imax-xwid)/2 ; if( ibot < 0 ) ibot = 0 ;
-       jbot = (jmin+jmax-ywid)/2 ; if( jbot < 0 ) jbot = 0 ;
+       ibot = (imin+imax-xwid)/2 ; if( ibot < 0 ) ibot = 0 ;   /* centered on */
+       jbot = (jmin+jmax-ywid)/2 ; if( jbot < 0 ) jbot = 0 ;   /* the autobox */
        kbot = (kmin+kmax-zwid)/2 ; if( kbot < 0 ) kbot = 0 ;
        itop = ibot+xwid-1        ; if( itop >= Hnx ) itop = Hnx-1 ;
        jtop = jbot+ywid-1        ; if( jtop >= Hny ) jtop = Hny-1 ;

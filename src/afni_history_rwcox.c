@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 23 , JUL , 2018 , RWC , "AFNI driver" , MINOR , TYPE_ENHANCE ,
+   "New command: SET_ULAY_RANGE" ,
+   "For example: SET_ULAY_RANGE A.axialimage 0 200" } ,
+
  { 16 , JUL , 2018 , RWC , "@snapshot_volreg" , MICRO , TYPE_MODIFY ,
    "Turn ALPHA on, and median smooth EPI dataset to improve edges" ,
    NULL } ,
