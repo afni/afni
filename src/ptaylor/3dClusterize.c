@@ -32,6 +32,9 @@
    2018 06 01: + [PT] null map output in case of no clusts, if user desires:
                  - for troublemaking users, only!
 
+   2018 07 23: + [PT] put in overwrite checks
+                 - should fail with nonzero exit if can't write output
+
 */
 
 
@@ -1296,6 +1299,11 @@ int main(int argc, char *argv[]) {
       EDIT_dset_items( dset ,
                        ADN_prefix, CL_prefix,
                        ADN_none );
+
+      if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(dset)) )
+         ERROR_exit("Can't overwrite existing dataset '%s'",
+                    DSET_HEADNAME(dset));
+
       tross_Copy_History( insetA , dset );
       tross_Make_History( "3dClusterize", argc, argv, dset );
       DSET_write(dset); 
@@ -1318,6 +1326,11 @@ int main(int argc, char *argv[]) {
                           ADN_prefix , prefix ,
                           ADN_nvals  , 1 ,
                           ADN_none );
+
+         if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(qset)) )
+            ERROR_exit("Can't overwrite existing dataset '%s'",
+                       DSET_HEADNAME(qset));
+
          EDIT_substitute_brick(qset, 0, MRI_short, mmm); 
          mmm = NULL;
          
@@ -1604,6 +1617,11 @@ int main(int argc, char *argv[]) {
                        ADN_prefix , CL_maskout ,
                        ADN_nvals  , 1 ,
                        ADN_none );
+
+      if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(mset)) )
+         ERROR_exit("Can't overwrite existing dataset '%s'",
+                    DSET_HEADNAME(mset));
+
       EDIT_substitute_brick(mset, 0, MRI_byte, mask); 
       mask = NULL;
       

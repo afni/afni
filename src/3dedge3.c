@@ -1,6 +1,12 @@
 #include "mrilib.h"
 #include "extrema.h"
 
+#define ALLOW_INEDGE
+
+#ifdef ALLOW_INEDGE
+#include "mri_intedge.c"  /* Jul 2018 */
+#endif
+
 int main( int argc , char * argv[] )
 {
    THD_3dim_dataset * inset , * outset ;
@@ -15,6 +21,8 @@ int main( int argc , char * argv[] )
    float filterCoefs[3] = {1.0, 1.0, 1.0};
    recursiveFilterType filterType = ALPHA_DERICHE;
    /* recursiveFilterType filterType = GAUSSIAN_DERICHE; */
+
+   int do_inedge=0 ;  /* Jul 2018 */
 
    /*-- help? --*/
 
@@ -40,7 +48,13 @@ int main( int argc , char * argv[] )
  "                      what I suspect to be truncation problems.\n"
  "                      Multiplying such a dataset by 10000 fixes the problem\n"
  "                      and the scaling is undone at the output.\n"
+#if 0
  "\n"
+ "  -inedge     = Process the #0 sub-brick like the '-inedge' option of\n"
+ "                3dQwarp and write the result out. Mostly for checking\n"
+ "                things out, not for any other practical purpose. [Jul 2018]\n"
+ "\n"
+#endif
  "\n"
  "References for the algorithms:\n"
  " -  Optimal edge detection using recursive filtering\n"
@@ -86,6 +100,13 @@ int main( int argc , char * argv[] )
          }
          insetname = argv[nopt] ;
          nopt++ ; continue ;
+      }
+
+      if( strcmp(argv[nopt],"-inedge") == 0 ){  /* Jul 2018 */
+#ifndef ALLOW_INEDGE
+        WARNING_message("-inedge is disabled - ignoring this option :(") ;
+#endif
+        do_inedge = 1 ; nopt++ ; continue ;
       }
       
       if( strcmp(argv[nopt],"-scale_floats") == 0 ){
@@ -199,6 +220,23 @@ int main( int argc , char * argv[] )
       DSET_load(inset) ; CHECK_LOAD_ERROR(inset) ;
 
       if( verb ) fprintf(stderr,"  ++ read in dataset %s\n",insetname) ;
+
+      /*-- Do the -inedge option now [Jul 2018] --*/
+
+
+#ifdef ALLOW_INEDGE
+      if( do_inedge ){
+        MRI_IMAGE *bim = THD_extract_float_brick(0,inset) ;
+        if( bim == NULL ) ERROR_exit("-inedge: Cannot get sub-brick #0") ;
+        mri_interior_edgeize(bim,4,0.222f) ;
+
+        EDIT_dset_items( outset, ADN_nvals,1 , ADN_datum_all,MRI_float , ADN_none ) ;
+        EDIT_substitute_brick(outset, 0, MRI_float, MRI_FLOAT_PTR(bim) ) ;
+        DSET_write(outset) ;
+        INFO_message("wrote out -inedge dataset: %s",DSET_BRIKNAME(outset)) ;
+        exit(0) ;
+      }
+#endif
 
       /*-- Edge detect each sub-brik --*/
       

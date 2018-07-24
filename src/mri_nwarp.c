@@ -8039,6 +8039,17 @@ static float Hcostt = 0.0f ;
 #undef  BASIM /* macro for which base image to use */
 #define BASIM ( (Hbasim_blur != NULL ) ? Hbasim_blur : Hbasim )
 
+/*---------- Code and variables for '-inedge' enhancement [Jul 2018] ---------*/
+
+#define ALLOW_INEDGE
+
+#ifdef ALLOW_INEDGE
+# include "mri_intedge.c"
+  static int   Hinedge_erode = 4 ;
+  static float Hinedge_frac  = 0.222f ;
+  static int   Hinedge_doit  = 0 ;
+#endif
+
 /*----------------------------------------------------------------------------*/
 /* Process the QUIT signal, as in 'kill -s QUIT <processID>' */
 
@@ -10485,6 +10496,14 @@ ENTRY("IW3D_setup_for_improvement") ;
    Hbasim = mri_to_float(bim) ;
    Hsrcim = mri_to_float(sim);
 
+#ifdef ALLOW_INEDGE /* Jul 2018 */
+   if( Hinedge_doit ){
+     if( Hverb > 1 ) ININFO_message("  enhancing interior edges of base and source") ;
+     mri_interior_edgeize( Hbasim , Hinedge_erode , Hinedge_frac ) ;
+     mri_interior_edgeize( Hsrcim , Hinedge_erode , Hinedge_frac ) ;
+   }
+#endif
+
    if( Hpblur_b > 0.0f && Hblur_b == 0.0f ) Hblur_b = 0.1f ;
    if( Hpblur_s > 0.0f && Hblur_s == 0.0f ) Hblur_s = 0.1f ;
 
@@ -11034,6 +11053,7 @@ ENTRY("IW3D_warpomatic") ;
    IW3D_setup_for_improvement( bim, wbim, sim, WO_iwarp, meth_code, warp_flags ) ;
 
    /* compute range of indexes over which to warp */
+   /* imin..imax jmin..jmax kmin..kmax = autobox = contains all nonzeros */
 
    MRI_autobbox( Hwtim , &imin,&imax , &jmin,&jmax , &kmin,&kmax ) ;
 
@@ -11395,8 +11415,8 @@ ENTRY("IW3D_warpomatic") ;
      /* at this point, we have just about finished with this level's patches */
 
      if( Hdone == 0 ){  /* if nothing was done at this level, try -something- */
-       ibot = (imin+imax-xwid)/2 ; if( ibot < 0 ) ibot = 0 ;
-       jbot = (jmin+jmax-ywid)/2 ; if( jbot < 0 ) jbot = 0 ;
+       ibot = (imin+imax-xwid)/2 ; if( ibot < 0 ) ibot = 0 ;   /* centered on */
+       jbot = (jmin+jmax-ywid)/2 ; if( jbot < 0 ) jbot = 0 ;   /* the autobox */
        kbot = (kmin+kmax-zwid)/2 ; if( kbot < 0 ) kbot = 0 ;
        itop = ibot+xwid-1        ; if( itop >= Hnx ) itop = Hnx-1 ;
        jtop = jbot+ywid-1        ; if( jtop >= Hny ) jtop = Hny-1 ;
