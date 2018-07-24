@@ -2518,7 +2518,9 @@ STATUS(fname) ;  /* 16 Oct 2007 */
      }
    }
 
-   fts = fopen( fname , "r" ); if( fts == NULL ) RETURN(NULL);
+   fts = fopen( fname , "r" );
+   if( fts == NULL ){ NI_sleep(33); fts = fopen( fname , "r" ); }
+   if( fts == NULL ) RETURN(NULL);
 
    if( buf == NULL ) buf = AFMALL(char, LBUF) ; /* create buffer */
 

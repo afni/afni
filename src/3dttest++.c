@@ -4769,13 +4769,22 @@ LABELS_ARE_DONE:  /* target for goto above */
        INIT_IMARR(inar) ;
        for( pp=0 ; pp < num_clustsim*ncase ; pp++ ){ /* read one from each simulation */
          sprintf(fname,"%s/%s.%04d.minmax.1D",tempdir,prefix_clustsim,pp) ;
-         inim = mri_read_1D(fname) ;
+         inim = mri_read_1D(fname) ; remove(fname) ;
          if( inim == NULL ){  /* should not happen */
-           ERROR_message("Can't read file %s",fname) ; nbad++ ; continue ;
+           WARNING_message("Can't read file %s",fname) ; nbad++ ;
          }
-         ADDTO_IMARR(inar,inim) ; remove(fname) ;
+         ADDTO_IMARR(inar,inim) ;
        }
-       if( nbad == 0 ){                   /* if all files were OK */
+       if( nbad < num_clustsim*ncase ){ /* if at least some files were OK */
+         if( nbad > 0 ){
+           ININFO_message(
+             " %d/%d minmax.1D files failed: will try to proceed with 5percent.txt anyway",
+             nbad , num_clustsim*ncase ) ;
+         } else {
+           ININFO_message(
+             " successfully read all %d minmax.1D files; computing 5percent.txt outputs",
+             num_clustsim*ncase ) ;
+         }
          for( icase=0 ; icase < ncase ; icase++ ){
            /* glue this case's minmax results together from a sub-array of images */
            allim = mri_catvol_1D_ab(inar,1,icase*num_clustsim,(icase+1)*num_clustsim-1) ;
@@ -4820,8 +4829,17 @@ LABELS_ARE_DONE:  /* target for goto above */
                ININFO_message("    [above results also in file %s]",fname) ;
              }
              mri_free(allim) ;
+           } else {
+             WARNING_message("COULD NOT read any .minmax.1D files for case %s!",clab[icase]);
+             ININFO_message ("  ==> no global threshold file %s.%s.5percent.txt :(",
+                             prefix_clustsim,clab[icase]) ;
+             ININFO_message ("  ... this failure does not affect any other Clustim/ETAC results!") ;
            }
          }
+       } else {
+         WARNING_message("COULD NOT read any .minmax.1D files for unknown reasons!") ;
+         ININFO_message ("  ==> no global threshold .5percent.txt files are output  :(") ;
+         ININFO_message ("  ... this failure does not affect any other Clustim/ETAC results!") ;
        }
        DESTROY_IMARR(inar) ;
      } /*-- end of 5percent stuff --*/

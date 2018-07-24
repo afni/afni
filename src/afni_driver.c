@@ -56,6 +56,8 @@ static int AFNI_drive_write_overlay( char *cmd ) ;  /* 16 Jun 2014 */
 static int AFNI_drive_write_cont_spxhelp(char *cmd);/* 08 Apr 2015 */
 static int AFNI_drive_snap_cont( char *cmd );       /* 08 Apr 2015 */
 static int AFNI_drive_snap_viewer( char *cmd );     /* 23 May 2018 */
+static int AFNI_drive_underlay_range( char *cmd );  /* 23 Jul 2018 */
+static int AFNI_drive_nothing( char *cmd );         /* 23 Jul 2018 */
 
 static FILE * AFNI_drive_get_outstream(void);       /* 02 Jun 2015 */
 static int AFNI_drive_set_outstream(char *outfile); /* 02 Jun 2015 */
@@ -180,6 +182,7 @@ static AFNI_driver_pair dpair[] = {
  { "SET_GRAPH_GEOM"   , AFNI_drive_geom_graph        } ,
 
  { "QUITT"            , AFNI_drive_quitt             } ,
+ { "QQUIT"            , AFNI_drive_quitt             } ,
  { "QUIT"             , AFNI_drive_quit              } ,
 
  { "SYSTEM"           , AFNI_drive_system            } ,
@@ -229,6 +232,8 @@ static AFNI_driver_pair dpair[] = {
  { "SNAP_CONT"          , AFNI_drive_snap_cont         } ,
  { "SNAP_VIEWER"        , AFNI_drive_snap_viewer       } ,
 
+ { "SET_ULAY_RANGE"     , AFNI_drive_underlay_range    } , /* 23 Jul 2018 */
+ { "DO_NOTHING"         , AFNI_drive_nothing           } ,
 
  { NULL , NULL }  /* flag that we've reached the end times */
 } ;
@@ -339,6 +344,13 @@ ENTRY("AFNI_driver") ;
          "       apsearch -view_readme driv \n",cmd) ;  /* 22 Feb 2007 */
 
    free(dmd) ; RETURN(-1) ;  /* not in the lists */
+}
+
+/*---------------------------------------------------------------*/
+
+int AFNI_drive_nothing( char *cmd ) /* not the hardest code to write */
+{
+  RETURN(0) ;
 }
 
 /*---------------------------------------------------------------*/
@@ -3831,6 +3843,64 @@ ENTRY("AFNI_drive_snap_viewer") ;
 
    RETURN(ii) ;
 }
+
+/*--------------------------------------------------------------------*/
+/* SET_ULAY_RANGE A.viewer bot top [ztop] -- 23 Jul 2018 (RWC) */
+/*--------------------------------------------------------------------*/
+
+/*- macro to redisplay image with new range -*/
+
+#define RNGIM(iq)                                     \
+ do{ if( (iq) != NULL ){                              \
+       (iq)->rng_extern = 0  ; (iq)->rng_ztop = ztop; \
+       (iq)->rng_bot    = bot; (iq)->rng_top  = top ; \
+       ISQ_redisplay( (iq) , -1 , isqDR_reimage ) ;   \
+     } } while(0)
+
+static int AFNI_drive_underlay_range( char *cmd )
+{
+   int ic, dadd=2 ;
+   Three_D_View *im3d=NULL ;
+   MCW_imseq    *isq=NULL ;
+   char junk[256] ;
+   float bot,top,ztop ;
+
+ENTRY("AFNI_drive_underlay_range") ;
+
+   if( strlen(cmd) < 3 ) RETURN(-1) ;
+
+   /* make sure the controller itself is open */
+
+   ic = AFNI_controller_code_to_index( cmd ) ;
+   if( ic < 0 ){ ic = 0 ; dadd = 0 ; }
+   im3d = GLOBAL_library.controllers[ic] ;
+   if( !IM3D_VALID(im3d) ){
+     ERROR_message("Command '%s': controller not open",cmd) ;
+     RETURN(-1) ;
+   }
+
+   /* check if doing all image windows for this controller */
+   /* (and get the ranging numbers at the same time) */
+
+   junk[0] = '\0' ; bot = top = ztop = 0.0f ;
+   sscanf( cmd+dadd , "%255s %f%f%f" , junk , &bot , &top , &ztop ) ;
+   if( strncasecmp(junk,"all",3) == 0 ){
+     RNGIM(im3d->s123) ;
+     RNGIM(im3d->s231) ;
+     RNGIM(im3d->s312) ;
+     RETURN(0) ;
+   }
+
+   /* find single image window */
+
+        if( HAS_axialimage   (cmd+dadd) ){ RNGIM(im3d->s123); RETURN(0); }
+   else if( HAS_sagittalimage(cmd+dadd) ){ RNGIM(im3d->s231); RETURN(0); }
+   else if( HAS_coronalimage (cmd+dadd) ){ RNGIM(im3d->s312); RETURN(0); }
+
+   ERROR_message("Command '%s': no image window specified",cmd) ;
+   RETURN(1) ;
+}
+#undef RNGIM
 
 /*--------------------------------------------------------------------*/
 /* See README.driver for details */

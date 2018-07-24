@@ -4079,7 +4079,7 @@ STATUS("zeropad weight dataset") ;
   do{ fprintf(stderr," + %s Parameters:\n    ",ss) ;        \
       for( jj=0 ; jj < stup.wfunc_numpar ; jj++ ){          \
         if( jj > 0 && jj%3 == 0 ) fprintf(stderr,"\n    "); \
-        fprintf(stderr," %9s=%7.4f",                        \
+        fprintf(stderr," %9s=%8.4f",                        \
      stup.wfunc_param[jj].name,stup.wfunc_param[jj].xxx) ;  \
       }                                                     \
       fprintf(stderr,"\n") ;                                \
