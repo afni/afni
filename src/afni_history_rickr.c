@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24, Jul, 2018, RCR, "dcm2niix_afni", MAJOR, TYPE_ENHANCE,
+   "version v1.0.20180622, including fix for enhanced DICOM Philips bvec/bval",
+   "Update from C Rorden."
+ } ,
+
  {  5, Jul, 2018, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "add -mask_opts_automask",
    "Done for L Atlas."
