@@ -95,7 +95,7 @@ void dropFilenameFromPath(char *path) { //
         path[dirPath - path] = 0; // please make sure there is enough space in TargetDirectory
     if (strlen(path) == 0) { //file name did not specify path, assume relative path and return current working directory
     	//strcat (path,"."); //relative path - use cwd <- not sure if this works on Windows!
-    	char cwd[1024];
+    	char cwd[PATH_MAX];
    		char* ok = getcwd(cwd, sizeof(cwd));
    		if (ok !=NULL)
    			strcat (path,cwd);
@@ -109,22 +109,6 @@ void dropTrailingFileSep(char *path) { //
    	path[len] = '\0';
    else if (path[len] == '\\')
    	path[len] = '\0';
-}
-
-void getFileName( char *pathParent, const char *path) //if path is c:\d1\d2 then filename is 'd2'
-{
-    const char *filename = strrchr(path, '/'); //UNIX
-    if (filename == 0) {
-       filename = strrchr(path, '\\'); //Windows
-       if (filename == NULL) filename = strrchr(path, ':'); //Windows
-     }
-    //const char *filename = strrchr(path, kPathSeparator); //x
-    if (filename == NULL) {//no path separator
-        strcpy(pathParent,path);
-        return;
-    }
-    filename++;
-    strcpy(pathParent,filename);
 }
 
 bool is_fileexists(const char * filename) {
@@ -1324,7 +1308,6 @@ int * nii_SaveDTI(char pathoutname[],int nConvert, struct TDCMsort dcmSort[],str
     if (minB0 > 50) printWarning("This diffusion series does not have a B0 (reference) volume\n");
 	if ((!opts.isSortDTIbyBVal) && (minB0idx > 0))
 		printMessage("Note: B0 not the first volume in the series (FSL eddy reference volume is %d)\n", minB0idx);
-
 	float kADCval = maxB0 + 1; //mark as unusual
     *numADC = 0;
 	bvals = (float *) malloc(numDti * sizeof(float));
@@ -1576,7 +1559,7 @@ bool niiExists(const char*pathoutname) {
 #endif
 
 int nii_createFilename(struct TDICOMdata dcm, char * niiFilename, struct TDCMopts opts) {
-    char pth[1024] = {""};
+    char pth[PATH_MAX] = {""};
     if (strlen(opts.outdir) > 0) {
         strcpy(pth, opts.outdir);
         int w =access(pth,W_OK);
@@ -1591,9 +1574,9 @@ int nii_createFilename(struct TDICOMdata dcm, char * niiFilename, struct TDCMopt
             }
         }
      }
-    char inname[1024] = {""};//{"test%t_%av"}; //% a = acquisition, %n patient name, %t time
+    char inname[PATH_MAX] = {""};//{"test%t_%av"}; //% a = acquisition, %n patient name, %t time
     strcpy(inname, opts.filename);
-    char outname[1024] = {""};
+    char outname[PATH_MAX] = {""};
     char newstr[256];
     if (strlen(inname) < 1) {
         strcpy(inname, "T%t_N%n_S%s");
@@ -1603,6 +1586,7 @@ int nii_createFilename(struct TDICOMdata dcm, char * niiFilename, struct TDCMopt
     bool isCoilReported = false;
     bool isEchoReported = false;
     bool isSeriesReported = false;
+    bool isImageNumReported = false;
     while (pos < strlen(inname)) {
         if (inname[pos] == '%') {
             if (pos > start) {
@@ -1618,6 +1602,7 @@ int nii_createFilename(struct TDICOMdata dcm, char * niiFilename, struct TDCMopt
                 sprintf(newstr, "%02d", dcm.coilNum);
                 strcat (outname,newstr);
             }
+            if (f == 'B') strcat (outname,dcm.imageBaseName);
             if (f == 'C') strcat (outname,dcm.imageComments);
             if (f == 'D') strcat (outname,dcm.seriesDescription);
         	if (f == 'E') {
@@ -1654,6 +1639,12 @@ int nii_createFilename(struct TDICOMdata dcm, char * niiFilename, struct TDCMopt
                 if (strlen(dcm.protocolName) < 1)
                 	printWarning("Unable to append protocol name (0018,1030) to filename (it is empty).\n");
             }
+            if (f == 'R') {
+                sprintf(newstr, "%d", dcm.imageNum);
+                strcat (outname,newstr);
+                isImageNumReported = true;
+            }
+
             if (f == 'Q')
                 strcat (outname,dcm.scanningSequence);
             if (f == 'S') {
@@ -1692,9 +1683,16 @@ int nii_createFilename(struct TDICOMdata dcm, char * niiFilename, struct TDCMopt
             if ((f >= '0') && (f <= '9')) {
                 if ((pos<strlen(inname)) && (toupper(inname[pos+1]) == 'S')) {
                     char zeroPad[12] = {""};
-                    //sprintf(zeroPad,"%%0%dd",atoi(&f));
                     sprintf(zeroPad,"%%0%dd",f - '0');
                     sprintf(newstr, zeroPad, dcm.seriesNum);
+                    strcat (outname,newstr);
+                    pos++; // e.g. %3f requires extra increment: skip both number and following character
+                }
+                if ((pos<strlen(inname)) && (toupper(inname[pos+1]) == 'R')) {
+                    char zeroPad[12] = {""};
+                    sprintf(zeroPad,"%%0%dd",f - '0');
+                    sprintf(newstr, zeroPad, dcm.imageNum);
+                    isImageNumReported = true;
                     strcat (outname,newstr);
                     pos++; // e.g. %3f requires extra increment: skip both number and following character
                 }
@@ -1716,6 +1714,10 @@ int nii_createFilename(struct TDICOMdata dcm, char * niiFilename, struct TDCMopt
         sprintf(newstr, "_e%d", dcm.echoNum);
         strcat (outname,newstr);
         isEchoReported = true;
+    }
+    if ((dcm.isNonParallelSlices) && (!isImageNumReported)) {
+        sprintf(newstr, "_i%05d", dcm.imageNum);
+        strcat (outname,newstr);
     }
     if ((!isSeriesReported) && (!isEchoReported) && (dcm.echoNum > 1)) { //last resort: user provided no method to disambiguate echo number in filename
         sprintf(newstr, "_e%d", dcm.echoNum);
@@ -1828,7 +1830,7 @@ void  nii_createDummyFilename(char * niiFilename, struct TDCMopts opts) {
     strcpy(d.studyInstanceUID, "");
     strcpy(d.bodyPartExamined,"");
     strcpy(opts.indirParent,"myFolder");
-    char niiFilenameBase[1024] = {"/usr/myFolder/dicom.dcm"};
+    char niiFilenameBase[PATH_MAX] = {"/usr/myFolder/dicom.dcm"};
     nii_createFilename(d, niiFilenameBase, opts) ;
     strcpy(niiFilename,"Example output filename: '");
     strcat(niiFilename,niiFilenameBase);
@@ -1946,14 +1948,12 @@ void writeNiiGz (char * baseName, struct nifti_1_header hdr,  unsigned char* src
 int nii_saveNII (char *niiFilename, struct nifti_1_header hdr, unsigned char *im, struct TDCMopts opts)
 {
     hdr.vox_offset = 352;
-
     // Extract the basename from the full file path
     // R always uses '/' as the path separator, so this should work on all platforms
     char *start = niiFilename + strlen(niiFilename);
     while (*start != '/')
         start--;
     std::string name(++start);
-
     nifti_image *image = nifti_convert_nhdr2nim(hdr, niiFilename);
     if (image == NULL)
         return EXIT_FAILURE;
@@ -2112,7 +2112,7 @@ int nii_saveNII3D(char * niiFilename, struct nifti_1_header hdr, unsigned char* 
     size_t imgsz = nii_ImgBytes(hdr1);
     size_t pos = 0;
     char fname[2048] = {""};
-    char zeroPad[1024] = {""};
+    char zeroPad[PATH_MAX] = {""};
 	double fnVol = nVol;
 	int zeroPadLen = (1 + log10( fnVol));
     sprintf(zeroPad,"%%s_%%0%dd",zeroPadLen);
@@ -2172,7 +2172,7 @@ void nii_storeIntegerScaleFactor(int scale, struct nifti_1_header *hdr) {
 	if ((strlen(newstr)+strlen(hdr->descrip)) < 80)
 		strcat (hdr->descrip,newstr);
 }
-void nii_scale16bitSigned(unsigned char *img, struct nifti_1_header *hdr) {
+void nii_scale16bitSigned(unsigned char *img, struct nifti_1_header *hdr, int isVerbose) {
 //lossless scaling of INT16 data: e.g. input with range -100...3200 and scl_slope=1
 //  will be stored as -1000...32000 with scl_slope 0.1
     if (hdr->datatype != DT_INT16) return;
@@ -2194,7 +2194,11 @@ void nii_scale16bitSigned(unsigned char *img, struct nifti_1_header *hdr) {
     int scale = kMx / (int)max16;
 	if (abs(min16) > max16)
 		scale = kMx / (int)abs(min16);
-	if (scale < 2) return; //already uses dynamic range
+	if (scale < 2) {
+    	if (isVerbose)
+    		printMessage("Sufficient 16-bit range: raw %d..%d\n", min16, max16);
+		return; //already uses dynamic range
+	}
     hdr->scl_slope = hdr->scl_slope/ scale;
 	for (int i=0; i < nVox; i++)
     	img16[i] = img16[i] * scale;
@@ -2202,8 +2206,7 @@ void nii_scale16bitSigned(unsigned char *img, struct nifti_1_header *hdr) {
     nii_storeIntegerScaleFactor(scale, hdr);
 }
 
-
-void nii_scale16bitUnsigned(unsigned char *img, struct nifti_1_header *hdr){
+void nii_scale16bitUnsigned(unsigned char *img, struct nifti_1_header *hdr, int isVerbose){
 //lossless scaling of UINT16 data: e.g. input with range 0...3200 and scl_slope=1
 //  will be stored as 0...64000 with scl_slope 0.05
     if (hdr->datatype != DT_UINT16) return;
@@ -2219,7 +2222,11 @@ void nii_scale16bitUnsigned(unsigned char *img, struct nifti_1_header *hdr){
             max16 = img16[i];
     int kMx = 64000; //actually 65535 - maybe a bit of padding for interpolation ringing
     int scale = kMx / (int)max16;
-	if (scale < 2) return; //already uses dynamic range
+	if (scale < 2)  {
+    	if (isVerbose > 0)
+    		printMessage("Sufficient unsigned 16-bit range: raw max %d\n",  max16);
+		return; //already uses dynamic range
+	}
 	hdr->scl_slope = hdr->scl_slope/ scale;
 	for (int i=0; i < nVox; i++)
     	img16[i] = img16[i] * scale;
@@ -2227,7 +2234,9 @@ void nii_scale16bitUnsigned(unsigned char *img, struct nifti_1_header *hdr){
     nii_storeIntegerScaleFactor(scale, hdr);
 }
 
-void nii_check16bitUnsigned(unsigned char *img, struct nifti_1_header *hdr){
+#define UINT16_TO_INT16_IF_LOSSLESS
+#ifdef UINT16_TO_INT16_IF_LOSSLESS
+void nii_check16bitUnsigned(unsigned char *img, struct nifti_1_header *hdr, int isVerbose){
     //default NIfTI 16-bit is signed, set to unusual 16-bit unsigned if required...
     if (hdr->datatype != DT_UINT16) return;
     int dim3to7 = 1;
@@ -2243,11 +2252,19 @@ void nii_check16bitUnsigned(unsigned char *img, struct nifti_1_header *hdr){
             max16 = img16[i];
     //printMessage("max16= %d vox=%d %fms\n",max16, nVox, ((double)(clock()-start))/1000);
     if (max16 > 32767) {
-        printMessage("Note: rare 16-bit UNSIGNED integer image. Older tools may require 32-bit conversion\n");
+        if (isVerbose > 0)
+        	printMessage("Note: rare 16-bit UNSIGNED integer image. Older tools may require 32-bit conversion\n");
     }
     else
         hdr->datatype = DT_INT16;
 } //nii_check16bitUnsigned()
+#else
+void nii_check16bitUnsigned(unsigned char *img, struct nifti_1_header *hdr, int isVerbose){
+    if (hdr->datatype != DT_UINT16) return;
+	if (isVerbose < 1) return;
+	printMessage("Note: rare 16-bit UNSIGNED integer image. Older tools may require 32-bit conversion\n");
+}
+#endif
 
 int siemensCtKludge(int nConvert, struct TDCMsort dcmSort[],struct TDICOMdata dcmList[]) {
     //Siemens CT bug: when a user draws an open object graphics object onto a 2D slice this is appended as an additional image,
@@ -2715,7 +2732,7 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[],struct TDICOMdata dc
     	printMessage("Ignoring localizer (sequence %s) of series %ld %s\n", dcmList[indx].sequenceName, dcmList[indx].seriesNum,  nameList->str[indx]);
     	return EXIT_SUCCESS;
     }
-    if ((opts.isIgnoreDerivedAnd2D) && (nConvert < 2) && (dcmList[indx].xyzDim[3] < 2)) {
+    if ((opts.isIgnoreDerivedAnd2D) && (nConvert < 2) && (dcmList[indx].CSA.mosaicSlices < 2) && (dcmList[indx].xyzDim[3] < 2)) {
     	printMessage("Ignoring 2D image of series %ld %s\n", dcmList[indx].seriesNum,  nameList->str[indx]);
     	return EXIT_SUCCESS;
     }
@@ -2994,11 +3011,11 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[],struct TDICOMdata dc
     int * volOrderIndex = nii_SaveDTI(pathoutname,nConvert, dcmSort, dcmList, opts, sliceDir, dti4D, &numADC);
     PhilipsPrecise(&dcmList[dcmSort[0].indx], opts.isPhilipsFloatNotDisplayScaling, &hdr0, opts.isVerbose);
     if ((opts.isMaximize16BitRange) && (hdr0.datatype == DT_INT16)) {
-    	nii_scale16bitSigned(imgM, &hdr0); //allow INT16 to use full dynamic range
+    	nii_scale16bitSigned(imgM, &hdr0, opts.isVerbose); //allow INT16 to use full dynamic range
     } else if ((opts.isMaximize16BitRange) && (hdr0.datatype == DT_UINT16) &&  (!dcmList[dcmSort[0].indx].isSigned)) {
-    	nii_scale16bitUnsigned(imgM, &hdr0); //allow UINT16 to use full dynamic range
+    	nii_scale16bitUnsigned(imgM, &hdr0, opts.isVerbose); //allow UINT16 to use full dynamic range
     } else if ((!opts.isMaximize16BitRange) && (hdr0.datatype == DT_UINT16) &&  (!dcmList[dcmSort[0].indx].isSigned))
-    	nii_check16bitUnsigned(imgM, &hdr0); //save UINT16 as INT16 if we can do this losslessly
+    	nii_check16bitUnsigned(imgM, &hdr0, opts.isVerbose); //save UINT16 as INT16 if we can do this losslessly
     printMessage( "Convert %d DICOM as %s (%dx%dx%dx%d)\n",  nConvert, pathoutname, hdr0.dim[1],hdr0.dim[2],hdr0.dim[3],hdr0.dim[4]);
     //~ if (!dcmList[dcmSort[0].indx].isSlicesSpatiallySequentialPhilips)
     //~ 	nii_reorderSlices(imgM, &hdr0, dti4D);
@@ -3242,7 +3259,7 @@ TWarnings setWarnings() {
 	return r;
 }
 
-bool isSameSet (struct TDICOMdata d1, struct TDICOMdata d2, struct TDCMopts* opts, struct TWarnings* warnings, bool *isMultiEcho) {
+bool isSameSet (struct TDICOMdata d1, struct TDICOMdata d2, struct TDCMopts* opts, struct TWarnings* warnings, bool *isMultiEcho, bool *isNonParallelSlices) {
     //returns true if d1 and d2 should be stacked together as a single output
     if (!d1.isValid) return false;
     if (!d2.isValid) return false;
@@ -3252,12 +3269,6 @@ bool isSameSet (struct TDICOMdata d1, struct TDICOMdata d2, struct TDCMopts* opt
 	if (d1.seriesNum != d2.seriesNum) return false;
 	#ifdef mySegmentByAcq
     if (d1.acquNum != d2.acquNum) return false;
-    #else
-    if (d1.acquNum != d2.acquNum) {
-        if (!warnings->acqNumVaries)
-        	printMessage("slices stacked despite varying acquisition numbers (if this is not desired please recompile)\n");
-        warnings->acqNumVaries = true;
-    }
     #endif
 	if ((d1.bitsAllocated != d2.bitsAllocated) || (d1.xyzDim[1] != d2.xyzDim[1]) || (d1.xyzDim[2] != d2.xyzDim[2]) || (d1.xyzDim[3] != d2.xyzDim[3]) ) {
         if (!warnings->bitDepthVaries)
@@ -3309,12 +3320,18 @@ bool isSameSet (struct TDICOMdata d1, struct TDICOMdata d2, struct TDCMopts* opt
     }
     if ((!isSameFloatGE(d1.orient[1], d2.orient[1]) || !isSameFloatGE(d1.orient[2], d2.orient[2]) ||  !isSameFloatGE(d1.orient[3], d2.orient[3]) ||
     		!isSameFloatGE(d1.orient[4], d2.orient[4]) || !isSameFloatGE(d1.orient[5], d2.orient[5]) ||  !isSameFloatGE(d1.orient[6], d2.orient[6]) ) ) {
-        if (!warnings->orientVaries)
-        	printMessage("slices not stacked: orientation varies (localizer?) [%g %g %g %g %g %g] != [%g %g %g %g %g %g]\n",
+        if ((!warnings->orientVaries) && (!d1.isNonParallelSlices))
+        	printMessage("slices not stacked: orientation varies (vNav or localizer?) [%g %g %g %g %g %g] != [%g %g %g %g %g %g]\n",
                d1.orient[1], d1.orient[2], d1.orient[3],d1.orient[4], d1.orient[5], d1.orient[6],
                d2.orient[1], d2.orient[2], d2.orient[3],d2.orient[4], d2.orient[5], d2.orient[6]);
         warnings->orientVaries = true;
+        *isNonParallelSlices = true;
         return false;
+    }
+    if (d1.acquNum != d2.acquNum) {
+        if (!warnings->acqNumVaries)
+        	printMessage("slices stacked despite varying acquisition numbers (if this is not desired recompile with 'mySegmentByAcq')\n");
+        warnings->acqNumVaries = true;
     }
     return true;
 }// isSameSet()
@@ -3483,6 +3500,35 @@ void freeNameList(struct TSearchList nameList) {
     free(nameList.str);
 }
 
+int copyFile (char * src_path, char * dst_path) {
+	#define BUFFSIZE 32768
+	unsigned char buffer[BUFFSIZE];
+    FILE *fin = fopen(src_path, "rb");
+    if (fin == NULL) {
+    	printf("Unable to open input %s\n", src_path);
+    	return EXIT_FAILURE;
+    }
+    if (is_fileexists(dst_path)) {
+    	printf("Skipping existing file %s\n", dst_path);
+    	return EXIT_FAILURE;
+    }
+	FILE *fou = fopen(dst_path, "wb");
+    if (fou == NULL) {
+        printf("Unable to open output %s\n", dst_path);
+    	return EXIT_FAILURE;
+    }
+    size_t bytes;
+    while ((bytes = fread(buffer, 1, BUFFSIZE, fin)) != 0) {
+        if(fwrite(buffer, 1, bytes, fou) != bytes) {
+        	 printf("Unable to write %zu bytes to output %s\n", bytes, dst_path);
+            return EXIT_FAILURE;
+        }
+    }
+    fclose(fin);
+    fclose(fou);
+    return EXIT_SUCCESS;
+}
+
 int nii_loadDir(struct TDCMopts* opts) {
     //Identifies all the DICOM files in a folder and its subfolders
     if (strlen(opts->indir) < 1) {
@@ -3578,7 +3624,15 @@ int nii_loadDir(struct TDCMopts* opts) {
     	}
         dcmList[i] = readDICOMv(nameList.str[i], opts->isVerbose, opts->compressFlag, &dti4D); //ignore compile warning - memory only freed on first of 2 passes
         //~ if ((dcmList[i].isValid) &&((dcmList[i].totalSlicesIn4DOrder != NULL) ||(dcmList[i].patientPositionNumPhilips > 1) || (dcmList[i].CSA.numDti > 1))) { //4D dataset: dti4D arrays require huge amounts of RAM - write this immediately
-        if ((dcmList[i].isValid) &&((dti4D.sliceOrder[0] >= 0) || (dcmList[i].CSA.numDti > 1))) { //4D dataset: dti4D arrays require huge amounts of RAM - write this immediately
+        if ((dcmList[i].imageNum > 0) && (opts->isRenameNotConvert > 0)) { //use imageNum instead of isValid to convert non-images (kWaveformSq will have instance number but is not a valid image)
+        	char outname[PATH_MAX] = {""};
+        	nii_createFilename(dcmList[i], outname, *opts);
+        	copyFile (nameList.str[i], outname); //xxxxx
+        	if (opts->isVerbose > 0)
+        		printf("Renaming %s -> %s\n", nameList.str[i], outname);
+        	dcmList[i].isValid = false;
+        }
+        if ((dcmList[i].isValid) && ((dti4D.sliceOrder[0] >= 0) || (dcmList[i].CSA.numDti > 1))) { //4D dataset: dti4D arrays require huge amounts of RAM - write this immediately
 			struct TDCMsort dcmSort[1];
 			fillTDCMsort(dcmSort[0], i, dcmList[i]);
             dcmList[i].converted2NII = 1;
@@ -3593,6 +3647,9 @@ int nii_loadDir(struct TDCMopts* opts) {
         	printMessage("Image Decompression is new: please validate conversions\n");
     	}
     }
+    if (opts->isRenameNotConvert > 0) {
+    	return EXIT_SUCCESS;
+    }
 #ifdef HAVE_R
     if (opts->isScanOnly) {
         TWarnings warnings = setWarnings();
@@ -3606,8 +3663,8 @@ int nii_loadDir(struct TDCMopts* opts) {
             bool matched = false;
             // If the file matches an existing series, add it to the corresponding file list
             for (int j = 0; j < opts->series.size(); j++) {
-                bool isMultiEchoUnused;
-                if (isSameSet(opts->series[j].representativeData, dcmList[i], opts, &warnings, &isMultiEchoUnused)) {
+                bool isMultiEchoUnused, isNonParallelSlices;
+                if (isSameSet(opts->series[j].representativeData, dcmList[i], opts, &warnings, &isMultiEchoUnused, &isNonParallelSlices)) {
                     opts->series[j].files.push_back(nameList.str[i]);
                     matched = true;
                     break;
@@ -3631,21 +3688,26 @@ int nii_loadDir(struct TDCMopts* opts) {
 			int nConvert = 0;
 			struct TWarnings warnings = setWarnings();
 			bool isMultiEcho = false;
+			bool isNonParallelSlices = false;
 			for (int j = i; j < (int)nDcm; j++)
-				if (isSameSet(dcmList[i], dcmList[j], opts, &warnings, &isMultiEcho ) )
+				if (isSameSet(dcmList[i], dcmList[j], opts, &warnings, &isMultiEcho, &isNonParallelSlices ) )
 					nConvert++;
 			if (nConvert < 1) nConvert = 1; //prevents compiler warning for next line: never executed since j=i always causes nConvert ++
 			TDCMsort * dcmSort = (TDCMsort *)malloc(nConvert * sizeof(TDCMsort));
 			nConvert = 0;
 			isMultiEcho = false;
+			isNonParallelSlices = false;
 			for (int j = i; j < (int)nDcm; j++)
-				if (isSameSet(dcmList[i], dcmList[j], opts, &warnings, &isMultiEcho)) {
+				if (isSameSet(dcmList[i], dcmList[j], opts, &warnings, &isMultiEcho, &isNonParallelSlices)) {
                     dcmList[j].converted2NII = 1; //do not reprocess repeats
                     fillTDCMsort(dcmSort[nConvert], j, dcmList[j]);
 					nConvert++;
 				} else {
 					dcmList[i].isMultiEcho = isMultiEcho;
 					dcmList[j].isMultiEcho = isMultiEcho;
+					dcmList[i].isNonParallelSlices = isNonParallelSlices;
+					dcmList[j].isNonParallelSlices = isNonParallelSlices;
+
 				}
 			qsort(dcmSort, nConvert, sizeof(struct TDCMsort), compareTDCMsort); //sort based on series and image numbers....
 			//dcmList[dcmSort[0].indx].isMultiEcho = isMultiEcho;
@@ -3679,7 +3741,7 @@ int nii_loadDir(struct TDCMopts* opts) {
 /* cleaner than findPigz - perhaps validate someday
  void findExe(char name[512], const char * argv[]) {
     if (is_exe(name)) return; //name exists as provided
-    char basename[1024];
+    char basename[PATH_MAX];
     strcpy(basename, name); //basename = source
     //check executable folder
     strcpy(name,argv[0]);
@@ -3768,7 +3830,7 @@ void readFindPigz (struct TDCMopts *opts, const char * argv[]) {
     } else
     	strcpy(opts->pigzname,".\\pigz"); //drop
     #else
-    char str[1024];
+    char str[PATH_MAX];
     //possible pigz names
     const char * nams[] = {
     "pigz",
@@ -3789,7 +3851,7 @@ void readFindPigz (struct TDCMopts *opts, const char * argv[]) {
     "/usr/bin/",
 	};
 	#define n_pth (sizeof (pths) / sizeof (const char *))
-    char exepth[1024];
+    char exepth[PATH_MAX];
     strcpy(exepth,argv[0]);
     dropFilenameFromPath(exepth);//, opts.pigzname);
     char appendChar[2] = {"a"};
@@ -3848,6 +3910,7 @@ void setDefaultOpts (struct TDCMopts *opts, const char * argv[]) { //either "set
     strcpy(opts->outdir,"");
     strcpy(opts->imageComments,"");
     opts->isOnlySingleFile = false; //convert all files in a directory, not just a single file
+    opts->isRenameNotConvert = false;
     opts->isForceStackSameSeries = false;
     opts->isIgnoreDerivedAnd2D = false;
     opts->isPhilipsFloatNotDisplayScaling = true;
