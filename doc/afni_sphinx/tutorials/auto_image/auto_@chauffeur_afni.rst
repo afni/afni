@@ -62,14 +62,14 @@ For space considerations here:
   even though they are made automatically from the same
   ``@chauffeur_afni`` command)
 
-* most of the montages are just :math:`3\times3`.  Sometimes, it
-  might useful to make them :math:`5\times3`.
+* most of the montages are just :math:`3\times3`; for real practical
+  usage, sometimes, it might useful to make them, say,
+  :math:`5\times3`.
 
 The following are some variables relevant for the below commands
 (``tcsh`` syntax):
 
 .. code-block:: Tcsh
-   :linenos:
 
 
    set here     = $PWD                                  
@@ -94,8 +94,7 @@ The following are some variables relevant for the below commands
    \mkdir -p $odir
 
 
-   |
-
+|
 
 0. **Example 0**: threshold stats voxelwise, view effects
 
@@ -117,23 +116,8 @@ The following are some variables relevant for the below commands
    Note that the slice location is shown in each panel (in a manner
    agnostic to the dset's orientation like RAI, LPI, SRA, etc.).
 
-   .. list-table:: 
-      :header-rows: 1
-      :widths: 50 50 
-
-      * - Example 0
-        -
-      * - .. image:: media/ca000_func_slim_Arel_0_Coef.axi.png
-             :width: 100%   
-             :align: center
-        - .. image:: media/ca000_func_slim_Arel_0_Coef.sag.png
-             :width: 100%   
-             :align: center
-
    .. code-block:: Tcsh
-      :linenos:
  
-
 
       set idx   = 0
       set iiidx = `printf "%03d" $idx`
@@ -165,6 +149,19 @@ The following are some variables relevant for the below commands
           -do_clean 
 
 
+   .. list-table:: 
+      :header-rows: 1
+      :widths: 50 50 
+
+      * - Example 0
+        -
+      * - .. image:: media/ca000_func_slim_Arel_0_Coef.axi.png
+             :width: 100%   
+             :align: center
+        - .. image:: media/ca000_func_slim_Arel_0_Coef.sag.png
+             :width: 100%   
+             :align: center
+
    |
 
 
@@ -180,22 +177,7 @@ The following are some variables relevant for the below commands
      particular, yellows/light colors don't get lost in a white/light
      ulay coloration.
 
-
-   .. list-table:: 
-      :header-rows: 1
-      :widths: 50 50 
-
-      * - Example 1
-        -
-      * - .. image:: media/ca001_func_slim_Arel_0_Coef.axi.png
-             :width: 100%   
-             :align: center
-        - .. image:: media/ca001_func_slim_Arel_0_Coef.sag.png
-             :width: 100%   
-             :align: center
-
    .. code-block:: Tcsh
-      :linenos:
 
 
       @   idx  += 1
@@ -224,6 +206,19 @@ The following are some variables relevant for the below commands
           -do_clean 
 
 
+   .. list-table:: 
+      :header-rows: 1
+      :widths: 50 50 
+
+      * - Example 1
+        -
+      * - .. image:: media/ca001_func_slim_Arel_0_Coef.axi.png
+             :width: 100%   
+             :align: center
+        - .. image:: media/ca001_func_slim_Arel_0_Coef.sag.png
+             :width: 100%   
+             :align: center
+
    |
 
 
@@ -245,22 +240,7 @@ The following are some variables relevant for the below commands
    The rest of the visualization aspects of the EE volume here are
    pretty similar to the preceding.
 
-   .. list-table:: 
-      :header-rows: 1
-      :widths: 50 50 
-
-      * - Example 2
-        -
-      * - .. image:: media/ca002_func_slim.axi.png
-             :width: 100%   
-             :align: center
-        - .. image:: media/ca002_func_slim.sag.png
-             :width: 100%   
-             :align: center
-
    .. code-block:: Tcsh
-      :linenos:
-
 
 
       @   idx  += 1
@@ -295,6 +275,19 @@ The following are some variables relevant for the below commands
           -do_clean 
 
 
+   .. list-table:: 
+      :header-rows: 1
+      :widths: 50 50 
+
+      * - Example 2
+        -
+      * - .. image:: media/ca002_func_slim.axi.png
+             :width: 100%   
+             :align: center
+        - .. image:: media/ca002_func_slim.sag.png
+             :width: 100%   
+             :align: center
+
    |
 
 
@@ -306,22 +299,7 @@ The following are some variables relevant for the below commands
    64 clusters (there are other integer-appropriate colorbars that go
    up higher).
 
-   .. list-table:: 
-      :header-rows: 1
-      :widths: 50 50 
-
-      * - Example 3
-        -
-      * - .. image:: media/ca003_func_slim.axi.png
-             :width: 100%   
-             :align: center
-        - .. image:: media/ca003_func_slim.sag.png
-             :width: 100%   
-             :align: center
-
    .. code-block:: Tcsh
-      :linenos:
-
 
 
       @   idx  += 1
@@ -342,6 +320,19 @@ The following are some variables relevant for the below commands
           -label_mode 1 -label_size 3             \
           -do_clean 
 
+
+   .. list-table:: 
+      :header-rows: 1
+      :widths: 50 50 
+
+      * - Example 3
+        -
+      * - .. image:: media/ca003_func_slim.axi.png
+             :width: 100%   
+             :align: center
+        - .. image:: media/ca003_func_slim.sag.png
+             :width: 100%   
+             :align: center
 
    |
 
