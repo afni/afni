@@ -264,13 +264,25 @@ set cdset = ${zpref}.acrop.nii
             -1Dparam_apply IDENTITY   \
             -final cubic
 
+set Rnam = ${zpref}.epiR.nii
+
+# aniso- or median-smooth the resampled EPI
+
+if( 0 )then
+  3danisosmooth -iters 2 -prefix ${zpref}.epiRS.nii ${zpref}.epiR.nii
+  set Rnam = ${zpref}.epiRS.nii
+else
+  3dMedianFilter -irad 1.01 -iter 1 -prefix ${zpref}.epiRS.nii ${zpref}.epiR.nii
+  set Rnam = ${zpref}.epiRS.nii
+endif
+
 # find edges in the EPI
 
-3dedge3 -input ${zpref}.epiR.nii -prefix ${zpref}.epiE.nii
+3dedge3 -input $Rnam -prefix ${zpref}.epiE.nii
 
 # get the EPI automask and apply it to the edgized EPI
 
-3dAutomask -q -prefix ${zpref}.epiM.nii -clfrac 0.333 -dilate 5 ${zpref}.epiR.nii
+3dAutomask -q -prefix ${zpref}.epiM.nii -clfrac 0.333 -dilate 5 $Rnam
 3dcalc -a ${zpref}.epiE.nii -b ${zpref}.epiM.nii -expr 'a*b' -prefix ${zpref}.epiEM.nii
 
 # get the lower and upper thresholds for the edgized EPI
@@ -291,6 +303,7 @@ if( $astep < 2 ) set astep = 2
 
 afni -noplugins -no_detach                                       \
      -DAFNI_DEFAULT_OPACITY=9                                    \
+     -DAFNI_FUNC_ALPHA=Linear                                    \
      -com "SWITCH_UNDERLAY ${cdset}"                             \
      -com "SWITCH_OVERLAY ${zpref}.epiEM.nii"                    \
      -com "SET_DICOM_XYZ $anatCM"                                \

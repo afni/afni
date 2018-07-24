@@ -48,13 +48,12 @@ The primary final outputs are:
    skull-stripping-- don't forget to look at your analyzed data!!).
 
 
-Reference template for @SSwarper
---------------------------------
+Reference templates for @SSwarper
+---------------------------------
 
 In order to use ``@SSwarper``, the user needs to provide a
 specially-created, multi-volume dataset as a reference.  It has five
 volumes to it, and (reading from the program's help), these are:
-
 
 .. code-block:: none
 
@@ -74,26 +73,46 @@ volumes to it, and (reading from the program's help), these are:
 
 We now distribute such volumes for a growing number of spaces.  They
 can typically be identified by having "_SSW" attached after their
-prefix, such as MNI152_2009_template_SSW.nii.gz (the original!) and
-TT_N27_SSW.nii.gz.
+prefix, such as:
+
+* `MNI152_2009_template_SSW.nii.gz <https://afni.nimh.nih.gov/pub/dist/atlases/current/MNI152_2009_template_SSW.nii.gz>`_  (the original!)
+
+* `TT_N27_SSW.nii.gz <https://afni.nimh.nih.gov/pub/dist/atlases/current/TT_N27_SSW.nii.gz>`_
+
+* `HaskinsPeds_NL_template1.0_SSW.nii.gz <https://afni.nimh.nih.gov/pub/dist/atlases/current/HaskinsPeds_NL_template1.0_SSW.nii.gz>`_: the Haskins Pediatric (HP) template
 
 The above sub-volumes need to be present in the ``-base ..`` dataset
 for ``@SSwarper``, in the correct order.  You are welcome to make your
-own, and some commented scripts are provided here for demonstrating
-how TT_N27_SSW.nii.gz was made, to give you some help along the way.
+own. Commented scripts are provided below for demonstrating how some
+of the above examples were made, to give you some help along the way.
 
 .. list-table:: 
    :header-rows: 1
-   :widths: 50 50
+   :widths: 100
 
-   * - The 5 volumes of MNI152_2009_template_SSW.nii.gz (one volume
-       per row; axi, cor, sag views)
-     - The 5 volumes of TT_N27_SSW.nii.gz (one volume
-       per row; axi, cor, sag views)
+   * - MNI152_2009_template_SSW.nii.gz (5 volumes; one volume per
+       column; axi, cor, sag views)
    * - .. image:: media/ALL_MNI152_2009_template_SSW.jpg
           :width: 100%   
           :align: center
-     - .. image:: media/ALL_TT_N27_SSW.jpg
+
+.. list-table:: 
+   :header-rows: 1
+   :widths: 100
+
+   * - TT_N27_SSW.nii.gz (5 volumes; one volume per column; axi, cor,
+       sag views)
+   * - .. image:: media/ALL_TT_N27_SSW.jpg
+          :width: 100%   
+          :align: center
+
+.. list-table:: 
+   :header-rows: 1
+   :widths: 100
+
+   * - HaskinsPeds_NL_template1.0_SSW.nii.gz (5 volumes; one volume
+       per column; axi, cor, sag views)
+   * - .. image:: media/ALL_HaskinsPeds_NL_template1.0_SSW.jpg
           :width: 100%   
           :align: center
 
@@ -101,8 +120,8 @@ Example for making a reference dset: TT_N27_SSW.nii.gz
 ------------------------------------------------------
 
 Here are some example scripts for making each of the five volumes of
-the TT_N27_SSW.nii.gz dset (``do_0[0-4]_*tcsh``) and then for
-concatenating them all (``do_05_*tcsh``).  Each script is commented.
+the TT_N27_SSW.nii.gz dset (``do_TT_0[0-4]_*tcsh``) and then for
+concatenating them all (``do_TT_05_*tcsh``).  Each script is commented.
 
 Note that the making of the "skull-on" [1] volume is a bit of a
 special case here for TT_N27_SSW.nii.gz: the version of this brain
@@ -117,29 +136,82 @@ copied, for example).
 
    * - Scripts for making: TT_N27_SSW.nii.gz
      - Description
-   * - :download:`do_00_brick_SKoff_cp.tcsh
-       <media/do_00_brick_SKoff_cp.tcsh>`
+   * - :download:`do_TT_00_brick_SKoff_cp.tcsh
+       <media/do_TT_00_brick_SKoff_cp.tcsh>`
      - Make the "skullstripped" [0] volume. Basically, just copies a
        skull-stripped reference volume.
-   * - :download:`do_01_brick_SKon_adwarp.tcsh
-       <media/do_01_brick_SKon_adwarp.tcsh>`
+   * - :download:`do_TT_01_brick_SKon_adwarp.tcsh
+       <media/do_TT_01_brick_SKon_adwarp.tcsh>`
      - Make the "skull-on" [1] volume. See the text above for why this
        is such an unusually involved step here.
-   * - :download:`do_02_brick_SKweight_blurinmask.tcsh
-       <media/do_02_brick_SKweight_blurinmask.tcsh>`
+   * - :download:`do_TT_02_brick_SKweight_blurinmask.tcsh
+       <media/do_TT_02_brick_SKweight_blurinmask.tcsh>`
      - Make the blurry volume that includes a dimmed skull, as the [2]
        volume.  This is done by using the already-made volumes [0] and
        [1].
-   * - :download:`do_03_brick_Bmask_wbmask.tcsh
-       <media/do_03_brick_Bmask_wbmask.tcsh>`
+   * - :download:`do_TT_03_brick_Bmask_wbmask.tcsh
+       <media/do_TT_03_brick_Bmask_wbmask.tcsh>`
      - Make the whole brain mask [3] volume.
-   * - :download:`do_04_brick_GCmask_gminfl.tcsh
-       <media/do_04_brick_GCmask_gminfl.tcsh>`
+   * - :download:`do_TT_04_brick_GCmask_gminfl.tcsh
+       <media/do_TT_04_brick_GCmask_gminfl.tcsh>`
      - Make the (inflated, or "generous") gray matter tissue mask [4]
        volume.
-   * - :download:`do_05_combo_scale.tcsh
-       <media/do_05_combo_scale.tcsh>`
+   * - :download:`do_TT_05_combo_scale.tcsh
+       <media/do_TT_05_combo_scale.tcsh>`
      - Concatenate all the individual bricks into a single,
        multi-volume masterpiece.
 
+
+Example for making a reference dset: HaskinsPeds_NL_template1.0_SSW.nii.gz
+--------------------------------------------------------------------------
+
+Here are some example scripts for making each of the five volumes of
+the HaskinsPeds_NL_template1.0_SSW.nii.gz dset
+(``do_HP_0[0-4]_*tcsh``) and then for concatenating them all
+(``do_HP_05_*tcsh``).  Each script is commented.
+
+Here as well, the making of the "skull-on" [1] volume is a bit of a
+special case here: there *was* no prior volume with a skull for this
+data set.  Therefore, we "borrowed" the skull from that of another
+reference template; we performed linear-affine alignment to the
+skull-bearing "mni_icbm152_t1_tal_nlin_sym_09a.nii" volume (freely
+available for download under the "ICBM 2009a Nonlinear Symmetric
+1×1x1mm template" section from `here
+<http://www.bic.mni.mcgill.ca/ServicesAtlases/ICBM152NLin2009>`_), and
+applied
+
+Also, the final volume's inflated gray matter (GM) map in volume [4]
+was made starting from the HP template's associated atlas
+("HaskinsPeds_NL_atlas1.0+tlrc").
+
+.. list-table:: 
+   :header-rows: 1
+
+   * - Scripts for making: TT_N27_SSW.nii.gz
+     - Description
+   * - :download:`do_HP_00_brick_SKoff_cp.tcsh
+       <media/do_HP_00_brick_SKoff_cp.tcsh>`
+     - Make the "skullstripped" [0] volume. Basically, just copies a
+       skull-stripped reference volume.
+   * - :download:`do_HP_01_brick_SKon_borrowskull.tcsh
+       <media/do_HP_01_brick_SKon_borrowskull.tcsh>`
+     - Make the "skull-on" [1] volume. See the text above for why this
+       is such an unusually involved step here.
+   * - :download:`do_HP_02_brick_SKweight_blurinmask.tcsh
+       <media/do_HP_02_brick_SKweight_blurinmask.tcsh>`
+     - Make the blurry volume that includes a dimmed skull, as the [2]
+       volume.  This is done by using the already-made volumes [0] and
+       [1].
+   * - :download:`do_HP_03_brick_Bmask_wbmask.tcsh
+       <media/do_HP_03_brick_Bmask_wbmask.tcsh>`
+     - Make the whole brain mask [3] volume.
+   * - :download:`do_HP_04_brick_GCmask_gminfl.tcsh
+       <media/do_HP_04_brick_GCmask_gminfl.tcsh>`
+     - Make the (inflated, or "generous") gray matter tissue mask [4]
+       volume; uses the associated atlas to define a GM map, which
+       gets inflated.
+   * - :download:`do_HP_05_combo_scale.tcsh
+       <media/do_HP_05_combo_scale.tcsh>`
+     - Concatenate all the individual bricks into a single,
+       multi-volume masterpiece.
 

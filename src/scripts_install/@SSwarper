@@ -255,13 +255,19 @@ endif
 ## warp to template space (skull off),
 ## initializing using the previous 3dQwarp -awarp output
 
+if( "$minp" > "13" )then
+  set doQfinal = "-Qfinal"
+else
+  set doQfinal = " "
+endif
+
 3dQwarp \
     -base "${Basedset}[0]"               \
     -source "${pref}AffSS.nii"           \
     -iniwarp "${pref}TAL5_AWARP.nii"     \
-    -inilev 3                            \
+    -inilev 1                            \
     -pblur -minpatch $minp               \
-    -Qfinal -workhard:5:8                \
+    $doQfinal -workhard:5:8              \
     -prefix $odir/anatQQ."${SubID}".nii
 
 ## Cleanup
@@ -282,7 +288,8 @@ goto GOOD_EXIT
 SHOW_HELP:
 
 cat <<EOF
- EOF
+
+OVERVIEW ~1~
 
 This script has dual purposes for processing a given subject's
 anatomical volume:
@@ -301,7 +308,7 @@ Authorship      = RW Cox
 
 # -----------------------------------------------------------------
 
-USAGE
+USAGE ~1~
 
     ${this_prog}          \
         -input  AA        \
@@ -335,16 +342,28 @@ where:
 
   -minp   MP :(opt) minimum patch size on final 3dQwarp (def: 11).
 
-The template dataset 'MNI152_2009_template_SSW.nii.gz' is supplied
-with AFNI binaries and is described later in this help (it is
-identical to the originally-named 'MNI152_2009_template.nii.gz').  You
-can make other reference base templates in whatever space you prefer,
-but note that it must have several subvolumes of information
-included-- see NOTES on the 'The Template Dataset', below.
+# -----------------------------------------------------------------
+
+REFERENCE DATASETS ~1~
+
+If you are reading this message, then several reference data sets
+(base volumes) for @SSwarper now exist within the AFNI realm. Oh, what
+a time it is to be alive.  A current list includes:
+
++ MNI152_2009_template_SSW.nii.gz
++ TT_N27_SSW.nii.gz
++ HaskinsPeds_NL_template1.0_SSW.nii.gz
+
+Some of these are distributed with the AFNI binaries, and other may be
+found online. You can make other reference base templates in whatever
+space you prefer, but note that it must have several subvolumes of
+information included-- see NOTES on the 'The Template Dataset', below
+(which also contains a link to the @SSwarper template tutorial online
+help).
 
 # ----------------------------------------------------------------------
 
-OUTPUTS
+OUTPUTS ~1~
 
 Suppose the -prefix is 'sub007' (because you scanned Bond, JamesBond?).  
 Then the outputs from this script will be"
@@ -400,9 +419,9 @@ Then the outputs from this script will be"
 
 # -------------------------------------------------------------------
 
-NOTES
+NOTES ~1~
 
-+ The Template dataset
++ The Template dataset ~2~
 
   Any reference base template dataset, such as
   MNI152_2009_template_SSW.nii.gz, must have the first *4* volumes here
@@ -421,7 +440,11 @@ NOTES
              combined with a mask from your experiment reflecting
              your EPI brain coverage (see program 3dmask_tool).
 
-+ You Know My Methods, Watson
+  More information about making these (with scripts) is provided on
+  the Interweb:
+    https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/template_atlas/sswarper_base.html
+
++ You Know My Methods, Watson ~2~
 
   #1: Uniform-ize the input dataset's intensity via 3dUnifize.
        ==> anatU.sub007.nii
@@ -472,4 +495,3 @@ GOOD_EXIT:
 
 
 
-EOF

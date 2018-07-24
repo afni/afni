@@ -16,10 +16,6 @@
 # dat: 2018-06-06
 # written by PA Taylor, RW Cox
 #
-# ver: 1.1
-# dat: 2018-07-04
-# + [PT] filled in holes in interior of mask before blurring
-#
 # ====================================================================
 
 set rset  = TT_N27+tlrc.    # whole brain dset-- no skull
@@ -27,7 +23,7 @@ set iset  = `ls BRICK1_*nii.gz`  # head dset-- has skull
 
 # ----------------------------------------------------------------
 
-set nblur = 5             # int to mult edge length, for blur rad
+set nblur = 4             # int to mult edge length, for blur rad
 set opref = BRICK2        # prefix for tmp files-- clean at end
 set tpref = _tmp_brick2   # prefix for tmp files-- clean at end
 set blab  = "SKweight"
@@ -51,20 +47,11 @@ echo "++ Blur size (in mm): $rblur"
 
 # ================================================================
 
-# mask brain...
-set fout = ${tpref}_00w.nii.gz
+# mask brain
 3dcalc                              \
     -a "$rset"                      \
     -expr 'step(a)'                 \
-    -prefix ${tpref}_00w.nii.gz
-
-# ... and fill in holes in this particular one
-set fin  = $fout
-set fout = ${tpref}_01w.nii.gz
-3dmask_tool                         \
-    -fill_holes                     \
-    -inputs $fin                    \
-    -prefix $fout
+    -prefix ${tpref}_01w.nii.gz
 
 # mask of head *outside* brain
 3dcalc                              \

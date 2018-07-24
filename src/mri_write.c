@@ -50,6 +50,9 @@ static FILE * fopen_maybe( char *fname )  /* 05 Feb 2008 */
    }
 
    imfile = fopen(fname,"w") ;
+   if( imfile == NULL ){ NI_sleep(33) ; imfile = fopen(fname,"w") ; }
+   if( imfile == NULL ){ NI_sleep(66) ; imfile = fopen(fname,"w") ; }
+   if( imfile == NULL ){ NI_sleep(99) ; imfile = fopen(fname,"w") ; }
    if( imfile == NULL ) ERROR_message("Can't open for output: %s",fname) ;
    return imfile ;
 }

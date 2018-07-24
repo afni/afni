@@ -84,12 +84,12 @@
 ++ 5 :: Get info/stats within ROIs
 4 :: 3dROIstats              :: Calculate dataset values from multiple ROIs
 4 :: 3dmaskave               :: Calculate dataset values averaged over a ROI
-1 :: 3dmaskdump              :: Output all dataset values in a ROI
+4 :: 3dmaskdump              :: Output all dataset values in a ROI
 4 :: 3dBrickStat             :: Calculate percentile values within dsets
 1 :: 3dMax                   :: (obsolete -> use 3dBrickStat)
 3 :: 3dUndump                :: Create dataset from text (inverse of 3dmaskdump)
 1 :: 3dOverlap               :: Create mask that is overlap of nonzero voxels from multiple datasets
-1 :: 3dfractionize           :: Resample a mask dataset to a different resolution
+2 :: 3dfractionize           :: Resample a mask dataset to a different resolution
 5 :: whereami                :: Get atlas region name for coordinates
 1 :: 3dTto1D                 :: Collapse 4D data to 1D in various ways
 1 :: @Atlasize               :: Make an atlas from a dataset and label text files
@@ -198,7 +198,7 @@
 1 :: 3dAFNItoRaw
 1 :: 3dANALYZEtoAFNI         :: (obsolete -> use 3dcopy or to3d)
 1 :: 3dCRUISEtoAFNI
-1 :: 3dThreetoRGB           :: Convert 3 scalar datasets to 1 RGB AFNI format dataset
+3 :: 3dThreetoRGB           :: Convert 3 scalar datasets to 1 RGB AFNI format dataset
 1 :: 3dPAR2AFNI.pl             :: (almost useless helpfile... obsolete???)
 1 :: 3drename               :: Rename dataset files
 1 :: 3ddup                 :: Make an 'empty' duplicate (warp-on-demand) of a dataset
@@ -270,7 +270,7 @@
 
 
 ++ 2 :: Generate model 1D time series
-1 :: 3dDeconvolve       :: Generate hemodynamic responses for stimulus timing files
+3 :: 3dDeconvolve       :: Generate hemodynamic responses for stimulus timing files
 1 :: 1dBport            :: Generate columns of sines and cosines for bandpassing
 1 :: sqwave             :: Generate a square wave (a very old program)
 1 :: waver              :: Generate hemodynamic responses to stimulus time series
@@ -288,9 +288,9 @@
 
 ++ 5 :: Build FMRI pipelines
 1 :: uber_proc.py 
-1 :: uber_subject.py           :: Graphical interface to help set up an afni_proc.py command
+2 :: uber_subject.py           :: Graphical interface to help set up an afni_proc.py command (probably just use -> afni_proc.py directly; uber_subject.py does not have full range of options that afni_proc.py has;  recommended to use afni_proc.py examples as a basis, instead)
 5 :: afni_proc.py            :: Generate tcsh script for processing single subject FMRI data
-1 :: gen_group_command.py      :: Generate group analysis scripts
+3 :: gen_group_command.py      :: Generate group analysis scripts
 4 :: gen_ss_review_scripts.py  :: Generate QC review scripts
 1 :: afni_restproc.py          :: (obsolete -> use afni_proc.py)
 
@@ -316,7 +316,7 @@
 1 :: SUMA_glxdino
 1 :: SUMA_paperplane
 1 :: SUMA_pixmap2eps
-1 :: quickspec                 :: Generate (basic) specification file for running suma
+3 :: quickspec                 :: Generate (basic) specification file for running suma
 1 :: ROI2dataset               :: Convert ROI (e.g., after drawing) to SUMA-type dset
 1 :: 3dSurfMask                :: Generate volumetric mask for inside of surface
 1 :: ConvertDset               :: Converts a surface dataset from one format to another
@@ -330,7 +330,7 @@
 4 :: 3dVol2Surf                :: Assign values to surface nodes from volumetric data
 3 :: @surf_to_vol_spackle      :: Project values from surface to volume and fill holes 
 5 :: @SUMA_Make_Spec_FS        :: Convert Freesurfer surfaces to SUMA spec files
-1 :: @SUMA_Make_Spec_SF        :: Convert SureFit surfaces to SUMA spec files
+2 :: @SUMA_Make_Spec_SF        :: Convert SureFit surfaces to SUMA spec files
 4 :: DriveSuma                 :: Send commands to SUMA program from script
 1 :: MakeColorMap               :: Make afni and suma colormaps
 
@@ -338,7 +338,7 @@
 ++ 3 :: Make/edit correlation matrices
 1 :: @ROI_Corr_Mat           :: Make an NxN ROI correlation matrix of N ROIs (consider 3dNetCorr instead)
 4 :: 3dNetCorr               :: Calculate correlation matrix of a set of ROIs, as well as WB maps of each
-1 :: fat_mat_sel.py           :: Visualize functional correlation (*.netcc files) or tracted-WM property (*.grid file) matrices
+3 :: fat_mat_sel.py           :: Visualize functional correlation (*.netcc files) or tracted-WM property (*.grid file) matrices
 1 :: 3dErrtsCormat            :: Compute the correlation matrix for the residual (or error) time series in a dataset
 
 
@@ -350,6 +350,7 @@
 4 :: 3dmask_tool             :: for combining/dilating/eroding/filling masks
 1 :: 3dIntracranial          :: Strip off outside-the-brain voxels
 5 :: 3dSkullStrip            :: Enhanced skull stripping
+5 :: @SSwarper               :: Combines skull stripping with generating a warp to a nonlinear template space; directly combinable with afni_proc.py, too!
 1 :: plugin(Gyrus Finder)    :: Interactively segment gray and white matter
 1 :: 3dClipLevel             :: Find value to threshold off outside-the-brain voxels
 3 :: 3dSeg                   :: Segment anatomical (t1w) volume into major brain tissue types
@@ -367,7 +368,7 @@
 5 :: 3dinfo                  :: Print out information from the header
 1 :: 3dAttribute             :: Print out a single header attribute
 1 :: 3dnvals             :: Print out the number of sub-bricks (3D volumes) in a dataset
-1 :: 3dnewid                 :: Assign a new ID code to a dataset (also, generate a random string for filenames)
+2 :: 3dnewid                 :: Assign a new ID code to a dataset (also, generate a random string for filenames); useful for scripting to get temporary filenames/directory names
 4 :: 3drefit                 :: Lets you change attributes in a dataset header
 1 :: 3dNotes                  :: Lets you put text notes into a dataset header
 1 :: plugin(Dataset NOTES)   :: Interactive header notes editor
@@ -375,7 +376,7 @@
 1 :: gifti_tool               :: Displays, modifies, copies nifti structures in datasets
 1 :: cifti_tool               :: Displays, modifies, copies nifti structures in datasets
 1 :: nifti1_tool            :: (how diff than nifti_tool???)
-1 :: 3dCM                     :: Estimate dset's center of mass, and allow recentering
+3 :: 3dCM                     :: Estimate dset's center of mass, and allow recentering
 1 :: @AfniOrient2RAImap       :: Convert orientation code into signed code used in AFNI header
 1 :: @AfniOrientSign          :: Convert orientation code into signed +/-1 code relative to RAI and permutations
 1 :: @FromRAI                 :: Convert RAI coordinates into another coordinate order
@@ -398,9 +399,9 @@
 
 ++ 2 :: Changing dset spatial structure
 1 :: 3daxialize               :: Rewrite dataset with slices in different direction
-1 :: 3dresample               :: Rewrite dataset in new orientation, with new voxel size
+5 :: 3dresample               :: Rewrite dataset in new orientation, with new voxel size
 3 :: 3dLRflip                 :: Flip dataset contents Left <-> Right
-3 :: fat_proc_axialize_anat   :: Rotate brain to have standard viewing planes along slices
+4 :: fat_proc_axialize_anat   :: Rotate brain to have standard viewing planes along slices
 
 
 ++ 2 :: Change dset temporal structure
@@ -451,14 +452,14 @@
 1 :: fat_mvm_gridconv.py   :: Convert ooold 3dTrackID output *.grid files; should be unnecessary now
 3 :: fat_mvm_prep.py       :: Combine *.grid/*.netcc files with subject data in CSV files; for fat_mvm* modeling
 3 :: fat_mvm_review.py      :: (only beta)
-1 :: fat_mvm_scripter.py    :: Read in a data table file (esp. from fat_mvm_prep.py) and build 3dMVM command
+3 :: fat_mvm_scripter.py    :: Read in a data table file (esp. from fat_mvm_prep.py) and build 3dMVM command
 
 
 ++ 2 :: Fourier related, time series/freq
 1 :: 3dFourier
-1 :: 3dDFT                         :: FFT along time axis
+4 :: 3dDFT                         :: FFT along time axis
 1 :: 3dFFT                         :: FFT along spatial axis
-3:: 3dLombScargle                 :: Calculate amp/pow spectrum (like FFT) along time axis with missing time points
+3 :: 3dLombScargle                 :: Calculate amp/pow spectrum (like FFT) along time axis with missing time points
 3 :: 3dAmpToRSFC                   :: Calculate RSFC parameters (ALFF, fALFF, RSFA, etc.) from 3dLombScargle output
 1 :: 1dBandpass
 3 :: 3dBandpass
@@ -523,10 +524,10 @@
 
 ++ 3 :: Edit dsets: concatenate, split, add/remove slices
 1 :: 3dbucket          :: Assemble a bucket dataset from multiple input sub-bricks3dTcat
-3 :: 3dZeropad         :: Add zero slices around the edges of a dataset
+4 :: 3dZeropad         :: Add zero slices around the edges of a dataset
 1 :: 3dTsplit4D        :: Convert a 3D+time dataset into multiple 3D single-brick files
 3 :: 3dZcat            :: Assemble a 3D+time dataset from multiple input sub-bricks
-1 :: 3dAutobox         :: Automatically crop a dataset to remove empty space
+3 :: 3dAutobox         :: Automatically crop a dataset to remove empty space
 3 :: 3dZcutup          :: Cut slices out of a dataset to make a 'thinner' dataset
 1 :: 3dXYZcat          :: Glue multiple sub-bricks together along the {x|y|z}-axis
 1 :: 3dZregrid         :: Interpolate a dataset to a different slice thickness
