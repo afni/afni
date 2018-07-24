@@ -110,12 +110,10 @@ The following are some variables relevant for the below commands
 (\`\`tcsh\`\` syntax):
 
 .. code-block:: Tcsh
-   :linenos:
 
 EOF
 
 sed '1d;$d' file_MAMMOTH_01.txt >> $oscript
-echo "\n   |\n" >> $oscript
 
 # ========================================================================
 
@@ -158,6 +156,8 @@ grep -B 100 WOOLY_MAMMOTH_02 do_chauff*tcsh | \
 
 cat <<EOF >> $oscript
 
+|
+
 0. **Example ${idx}**: threshold stats voxelwise, view effects
 
    Pretty standard "vanilla mode" of seeing thresholded statistic
@@ -178,6 +178,14 @@ cat <<EOF >> $oscript
    Note that the slice location is shown in each panel (in a manner
    agnostic to the dset's orientation like RAI, LPI, SRA, etc.).
 
+   .. code-block:: Tcsh
+ 
+EOF
+
+sed '1d;$d' file_MAMMOTH_02.txt >> $oscript
+
+cat <<EOF >> $oscript
+
    .. list-table:: 
       :header-rows: 1
       :widths: 50 50 
@@ -191,14 +199,9 @@ cat <<EOF >> $oscript
              :width: 100%   
              :align: center
 
-   .. code-block:: Tcsh
-      :linenos:
- 
+   |
 
 EOF
-
-sed '1d;$d' file_MAMMOTH_02.txt >> $oscript
-echo "\n   |\n" >> $oscript
 
 # =====================================================================
 # ========================================================================
@@ -250,6 +253,13 @@ cat <<EOF >> $oscript
      particular, yellows/light colors don't get lost in a white/light
      ulay coloration.
 
+   .. code-block:: Tcsh
+
+EOF
+
+sed '1d;$d' file_MAMMOTH_03.txt >> $oscript
+
+cat <<EOF >> $oscript
 
    .. list-table:: 
       :header-rows: 1
@@ -264,13 +274,9 @@ cat <<EOF >> $oscript
              :width: 100%   
              :align: center
 
-   .. code-block:: Tcsh
-      :linenos:
+   |
 
 EOF
-
-sed '1d;$d' file_MAMMOTH_03.txt >> $oscript
-echo "\n   |\n" >> $oscript
 
 # =====================================================================
 # =====================================================================
@@ -333,6 +339,14 @@ cat <<EOF >> $oscript
    The rest of the visualization aspects of the EE volume here are
    pretty similar to the preceding.
 
+   .. code-block:: Tcsh
+
+EOF
+
+sed '1d;$d' file_MAMMOTH_04.txt >> $oscript
+
+cat <<EOF >> $oscript
+
    .. list-table:: 
       :header-rows: 1
       :widths: 50 50 
@@ -346,14 +360,9 @@ cat <<EOF >> $oscript
              :width: 100%   
              :align: center
 
-   .. code-block:: Tcsh
-      :linenos:
-
+   |
 
 EOF
-
-sed '1d;$d' file_MAMMOTH_04.txt >> $oscript
-echo "\n   |\n" >> $oscript
 
 # =====================================================================
 
@@ -392,6 +401,14 @@ cat <<EOF >> $oscript
    64 clusters (there are other integer-appropriate colorbars that go
    up higher).
 
+   .. code-block:: Tcsh
+
+EOF
+
+sed '1d;$d' file_MAMMOTH_05.txt >> $oscript
+
+cat <<EOF >> $oscript
+
    .. list-table:: 
       :header-rows: 1
       :widths: 50 50 
@@ -405,15 +422,9 @@ cat <<EOF >> $oscript
              :width: 100%   
              :align: center
 
-   .. code-block:: Tcsh
-      :linenos:
-
+   |
 
 EOF
-
-sed '1d;$d' file_MAMMOTH_05.txt >> $oscript
-echo "\n   |\n" >> $oscript
-
 
 # =====================================================================
 # =====================================================================
