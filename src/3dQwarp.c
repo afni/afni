@@ -1404,8 +1404,9 @@ STATUS("copy atlas_space") ;
     THD_set_float_atr( qset->dblk , "QWARP_ALLIN_MATRIX" , 12 , qar ) ;
   }
 STATUS("write warp") ;
-   DSET_write(qset) ; fprintf(stderr,"[%s]",DSET_BRIKNAME(qset)) ; DSET_delete(qset) ;
+   DSET_write(qset); fprintf(stderr,"[%s]",DSET_BRIKNAME(qset)); DSET_delete(qset);
    if( tarp != hwarp ) IW3D_destroy(tarp) ;
+   if( Hverb > 1 ) fprintf(stderr,"\n") ;
    EXRETURN ;
 }
 #endif
