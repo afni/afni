@@ -965,6 +965,7 @@ void Qhelp(void)
     "                 before the next level starts computation. Thus, they could\n"
     "                 be used to re-start the computation if the program crashed\n"
     "                 (by using options '-inilev' and '-iniwarp').\n"
+    "               * At this time, '-allsave' does not work with '-plusminus' :(\n"
 #endif
 
 #if defined(USE_OMP) && defined(__GNU_C__) /* I forget why this was here - getting old :( */
