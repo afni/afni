@@ -42,6 +42,14 @@
 #undef  USE_PLUSMINUS_INITIALWARP  /* don't do this! doesn't work well! */
 #define USE_NEW_HSAVE              /* 13 Mar 2018 */
 
+#undef  ALLOW_DUPLO                /* 26 Jul 2018 */
+#ifdef ALLOW_DUPLO
+#  define DUPLO_STRING "-duplo"
+#else
+#  define DUPLO_STRING /*nada*/
+#endif
+
+
 #include "mri_nwarp.c"             /* all the real work is done in here */
 
 /** include the Powell NEWUOA functions for nonlinear optimization **/
@@ -436,7 +444,7 @@ void Qhelp(void)
     "                -source anatT1_US+orig -twopass -cost lpa \\\n"
     "                -1Dmatrix_save anatT1_USA.aff12.1D        \\\n"
     "                -autoweight -fineblur 3 -cmass\n"
-    "    3dQwarp -prefix anatT1_USAQ -duplo -blur 0 3 \\\n"
+    "    3dQwarp -prefix anatT1_USAQ -blur 0 3 \\\n"
     "            -base TEMPLATE+tlrc -source anatT1_USA+tlrc\n"
     "\n"
     "  You can then use the anatT1_USAQ_WARP+tlrc dataset to transform other\n"
@@ -597,7 +605,9 @@ void Qhelp(void)
     "                 option '-allinkill' in addition to '-allineate'.\n"
     "             *** The following 3dQwarp options CANNOT be used with -allineate:\n"
     "                   -plusminus  -inilev  -iniwarp\n"
+#ifdef ALLOW_DUPLO
     "             *** However, you CAN use -duplo with -allineate.\n"
+#endif
     "               * The '-awarp' option will output the computed warp from the\n"
     "                 intermediea 3dAllineate-d dataset to the base dataset,\n"
     "                 in case you want that for some reason. This option will\n"
@@ -632,7 +642,7 @@ void Qhelp(void)
     "               * If the base and source datasets ARE on the same 3D grid,\n"
     "                 then the -resample option will be ignored.\n"
     "               * You CAN use -resample with these 3dQwarp options:\n"
-    "                   -plusminus  -inilev  -iniwarp  -duplo\n"
+    "                   -plusminus  -inilev  -iniwarp  " DUPLO_STRING "\n"
     "                 In particular, '-iniwarp' and '-resample' will work\n"
     "                 together if you need to re-start a warp job from the\n"
     "                 output of '-allsave'.\n"
@@ -810,9 +820,11 @@ void Qhelp(void)
     "                 you probably don't want to blur it again, but blurring\n"
     "                 the source volume a little is probably a good idea, to\n"
     "                 help the program avoid trying to match tiny features.\n"
+#ifdef ALLOW_DUPLO
     "               * Note that -duplo will blur the volumes some extra\n"
     "                 amount for the initial small-scale warping, to make\n"
     "                 that phase of the program converge more rapidly.\n"
+#endif
     "\n"
     " -pblur       = Use progressive blurring; that is, for larger patch sizes,\n"
     "                the amount of blurring is larger. The general idea is to\n"
@@ -865,7 +877,9 @@ void Qhelp(void)
     "               * As a special case, if you just input an affine matrix in a .1D\n"
     "                 file, that also works -- it is treated as giving the initial\n"
     "                 warp via the string \"IDENT(base_dataset) matrix_file.aff12.1D\".\n"
+#ifdef ALLOW_DUPLO
     "               * You CANNOT use this option with -duplo !!\n"
+#endif
     "               * -iniwarp is usually used with -inilev to re-start 3dQwarp from\n"
     "                 a previous stopping point, or from the output of '-allsave'.\n"
     "               * In particular, '-iniwarp' and '-resample' will work\n"
@@ -890,11 +904,13 @@ void Qhelp(void)
 #endif
     "\n"
     " -inilev lv   = 'lv' is the initial refinement 'level' at which to start.\n"
+#ifdef ALLOW_DUPLO
     "               * Usually used with -iniwarp; CANNOT be used with -duplo.\n"
+#endif
     "               * The combination of -inilev and -iniwarp lets you take the\n"
     "                 results of a previous 3dQwarp run and refine them further:\n"
     "                   3dQwarp -prefix Q25 -source SS+tlrc -base TEMPLATE+tlrc \\\n"
-    "                           -duplo -minpatch 25 -blur 0 3\n"
+    "                           -minpatch 25 -blur 0 3\n"
     "                   3dQwarp -prefix Q11 -source SS+tlrc -base TEMPLATE+tlrc \\\n"
     "                           -inilev 7 -iniwarp Q25_WARP+tlrc -blur 0 2\n"
     "                 Note that the source dataset in the second run is the SAME as\n"
@@ -948,11 +964,15 @@ void Qhelp(void)
     "                 default patch level 1, where the patch sizes are 75%% of\n"
     "                 the volume dimension. There is no way to force the program\n"
     "                 to literally repeat the sui generis step of lev=0.\n"
+#ifdef ALLOW_DUPLO
     "               * You cannot use -gridlist with -duplo or -plusminus!\n"
+#else
+    "               * You cannot use -gridlist with -plusminus :(\n"
+#endif
     "\n"
     " -allsave     = This option lets you save the output warps from each level\n"
     "   *OR*         of the refinement process. Mostly used for experimenting.\n"
-    " -saveall      * Cannot be used with -nopadWARP, -duplo, or -plusminus.\n"
+    " -saveall      * Cannot be used with -nopadWARP  -plusminus  " DUPLO_STRING "\n"
     "               * You could use the saved warps to create different versions\n"
     "                 of the warped source datasets (using 3dNwarpApply), to help\n"
     "                 you visualize how the warping process makes progress.\n"
@@ -971,6 +991,7 @@ void Qhelp(void)
 #if defined(USE_OMP) && defined(__GNU_C__) /* I forget why this was here - getting old :( */
 #endif
 
+#ifdef ALLOW_DUPLO
     "\n"
     " -duplo       = Start off with 1/2 scale versions of the volumes,\n"
     "                for getting a speedy coarse first alignment.\n"
@@ -980,13 +1001,19 @@ void Qhelp(void)
     "               * However, accuracy is somewhat lower with '-duplo',\n"
     "                 for reasons that currenly elude Zhark; for this reason,\n"
     "                 the Emperor does not usually use '-duplo'.\n"
+#else
+    "\n"
+    " -duplo       = *** THIS OPTION IS NO LONGER AVAILABLE ***\n"
+#endif
     "\n"
     " -workhard    = Iterate more times, which can help when the volumes are\n"
     "                hard to align at all, or when you hope to get a more precise\n"
     "                alignment.\n"
     "               * Slows the program down (possibly a lot), of course.\n"
+#ifdef ALLOW_DUPLO
     "               * When you combine '-workhard'  with '-duplo', only the\n"
     "                 full size volumes get the extra iterations.\n"
+#endif
     "               * For finer control over which refinement levels work hard,\n"
     "                 you can use this option in the form (for example)\n"
     "                     -workhard:4:7\n"
@@ -996,9 +1023,11 @@ void Qhelp(void)
     "                 this extra option will REALLY slow things down.\n"
     "           -->>* Under most circumstances, you should not need to use either\n"
     "                 -workhard or -superhard.\n"
+#ifdef ALLOW_DUPLO
     "           -->>* The fastest way to register to a template image is via the\n"
     "                 -duplo option, and without the -workhard or -superhard options.\n"
     "               * But accuracy may suffer :(\n"
+#endif
 #ifdef ALLOW_QMODE
     "           -->>* If you use this option in the form '-Workhard' (first letter\n"
     "                 in upper case), then the second iteration at each level is\n"
@@ -1067,7 +1096,7 @@ void Qhelp(void)
     "               * You can use the semi-secret '-pmBASE' option to get the V(x)\n"
     "                 warp and the source dataset warped to base space, in addition\n"
     "                 to the Wp(x) '_PLUS' and Wm(x) '_MINUS' warps.\n"
-    "           -->>* Alas: -plusminus does not work with -duplo or -allineate :-(\n"
+    "           -->>* Alas: -plusminus does not work with: -allineate  " DUPLO_STRING ":-(\n"
     "               * However, you can use -iniwarp with -plusminus :-)\n"
 #ifdef USE_PLUSMINUS_INITIALWARP
     "               * If -plusminus is used, the -plusminus warp is initialized by\n"
@@ -1763,11 +1792,16 @@ int main( int argc , char *argv[] )
      /*---------------*/
 
      if( strcasecmp(argv[nopt],"-duplo") == 0 ){
+#ifdef ALLOW_DUPLO
        if( iwname != NULL )
          ERROR_exit("Cannot use -duplo with -iniwarp :-(") ;
        if( ilev != 0 || mlev < 99 )
          ERROR_exit("Cannot use -duplo with -inilev or -maxlev :-(") ;
-       duplo = 1 ; nopt++ ; continue ;
+       duplo = 1 ;
+#else
+       WARNING_message("-duplo is no longer supported, and is being ignored") ;
+#endif
+       nopt++ ; continue ;
      }
 
      /*---------------*/
@@ -2265,12 +2299,14 @@ STATUS("check for errors") ;
      ERROR_message("You cannot use -allineate and -inilev together :-(") ; nbad++ ;
    }
 
+#ifdef ALLOW_DUPLO
    if( iwname != NULL && duplo ){
      ERROR_message("You cannot combine -iniwarp and -duplo !! :-((") ; nbad++ ;
    }
    if( (ilev != 0 || mlev < 99 ) && duplo ){
      ERROR_message("You cannot combine -inilev or -maxlev and -duplo !! :-((") ; nbad++ ;
    }
+#endif
 
    if( bset != NULL && sset == NULL ){
      ERROR_message("You can't use -base without -source!") ; nbad++ ;
@@ -2278,9 +2314,11 @@ STATUS("check for errors") ;
      ERROR_message("You can't use -source without -base!") ; nbad++ ;
    }
 
+#ifdef ALLOW_DUPLO
    if( HAVE_HGRID && duplo ){  /* 02 Jan 2015 */
      ERROR_message("You can't combine -gridlist with -duplo :-(") ; nbad++ ;
    }
+#endif
    if( HAVE_HGRID && do_plusminus ){
      ERROR_message("You can't combine -gridlist with -plusminus :-(") ; nbad++ ;
    }
@@ -2303,10 +2341,12 @@ STATUS("check for errors") ;
    if( meth_is_lpc && mlev > 0 )
      WARNING_message("Use of '-maxlev 0' is recommended with '-lpc'") ;
 
+#ifdef ALLOW_DUPLO
    if( do_plusminus && duplo ){
      duplo = 0 ;
      WARNING_message("Alas, -plusminus does not work with -duplo -- turning -duplo off") ;
    }
+#endif
 
    if( !do_plusminus && do_pmbase ){  /* 12 Aug 2014 */
      WARNING_message("-pmBASE without -plusminus: are you daft, mate?") ;
@@ -2857,12 +2897,14 @@ STATUS("load datasets") ; /*--------------------------------------------------*/
 
    if( minpatch > 0 ) Hngmin = minpatch ;  /* minimum patch size */
 
+#ifdef ALLOW_DUPLO
    if( duplo && (nx < 3*Hngmin || ny < 3*Hngmin || nz < 3*Hngmin) ){
      duplo = 0 ;
        INFO_message("-duplo disabled since dataset is small: %d x %d x %d",nx,ny,nz) ;
      ININFO_message(" smallest size allowed for -duplo is    %d x %d x %d",3*Hngmin,3*Hngmin,3*Hngmin) ;
      ININFO_message(" ['small' is relative to the minimum patch size you set = %d]",Hngmin) ;
    }
+#endif
 
    /*-------------------- create weight volume -------------------------------*/
 
@@ -3082,9 +3124,11 @@ STATUS("construct weight/mask volume") ;
    } else {              /*--- the standard case -----------------------------*/
 
      qiw = NULL ;
+#ifdef ALLOW_DUPLO
      if( duplo )
        oiw = IW3D_warp_s2bim_duplo( bim,wbim,sim, MRI_WSINC5, meth, flags ) ;
      else
+#endif
        oiw = IW3D_warp_s2bim( bim,wbim,sim, MRI_WSINC5, meth, flags ) ;
 
    }
