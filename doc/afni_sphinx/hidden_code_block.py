@@ -35,7 +35,15 @@ Released under the WTFPL (http://sam.zoy.org/wtfpl/).
 from docutils import nodes
 from docutils.parsers.rst import directives
 from sphinx.directives.code import CodeBlock
-from sphinx.util.compat import make_admonition
+#from sphinx.util.compat import make_admonition
+
+from sphinx.util.compat import Directive
+# DeprecationWarning: make_admonition is deprecated, use docutils.parsers.rst.directives.admonitions.BaseAdmonition instead
+try:
+    from sphinx.util.compat import make_admonition
+except ImportError:
+    from docutils.parsers.rst.directives.admonitions import BaseAdmonition as make_admonition 
+
 
 HCB_COUNTER = 0
 
