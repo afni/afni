@@ -37,7 +37,7 @@ from docutils.parsers.rst import directives
 from sphinx.directives.code import CodeBlock
 #from sphinx.util.compat import make_admonition
 
-from sphinx.util.compat import Directive
+#from sphinx.util.compat import Directive
 # DeprecationWarning: make_admonition is deprecated, use docutils.parsers.rst.directives.admonitions.BaseAdmonition instead
 try:
     from sphinx.util.compat import make_admonition
