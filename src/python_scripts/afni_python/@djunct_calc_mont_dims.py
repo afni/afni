@@ -6,8 +6,11 @@
 # some to get closer to golden ratio, but we have a reasonable
 # tolerance, as well.
 
-# [PT: July 17, 2018] CONVERTED__python__2to3
+### [PT: July 17, 2018] CONVERTED__python__2to3
 
+### [PT: July 25, 2018] 
+# + fixed upper limit to allow square values to be found.
+#
 # --------------------------------------------------------------------
 
 import numpy as np
@@ -22,6 +25,8 @@ Nuthin' to see here, folks!
 
 GOLD = spc.golden_ratio
 
+#MAX_NCOL = 8
+
 check_dist = 4
 OKOK_dist  = 0.4   # allowable distance, to minimize adding
 
@@ -32,10 +37,12 @@ def get_arg(aa):
         sys.exit(0)
     elif Narg == 2:
         sys.exit("** ERROR: too few args! Need exactly one integer\n"
-                 "   and an output filename.")
-    elif Narg > 3:
+                 "   and an output filename (and one optional integer\n"
+                 "   the max num of columns output).")
+    elif Narg > 4:
         sys.exit("** ERROR: too many args! Need exactly one integer\n"
-                 "   and an output filename.")
+                 "   and an output filename (and one optional integer\n"
+                 "   the max num of columns output).")
     else:
         aaint = int(aa[1])
         apref = aa[2]
@@ -47,7 +54,9 @@ def get_facs(AA):
     AA_facs1 = []
     AA_facs2 = []
     fac_ceil = int(np.ceil(np.sqrt(AA)))
-    for i in range(1, fac_ceil):
+    # [PT: July 25, 2018] need a +1 at the upper range because of how
+    # Python works. Duh.
+    for i in range(1, fac_ceil+1):
         if not(AA % i): 
             AA_facs1.append(i)
             AA_facs2.append(AA // i)
