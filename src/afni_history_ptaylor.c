@@ -66,6 +66,17 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 25, July , 2018 , PT , "@chauffeur_afni" , MAJOR , TYPE_GENERAL,
+   "Several new options, as well as ability to deal with 4D images.",
+   "Many new features, probably including minor bug fixes.\n"
+},
+
+
+{ 25, July , 2018 , PT , "@djunct_calc_mont_dims.py" , MINOR , TYPE_BUG_FIX,
+   "Was excluding solution of a square set of dimensions.",
+   "Tested; seems fine now.\n"
+},
+
 { 23, July , 2018 , PT , "3dClusterize" , MICRO , TYPE_GENERAL,
    "Check about overwriting files before trying to write.",
    "This way, failure to write file exits nonzeroly.\n"

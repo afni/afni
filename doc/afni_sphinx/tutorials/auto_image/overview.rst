@@ -6,8 +6,9 @@ Overview
 .. contents::
    :depth: 3
 
+*************************
 Auto-image making in AFNI
--------------------------
+*************************
 
 Here we present examples of automatic image-making with AFNI (in the
 sense of being command line callable and scriptable) using several
@@ -49,7 +50,8 @@ special considerations.
 The examples in this tutorial section use data sets that are publicly
 available as part of the AFNI Bootcamp Demo set, freely downloadable
 as described :ref:`here <Bootcamping>`.  Unless otherwise stated, the
-data sets in the ``AFNI_data6/afni/`` directory are used.
+data sets in the ``AFNI_data6/afni/`` directory are used.  The code
+snippets are all in ``tcsh`` syntax.
 
 Some definitions/abbreviations
 ------------------------------

@@ -1,7 +1,8 @@
 .. _tut_auto_@snapshot_volreg:
 
+**********************
 Using @snapshot_volreg
-======================
+**********************
 
 .. contents::
    :depth: 3
