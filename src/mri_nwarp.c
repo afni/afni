@@ -11600,7 +11600,7 @@ ENTRY("THD_warpomatic") ;
 
 #endif /*(Q8)*/ /*############################################################*/
 
-#if 1
+#ifdef ALLOW_DUPLO
 /*============================================================================*/
 /** (Q9) Functions for duplo-ing a warp or image (up and down in size)       **/
 /*============================================================================*/
@@ -11851,7 +11851,7 @@ MRI_IMAGE * mri_duplo_down_3D_NN( MRI_IMAGE *fim )
 
 #endif /*(Q9)*/ /*############################################################*/
 
-#if 1
+#ifdef ALLOW_DUPLO
 /*============================================================================*/
 /** (Q10) Function for warp optimization with duplo-ing                      **/
 /*============================================================================*/
@@ -12569,6 +12569,14 @@ ENTRY("IW3D_setup_for_improvement_plusminus") ;
    Hnx = bim->nx; Hny = bim->ny; Hnz = bim->nz; Hnxy=Hnx*Hny; Hnxyz = Hnxy*Hnz;
    Hbasim = mri_to_float(bim) ;
    Hsrcim = mri_to_float(sim) ;
+
+#ifdef ALLOW_INEDGE /* Jul 2018 */
+   if( Hinedge_doit ){
+     if( Hverb > 1 ) ININFO_message("  enhancing interior edges of base and source") ;
+     mri_interior_edgeize( Hbasim , Hinedge_erode , Hinedge_frac ) ;
+     mri_interior_edgeize( Hsrcim , Hinedge_erode , Hinedge_frac ) ;
+   }
+#endif
 
    if( Hpblur_b > 0.0f && Hblur_b == 0.0f ) Hblur_b = 0.1f ;
    if( Hpblur_s > 0.0f && Hblur_s == 0.0f ) Hblur_s = 0.1f ;

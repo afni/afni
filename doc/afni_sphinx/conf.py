@@ -11,6 +11,13 @@
 #
 # All configuration values have a default; values that are commented out
 # serve to show the default.
+#
+###########################################################################
+#
+# [PT: July 26, 2018]
+# + including hidden code block extensions: toggle code blocks shown/hidden
+#
+###########################################################################
 
 import sys
 import os
@@ -30,7 +37,7 @@ import cloud_sptheme as csp
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-#sys.path.insert(0, os.path.abspath('.'))
+sys.path.insert(0, os.path.abspath('.'))
 
 # -- General configuration ------------------------------------------------
 
@@ -51,7 +58,8 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.todo',
     'cloud_sptheme.ext.table_styling',
-    'sphinxcontrib.programoutput'
+    'sphinxcontrib.programoutput',
+    'hidden_code_block'
 ]
 mathjax_path = 'https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_CHTML' # http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML'
 
