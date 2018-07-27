@@ -85,6 +85,26 @@ end
 
 
 
+# ===================== output dir + wdir =======================
+ 
+# check output directory, use input one if nothing given
+
+if ( ! -e $odir ) then
+    echo "++ Making new output directory: $odir"
+    \mkdir -p $odir
+endif
+
+# make the working directory
+if ( ! -e $odir/$wdir ) then
+    echo "++ Making working directory: $odir/$wdir"
+    \mkdir -p $odir/$wdir
+else
+    echo "+* WARNING: Somehow found a premade working directory (?):"
+    echo "      $odir/$wdir"
+endif
+
+# ====================================================================
+
 
 
 
