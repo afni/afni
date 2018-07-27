@@ -12274,10 +12274,10 @@ ENTRY("IW3D_improve_warp_plusminus") ;
      default:
      case MRI_CUBIC:
        Hbasis_code   = MRI_CUBIC ;                   /* 3rd order polynomials */
-       Hbasis_parmax = 0.033*Hfactor ;    /* max displacement from 1 function */
-       if( ballopt ) Hbasis_parmax = 0.066*Hfactor ;           /* 13 Jan 2015 */
+       Hbasis_parmax = 0.044*Hfactor ;    /* max displacement from 1 function */
+       if( ballopt ) Hbasis_parmax = 0.077*Hfactor ;           /* 13 Jan 2015 */
        Hnpar         = 24 ;                /* number of params for local warp */
-       prad          = 0.444 ;                       /* NEWUOA initial radius */
+       prad          = 0.333 ;                       /* NEWUOA initial radius */
        HCwarp_setup_basis( nxh,nyh,nzh, Hgflags ) ;      /* setup HCwarp_load */
 #ifdef USE_HLOADER
        Hloader       = HCwarp_load ;   /* func to make local warp from params */
@@ -12286,8 +12286,8 @@ ENTRY("IW3D_improve_warp_plusminus") ;
 
      case MRI_QUINTIC:
        Hbasis_code   = MRI_QUINTIC ;                 /* 5th order polynomials */
-       Hbasis_parmax = 0.007*Hfactor ;
-       if( ballopt ) Hbasis_parmax = 0.050*Hfactor ;           /* 13 Jan 2015 */
+       Hbasis_parmax = 0.0088*Hfactor ;
+       if( ballopt ) Hbasis_parmax = 0.066*Hfactor ;           /* 13 Jan 2015 */
        Hnpar         = 81 ;
        prad          = 0.333 ;
        HQwarp_setup_basis( nxh,nyh,nzh, Hgflags ) ;
@@ -13114,6 +13114,35 @@ ENTRY("IW3D_warp_s2bim_plusminus") ;
 
    RETURN(sbww) ;
 }
+
+#if 0
+/*----------------------------------------------------------------------------*/
+/* Function to compute 'normal' 3dQwarp result from the plusminus warps.
+   From the 3dQwarp help:
+      Define Wp(x) = x+dis(x) and Wm(x) = x-dis(x). Then since
+      base(Wm(x)) matches source(Wp(x)), by substituting INV(Wm(x))
+      wherever we see x, we have base(x) matches source(Wp(INV(Wm(x))));
+      that is, the warp V(x) that one would get from the 'usual' way
+      of running 3dQwarp is V(x) = Wp(INV(Wm(x))).
+   The code to do this is in 3dQWarp.c ('-pmBASE' option) and so this
+   function is not actually used anywhere.
+*//*--------------------------------------------------------------------------*/
+
+IndexWarp3D * IW3D_plusminus_to_direct( IndexWarp3D *pww )
+{
+   IndexWarp3D *mww , *imww ;
+
+   if( pww == NULL ) return NULL ;
+
+    mww = IW3D_copy( pww , -1.0f ) ;
+   imww = IW3D_invert (  mww , NULL , MRI_WSINC5 ) ;
+    mww = IW3D_compose( imww , pww  , MRI_WSINC5 ) ;
+
+   IW3D_destroy(imww) ;
+   return mww ;
+}
+#endif
+
 #endif /* ALLOW_PLUSMINUS */
 /*****--------------------------------------------------------------------*****/
 /*****||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||*****/
