@@ -10683,7 +10683,24 @@ ENTRY("IW3D_setup_for_improvement") ;
    Also, keep up-to-date the copy of the warped source image Haasrcim.
 *//*--------------------------------------------------------------------------*/
 
+#define SC_BOX  1
 #define SC_BALL 2
+
+#define BALLOPT                           \
+  do{ int bc = powell_newuoa_get_con() ;  \
+      if( bc != SC_BALL ){                \
+        powell_newuoa_set_con_ball() ;    \
+        fprintf(stderr,"[ballopt]") ;     \
+      }                                   \
+  } while(0)
+
+#define BOXOPT                            \
+  do{ int bc = powell_newuoa_get_con() ;  \
+      if( bc != SC_BOX  ){                \
+        powell_newuoa_set_con_box() ;     \
+        fprintf(stderr,"[boxopt]") ;      \
+      }                                   \
+  } while(0)
 
 int IW3D_improve_warp( int warp_code ,
                        int ibot, int itop, int jbot, int jtop, int kbot, int ktop )
@@ -10719,7 +10736,7 @@ ENTRY("IW3D_improve_warp") ;
 
    nball = (warp_code==MRI_CUBIC) ? 15 : 19 ;
    if( nxh < nball || nyh < nball || nzh < nball ){      /* 10 Feb 2017 */
-     powell_newuoa_set_con_ball() ; ballopt = 1 ;
+     ballopt = 1 ; BALLOPT ;
    }
 
    wbfar = MRI_FLOAT_PTR(Hwtim) ; wsum = 0.0f ;  /* sum of weights in the patch */
@@ -10778,7 +10795,7 @@ ENTRY("IW3D_improve_warp") ;
 
 #ifdef ALLOW_BASIS5  /* 05 Nov 2015 */
      case MRI_CUBIC_PLUS_1:  /* basis3 */
-       powell_newuoa_set_con_ball() ; ballopt = 1 ;
+       BALLOPT ; ballopt = 1 ;
        Hbasis_code = MRI_CUBIC_PLUS_1 ;
        Hbasis_parmax = 0.0432*Hfactor ;
        Hnpar         = 81 ;
@@ -10787,7 +10804,7 @@ ENTRY("IW3D_improve_warp") ;
      break ;
 
      case MRI_CUBIC_PLUS_2:  /* basis4 */
-       powell_newuoa_set_con_ball() ; ballopt = 1 ;
+       BALLOPT ; ballopt = 1 ;
        Hbasis_code = MRI_CUBIC_PLUS_2 ;
        Hbasis_parmax = 0.0222*Hfactor ;
        Hnpar         = 192 ;
@@ -10796,7 +10813,7 @@ ENTRY("IW3D_improve_warp") ;
      break ;
 
      case MRI_CUBIC_PLUS_3:  /* basis5 */
-       powell_newuoa_set_con_ball() ; ballopt = 1 ;
+       BALLOPT ; ballopt = 1 ;
        Hbasis_code = MRI_CUBIC_PLUS_3 ;
        Hbasis_parmax = 0.0155*Hfactor ;
        Hnpar         = 375 ;
@@ -11111,10 +11128,10 @@ ENTRY("IW3D_warpomatic") ;
        Haasrcim = IW3D_warp_floatim( Haawarp, SRCIM, Himeth , 1.0f ) ;
      if( Hverb == 1 ) fprintf(stderr,"lev=0 %d..%d %d..%d %d..%d: ",ibbb,ittt,jbbb,jttt,kbbb,kttt) ;
      /* always start with 2 cubic steps */
-     powell_newuoa_set_con_box() ;
+     BOXOPT ;
      (void)IW3D_improve_warp( MRI_CUBIC  , ibbb,ittt,jbbb,jttt,kbbb,kttt );
 #if 0
-     powell_newuoa_set_con_ball() ;
+     BALLOPT ;
      (void)IW3D_improve_warp( MRI_CUBIC  , ibbb,ittt,jbbb,jttt,kbbb,kttt );
 #endif
      if( SUPERHARD(0) )
@@ -11124,8 +11141,8 @@ ENTRY("IW3D_warpomatic") ;
      else if( Hzeasy ) nlevr = 1 ;
      for( iii=0 ; iii < nlevr ; iii++ ){  /* and some quintic steps */
        Hcostold = Hcost ;
-       if( iii%2 == 0 ) powell_newuoa_set_con_box() ;
-       else             powell_newuoa_set_con_ball() ;
+       if( iii%2 == 0 ) BOXOPT ;
+       else             BALLOPT ;
        (void)IW3D_improve_warp( MRI_QUINTIC, ibbb,ittt,jbbb,jttt,kbbb,kttt );
        if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
        if( iii < nlevr-1 && Hcostold-Hcost < 0.00444f ){
@@ -11136,7 +11153,7 @@ ENTRY("IW3D_warpomatic") ;
      }
 #ifdef ALLOW_BASIS5
      if( (!Hznoq && !Hzeasy) && (H4zero || WORKHARD(0) || SUPERHARD(0)) ){
-       powell_newuoa_set_con_ball() ;
+       BALLOPT ;
        (void)IW3D_improve_warp( MRI_CUBIC_PLUS_2, ibbb,ittt,jbbb,jttt,kbbb,kttt );
      }
      if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
@@ -11327,8 +11344,8 @@ ENTRY("IW3D_warpomatic") ;
         the purpose of this is so that one side of the box doesn't get favored */
 
      if( lev%2 == 1 || nlevr > 1 ){  /* sweep from bot to top, ijk order */
-           if( do_qfinal ) powell_newuoa_set_con_ball() ;
-      else if( nlevr > 1 ) powell_newuoa_set_con_box() ;
+           if( do_qfinal ) BALLOPT ;
+      else if( nlevr > 1 ) BOXOPT ;
       for( isup=0 ; isup < nsup ; isup++ ){  /* working superhard? do this twice! */
        for( kdon=0,kbot=kbbb ; !kdon ; kbot += dkkk ){  /* loop over z direction of patches */
          ktop = kbot+zwid-1;  /* top edge of patch: maybe edit it down or up */
@@ -11372,7 +11389,7 @@ ENTRY("IW3D_warpomatic") ;
 
      if( lev%2 == 0 || nlevr > 1 ){ /* sweep from top to bot, kji order */
        if( nlevr > 1 && Hverb == 1 ) fprintf(stderr,":[cost=%.5f]:",Hcost) ;
-       if( do_qfinal || nlevr > 1 ) powell_newuoa_set_con_ball() ;
+       if( do_qfinal || nlevr > 1 ) BALLOPT ;
        qmodeX = (nlevr > 1) ? qmode2 : qmode ;
       for( isup=0 ; isup < nsup ; isup++ ){  /* superhard? */
        for( idon=0,itop=ittt ; !idon ; itop -= diii ){
@@ -12225,7 +12242,7 @@ int IW3D_improve_warp_plusminus( int warp_code ,
                                  int jbot, int jtop, int kbot, int ktop )
 {
    MRI_IMAGE *warpim ;
-   int nxh,nyh,nzh , ii,jj,kk , iter,itmax,qq,pp , nwb ;
+   int nxh,nyh,nzh , ii,jj,kk , iter,itmax,qq,pp , nwb , nball ;
    float *wbfar , wsum ; double prad ;
    double *parvec, *xbot,*xtop ;
    float *sarp,*sarm , *Axd,*Ayd,*Azd,*Aje,*Ase , *bxd,*byd,*bzd,*bje,*bse , jt,st ;
@@ -12250,6 +12267,11 @@ ENTRY("IW3D_improve_warp_plusminus") ;
    /* test if this region has enough "weight" to process */
 
    Hnval = nxh*nyh*nzh ;
+
+   nball = (warp_code==MRI_CUBIC) ? 15 : 19 ;
+   if( nxh < nball || nyh < nball || nzh < nball ){      /* 10 Feb 2017 */
+     ballopt = 1 ; BALLOPT ;
+   }
 
    wbfar = MRI_FLOAT_PTR(Hwtim) ; wsum = 0.0f ;
    for( nwb=0,kk=kbot ; kk <= ktop ; kk++ ){
@@ -12298,7 +12320,7 @@ ENTRY("IW3D_improve_warp_plusminus") ;
 
 #ifdef ALLOW_BASIS5  /* 05 Nov 2015 */
      case MRI_CUBIC_PLUS_1:  /* basis3 */
-       powell_newuoa_set_con_ball() ; ballopt = 1 ;
+       BALLOPT ; ballopt = 1 ;
        Hbasis_code = MRI_CUBIC_PLUS_1 ;
        Hbasis_parmax = 0.0432*Hfactor ;
        Hnpar         = 81 ;
@@ -12307,7 +12329,7 @@ ENTRY("IW3D_improve_warp_plusminus") ;
      break ;
 
      case MRI_CUBIC_PLUS_2:  /* basis4 */
-       powell_newuoa_set_con_ball() ; ballopt = 1 ;
+       BALLOPT ; ballopt = 1 ;
        Hbasis_code = MRI_CUBIC_PLUS_2 ;
        Hbasis_parmax = 0.0222*Hfactor ;
        Hnpar         = 192 ;
@@ -12316,7 +12338,7 @@ ENTRY("IW3D_improve_warp_plusminus") ;
      break ;
 
      case MRI_CUBIC_PLUS_3:  /* basis5 */
-       powell_newuoa_set_con_ball() ; ballopt = 1 ;
+       BALLOPT ; ballopt = 1 ;
        Hbasis_code = MRI_CUBIC_PLUS_3 ;
        Hbasis_parmax = 0.0155*Hfactor ;
        Hnpar         = 375 ;
@@ -12841,14 +12863,18 @@ ENTRY("IW3D_warpomatic_plusminus") ;
        Haabasim_minus = IW3D_warp_floatim( Haawarp, BASIM, Himeth , -1.0f ) ;
      }
      if( Hverb == 1 ) fprintf(stderr,"lev=0 %d..%d %d..%d %d..%d: ",ibbb,ittt,jbbb,jttt,kbbb,kttt) ;
+     BOXOPT ;
      (void)IW3D_improve_warp_plusminus( MRI_CUBIC  , ibbb,ittt,jbbb,jttt,kbbb,kttt );
      (void)IW3D_improve_warp_plusminus( MRI_CUBIC  , ibbb,ittt,jbbb,jttt,kbbb,kttt );
+     BALLOPT ;
      (void)IW3D_improve_warp_plusminus( MRI_CUBIC  , ibbb,ittt,jbbb,jttt,kbbb,kttt );
      if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
           if( Hznoq  ) nlevr = 0 ;
      else if( Hzeasy ) nlevr = 1 ;
      for( iii=0 ; iii < nlevr ; iii++ ){
        Hcostold = Hcost ;
+       if( iii%2 == 0 ) BOXOPT ;
+       else             BALLOPT ;
        (void)IW3D_improve_warp_plusminus( MRI_QUINTIC, ibbb,ittt,jbbb,jttt,kbbb,kttt );
        if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
        if( iii > 0 && iii < nlevr-1 && Hcostold-Hcost < 0.00444f ){
@@ -12986,6 +13012,8 @@ ENTRY("IW3D_warpomatic_plusminus") ;
      /* alternate the direction of sweeping at different levels */
 
      if( lev%2 == 1 || nlevr > 1 ){  /* bot to top, ijk */
+           if( do_qfinal ) BALLOPT ;
+      else if( nlevr > 1 ) BOXOPT ;
       for( isup=0 ; isup < nsup ; isup++ ){  /* superhard? */
        for( kdon=0,kbot=kbbb ; !kdon ; kbot += dkkk ){
          ktop = kbot+zwid-1;
@@ -13026,6 +13054,7 @@ ENTRY("IW3D_warpomatic_plusminus") ;
 
      if( lev%2 == 0 || nlevr > 1 ){ /* top to bot, kji */
        if( nlevr > 1 && Hverb == 1 ) fprintf(stderr,":[cost=%.5f]:",Hcost) ;
+       if( do_qfinal || nlevr > 1 ) BALLOPT ;
        qmodeX = (nlevr > 1) ? qmode2 : qmode ;
       for( isup=0 ; isup < nsup ; isup++ ){  /* superhard? */
        for( idon=0,itop=ittt ; !idon ; itop -= diii ){
