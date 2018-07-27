@@ -46,8 +46,11 @@
 #   + new opt: can skullstrip intermediate t1w to help alignment, via
 #   -do_ss_tmp_t1w ... and that file stays in wdir
 #
-set version   = "1.0";    set rev_dat   = "Feb 19, 2018"
+#set version   = "1.0";    set rev_dat   = "Feb 19, 2018"
 #   + new filename output structure, no postfix, make QC dir
+#
+set version   = "1.1";  set rev_dat   = "July 25, 2018"
+#   + match func_range_nz to updated @chauffeur
 #
 # ---------------------------------------------------------------
 
@@ -525,7 +528,7 @@ if ( $DO_VIEWER == 1 ) then
         -ulay "$it2w"                     \
         -ulay_range "2%" "98%"            \
         -olay "$vedge"                    \
-        -func_range_perc 50               \
+        -func_range_perc_nz 50            \
         -pbar_posonly                     \
         -cbar "red_monochrome"            \
         -opacity 6                        \

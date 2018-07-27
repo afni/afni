@@ -1,5 +1,10 @@
 #!/bin/tcsh
 
+# for olay, default will be "show all"-- update fatcats to call for
+# 98%iles of non-zeros!
+
+# update fatcats for ulays, as well!
+
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
 # -----------------------------------------------------------------
@@ -66,13 +71,46 @@
 #set version   = "3.1";   set rev_dat   = "Nov 27, 2017"
 #     + improve/correct slice-width selection (thanks, J. Lee!)
 #
-set version   = "3.2";   set rev_dat   = "Feb 21, 2018"
+#set version   = "3.2";   set rev_dat   = "Feb 21, 2018"
 #     + add in p-to-stat capability for thresholding, via 
 #       "-thr_olay_p2stat .." opt
 #
-set version   = "3.3";   set rev_dat   = "May 29, 2018"
+#set version   = "3.3";   set rev_dat   = "May 29, 2018"
 #     + add in cropping ability, via '-crop_*' options
 #        
+#set version   = "3.4";   set rev_dat   = "July 11, 2018"
+#     + start adding in the 4D options:  -mode_4D
+#        
+#set version   = "3.4";   set rev_dat   = "July 12, 2018"
+#     + mode_4d opts seem to be working now, at least some...
+#        
+#set version   = "3.5";   set rev_dat   = "July 13, 2018"
+#     + need to require sidedness of test for -thr_olay_p2stat!
+#     + also switch to use p2dsetstat internally for getting that
+#       threshold
+#        
+#set version   = "3.6";   set rev_dat   = "July 20, 2018"
+#     + in 4D mode, want percentage values to be consistent across all
+#       slice montages.  this will be done by calculating a table for
+#       each of the reassembled volumes (= glued together slices from
+#       across time for a each plane), and then combining these
+#       percentile tables by taking the max at each percentile.
+#        
+#set version   = "3.7";   set rev_dat   = "July 23, 2018"
+#     + revising ulay percentiles-- of *whole* object, not just of
+#       non-zero values as before.  This should better match AFNI GUI
+#       behavior, and lead masks to not have a range [1,1]
+#     + now including the new drivability with: SET_ULAY_RANGE
+#       (Thanks, Emperor Zhark!)
+#        
+#set version   = "3.8";   set rev_dat   = "July 23, 2018"
+#     + updating olays for 4d and thresholding
+#     + no longer using pre-calc'ed tables
+#
+set version   = "3.9";   set rev_dat   = "July 25, 2018"
+#     + several small updates; renamed my_slicer, changed some help, 
+#     + default ulay now 0-98% in vol.
+#
 # =====================================================================
 
 # For more info about opts/fields, see:
@@ -110,6 +148,7 @@ set frange  = "0"                # either this (autorange), or user puts in
 set USER_FRANGE = 0              # internal toggle only
 set thrnew  = "0."               # threshold value (zero default)
 set p_thr_val = ""               # for p-to-stat capability in thr
+set p_thr_side = ""              # for p-to-stat capability in thr
 set thrflag = "*"                # threshold flags
 
 set crossh = "OFF"               # crosshairs OFF by default
@@ -139,6 +178,14 @@ set scropy = ( 0 0 )
 set ccropx = ( 0 0 )
 set ccropy = ( 0 0 )
 
+set MODE_4D = 0
+set spre4d  = "sli4d"
+set opre4d  = ""
+set upre4d  = ""
+set Nreps   = 1                  # default:  for if we *don't* have -mode_4D
+# this order matches how stuff comes out in MODE_4D
+set ppord   = ( "sagittal" "coronal" "axial" )
+set pord    = ( "sag"      "cor"     "axi"   )
 
 set subbb = ( -1 -1 -1 )
 
@@ -150,14 +197,22 @@ set alpha_edgize_no = 0          # =1 -> SETENV AFNI_EDGIZE_OVERLAY NO
 set do_quit = "QUITT"            # quick-quit; not subject to change
 
 # tmp dir, in case under- and overlays are in separate dirs
-set tmp_code = `3dnewid -fun11`    # should be essentially unique hash
+set tmp_code = `3dnewid -fun11`  # should be essentially unique hash
 set tmp_dir  = "__tmp_chauf_${tmp_code}"
 set DO_CLEAN = 0
+set my_clean = "-no_clean"
 set read_dir = ""
 set read_ulay = tmp_ulay.nii
 
 set USER_ULAY_RANGE = 0          # def: user doesn't enter ulay range
-set ulay_nz = "-non-zero"
+set ulay_nz = ""                 # [PT: Jul 23, 2018] new ulay def: NOT non-0
+set olay_nz = "-non-zero"        # [PT: Jul 23, 2018] same olay def: non-0
+set com_ulay_str = "DO_NOTHING"  # [PT: Jul 23, 2018] so we can drive values 
+set umax_scale = 1
+set umax_magic = "98"
+
+set BIGNEG = -100000001
+@ BIGNEGp1 = $BIGNEG + 1
 
 # -------------------------------------------------------------------
 # ----------------------------- ugh ---------------------------------
@@ -196,7 +251,12 @@ while ( $ac <= $#argv )
     else if ( "$argv[$ac]" == "-olay_off" ) then
         set see_olay = "-"
 
-    # [PT, Sep 04, 2017] Change behavior to get output dir from just
+    # [PT: July 11, 2018] Do some reslicing of dsets and glue
+    # together; will require at least one of ulay and olay to be 4D
+    else if ( "$argv[$ac]" == "-mode_4D" ) then
+        set MODE_4D = 1
+
+    # [PT: Sep 04, 2017] Change behavior to get output dir from just
     # the prefix.  Duh.
     else if ( "$argv[$ac]" == "-prefix" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
@@ -234,8 +294,6 @@ while ( $ac <= $#argv )
         @ ac += 1
         @ gapord[3] = "$argv[$ac]"
 
-        echo "Hi! My gapord is: $gapord"
-
     else if ( "$argv[$ac]" == "-thr_olay" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
@@ -246,6 +304,12 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set p_thr_val = "$argv[$ac]"
+
+    # [PT: July 13, 2018] anything allowed by p2dsetstat
+    else if ( "$argv[$ac]" == "-thr_olay_pside" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set p_thr_side = "$argv[$ac]"
 
     else if ( "$argv[$ac]" == "-thrflag" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
@@ -288,6 +352,15 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set frange_perc = "$argv[$ac]"
+        set olay_nz = ""  
+        set USER_FRANGE = 2
+
+    # refers to olay
+    else if ( "$argv[$ac]" == "-func_range_perc_nz" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set frange_perc = "$argv[$ac]"
+        set olay_nz = "-non-zero"  
         set USER_FRANGE = 2
 
     else if ( "$argv[$ac]" == "-pbar_posonly" ) then
@@ -314,7 +387,7 @@ while ( $ac <= $#argv )
         @ ac += 1
         set ftype = "$argv[$ac]"
 
-    # takes 3 numbers!!!
+    # takes 3 numbers
     else if ( "$argv[$ac]" == "-set_ijk" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
@@ -325,7 +398,7 @@ while ( $ac <= $#argv )
         set coors[3] = "$argv[$ac]"
         set USER_COORS = 1
 
-    # [PT: Aug 17, 2017] takes 3 numbers!!!
+    # [PT: Aug 17, 2017] takes 3 numbers
     else if ( "$argv[$ac]" == "-set_dicom_xyz" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
@@ -450,7 +523,8 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         setenv AFNI_IMAGE_GLOBALRANGE  "$argv[$ac]"
-        
+        set USER_ULAY_RANGE = 1  # also use this here
+
     else if ( "$argv[$ac]" == "-ulay_range" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
@@ -459,8 +533,18 @@ while ( $ac <= $#argv )
         set umax = "$argv[$ac]"
         set USER_ULAY_RANGE = 1
 
+    else if ( "$argv[$ac]" == "-ulay_range_nz" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set umin = "$argv[$ac]"
+        @ ac += 1
+        set umax = "$argv[$ac]"
+        set ulay_nz = "-non-zero"
+        set USER_ULAY_RANGE = 1
+
     else if ( "$argv[$ac]" == "-do_clean" ) then
         set DO_CLEAN = 1
+        set my_clean = "-pass" # for @djunct_4d_slices*
 
     else
         echo "** unexpected option #$ac = '$argv[$ac]'"
@@ -469,6 +553,17 @@ while ( $ac <= $#argv )
     endif
     @ ac += 1
 end
+
+# -------------------------------------------------------------------
+
+# similar defaults to AFNI GUI, though GUI is slicewise, not
+# volumewise
+if ( $USER_ULAY_RANGE != 1 ) then
+    set umin = "0%"
+    set umax = "98%"
+    set ulay_nz = ""
+    set USER_ULAY_RANGE = 1
+endif
 
 # -------------------------------------------------------------------
 
@@ -505,7 +600,7 @@ echo "\n------------------ start of optionizing ------------------\n"
 
 # need more cowbell
 if ( ("$ulay" == "") ) then
-    echo "** ERROR: need to have an underlay, at least!!"
+    echo "** ERROR: need to have an underlay, at least!"
     goto BAD_EXIT
 endif
 
@@ -549,63 +644,7 @@ if ( $innit == 0 ) then
     goto BAD_EXIT
 endif
 
-# --------------------- p-to-stat thr capability -----------------
-# [PT: Feb 21, 2018]
-
-set statthr = "0"
-
-# Get info stored in header about: what kind of stat is stored, what
-# params are known about it (e.g., degrees of freedom), and use that
-# to calculate a value corresponding to user's selected p-value.  This
-# involves "reading attributes" from the header with 3dAttribute. To
-# learn more about these numbers, see:
-# https://afni.nimh.nih.gov/pub/dist/doc/program_help/README.attributes.html
-# Need 2 conditions here: a pval entered, and a subbrick index for the
-# thr dset specified
-if ( "${p_thr_val}" != "" && $subbb[3] >= 0 ) then
-
-    echo "++ Will calc threshold based on stat in [${subbb[3]}] brick"
-
-    # Get info from header about stat of certain brick.
-    set my_bstats = `3dAttribute BRICK_STATAUX \
-                        "$olay""[$subbb[3]]"`
-
-    ## Interval of allowed stats, by code number; basically, could be:
-    ## corr coef, t-stat, F-stat or z-score.
-    set OK_STAT = "0"
-    foreach i ( `seq 2 1 5` )
-        if ( "${my_bstats[2]}" == "$i" ) then
-            set OK_STAT = "1"
-        endif
-    end
-
-    # If we have a stat, interpret the numbers stored about it.
-    if ( "$OK_STAT" == "1" ) then
-        set my_stype = `@statauxcode ${my_bstats[2]}`
-        echo "++ OK stat type  : $my_stype"
-
-        set my_npars = ${my_bstats[3]}
-        set my_pars = ()
-        foreach i ( `seq 1 1 $my_npars` ) 
-            @ ii = 3 + $i
-            set my_pars = ( $my_pars "${my_bstats[$ii]}" )
-        end
-
-        echo "++ BRICK_STATAUX : $my_bstats"
-        echo "++        params : $my_pars"
-
-        # Calculate the stat value associated with the user's p-value,
-        # and store it in a variable for later user.
-        set my_cdf  = `cdf -p2t "$my_stype" "${p_thr_val}" ${my_pars}`
-        # same name as thr val that could be put in directly
-        set thrnew  = "$my_cdf[3]"
-    else
-        echo "**ERROR: unworkable stat type!  Bad code: ${my_bstats[2]}"
-        goto BAD_EXIT
-    endif
-endif
-
-# ------------------------------------------------------------------------
+# -------------------- make temp working dir
 
 # in so many cases we need a tmp working directory
 set read_dir = "$odir/$tmp_dir"
@@ -614,256 +653,521 @@ if ( ! -e $read_dir ) then
     mkdir $read_dir
 endif
 
-# for scaling ulay uniformly with reasonable values when brightness
-# range is the same across the volume
-set urange = `echo $AFNI_IMAGE_GLOBALRANGE`
-if ( ( $urange == "VOLUME" ) || ( $urange == "DSET" )  \
-    || ( $urange == "YES" ) ) then
+# -------------------- 4D mode reslicing+assembling if necessary
 
-    if ( $USER_ULAY_RANGE ) then
-        echo "++ Copying ulay to visualize (volumetric) within user's range:"
+if ( $MODE_4D == 1 ) then
 
-        # will be 0 if no percent; otherwise, >0 if percent
-        set is_umin_perc = `echo ${umin} | awk '{print index ( $0,"%" ) }'`
-        set is_umax_perc = `echo ${umax} | awk '{print index ( $0,"%" ) }'`
+    set upre4d = "$read_dir/${spre4d}_u" # full one also has "_{1,2,3}"
 
-        if ( ($is_umin_perc > 0) && ($is_umax_perc > 0) ) then
-            # percentages!
-            set pmin  = "$umin"
-            set pmax  = "$umax"
+    # -------- deal with having/not having olay
+    set opre4d   = ""
+    set m4d_olay = ( "-pass" "-pass" )
+    if ( "$olay" != "" ) then
+        set m4d_olay = ( -olay "$olay" )
+        set opre4d = "$read_dir/${spre4d}_o" # full one also has "_{1,2,3}"
+    endif
 
-            set amin  = `3dBrickStat $ulay_nz -percentile ${umin} 1 ${umin} "$ulay"`
-            set amax  = `3dBrickStat $ulay_nz -percentile ${umax} 1 ${umax} "$ulay"`
-                
-            set umin = $amin[2]
-            set umax = $amax[2]
-
-            echo "++ Copying ulay to visualize (volumetric) within user's range:"
-            echo "  [${pmin},${pmax}] -> [${umin},${umax}]"
-
+    # ------------- translate what coor: need to reset values in other
+    # ------------- part below....
+    set m4d_loc = ( "-pass" "-pass" "-pass" "-pass" )
+    if ( $USER_COORS == 1 ) then
+        if ( "$coor_type" == "SET_IJK" ) then
+            echo "++ Will have user's chosen: $coor_type $coors"
+            set m4d_loc = ( -set_ijk $coors )
+        else if ( "$coor_type" == "SET_DICOM_XYZ" ) then
+            echo "++ Will have user's chosen: $coor_type $coors"
+            set m4d_loc = ( -set_dicom_xyz $coors )
         else
-            echo "++ Copying ulay to visualize (volumetric) within user's range:"
-            echo "   [${umin}, ${umax}]"
+            echo "** ERROR: unknown coor_type somehow?: $coor_type"
+            goto BAD_EXIT
         endif
     else
-        set ubs  = `3dBrickStat $ulay_nz -percentile 2 96 98 "$ulay"`
-        set umin = $ubs[2]
-        set umax = $ubs[4]
-
-        echo "++ Copying ulay to visualize between 2%-98% (volumetric):"
-        echo "   [${umin},${umax}]"
+        echo "+* Warning: No coordinates selected (?)."
+        echo "   Will then just be something near central in vols."
     endif
 
-    # copy over *thresholded* version to temporary read dir
-    3dcalc                                        \
-        -overwrite                                \
-        -a "$ulay"                                  \
-        -expr "a*within(a,${umin},${umax})+${umin}*step($umin-a)+${umax}*step(a-$umax)" \
-        -prefix $read_dir/$read_ulay
-
-else
-    if ( `3dinfo -datum "$ulay"` == "rgb" ) then
-        # not sure why 3dcalc won't preserve rgb-ness...
-        3dcopy                                        \
-            -overwrite                                \
-            "$ulay" $read_dir/$read_ulay
-    else
-        echo "++ For ulay, AFNI_IMAGE_GLOBALRANGE is set to be: $urange"
-        # just copy over *original* version to temporary read dir
-        3dcalc                                        \
-            -overwrite                                \
-            -a "$ulay"                                \
-            -expr "a"                                 \
-            -prefix $read_dir/$read_ulay
-    endif
-endif
-
-# always determine dim from ulay, because that's how montaging works!
-set Dim  = `3dinfo -n4 "$ulay"`
-
-# IF we don't want to see the olay, then set it to be the ulay, for
-# later simplicity with the automontaging
-if ( "$see_olay" == "-" ) then
-    echo "++ No overlay viewing"
-    set olay = ""
-    # don't need to copy anything, just set this for scripty purposes,
-    # doesn't affect visualization.
-    set read_olay = $read_ulay
-    set Dim  = `3dinfo -n4 "$ulay"`
-
+    echo "++ Start slicing ..."
+    @djunct_4d_slices_to_3d_vol                        \
+        -ulay "$ulay"                                  \
+        "$m4d_olay[1]" "$m4d_olay[2]"                  \
+        -prefix "$read_dir/$spre4d"                    \
+        "$my_clean"                                    \
+        "$m4d_loc[1]" "$m4d_loc[2]"                    \
+        "$m4d_loc[3]" "$m4d_loc[4]"
+    echo "++ ... End slicing."
+        
+    set Nreps = 3
 else
 
-    #set Dim  = `3dinfo -n4 "$olay"`
-    set read_olay = tmp_olay.nii
+    # p-to-stat calc *cannot* be done for MODE_4D, because the
+    # conversion might not be constant across slices!
 
-    3dcalc                                    \
-        -a "$olay"                            \
-        -expr 'a'                             \
-        -prefix $read_dir/$read_olay          \
-        -overwrite
+    # --------------------- p-to-stat thr capability -----------------
 
-    # set frange, if user hasn't, based on data:
-    if ( $USER_FRANGE == 0 ) then
+    set statthr = "0"
 
-        set vv = `3dBrickStat -non-zero      \
-                    -percentile 98 1 98      \
-                    $read_dir/$read_olay`
-        set frange = $vv[2]
-
-        set maxolay = `3dinfo -max $read_dir/$read_olay`
-        set minolay = `3dinfo -min $read_dir/$read_olay`
-        echo "++ No user-entered function range ('-frange ...') value."
-        echo "   --> Ergo, calculating based on 98th %ile, getting: $frange"
-        echo "   ----> ... noting that range of values is: [$minolay, $maxolay]"
-    else if ( $USER_FRANGE == 1 ) then
-        echo "++ User-entered function range value value (${frange}%)"
-    else if ( $USER_FRANGE == 2 ) then
-        set vv = `3dBrickStat -non-zero                           \
-                    -percentile $frange_perc 1 $frange_perc       \
-                    $read_dir/$read_olay`
-        set frange = $vv[2]
-        set maxolay = `3dinfo -max $read_dir/$read_olay`
-        set minolay = `3dinfo -min $read_dir/$read_olay`
-        echo "++ User-entered function range value as percentile (${frange_perc}%)"
-        echo "   --> Ergo, calculating FUNC_RANGE, getting: $frange"
-        echo "   ----> ... noting that range of values is: [$minolay, $maxolay]"
-    endif
-endif
-
-# Calculate numbers of slices in each direction, if not given by user.
-# Take number of mont wins plus a couple to calculate.
-@  Nwin  = $mx * $my
-# silly stuff to deal with orientation
-set ori  = `3dinfo -orient "$ulay"`
-set ori0 = `echo $ori | awk '{print substr($0,1,1)}'`
-set ori1 = `echo $ori | awk '{print substr($0,2,1)}'`
-set ori2 = `echo $ori | awk '{print substr($0,3,1)}'`
-set all_ori = ( $ori0 $ori1 $ori2 )
-set order  = ()
-foreach oo ( $all_ori )
-    foreach i ( `seq 1 1 ${#listori}` )
-        if ( $oo == "$listori[${i}]" ) then
-            set order  = ( $order ${listind[$i]} )
-            break
-        endif
-    end
-end
-echo "++ Cryptic info: $ori -> $all_ori -> $order"
-
-echo "++ Dimensions (xyzt): $Dim"
-
-foreach i ( `seq 1 1 3` )
-    if( $gapord[$order[$i]] <= 0 ) then
-        @ gapord[$order[$i]] = $Dim[$i] / ( $Nwin )
-        if( $gapord[$order[$i]] <= 0 ) then
-            @ gapord[$order[$i]] = 1
-        endif
-    endif
-end
-
-echo "++ Slice spacing ordered (x,y,z) is:  $gapord"
-
-# get ceilings of 'montage number + 1', in each direction
-set xo2 = `echo "scale=2; ( $mx + 1 ) / 2." | bc`
-set cmx = `echo $xo2 | perl -nl -MPOSIX -e 'print ceil($_);'`
-set yo2 = `echo "scale=2; ( $my + 1 ) / 2." | bc`
-set cmy = `echo $yo2 | perl -nl -MPOSIX -e 'print ceil($_);'`
-
-@ tot     = $mx * $my 
-@ hpan    = ( ( $cmy - 1 ) * $mx ) + $cmx    
-#echo "$cmx $cmy $tot $hpan"
-set pfrac = `echo "scale=5; ( $hpan / ( $tot + 1 ) ) " | bc` # ????
-echo "++ pfrac = $pfrac"
-
-# These need to reflect the order of the original.  Ugh, annoying
-# conditions.
-if ( $USER_COORS == 1 ) then
-    if ( "$coor_type" == "SET_IJK" ) then
-        echo "++ Will have user's chosen: $coor_type $coors"
-    else if ( "$coor_type" == "SET_DICOM_XYZ" ) then
-        echo "++ Will have user's chosen: $coor_type $coors"
-    else
-        echo "** ERRROR: unknown coor_type somehow?: $coor_type"
+    if ( "${p_thr_val}" != "" && "${p_thr_side}" == "" ) then
+        echo "** ERROR!"
+        echo "   You specified a p-value to convert, but not the sidedness!"
+        echo "   Select the sidedness and enter it with '-thr_olay_pside ..'"
         goto BAD_EXIT
     endif
-else
-    foreach i ( `seq 1 1 3` )
-        set qfrac = `echo "scale=5; ( $pfrac ) " | bc` # frac to center
-        set qsh   = ""#+ 1"                             # zerobase count offset
-        if ( ( $all_ori[$i] == 'R' ) || ( $all_ori[$i] == 'P' )  \
-            || ( $all_ori[$i] == 'S' ) ) then
-            #echo "++ Coor calc:  $all_ori[$i] for $order[$i]"
-            set qfrac = `echo "scale=5; ( 1 - $pfrac ) " | bc`
-        #else
-        #    echo "++ Coor value: $all_ori[$i] for $order[$i]"
-        endif
-        set nn        = `echo "scale=0; ( ( $Dim[$i] * $qfrac ) $qsh )" | bc`
-        set coors[$i] = `echo $nn | perl -nl -MPOSIX -e 'print floor($_);'`
-    end
-    echo "++ Will have: $coor_type $coors"
-endif
 
-echo "\n------------------- end of optionizing -------------------\n" 
+    # Get info stored in header about: what kind of stat is stored,
+    # what params are known about it (e.g., degrees of freedom), and
+    # use that to calculate a value corresponding to user's selected
+    # p-value.  This involves "reading attributes" from the header
+    # with 3dAttribute. To learn more about these numbers, see:
+    # https://afni.nimh.nih.gov/pub/dist/doc/program_help/README.attributes.html
+    # Need 3 conditions here: a pval entered, **a type of sidedness**,
+    # and a subbrick index for the thr dset specified
+    if ( "${p_thr_val}" != "" && "${p_thr_side}" != "" \
+         && $subbb[3] >= 0 ) then
 
-# -------------------------------------------------------------------
-# ------------------------- Make virtual frame ----------------------
+        echo "++ Will calc threshold based on stat in [${subbb[3]}] brick"
 
-########## NB: D. Godlove suggests this unnecessary, using instead
-##########     `xvfb-run -a ...` below for afni command.
-# start the X virtual frame buffer on display #xdisplay, a la bob
+        set thrnew = `p2dsetstat                       \
+                        -inset   "$olay""[$subbb[3]]"  \
+                        -pval    "${p_thr_val}"        \
+                        -"${p_thr_side}"               \
+                        -quiet`
 
-set ranval = `count -dig 1 1 999999 R1`
-
-if( $?xdisplay == 0 )then
-  set killX     = 1
-  set ntry      = 1
-  set Xnotfound = 1
-  while( $Xnotfound )
-    set xdisplay = `count -dig 1 3 999 R1`
-    if( -e /tmp/.X${xdisplay}-lock ) continue
-    echo " -- trying to start Xvfb :${xdisplay}"
-    Xvfb :${xdisplay} -screen 0 1024x768x24 &
-    sleep 1
-    jobs > zzerm.$ranval.txt
-    grep -q Xvfb zzerm.$ranval.txt
-    set Xnotfound = $status
-    \rm -f zzerm.$ranval.txt
-    if( $Xnotfound == 0 )break ;
-    @ ntry++
-    if( $ntry > 99 )then
-      echo "** ERROR: can't start Xvfb -- exiting"
-      goto BAD_EXIT
+        echo "++ Converted p=${p_thr_val} with ${p_thr_side} testing"
+        echo "   to stat value: ${thrnew}"
     endif
-  end
+
 endif
 
-setenv DISPLAY :${xdisplay}
-set OW = "OPEN_WINDOW"
+# ================== now get serious ============================
 
-# -------------------------------------------------------------------
-# ---------------- The actual, driven command! ----------------------
+# will have 3 loops if in MODE_4D; otherwise, just one
+foreach rrr ( `seq 1 1 $Nreps` )  ### the BIG loop starts
 
-#xvfb-run -d --server-args="-screen 0 1024x768x24" -w 0  \
-afni -noplugins -no_detach  -echo_edu                           \
-     -com "SWITCH_UNDERLAY ${read_ulay}"                            \
-     -com "SWITCH_OVERLAY  ${read_olay}"                            \
-     -com "SEE_OVERLAY     ${see_olay}"                             \
-     -com "SET_PBAR_ALL    ${pbar_sign}${ncolors} $topval $my_cbar" \
-     -com "SET_SUBBRICKS   ${subbb}"                                \
-     -com "SET_FUNC_RANGE  ${frange}"                               \
-     -com "SET_THRESHNEW   $thrnew $thrflag"                        \
-     -com "SET_FUNC_ALPHA  $alpha_par $alpha_floor"                 \
-     -com "SET_FUNC_RESAM  ${func_resam}.${func_resam}"             \
-     -com "SET_XHAIRS  ${crossh}"                                   \
-     -com "$OW sagittalimage opacity=${opac} mont=${mx}x${my}:${gapord[1]} crop=${scropx[1]}:${scropx[2]},${scropy[1]}:${scropy[2]}" \
-     -com "$OW coronalimage  opacity=${opac} mont=${mx}x${my}:${gapord[2]} crop=${ccropx[1]}:${ccropx[2]},${ccropy[1]}:${ccropy[2]}" \
-     -com "$OW axialimage    opacity=${opac} mont=${mx}x${my}:${gapord[3]} crop=${acropx[1]}:${acropx[2]},${acropy[1]}:${acropy[2]}" \
-     -com "$coor_type $coors"                                          \
-     -com "SAVE_${ftype} sagittalimage ${odir}/${impref}.sag blowup=${bufac}" \
-     -com "SAVE_${ftype} coronalimage  ${odir}/${impref}.cor blowup=${bufac}" \
-     -com "SAVE_${ftype} axialimage    ${odir}/${impref}.axi blowup=${bufac}" \
-     -com "${do_quit}"                                                        \
-     "${read_dir}"
+    if ( $MODE_4D ) then
+
+        set ulay = ${upre4d}_${rrr}.nii.gz
+        if ( "$opre4d" != "" ) then
+            set olay = ${opre4d}_${rrr}.nii.gz
+        endif
+
+        # this calc pad was calc'ed earlier and passed along with each
+        # input dset, using @djunct_calc_mont_dims.py
+        set calc_pad = "${upre4d}_${rrr}.dat"
+        set padpars  = `grep -v "#" $calc_pad`
+        set Nsli     = $padpars[1]
+        set Npad     = $padpars[2]
+        set Ncol     = $padpars[3]
+        set Nrow     = $padpars[4]
+
+        # override settings user migth set, for specific 4D case
+        if ( ( "$ftype" == "AGIF" ) || ( "$ftype" == "MPEG" ) ) then
+            set mx = 1
+            set my = 1
+            set coors  = ( 0 0 0 )
+        else
+            set mx = $Ncol
+            set my = $Nrow
+            set coors  = ( 0 0 0 )
+            set mrow   = `echo " ( $Nrow / 2 ) " | bc` 
+            set mcol   = `echo " ( $Ncol / 2 ) " | bc` 
+            set midsli = `echo " ( $Ncol * $mrow ) + $mcol " | bc` 
+            set coors[$rrr] = $midsli
+        endif
+
+        set gapord = ( 1 1 1 )
+        set USER_COORS = 1
+        set coor_type = "SET_IJK"
+
+    endif
+
+    # ----------------------------------------------------------------
+
+    # for scaling ulay uniformly with reasonable values when brightness
+    # range is the same across the volume
+    set urange = `echo $AFNI_IMAGE_GLOBALRANGE`
+
+    if ( ( $urange == "VOLUME" ) || ( $urange == "DSET" )  \
+        || ( $urange == "YES" ) ) then
+
+        if ( $USER_ULAY_RANGE ) then
+            echo "++ Copy ulay to visualize (volumetric) within user's range:"
+
+            # will be 0 if no percent; otherwise, >0 if percent
+            set is_umin_perc = `echo ${umin} | awk '{print index ( $0,"%" ) }'`
+            set is_umax_perc = `echo ${umax} | awk '{print index ( $0,"%" ) }'`
+
+            if ( ($is_umin_perc > 0) && ($is_umax_perc > 0) ) then
+                # percentages!
+
+                set pmin  = "$umin"
+
+                # this silliness allows for percentiles > 100, which
+                # means that a valid ${umax_magic}%ile value is scaled
+                # up.
+                set pmax_orig  = "$umax"
+                # remove "%"
+                set umax = `echo "$umax" | \
+                                awk '{print substr($0,1,length($0)-1)}'`
+                if ( `echo " $umax > 100 " | bc` ) then
+                    set umax_scale = `echo "scale=5; \
+                                        $umax / ${umax_magic} " | bc`
+                    set umax = "$umax_magic"
+                    echo "++ Ulay range calc for >100%ile ulay max:"
+                    echo "   calculating ${umax}%ile value, and then"
+                    echo "   multiplying it by a scale factor = $umax_scale,"
+                    echo "   in order to produce the ${umax}%ile value"
+                endif
+
+                set pmax  = "$umax"
+
+                if ( $MODE_4D ) then
+                    # utilized perc val is max of the 3 sep volumes at
+                    # that perc
+                    set amax = "$BIGNEG"
+                    foreach jjj ( `seq 1 1 3` ) 
+                        set vvv = `3dBrickStat  $olay_nz          \
+                                    -percentile ${pmax} 1 ${pmax} \
+                                    "${upre4d}_${jjj}.nii.gz"`
+                        if ( `echo " $vvv[2] > $amax " | bc` ) then
+                            set amax = "$vvv[2]"
+                        endif
+                    end
+                    # and check
+                    if ( `echo " $BIGNEGp1 > $amax " | bc` ) then
+                        echo "** ERROR! Badness in make 4D percentile table!"
+                        echo "   Does ulay have very large, negative values?"
+                        goto BAD_EXIT
+                    endif
+
+                    # same for min
+                    set amin = $amax
+                    foreach jjj ( `seq 1 1 3` ) 
+                        set vvv = `3dBrickStat  $olay_nz          \
+                                    -percentile ${pmin} 1 ${pmin} \
+                                    "${upre4d}_${jjj}.nii.gz"`
+                        if ( `echo " $vvv[2] < $amin " | bc` ) then
+                            set amin = "$vvv[2]"
+                        endif
+                    end
+                    # and check
+                    if ( `echo " $amin > $amax " | bc` ) then
+                        echo "** ERROR! Badness in make 4D percentile table!"
+                        echo "   ulay min > ulay max??"
+                        goto BAD_EXIT
+                    endif
+                    
+                    set umin = $amin
+                    set umax = `echo " $amax * $umax_scale " | bc`
+                else
+                    set amin  = `3dBrickStat $ulay_nz \
+                                    -percentile ${pmin} 1 ${pmin} "$ulay"`
+                    set amax  = `3dBrickStat $ulay_nz \
+                                    -percentile ${pmax} 1 ${pmax} "$ulay"`
+                    set umin = $amin[2]
+                    set umax = `echo " $amax[2] * $umax_scale " | bc`
+                endif
+
+                echo "++ Ulay to be visualized within user range:"
+                echo "  [${pmin}, ${pmax_orig}] -> [${umin}, ${umax}]"
+
+            else
+                echo "++ Ulay to be visualized within user range:"
+                echo "   [${umin}, ${umax}]"
+            endif
+
+            # need to unset this variable for this drive command to be
+            # effective
+            unsetenv AFNI_IMAGE_GLOBALRANGE 
+            set com_ulay_str = "SET_ULAY_RANGE A.all $umin $umax"  
+        endif
+
+        # Special behavior if ulay max %ile is > 100; copy over
+        # *ceilinged* version to temporary read dir
+        if ( $umax_scale != 1 ) then
+            3dcalc                                        \
+                -overwrite                                \
+                -a "$ulay"                                \
+                -expr "a*within(a,${umin},${amax[2]})     \
+                        + ${umin}*step($umin-a)           \
+                        + ${amax[2]}*step(a-${amax[2]})"  \
+                -prefix $read_dir/$read_ulay
+        else
+
+            # copy over dset temporary read dir; with new SET_ULAY_RANGE,
+            # don't need to threshold artificially.
+            3dcalc                                        \
+                -overwrite                                \
+                -a "$ulay"                                \
+                -expr "a"                                 \
+                -prefix $read_dir/$read_ulay
+        endif
+
+    else
+        if ( `3dinfo -datum "$ulay"` == "rgb" ) then
+            # not sure why 3dcalc won't preserve rgb-ness...
+            3dcopy                                        \
+                -overwrite                                \
+                "$ulay" $read_dir/$read_ulay
+        else
+            echo "++ For ulay, AFNI_IMAGE_GLOBALRANGE is set to be: $urange"
+            # just copy over *original* version to temporary read dir
+            3dcalc                                        \
+                -overwrite                                \
+                -a "$ulay"                                \
+                -expr "a"                                 \
+                -prefix $read_dir/$read_ulay
+        endif
+    endif
+
+    # always determine dim from ulay, because that's how montaging works!
+    set Dim  = `3dinfo -n4 "$ulay"`
+
+    # IF we don't want to see the olay, then set it to be the ulay, for
+    # later simplicity with the automontaging
+    if ( "$see_olay" == "-" ) then
+        echo "++ No overlay viewing"
+        set olay = ""
+        # don't need to copy anything, just set this for scripty purposes,
+        # doesn't affect visualization.
+        set read_olay = $read_ulay
+        set Dim  = `3dinfo -n4 "$ulay"`
+    else
+        set read_olay = tmp_olay.nii
+
+        3dcalc                                    \
+            -a "$olay"                            \
+            -expr 'a'                             \
+            -prefix $read_dir/$read_olay          \
+            -overwrite
+
+        if ( $USER_FRANGE == 1 ) then
+            # just a number, no translation necessary even in MODE_4D case
+            echo "++ User-entered function range value value (${frange})"
+        else
+
+            # set frange, if user hasn't, based on data:
+            if ( $USER_FRANGE == 0 ) then
+                # match more with GUI behavior, if user enters nothing
+                set frange_perc = 100
+            else
+                # in this case, just check that the user-entered value
+                # is in an OK range
+                if ( ( `echo " $frange_perc < 0   " | bc` ) || \
+                     ( `echo " $frange_perc > 100 " | bc` ) ) then
+                    echo "**ERROR! bad olay percentile: $frange_perc."
+                    echo "  Must be [0, 100]."
+                    goto BAD_EXIT
+                endif
+            endif
+
+            if ( $MODE_4D ) then
+                # utilized perc val is max of the 3 sep volumes at
+                # that perc
+                set frange = "$BIGNEG"
+                foreach jjj ( `seq 1 1 3` ) 
+                    set vvv = `3dBrickStat  $olay_nz          \
+                                -percentile ${frange_perc} 1 ${frange_perc} \
+                                "${opre4d}_${jjj}.nii.gz"`
+                    if ( `echo " $vvv[2] > $frange " | bc` ) then
+                        set frange = "$vvv[2]"
+                    endif
+                end
+                # and check
+                if ( `echo " $BIGNEGp1 > $frange " | bc` ) then
+                    echo "** ERROR! Badness in make 4D percentile table!"
+                    echo "   Does olay have very large, negative values?"
+                    goto BAD_EXIT
+                endif
+            else
+                # match more with GUI behavior, if user enters nothing
+                set vvv = `3dBrickStat  $olay_nz          \
+                                -percentile ${frange_perc} 1 ${frange_perc} \
+                                $read_dir/$read_olay`
+                set frange  = "$vvv[2]"
+            endif
+
+            echo "++ For olay, the ${frange_perc}%ile value leads to"
+            echo "   --> upper range value: $frange"
+        endif
+    endif
+
+    # Calculate numbers of slices in each direction, if not given by user.
+    # Take number of mont wins plus a couple to calculate.
+    @  Nwin  = $mx * $my
+    # silly stuff to deal with orientation
+    set ori  = `3dinfo -orient "$ulay"`
+    set ori0 = `echo $ori | awk '{print substr($0,1,1)}'`
+    set ori1 = `echo $ori | awk '{print substr($0,2,1)}'`
+    set ori2 = `echo $ori | awk '{print substr($0,3,1)}'`
+    set all_ori = ( $ori0 $ori1 $ori2 )
+    set order  = ()
+    foreach oo ( $all_ori )
+        foreach i ( `seq 1 1 ${#listori}` )
+            if ( $oo == "$listori[${i}]" ) then
+                set order  = ( $order ${listind[$i]} )
+                break
+            endif
+        end
+    end
+    echo "++ Cryptic info: $ori -> $all_ori -> $order"
+
+    echo "++ Dimensions (xyzt): $Dim"
+
+    foreach i ( `seq 1 1 3` )
+        if( $gapord[$order[$i]] <= 0 ) then
+            @ gapord[$order[$i]] = $Dim[$i] / ( $Nwin )
+            if( $gapord[$order[$i]] <= 0 ) then
+                @ gapord[$order[$i]] = 1
+            endif
+        endif
+    end
+
+    echo "++ Slice spacing ordered (x,y,z) is:  $gapord"
+
+    # get ceilings of 'montage number + 1', in each direction
+    set xo2 = `echo "scale=2; ( $mx + 1 ) / 2." | bc`
+    set cmx = `echo $xo2 | perl -nl -MPOSIX -e 'print ceil($_);'`
+    set yo2 = `echo "scale=2; ( $my + 1 ) / 2." | bc`
+    set cmy = `echo $yo2 | perl -nl -MPOSIX -e 'print ceil($_);'`
+
+    @ tot     = $mx * $my 
+    @ hpan    = ( ( $cmy - 1 ) * $mx ) + $cmx    
+    #echo "$cmx $cmy $tot $hpan"
+    set pfrac = `echo "scale=5; ( $hpan / ( $tot + 1 ) ) " | bc` # ????
+    echo "++ pfrac = $pfrac"
+
+    # These need to reflect the order of the original.  Ugh, annoying
+    # conditions.
+    if ( $USER_COORS == 1 ) then
+        if ( "$coor_type" == "SET_IJK" ) then
+            echo "++ Will have user's chosen: $coor_type $coors"
+        else if ( "$coor_type" == "SET_DICOM_XYZ" ) then
+            echo "++ Will have user's chosen: $coor_type $coors"
+        else
+            echo "** ERROR: unknown coor_type somehow?: $coor_type"
+            goto BAD_EXIT
+        endif
+    else
+        foreach i ( `seq 1 1 3` )
+            set qfrac = `echo "scale=5; ( $pfrac ) " | bc` # frac to center
+            set qsh   = ""#+ 1"                            # 0-base count offset
+            if ( ( $all_ori[$i] == 'R' ) || ( $all_ori[$i] == 'P' )  \
+                || ( $all_ori[$i] == 'S' ) ) then
+                #echo "++ Coor calc:  $all_ori[$i] for $order[$i]"
+                set qfrac = `echo "scale=5; ( 1 - $pfrac ) " | bc`
+            #else
+            #    echo "++ Coor value: $all_ori[$i] for $order[$i]"
+            endif
+            set nn = `echo "scale=0; ( ( $Dim[$i] * $qfrac ) $qsh )" | bc`
+            set coors[$i] = `echo $nn | perl -nl -MPOSIX -e 'print floor($_);'`
+        end
+        echo "++ Will have: $coor_type $coors"
+    endif
+
+    echo "\n------------------- end of optionizing -------------------\n" 
+
+    # -------------------------------------------------------------------
+    # ------------------------- Make virtual frame ----------------------
+
+    # start the X virtual frame buffer on display #xdisplay, a la bob
+
+    if ( $rrr == 1 ) then ### only need to start once, i.e., if in MODE_4D
+        set ranval = `count -dig 1 1 999999 R1`
+
+        if ( $?xdisplay == 0 ) then
+          set killX     = 1
+          set ntry      = 1
+          set Xnotfound = 1
+          while( $Xnotfound )
+            set xdisplay = `count -dig 1 3 999 R1`
+            if( -e /tmp/.X${xdisplay}-lock ) continue
+            echo " -- trying to start Xvfb :${xdisplay}"
+            Xvfb :${xdisplay} -screen 0 1024x768x24 &
+            sleep 1
+            jobs > zzerm.$ranval.txt
+            grep -q Xvfb zzerm.$ranval.txt
+            set Xnotfound = $status
+            \rm -f zzerm.$ranval.txt
+            if ( $Xnotfound == 0 ) break ;
+            @ ntry++
+            if ( $ntry > 99 ) then
+              echo "** ERROR: can't start Xvfb -- exiting"
+              goto BAD_EXIT
+            endif
+          end
+        endif
+
+        setenv DISPLAY :${xdisplay}
+        set OW = "OPEN_WINDOW"
+
+    endif
+
+    # -------------------------------------------------------------------
+    # ---------------- The actual, driven command! ----------------------
+
+    if ( $MODE_4D ) then
+
+        afni -noplugins -no_detach  -echo_edu                               \
+             -com "SWITCH_UNDERLAY ${read_ulay}"                            \
+             -com "SWITCH_OVERLAY  ${read_olay}"                            \
+             -com "SEE_OVERLAY     ${see_olay}"                             \
+             -com "SET_PBAR_ALL    ${pbar_sign}${ncolors} $topval $my_cbar" \
+             -com "SET_SUBBRICKS   ${subbb}"                                \
+             -com "$com_ulay_str"                                           \
+             -com "SET_FUNC_RANGE  ${frange}"                               \
+             -com "SET_THRESHNEW   $thrnew $thrflag"                        \
+             -com "SET_FUNC_ALPHA  $alpha_par $alpha_floor"                 \
+             -com "SET_FUNC_RESAM  ${func_resam}.${func_resam}"             \
+             -com "SET_XHAIRS  ${crossh}"                                   \
+             -com "$OW ${ppord[$rrr]}image opacity=${opac}                  \
+                    mont=${mx}x${my}:${gapord[3]}                           \
+                    crop=${acropx[1]}:${acropx[2]},${acropy[1]}:${acropy[2]}" \
+             -com "$coor_type $coors"                                       \
+             -com "SAVE_${ftype} ${ppord[$rrr]}image                        \
+                    ${odir}/${impref}.${pord[$rrr]}                         \
+                    blowup=${bufac}"                                        \
+             -com "${do_quit}"                                              \
+             "${read_dir}"
+
+
+    else
+         #   "$com_ulay_str"                                                \
+
+        #xvfb-run -d --server-args="-screen 0 1024x768x24" -w 0  \
+        afni -noplugins -no_detach  -echo_edu                               \
+             -com "SWITCH_UNDERLAY ${read_ulay}"                            \
+             -com "SWITCH_OVERLAY  ${read_olay}"                            \
+             -com "SEE_OVERLAY     ${see_olay}"                             \
+             -com "SET_PBAR_ALL    ${pbar_sign}${ncolors} $topval $my_cbar" \
+             -com "SET_SUBBRICKS   ${subbb}"                                \
+             -com "$com_ulay_str"                                           \
+             -com "SET_FUNC_RANGE  ${frange}"                               \
+             -com "SET_THRESHNEW   $thrnew $thrflag"                        \
+             -com "SET_FUNC_ALPHA  $alpha_par $alpha_floor"                 \
+             -com "SET_FUNC_RESAM  ${func_resam}.${func_resam}"             \
+             -com "SET_XHAIRS  ${crossh}"                                   \
+             -com "$OW sagittalimage opacity=${opac}                        \
+                    mont=${mx}x${my}:${gapord[1]}                           \
+                    crop=${scropx[1]}:${scropx[2]},${scropy[1]}:${scropy[2]}" \
+             -com "$OW coronalimage  opacity=${opac}                        \
+                    mont=${mx}x${my}:${gapord[2]}                           \
+                    crop=${ccropx[1]}:${ccropx[2]},${ccropy[1]}:${ccropy[2]}" \
+             -com "$OW axialimage    opacity=${opac}                        \
+                    mont=${mx}x${my}:${gapord[3]}                           \
+                    crop=${acropx[1]}:${acropx[2]},${acropy[1]}:${acropy[2]}" \
+             -com "$coor_type $coors"                                       \
+             -com "SAVE_${ftype} sagittalimage ${odir}/${impref}.sag        \
+                    blowup=${bufac}"                                        \
+             -com "SAVE_${ftype} coronalimage  ${odir}/${impref}.cor        \
+                    blowup=${bufac}"                                        \
+             -com "SAVE_${ftype} axialimage    ${odir}/${impref}.axi        \
+                    blowup=${bufac}"                                        \
+             -com "${do_quit}"                                              \
+             "${read_dir}"
+
+    endif
+
+end ### ... of BIG loop
 
 # A la bob:  stop Xvfb if we started it ourselves
 if( $?killX ) kill %1
@@ -895,6 +1199,8 @@ SHOW_HELP:
 
 cat <<EOF
 
+OVERVIEW ~1~
+
 This was originally a helper function in processing scripts, to take
 quality control (QC) snapshots automatically.  It wraps around a lot
 (but not all) of the veeery useful "driving AFNI" functionality.  You,
@@ -902,16 +1208,16 @@ dear user, can still accomplish all the same with those commands, but
 I just wanted to add in some other calculations, as well, to try to
 make the process of generating montages of images easier.
 
-The purpose of this function is to generate montage images easily and quickly
-while processing-- even if on a remote server (because it uses xvfb to
-make a virtual X11 environment)-- to be able to see what is happening in
-data processing at useful stages: for example, alignment of two sets
-without having to click any buttons in the AFNI GUI.  This makes it
-easier to review batch processing, discuss processing with one's boss,
-prepare for a presentation or publication, etc. For example, this
-program is used in most all of FATCAT's fat_proc_* scripts, and even
-TORTOISE includes calls to it for auto-QC imaging if the user has AFNI
-installed (and suuuurely they should??).
+The purpose of this function is to generate montage images easily and
+quickly while processing-- even if on a remote server (because it uses
+xvfb to make a virtual X11 environment)-- to be able to see what is
+happening in data processing at useful stages: for example, alignment
+of two sets without having to click any buttons in the AFNI GUI.  This
+makes it easier to review batch processing, discuss processing with
+one's boss, prepare for a presentation or publication, etc. For
+example, this program is used in most all of FATCAT's fat_proc_*
+scripts, and even TORTOISE includes calls to it for auto-QC imaging if
+the user has AFNI installed (and suuuurely they should??).
 
 Each call to this function will make a set of montages in the axial,
 coronal and sagittal planes, of user-specified dimensionality.
@@ -928,9 +1234,16 @@ References to these are sometimes noted explicitely with "see DR" or
 "see ENV", respectively, and potentially with the particular variable.
 For example, "(see ENV: SAVE_AGIF)".
 
+Added ~July 15, 2018: the capability to select a single slice across a
+4D data set and to view it with both underlay and overlay options
+(hitherto, @djunct_4d_imager had a subset of this capability but only
+for ulays).
+
 ++ constructed by PA Taylor (NIMH, NIH, USA).
 
 # =========================================================================
+
+COMMAND OPTIONS ~1~
 
 -help, -h          :see helpfile (here!)
 -ver               :see version number
@@ -941,6 +1254,22 @@ For example, "(see ENV: SAVE_AGIF)".
 
 -olay    OOO       :name of overlay dset (opt).
 
+-mode_4D           :for each viewing plane (sag, cor, axi) one slice
+                    is selected across all volumes in a 4D data set
+                    (e.g., using one of the "-set_* .." opts, below).
+                    A montage of those slices is made for any ulay UUU
+                    and olay OOO selected.  Note that with this
+                    option:
+                    + the user cannot thresold by statistic with the 
+                      "-thr_olay_p2stat .." opt (-> because different
+                      stats in a volume might have different conversions)
+                    + when using this opt, at least on of UUU and OOO 
+                      *must* have >1 volumes.
+                    + if one of the ulay/olay volumes has only one brick, 
+                      it will be viewed in the same way across the entire
+                      montage (i.e., as if it were a constant volume
+                      throughout 'time').
+
 -olay_off          :explicitly state you are not using olay (opt);
                     if not used and no olay is given, then the user
                     just gets prompted to be sure they haven't 
@@ -948,8 +1277,106 @@ For example, "(see ENV: SAVE_AGIF)".
 
 -prefix  PPP       :prefix for output files (required).
 
+-ulay_range UMIN UMAX :specify min and max range values of ulay dset;
+                    if a "%" is on both numbers, then treat the
+                    numerical part of UMIN and UMAX as percentiles
+                    from which to calculate actual values; otherwise,
+                    treat UMIN and UMAX as values directly. (def:
+                    UMIN=0% and UMAX=98%). (See DR: SET_ULAY_RANGE)
+                    Also, see "Special Ulay Range" and "Combining %ile
+                    values..." in NOTES, below.
+
+-ulay_range_nz UMIN UMAX 
+                   :same as the preceding opt, but when "%" is on both
+                    numbers, here the percentiles are only calculated
+                    over the *non-zero* voxels.  The above one is more
+                    in line with the AFNI GUI default behavior for
+                    percentile calcs (though GUI by default works
+                    slicewise). If %ile values are not given, then
+                    both this and the above option produce identical
+                    results for the same UMIN and UMAX values.  (See
+                    DR: SET_ULAY_RANGE) "Special Ulay Range" and
+                    "Combining %ile values..." in NOTES, below.
+
+-globalrange  GR   :specify how lookup range for matching ulay values
+                    is done (def: VOLUME);
+                    (see ENV: AFNI_IMAGE_GLOBALRANGE)
+                    Ignored if '-ulay_range* ..' is set.
+                    Note for '-mode_4D': this setting applies to the
+                    resliced volume (i.e., the one made of one slice
+                    of each subbrick).  See "Combining %ile
+                    values..." in NOTES, below.
+
+-func_range FR     :specify upper value FR of the olay dset to be
+                    matched to top of colorbar (def: calc 98%ile non-zero
+                    value of dset and use that).
+
+-func_range_perc_nz FRP 
+                   :alternative to "-func_range ..."; specify a
+                    percentile value FRP to use to make the upper
+                    value of the olay dset to be matched to the top of
+                    the colorbar (def: calc 98%ile non-zero value of dset 
+                    and use that).  NB: this percentile range is always
+                    among *non-zero* voxel values with this option; see 
+                    below.
+
+-func_range_perc FRP :same as above option, but this is a percentile
+                   among *all* voxel values, not just those with
+                   non-zero values.
+
+-func_resam  RES   :set the resampling mode for dsets; valid values
+                    are:   NN  Li  Cu  Bk
+                    (def: NN; hey, voxels are voxels!). 
+                    (See DR: SET_FUNC_RESAM)
+
+-thr_olay THR      :threshold the olay dset at THR (def: 0, or
+                    unthreshold). If you are thresholding a statistic
+                    brick, then you should see the "-thr_olay_p2stat ..."
+                    option, below. (See DR: SET_THRESHNEW)
+-thrflag   'fff'   :further control of how the THR value is interpreted 
+                    (def: "*"). (See DR: SET_THRESHNEW)
+
+-thr_olay_p2stat PP :an alternative way to specify a voxelwise
+                    threshold (i.e., instead of "-thr_olay ..."), when
+                    thresholding based on a statistic; you can specify
+                    the p-value you want, and using internal header
+                    information, the appropriate value for whatever
+                    statistic is in the statistic brick will be
+                    calculated and applied; you likely need to use
+                    "-set_subbricks i j k" with this, where 'k' would
+                    be the index of the statistic brick (and likely
+                    'j' would be the index of the associated
+                    coefficient/beta brick; 'i' would be the brick of
+                    the underlay volume, and if there is only a single
+                    volume there, it could just be either '0' or
+                    '-1'). And see next option '-thr_olay_pside', below.
+
+-thr_olay_pside SS :(required if using '-thr_olay_p2stat ..') specify the
+                    sidedness of the testing for the conversion of 
+                    p-to-stat.  Valid values for SS at present include:
+                        bisided
+                        2sided 
+                        1sided
+
 -cbar    CCC       :specify a new colorbar, where CCC can be any of the
                     cbars in the standard AFNI list (def: $my_cbar).
+
+-pbar_posonly      :for color range specification, default is to use
+                    both positive and negative values; enter this flag
+                    to use only the positive range. (See DR:
+                    SET_PBAR_ALL)
+
+-cbar_ncolors NC   :set colorscale mode (def: 99) (See DR:
+                    SET_PBAR_ALL, the 2nd usage case, description
+                    about '99').
+
+-cbar_topval  TOPV :set colorscale mode (def: 1) (See DR:
+                    SET_PBAR_ALL, the 2nd usage case, description
+                    about 'topval').
+
+-opacity   OO      :enter an "opacity factor" for the olay, where OO is 
+                    an integer in the interval [0, 9], with the 9 being
+                    opaque (see DR).
 
 -blowup  BB        :enter a "blowup factor", where BB is an integer 
                     in the interval [1, 8].  Increases spatial resolution
@@ -957,10 +1384,6 @@ For example, "(see ENV: SAVE_AGIF)".
 
 -set_xhairs XX     :specify type and/or existence of crosshairs in the
                     image (see DR: SET_XHAIRS).
-
--opacity   OO      :enter an "opacity factor" for the olay, where OO is 
-                    an integer in the interval [0, 9], with the 9 being
-                    opaque (see DR).
 
 -delta_slices DS DC DA :when montaging, (DS, DC, DA) is the integer
                      number of slices to use as spacing between views
@@ -978,67 +1401,21 @@ For example, "(see ENV: SAVE_AGIF)".
                      while the cor and axi spacing would be automatically 
                      calculated.
 
--thr_olay THR      :threshold the olay dset at THR (def: 0, or
-                    unthreshold). If you are thresholding a statistic
-                    brick, then you should see the "-thr_olay_p2stat ..."
-                    option, below. (See DR: SET_THRESHNEW)
--thrflag   'fff'   :further control of how the THR value is interpreted 
-                    (def: "*"). (See DR: SET_THRESHNEW)
--thr_olay_p2stat PP :an alternative way to specify a voxelwise
-                    threshold (i.e., instead of "-thr_olay ..."), when
-                    thresholding based on a statistic; you can specify
-                    the p-value you want, and using internal header
-                    information, the appropriate value for whatever
-                    statistic is in the statistic brick will be
-                    calculated and applied; you likely need to use
-                    "-set_subbricks i j k" with this, where 'k' would
-                    be the index of the statistic brick (and likely
-                    'j' would be the index of the associated
-                    coefficient/beta brick; 'i' would be the brick of
-                    the underlay volume, and if there is only a single
-                    volume there, it could just be either '0' or
-                    '-1').
+-set_subbricks i j k :for 3D image viewing, specify subbricks being
+                    viewed in the ulay, olay and threshold dsets (def:
+                    "-1 -1 -1", which means ignore these values).
+                    This is the way to specify different overlay and
+                    threshold subbricks for displaying, such as using
+                    the "beta" or "coefficient" for color and the
+                    "statistic" as the threshold level.  (See DR:
+                    SET_SUBBRICKS)
 
--set_subbricks i j k :specify subbricks being viewed in the ulay, olay
-                    and threshold dsets (def: "-1 -1 -1", which means
-                    ignore these values).  This is the way to specify 
-                    different overlay and threshold subbricks for 
-                    displaying, such as using the "beta" or "coefficient"
-                    for color and the "statistic" as the threshold level.
-                    (See DR: SET_SUBBRICKS)
-
--func_range FR     :specify upper value FR of the olay dset to be
-                    matched to top of colorbar (def: calc 98%ile value
-                    of dset and use that).
-
--func_range_perc FRP :alternative to "-func_range ..."; specify a
-                    percentile value FRP to use to make the upper
-                    value of the olay dset to be matched to the top of
-                    the colorbar (def: calc 98%ile value of dset and
-                    use that).
-
--pbar_posonly      :for color range specification, default is to use
-                    both positive and negative values; enter this flag
-                    to use only the positive range. (See DR:
-                    SET_PBAR_ALL)
-
--func_resam  RES   :set the resampling mode for dsets; valid values
-                    are:   NN  Li  Cu  Bk
-                    (def: NN; hey, voxels are voxels!). 
-                    (See DR: SET_FUNC_RESAM)
-
--cbar_ncolors NC   :set colorscale mode (def: 99) (See DR:
-                    SET_PBAR_ALL, the 2nd usage case, description
-                    about '99').
-
--cbar_topval  TOPV :set colorscale mode (def: 1) (See DR:
-                    SET_PBAR_ALL, the 2nd usage case, description
-                    about 'topval').
-
--save_ftype  FTYPE :type of file as which to save images; key types
-                    are listed in the Driver description (def: PNG)
-                    (See DR: SAVE_ALLJPEG, SAVE_ALLPNG, SAVE_MPEG,
-                    SAVE_AGIF, SAVE_JPEG, SAVE_PNG)
+-save_ftype  FTYPE :type of file as which to save images; key types are
+                    listed in the Driver description (def: PNG) (See
+                    DR: SAVE_ALLJPEG, SAVE_ALLPNG, SAVE_MPEG,
+                    SAVE_AGIF, SAVE_JPEG, SAVE_PNG; for which the user
+                    would enter just the non-"SAVE_" part, just as
+                    "PNG", "MPEG", etc.)
 
 -set_ijk  II JJ KK :Set the controller coordinates to the given
                     triple, which are integer index selectors along
@@ -1051,16 +1428,17 @@ For example, "(see ENV: SAVE_AGIF)".
                     AFNI's favorite RAI DICOM notation.  (def: for
                     each coordinate, choose middle slice along axis).
 
--montx  MX         :in creating montage, the number of image panels
-                    in a row (def: 3); the total number of panels per 
-                    axis is:  MX*MY   (see below "-monty ...").
-                    (See DR: "mont=PxQ:R"; basically, MX is the 'P' 
-                    value).
--monty  MY         :in creating montage, the number of image panels
-                    in a column (def: 3); the total number of panels
-                    per axis is:  MX*MY   (see above "-montx ...").
-                    (See DR: "mont=PxQ:R"; basically, MY is the 'Q' 
-                    value).
+-montx  MX         :in creating montage, the number of image panels in
+                    a row, i.e., the number of columns (def: 3); the
+                    total number of panels per axis is: MX*MY (see
+                    below "-monty ...").  (See DR: "mont=PxQ:R";
+                    basically, MX is the 'P' value).
+
+-monty  MY         :in creating montage, the number of image panels in
+                    a column, i.e., the number of rows (def: 3); the
+                    total number of panels per axis is: MX*MY (see
+                    above "-montx ...").  (See DR: "mont=PxQ:R";
+                    basically, MY is the 'Q' value).
 
 -alpha_par  ALPHP  :In addition to representing olay values as colors
                     with a threshold, one also apply opacity
@@ -1115,19 +1493,11 @@ For example, "(see ENV: SAVE_AGIF)".
 -label_string LSTR :control labels, string automatically appended
                     to the slice (def: "");
                     (see ENV: AFNI_IMAGE_LABEL_STRING)
--image_label_ijk LIJK :If this variable is YES, then the image label will
-                    be based on the slice index rather than the
-                    spatial (mm) coordinate (def: NO); thanks, Bob!
-                    (see ENV: AFNI_IMAGE_LABEL_IJK)
 
--globalrange  GR   :specify how lookup range for matching ulay values
-                    is done (def: VOLUME);
-                    (see ENV: AFNI_IMAGE_GLOBALRANGE)
--ulay_range UMIN UMAX :specify min and max range values of ulay dset;
-                    if a "%" is on both numbers, then treat the
-                    numerical part of UMIN and UMAX as percentiles
-                    from which to calculate actual values; otherwise,
-                    treat UMIN and UMAX as values directly.
+-image_label_ijk   :If this option is used, then the image label will
+                    be based on the slice index rather than the
+                    spatial (mm) coordinate; thanks, Bob!
+                    (see ENV: AFNI_IMAGE_LABEL_IJK)
 
 -do_clean          :by default, the temporary directory of copying
                     files and such is not removed;  using this option
@@ -1135,11 +1505,63 @@ For example, "(see ENV: SAVE_AGIF)".
 
 # ========================================================================
 
-EXAMPLES:
+NOTES ~1~
 
-    # 1) Basic vanilla: make a 3x5 montage of just a ulay; there will
-    #    be 15 slices shown, evenly spaced along each axis, with some
-    #    labels on the corners.
++ Description of "4D mode" ~2~
+
+    In this case the assumption/requirement is that you have at least
+    one 4D data set to look at; for each viewing plane, one slice is
+    selected across time for viewing.  For each viewing plane, the
+    slices across time are spatially concatenated to form a single,
+    temporary 3D dset (a "planar" or "slicewise" volume), which is
+    what is actually put into AFNI to generate images in that relevant
+    plane.  How percentile values are calculated is discussed in the
+    next "NOTE", below.
+
+    When both an overlay and underlay are used, the usual resampling
+    rules of the AFNI GUI apply (and user can specify the resampling
+    option with "-func_resam .."). 
+
+    If one volume is 4D and one is 3D (e.g., for checking alignment
+    across time), then the relevant single slice of the 3D volume is
+    basically just repeated in a given plane.
+
+
++ Combining %ile values "-mode_4D" for olay and/or ulay ~2~
+
+    When using a percentile to set a range in 4D mode for either ulay
+    (e.g., "-ulay_range* ..") or olay (e.g., "-func_range_perc_nz*
+    .."), that percentile is calculated for each of the three "planar"
+    or "slicewise" volumes, and then the *max* of those three numbers
+    is applied with the colorbar.
+
+    If one of your ulay or olay in 4D mode is just a 3D volume and you
+    want a percentile related to the whole thing, you can calculate
+    any of those values beforehand using "3dBrickStat -percentile ..",
+    and then apply those.
+
+
++ Special Ulay Range ~2~
+
+    If UMAX is a percentile >100%, then what happens is this:
+        the ${umax_magic}%ile value in the dset is calculated, and the
+        result is multiplied by (UMAX/${umax_magic}); the ulay dataset
+        is 'ceilinged' at the ${umax_magic}%ile value, and its upper
+        range is set to UMAX/${umax_magic}.
+
+    The purpose of this madness?  To give a nice, controllably darkened
+    ulay (esp. when that is an anatomical).  My suspicion is that
+    having a darker-than-usual ulay is nice to allow the overlay colors
+    to show up better.  I am currently of the opinion that a UMAX of
+    around ~150-190% is a nice value (and UMIN can be set to 0%)
+
+# ========================================================================
+
+EXAMPLES ~1~
+
+ A) Basic vanilla: make a 3x5 montage of just a ulay; there will
+    be 15 slices shown, evenly spaced along each axis, with some
+    labels on the corners.
 
     @chauffeur_afni                     \
         -ulay    MY_ULAY.nii.gz         \
@@ -1150,9 +1572,9 @@ EXAMPLES:
         -do_clean  
 
 
-    # 2) Make a 3x5 montage of an overlayed data set that has an ROI
-    #    map, so we want it to be colored-by-integer.  Put the images
-    #    into a pre-existing directory, SUBDIR/.
+ B) Make a 3x5 montage of an overlayed data set that has an ROI
+    map, so we want it to be colored-by-integer.  Put the images
+    into a pre-existing directory, SUBDIR/.
 
     @chauffeur_afni                       \
         -ulay  MY_ULAY.nii.gz             \
@@ -1168,16 +1590,18 @@ EXAMPLES:
         -do_clean 
 
 
-    # 3) Make a 3x5 montage of an overlayed data set that shows the
-    #    beta coefficients stored in brick [1] while thresholding the
-    #    associated statistic stored in brick [2] at voxelwise p=0.001, 
-    #    overlayed on the anatomical volume.
+ C) Make a 3x5 montage of an overlayed data set that shows the
+    beta coefficients stored in brick [1] while thresholding the
+    associated statistic stored in brick [2] at voxelwise p=0.001, 
+    overlayed on the anatomical volume.
+
     @chauffeur_afni                       \
         -ulay  anat.nii.gz                \
         -olay  stats.nii.gz               \
         -cbar Plasma                      \
         -func_range 3                     \
         -thr_olay_p2stat 0.001            \
+        -thr_olay_pside  bisided          \
         -set_subbricks -1 1 2             \
         -opacity 4                        \
         -prefix   STAT_MAP                \
@@ -1185,7 +1609,6 @@ EXAMPLES:
         -set_xhairs OFF                   \
         -label_mode 1 -label_size 3       \
         -do_clean 
-
 
 # -------------------------------------------------------------------
 
@@ -1208,4 +1631,3 @@ BAD_EXIT:
 
 GOOD_EXIT:
     exit 0
-
