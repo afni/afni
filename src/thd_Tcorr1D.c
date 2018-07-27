@@ -108,7 +108,7 @@ ENTRY("THD_Tcorr1D");
      case SPEARMAN: sprintf(fmt,"SpmnCorr#%%0%dd",kk) ; break ;
      case QUADRANT: sprintf(fmt,"QuadCorr#%%0%dd",kk) ; break ;
      case KTAUB:    sprintf(fmt,"TaubCorr#%%0%dd",kk) ; break ;
-     case DOT:      sprintf(fmt,"DotProd#%%0%%dd",kk) ; break ;
+     case DOT:      sprintf(fmt, "DotProd#%%0%dd",kk) ; break ;
    }
    if( datum == MRI_short ){
       cfac = (do_atanh) ? 0.000125f : 0.0001f ;  /* scale factor for -short */
