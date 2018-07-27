@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 26 , JUL , 2018 , RWC , "3dQwarp" , MICRO , TYPE_MODIFY ,
+   "Remove -duplo option (doesn't work that well)" ,
+   NULL } ,
+
  { 23 , JUL , 2018 , RWC , "AFNI driver" , MINOR , TYPE_ENHANCE ,
    "New command: SET_ULAY_RANGE" ,
    "For example: SET_ULAY_RANGE A.axialimage 0 200" } ,
