@@ -261,6 +261,7 @@ foreach iii ( `count -dig 1 1 $num_order` )
       3dGrayplot -dimen 2000 1000     \
                  $order               \
                  -polort -1           \
+                 -range 4             \
                  -mask $ggg           \
                  -input $eee          \
                  -prefix G.errts.pgm
@@ -276,7 +277,7 @@ end
 
 # grayplot the all_runs file for giggles
 
-@ port = 2 * $nrun
+@ port = 3 * $nrun
 
 foreach iii ( `count -dig 1 1 $num_order` )
   set order = $order_list[$iii]
@@ -291,6 +292,7 @@ foreach iii ( `count -dig 1 1 $num_order` )
       3dGrayplot -dimen 2000 1000     \
                  $order               \
                  -polort $port        \
+                 -percent -range 4    \
                  -mask $ggg           \
                  -input $eee          \
                  -prefix G.errts.pgm

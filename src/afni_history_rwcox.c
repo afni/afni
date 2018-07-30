@@ -44,6 +44,14 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 30 , JUL , 2018 , RWC , "3dGrayplot" , MINOR , TYPE_NEW_OPT ,
+   "-percent and -range options" ,
+   "For Cesar C-G.\n"
+   "'-range X' sets the values to be plotted over the range -X..X\n"
+   "(black..white).\n"
+   "'-percent' is for plotting non-zero mean files, by converting them to\n"
+   "percent of baseline (mean). Should be combined with '-range 4' (say)." } ,
+
  { 26 , JUL , 2018 , RWC , "3dQwarp" , MICRO , TYPE_MODIFY ,
    "Remove -duplo option (doesn't work that well)" ,
    NULL } ,

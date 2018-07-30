@@ -3,6 +3,13 @@
 #include "thd_dset_to_grayplot.c"
 void show_help(void);
 
+#define IS_NUMERIC(sss)                                           \
+ ( (                                       isdigit((sss)[0]) ) || \
+   ( (sss)[0] == '.'                    && isdigit((sss)[1]) ) || \
+   ( (sss)[0] == '-'                    && isdigit((sss)[1]) ) || \
+   ( (sss)[0] == '-' && (sss)[1] == '.' && isdigit((sss)[2]) )   )
+
+
 int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *dset=NULL ;
@@ -98,7 +105,7 @@ int main( int argc , char *argv[] )
          EDIT_coerce_type( mask_nvox , MRI_short,smm , MRI_byte,mask ) ;
          DSET_unload(mset) ;
        }
- 
+
        mmm = THD_countmask( mask_nvox , mask ) ;
        INFO_message("Number of voxels in mask = %d",mmm) ;
        if( mmm < 19 ) ERROR_exit("Mask is too small to process") ;
@@ -113,6 +120,21 @@ int main( int argc , char *argv[] )
        INFO_message("Loading dataset") ;
        DSET_load(dset) ; CHECK_LOAD_ERROR(dset) ;
        iarg++ ; continue ;
+     }
+
+     if( strcasecmp(argv[iarg],"-percent") == 0 ){  /* 30 Jul 2018 */
+       grayplot_set_percent() ;
+       grayplot_norming_none() ;
+       iarg++ ; continue ;
+     }
+
+     if( strcasecmp(argv[iarg],"-range") == 0 ){
+       if( ++iarg < argc && IS_NUMERIC(argv[iarg]) ){
+         float val = (float)strtod(argv[iarg],NULL) ;
+         if( val > 0.0f ) grayplot_set_range(val) ;
+         iarg++ ;
+       }
+       continue ;
      }
 
      ERROR_exit("Unknown option '%s'",argv[iarg]) ;
@@ -157,48 +179,48 @@ void show_help(void)
       "--------\n"
       "\n"
       " -mask mset      = Name of mask dataset [REQUIRED]\n"
-      "                   * Voxels that are 0 in mset will not be processed.\n"
-      "                   * Dataset must be byte-valued (8 bits: 0..255);\n"
-      "                     shorts (16 bits) are also acceptable, but only\n"
-      "                     values from 1.255 will be processed.\n"
-      "                   * Each distinct value from 1..255 will be processed\n"
-      "                     separately, and the output image will be ordered\n"
-      "                     with the mask=1 voxels on top, mask=2 voxels next,\n"
-      "                     and so on down the image.\n"
-      "                   * A partition (e.g., mask=3) with fewer than 9 voxels\n"
-      "                     will not be processed at all.\n"
-      "                   * If there is more than one partition, horizontal dashed\n"
-      "                     lines will drawn between them.\n"
+      "                    * Voxels that are 0 in mset will not be processed.\n"
+      "                    * Dataset must be byte-valued (8 bits: 0..255);\n"
+      "                      shorts (16 bits) are also acceptable, but only\n"
+      "                      values from 1.255 will be processed.\n"
+      "                    * Each distinct value from 1..255 will be processed\n"
+      "                      separately, and the output image will be ordered\n"
+      "                      with the mask=1 voxels on top, mask=2 voxels next,\n"
+      "                      and so on down the image.\n"
+      "                    * A partition (e.g., mask=3) with fewer than 9 voxels\n"
+      "                      will not be processed at all.\n"
+      "                    * If there is more than one partition, horizontal dashed\n"
+      "                      lines will drawn between them.\n"
       "\n"
       " -input dataset  = Alternative way to input dataset to process.\n"
       "\n"
       " -prefix ppp.png = Name for output file.\n"
-      "                   * Default is Grayplot.png\n"
-      "                   * If the filename ends in '.jpg', a JPEG file is output.\n"
-      "                   * If the filename ends in '.pgm', a PGM file is output.\n"
-      "                   * If the filename does not end in '.jpg' OR in '.png'\n"
-      "                     OR in '.pgm', then '.png' will be added at the end.\n"
+      "                    * Default is Grayplot.png\n"
+      "                    * If the filename ends in '.jpg', a JPEG file is output.\n"
+      "                    * If the filename ends in '.pgm', a PGM file is output.\n"
+      "                    * If the filename does not end in '.jpg' OR in '.png'\n"
+      "                      OR in '.pgm', then '.png' will be added at the end.\n"
       "\n"
       " -dimen X Y      = Output size of image in pixels.\n"
-      "                   * X = width  = time axis direction\n"
-      "                   * Y = height = space dimensions\n"
-      "                   * Defaults are X=1024 Y=512.\n"
+      "                    * X = width  = time axis direction\n"
+      "                    * Y = height = space dimensions\n"
+      "                    * Defaults are X=1024 Y=512.\n"
       "\n"
       " -polort p       = Order of polynomials for detrending.\n"
-      "                   * Default value is 2 (mean, slope, quadratic curve).\n"
-      "                   * Use '-1' if data is already detrended and de-meaned.\n"
-      "                     (e.g., is an AFNI errts.* file)\n"
+      "                    * Default value is 2 (mean, slope, quadratic curve).\n"
+      "                    * Use '-1' if data is already detrended and de-meaned.\n"
+      "                      (e.g., is an AFNI errts.* file)\n"
       "\n"
       " -fwhm f         = FWHM of blurring radius to use in the dataset before\n"
       "                   making the image.\n"
-      "                   * Each partition (i.e., mask=1, mask=2, ...) is blurred\n"
-      "                     independently, as in program 3dBlurInMask.\n"
-      "                   * Default value is 6 mm.\n"
-      "                   * '-fwhm 0' will prevent blurring\n"
-      "                     (e.g., if the input dataset is already blurred).\n"
-      "                   * If the dataset was NOT previously blurred, a little\n"
-      "                     blurring here will help bring out larger scale\n"
-      "                     features in the times series.\n"
+      "                    * Each partition (i.e., mask=1, mask=2, ...) is blurred\n"
+      "                      independently, as in program 3dBlurInMask.\n"
+      "                    * Default value is 6 mm.\n"
+      "                    * '-fwhm 0' will prevent blurring\n"
+      "                      (e.g., if the input dataset is already blurred).\n"
+      "                    * If the dataset was NOT previously blurred, a little\n"
+      "                      blurring here will help bring out larger scale\n"
+      "                      features in the times series.\n"
       "\n"
       " -pvorder        = Within each mask partition, order the voxels (top to\n"
       "                   bottom) by how well they match the two leading principal\n"
@@ -206,8 +228,8 @@ void show_help(void)
       "                   top part of each partition be made up of voxels with\n"
       "                   similar time series, and the bottom part will be more\n"
       "                   'random looking'.\n"
-      "                   * The default order of voxels is just the index\n"
-      "                     order in which they appear in the dataset.\n"
+      "                    * The default order of voxels is just the index\n"
+      "                      order in which they appear in the dataset.\n"
       "\n"
       " -peelorder      = Within each mask partition, order the voxels by how\n"
       "                   many 'peel' steps are needed to get from the partition\n"
@@ -218,6 +240,27 @@ void show_help(void)
       "                   In AFNI's +tlrc ordering, this ordering primarily will be\n"
       "                   from Inferior to Superior in the brain (from top to bottom\n"
       "                   in the grayplot image).\n"
+      "\n"
+      " -range X        = Set the range of the data to be plotted to be 'X'.\n"
+      "                   When this option is used, then:\n"
+      "                    * a value of 0 will be plotted as middle-gray\n"
+      "                    * a value of +X (or above) will be plotted as white\n"
+      "                    * a value of -X (or below) will be plotted as black\n"
+      "                   Thus, this option should be used with data that is centered\n"
+      "                   around zero -- or will be so after '-polort' detrending.\n"
+      "                    * For example, if you are applying this option to an\n"
+      "                      afni_proc.py 'errts' (residuals) dataset, a good value\n"
+      "                      of X to use is 3 or 4, since those values are in percents.\n"
+      "\n"
+      " -percent        = Use this option on 'raw' time series datasets, to compute\n"
+      "                   the mean of each voxel timeseries and then use that value\n"
+      "                   to scale the values to percent differences from the mean.\n"
+      "                    * NOT suitable for use with a residual 'errts' dataset!\n"
+      "                    * Should be combined with '-range'.\n"
+      "                    * Detrending will be applied while calculating the mean.\n"
+      "                      By default, that will be quadratic detrending of each\n"
+      "                      voxel time series, but that can be changed with the\n"
+      "                      '-polort' option.\n"
       "\n"
       "** Quick hack for Cesar Caballero-Gaudes, April 2019, by @AFNIman.\n"
       "   As such, this program may be modified in the future to be more useful,\n"
