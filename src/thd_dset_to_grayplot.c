@@ -2,10 +2,16 @@
 
 #include "mri_pvmap.c"
 
+/*** Functions for doing 4D image to grayplot conversion ***/
+
 /*--------------------------------------------------------------------------*/
+
+/*----- levels = classes of voxels that are grouped together -----*/
 
 static int lev_num ;
 static int lev_siz[256] ;
+
+/*----- ordering of voxel time series vertically, within each level -----*/
 
 #define ORDER_IJK  0
 #define ORDER_PV   1
@@ -23,16 +29,54 @@ static void grayplot_order_by_ijk( int yesno ){
   ordering = 0 ;
 }
 
+/*----- how time series are normalized [30 Jul 2018] -----*/
+
+static int norming = 0 ;
+
+#define NORM_RMS    0
+#define NORM_NONE   1
+#define NORM_MAXABS 2
+
+static void grayplot_norming_RMS(void){
+  norming = NORM_RMS ;
+}
+
+static void grayplot_norming_none(void){
+  norming = NORM_NONE ;
+}
+
+static void grayplot_norming_maxabs(void){
+  norming = NORM_MAXABS ;
+}
+
+/*----- grayplot range for 1 unit of data -----*/
+
+static float grange = 0.0f ;
+
+static void grayplot_set_range( float val ){
+  grange = MAX(val,0.0f) ;
+}
+
+/*----- percentage? -----*/
+
+static int do_percent = 0 ;
+static void grayplot_set_percent(void){ do_percent = 1 ; }
+
 /*--------------------------------------------------------------------------*/
+/* Convert to a vectim, using mmask to pick out the levels
+   of different voxels to keep together (e.g., GM, WM, CSF)
+*//*------------------------------------------------------------------------*/
 
 static MRI_vectim * THD_dset_grayplot_prep( THD_3dim_dataset *dset ,
                                             byte *mmask ,
                                             int polort , float fwhm )
 {
    int cmval , nmask , nxyz , nts ;
-   byte mm,*tmask ; int ii,jj ;
+   byte mm,*tmask ; int ii,jj,kk ;
    int nvim ; MRI_vectim **vim , *vout ;
-   float *tsar ;
+   float *tsar , *fit=NULL , fac ;
+
+   /* check inputs for plausibility */
 
    lev_num = 0 ;
    if( !ISVALID_DSET(dset) || mmask == NULL ) return NULL ;
@@ -43,29 +87,70 @@ static MRI_vectim * THD_dset_grayplot_prep( THD_3dim_dataset *dset ,
    nmask = THD_countmask( nxyz , mmask ) ;
    if( nmask < 19 ) return NULL ;
 
+   if( do_percent && polort < 0 ) polort = 0 ;
+
+   /* find voxels in each mmask 'level' */
+
    nvim  = 0 ; vim = NULL ;
    tmask = (byte *)malloc(sizeof(byte)*nxyz) ;
+   if( polort >= 0 ){
+     fit = (float *)malloc(sizeof(float)*(polort+1)) ;
+   }
    for( ii=1 ; ii <= 255 ; ii++ ){
      mm = (byte)ii ;
-     memset( tmask , 0 , sizeof(byte)*nxyz) ;
+     memset( tmask , 0 , sizeof(byte)*nxyz ) ;
      for( cmval=jj=0 ; jj < nxyz ; jj++ ){
        if( mmask[jj] == mm ){ cmval++ ; tmask[jj] = 1 ; }
      }
-     if( cmval > 9 ){
+     if( cmval > 9 ){ /* extract voxels at this level into a vectim */
        vim = (MRI_vectim **)realloc( vim , sizeof(MRI_vectim *)*(nvim+1) ) ;
        vim[nvim] = THD_dset_to_vectim( dset , tmask , 0 ) ;
        if( polort >= 0 ){
-         for( jj=0 ; jj < vim[nvim]->nvec ; jj++ ){
-           tsar = VECTIM_PTR( vim[nvim] , jj ) ;
-           THD_generic_detrend_LSQ( nts,tsar , polort , 0,NULL,NULL ) ;
+         for( jj=0 ; jj < vim[nvim]->nvec ; jj++ ){ /* detrend */
+           tsar = VECTIM_PTR( vim[nvim] , jj ) ; fit[0] = 0.0f ;
+           THD_generic_detrend_LSQ( nts,tsar , polort , 0,NULL,fit ) ;
+           if( do_percent && fit[0] > 0.0f ){
+             fac = 100.0f / fit[0] ;
+             for( kk=0 ; kk < nts ; kk++ ) tsar[kk] *= fac ;
+           }
          }
        }
-       for( jj=0 ; jj < vim[nvim]->nvec ; jj++ ){
-         tsar = VECTIM_PTR( vim[nvim] , jj ) ;
-         THD_normRMS( nts , tsar ) ;
+       switch( norming ){  /* normalize */
+
+         case NORM_RMS:
+         default:{
+           for( jj=0 ; jj < vim[nvim]->nvec ; jj++ ){ /* set RMS = 1 */
+             tsar = VECTIM_PTR( vim[nvim] , jj ) ;
+             THD_normRMS( nts , tsar ) ;
+           }
+         }
+         break ;
+
+         case NORM_NONE: /*nada*/
+         break ;
+
+         case NORM_MAXABS:{ /* scale so max(abs(x)) = 1 */
+           float mab,val ;
+           for( jj=0 ; jj < vim[nvim]->nvec ; jj++ ){ /* set RMS = 1 */
+             tsar = VECTIM_PTR( vim[nvim] , jj ) ;
+             mab = fabsf(tsar[0]) ;
+             for( kk=1 ; kk < nts ; kk++){
+               val = fabsf(tsar[kk]) ; if( val > mab ) mab = val ;
+             }
+             if( mab > 0.0f ){
+               val = 1.0f / mab ;
+               for( kk=0 ; kk < nts ; kk++ ) tsar[kk] *= val ;
+             }
+           }
+         }
+         break ;
+
        }
-       if( fwhm > 0 )
+
+       if( fwhm > 0 ) /* spatially blur inside this level */
          mri_blur3D_vectim( vim[nvim] , fwhm ) ;
+
+       /* re-order spatially, as ordered */
 
        switch( ordering ){
          default: break ;  /* == IJK */
@@ -124,10 +209,13 @@ static MRI_vectim * THD_dset_grayplot_prep( THD_3dim_dataset *dset ,
      }
    }
    free(tmask) ;
+   if( fit != NULL ) free(fit) ;
 
    lev_num = nvim ;
 
    if( nvim == 0 ) return NULL ;
+
+   /* glue multiple level vectims into 1, if needed */
 
    if( nvim == 1 ){
      vout = vim[0] ;
@@ -136,10 +224,12 @@ static MRI_vectim * THD_dset_grayplot_prep( THD_3dim_dataset *dset ,
      for( ii=0 ; ii < nvim ; ii++ ) VECTIM_destroy(vim[ii]) ;
    }
 
-   free(vim) ; 
+   free(vim) ;
    return vout ;
 }
 
+/*--------------------------------------------------------------------------*/
+/* resample a 1D array to a finer (nout > nin) or coarser (nout < nin) grid */
 /*--------------------------------------------------------------------------*/
 
 static void resample_1D_float( int nin, float *xin, int nout, float *xout )
@@ -148,6 +238,8 @@ static void resample_1D_float( int nin, float *xin, int nout, float *xout )
    float ffac , fjmid , fj ;
 
    if( nin < 2 || xin == NULL || nout < 2 || xout == NULL ) return ;
+
+   /* nothing to do? */
 
    if( nin == nout ){
      memcpy( xout , xin , sizeof(float)*nin) ;
@@ -158,6 +250,7 @@ static void resample_1D_float( int nin, float *xin, int nout, float *xout )
    nout1 = nout-1 ;
 
    if( ffac < 1.0f ){              /* interpolate to finer grid */
+
      xout[0]      = xin[0] ;
      xout[nout-1] = xin[nin-1] ;
      for( ii=1 ; ii < nout1 ; ii++ ){
@@ -165,7 +258,9 @@ static void resample_1D_float( int nin, float *xin, int nout, float *xout )
        jbot  = (int)fjmid ; fj = (fjmid-jbot) ;
        xout[ii] = (1.0f-fj)*xin[jbot] + fj*xin[jbot+1] ;
      }
+
    } else {                        /* coarser grid */
+
      int npm = (int)rintf(ffac) ;
      float *xq = (float *)malloc(sizeof(float)*nin) ;
      float *wt = (float *)malloc(sizeof(float)*(npm+1)) ;
@@ -190,19 +285,22 @@ static void resample_1D_float( int nin, float *xin, int nout, float *xout )
        xout[ii] = (1.0f-fj)*xq[jbot] + fj*xq[jbot+1] ;
      }
      free(xq) ;
+
    }
 
    return ;
 }
 
 /*--------------------------------------------------------------------------*/
+/* Convert a vectim to a 2D grayplot */
+/*--------------------------------------------------------------------------*/
 
 static MRI_IMAGE * mri_vectim_to_grayplot( MRI_vectim *imts, int nx, int ny )
 {
-   int nxx=nx , nyy=ny , ntt,nss , ii,jj ;
+   int nxx=nx , nyy=ny , ntt,nss , ii,jj , domid=0 ;
    MRI_IMAGE *imout ; byte *outar ;
    MRI_IMAGE *imttt ; byte *tttar , *tar ;
-   float zbot , ztop , val , zfac , *qar , *zar=NULL , *yar ;
+   float zbot,ztop , val , zfac , *qar , *zar=NULL , *yar ;
 
    if( imts == NULL ) return NULL ;
 
@@ -212,15 +310,22 @@ static MRI_IMAGE * mri_vectim_to_grayplot( MRI_vectim *imts, int nx, int ny )
    ntt = imts->nvals ;
    nss = imts->nvec ; if( ntt < 19 || nss < 19 ) return NULL ;
 
+   /* find min and max of pre-processed data */
+
    zbot = 6.66e+33 ; ztop = -zbot ;
-   for( jj=0 ; jj < nss ; jj++ ){ qar = VECTIM_PTR(imts,jj) ;
+   for( jj=0 ; jj < nss ; jj++ ){
+     qar = VECTIM_PTR(imts,jj) ;
      for( ii=0 ; ii < ntt ; ii++ ){
             if( qar[ii] < zbot ) zbot = qar[ii] ;
        else if( qar[ii] > ztop ) ztop = qar[ii] ;
      }
    }
    if( zbot >= ztop ) return NULL ;
-   zfac = 255.4f / (ztop-zbot) ;
+   if( grange <= 0.0f ){
+     zfac = 255.4f / (ztop-zbot) ; domid = 0 ;
+   } else {
+     zfac = 127.7f / grange ; domid = 1 ;
+   }
 
    imttt = mri_new( nxx,nss , MRI_byte ) ;
    tttar = MRI_BYTE_PTR(imttt) ;
@@ -228,24 +333,33 @@ static MRI_IMAGE * mri_vectim_to_grayplot( MRI_vectim *imts, int nx, int ny )
    if( nxx != ntt ){
      zar = malloc(sizeof(float)*nxx) ;
    }
+
+   /* process each time series from vectim (each row of output) */
+
    for( jj=0 ; jj < nss ; jj++ ){
      qar = VECTIM_PTR(imts,jj) ;
-     if( zar != NULL ){
+     if( zar != NULL ){ /* change length of this time series? */
        resample_1D_float( ntt,qar , nxx,zar ) ; yar = zar ;
      } else {
        yar = qar ;
      }
      tar = tttar + jj*nxx ;
-     for( ii=0 ; ii < nxx ; ii++ ){
-       val = (yar[ii]-zbot)*zfac ;
+     for( ii=0 ; ii < nxx ; ii++ ){ /* scale to 0..255 range */
+       if( domid ){
+         val = 127.7 + yar[ii]*zfac ;
+       } else {
+         val = (yar[ii]-zbot)*zfac ;
+       }
        tar[ii] = BYTEIZE(val) ;
      }
    }
    if( zar != NULL ){ free(zar); zar = NULL; }
 
-   if( nss == nyy ){
+   if( nss == nyy ){ /* number of rows we have == number of rows we want? */
      return imttt ;
    }
+
+   /* convert number of rows we have (nss) to number we want (nyy) */
 
    imout = mri_new( nxx,nyy , MRI_byte ) ;
    outar = MRI_BYTE_PTR(imout) ;
@@ -253,7 +367,7 @@ static MRI_IMAGE * mri_vectim_to_grayplot( MRI_vectim *imts, int nx, int ny )
    yar = (float *)malloc(sizeof(float)*nss) ;
    zar = (float *)malloc(sizeof(float)*nyy) ;
 
-   for( ii=0 ; ii < nxx ; ii++ ){
+   for( ii=0 ; ii < nxx ; ii++ ){  /* resize each column */
      for( jj=0 ; jj < nss ; jj++ )
        yar[jj] = tttar[ii+jj*nxx] ;
      resample_1D_float( nss,yar , nyy,zar ) ;
@@ -262,6 +376,8 @@ static MRI_IMAGE * mri_vectim_to_grayplot( MRI_vectim *imts, int nx, int ny )
    }
 
    free(zar) ; free(yar) ; mri_free(imttt) ;
+
+   /* draw dashed lines between the levels from mmask */
 
    if( lev_num > 1 ){
      float yfac ; int kk , rr ; byte qq=1 ;
@@ -280,6 +396,8 @@ static MRI_IMAGE * mri_vectim_to_grayplot( MRI_vectim *imts, int nx, int ny )
    return imout ;
 }
 
+/*--------------------------------------------------------------------------*/
+/* Convert a 3D+time dataset to a grayplot, for fun and profit(?). */
 /*--------------------------------------------------------------------------*/
 
 MRI_IMAGE * THD_dset_to_grayplot( THD_3dim_dataset *dset ,

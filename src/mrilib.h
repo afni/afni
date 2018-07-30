@@ -229,8 +229,8 @@ static float MRI_TYPE_maxval[9] =
 
 /*! Force a float into a byte. */
 
-#define BYTEIZE(xx)  (  ((xx) <   0.0) ? (byte)0                     \
-                      : ((xx) > 255.0) ? (byte)255 : (byte)rint(xx) )
+#define BYTEIZE(xx)  (  ((xx) <   0.0) ? (byte)0                      \
+                      : ((xx) > 255.0) ? (byte)255 : (byte)rintf(xx) )
 
 /*! Determine if a MRI_TYPE is an integer type. */
 
