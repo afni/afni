@@ -252,7 +252,7 @@ foreach ii (`count -digits 2 1 $maxiters`)
    # fill in only the non-filled in data
    set fillset = temp_${outpref}_f${ii}.nii.gz
    3dcalc -a $refilled_set -b $smoothset -c $maskset \
-      -expr '(a*step(a)+b*not(a))*step(c)' -prefix $fillset -overwrite
+      -expr '(a*step(abs(a))+b*not(abs(a)))*step(c)' -prefix $fillset -overwrite
    # refilled set is latest iteration
    set refilled_set = $fillset
    # count how many zeros left in the mask 
