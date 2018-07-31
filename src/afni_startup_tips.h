@@ -1310,6 +1310,8 @@ static char *gby[] = {
      "  To argue with those who have renounced the use and authority\n"
      "  of reason is as futile as to administer medicine to the dead"                         ,
 
+     "Remember: Don't light the fire while you are standing in the gasoline"                  ,
+
      "Remember the Manager's Mantra:\n"
      "  * Work Harder.\n"
      "  * Work Smarter.\n"
