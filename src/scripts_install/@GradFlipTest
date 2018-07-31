@@ -1,4 +1,4 @@
-#!/bin/tcsh -f
+#!/bin/tcsh -ef
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
@@ -54,9 +54,12 @@
 #   + update rules of:  $out_ff -> $odir/$out_ff
 #   + better line alignment of text dumping
 #
-set version   = "2.94";    set rev_dat   = "Feb 1 2018"
+#set version   = "2.94";    set rev_dat   = "Feb 1 2018"
 #   + internal change in format of input/vars to allow subbrick
 #     selection in bval/bvecs
+#
+set version   = "3.0";  set rev_dat   = "July 31, 2018"
+#   + add in 1dDW_Grad_o_Mat++'s "-check_abs_min .." opt
 #
 ########################################################################
 
@@ -103,6 +106,8 @@ set FNOMS = ( "F0" "FX" "FY" "FZ" )
 set tmpdir = "_tmp_TESTFLIP"
 set ALL_ARR =  ( )
 set SUMA_CALL = ""
+
+set ca_min_arg = ( )              # for '-check_abs_min  ..'
 
 # ------------------- process options, a la rr ----------------------
 
@@ -174,11 +179,13 @@ while ( $ac <= $#argv )
 
     # ---------- other opts -----------------
 
-# [PT: Oct 04, 2017] Don't need separate, just get from '-prefix ...' part
-#    else if ( "$argv[$ac]" == "-outdir" ) then
-#        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-#        @ ac += 1
-#        set odir = "$argv[$ac]"
+    # [PT: July 31, 2018] add in for 1dDW_Grad*++; pass both opt flag
+    # and argvalue along.
+    else if ( "$argv[$ac]" == "-check_abs_min" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set ca_min_arg = ( "-check_abs_min" $argv[$ac] )
+
     else if ( "$argv[$ac]" == "-outdir" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         echo "** ERROR: this option no longer exists-- just specify output"
@@ -306,6 +313,7 @@ printf "\n\n++ Grad_o_Matting (just needed once).\n\n\n"
     -overwrite                           \
     -echo_edu                            \
     -out_col_matA  $out_MATA             \
+    $ca_min_arg                          \
     "$invecmat[1]" "$invecmat[2]"        \
     "$invecmat[3]" "$invecmat[4]"
 3dcalc                                   \
@@ -597,6 +605,17 @@ cat << EOF
             was '-outdir OUT', but this no longer is used;  the path of an
             output directory is specified by taking the path-part of the 
             '-prefix PPP' input.
+
+  -check_abs_min VVV :briefly, this can help the program push through
+                      finding tiny negative values (that miiiight be
+                      due to rounding errors or small numerical
+                      things) in columns that should only contain
+                      numbers >=0. 'VVV' is basically a tolerance for
+                      the magnitude of negative values you are willing
+                      to allow: anything between [-VVV, 0) gets zeroed
+                      for further calcs.  See 1dDW_Grad_o_Mat++'s help
+                      for more information on this option (of the same
+                      name).
 
     -scale_out_1000 :as in 3dDWItoDT.  Probably not necessary, since we 
                      are just checking out trackability
