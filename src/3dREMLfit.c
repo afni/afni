@@ -3262,7 +3262,7 @@ STATUS("setting up Rglt") ;
          dsortar_mean[dd][ii] /= nmask ;
          if( dsortar_mean[dd][ii] == 0.0f ) nzz++ ;
        }
-       if( nzz == ntime ){
+       if( nzz == ntime ){ /* this should not happen, I hope */
          WARNING_message("-dsort #%d mean timeseries is all zero -- randomizing :-(",dd) ;
          for( ii=0 ; ii < ntime ;ii++ ) dsortar_mean[dd][ii] = drand48()-0.5 ;
        }
@@ -3554,7 +3554,7 @@ STATUS("setting up Rglt") ;
        ININFO_message("GLSQ regression done: total CPU=%.2f Elapsed=%.2f",
                       COX_cpu_time(),COX_clock_time() ) ;
      if( nconst_dsort > 0 )
-       WARNING_message("%d voxels had constant -dsort vectors replaced",nconst_dsort) ;
+       WARNING_message("%d voxels had constant -dsort vectors replaced by -dsort mean vector",nconst_dsort) ;
      MEMORY_CHECK ;
    } /* end of if(do_Rstuff) */
 
