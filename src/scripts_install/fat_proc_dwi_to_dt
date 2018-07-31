@@ -1,4 +1,4 @@
-#!/bin/tcsh
+#!/bin/tcsh -ef
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
@@ -75,8 +75,11 @@
 #   + fix minor bug/crash if no "ref" set input
 #     --> mask error about recentering mask.
 # 
-set version   = "2.9";  set rev_dat   = "July 25, 2018"
+#set version   = "2.9";  set rev_dat   = "July 25, 2018"
 #   + match func_range_nz to updated @chauffeur
+#
+set version   = "3.0";  set rev_dat   = "July 31, 2018"
+#   + add in 1dDW_Grad_o_Mat++'s "-check_abs_min .." opt
 #
 # ----------------------------------------------------------------
 
@@ -139,6 +142,8 @@ set WDIR_EX  = "1"                # put opref on wdir (unless user names)
 
 set DO_STRUC_MASK = "0"
 set sss = ""                      # just null val; later is CoM
+
+set ca_min_arg = ( )              # for '-check_abs_min  ..'
 
 # ------------------- process options, a la rr ----------------------
 
@@ -237,6 +242,13 @@ while ( $ac <= $#argv )
               ("$argv[$ac]" == "-flip_z") || \
               ("$argv[$ac]" == "-no_flip") ) then
         set iflip = "$argv[$ac]"
+
+    # [PT: July 31, 2018] add in for 1dDW_Grad*++; pass both opt flag
+    # and argvalue along.
+    else if ( "$argv[$ac]" == "-check_abs_min" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set ca_min_arg = ( "-check_abs_min" $argv[$ac] )
 
     else if ( "$argv[$ac]" == "-no_scale_out_1000" ) then
         set sca = ""
@@ -510,6 +522,7 @@ endif
     $iflip                            \
     -out_col_vec      $odir/$obvec    \
     -out_col_bval_sep $odir/$obval    \
+    $ca_min_arg                       \
     "$invecmat[1]" "$invecmat[2]"     \
     "$invecmat[3]" "$invecmat[4]" 
 # NB: the above works somewhat cheatingly by having the empty strings
@@ -1048,8 +1061,6 @@ if ( "$DO_VIEWER" == "1") then
 endif
 echo ""
 
-
-
 # ---------------------------------------------------------------------
 
 goto GOOD_EXIT
@@ -1135,6 +1146,17 @@ cat << EOF
     -no_flip         :can flip the DW grads, if needed; for example, 
                       based on the recommendation of @GradFlipTest.
 
+  -check_abs_min VVV :briefly, this can help the program push through
+                      finding tiny negative values (that miiiight be
+                      due to rounding errors or small numerical
+                      things) in columns that should only contain
+                      numbers >=0. 'VVV' is basically a tolerance for
+                      the magnitude of negative values you are willing
+                      to allow: anything between [-VVV, 0) gets zeroed
+                      for further calcs.  See 1dDW_Grad_o_Mat++'s help
+                      for more information on this option (of the same
+                      name).
+
    -mask    MASK     :optional whole brain mask can be input;
                       otherwise, automasking is performed for the 
                       region to be tensor and parameter fit.
@@ -1170,7 +1192,9 @@ cat << EOF
                       each other). *Highly recommended to include!*
          
  -prefix_dti PREFIX2 :set prefix for output DTI data; optional, 
-                      default is '${dtipref}'.
+                      default is '${dtipref}'. Do *not* include path 
+                      information here-- that is only supplied using 
+                      '-prefix ..'.
 
   -no_scale_out_1000 :by default, for tensor fitting it is assumed
                       that 1) the DW b-value information is included
@@ -1192,7 +1216,7 @@ cat << EOF
    -no_reweight      :by default, we *do* reweight+refit tensors during 
                       estimation; should improve fit.  But what do I
                       know?  This option turns that functionality *off*.
-   -no_cumulative_wts:by default, show  overall weight factors for each 
+   -no_cumulative_wts :by default, show  overall weight factors for each 
                       gradient; may be useful as a quality control, but 
                       this option will turn that functionality *off*.
 
@@ -1211,13 +1235,17 @@ cat << EOF
 
    -qc_prefix QCPREF :can set the prefix of the QC image files separately
                       (default is '$opref').
+
    -no_qc_view       :can turn off generating QC image files (why?)
+
    -no_cmd_out       :don't save the command line call of this program
                       and the location where it was run (otherwise, it is
                       saved by default in the ODIR/).
 
    -no_clean         :is an optional switch to NOT remove working 
-                      directory '$wdir'; (default: remove working dir).
+                      directory: 
+                        '$wdir' 
+                      (default: remove working dir).
    -workdir WWW      :specify a working directory, which can be removed;
                       (default name = '$wdir').
 

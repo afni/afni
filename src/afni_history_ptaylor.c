@@ -66,6 +66,16 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 31, July , 2018 , PT , "fat_proc_dwi_to_dt" , MINOR , TYPE_NEW_OPT,
+   "New opt: '-check_abs_min ..'.",
+   "Just allows the same-named opt from 1dDW_Grad_o_Mat++ to be used.\n"
+},
+
+{ 31, July , 2018 , PT , "@GradFlipTest" , MINOR , TYPE_NEW_OPT,
+   "New opt: '-check_abs_min ..'.",
+   "Just allows the same-named opt from 1dDW_Grad_o_Mat++ to be used.\n"
+},
+
 { 25, July , 2018 , PT , "@chauffeur_afni" , MAJOR , TYPE_GENERAL,
    "Several new options, as well as ability to deal with 4D images.",
    "Many new features, probably including minor bug fixes.\n"
