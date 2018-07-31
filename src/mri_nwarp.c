@@ -10686,20 +10686,20 @@ ENTRY("IW3D_setup_for_improvement") ;
 #define SC_BOX  1
 #define SC_BALL 2
 
-#define BALLOPT                           \
-  do{ int bc = powell_newuoa_get_con() ;  \
-      if( bc != SC_BALL ){                \
-        powell_newuoa_set_con_ball() ;    \
-        fprintf(stderr,"[ballopt]") ;     \
-      }                                   \
+#define BALLOPT                                         \
+  do{ int bc = powell_newuoa_get_con() ;                \
+      if( bc != SC_BALL ){                              \
+        powell_newuoa_set_con_ball() ;                  \
+        if( Hverb > 1 ) fprintf(stderr,"[ballopt]\n") ; \
+      }                                                 \
   } while(0)
 
-#define BOXOPT                            \
-  do{ int bc = powell_newuoa_get_con() ;  \
-      if( bc != SC_BOX  ){                \
-        powell_newuoa_set_con_box() ;     \
-        fprintf(stderr,"[boxopt]") ;      \
-      }                                   \
+#define BOXOPT                                          \
+  do{ int bc = powell_newuoa_get_con() ;                \
+      if( bc != SC_BOX  ){                              \
+        powell_newuoa_set_con_box() ;                   \
+        if( Hverb > 1 ) fprintf(stderr,"[boxopt]\n") ;  \
+      }                                                 \
   } while(0)
 
 int IW3D_improve_warp( int warp_code ,
