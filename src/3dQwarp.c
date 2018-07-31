@@ -1154,6 +1154,8 @@ void Qhelp(void)
     "           -->>* The outputs have _PLUS (from the source dataset) and _MINUS\n"
     "                 (from the base dataset) in their filenames, in addition to\n"
     "                 the {prefix}. The -iwarp option, if present, will be ignored.\n"
+    "               * If you use '-iniwarp' with '-plusminus', the warp dataset to\n"
+    "                 provide with '-iniwarp' is the '_PLUS' warp.\n"
     "\n"
     " -pmNAMES p m = This option lets you change the PLUS and MINUS prefix appendages\n"
     "                alluded to directly above to something else that might be more\n"
