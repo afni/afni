@@ -155,7 +155,7 @@ int main( int argc , char *argv[] )
    if( mask_nvox != DSET_NVOX(dset) )
      ERROR_exit("mask and dataset voxel counts don't match :(") ;
 
-   INFO_message("Grayplot-ing dataset") ;
+   INFO_message("Grayplot-ing dataset %s",DSET_HEADNAME(dset)) ;
    imout = THD_dset_to_grayplot( dset,mask , nxout,nyout , polort,fwhm ) ;
 
    mri_write_png( prefix , imout ) ;
