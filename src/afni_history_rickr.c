@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  7, Aug, 2018, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "if converting tedana.py results to standard space, include -space",
+   "Thanks to L Dowdle for noting the problem."
+ } ,
+
  { 24, Jul, 2018, RCR, "dcm2niix_afni", MAJOR, TYPE_ENHANCE,
    "version v1.0.20180622, including fix for enhanced DICOM Philips bvec/bval",
    "Update from C Rorden."

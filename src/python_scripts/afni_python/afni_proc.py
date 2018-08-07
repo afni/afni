@@ -610,9 +610,10 @@ g_history = """
         - fixed a couple of problems in error reporting
         - Thanks to J Reed for mentioning them.
     6.16 Jul  5, 2018: added -mask_opts_automask for L Atlas
+    6.17 Aug  7, 2018: 3drefit for tedana results should include space
 """
 
-g_version = "version 6.16, July 5, 2018"
+g_version = "version 6.17, August 7, 2018"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
