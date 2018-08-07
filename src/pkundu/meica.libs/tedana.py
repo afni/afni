@@ -51,6 +51,7 @@ def _interpolate(a, b, fraction):
 def init_random_seeds(seed):
     import random
     from scipy import random as numx_rand
+    print '-- initializing random seed to %s' % seed
     random.seed(seed)
     numx_rand.seed(seed)
 
