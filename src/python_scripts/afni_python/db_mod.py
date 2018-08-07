@@ -2846,9 +2846,17 @@ def cmd_combine_tedana(proc, block, method='tedana'):
    prev_prefix = proc.prev_prefix_form_run(block, view=1, eind=-2)
    exoptstr = ''.join(exopts)
 
+   # decide whether we need to update the view and space
+   if dataout != '' and proc.view and (proc.view != '+orig'):
+      spaceset = proc.prev_prefix_form(1, block, view=1, eind=1)
+      spacestr = '# make note of the space, for adjusting the output\n' \
+                 'set space = `3dinfo -space %s`\n\n' % spaceset
+   else:
+      spacestr = ''
 
    # actually run tedana.py
-   cmd =  '# ----- method %s : generate TED (MEICA) results  -----\n\n' \
+   cmd =  '# ----- method %s : generate TED (MEICA) results  -----\n'   \
+          '%s'                                                          \
           '%s'                                                          \
           '# first run tedana.py commands, to see if they all succeed\n'\
           'foreach run ( $runs )\n'                                     \
@@ -2861,8 +2869,8 @@ def cmd_combine_tedana(proc, block, method='tedana'):
           '%s'                                                          \
           '      -prefix tedprep\n'                                     \
           'end\n\n'                                                     \
-          % (method, mstr, prev_prefix, proc.mask.shortinput(), save_opt,
-             exoptstr)
+          % (method, mstr, spacestr, prev_prefix, proc.mask.shortinput(),
+             save_opt, exoptstr)
  
 
    # ----------------------------------------------------------------------
@@ -2870,10 +2878,16 @@ def cmd_combine_tedana(proc, block, method='tedana'):
    if dataout != '':
       # prepare for fixing view before copying the results back
       if proc.view and (proc.view != '+orig'):
+         # if we set the space variable, apply it, too
+         if spacestr != '':
+            spacestr = ' -space $space'
+         else:
+            spacestr = ''
          rcmt = ' (and fix view)'
          rcmd = '\n'                                \
                 '   # and adjust view from +orig\n' \
-                '   3drefit -view %s %s+orig\n' % (proc.view[1:], cur_prefix)
+                '   3drefit -view %s%s %s+orig\n' \
+                % (proc.view[1:], spacestr, cur_prefix)
       else:
          rcmt = ''
          rcmd = ''
