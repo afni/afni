@@ -155,7 +155,7 @@ int main( int argc , char *argv[] )
    if( mask_nvox != DSET_NVOX(dset) )
      ERROR_exit("mask and dataset voxel counts don't match :(") ;
 
-   INFO_message("Grayplot-ing dataset") ;
+   INFO_message("Grayplot-ing dataset %s",DSET_HEADNAME(dset)) ;
    imout = THD_dset_to_grayplot( dset,mask , nxout,nyout , polort,fwhm ) ;
 
    mri_write_png( prefix , imout ) ;
@@ -251,6 +251,9 @@ void show_help(void)
       "                    * For example, if you are applying this option to an\n"
       "                      afni_proc.py 'errts' (residuals) dataset, a good value\n"
       "                      of X to use is 3 or 4, since those values are in percents.\n"
+      "                    * The @grayplot script uses '-range 3.89' since that is the\n"
+      "                      value at which a standard normal N(0,1) deviate has a 1e-4\n"
+      "                      two-sided tail probability. (If nothing else, this sounds cool.)\n"
       "                   If you do NOT use '-range', then the data will be automatically\n"
       "                   normalized so each voxel time series has RMS value 1, and then\n"
       "                   the grayscale plot will be black-to-white being the min-to-max,\n"

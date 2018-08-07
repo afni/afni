@@ -107,9 +107,13 @@
 #     + updating olays for 4d and thresholding
 #     + no longer using pre-calc'ed tables
 #
-set version   = "3.9";   set rev_dat   = "July 25, 2018"
+#set version   = "3.9";   set rev_dat   = "July 25, 2018"
 #     + several small updates; renamed my_slicer, changed some help, 
 #     + default ulay now 0-98% in vol.
+#
+set version   = "4.0";   set rev_dat   = "July 27, 2018"
+#     + deal with percentile values if user entered 4D olay/ulay for
+#       non-4Dmode, but including subbrick selectors
 #
 # =====================================================================
 
@@ -721,8 +725,9 @@ else
     # https://afni.nimh.nih.gov/pub/dist/doc/program_help/README.attributes.html
     # Need 3 conditions here: a pval entered, **a type of sidedness**,
     # and a subbrick index for the thr dset specified
+    # [PT: July 27, 2018] More proper check on $subbb[3]
     if ( "${p_thr_val}" != "" && "${p_thr_side}" != "" \
-         && $subbb[3] >= 0 ) then
+         && `echo " $subbb[3] >= 0 " | bc ` ) then
 
         echo "++ Will calc threshold based on stat in [${subbb[3]}] brick"
 
@@ -859,10 +864,24 @@ foreach rrr ( `seq 1 1 $Nreps` )  ### the BIG loop starts
                     set umin = $amin
                     set umax = `echo " $amax * $umax_scale " | bc`
                 else
-                    set amin  = `3dBrickStat $ulay_nz \
-                                    -percentile ${pmin} 1 ${pmin} "$ulay"`
-                    set amax  = `3dBrickStat $ulay_nz \
-                                    -percentile ${pmax} 1 ${pmax} "$ulay"`
+                    # [PT: July 27, 2018] need to use subbb[1] brick
+                    # selector for olay percentile if user has entered
+                    # it!!
+                    if ( `echo " ${subbb[1]} > -1 " | bc` ) then
+                        set amin  = `3dBrickStat $ulay_nz \
+                                        -percentile ${pmin} 1 ${pmin} \
+                                        "${ulay}[${subbb[1]}]"`
+                        set amax  = `3dBrickStat $ulay_nz \
+                                        -percentile ${pmax} 1 ${pmax} \
+                                        "${ulay}[${subbb[1]}]"`
+                    else
+                        set amin  = `3dBrickStat $ulay_nz \
+                                        -percentile ${pmin} 1 ${pmin} \
+                                        "$ulay"`
+                        set amax  = `3dBrickStat $ulay_nz \
+                                        -percentile ${pmax} 1 ${pmax} \
+                                        "$ulay"`
+                    endif
                     set umin = $amin[2]
                     set umax = `echo " $amax[2] * $umax_scale " | bc`
                 endif
@@ -966,7 +985,7 @@ foreach rrr ( `seq 1 1 $Nreps` )  ### the BIG loop starts
                 set frange = "$BIGNEG"
                 foreach jjj ( `seq 1 1 3` ) 
                     set vvv = `3dBrickStat  $olay_nz          \
-                                -percentile ${frange_perc} 1 ${frange_perc} \
+                               -percentile ${frange_perc} 1 ${frange_perc} \
                                 "${opre4d}_${jjj}.nii.gz"`
                     if ( `echo " $vvv[2] > $frange " | bc` ) then
                         set frange = "$vvv[2]"
@@ -980,9 +999,19 @@ foreach rrr ( `seq 1 1 $Nreps` )  ### the BIG loop starts
                 endif
             else
                 # match more with GUI behavior, if user enters nothing
-                set vvv = `3dBrickStat  $olay_nz          \
-                                -percentile ${frange_perc} 1 ${frange_perc} \
-                                $read_dir/$read_olay`
+
+                # [PT: July 27, 2018] need to use subbb[2] brick
+                # selector for olay percentile if user has entered
+                # it!!
+                if ( `echo " ${subbb[2]} > -1 " | bc` ) then
+                    set vvv = `3dBrickStat  $olay_nz          \
+                               -percentile ${frange_perc} 1 ${frange_perc} \
+                               "$read_dir/${read_olay}[${subbb[2]}]"`
+                else
+                    set vvv = `3dBrickStat  $olay_nz          \
+                               -percentile ${frange_perc} 1 ${frange_perc} \
+                               $read_dir/$read_olay`
+                endif
                 set frange  = "$vvv[2]"
             endif
 
