@@ -1270,6 +1270,9 @@ static char *gby[] = {
      "The art of living is more like wrestling than dancing"                          ,
      "If the genome is the source code, it should have come with comments"            ,
      "So the days float through my eyes, but still the days seem the same"            ,
+     "I can't believe what you say, because I see what you do"                        ,
+     "What you do speaks so loudly I cannot hear what you say"                        ,
+     "Those who say it can't be done are usually interrupted by those doing it"       ,
 
      "The problem with science: answering 1 question creates 20 new (and harder) ones"        ,
      "When all you have is a computer, every problem looks like it needs linear algebra"      ,

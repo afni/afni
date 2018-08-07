@@ -66,11 +66,25 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 1, Aug , 2018 , PT , "@chauffeur_afni" , MICRO , TYPE_BUG_FIX,
+   "Deal correctly with percentile values for 4D ulay in non-4Dmode...",
+   "... because user may specify with subbrick selectors.\n"
+},
+
+{ 31, July , 2018 , PT , "fat_proc_dwi_to_dt" , MINOR , TYPE_NEW_OPT,
+   "New opt: '-check_abs_min ..'.",
+   "Just allows the same-named opt from 1dDW_Grad_o_Mat++ to be used.\n"
+},
+
+{ 31, July , 2018 , PT , "@GradFlipTest" , MINOR , TYPE_NEW_OPT,
+   "New opt: '-check_abs_min ..'.",
+   "Just allows the same-named opt from 1dDW_Grad_o_Mat++ to be used.\n"
+},
+
 { 25, July , 2018 , PT , "@chauffeur_afni" , MAJOR , TYPE_GENERAL,
    "Several new options, as well as ability to deal with 4D images.",
    "Many new features, probably including minor bug fixes.\n"
 },
-
 
 { 25, July , 2018 , PT , "@djunct_calc_mont_dims.py" , MINOR , TYPE_BUG_FIX,
    "Was excluding solution of a square set of dimensions.",
