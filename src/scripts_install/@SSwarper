@@ -414,7 +414,7 @@ Then the outputs from this script will be"
   |    -tlrc_NL_warp                                               \
   |    -tlrc_NL_warped_dsets                                       \
   |       anatQQ.\${subj}.nii                                       \
-  |       anatQQ.aff12.1D                                          \
+  |       anatQQ.\${subj}.aff12.1D                                  \
   |       anatQQ.\${subj}_WARP.nii
 
 # -------------------------------------------------------------------
