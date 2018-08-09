@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 7 , AUG , 2018 , RWC , "3dQwarp" , MICRO , TYPE_ENHANCE ,
+   "-allsave now works with -plusminus" ,
+   "Plus tweaked the help to explain some things more better." } ,
+
  { 30 , JUL , 2018 , RWC , "3dGrayplot" , MINOR , TYPE_NEW_OPT ,
    "-percent and -range options" ,
    "For Cesar C-G.\n"
