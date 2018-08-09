@@ -66,7 +66,7 @@ ENTRY("mri_medianfilter") ;
    nx = imin->nx ; ny = imin->ny ; nz = imin->nz ; nxy = nx*ny ;
 
    if( verb ){
-     ININFO_message(" Median filter mask has %d voxels",nd) ;
+     INFO_message("Median filter mask has %d voxels",nd) ;
      if( mask != NULL )
        ININFO_message(" Data mask has %d voxels",THD_countmask(nxy*nz,mask)) ;
    }
@@ -83,7 +83,7 @@ ENTRY("mri_medianfilter") ;
    }
 
    if( verb ){
-     kd = (int)rint(0.03*nz); if( kd < 1 ) kd = 1;
+     kd = (int)rint(0.05*nz); if( kd < 1 ) kd = 1;
      fprintf(stderr," + Median filter loop") ;
    }
 
@@ -198,7 +198,7 @@ ENTRY("mri_flatfilter") ;
    nx = imin->nx ; ny = imin->ny ; nz = imin->nz ; nxy = nx*ny ;
 
    if( verb ){
-     fprintf(stderr,"++ Median mask=%d",nd) ;
+     fprintf(stderr,"++ Flat filter mask size=%d voxels",nd) ;
      if( mask != NULL )
        fprintf(stderr," Data mask=%d",THD_countmask(nxy*nz,mask)) ;
    }
@@ -214,7 +214,7 @@ ENTRY("mri_flatfilter") ;
      case MRI_byte :  bin = (byte  *)vin ; break ;
    }
 
-   if( verb ){ kd = (int)rint(0.03*nz); if( kd < 1 ) kd = 1; }
+   if( verb ){ kd = (int)rint(0.05*nz); if( kd < 1 ) kd = 1; }
 
    for( kk=0 ; kk < nz ; kk++ ){
     if( verb && kk%kd == 0 ) fprintf(stderr,".") ;

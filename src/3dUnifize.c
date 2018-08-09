@@ -634,6 +634,7 @@ int main( int argc , char *argv[] )
    THD_3dim_dataset *inset=NULL , *outset=NULL ;
    MRI_IMAGE *imin , *imout ;
    float clfrac=0.2f ;
+   int do_mask = 1 ; /* 08 Aug 2018 = 8/8/18 */
 
    AFNI_SETUP_OMP(0) ;  /* 24 Jun 2013 */
 
@@ -1139,6 +1140,15 @@ THD_cliplevel_search(imin) ; exit(0) ;  /* experimentation only */
      mri_invertcontrast_inplace( imout , T2_uperc , T2_mask ) ;
    } else if( do_T2 == 2 ){   /* don't re-invert, but clip off bright edges */
      mri_clipedges_inplace( imout , PKVAL*1.111f , PKVAL*1.055f ) ;
+   }
+
+   if( do_mask ){  /* 08 Aug 2018 */
+     byte *mmm = mri_automask_image(imout) ;
+     float *fff = MRI_FLOAT_PTR(imout) ;
+     int ii , nvox=imout->nvox ;
+     if( verb ) fprintf(stderr,"m") ;
+     for( ii=0 ; ii < nvox ; ii++ ){ if( !mmm[ii] ) fff[ii] = 0.0f ; }
+     free(mmm) ;
    }
 
    if( verb ) fprintf(stderr,"\n") ;

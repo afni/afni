@@ -165,14 +165,15 @@ static char *tip[] = {
    "controllers off, if you want. Or, you can turn on 'Time Lock', so that the\n"
    "TR index is locked between controllers, as well as the crosshair location."
  ,
-   "Normally, the grid size of the pixel image created for display in an\n"
-   "AFNI image viewer is take from the grid size of the Underlay dataset.\n"
-   "But you can change that using the 'Datamode' control panel, by choosing\n"
-   "'Warp ULay on Demand', then setting the grid resampling mode below.\n"
-   "Sometimes using this to make the display grid more fine is useful for\n"
-   "creating nicer looking functional images, especially when 'Alpha' is\n"
-   "turned on (to outline above-threshold clusters and at the same time\n"
-   "show below-threshold in faded-out translucent colors)."
+   "* Normally, the grid size of the pixel image created for display in an\n"
+   "   AFNI image viewer is take from the grid size of the Underlay dataset.\n"
+   "* But you can change that using the 'Datamode' control panel, by choosing\n"
+   "   'Warp ULay on Demand', then setting the grid resampling mode below\n"
+   *   (e.g., to Li=Linear or Cu=Cubic interpolation).\n"
+   "* Sometimes using this to make the display grid more fine is useful for\n"
+   "   creating nicer looking functional images, especially when 'Alpha' is\n"
+   "   turned on (to outline above-threshold clusters and at the same time\n"
+   "   show below-threshold in faded-out translucent colors)."
  ,
    "Normally, voxels whose threshold value is below the slider setting will\n"
    "not be colorized. 'Alpha' fading allows them to get a faded color, while\n"
@@ -1273,6 +1274,7 @@ static char *gby[] = {
      "I can't believe what you say, because I see what you do"                        ,
      "What you do speaks so loudly I cannot hear what you say"                        ,
      "Those who say it can't be done are usually interrupted by those doing it"       ,
+     "Spending any mental energy looking back cannot help you move forward"           ,
 
      "The problem with science: answering 1 question creates 20 new (and harder) ones"        ,
      "When all you have is a computer, every problem looks like it needs linear algebra"      ,
