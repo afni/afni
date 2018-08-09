@@ -93,6 +93,11 @@ int main( int argc , char * argv[] )
    if( imin == NULL ) ERROR_exit("Can't copy input dataset brick") ;
    for( pit=0 ; pit < niter ; pit++ ){
      imout = mri_medianfilter( imin , irad , mask , verb ) ;
+     if( pit < niter-1 && mri_equal(imout,imin) ){ /* 08 Aug 2018 */
+       mri_free(imin) ;
+       INFO_message("median filter reaches fixed 'root' image at iteration %d",pit+1) ;
+       break ;
+     }
      mri_free(imin) ; imin = imout ;
    }
 

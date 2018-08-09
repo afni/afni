@@ -7930,6 +7930,7 @@ static int          Hforce      = 0    ; /* force an iterative warp update? */
 static int          Hzeasy      = 0    ; /* take it easy at the zero level? */
 static int          Hznoq       = 0    ; /* don't do quintic warp at the zero level? */
 static float        Hfactor     = 0.44f; /* fraction of maximum warp size allowed */
+static float        Hfactor_q   = 1.0f ; /* used in 3dQwarp */
 static float        Hshrink     = 0.749999f ; /* shrink factor for patches between levels */
 static int          Hngmin      = 25 ;   /* min patch size allowed in current run */
 static IndexWarp3D *Haawarp     = NULL ; /* global warp we are improving = A(x) */
@@ -7989,6 +7990,7 @@ static void (*Hsave_callback_func)(IndexWarp3D * , char *) = NULL ;  /* 13 Mar 2
        }                                                                      \
        Hsave_num = 0 ;                                                        \
      } } while(0)
+
 #define HSAVE_ADDTO(iww,inn)                                                                     \
  do{ if( Hsave_callback_func != NULL ){                                                          \
        Hsave_callback_func(iww,inn) ;                                                            \
@@ -10338,6 +10340,8 @@ ENTRY("IW3D_cleanup_improvement") ;
    Hstopped  = 0 ;
    Hfinal    = 0 ;
 
+   HSAVE_DESTROY ;
+
    EXRETURN ;
 }
 
@@ -10488,7 +10492,6 @@ ENTRY("IW3D_setup_for_improvement") ;
    /*-- eliminate old stuff (if any) --*/
 
    IW3D_cleanup_improvement() ;
-   HSAVE_DESTROY ;  /* 02 Jan 2015 */
 
    /*-- copy base and source images --*/
 
@@ -11118,7 +11121,7 @@ ENTRY("IW3D_warpomatic") ;
      nlevr = ( WORKHARD(0) || SUPERHARD(0) || Hduplo ) ? 2 : 1 ;
 #endif
      /* force the warp to happen, but don't use any penalty */
-     Hforce = 1 ; Hfactor = 1.0f ; Hpen_use = 0 ; Hlev_now = 0 ;
+     Hforce = 1 ; Hfactor = Hfactor_q ; Hpen_use = 0 ; Hlev_now = 0 ;
      PBLUR_BASE  (ibbb,ittt,jbbb,jttt,kbbb,kttt) ;  /* progressive blur, if ordered */
      PBLUR_SOURCE(ibbb,ittt,jbbb,jttt,kbbb,kttt) ;
      mri_free(Haasrcim) ;                /* At this point, create the warped  */
@@ -11130,9 +11133,11 @@ ENTRY("IW3D_warpomatic") ;
      /* always start with 2 cubic steps */
      BOXOPT ;
      (void)IW3D_improve_warp( MRI_CUBIC  , ibbb,ittt,jbbb,jttt,kbbb,kttt );
+     if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
 #if 0
      BALLOPT ;
      (void)IW3D_improve_warp( MRI_CUBIC  , ibbb,ittt,jbbb,jttt,kbbb,kttt );
+     if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
 #endif
      if( SUPERHARD(0) )
        (void)IW3D_improve_warp( MRI_CUBIC  , ibbb,ittt,jbbb,jttt,kbbb,kttt );
@@ -11218,7 +11223,7 @@ ENTRY("IW3D_warpomatic") ;
      flev = (Hpen_old) ? 1.0f : powf( (float)(lev-levs+1) , 0.333f ) ; ;
      Hpen_fff = Hpen_fac * MIN(2.22f,flev) ;  /* 20 Sep 2013 */
 
-     Hpen_use = (Hpen_fff > 0.0f) ;
+     Hpen_use = (Hpen_fff > 0.0f) && (lev > 2) ;
 
      /* compute width of rectangles at this level */
 
@@ -11294,7 +11299,7 @@ ENTRY("IW3D_warpomatic") ;
 #define BBB 0.888f
      Hfactor = (1.0f-HHH) + HHH*powf(BBB,(float)(lev-1)) ;  /* max displacement allowed */
 #else
-     Hfactor = 1.0f ;  /* always allow full-size patch warps */
+     Hfactor = Hfactor_q ;  /* always allow full-size patch warps */
 #endif
 
      qmode = qmode2 = MRI_CUBIC ;  /* cubic patches from here on down */
@@ -12568,6 +12573,8 @@ ENTRY("IW3D_cleanup_improvement_plusminus") ;
    Hstopped  = 0 ;
    Hfinal    = 0 ;
 
+   HSAVE_DESTROY ;
+
    EXRETURN ;
 }
 
@@ -12808,6 +12815,7 @@ IndexWarp3D * IW3D_warpomatic_plusminus( MRI_IMAGE *bim, MRI_IMAGE *wbim, MRI_IM
    int dkkk,djjj,diii , ngmin=0 , levdone=0 , do_qfinal=0 ;
    int qmode=MRI_CUBIC , nlevr , nsup,isup , myIwarp=0 ;
    int qmode2=MRI_CUBIC , qmodeX ;
+   char warplab[64] ;
 
 ENTRY("IW3D_warpomatic_plusminus") ;
 
@@ -12848,9 +12856,9 @@ ENTRY("IW3D_warpomatic_plusminus") ;
 #ifdef USE_PLUSMINUS_INITIALWARP
      nlevr = ( WORKHARD(0) || Hduplo ) ? 4 : 2 ; if( SUPERHARD(0) ) nlevr++ ;
 #else
-     nlevr = 4 ;
+     nlevr = 3 ;
 #endif
-     Hforce = 1 ; Hfactor = 1.0f ; Hpen_use = 0 ; Hlev_now = 0 ;
+     Hforce = 1 ; Hfactor = Hfactor_q ; Hpen_use = 0 ; Hlev_now = 0 ;
      PBLUR_BASE  (ibbb,ittt,jbbb,jttt,kbbb,kttt) ;  /* progressive blur, if ordered */
      PBLUR_SOURCE(ibbb,ittt,jbbb,jttt,kbbb,kttt) ;
      mri_free(Haasrcim_plus) ;   /* at this point, create the initial */
@@ -12865,7 +12873,11 @@ ENTRY("IW3D_warpomatic_plusminus") ;
      if( Hverb == 1 ) fprintf(stderr,"lev=0 %d..%d %d..%d %d..%d: ",ibbb,ittt,jbbb,jttt,kbbb,kttt) ;
      BOXOPT ;
      (void)IW3D_improve_warp_plusminus( MRI_CUBIC  , ibbb,ittt,jbbb,jttt,kbbb,kttt );
+     if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
+#if 0
      (void)IW3D_improve_warp_plusminus( MRI_CUBIC  , ibbb,ittt,jbbb,jttt,kbbb,kttt );
+     if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
+#endif
      BALLOPT ;
      (void)IW3D_improve_warp_plusminus( MRI_CUBIC  , ibbb,ittt,jbbb,jttt,kbbb,kttt );
      if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
@@ -12884,6 +12896,10 @@ ENTRY("IW3D_warpomatic_plusminus") ;
        }
      }
      if( Hverb == 1 ) fprintf(stderr," done [cost=%.5f]\n",Hcost) ;
+     if( Hsave_allwarps ){
+       sprintf(warplab,"Lev0.%04dx%04dx%04d",ittt-ibbb+1,jttt-jbbb+1,kttt-kbbb+1) ;
+       HSAVE_ADDTO(Haawarp,warplab) ;
+     }
    } else {
      Hcost = 666.666f ;  /* a beastly thing to do */
    }
@@ -12910,6 +12926,8 @@ ENTRY("IW3D_warpomatic_plusminus") ;
 
      flev = (Hpen_old) ? 1.0f : powf( (float)(lev-levs+1) , 0.333f ) ; ;
      Hpen_fff = Hpen_fac * MIN(2.22f,flev) ;  /* 20 Sep 2013 */
+
+     Hpen_use = (Hpen_fff > 0.0f) && (lev > 2) ;
 
      /* compute width of rectangles at this level */
 
@@ -12975,7 +12993,7 @@ ENTRY("IW3D_warpomatic_plusminus") ;
 #define BBB 0.888f
      Hfactor = (1.0f-HHH) + HHH*powf(BBB,(float)(lev-1)) ;  /* max displacement allowed */
 #else
-     Hfactor = 1.0f ;
+     Hfactor = Hfactor_q ;
 #endif
 
      qmode = qmode2 = MRI_CUBIC ;  /* cubic patches from here on down */
@@ -13095,6 +13113,11 @@ ENTRY("IW3D_warpomatic_plusminus") ;
      }
 
      if( Hverb == 1 ) fprintf(stderr," done [cost=%.5f]\n",Hcost) ;
+
+     if( Hsave_allwarps ){
+       sprintf(warplab,"Lev%d.%04dx%04dx%04d",lev,xwid,ywid,zwid) ;
+       HSAVE_ADDTO(Haawarp,warplab) ;
+     }
 
    } /*-- end of loop over levels of refinement --*/
 

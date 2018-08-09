@@ -49,7 +49,7 @@
 #  define DUPLO_STRING /*nada*/
 #endif
 
-
+/*----------------------------------------------------------------------*/
 #include "mri_nwarp.c"             /* all the real work is done in here */
 
 /** include the Powell NEWUOA functions for nonlinear optimization **/
@@ -60,6 +60,7 @@
 #include "powell_newuoa.c"
 #undef max
 #undef min
+/*----------------------------------------------------------------------*/
 
 /** constants for the mri_weightize() function (liberated from 3dAllineate) **/
 
@@ -78,6 +79,8 @@ static float wball_f = 0.0f ;
 
 static THD_3dim_dataset *wmask_set = NULL ;  /* 21 Dec 2016 */
 static float             wmask_f   = 0.0f ;
+
+static int do_plusminus = 0 ;  /* doing plusminus warping? */
 
 /*---------------------------------------------------------------------------*/
 /*! Turn an input image into a weighting factor.
@@ -968,7 +971,7 @@ void Qhelp(void)
     "\n"
     " -allsave     = This option lets you save the output warps from each level\n"
     "   *OR*         of the refinement process. Mostly used for experimenting.\n"
-    " -saveall      * Cannot be used with: -nopadWARP  -plusminus  " DUPLO_STRING ":(\n"
+    " -saveall      * Cannot be used with: -nopadWARP  " DUPLO_STRING ":(\n"
     "               * You could use the saved warps to create different versions\n"
     "                 of the warped source datasets (using 3dNwarpApply), to help\n"
     "                 you visualize how the warping process makes progress.\n"
@@ -981,7 +984,9 @@ void Qhelp(void)
     "                 before the next level starts computation. Thus, they could\n"
     "                 be used to re-start the computation if the program crashed\n"
     "                 (by using options '-inilev' and '-iniwarp').\n"
-    "               * At this time, '-allsave' does not work with '-plusminus' :(\n"
+    "               * If '-allsave' is used with '-plusminus', the intermediate\n"
+    "                 saved warps are the \"PLUS\" half-warps (which are what the\n"
+    "                 program is optimizing).\n"
 #endif
 
 #if defined(USE_OMP) && defined(__GNU_C__) /* I forget why this was here - getting old :( */
@@ -1144,6 +1149,12 @@ void Qhelp(void)
     "                 commands are left as exercises for aspiring AFNI Jedi Masters.\n"
     "               *** Also see the '-pmBASE' option described below.\n"
     "           -->>* Alas: -plusminus does not work with: -allineate  " DUPLO_STRING ":-(\n"
+    "                    ++ If a prior linear alignment is needed, it will have\n"
+    "                       to be done \"manually\" using 3dAllineate, and then use\n"
+    "                       the output of that program as the '-source' dataset for\n"
+    "                       3dQwarp.\n"
+    "                    ++ Generally speaking, -plusminus works well if the base and\n"
+    "                       source datasets are reasonably well aligned to start with.\n"
     "               * However, you can use -iniwarp with -plusminus :-)\n"
 #ifdef USE_PLUSMINUS_INITIALWARP
     "               * If -plusminus is used, the -plusminus warp is initialized by\n"
@@ -1155,7 +1166,9 @@ void Qhelp(void)
     "                 (from the base dataset) in their filenames, in addition to\n"
     "                 the {prefix}. The -iwarp option, if present, will be ignored.\n"
     "               * If you use '-iniwarp' with '-plusminus', the warp dataset to\n"
-    "                 provide with '-iniwarp' is the '_PLUS' warp.\n"
+    "                 provide with '-iniwarp' is the '_PLUS' warp. That is, you can't\n"
+    "                 use a \"full base-to-source warp\" for the initial warp\n"
+    "                 (one reason '-allineate' doesn't work with '-plusminus').\n"
     "\n"
     " -pmNAMES p m = This option lets you change the PLUS and MINUS prefix appendages\n"
     "                alluded to directly above to something else that might be more\n"
@@ -1423,7 +1436,10 @@ STATUS("compose with allin") ;
 
 STATUS("adoption") ;
    IW3D_adopt_dataset(tarp,adset) ;
-   sprintf(suffix,"_%s_WARPsave",nam) ;
+   if( do_plusminus )
+     sprintf(suffix,"_%s_PLUS_WARPsave",nam) ;
+   else
+     sprintf(suffix,"_%s_WARPsave",nam) ;
    qprefix = modify_afni_prefix(prefix,NULL,suffix) ;
 STATUS("convert to dset") ;
    qset = IW3D_to_dataset( tarp , qprefix ) ;
@@ -1477,7 +1493,7 @@ int main( int argc , char *argv[] )
    int do_resam=0 ; int keep_allin=1 ;
    int flags=0 , nbad=0 ;
    double cput=0.0 ;
-   int do_plusminus=0; Image_plus_Warp **sbww=NULL, *qiw=NULL; /* 14 May 2013 */
+   Image_plus_Warp **sbww=NULL, *qiw=NULL; /* 14 May 2013 */
    char *plusname="PLUS" , *minusname="MINUS" ;
    char appendage[THD_MAX_NAME] ;
    int zeropad=1, pad_xm=0,pad_xp=0, pad_ym=0,pad_yp=0, pad_zm=0,pad_zp=0 ; /* 13 Sep 2013 */
@@ -1589,6 +1605,17 @@ int main( int argc , char *argv[] )
 #else
        ERROR_message("Option %s is disabled now -- ignoring it",argv[nopt]) ;
 #endif
+       nopt++ ; continue ;
+     }
+
+     /*---------------*/
+
+     if( strcasecmp(argv[nopt],"-warpscale") == 0 ){ /* 08 Aug 2018 [hidden] */
+       float fff ;
+       if( ++nopt >= argc ) ERROR_exit("need arg after %s",argv[nopt-1]) ;
+       fff = (float)strtod(argv[nopt],NULL) ;
+       if( fff <= 0.5f ) fff = 0.5f ; else if( fff > 2.0f ) fff = 2.0f ;
+       Hfactor_q = fff ;
        nopt++ ; continue ;
      }
 
