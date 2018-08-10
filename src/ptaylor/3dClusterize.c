@@ -1041,14 +1041,11 @@ int main(int argc, char *argv[]) {
    // stat.
    // OLD: istatfunc = dblk->brick_statcode[ithr];
    istatfunc = DBLK_BRICK_STATCODE(dblk, ithr);
-   INFO_message( " BBB2 %d ", istatfunc);
 
    // build string of supplementary pars for report; check whether the
    // ithr volume is, indeed, a stat.
    if ( istatfunc != ILLEGAL_TYPE ) {
       if( FUNC_need_stat_aux[istatfunc] > 0 ) {
-         INFO_message( " DDD " );
-         
          sprintf(repstat, "%s :", FUNC_label_stat_aux[istatfunc]); 
          for( i=0 ; i < FUNC_need_stat_aux[istatfunc] ; i++ ) {
             sprintf(rrstr," %g ", DBLK_BRICK_STATPAR(dblk, ithr, i));
