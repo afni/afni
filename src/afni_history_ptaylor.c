@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 20, Aug , 2018 , PT , "3dClusterize" , MINOR , TYPE_BUG_FIX,
+   "Allow non-stat bricks to be thresholded.",
+   "Before, if the [ithr] brick was nonstat, crashing occurred.\n"
+},
+
 { 1, Aug , 2018 , PT , "@chauffeur_afni" , MICRO , TYPE_BUG_FIX,
    "Deal correctly with percentile values for 4D ulay in non-4Dmode...",
    "... because user may specify with subbrick selectors.\n"

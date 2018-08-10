@@ -35,6 +35,9 @@
    2018 07 23: + [PT] put in overwrite checks
                  - should fail with nonzero exit if can't write output
 
+   2018 08 10: + [PT] allow non-stat brick to be thresholdable
+                 - check istatfunc differently now
+
 */
 
 
@@ -1004,7 +1007,7 @@ int main(int argc, char *argv[]) {
    if( !no_inmask && !mask )
       ERROR_exit("User asked to use a mask from a header, but \n"
                  "\tthere doesn't appear to be one stored.");
-
+ 
    // apply masks, *IF* one was input somehow. Does nada if mask==NULL
    if( mask ) {
       //INFO_message("Applying mask.");
@@ -1033,18 +1036,32 @@ int main(int argc, char *argv[]) {
       tht /= DSET_BRICK_FACTOR(insetA, ithr);
    }
 
-   // useful integer for decoding stat_aux stuff
-   istatfunc = dblk->brick_statcode[ithr]; 
+   // [PT: Aug 10, 2018] Check 'istatfunc' in a new way, which
+   // protects against having an error if the ithr volume is *not* a
+   // stat.
+   // OLD: istatfunc = dblk->brick_statcode[ithr];
+   istatfunc = DBLK_BRICK_STATCODE(dblk, ithr);
+   INFO_message( " BBB2 %d ", istatfunc);
 
-   // build string of supplementary pars for report
-   if( FUNC_need_stat_aux[istatfunc] > 0 ) {
-      sprintf(repstat, "%s :", FUNC_label_stat_aux[istatfunc]); 
-      for( i=0 ; i < FUNC_need_stat_aux[istatfunc] ; i++ ) {
-         sprintf(rrstr," %g ", DBLK_BRICK_STATPAR(dblk, ithr, i));
-         strcat(repstat, rrstr);
+   // build string of supplementary pars for report; check whether the
+   // ithr volume is, indeed, a stat.
+   if ( istatfunc != ILLEGAL_TYPE ) {
+      if( FUNC_need_stat_aux[istatfunc] > 0 ) {
+         INFO_message( " DDD " );
+         
+         sprintf(repstat, "%s :", FUNC_label_stat_aux[istatfunc]); 
+         for( i=0 ; i < FUNC_need_stat_aux[istatfunc] ; i++ ) {
+            sprintf(rrstr," %g ", DBLK_BRICK_STATPAR(dblk, ithr, i));
+            strcat(repstat, rrstr);
+         }
       }
    }
-
+   else {
+      INFO_message( "Threshold volume [%d] does *not* appear to be a stat!",
+                    ithr);
+      strcat(repstat, "not a stat!");
+   }
+         
    // ------- what dsets get clusterized and reportized?
    // ------- IF: the user input an additional dataset, then that;
    // ------- ELSE: all depends on the statistics
