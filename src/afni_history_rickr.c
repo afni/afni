@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 13, Aug, 2018, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "actually apply opt -blur_opts_BIM",
+   "Thanks to D Zhu for noting the problem."
+ } ,
+
  {  7, Aug, 2018, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
    "if converting tedana.py results to standard space, include -space",
    "Thanks to L Dowdle for noting the problem."
