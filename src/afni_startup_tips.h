@@ -169,7 +169,7 @@ static char *tip[] = {
    "   AFNI image viewer is take from the grid size of the Underlay dataset.\n"
    "* But you can change that using the 'Datamode' control panel, by choosing\n"
    "   'Warp ULay on Demand', then setting the grid resampling mode below\n"
-   *   (e.g., to Li=Linear or Cu=Cubic interpolation).\n"
+   "   (e.g., to Li=Linear or Cu=Cubic interpolation).\n"
    "* Sometimes using this to make the display grid more fine is useful for\n"
    "   creating nicer looking functional images, especially when 'Alpha' is\n"
    "   turned on (to outline above-threshold clusters and at the same time\n"
