@@ -3389,6 +3389,8 @@ def db_mod_blur(block, proc, user_opts):
         if bopt: bopt.parlist = uopt.parlist
         else: block.opts.add_opt('-blur_opts_B2FW', 1, uopt.parlist, setpar=1)
 
+    apply_uopt_to_block('-blur_opts_BIM', user_opts, block)
+
     block.valid = 1
 
 def db_cmd_blur(proc, block):
