@@ -229,7 +229,7 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
- {  7, May, 2018, RCR, "afni_pro.py", MINOR, TYPE_MODIFY,
+ {  7, May, 2018, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
    "EPI automask (full_mask) is no longer dilated by default",
    "Also, add -show_process_changes, to report changes affecting results."
  } ,
