@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14, Aug, 2018, RCR, "model_conv_PRF_6", MINOR, TYPE_BUG_FIX,
+   "return a zero array on invalid parameters",
+   "Thanks to E Silson for noting the problem."
+ } ,
+
  { 13, Aug, 2018, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
    "actually apply opt -blur_opts_BIM",
    "Thanks to D Zhu for noting the problem."
