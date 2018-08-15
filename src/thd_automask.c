@@ -929,8 +929,8 @@ ENTRY("THD_mask_clust") ;
 
 /*--------------------------------------------------------------------------*/
 /*! Erode away nonzero voxels that aren't neighbored by mostly other
-    nonzero voxels.  Then restore those that were eroded that are
-    neighbors of survivors.  The neighbors are the 18 voxels closest
+    nonzero voxels.  Then (maybe) restore those that were eroded that
+    are neighbors of survivors.  The neighbors are the 18 voxels closest
     in 3D (nearest and next-nearest neighbors).
 ----------------------------------------------------------------------------*/
 
@@ -1526,7 +1526,7 @@ short *THD_mask_depth ( int nx, int ny, int nz, byte *mask,
       ncpmask -= np;
       ++niter;
       if (!np && ncpmask) {
-         WARNING_message("Nothing left to peel, after %d interations.\n"
+         WARNING_message("Nothing left to peel, after %d iterations.\n"
                          " however %d voxels remain in cpmask!\n"
                          " Jumping ship.\n",
                          niter, ncpmask);
