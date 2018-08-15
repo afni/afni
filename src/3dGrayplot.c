@@ -36,10 +36,14 @@ int main( int argc , char *argv[] )
 
    while( iarg < argc && argv[iarg][0] == '-' ){
 
+     /*-----*/
+
      if( strcasecmp(argv[iarg],"-help") == 0 ){
        show_help() ;
        exit(0) ;
      }
+
+     /*-----*/
 
      if( strcasecmp(argv[iarg],"-dimen") == 0 ){
        if( ++iarg >= argc-1 )
@@ -49,12 +53,16 @@ int main( int argc , char *argv[] )
        continue ;
      }
 
+     /*-----*/
+
      if( strcasecmp(argv[iarg],"-polort") == 0 ){
        if( ++iarg >= argc )
          ERROR_exit("'-polort' needs an argument") ;
        polort = (int)strtod(argv[iarg++],NULL) ;
        continue ;
      }
+
+     /*-----*/
 
      if( strcasecmp(argv[iarg],"-pvorder") == 0 ){   /* 04 May 2018 */
        grayplot_order_by_pvmap(1) ; iarg++ ; continue ;
@@ -66,11 +74,15 @@ int main( int argc , char *argv[] )
        grayplot_order_by_ijk(1) ; iarg++ ; continue ;
      }
 
+     /*-----*/
+
      if( strncasecmp(argv[iarg],"-oldresam",7) == 0 ||
          strncasecmp(argv[iarg],"-resamold",7) == 0    ){  /* 14 Aug 2018 */
        ININFO_message("Using old (deprecated) resampling method") ;
        grayplot_set_use_old_resam() ; iarg++ ; continue ;
      }
+
+     /*-----*/
 
      if( strcasecmp(argv[iarg],"-fwhm") == 0 ){
        if( ++iarg >= argc )
@@ -78,6 +90,8 @@ int main( int argc , char *argv[] )
        fwhm = (float)strtod(argv[iarg++],NULL) ;
        continue ;
      }
+
+     /*-----*/
 
      if( strcasecmp(argv[iarg],"-prefix") == 0 ){
        if( ++iarg >= argc )
@@ -94,6 +108,8 @@ int main( int argc , char *argv[] )
          ERROR_exit("prefix '%s' is illegal :(",prefix) ;
        iarg++ ; continue ;
      }
+
+     /*-----*/
 
      if( strcasecmp(argv[iarg],"-mask") == 0 ){
        THD_3dim_dataset *mset ; int mmm ;
@@ -122,21 +138,29 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
+     /*-----*/
+
      if( strcasecmp(argv[iarg],"-input") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need argument after '-input'") ;
        if( dset != NULL ) ERROR_exit("Can't have two -input options") ;
        dset = THD_open_dataset( argv[iarg] ) ;
        CHECK_OPEN_ERROR(dset,argv[iarg]) ;
+       if( DSET_NVALS(dset) < 9 )
+         ERROR_exit("Dataset %s has too few time points",DSET_HEADNAME(dset)) ;
        ININFO_message("Loading dataset %s",DSET_HEADNAME(dset)) ;
        DSET_load(dset) ; CHECK_LOAD_ERROR(dset) ;
        iarg++ ; continue ;
      }
+
+     /*-----*/
 
      if( strcasecmp(argv[iarg],"-percent") == 0 ){  /* 30 Jul 2018 */
        grayplot_set_percent() ;
        grayplot_norming_none() ;
        iarg++ ; continue ;
      }
+
+     /*-----*/
 
      if( strcasecmp(argv[iarg],"-range") == 0 ){
        if( ++iarg < argc && IS_NUMERIC(argv[iarg]) ){
@@ -147,27 +171,50 @@ int main( int argc , char *argv[] )
        continue ;
      }
 
+     /*-----*/
+
      ERROR_exit("Unknown option '%s'",argv[iarg]) ;
    }
 
-   if( mask == NULL ) ERROR_exit("Need '-mask'") ;
-
    /*----------------------------------------------------------------*/
+
+   /*----- no dataset given yet? -----*/
 
    if( dset == NULL ){
      if( iarg >= argc ) ERROR_exit("No input dataset?") ;
      dset = THD_open_dataset( argv[iarg] ) ;
      CHECK_OPEN_ERROR(dset,argv[iarg]) ;
+     if( DSET_NVALS(dset) < 9 )
+       ERROR_exit("Dataset %s has too few time points",DSET_HEADNAME(dset)) ;
      ININFO_message("Loading dataset %s",DSET_HEADNAME(dset)) ;
      DSET_load(dset) ; CHECK_LOAD_ERROR(dset) ;
    }
 
-   if( mask_nvox != DSET_NVOX(dset) )
-     ERROR_exit("mask and dataset voxel counts don't match :(") ;
+   /*----- create default mask -----*/
 
-#if 0
-   ININFO_message("Grayplot-ing dataset %s",DSET_HEADNAME(dset)) ;
-#endif
+   if( mask == NULL ){
+     int ii,jj,kk , nx,ny,nz,nxy , nx1,ny1,nz1 , vv ;
+     ININFO_message("No mask input ==> using all interior voxels") ;
+     mask_nvox = DSET_NVOX(dset) ;
+     mask = (byte *)malloc(sizeof(byte)*mask_nvox) ;
+     nx = DSET_NX(dset); ny = DSET_NY(dset); nz = DSET_NZ(dset); nxy = nx*ny;
+     nx1 = nx-1 ; ny1 = ny-1 ; nz1 = nz-1 ;
+     if( nx1 == 0 || ny1 == 0 || nz1 == 0 )
+       ERROR_exit("Cannot use automask on dataset with only one slice :(") ;
+     for( vv=kk=0 ; kk < nz ; kk++ ){
+      for( jj=0 ; jj < ny ; jj++ ){
+       for( ii=0 ; ii < nx ; ii++,vv++){
+         mask[vv] = (ii==0 || jj==0 || kk==0 || ii==nx1 || jj==ny1 || kk==nz1)
+                    ? 1 : 0 ;
+     }}}
+     vv = THD_countmask( mask_nvox , mask ) ;
+     ININFO_message("Number of voxels in mask = %d",vv) ;
+   } else if( mask_nvox != DSET_NVOX(dset) ){
+     ERROR_exit("mask and dataset voxel counts don't match :(") ;
+   }
+
+   /*------- do all the work -------*/
+
    imout = THD_dset_to_grayplot( dset,mask , nxout,nyout , polort,fwhm ) ;
 
    mri_write_png( prefix , imout ) ;
@@ -192,7 +239,7 @@ void show_help(void)
       "OPTIONS:\n"
       "--------\n"
       "\n"
-      " -mask mset      = Name of mask dataset [REQUIRED]\n"
+      " -mask mset      = Name of mask dataset\n"
       "                    * Voxels that are 0 in mset will not be processed.\n"
       "                    * Dataset must be byte-valued (8 bits: 0..255);\n"
       "                      shorts (16 bits) are also acceptable, but only\n"
@@ -205,6 +252,8 @@ void show_help(void)
       "                      will not be processed at all.\n"
       "                    * If there is more than one partition, horizontal dashed\n"
       "                      lines will drawn between them.\n"
+      "                    * If '-mask' is not given, then all voxels will be used,\n"
+      "                      except those at the very edge of a volume.\n"
       "\n"
       " -input dataset  = Alternative way to input dataset to process.\n"
       "\n"
@@ -241,6 +290,10 @@ void show_help(void)
       "                      and uses cubic interpolation when refining the grid\n"
       "                      (usually horizontal direction = time) -- whose purpose\n"
       "                      is purely beautification.\n"
+      "                    * Note that the collapsing of multiple voxels into one\n"
+      "                      pixel will tend to cancel out signals that change sign\n"
+      "                      within neighbors in the voxel ordering method you choose.\n"
+      "                      (See the 'order' options below.)\n"
       "\n"
       " -polort p       = Order of polynomials for detrending.\n"
       "                    * Default value is 2 (mean, slope, quadratic curve).\n"
@@ -264,18 +317,20 @@ void show_help(void)
       "                   top part of each partition be made up of voxels with\n"
       "                   similar time series, and the bottom part will be more\n"
       "                   'random looking'.\n"
-      "                    * The default order of voxels is just the index\n"
-      "                      order in which they appear in the dataset.\n"
       "\n"
       " -peelorder      = Within each mask partition, order the voxels by how\n"
       "                   many 'peel' steps are needed to get from the partition\n"
       "                   boundary to a given voxel.\n"
+      "                    * This ordering puts voxels in 'similar' geometrical\n"
+      "                      positions sort-of close together in the image.\n"
       "\n"
       " -ijkorder       = Set the intra-partition ordering to the default, by\n"
       "                   dataset 3D index ('ijk').\n"
-      "                   In AFNI's +tlrc ordering, this ordering primarily will be\n"
-      "                   from Inferior to Superior in the brain (from top to bottom\n"
-      "                   in the grayplot image).\n"
+      "                    * In AFNI's +tlrc ordering, this ordering primarily will\n"
+      "                      be from Inferior to Superior in the brain (from top to\n"
+      "                      bottom in the grayplot image).\n"
+      "                    * This is the default ordering method, but perhaps it is\n"
+      "                      not the most useful.\n"
       "\n"
       " -range X        = Set the range of the data to be plotted to be 'X'.\n"
       "                   When this option is used, then:\n"
@@ -322,6 +377,20 @@ void show_help(void)
       "   afni_proc.py and produce an image with the grayplot combined with\n"
       "   a graph of the motion magnitude, and with the GM, WM, and CSF in\n"
       "   different partitions.\n"
+      "\n"
+      "--------\n"
+      "EXAMPLE:\n"
+      "--------\n"
+      "The following commands first generate a time series dataset,\n"
+      "then create grayplots using each of the ordering methods\n"
+      "(so you can compare them). No mask is given.\n"
+      "\n"
+      " 3dcalc -a jRandomDataset:64:64:30:256 -datum float \\\n"
+      "        -prefix Qsc.nii -expr 'abs(.3+cos(0.1*i))*sin(0.1*t+0.1*i)+gran(0,3)'\n"
+      " 3dGrayplot -pvorder   -prefix QscPV.png   -input Qsc.nii -fwhm 8\n"
+      " 3dGrayplot -ijkorder  -prefix QscIJK.png  -input Qsc.nii -fwhm 8\n"
+      " 3dGrayplot -peelorder -prefix QscPEEL.png -input Qsc.nii -fwhm 8\n"
+      "\n"
       "\n"
      ) ;
 }
