@@ -62,6 +62,11 @@ static void grayplot_set_range( float val ){
 static int do_percent = 0 ;
 static void grayplot_set_percent(void){ do_percent = 1 ; }
 
+/*----- use old resampling method? -----*/
+
+static int use_old_resam = 0 ;
+static void grayplot_set_use_old_resam(void){ use_old_resam = 1 ; }
+
 /*--------------------------------------------------------------------------*/
 /* Convert to a vectim, using mmask to pick out the levels
    of different voxels to keep together (e.g., GM, WM, CSF)
@@ -232,9 +237,26 @@ static MRI_vectim * THD_dset_grayplot_prep( THD_3dim_dataset *dset ,
 /* resample a 1D array to a finer (nout > nin) or coarser (nout < nin) grid */
 /*--------------------------------------------------------------------------*/
 
+#undef  P_M1     /* cubic interpolation polynomials */
+#undef  P_00
+#undef  P_P1
+#undef  P_P2
+#undef  P_FACTOR
+#define P_M1(x)  (-(x)*((x)-1.0f)*((x)-2.0f))
+#define P_00(x)  (3.0f*((x)+1.0f)*((x)-1.0f)*((x)-2.0f))
+#define P_P1(x)  (-3.0f*(x)*((x)+1.0f)*((x)-2.0f))
+#define P_P2(x)  ((x)*((x)+1.0f)*((x)-1.0f))
+#define P_FACTOR 0.16666667f  /* 1/6 = final scaling factor */
+
+/* M3(x) = minimum sidelobe 3 term window (has no catchy name) */
+#undef  PIF
+#define PIF   3.1415927f /* PI in float */
+#undef  M3
+#define M3(x) (0.4243801f+0.4973406f*cosf(PIF*(x))+0.0782793f*cosf(PIF*(x)*2.0f))
+
 static void resample_1D_float( int nin, float *xin, int nout, float *xout )
 {
-   int ii , jj , nout1 , jbot,jtop ;
+   int ii , jj , nin1,nout1 , jbot,jtop ;
    float ffac , fjmid , fj ;
 
    if( nin < 2 || xin == NULL || nout < 2 || xout == NULL ) return ;
@@ -246,46 +268,107 @@ static void resample_1D_float( int nin, float *xin, int nout, float *xout )
      return ;
    }
 
-   ffac = (nin-1.0f)/(nout-1.0f) ;
+   ffac  = (nin-1.0f)/(nout-1.0f) ;
    nout1 = nout-1 ;
+   nin1  = nin -1 ;
 
-   if( ffac < 1.0f ){              /* interpolate to finer grid */
+   if( ffac < 1.0f ){ /*----- interpolate to finer grid (nout > nin) -----*/
 
-     xout[0]      = xin[0] ;
-     xout[nout-1] = xin[nin-1] ;
-     for( ii=1 ; ii < nout1 ; ii++ ){
-       fjmid = ii*ffac ;
-       jbot  = (int)fjmid ; fj = (fjmid-jbot) ;
-       xout[ii] = (1.0f-fj)*xin[jbot] + fj*xin[jbot+1] ;
-     }
+     xout[0]     = xin[0] ;
+     xout[nout1] = xin[nin1] ;
 
-   } else {                        /* coarser grid */
+     if( use_old_resam ){  /* OLD = linear interp */
 
-     int npm = (int)rintf(ffac) ;
-     float *xq = (float *)malloc(sizeof(float)*nin) ;
-     float *wt = (float *)malloc(sizeof(float)*(npm+1)) ;
-     float sum, wsum , ww ;
-     memcpy( xq , xin , sizeof(float)*nin) ;
-     for( jj=0 ; jj <= npm ; jj++ ) wt[jj] = (npm-jj+0.5f) ;
-     for( ii=0 ; ii < nout ; ii++ ){
-       jbot = ii-npm ; if( jbot < 0     ) jbot = 0 ;
-       jtop = ii+npm ; if( jbot > nout1 ) jbot = nout1 ;
-       sum = wsum = 0.0f ;
-       for( jj=jbot ; jj <= jtop ; jj++ ){
-         ww = wt[abs(jj-ii)] ; wsum += ww ; sum += ww*xin[jj] ;
+       for( ii=1 ; ii < nout1 ; ii++ ){
+         fjmid = ii*ffac ;
+         jbot  = (int)fjmid ; fj = (fjmid-jbot) ;
+         xout[ii] = (1.0f-fj)*xin[jbot] + fj*xin[jbot+1] ;
        }
-       xq[ii] = sum / wsum ;
-     }
-     free(wt) ;
-     xout[0]      = xq[0] ;
-     xout[nout-1] = xq[nin-1] ;
-     for( ii=1 ; ii < nout1 ; ii++ ){
-       fjmid = ii*ffac ;
-       jbot  = (int)fjmid ; fj = (fjmid-jbot) ;
-       xout[ii] = (1.0f-fj)*xq[jbot] + fj*xq[jbot+1] ;
-     }
-     free(xq) ;
 
+     } else { /* NEW = cubic interp [Aug 2018] */
+
+       int jx , jx_m1,jx_00,jx_p1,jx_p2 ; float fx , wt_m1,wt_00,wt_p1,wt_p2 ;
+       for( ii=1 ; ii < nout1 ; ii++ ){
+         fjmid = ii*ffac ; jx = floorf(fjmid) ; fx = fjmid-jx ;
+         jx_m1 = jx-1    ; jx_00 = jx         ; jx_p1 = jx+1  ; jx_p2 = jx+2 ;
+         if( jx_m1 < 0    ) jx_m1 = 0   ;
+         if( jx_m1 > nin1 ) jx_m1 = nin1 ;
+         if( jx_00 > nin1 ) jx_00 = nin1 ;
+         if( jx_p1 > nin1 ) jx_p1 = nin1 ;
+         if( jx_p2 > nin1 ) jx_p2 = nin1 ;
+         wt_m1 = P_M1(fx) ; wt_00 = P_00(fx) ;  /* interpolation weights */
+         wt_p1 = P_P1(fx) ; wt_p2 = P_P2(fx) ;
+         xout[ii] = (  wt_m1*xin[jx_m1] + wt_00*xin[jx_00]
+                     + wt_p1*xin[jx_p1] + wt_p2*xin[jx_p2] ) * P_FACTOR ;
+       }
+
+     }
+
+   } else { /*---------- coarser grid (nout < nin) ----------*/
+
+     if( use_old_resam ){  /* OLD = not so hot :( */
+
+       int npm = (int)rintf(ffac) ;
+       float *xq = (float *)malloc(sizeof(float)*nin) ;
+       float *wt = (float *)malloc(sizeof(float)*(npm+1)) ;
+       float sum, wsum , ww ;
+       memcpy( xq , xin , sizeof(float)*nin) ;
+       for( jj=0 ; jj <= npm ; jj++ ) wt[jj] = (npm-jj+0.5f) ;
+       for( ii=0 ; ii < nout ; ii++ ){
+         jbot = ii-npm ; if( jbot < 0     ) jbot = 0 ;
+         jtop = ii+npm ; if( jtop > nout1 ) jbot = nout1 ;
+         sum = wsum = 0.0f ;
+         for( jj=jbot ; jj <= jtop ; jj++ ){
+           ww = wt[abs(jj-ii)] ; wsum += ww ; sum += ww*xin[jj] ;
+         }
+         xq[ii] = sum / wsum ;
+       }
+       free(wt) ;
+       xout[0]      = xq[0] ;
+       xout[nout-1] = xq[nin-1] ;
+       for( ii=1 ; ii < nout1 ; ii++ ){
+         fjmid = ii*ffac ;
+         jbot  = (int)fjmid ; fj = (fjmid-jbot) ;
+         xout[ii] = (1.0f-fj)*xq[jbot] + fj*xq[jbot+1] ;
+       }
+       free(xq) ;
+
+     } else { /*---------- new coarsening method [Aug 2018] ----------*/
+
+       int npm = (int)rintf(0.555f*ffac+0.333f) , jmid ;
+       float sum, wsum , ww ;
+       static float *wt=NULL ; static int nwt=0 ;
+
+       if( npm < 1 ) npm = 1 ;
+
+       if( npm != nwt ){                /* recompute taper function, if needed */
+         nwt = npm ;
+         wt  = (float *)realloc(wt,sizeof(float)*(nwt+2)) ;
+#if 1
+          sum = (npm+0.111f) ;
+         wsum = 1.0f / sum ;
+         for( jj=0 ; jj <= npm ; jj++ ){
+           ww = (sum-jj)*wsum ; wt[jj] = M3(ww) ;
+         }
+#else
+         for( jj=0 ; jj <= npm ; jj++ ) wt[jj] = (npm-jj+0.111f) ;
+#endif
+       }
+
+       /* resample to coarser grid, averaging over neighbors */
+
+       for( ii=0 ; ii < nout ; ii++ ){
+         jmid = (int)rintf(ii*ffac) ;  /* index mapped from xout back to xin */
+         jbot = jmid - npm ; if( jbot < 0    ) jbot = 0 ; /* averaging range */
+         jtop = jmid + npm ; if( jtop > nin1 ) jtop = nin1 ;
+         sum = wsum = 0.0f ;
+         for( jj=jbot ; jj <= jtop ; jj++ ){ /* do the local averaging */
+           ww = wt[abs(jj-jmid)] ; wsum += ww ; sum += ww*xin[jj] ;
+         }
+         xout[ii] = sum / wsum ;
+       }
+
+     }
    }
 
    return ;
@@ -385,10 +468,11 @@ static MRI_IMAGE * mri_vectim_to_grayplot( MRI_vectim *imts, int nx, int ny )
      yfac = nyy / (float)nss ;
      for( kk=0 ; kk < lev_num-1 ; kk++ ){
        jj = (int)rintf( yfac * lev_siz[kk] ) ;
+       if( jj <= 0 ) jj = 1 ; else if( jj >= nyy-1 ) jj = nyy-2 ;
        for( ii=0 ; ii < nxx ; ii++ ){
          rr = ii%19 ;
-              if( rr <   9 ) outar[ii+jj*nxx] = qq ;
-         else if( rr == 18 ) qq = 255-qq ;
+              if( rr <   9 ) outar[ii+jj*nxx] = outar[ii+(jj-1)*nxx] = qq ;
+         else if( rr == 18 ) qq = 255u-qq ;
        }
      }
    }

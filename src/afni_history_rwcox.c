@@ -44,6 +44,12 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 15 , AUG , 2018 , RWC , "3dGrayplot" , MAJOR , TYPE_ENHANCE ,
+   "Total rewrite of resampling from time+space to X+Y grid" ,
+   "Grid refinement (time-X) is now cubic interpolation rather than linear\n"
+   "Grid coarsening (space-Y) is now minimum sidelobe taper averaging rather\n"
+   "than linear tapering" } ,
+
  { 7 , AUG , 2018 , RWC , "3dQwarp" , MICRO , TYPE_ENHANCE ,
    "-allsave now works with -plusminus" ,
    "Plus tweaked the help to explain some things more better." } ,

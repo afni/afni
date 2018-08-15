@@ -62,6 +62,11 @@ int main( int argc , char *argv[] )
        grayplot_order_by_ijk(1) ; iarg++ ; continue ;
      }
 
+     if( strncasecmp(argv[iarg],"-oldresam",7) == 0 ){  /* 14 Aug 2018 */
+       INFO_message("Using old (deprecated) resampling method") ;
+       grayplot_set_use_old_resam() ; iarg++ ; continue ;
+     }
+
      if( strcasecmp(argv[iarg],"-fwhm") == 0 ){
        if( ++iarg >= argc )
          ERROR_exit("'-fwhm' needs an argument") ;
@@ -203,8 +208,27 @@ void show_help(void)
       "\n"
       " -dimen X Y      = Output size of image in pixels.\n"
       "                    * X = width  = time axis direction\n"
-      "                    * Y = height = space dimensions\n"
-      "                    * Defaults are X=1024 Y=512.\n"
+      "                    * Y = height = voxel/space dimensions\n"
+      "                    * Defaults are X=1024 Y=512 -- suitable for screen display.\n"
+      "                    * For publication, you might want more pixels, as in\n"
+      "                        -dimen 1800 1200\n"
+      "                      which would be 6 inches wide by 4 inches high, at the usual\n"
+      "                      300 dots-per-inch (dpi) of high resolution image printing.\n"
+      "                   ** Note that there are usually many more voxels in the Y direction\n"
+      "                      than there are pixels in the output image. This fact requires\n"
+      "                      coarsening the output grid and resampling the data to match.\n"
+      "                      See the next option for a little more information.\n"
+      "\n"
+      " -oldresam       = The method for resampling the processed dataset to the final\n"
+      "                   grayscale image size was changed in a major way.\n"
+      "                   If you want to use the original method, then give this option.\n"
+      "                    * The only reason for using this option is for\n"
+      "                      comparison with the new method.\n"
+      "                    * The new resampling method was incorporated 15 Aug 2018,\n"
+      "                      and involves minimum-sidelobe local averaging when coarsening\n"
+      "                      the grid (usually vertical direction = voxels/space),\n"
+      "                      and uses cubic interpolation when refining the grid\n"
+      "                      (usually horizontal direction = time).\n"
       "\n"
       " -polort p       = Order of polynomials for detrending.\n"
       "                    * Default value is 2 (mean, slope, quadratic curve).\n"
@@ -274,7 +298,7 @@ void show_help(void)
       "                      voxel time series, but that can be changed with the\n"
       "                      '-polort' option.\n"
       "\n"
-      "** Quick hack for Cesar Caballero-Gaudes, April 2019, by @AFNIman.\n"
+      "** Quick hack for Cesar Caballero-Gaudes, April 2018, by @AFNIman.\n"
       "   As such, this program may be modified in the future to be more useful,\n"
       "   or at least more beautifully gorgeous.\n"
       "\n"
