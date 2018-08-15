@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 15, Aug, 2018, RCR, "afni_util.py", MINOR, TYPE_NEW_OPT,
+   "added functions for extracting version information from dataset HISTORY",
+   "E.g. get_last_history_ver_pack(), get_last_history_version().\n"
+   "This file now depends on 're'."
+ } ,
+
  { 14, Aug, 2018, RCR, "model_conv_PRF_6", MINOR, TYPE_BUG_FIX,
    "return a zero array on invalid parameters",
    "Thanks to E Silson for noting the problem."
