@@ -1,7 +1,7 @@
 #include "mrilib.h"
 
 #include "thd_dset_to_grayplot.c"
-void show_help(void);
+void show_help(void) ;
 
 #define IS_NUMERIC(sss)                                           \
  ( (                                       isdigit((sss)[0]) ) || \
@@ -9,6 +9,7 @@ void show_help(void);
    ( (sss)[0] == '-'                    && isdigit((sss)[1]) ) || \
    ( (sss)[0] == '-' && (sss)[1] == '.' && isdigit((sss)[2]) )   )
 
+/*===========================================================================*/
 
 int main( int argc , char *argv[] )
 {
@@ -17,7 +18,7 @@ int main( int argc , char *argv[] )
    char *prefix = "Grayplot.png" ;
    byte *mask=NULL ; int mask_nvox=0 ;
    int iarg = 1 ;
-   int polort=2 , nxout=0,nyout=0 ; float fwhm=6.0f ;
+   int polort=2 , nxout=0,nyout=0 ; float fwhm=0.0f ;
 
    /*----------------------------------------------------------------*/
 
@@ -32,7 +33,7 @@ int main( int argc , char *argv[] )
 
    while( iarg < argc && argv[iarg][0] == '-' ){
 
-     if( strcmp(argv[iarg],"-help") == 0 ){
+     if( strcasecmp(argv[iarg],"-help") == 0 ){
        show_help() ;
        exit(0) ;
      }
@@ -170,6 +171,8 @@ int main( int argc , char *argv[] )
    exit(0) ;
 }
 
+/*===========================================================================*/
+
 void show_help(void)
 {
      printf("\n"
@@ -203,6 +206,7 @@ void show_help(void)
       "                    * Default is Grayplot.png\n"
       "                    * If the filename ends in '.jpg', a JPEG file is output.\n"
       "                    * If the filename ends in '.pgm', a PGM file is output.\n"
+      "                        [PGM files can be manipulated with the NETPBM package.]\n"
       "                    * If the filename does not end in '.jpg' OR in '.png'\n"
       "                      OR in '.pgm', then '.png' will be added at the end.\n"
       "\n"
@@ -224,11 +228,13 @@ void show_help(void)
       "                   If you want to use the original method, then give this option.\n"
       "                    * The only reason for using this option is for\n"
       "                      comparison with the new method.\n"
-      "                    * The new resampling method was incorporated 15 Aug 2018,\n"
-      "                      and involves minimum-sidelobe local averaging when coarsening\n"
-      "                      the grid (usually vertical direction = voxels/space),\n"
+      "                    * The new resampling method was added 15 Aug 2018, and it\n"
+      "                      uses minimum-sidelobe local averaging when coarsening\n"
+      "                      the grid (usually vertical direction = voxels/space)\n"
+      "                      -- whose purpose is to reduce aliasing artifacts --\n"
       "                      and uses cubic interpolation when refining the grid\n"
-      "                      (usually horizontal direction = time).\n"
+      "                      (usually horizontal direction = time) -- whose purpose\n"
+      "                      is purely beautification.\n"
       "\n"
       " -polort p       = Order of polynomials for detrending.\n"
       "                    * Default value is 2 (mean, slope, quadratic curve).\n"
@@ -239,12 +245,12 @@ void show_help(void)
       "                   making the image.\n"
       "                    * Each partition (i.e., mask=1, mask=2, ...) is blurred\n"
       "                      independently, as in program 3dBlurInMask.\n"
-      "                    * Default value is 6 mm.\n"
-      "                    * '-fwhm 0' will prevent blurring\n"
-      "                      (e.g., if the input dataset is already blurred).\n"
+      "                    * Default value is 0 mm = no blurring.\n"
+      "                        [In the past, the default value was 6.]\n"
       "                    * If the dataset was NOT previously blurred, a little\n"
-      "                      blurring here will help bring out larger scale\n"
-      "                      features in the times series.\n"
+      "                      spatial blurring here will help bring out larger scale\n"
+      "                      features in the times series, which might otherwise\n"
+      "                      look very noisy.\n"
       "\n"
       " -pvorder        = Within each mask partition, order the voxels (top to\n"
       "                   bottom) by how well they match the two leading principal\n"
