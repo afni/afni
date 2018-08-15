@@ -360,7 +360,7 @@ Ifile:Ifile.o
 3dGetrow:3dGetrow.o
 	$(CC) -o 3dGetrow 3dGetrow.o $(LFLAGS) $(LLIBS)
 
-3dGrayplot.o: 3dGrayplot.c thd_dset_to_grayplot.c
+3dGrayplot.o: 3dGrayplot.c thd_dset_to_grayplot.c mri_pvmap.c
 
 3dGrayplot:3dGrayplot.o
 	$(CC) -o 3dGrayplot 3dGrayplot.o $(LFLAGS) $(LLIBS)

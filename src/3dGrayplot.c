@@ -30,6 +30,9 @@ int main( int argc , char *argv[] )
    /*----------------------------------------------------------------*/
 
    mainENTRY("3dGrayplot"); machdep(); (void)COX_clock_time();
+   if( strcasecmp(argv[1],"-help") != 0 ){
+     PRINT_VERSION("3dGrayplot") ;
+   }
 
    while( iarg < argc && argv[iarg][0] == '-' ){
 
@@ -63,8 +66,9 @@ int main( int argc , char *argv[] )
        grayplot_order_by_ijk(1) ; iarg++ ; continue ;
      }
 
-     if( strncasecmp(argv[iarg],"-oldresam",7) == 0 ){  /* 14 Aug 2018 */
-       INFO_message("Using old (deprecated) resampling method") ;
+     if( strncasecmp(argv[iarg],"-oldresam",7) == 0 ||
+         strncasecmp(argv[iarg],"-resamold",7) == 0    ){  /* 14 Aug 2018 */
+       ININFO_message("Using old (deprecated) resampling method") ;
        grayplot_set_use_old_resam() ; iarg++ ; continue ;
      }
 
@@ -113,7 +117,7 @@ int main( int argc , char *argv[] )
        }
 
        mmm = THD_countmask( mask_nvox , mask ) ;
-       INFO_message("Number of voxels in mask = %d",mmm) ;
+       ININFO_message("Number of voxels in mask = %d",mmm) ;
        if( mmm < 19 ) ERROR_exit("Mask is too small to process") ;
        iarg++ ; continue ;
      }
@@ -123,7 +127,7 @@ int main( int argc , char *argv[] )
        if( dset != NULL ) ERROR_exit("Can't have two -input options") ;
        dset = THD_open_dataset( argv[iarg] ) ;
        CHECK_OPEN_ERROR(dset,argv[iarg]) ;
-       INFO_message("Loading dataset") ;
+       ININFO_message("Loading dataset %s",DSET_HEADNAME(dset)) ;
        DSET_load(dset) ; CHECK_LOAD_ERROR(dset) ;
        iarg++ ; continue ;
      }
@@ -154,19 +158,21 @@ int main( int argc , char *argv[] )
      if( iarg >= argc ) ERROR_exit("No input dataset?") ;
      dset = THD_open_dataset( argv[iarg] ) ;
      CHECK_OPEN_ERROR(dset,argv[iarg]) ;
-     INFO_message("Loading dataset") ;
+     ININFO_message("Loading dataset %s",DSET_HEADNAME(dset)) ;
      DSET_load(dset) ; CHECK_LOAD_ERROR(dset) ;
    }
 
    if( mask_nvox != DSET_NVOX(dset) )
      ERROR_exit("mask and dataset voxel counts don't match :(") ;
 
-   INFO_message("Grayplot-ing dataset %s",DSET_HEADNAME(dset)) ;
+#if 0
+   ININFO_message("Grayplot-ing dataset %s",DSET_HEADNAME(dset)) ;
+#endif
    imout = THD_dset_to_grayplot( dset,mask , nxout,nyout , polort,fwhm ) ;
 
    mri_write_png( prefix , imout ) ;
 
-   INFO_message("3dGrayplot: Elapsed = %.1f s\n", COX_clock_time() ) ;
+   ININFO_message("3dGrayplot: Elapsed = %.1f s\n", COX_clock_time() ) ;
 
    exit(0) ;
 }
