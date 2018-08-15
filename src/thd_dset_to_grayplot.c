@@ -152,7 +152,7 @@ static MRI_vectim * THD_dset_grayplot_prep( THD_3dim_dataset *dset ,
 
        }
 
-       if( fwhm > 0 ) /* spatially blur inside this level */
+       if( fwhm > 0.0f ) /* spatially blur inside this level */
          mri_blur3D_vectim( vim[nvim] , fwhm ) ;
 
        /* re-order spatially, as ordered */
