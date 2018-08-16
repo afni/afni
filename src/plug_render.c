@@ -2795,7 +2795,7 @@ void REND_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
        "     visible.\n"
        " * 'TT Atlas' is used to toggle the overlay of regions from the\n"
        "     Talairach Atlas on and off.  This option only has effect if\n"
-       "     the underlay dataset being viewed in the the +tlrc coordinate\n"
+       "     the underlay dataset being viewed in the +tlrc coordinate\n"
        "     system and has 1 mm cubical voxels (the default).\n"
        "\n"
        " * 'Cutout Overlay' determines if the cutout operations affect the\n"

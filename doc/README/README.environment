@@ -2162,7 +2162,7 @@ way.
 
 You can load a Script file interactively during an AFNI run by using
 the button "Datamode->Misc->Run Script".  As a 'secret' option, if you
-enter a line containing a blank in the the filename dialog, that line
+enter a line containing a blank in the filename dialog, that line
 will be executed as a single command, rather than be used as a script
 filename.
 
@@ -3193,7 +3193,7 @@ with AFNI_AUTO_RESCAN, the AFNI_RESCAN_METHOD settings are respected.)
 ---------------------------
 Variable: AFNI_ALL_DATASETS  [02 Jun 2016]
 ---------------------------
-By default, AFNI creates a session (internal the the program) that
+By default, AFNI creates a session (internal to the program) that
 contains all the input datasets -- if you input more than one session
 directory, that is.  This session is called 'All_Datasets' in the
 'DataDir Switch' popup chooser, and should be the last session listed

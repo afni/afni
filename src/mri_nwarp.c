@@ -2915,7 +2915,7 @@ void IW3D_interp( int icode ,
 /*---------------------------------------------------------------------------*/
 /* B(A(x)) where B = matrix, A = warp, icode = unused
    -- no interpolation is needed for this operation, since
-      the matrix B can just be applied to the the warp displacement from A
+      the matrix B can just be applied to the warp displacement from A
    -- 'w1m2' means 'warp #1, matrix #2'
 *//*-------------------------------------------------------------------------*/
 
