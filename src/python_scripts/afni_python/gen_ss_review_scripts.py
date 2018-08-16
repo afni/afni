@@ -854,7 +854,7 @@ g_history = """
         - clust with AFNI_ORIENT=RAI, to match afni -com SET_DICOM_XYZ
    0.51 May 30, 2017: plot volreg params with enorm/outlier plot
    1.0  Apr 25, 2018: updated for python3
-   1.1  Aug 16, 2018: added -show_computed_uvars
+   1.1  Aug 16, 2018: added -show_computed_uvars; try to set template
 """
 
 g_version = "gen_ss_review_scripts.py version 1.1, August 16, 2018"
@@ -1582,21 +1582,32 @@ class MyInterface:
       # check if already set
       if self.uvar_already_set('template'): return 0
 
-      # rcr - testing...
-      #if self.uvar_already_set('final_anat'):
-      #   self.get_template_from_final_anat()
-      #   self.get_warp_from_final_anat()
+      self.get_template_from_final_anat()
 
       # don't even whine here...
       # print '** failed to guess template (continuing)'
 
       return 0
 
-   # rcr - todo
    def get_template_from_final_anat(self):
-      return
+      if not self.uvar_already_set('final_anat'): return
 
-   def get_warp_from_final_anat(self):
+      afinal = self.uvars.val('final_anat')
+      if not os.path.isfile(afinal): return
+
+      prog = 'auto_warp.py'
+      warp_cmd = UTIL.get_last_history_command(afinal, prog)
+      if warp_cmd == '':
+         prog = '@auto_tlrc'
+         warp_cmd = UTIL.get_last_history_command(afinal, prog)
+
+      if warp_cmd == '': return
+
+      clist = UTIL.find_opt_and_params(warp_cmd, '-base', 1)
+      if len(clist) != 2: return
+
+      self.uvars.template = clist[1]
+
       return
 
    def uvar_already_set(self, vname):
