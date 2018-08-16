@@ -412,7 +412,7 @@ int main( int argc , char *argv[] )
       "                 makes it nearly impossible to provide reliable estimates of statistical\n"
       "                 significance for the fit (e.g., R^2, F, ...).\n"
       "             * The actual penalty factor lambda used for a given coefficient\n"
-      "               is lam scaled by the the L2 norm of the corresponding regression\n"
+      "               is lam scaled by the L2 norm of the corresponding regression\n"
       "               column. The purpose of this is to keep the penalties scale-free:\n"
       "               if a regression column were doubled, then the corresponding fit\n"
       "               coefficient would be cut in half; thus, to keep the same penalty\n"

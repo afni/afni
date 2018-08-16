@@ -68,7 +68,7 @@ void display_help_menu()
    "    applied.\n"
    "(2) Two sub-bricks, the first of which is some voxel-wise measurement\n"
    "    of the effect (e.g., percent signal change), and the second of which\n"
-   "    the the statistical threshold sub-brick.\n"
+   "    is the statistical threshold sub-brick.\n"
    "In case (1), only statistics of the cluster sizes are kept.\n"
    "In case (2), statistics of the effect sub-brick are also kept for the\n"
    "clusters of each size.\n"
