@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, Aug, 2018, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_NEW_OPT,
+   "add -show_computed_uvars",
+   NULL
+ } ,
+
  { 15, Aug, 2018, RCR, "afni_util.py", MINOR, TYPE_NEW_OPT,
    "added functions for extracting version information from dataset HISTORY",
    "E.g. get_last_history_ver_pack(), get_last_history_version().\n"
