@@ -12,7 +12,7 @@ if 1 :  # for testing, might add the current dir and ~/abin to the PATH
 # AFNI libraries
 import afni_base as BASE
 import option_list as OL
-import afni_util as UTIL        # not actually used, but probably will be
+import afni_util as UTIL
 import lib_afni1D as LAD
 import lib_vars_object as VO
 
@@ -72,6 +72,10 @@ gen_ss_review_scripts.py - generate single subject analysis review scripts
 
                 gen_ss_review_scripts.py -prefix test.
 
+       3.  Show the list of computed user variables.
+
+                gen_ss_review_scripts.py -show_computed_uvars
+
 ------------------------------------------
 
    required files/datasets (these must exist in the current directory):
@@ -107,6 +111,7 @@ gen_ss_review_scripts.py - generate single subject analysis review scripts
       -help_fields              : show help describing fields from review_basic
       -help_fields_brief        : show only the brief field help
       -hist                     : show module history
+      -show_computed_uvars      : show user variables after computing
       -show_uvar_dict           : show all user variables
       -show_uvar_eg             : show example of user variables
       -show_valid_opts          : list valid options
@@ -182,7 +187,7 @@ R Reynolds    July 2011
 
 # howto: if adding a new (input dict) field:
 #   - add field hint and example in init_globals()
-#        updates g_eg_uvar (example uvar) and g_uvar_dict (dict of field help)
+#        update g_eg_uvar (example uvar) and g_uvar_dict (dict of field help)
 #   - possibly add guess func   : e.g. guess_final_anat()
 #
 # if new output field:
@@ -748,6 +753,7 @@ g_cvars_defs.cmds_drive = '@ss_review_driver_commands'
 g_cvars_defs.xstim      = 'X.stim.xmat.1D'
 g_cvars_defs.basic_command = 'yes' # if set, include command in review_basic
 g_cvars_defs.out_prefix = ''    # if set, use as prefix to cvar files
+g_cvars_defs.show_udict = 0     # if set, show computed user dict and exit
 g_cvars_defs.exit0      = 0     # if set, return 0 even on errors
 
 # this is a corresponding list of control vars that define output files
@@ -844,12 +850,14 @@ g_history = """
         - get each last estimate (so prefer err_reml > errts > epits)
         - update -help_fields
    0.49 Jan 19, 2017: fix for -final_anat (thanks to N Anderson)
-   0.50 Mar 30, 2017: clust with AFNI_ORIENT=RAI, to match afni -com SET_DICOM_XYZ
+   0.50 Mar 30, 2017:
+        - clust with AFNI_ORIENT=RAI, to match afni -com SET_DICOM_XYZ
    0.51 May 30, 2017: plot volreg params with enorm/outlier plot
    1.0  Apr 25, 2018: updated for python3
+   1.1  Aug 16, 2018: added -show_computed_uvars
 """
 
-g_version = "gen_ss_review_scripts.py version 1.0, April 25, 2018"
+g_version = "gen_ss_review_scripts.py version 1.1, August 16, 2018"
 
 g_todo_str = """
    - add @epi_review execution as a run-time choice (in the 'drive' script)?
@@ -892,6 +900,8 @@ class MyInterface:
       vopts.add_opt('-help_fields_brief', 0, [], helpstr='brief field help')
       vopts.add_opt('-help_todo', 0, [], helpstr='display current "todo" list')
       vopts.add_opt('-hist', 0, [], helpstr='display the modification history')
+      vopts.add_opt('-show_computed_uvars', 0, [],
+                    helpstr='show all user variables in dictionary after processing')
       vopts.add_opt('-show_uvar_dict', 0, [],
                     helpstr='show all user variables in dictionary')
       vopts.add_opt('-show_uvar_eg', 0, [],
@@ -1050,12 +1060,16 @@ class MyInterface:
                continue
             C.out_prefix = val
 
+         elif opt.name == '-show_computed_uvars':
+            C.show_udict = 1
+
          elif opt.name == '-script_basic':
             val, err = uopts.get_string_opt('', opt=opt)
             if val == None or err:
                errs +=1
                continue
             C.scr_basic = val
+
          elif opt.name == '-script_driver':
             val, err = uopts.get_string_opt('', opt=opt)
             if val == None or err:
@@ -1099,33 +1113,37 @@ class MyInterface:
 
          find any censor file (require some limit):
            - mot_limit, out_limit
+
+         return  0 : success
+                 1 : non-fatal termination
+                -1 : fatal termination
       """
 
-      if self.find_tcat_dset():    return 1
-      if self.find_x_mat():        return 1
+      if self.find_tcat_dset():    return -1
+      if self.find_x_mat():        return -1
 
-      if self.guess_subject_id():  return 1
-      if self.guess_xmat_nocen():  return 1
-      if self.guess_num_stim():    return 1
-      if self.guess_rm_trs():      return 1
-      if self.guess_stats_dset():  return 1
-      if self.guess_sum_ideal():   return 1
-      if self.guess_volreg_dset(): return 1
-      if self.guess_final_view():  return 1
+      if self.guess_subject_id():  return -1
+      if self.guess_xmat_nocen():  return -1
+      if self.guess_num_stim():    return -1
+      if self.guess_rm_trs():      return -1
+      if self.guess_stats_dset():  return -1
+      if self.guess_sum_ideal():   return -1
+      if self.guess_volreg_dset(): return -1
+      if self.guess_final_view():  return -1
 
-      if self.guess_enorm_dset():  return 1
-      if self.guess_motion_dset(): return 1
-      if self.guess_outlier_dset():return 1
-      if self.guess_final_anat():  return 1
-      if self.guess_align_anat():  return 1
-      if self.guess_template():    return 1
-      if self.guess_mask_dset():   return 1
-      if self.guess_tsnr_dset():   return 1
-      if self.guess_errts_dset():  return 1
-      if self.guess_gcor_dset():   return 1
-      if self.guess_mask_corr_dset(): return 1
+      if self.guess_enorm_dset():  return -1
+      if self.guess_motion_dset(): return -1
+      if self.guess_outlier_dset():return -1
+      if self.guess_final_anat():  return -1
+      if self.guess_align_anat():  return -1
+      if self.guess_template():    return -1
+      if self.guess_mask_dset():   return -1
+      if self.guess_tsnr_dset():   return -1
+      if self.guess_errts_dset():  return -1
+      if self.guess_gcor_dset():   return -1
+      if self.guess_mask_corr_dset(): return -1
 
-      if self.find_censor_file():  return 1
+      if self.find_censor_file():  return -1
 
       if self.cvars.verb > 2:
          print('-' * 75)
@@ -1138,6 +1156,10 @@ class MyInterface:
             elif isinstance(obj, LAD.Afni1D):
                print('-- Afni1D %-16s : %s' % (datr, obj.fname))
          print('-' * 75)
+
+      if self.cvars.show_udict:
+         self.uvars.show('computed uvars', name=0)
+         return 1   # terminal, but not an error
 
       return 0
 
@@ -1560,10 +1582,22 @@ class MyInterface:
       # check if already set
       if self.uvar_already_set('template'): return 0
 
+      # rcr - testing...
+      #if self.uvar_already_set('final_anat'):
+      #   self.get_template_from_final_anat()
+      #   self.get_warp_from_final_anat()
+
       # don't even whine here...
       # print '** failed to guess template (continuing)'
 
       return 0
+
+   # rcr - todo
+   def get_template_from_final_anat(self):
+      return
+
+   def get_warp_from_final_anat(self):
+      return
 
    def uvar_already_set(self, vname):
       if self.uvars.is_not_empty(vname):
@@ -2686,10 +2720,14 @@ def main():
       if me.cvars.exit0: return 0
       return 1
 
-   if me.init_basics():
-      print('** failed to init basics...')
-      if me.cvars.exit0: return 0
-      return 1
+   rv = me.init_basics()
+   if rv != 0:   # then we have a good or bad termination
+      if rv > 0: # non-error termination
+         return 0
+      else:      # bad
+         print('** failed to init basics...')
+         if me.cvars.exit0: return 0
+         return 1
 
    if me.write_scripts():
       if me.cvars.exit0: return 0
