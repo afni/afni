@@ -1177,7 +1177,7 @@ void Qhelp(void)
     "                that had phase-encoding in the RL-direction, you might do\n"
     "                something like\n"
     "   -base EPI_LR+orig -source EPI_RL+orig -plusminus -pmNAMES RL LR -prefix EPIuw\n"
-    "                recalling the the PLUS name goes with the source (RL) and the\n"
+    "                recalling that the PLUS name goes with the source (RL) and the\n"
     "                MINUS name goes with the base (RL). Then you'd end up with\n"
     "                datasets\n"
     "                  EPIuw_LR+orig and EPIuw_LR_WARP+orig from the base\n"
