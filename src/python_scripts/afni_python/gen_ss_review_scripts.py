@@ -189,12 +189,15 @@ R Reynolds    July 2011
 #   - add field hint and example in init_globals()
 #        update g_eg_uvar (example uvar) and g_uvar_dict (dict of field help)
 #   - possibly add guess func   : e.g. guess_final_anat()
+#   - possibly set var in basic_init()
 #
 # if new output field:
 #   - add add_field_help() to update_field_help()
 #   - apply to script           : basic and/or drive
 #                                 drive: self.text_drive, self.commands_drive
-
+# 
+# if modified output field: edit gen_ss_review_table.py:find_parent_label()
+#
 
 g_basic_help_fields = []
 def add_field_help(fname, hshort='', hlong=[]):
@@ -222,6 +225,8 @@ def disp_field_help(full=1, update=1):
 
 def update_field_help():
    add_field_help('subject ID', 'subject identifier, used in file names')
+   add_field_help('AFNI version', 'AFNI software version used in analysis')
+   add_field_help('AFNI package', 'AFNI software package used in analysis')
    add_field_help('TRs removed (per run)',
       'num TRs removed at the start of each run',
       ['This is currently just for the case of a constant number across runs.'])
@@ -355,6 +360,13 @@ g_overview_str = """
 # some overview details
 echo ""
 echo "subject ID                : $subj"
+
+if ( $?afni_ver ) then
+   echo "AFNI version              : $afni_ver"
+endif
+if ( $?afni_package ) then
+   echo "AFNI package              : $afni_package"
+endif
 
 if ( $?rm_trs ) then
    set value = $rm_trs
@@ -717,6 +729,8 @@ def init_globals():
    """fill g_uvar_dict and g_eg_uvar via AIF()"""
 
    AIF('subj',            'set subject ID', 'FT')
+   AIF('afni_ver',        'set AFNI version', 'AFNI_18.2.11')
+   AIF('afni_package',    'set AFNI package', 'macos_10.12_local')
    AIF('rm_trs',          'set number of TRs removed per run', 2)
    AIF('num_stim',        'set number of main stimulus classes', 2)
    AIF('tcat_dset',       'set first tcat dataset','pb00.FT.r01.tcat+orig.HEAD')
@@ -1131,6 +1145,8 @@ class MyInterface:
       if self.guess_volreg_dset(): return -1
       if self.guess_final_view():  return -1
 
+      if self.guess_afni_ver():    return -1
+
       if self.guess_enorm_dset():  return -1
       if self.guess_motion_dset(): return -1
       if self.guess_outlier_dset():return -1
@@ -1367,6 +1383,46 @@ class MyInterface:
 
       return 0
 
+   def guess_afni_ver(self):
+      """set uvars.afni_ver and uvars.afni_package
+
+         guess from volreg, stats, errts or tcat
+
+         return 0 on success
+      """
+
+      # check if already set
+      if self.uvar_already_set('afni_ver') and \
+         self.uvar_already_set('afni_package'): return 0
+
+      # init version and package to empty
+      aver = ''
+      pack = ''
+      found = 0
+      for name in ['volreg', 'stats', 'errts', 'tcat']:
+         label = '%s_dset' % name
+         if not self.dsets.valid(label): continue
+         dset = self.dsets.val(label)
+         rv, aver, pack = UTIL.get_last_history_ver_pack(dset.shortinput())
+
+         # did we find something useful?
+         if rv == 0 and aver != '' and pack != '':
+            found = 1
+            break
+
+      if not found:
+         print('** failed to guess afni_ver and afni_package')
+         return 0
+
+      if self.cvars.verb > 3:
+         print('++ guessed afni_ver/package from %s (%s, %s)' \
+               % (label, aver, pack))
+
+      self.uvars.afni_ver = aver
+      self.uvars.afni_package = pack
+
+      return 0
+
    def guess_num_stim(self):
       """set uvars.num_stim (from dsets.xmat_ad)
          backup plan: panic?  count stimuli/*?
@@ -1590,10 +1646,10 @@ class MyInterface:
       return 0
 
    def get_template_from_final_anat(self):
-      if not self.uvar_already_set('final_anat'): return
+      if not self.uvar_already_set('final_anat'): return 1
 
       afinal = self.uvars.val('final_anat')
-      if not os.path.isfile(afinal): return
+      if not os.path.isfile(afinal): return 1
 
       prog = 'auto_warp.py'
       warp_cmd = UTIL.get_last_history_command(afinal, prog)
@@ -1601,14 +1657,14 @@ class MyInterface:
          prog = '@auto_tlrc'
          warp_cmd = UTIL.get_last_history_command(afinal, prog)
 
-      if warp_cmd == '': return
+      if warp_cmd == '': return 1
 
       clist = UTIL.find_opt_and_params(warp_cmd, '-base', 1)
-      if len(clist) != 2: return
+      if len(clist) != 2: return 1
 
       self.uvars.template = clist[1]
 
-      return
+      return 0
 
    def uvar_already_set(self, vname):
       if self.uvars.is_not_empty(vname):
@@ -2171,12 +2227,13 @@ class MyInterface:
       errs   = 0
       # some cases with matching var names
       # rcr - add final_anat
-      for var in ['subj', 'rm_trs', 'num_stim', 'mot_limit', 'out_limit',
-                  'final_view']:
+      for var in ['subj', 'afni_ver', 'afni_package', 'rm_trs',
+                  'num_stim', 'mot_limit', 'out_limit', 'final_view']:
          if uvars.valid(var):
             txt += form % (var,self.uvars.val(var))
-         elif var in ['rm_trs']: # non-fatal
-            print('** warning: basic script, missing variable %s' % var)
+         elif var in ['rm_trs', 'afni_ver', 'afni_package']: # non-fatal
+            if self.cvars.verb > 1:
+               print('** warning: basic script, missing variable %s' % var)
          else:
             print('** basic script: missing variable %s' % var)
             errs += 1
