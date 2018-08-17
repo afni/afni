@@ -50,7 +50,7 @@
 afni_history_struct rickr_history[] = {
 
  { 16, Aug, 2018, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_NEW_OPT,
-   "add -show_computed_uvars",
+   "add -show_computed_uvars; try to set template",
    NULL
  } ,
 

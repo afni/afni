@@ -826,16 +826,21 @@ def get_typed_dset_attr_list(dset, attr, atype, verb=1):
 
     return err, result
 
+def get_dset_history(dname, lines=1):
+   """run 3dinfo -history on 'dname' and return the list of lines"""
+   command = '3dinfo -history %s' % dname
+   status, olines = exec_tcsh_command(command, lines=lines, noblank=1)
+   if status: return []
+   return olines
+
 def get_last_history_command(dname, substr):
    """run 3dinfo -history on 'dname' and return the last line
           containing 'substr'
       return one text line, or '' on failure
    """
-   command = '3dinfo -history %s' % dname
-   status, olines = exec_tcsh_command(command, lines=1, noblank=1)
-   if status: return ''
-
-   olen   = len(olines)
+   olines = get_dset_history(dname)
+   olen = len(olines)
+   if olen == 0: return ''
 
    # work backwards
    for ind in range(olen-1, -1, -1):
@@ -849,11 +854,9 @@ def get_last_history_ver_pack(dname):
       return status and the version and package strings
              status = 0 on success, 1 on error
    """
-   command = '3dinfo -history %s' % dname
-   status, olines = exec_tcsh_command(command, lines=1, noblank=1)
-   if status: return ''
-
-   olen   = len(olines)
+   olines = get_dset_history(dname)
+   olen = len(olines)
+   if olen == 0: return ''
 
    # work backwards and extract the first valid version found
    for ind in range(olen-1, -1, -1):
