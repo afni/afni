@@ -2499,7 +2499,13 @@ STATUS("call 0") ;
       /*** For the Mac users! ***/
 
       case 1:
+#if 0
         AFNI_speak("[[volm 0.65; inpt PHON; rate -10; pbas +5]]1AEf=nnnIY",0) ;  /* fall thru */
+#endif
+
+#if 1
+        if( MAIN_argc == 1 && AFNI_yesenv("AFNI_STARTUP_SOUND") ) AFNI_startup_sound() ;
+#endif
 
       case 2:
       case 3:
