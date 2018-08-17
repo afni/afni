@@ -2,9 +2,9 @@
 .. _install_page:
 
 
-****************************************************************
-**The Authoritative HowTo for Installing AFNI on Your Computer**
-****************************************************************
+********************************************************************
+**The Authoritative HowTo for Installing AFNI on Your Own Computer**
+********************************************************************
 
 .. toctree::
    :maxdepth: 3

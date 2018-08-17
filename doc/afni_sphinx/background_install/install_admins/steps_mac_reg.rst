@@ -26,13 +26,10 @@ type::
 
   echo $0
 
-**ACTUALLY, THIS REQUIRES ADMIN PRIVILEGE ON MACS: MOVE?**
-
-Many AFNI scripts and command line examples use ``tcsh`` syntax; if
-you want to change your shell, you can click your way through "System
-Preferences" -> "Users & Groups" -> click on lock and enter password
--> right click on your username and go to "Advanced options" -> go
-down to where shell is and enter desired one...
+Most AFNI scripts are written in ``tcsh``, and most command line
+examples presented also use ``tcsh`` syntax.  If you would like to
+change your default shell, please ask your administrator to do so (as
+it typically requires admin privileges on a Mac to do so).
 
 Setup terminal
 --------------
@@ -130,51 +127,55 @@ Keep up-to-date (remember!)
 
 .. include:: ../install_instructs/substep_update.rst
 
+|
 
-Install PyQt4, via JDK and fink (optional)
-------------------------------------------
+.. comment out
 
-a. | Click on this link: http://www.oracle.com/technetwork/java/javase/downloads
-   | and then click on the ``Java`` icon.
+    Install PyQt4, via JDK and fink (optional)
+    ------------------------------------------
 
-   **Purpose:** Install Java SE (standard edition) JDK.
+    a. | Click on this link: http://www.oracle.com/technetwork/java/javase/downloads
+       | and then click on the ``Java`` icon.
 
-#. Copy+paste the following::
-   
-     curl -O https://afni.nimh.nih.gov/pub/dist/bin/misc/save/install.fink.bash
-     bash install.fink.bash
+       **Purpose:** Install Java SE (standard edition) JDK.
 
-   **Purpose:** This runs an install script to download+install the
-   package manager ``fink``.  
+    #. Copy+paste the following::
 
-   This takes perhaps 30 minutes to finish **and** the user gets asked
-   many questions (sorry, no way around it).  One can simply keep
-   hitting the ``ENTER`` key to accept the useful defaults (**note:**
-   you can respond with 'n' for the Xcode installation prompt if
-   prompted otherwise, as you should have it from an earlier step).
+         curl -O https://afni.nimh.nih.gov/pub/dist/bin/misc/save/install.fink.bash
+         bash install.fink.bash
 
-#. Do each of the following (installs PyQt4):
+       **Purpose:** This runs an install script to download+install the
+       package manager ``fink``.  
 
-   i. Open a new terminal window.
+       This takes perhaps 30 minutes to finish **and** the user gets asked
+       many questions (sorry, no way around it).  One can simply keep
+       hitting the ``ENTER`` key to accept the useful defaults (**note:**
+       you can respond with 'n' for the Xcode installation prompt if
+       prompted otherwise, as you should have it from an earlier step).
 
-   #. Copy+paste::
+    #. Do each of the following (installs PyQt4):
 
-        fink --version
+       i. Open a new terminal window.
 
-   #. If no errors, copy+paste::
+       #. Copy+paste::
 
-       sudo fink install pyqt4-mac-py27
-       sudo ln -s /sw/bin/python2.7 /sw/bin/python
-       echo 'setenv PYTHONPATH /sw/lib/qt4-mac/lib/python2.7/site-packages' >> ~/.cshrc
+            fink --version
 
-#. Test your PyQt4.
+       #. If no errors, copy+paste::
 
-   Copy+paste the following::
+           sudo fink install pyqt4-mac-py27
+           sudo ln -s /sw/bin/python2.7 /sw/bin/python
+           echo 'setenv PYTHONPATH /sw/lib/qt4-mac/lib/python2.7/site-packages' >> ~/.cshrc
 
-     uber_subject.py
 
-   Does a GUI open?  Or is there a crash??
-  
-   |
+    #. Test your PyQt4.
+
+       Copy+paste the following::
+
+         uber_subject.py
+
+       Does a GUI open?  Or is there a crash??
+
+       |
 
 
