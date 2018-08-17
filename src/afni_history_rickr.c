@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17, Aug, 2018, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
+   "add afni_ver and afni_package to uvars",
+   "Add 'AFNI version' and 'AFNI package' to review basic output."
+ } ,
+
  { 16, Aug, 2018, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_NEW_OPT,
    "add -show_computed_uvars; try to set template",
    NULL
