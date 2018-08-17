@@ -2836,7 +2836,7 @@ afni_history_struct rwcox_history[] = {
    "with tiny random values." } ,
 
  { 20 , OCT , 2010 , RWC , "afni" , MICRO , TYPE_GENERAL ,
-   "Add 'INSTACORR SET' the the drive command list" ,
+   "Add 'INSTACORR SET' to the drive command list" ,
    NULL } ,
 
  { 20 , OCT , 2010 , RWC , "afni and 3dGroupInCorr" , MICRO , TYPE_GENERAL ,

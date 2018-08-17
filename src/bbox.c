@@ -3439,7 +3439,7 @@ static MCW_action_item TSC_act[] = {
             void func( Widget wpar,XtPointer func_data,MCW_choose_cbs *cbs )
      func_data    = data to pass to func
 
-     The "ival" stored in the MCW_choose_cbs will the the index of the
+     The "ival" stored in the MCW_choose_cbs will the index of the
        chosen timeseries in tsarr.  The "imval" be the pointer to the
        chosen timeseries itself.  Do NOT mri_free this, since it will just be a
        pointer to the correct entry in tsarr (which should not be modified
