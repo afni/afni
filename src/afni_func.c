@@ -1468,7 +1468,7 @@ if(aset >= 0 && PRINT_TRACING)
 }
 
 /*-----------------------------------------------------------------------*/
-/* Hollow out the the overlay in place -- 21 Mar 2005 - RWCox.
+/* Hollow out the overlay in place -- 21 Mar 2005 - RWCox.
    An interior pixel is defined as one whose 4 nearest neighbors are
    all nonzero.  This editing is done in-place (in the input image).
 -------------------------------------------------------------------------*/
