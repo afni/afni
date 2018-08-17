@@ -52,7 +52,8 @@ afni_history_struct rickr_history[] = {
  { 17, Aug, 2018, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_NEW_OPT,
    "add option -write_uvars_json; add a few more user vars",
    "Add afni_ver, afni_package and final_epi_dset to uvars.\n"
-   "Add 'AFNI version' and 'AFNI package' to review basic output."
+   "Add 'AFNI version' and 'AFNI package' to review basic output.\n"
+   "Add afni_util:write_data_as_json(), lib_vars_object:get_attribute_dict()."
  } ,
 
  { 16, Aug, 2018, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_NEW_OPT,
