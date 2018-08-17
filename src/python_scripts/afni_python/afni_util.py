@@ -129,6 +129,32 @@ def read_top_lines(fname='stdin', nlines=1, strip=0, verb=1):
    if nlines != 0: tdata = tdata[0:nlines]
    return tdata
 
+def write_data_as_json(data, fname='stdout', indent=3, newline=1):
+   """dump to json file; check for stdout or stderr
+      return 0 on success
+   """
+   if fname == 'stdout' or fname == '-':
+      fp = sys.stdout
+   elif fname == 'stderr':
+      fp = sys.stderr
+   else:
+      try: fp = open(fname, 'w')
+      except:
+         print("** write to json: could not open '%s' for writing" % fname)
+         return 1
+
+   # import locally, unless it is needed in at least a few functions
+   import json
+
+   # actual write
+   json.dump(data, fp, indent=indent)
+
+   if newline: fp.write('\n')
+   if fp != sys.stdout and fp != sys.stderr:
+      fp.close()
+
+   return 0
+
 def read_AFNI_version_file(vdir='', vfile='AFNI_version.txt', delim=', '):
    """read AFNI_version.txt from vdir (else executable_dir)
       return comma-delimited form

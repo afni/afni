@@ -72,9 +72,14 @@ gen_ss_review_scripts.py - generate single subject analysis review scripts
 
                 gen_ss_review_scripts.py -prefix test.
 
-       3.  Show the list of computed user variables.
+       3a. Show the list of computed user variables.
 
                 gen_ss_review_scripts.py -show_computed_uvars
+
+       3b. Also, write uvars to a JSON file.
+
+                gen_ss_review_scripts.py -show_computed_uvars \\
+                                         -write_uvars_json user_vars.json
 
 ------------------------------------------
 
@@ -750,6 +755,8 @@ def init_globals():
    AIF('sum_ideal',       'set 1D file for ideal sum', 'sum_ideal.1D')
    AIF('align_anat', 'anat aligned with orig EPI', 'FT_anat_al_junk+orig.HEAD')
    AIF('final_anat','anat aligned with stats dataset','anat_final.FT+tlrc.HEAD')
+   AIF('final_epi_dset',  'set final EPI base dataset',
+                          'final_epi_vr_base_min_outlier+tlrc.HEAD')
    AIF('final_view',      'set final view of data (orig/tlrc)', 'tlrc')
    AIF('template',        'anatomical template', 'TT_N27+tlrc')
    AIF('template_warp',   'affine or nonlinear', 'affine')
@@ -768,6 +775,7 @@ g_cvars_defs.xstim      = 'X.stim.xmat.1D'
 g_cvars_defs.basic_command = 'yes' # if set, include command in review_basic
 g_cvars_defs.out_prefix = ''    # if set, use as prefix to cvar files
 g_cvars_defs.show_udict = 0     # if set, show computed user dict and exit
+g_cvars_defs.udict_json = ''    # json file to write uvars dict to
 g_cvars_defs.exit0      = 0     # if set, return 0 even on errors
 
 # this is a corresponding list of control vars that define output files
@@ -868,10 +876,12 @@ g_history = """
         - clust with AFNI_ORIENT=RAI, to match afni -com SET_DICOM_XYZ
    0.51 May 30, 2017: plot volreg params with enorm/outlier plot
    1.0  Apr 25, 2018: updated for python3
-   1.1  Aug 16, 2018: added -show_computed_uvars; try to set template
+   1.1  Aug 17, 2018:
+        - added -show_computed_uvars
+        - set afni_ver, afni_package, template, final_epi_dset
 """
 
-g_version = "gen_ss_review_scripts.py version 1.1, August 16, 2018"
+g_version = "gen_ss_review_scripts.py version 1.1, August 17, 2018"
 
 g_todo_str = """
    - add @epi_review execution as a run-time choice (in the 'drive' script)?
@@ -915,7 +925,7 @@ class MyInterface:
       vopts.add_opt('-help_todo', 0, [], helpstr='display current "todo" list')
       vopts.add_opt('-hist', 0, [], helpstr='display the modification history')
       vopts.add_opt('-show_computed_uvars', 0, [],
-                    helpstr='show all user variables in dictionary after processing')
+                    helpstr='show uvars dictionary after processing')
       vopts.add_opt('-show_uvar_dict', 0, [],
                     helpstr='show all user variables in dictionary')
       vopts.add_opt('-show_uvar_eg', 0, [],
@@ -925,6 +935,8 @@ class MyInterface:
       vopts.add_opt('-show_valid_opts', 0, [],\
                     helpstr='display all valid options')
       vopts.add_opt('-ver', 0, [], helpstr='display the current version number')
+      vopts.add_opt('-write_uvars_json', 1, [],
+                    helpstr='save uvars dictionary to JSON file')
 
       # user variable options - add from dictionary
       ukeys = list(g_uvar_dict.keys())
@@ -1090,6 +1102,14 @@ class MyInterface:
                errs +=1
                continue
             C.scr_drive = val
+
+         elif opt.name == '-write_uvars_json':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if val == None or err:
+               errs +=1
+               continue
+            C.udict_json = val
+
          else:
             print('** unknown option %d: %s' % (oind+1, opt.name))
             errs += 1
@@ -1152,6 +1172,7 @@ class MyInterface:
       if self.guess_outlier_dset():return -1
       if self.guess_final_anat():  return -1
       if self.guess_align_anat():  return -1
+      if self.guess_final_epi_dset(): return -1
       if self.guess_template():    return -1
       if self.guess_mask_dset():   return -1
       if self.guess_tsnr_dset():   return -1
@@ -1172,6 +1193,13 @@ class MyInterface:
             elif isinstance(obj, LAD.Afni1D):
                print('-- Afni1D %-16s : %s' % (datr, obj.fname))
          print('-' * 75)
+
+      if self.cvars.udict_json != '':
+         if self.cvars.verb > 1:
+            print("++ writing uvars dictionary as JSON file '%s'" \
+                  % self.cvars.udict_json)
+         UTIL.write_data_as_json(self.uvars.get_attribute_dict(),
+                                 self.cvars.udict_json)
 
       if self.cvars.show_udict:
          self.uvars.show('computed uvars', name=0)
@@ -1702,6 +1730,32 @@ class MyInterface:
          if os.path.isfile(file):
             self.uvars.align_anat = gstr
             return 0
+
+      print('** failed to guess align_anat (continuing)')
+
+      return 0
+
+   def guess_final_epi_dset(self):
+      """set uvars.final_epi_dset
+         return 0 on sucess
+
+         This variable is non-vital, so return 0 on anything but fatal error.
+         - look for final_epi*.HEAD
+      """
+
+      # check if already set
+      if self.uvar_already_set('final_epi_dset'): return 0
+
+      # see whether we find exactly one
+      glist = glob.glob('final_epi*.HEAD')
+      if self.cvars.verb > 2:
+         print('-- have %d final_epi files via wildcard: %s' \
+               % (len(glist), glist))
+
+      if len(glist) >= 1:
+         self.uvars.final_epi_dset = glist[-1]
+         self.dsets.final_epi_dset = BASE.afni_name(self.uvars.final_epi_dset)
+         return 0
 
       print('** failed to guess align_anat (continuing)')
 
