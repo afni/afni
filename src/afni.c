@@ -2262,7 +2262,7 @@ int main( int argc , char *argv[] )
 
    { char *eee = getenv("DISPLAY") ;  /* 20 Aug 2018 */
      GLOBAL_library.local_display = (eee == NULL) || (strstr(eee,":0") != NULL ) ;
-     GLOBAL_library.have_play     = ( THD_find_executable("play") != NULL ) ;
+     GLOBAL_library.have_sox      = ( THD_find_executable("sox") != NULL ) ;
    }
      
 
@@ -2512,7 +2512,7 @@ STATUS("call 0") ;
 #if 1
         if( check_string("-com",MAIN_argc,MAIN_argv) == 0 &&
             GLOBAL_library.local_display                  &&
-            GLOBAL_library.have_play                      &&
+            GLOBAL_library.have_sox                       &&
             AFNI_yesenv("AFNI_STARTUP_SOUND")               ) AFNI_startup_sound() ;
 #endif
 
