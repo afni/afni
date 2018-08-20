@@ -2139,6 +2139,21 @@ files do not have any compression along the time axis.  Therefore, you
 should use AFNI_AGIF_DELAY to control the frame rate of animated GIF
 files, and not this frame duplication factor.
 
+----------------------------
+Variable: AFNI_STARTUP_SOUND
+----------------------------
+If this variable is set to YES, then when the AFNI GUI starts, a
+pair of notes will be played (softly). For this to happen, it is
+also necessary that
+ a) the 'sox' sound software package be installed
+ b) that the X11 display is local, not remote
+ c) that no '-com' options are on the command line
+You can also try using the 'Play startup sound' button on the
+right-click popup menu attached to the logo space to the right
+of the GUI 'done' button. For that button to work, conditions
+a) and b) above must be true. On a Mac, you can install 'sox'
+using the 'brew' package (e.g.).
+
 -----------------------------
 Variable: AFNI_STARTUP_SCRIPT
 -----------------------------
