@@ -7492,6 +7492,13 @@ ENTRY("AFNI_hidden_CB") ;
      SENSITIZE(w,0) ; /* 25 Jan 2017 */
    }
 
+   else if( w == im3d->vwid->prog->hidden_sound_pb ){    /* 20 Aug 2018 */
+     if( GLOBAL_library.have_play && GLOBAL_library.local_display )
+       AFNI_startup_sound() ;
+     else
+       WARNING_message("sound playing not available :(") ;
+   }
+
    else if( w == im3d->vwid->prog->hidden_gamberi_pb ){
      AFNI_speak( "The Rime of the Gamberi Cattivi" , 0 ) ;
      (void) MCW_popup_message( im3d->vwid->imag->topper ,
