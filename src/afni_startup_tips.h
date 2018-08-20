@@ -378,6 +378,11 @@ static char *tip[] = {
   "important to press the <Enter> (or <Return>) key at the end of the digit(s)\n"
   "after N, otherwise the graph window will not respond to any other key presses."
  ,
+  "Set environment variable AFNI_STARTUP_SOUND to YES to hear the AFNI startup\n"
+  "sound when the GUI opens. Or use the right click popup menu in the logo\n"
+  "square right of the 'done' button and select the 'Play startup sound' item.\n"
+  "(But whatever you don't, DO NOT use the 'Activate Omega-13' menu item!)"
+ ,
 
 /*-- tips below here are for non-GUI programs --*/
 
@@ -606,6 +611,7 @@ static char *tip[] = {
 #undef  NGBY
 #define NGBY ((int)(sizeof(gby)/sizeof(char *)))
 static char *gby[] = {
+
      "Farewell, my friend"                                           ,
      "Farewell?  A long farewell to all my greatness"                ,
      "Sweet is the memory of distant friends"                        ,
@@ -1288,6 +1294,8 @@ static char *gby[] = {
      "You can always find me out on the Long Line -- I hang out by the Church-Kleene ordinal" ,
      "Outside of a dog, a book is Man's best friend; inside of a dog, it's too dark to read"  ,
      "I've narrowed the answer to your hypothesis down to two possibilities: right and wrong" ,
+     "If there was closed-book test on how to be YOU, would you get a passing grade?"         ,
+     "An alternative fact: truth isn't truth"                                                 ,
 
      "Someday I'll tell you of the Giant Rat of Sumatra, a tale for which the world is not prepared"    ,
      "People have to learn to live with newly-discovered facts; if they don't, they die of them"        ,

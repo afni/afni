@@ -2394,18 +2394,18 @@ void AFNI_startup_sound(void)
 
 #if 0
     case 0:
-      system("play -n synth 0.4 sine E2-E5 sine A5-A2 gain -h -20 &> /dev/null") ;
+      system("play -n synth 0.4 sine E2-E5 sine A5-A2 gain -h -27 &> /dev/null") ;
     break ;
 #endif
 
     default:
     case 1:
-      system("play -n synth 0.5 pluck E3 pluck F3 gain -h -24 delay 0.2 0 fade t 0.05 &> /dev/null") ;
+      system("play -n synth 0.5 pluck E3 pluck F3 gain -h -27 delay 0.2 0 fade t 0.05 &> /dev/null") ;
     break ;
 
 #if 0
     case 2:
-      system("play -n synth 0.4 pluck E3 pluck F3 gain -h -24 delay 0 0.1 &> /dev/null") ;
+      system("play -n synth 0.4 pluck E3 pluck F3 gain -h -27 delay 0 0.1 &> /dev/null") ;
     break ;
 #endif
   }
