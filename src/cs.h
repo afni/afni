@@ -159,6 +159,8 @@ extern void   afni_fgets_setskip(int) ;
 extern double_pair gam_find_pq( double peak , double fwhm ) ; /* 07 Jan 2018 */
 
 extern void play_sound_1D( int nn , float *xx ) ;             /* 20 Aug 2018 */
+extern void set_sound_note_type( char *typ ) ;
+extern void set_sound_gain_value( int ggg ) ;
 
 #ifndef DEBLANK
 #define DEBLANK(cc) do{ if( (cc) != NULL ){                   \

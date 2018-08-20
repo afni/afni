@@ -2263,8 +2263,15 @@ int main( int argc , char *argv[] )
    { char *eee = getenv("DISPLAY") ;  /* 20 Aug 2018 */
      GLOBAL_library.local_display = (eee == NULL) || (strstr(eee,":0") != NULL ) ;
      GLOBAL_library.have_sox      = ( THD_find_executable("sox") != NULL ) ;
+     eee = getenv("AFNI_SOUND_NOTE_TYPE") ;
+     if( eee != NULL ) set_sound_note_type(eee) ;
+     eee = getenv("AFNI_SOUND_GAIN") ;
+     if( eee != NULL ){
+       int gg = (int)strtod(eee,NULL) ;
+       if( gg < 0 ) set_sound_gain_value(gg) ;
+       else         WARNING_message("AFNI_SOUND_GAIN is not negative :(") ;
+     }
    }
-     
 
    /* if we used xrdb to set X11 resources, re-set them back to their old
       state so that other AFNIs don't use these new settings by default   */
