@@ -2398,7 +2398,7 @@ CS_OBJS  = cs_sort_fi.o cs_sort_di.o cs_symeig.o cs_sort_ii.o cs_sort_ff.o \
            cs_sort_fv.o cs_laguerre.o machdep.o cs_qhull.o afni_logger.o   \
            cl1.o cs_misc.o powell_int.o powell_newuoa.o cs_sort_dv.o       \
            rhdd.o zfun.o cs_pv.o cs_sort_iv.o cs_sort_d.o cs_fgets.o       \
-           svdlib.o cs_gamfit.o cs_sort_str.o
+           svdlib.o cs_gamfit.o cs_sort_str.o cs_playsound.o
 
 CS_SRCS  = cs_sort_fi.c cs_sort_di.c cs_symeig.c cs_sort_ii.c cs_sort_ff.c \
            cs_addto_args.c multivector.c afni_environ.c cs_qmed.c cl2.c    \

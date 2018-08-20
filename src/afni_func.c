@@ -7493,7 +7493,7 @@ ENTRY("AFNI_hidden_CB") ;
    }
 
    else if( w == im3d->vwid->prog->hidden_sound_pb ){    /* 20 Aug 2018 */
-     if( GLOBAL_library.have_play && GLOBAL_library.local_display )
+     if( GLOBAL_library.have_sox && GLOBAL_library.local_display )
        AFNI_startup_sound() ;
      else
        WARNING_message("sound playing not available :(") ;

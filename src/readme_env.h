@@ -2141,6 +2141,21 @@ static char *readme_env[] = {
    "should use AFNI_AGIF_DELAY to control the frame rate of animated GIF\n" ,
    "files, and not this frame duplication factor.\n" ,
    "\n" ,
+   "----------------------------\n" ,
+   "Variable: AFNI_STARTUP_SOUND\n" ,
+   "----------------------------\n" ,
+   "If this variable is set to YES, then when the AFNI GUI starts, a\n" ,
+   "pair of notes will be played (softly). For this to happen, it is\n" ,
+   "also necessary that\n" ,
+   " a) the 'sox' sound software package be installed\n" ,
+   " b) that the X11 display is local, not remote\n" ,
+   " c) that no '-com' options are on the command line\n" ,
+   "You can also try using the 'Play startup sound' button on the\n" ,
+   "right-click popup menu attached to the logo space to the right\n" ,
+   "of the GUI 'done' button. For that button to work, conditions\n" ,
+   "a) and b) above must be true. On a Mac, you can install 'sox'\n" ,
+   "using the 'brew' package (e.g.).\n" ,
+   "\n" ,
    "-----------------------------\n" ,
    "Variable: AFNI_STARTUP_SCRIPT\n" ,
    "-----------------------------\n" ,
@@ -4299,4 +4314,4 @@ static char *readme_env[] = {
    "If set to YES, enable distance measures that are not ready for prime\n" ,
    "time in the instacorr interface.\n" ,
    NULL } ;
-#define NUM_readme_env 4298
+#define NUM_readme_env 4313

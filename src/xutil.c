@@ -2384,31 +2384,12 @@ void AFNI_speak_setvoice( char *vvv ){ return; }
 void AFNI_startup_sound(void)
 {
 #ifndef NO_FRIVOLITIES
-  static int have_play=-1 ;
+  static int have_sox=-1 ;
 
-  if( have_play == 0 ) return ;
-  have_play = ( THD_find_executable("play") != NULL ) ;
-  if( have_play == 0 ) return ;
+  if( have_sox < 0 ) have_sox = ( THD_find_executable("sox") != NULL ) ;
+  if( have_sox == 0 ) return ;
 
-  switch( lrand48()%3 ){
-
-#if 0
-    case 0:
-      system("play -n synth 0.4 sine E2-E5 sine A5-A2 gain -h -27 &> /dev/null") ;
-    break ;
-#endif
-
-    default:
-    case 1:
-      system("play -n synth 0.5 pluck E3 pluck F3 gain -h -27 delay 0.2 0 fade t 0.05 &> /dev/null") ;
-    break ;
-
-#if 0
-    case 2:
-      system("play -n synth 0.4 pluck E3 pluck F3 gain -h -27 delay 0 0.1 &> /dev/null") ;
-    break ;
-#endif
-  }
+  system("sox -n -d synth 0.5 pluck E3 pluck F3 gain -h -27 delay 0.2 0 fade t 0.05 &> /dev/null") ;
 #endif
   return ;
 }

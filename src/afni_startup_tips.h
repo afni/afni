@@ -1411,6 +1411,9 @@ static char *gby[] = {
      " what you see is all that you will ever be. And then you accept it.\n"
      " Or you stop looking in mirrors" ,
 
+     "\n  Next time you are afraid to share your ideas, remember that someone\n"
+     "  once said in a meeting 'Let's make a film with a tornado full of sharks'" ,
+
      /* from Quentin Crisp */
 
      "Don't clean your house. After 4 years, the dirt doesn't get any worse" ,
@@ -1424,7 +1427,7 @@ static char *gby[] = {
      "  than an exact answer to the wrong question"                                    ,
 
      "\n  The combination of some data and an aching desire for an answer does not\n"
-     "  ensure that a reasonable answer can be extracted from a given body of data"
+     "  ensure that a reasonable answer can be extracted from a given body of data" 
 
 } ;
 
