@@ -703,6 +703,7 @@ static char *gby[] = {
      "Drink to me only with thine eyes, and I will drink with mine"  ,
      "O Captain, My Captain, rise up and hear the bells"             ,
      "O Captain, My Captain, our fearful trip is done"               ,
+     "I recall the experience sweet and sad"                         ,
      "Ever returning spring, trinity sure to me you bring"           ,
      "If thou wast not grant to sing, thou would'st surely die"      ,
      "Here, user that slowly passes, I give you my sprig of lilac"   ,
