@@ -118,10 +118,17 @@ endif
 
 # =========================== do push ========================
 
+#if ( "$DO_PUSH" == "1" ) then
+#    echo "++ Pushin' the current docs over to afni (and the World!)."
+#    rsync -av --delete _build/html/         \
+#        afni.nimh.nih.gov:/fraid/pub/dist/doc/htmldoc
+#    echo "++ ... and done pushing the docs.\n"
+#endif
 if ( "$DO_PUSH" == "1" ) then
-    echo "++ Pushin' the current docs over to afni (and the World!)."
+    echo "++ Pushin' the current docs as <<afniHQ>>"
+    echo     " over to afni (and the World!)."
     rsync -av --delete _build/html/         \
-        afni.nimh.nih.gov:/fraid/pub/dist/doc/htmldoc
+        afniHQ@afni.nimh.nih.gov:/fraid/pub/dist/doc/htmldoc
     echo "++ ... and done pushing the docs.\n"
 endif
 
