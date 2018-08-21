@@ -2271,6 +2271,7 @@ int main( int argc , char *argv[] )
        if( gg < 0 ) set_sound_gain_value(gg) ;
        else         WARNING_message("AFNI_SOUND_GAIN is not negative :(") ;
      }
+     if( AFNI_yesenv("AFNI_SOUND_TWOTONE") ) set_sound_twotone(1) ;
    }
 
    /* if we used xrdb to set X11 resources, re-set them back to their old
