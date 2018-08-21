@@ -323,7 +323,7 @@ Gradient and matrix information
 Simultaneous averaging of datasets
 ----------------------------------
 
-**This is not performed in ``1dDW_Grad_o_Mat``.  We no longer
+**This is not performed in ``1dDW_Grad_o_Mat++``.  We no longer
 recommend doing this, based on the way tensor fitting is peformed.**
 
 .. _FlippingGrads:
