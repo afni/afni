@@ -10,6 +10,11 @@ static int have_sox = -1 ;
 /*--------------------------------------------------------------------------*/
 static char note_type[32] = "pluck" ;
 static int  gain_value    = -27 ;
+static int  two_tone      = 0 ;
+
+#define NFORKLIST 4
+static int  nfork = 0 ;
+static int  forklist[NFORKLIST] ;
 
 void set_sound_note_type( char *typ )
 {
@@ -40,22 +45,32 @@ void set_sound_gain_value( int ggg )
 
 /*-----*/
 
+void set_sound_twotone( int ggg )
+{
+   two_tone = ggg ; return ;
+}
+
+/*-----*/
+
 static int psk_set = 0 ;
 
-void play_sound_killer(void){ killpg(0,SIGQUIT) ; return ; }
+void play_sound_killer(void){
+  int ii ;
+  for( ii=0 ; ii < NFORKLIST ; ii++ ){
+    if( forklist[ii] > 0 ){
+      killpg(forklist[ii],SIGKILL) ;
+    }
+  }
+  return ;
+}
 
 /*--------------------------------------------------------------------------*/
 
 void play_sound_1D( int nn , float *xx )
 {
-   float xbot , xtop , fac , shf , durn ;
+   float xbot , xtop , fac , shf , duration ;
    int ii ;
-   char *pre , fname[32] , cmd[128] ;
-#if 0
-   int do_slide=(strncmp(note_type,"pl",2)!=0) ; /* not very useful */
-#else
-   int do_slide=0 ;
-#endif
+   char *pre , fname[64] , cmd[256] ;
    static int first_big_call=1 ;
 
    if( nn < 2 || xx == NULL ) return ;
@@ -66,15 +81,22 @@ void play_sound_1D( int nn , float *xx )
 
    /*--- fork a sub-process to do the work and play the sound ---*/
 
-   if( !psk_set ){ atexit(play_sound_killer) ; psk_set = 1 ; }
-
    if( nn > 199 && first_big_call ){
      INFO_message("long sound timeseries ==> several seconds for setup") ;
      first_big_call = 0 ;
    }
 
+   if( !psk_set ){ atexit(play_sound_killer) ; psk_set = 1 ; }
+
    ii = (int)fork() ;
-   if( ii != 0 ) return ; /*-- return to parent process --*/
+   if( ii != 0 ){  /*-- return to parent process --*/
+     int jj = getpgid(ii) ;
+     if( nfork == 0 || (nfork > 0 && jj != forklist[nfork-1]) ){
+       forklist[nfork] = getpgid(ii) ;
+       nfork           = (nfork+1)%NFORKLIST ;
+     }
+     return ;
+   }
 
    /*--- from here on, am in sub-process, which quits when done ---*/
 
@@ -85,37 +107,39 @@ void play_sound_1D( int nn , float *xx )
    }
    if( xbot == xtop ) _exit(0) ;
 
-   fac  = (NUM_NOTE+0.5f) / (xtop-xbot) ;
-   shf  = 0.6f * NUM_NOTE ;
-   durn = (nn < 50) ?  DUR_NOTE : (DUR_NOTE/2.0f) ;
+   fac      = (NUM_NOTE+0.5f) / (xtop-xbot) ;
+   shf      = 0.6f * NUM_NOTE ;
+   duration = (nn < 66) ?  DUR_NOTE : (DUR_NOTE/1.5f) ;
 
    pre = UNIQ_idcode_11() ;  /* make up name for sound file */
-   sprintf(fname,"%s.ul",pre) ;
+   sprintf(fname,"AFNI_SOUND_TEMP.%s.ul",pre) ;
    unlink(fname) ;           /* remove sound file, in case it already exists */
 
-   if( !do_slide ){
+   if( two_tone ){                  /* doesn't work well for some reason */
      for( ii=0 ; ii < nn ; ii++ ){
        sprintf( cmd ,
-                "sox -e mu-law -r 48000 -n -t raw - synth %.2f %s %%%d gain -h %d >> %s" ,
-                durn , note_type ,
-                (int)rintf( fac*(xx[ii]-xbot)-shf ) ,
+                "sox -e mu-law -r 48000 -n -t raw - synth %.2f %s %%%d %s %%%d gain -h %d >> %s" ,
+                duration ,
+                note_type , (int)rintf( fac*(xx[ii]-xbot)-shf )-2 ,
+                note_type , (int)rintf( fac*(xx[ii]-xbot)-shf )+2 ,
                 gain_value , fname ) ;
        system(cmd) ;
      }
-   } else {
-     for( ii=0 ; ii < nn-1 ; ii++ ){
+   } else {                         /* single tone [default] */
+     for( ii=0 ; ii < nn ; ii++ ){
        sprintf( cmd ,
-                "sox -e mu-law -r 48000 -n -t raw - synth %.2f %s %%%d/%%%d gain -h %d fade 0.02 %.2f 0.02 >> %s" ,
-                durn , note_type ,
-                (int)rintf( fac*(xx[ii]-xbot)-shf ) ,
-                (int)rintf( fac*(xx[ii+1]-xbot)-shf ) ,
-                gain_value , durn-0.01 , fname ) ;
+                "sox -e mu-law -r 48000 -n -t raw - synth %.2f %s %%%d gain -h %d >> %s" ,
+                duration ,
+                note_type , (int)rintf( fac*(xx[ii]-xbot)-shf ) ,
+                gain_value , fname ) ;
        system(cmd) ;
      }
    }
 
+   /* play the raw (-r) single change (-c 1) file */
+
    sprintf( cmd , "sox -r 48000 -c 1 %s -d &> /dev/null" , fname ) ;
    system(cmd) ;
-   unlink(fname) ;
+   unlink(fname) ; /* and delete the file */
    _exit(0) ;
 }
