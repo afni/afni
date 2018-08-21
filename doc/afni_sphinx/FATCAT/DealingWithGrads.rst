@@ -307,8 +307,8 @@ Gradient and matrix information
     to columnar output.
    
 #.  In contrast to the older ``1dDW_Grad_o_Mat``, the newer
-    ``1dDW_Grad_o_Mat`` does **not** try to average *b*\=0 files or to
-    remove the top row of reference volumes from the top of the
+    ``1dDW_Grad_o_Mat++`` does **not** try to average *b*\=0 files or
+    to remove the top row of reference volumes from the top of the
     gradient/matrix files.  Nowadays, if one inputs a file with *N*
     reference and *M* DW images, the output would have the
     gradients/matrices of all :math:`N+M`.  One major reason for
@@ -339,8 +339,8 @@ consequences, as well as the best way to investigate the phenomenon.
 (The short answer is, "Use ``@GradFlipTest``.")
 
 
-Example ``1dDW_Grad_o_Mat`` commands
-------------------------------------
+Example ``1dDW_Grad_o_Mat++`` commands
+--------------------------------------
 
 Consider a case where ``dcm2niix`` has been used to convert data from
 a DWI acquisition, resulting in: a NIFTI file called ``ALL.nii.gz``; a
@@ -396,7 +396,7 @@ acquisition aquired: 4 *b*\=0 reference images; then 30 DW images with
    gradients, and similar subbrick selection would have to be
    applied to the set of DWI volumes::
 
-     1dDW_Grad_o_Mat                           \
+     1dDW_Grad_o_Mat++                         \
         -in_row_vec   ALL.bvec'[0..3,8,12..$]' \
         -in_bvals     ALL.bval'[0..3,8,12..$]' \
         -out_col_matA dwi_matA_sel.dat 
