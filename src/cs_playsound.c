@@ -38,6 +38,12 @@ void set_sound_gain_value( int ggg )
    return ;
 }
 
+/*-----*/
+
+static int psk_set = 0 ;
+
+void play_sound_killer(void){ killpg(0,SIGQUIT) ; return ; }
+
 /*--------------------------------------------------------------------------*/
 
 void play_sound_1D( int nn , float *xx )
@@ -45,6 +51,12 @@ void play_sound_1D( int nn , float *xx )
    float xbot , xtop , fac , shf , durn ;
    int ii ;
    char *pre , fname[32] , cmd[128] ;
+#if 0
+   int do_slide=(strncmp(note_type,"pl",2)!=0) ; /* not very useful */
+#else
+   int do_slide=0 ;
+#endif
+   static int first_big_call=1 ;
 
    if( nn < 2 || xx == NULL ) return ;
 
@@ -54,8 +66,15 @@ void play_sound_1D( int nn , float *xx )
 
    /*--- fork a sub-process to do the work and play the sound ---*/
 
+   if( !psk_set ){ atexit(play_sound_killer) ; psk_set = 1 ; }
+
+   if( nn > 199 && first_big_call ){
+     INFO_message("long sound timeseries ==> several seconds for setup") ;
+     first_big_call = 0 ;
+   }
+
    ii = (int)fork() ;
-   if( ii != 0 ) return ; /* return to parent process */
+   if( ii != 0 ) return ; /*-- return to parent process --*/
 
    /*--- from here on, am in sub-process, which quits when done ---*/
 
@@ -74,13 +93,25 @@ void play_sound_1D( int nn , float *xx )
    sprintf(fname,"%s.ul",pre) ;
    unlink(fname) ;           /* remove sound file, in case it already exists */
 
-   for( ii=0 ; ii < nn ; ii++ ){
-     sprintf( cmd ,
-              "sox -e mu-law -r 48000 -n -t raw - synth %.2f %s %%%d gain -h %d >> %s" ,
-              durn , note_type ,
-              (int)rintf( fac*(xx[ii]-xbot)-shf ) ,
-              gain_value , fname ) ;
-     system(cmd) ;
+   if( !do_slide ){
+     for( ii=0 ; ii < nn ; ii++ ){
+       sprintf( cmd ,
+                "sox -e mu-law -r 48000 -n -t raw - synth %.2f %s %%%d gain -h %d >> %s" ,
+                durn , note_type ,
+                (int)rintf( fac*(xx[ii]-xbot)-shf ) ,
+                gain_value , fname ) ;
+       system(cmd) ;
+     }
+   } else {
+     for( ii=0 ; ii < nn-1 ; ii++ ){
+       sprintf( cmd ,
+                "sox -e mu-law -r 48000 -n -t raw - synth %.2f %s %%%d/%%%d gain -h %d fade 0.02 %.2f 0.02 >> %s" ,
+                durn , note_type ,
+                (int)rintf( fac*(xx[ii]-xbot)-shf ) ,
+                (int)rintf( fac*(xx[ii+1]-xbot)-shf ) ,
+                gain_value , durn-0.01 , fname ) ;
+       system(cmd) ;
+     }
    }
 
    sprintf( cmd , "sox -r 48000 -c 1 %s -d &> /dev/null" , fname ) ;
