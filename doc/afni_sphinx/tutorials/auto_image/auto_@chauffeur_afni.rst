@@ -30,10 +30,10 @@ amongst you.
 
 This program was originally written for use within :ref:`FATCAT
 fat_proc\* tools <FATCAT_prep>` tools (generalizing the visualization
-of ``@snapshot_volreg``).  The ``fat_proc\*`` programs call
-``@chauffeur_afni`` internally, generating images at each step of
-the pipeline that can be reviewed later s a first pass evaluation of
-the data processing.  That, in fact, is the primary intention of the
+of ``@snapshot_volreg``).  The ``fat_proc*`` programs call
+``@chauffeur_afni`` internally, generating images at each step of the
+pipeline that can be reviewed later s a first pass evaluation of the
+data processing.  That, in fact, is the primary intention of the
 program: help users look at their data as and after they process it.
 
 
