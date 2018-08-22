@@ -66,7 +66,12 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
-{ 20, Aug , 2018 , PT , "3dClusterize" , MINOR , TYPE_BUG_FIX,
+{ 15, Mar , 2018 , PT , "fat_proc_convert_dwis" , MINOR , TYPE_NEW_OPT,
+   "Can provide NIFTI+bvec+bval files as inp, not just a directory of dicoms.",
+   "All niceifying steps can thus be applied to already-converted vol.\n"
+},
+
+{ 10, Aug , 2018 , PT , "3dClusterize" , MINOR , TYPE_BUG_FIX,
    "Allow non-stat bricks to be thresholded.",
    "Before, if the [ithr] brick was nonstat, crashing occurred.\n"
 },

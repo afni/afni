@@ -2139,6 +2139,44 @@ files do not have any compression along the time axis.  Therefore, you
 should use AFNI_AGIF_DELAY to control the frame rate of animated GIF
 files, and not this frame duplication factor.
 
+----------------------------
+Variable: AFNI_STARTUP_SOUND
+----------------------------
+If this variable is set to YES, then when the AFNI GUI starts, a
+pair of notes will be played (softly). For this to happen, it is
+also necessary that
+ a) the 'sox' sound software package be installed
+ b) that the X11 display is local, not remote
+ c) that no '-com' options are on the command line
+You can also try using the 'Play startup sound' button on the
+right-click popup menu attached to the logo space to the right
+of the GUI 'done' button. For that button to work, conditions
+a) and b) above must be true. On a Mac, you can install 'sox'
+using the 'brew' package (e.g.).
+
+------------------------------
+Variable: AFNI_SOUND_NOTE_TYPE
+------------------------------
+This variable can be set to control the type of notes played by
+sox when using the 'p' or 'P' key in an AFNI graph viewer window.
+The values allowed here (from the 'sox' program) are
+  sine square triangle sawtooth trapezium pluck
+You can abbreviate the name to the first 3 characters, if you
+really want to save typing. The name must be in lower case letters;
+upper case letters (e.g., SINE) won't work.
+The default is 'pluck', which sounds sort of like a cross between
+a piano note and a guitar note. The other note types are more
+continuous sounding. You might have to adjust the sound gain to
+get the volume right for you when changing the note type.
+
+-------------------------
+Variable: AFNI_SOUND_GAIN
+-------------------------
+This numeric variable controls the sound volume. The default value
+is '-27'. Smaller (more negative) is quieter. The largest value
+allowed here is -1, which will be loud and your neighbors
+will not be happy.
+
 -----------------------------
 Variable: AFNI_STARTUP_SCRIPT
 -----------------------------
@@ -2162,7 +2200,7 @@ way.
 
 You can load a Script file interactively during an AFNI run by using
 the button "Datamode->Misc->Run Script".  As a 'secret' option, if you
-enter a line containing a blank in the the filename dialog, that line
+enter a line containing a blank in the filename dialog, that line
 will be executed as a single command, rather than be used as a script
 filename.
 
@@ -2458,7 +2496,7 @@ When the interactive AFNI program starts, it may pop up warnings about
 the programming environment for which it was compiled.  At this time,
 there are two such warning messages possible:
   LessTiff: AFNI will work with LessTif, but works better with Motif.
-  Button-3: On Solaris 2.8, Button-3 popup menus don't work quite 
+  Button-3: On Solaris 2.8, Button-3 popup menus don't work quite
             properly.
 If you are tired of seeing these messages, set AFNI_STARTUP_WARNINGS
 to NO.
@@ -3193,7 +3231,7 @@ with AFNI_AUTO_RESCAN, the AFNI_RESCAN_METHOD settings are respected.)
 ---------------------------
 Variable: AFNI_ALL_DATASETS  [02 Jun 2016]
 ---------------------------
-By default, AFNI creates a session (internal the the program) that
+By default, AFNI creates a session (internal to the program) that
 contains all the input datasets -- if you input more than one session
 directory, that is.  This session is called 'All_Datasets' in the
 'DataDir Switch' popup chooser, and should be the last session listed
@@ -3203,7 +3241,7 @@ AFNI_ALL_DATASETS to NO.
 --------------------------
 Variable: AFNI_WEB_BROWSER
 --------------------------
-This variable should be set to the full executable path to a Web 
+This variable should be set to the full executable path to a Web
 browser, as in
   setenv AFNI_WEB_BROWSER /usr/bin/mozilla
 If it is not set, AFNI will scan your path to see if it can find a
