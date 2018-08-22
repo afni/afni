@@ -16,7 +16,7 @@ usefully with ``@chauffeur_afni``, for example to concatenate similar
 images across a data set.
 
 Examples
---------
+========
 
 We present some examples of auto-image making with ``imcat`` using
 data that should be available in (modern) AFNI binary distributions,
