@@ -288,6 +288,74 @@ void sound_write_au_ulaw( char *fname, int nn, float *aa, int srate, float scl )
 }
 
 /*---------------------------------------------------------------------------*/
+/* samples in aa[] are between -1 and 1.
+   sample rate (per second) is in srate.
+   scl is a scale down factor (0 < scl <= 1).
+*//*-------------------------------------------------------------------------*/
+
+void sound_write_au_8bitPCM( char *fname, int nn, float *aa, int srate, float scl )
+{
+   FILE *fp ;
+   uint32_t ival , jval ;
+   byte *bb ;
+   int ii ; float fac ;
+
+   /* check inputs */
+
+   if( fname == NULL || nn < 2 || aa == NULL ){
+     ERROR_message("Illegal inputs to sound_write_au :(") ;
+     return ;
+   }
+
+   if( srate < 100 ) srate = 8000 ;
+   if( scl   < 0.0f || scl > 1.0f ) scl = 1.0f ;
+
+   /* open output file */
+
+   fp = fopen( fname , "w" ) ;
+   if( fp == NULL ){
+     ERROR_message("Can't open audio output file '%s'",fname) ;
+     return ;
+   }
+
+   set_little_endian() ;  /* do we need to swap bytes in header output? */
+
+   /* write header */
+
+   fwrite( ".snd" , 1 , 4, fp ) ;                 /*----- magic 'number' -----*/
+
+   ival = 24    ; if( little_endian ) ival = swap_fourby(ival) ;
+   fwrite( &ival  , 1 , 4 , fp ) ;                /*----- offset to data -----*/
+
+   ival = nn    ; if( little_endian ) ival = swap_fourby(ival) ;
+   fwrite( &ival  , 1 , 4 , fp ) ;          /*----- number of data bytes -----*/
+
+   ival =  2    ; if( little_endian ) ival = swap_fourby(ival) ;
+   fwrite( &ival  , 1 , 4 , fp ) ;      /*----- encoding = 1 = 8-bit PCM -----*/
+
+   ival = srate ; if( little_endian ) ival = swap_fourby(ival) ;
+   fwrite( &ival  , 1 , 4 , fp ) ;            /*----- samples per second -----*/
+
+   ival =  1    ; if( little_endian ) ival = swap_fourby(ival) ;
+   fwrite( &ival  , 1 , 4 , fp ) ;            /*----- number of channels -----*/
+
+   /* convert and write data */
+
+   bb = (byte *)malloc(sizeof(byte)*nn) ;
+   fac = 127.444f ;
+   for( ii=0 ; ii < nn ; ii++ ){
+     bb[ii] = BYTEIZE( fac*(aa[ii]+1.0f) ) ;
+   }
+   fwrite( bb , 1 , nn , fp ) ;
+
+   /* done done done */
+
+   fclose(fp) ;
+   free(bb) ;
+   return ;
+}
+
+/*---------------------------------------------------------------------------*/
 
 #undef  A4
 #define A4 440.0  /* Hz */
