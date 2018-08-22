@@ -225,7 +225,7 @@ translates into the *b*\-matrix file by comparing the last two rows.
              which might not be the case.
 
           2. We like having DW scaling in the matrix info (the
-             *b*\value), so that we preserve real physical units in
+             *b*\-value), so that we preserve real physical units in
              the tensor estimates. When using ``3dDWItoDT`` or
              ``3dDWUncert``, one should probably also use the
              ``-scale_out_1000`` switch to have nice numbers, which
@@ -274,8 +274,9 @@ Gradient and matrix information
        *  - -{in,out}_col_matT
           - diagonal-first *g*\- or *b*\-matrices
           - (some/typical) ``TORTOISE`` output
+            
 
-|
+    |
 
 #.  Additionally, the file of *b*\-values may be input after the
     ``-in_bvals *`` option.  This might be requisite if converting
@@ -332,7 +333,7 @@ How to check about gradient flipping?
 -------------------------------------
 
 The discussion of this specific topic has been moved to its own page,
-:ref:``GradFlipTest``.  Please see there for the mathematical
+:ref:`GradFlipTest`.  Please see there for the mathematical
 description of gradient flipping and tractographic images of its
 consequences, as well as the best way to investigate the phenomenon.
 

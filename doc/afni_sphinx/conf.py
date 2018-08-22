@@ -161,12 +161,12 @@ pygments_style = 'sphinx'
 # "redcloud"
 html_theme = "cloud"
 
-
-
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
 # CLOUD: [optional] set some of the options listed above...
+# Many of the following are listed here:
+# /usr/local/lib/python2.7/dist-packages/cloud_sptheme/themes/cloud/theme.conf
 html_theme_options = { 
     "stickysidebar": "true",
     "collapsiblesidebar": "true",
@@ -177,8 +177,8 @@ html_theme_options = {
     "lighter_header_decor": "true",
     "linkcolor": "#1874CD",
     "bgcolor": "#F5F5F5",
-    "bodyfont": "Arial",
-    "bodylineheight": "1.3em",
+    "bodyfont": "Lucida Sans Unicode",
+    "bodylineheight": "1.4em",
     "codevarfont":  "Menlo,  monospace",
     "codeblockfont": "Menlo, monospace",
     "codetrimcolor": "#00C957",
@@ -191,6 +191,7 @@ html_theme_options = {
     "headtextcolor": "#8B0000",
     "headlinkcolor": "#8B0000"
 } 
+#    "bodyfont": "Arial",
 #    "borderless_decor": "true", 
 #    "linkcolor": "#009ACD",
 
