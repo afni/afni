@@ -49,6 +49,34 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17, Aug, 2018, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_NEW_OPT,
+   "add option -write_uvars_json; add a few more user vars",
+   "Add afni_ver, afni_package and final_epi_dset to uvars.\n"
+   "Add 'AFNI version' and 'AFNI package' to review basic output.\n"
+   "Add afni_util:write_data_as_json(), lib_vars_object:get_attribute_dict()."
+ } ,
+
+ { 16, Aug, 2018, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_NEW_OPT,
+   "add -show_computed_uvars; set template",
+   NULL
+ } ,
+
+ { 15, Aug, 2018, RCR, "afni_util.py", MINOR, TYPE_NEW_OPT,
+   "added functions for extracting version information from dataset HISTORY",
+   "E.g. get_last_history_ver_pack(), get_last_history_version().\n"
+   "This file now depends on 're'."
+ } ,
+
+ { 14, Aug, 2018, RCR, "model_conv_PRF_6", MINOR, TYPE_BUG_FIX,
+   "return a zero array on invalid parameters",
+   "Thanks to E Silson for noting the problem."
+ } ,
+
+ { 13, Aug, 2018, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "actually apply opt -blur_opts_BIM",
+   "Thanks to D Zhu for noting the problem."
+ } ,
+
  {  7, Aug, 2018, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
    "if converting tedana.py results to standard space, include -space",
    "Thanks to L Dowdle for noting the problem."
@@ -219,7 +247,7 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
- {  7, May, 2018, RCR, "afni_pro.py", MINOR, TYPE_MODIFY,
+ {  7, May, 2018, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
    "EPI automask (full_mask) is no longer dilated by default",
    "Also, add -show_process_changes, to report changes affecting results."
  } ,

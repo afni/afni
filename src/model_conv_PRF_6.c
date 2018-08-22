@@ -648,6 +648,14 @@ static void conv_model( float *  gs      , int     ts_length ,
 
    for( ii=0 ; ii < ts_length ; ii++ ) ts_array[ii] = 0.0 ;
 
+   /* if any inputs are invalid, return the zero array   14 Aug 2018 */
+   /* sigma <= 0 is invalid, and check sigrat, just to be sure       */
+   /* A == 0 implies a zero vector in any case ...                   */
+   if( gs[0] == 0 || gs[3] <= 0 || gs[4] <= 0 ) {
+      if( genv_debug > 1 ) disp_floats("** invalid input params: ", gs, 4);
+      return;
+   }
+
    /* if we had some failure, bail */
    if( !g_saset ) return;
 
@@ -795,7 +803,7 @@ MODEL_interface * initialize_model ()
 
   /*----- minimum and maximum parameter constraints -----*/
 
-  /* amplitude, x/y ranges, and sigma range */
+  /* amplitude, x/y ranges, sigma range, sigrat and theta ranges */
   mi->min_constr[0] =    -10.0;   mi->max_constr[0] =    10.0;
 
   mi->min_constr[1] =    -1.0;    mi->max_constr[1] =     1.0;

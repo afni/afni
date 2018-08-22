@@ -44,6 +44,21 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 20 , AUG , 2018 , RWC , "AFNI GUI" , MINOR , TYPE_ENHANCE ,
+   "Play sound with 'p' or 'P' keypresses" ,
+   "p = sound from central graph.\n"
+   "P = sound from average of visible graphs.\n"
+   "Sound is played via sox program (not part of AFNI).\n"
+   "Environment variables:\n"
+   "  AFNI_SOUND_NOTE_TYPE sets type of note played\n"
+   "  AFNI_SOUND_GAIN sets loudness" } ,
+
+ { 15 , AUG , 2018 , RWC , "3dGrayplot" , MAJOR , TYPE_ENHANCE ,
+   "Total rewrite of resampling from time+space to X+Y grid" ,
+   "Grid refinement (time-X) is now cubic interpolation rather than linear\n"
+   "Grid coarsening (space-Y) is now minimum sidelobe taper averaging rather\n"
+   "than linear tapering" } ,
+
  { 7 , AUG , 2018 , RWC , "3dQwarp" , MICRO , TYPE_ENHANCE ,
    "-allsave now works with -plusminus" ,
    "Plus tweaked the help to explain some things more better." } ,
@@ -2830,7 +2845,7 @@ afni_history_struct rwcox_history[] = {
    "with tiny random values." } ,
 
  { 20 , OCT , 2010 , RWC , "afni" , MICRO , TYPE_GENERAL ,
-   "Add 'INSTACORR SET' the the drive command list" ,
+   "Add 'INSTACORR SET' to the drive command list" ,
    NULL } ,
 
  { 20 , OCT , 2010 , RWC , "afni and 3dGroupInCorr" , MICRO , TYPE_GENERAL ,

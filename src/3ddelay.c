@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------------------*/
 /*
-  Program to calculate the delay between FMRI time series and the the ideal
+  Program to calculate the delay between FMRI time series and the ideal
   reference time series.
   This program, which is a command line version of the plugin Hilbert Delay 98,
   uses Doug Ward's 3dfim+'s skeleton to read and write the bricks.

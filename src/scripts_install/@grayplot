@@ -14,6 +14,9 @@ if( $do_help )then
   echo "and produce a grayplot from the errts dataset(s), combined with"
   echo "a motion magnitude indicator graph."
   echo
+  echo "* NOTE: This script requires various programs from the NETPBM packege"
+  echo "        to run. If those programs are not found, this script will fail."
+  echo
   echo "Will produce a plot for each dataset whose name fits the wildcard"
   echo "  errts.*+tlrc.HEAD"
   echo "including errts.SUBJECT+tlrc and errts.SUBJECT_REML+tlrc,"
@@ -21,10 +24,12 @@ if( $do_help )then
   echo "will also be plotted, if option"
   echo "  '-regress_opts_reml -Rwherr errts.SUBJECT_REMLwh'"
   echo "was given to afni_proc.py -- this is the 'pre-whitened' residuals"
-  echo "dataset, which is the noise examplar from which the 3dREMLfit statistics"
+  echo "dataset, which is the noise examplar from which the 3dREMLfit"
   echo "statistics are computed."
   echo "* NOTE: dataset all_runs.*+tlrc.HEAD will also be"
   echo "        grayplotted if it is found in the results directory."
+  echo "* NOTE: this script will now work with +orig datasets if the"
+  echo "        +tlrc datasets are not available [11 Aug 2018]."
   echo
   echo "The output images are grayscale, stored in .png format, and"
   echo "have names like 'Grayplot.errts.WHATEVER.ORDERMETH.png'."
@@ -85,10 +90,10 @@ if( $do_help )then
   echo "* Also see '3dGrayplot -help', since the actual grayplot is created"
   echo "   by that program."
   echo "* Since the vertical (spatial) dimension of the output grayplot image"
-  echo "   is 1000 pixels, each horizontal (time) row in the plot will be"
+  echo "   is only 1200 pixels, each horizontal (time) row in the plot will be"
   echo "   the combination of multiple voxels, in whatever order they appear."
   echo "* Since the horizontal dimension of the output grayplot image is"
-  echo "   2000 pixels, unless the time series has more than 2000 points, each"
+  echo "   1800 pixels, unless the time series has more than 1800 points, each"
   echo "   time point will be stretched (interpolated) to fill more than one pixel."
   echo "* I personally find '-pvorder' to be the most useful, but the"
   echo "   other orderings can also be interesting to compare."
@@ -104,7 +109,19 @@ if( $do_help )then
   echo "   structure in the grayplot."
   echo "* Author: RWCox -- May 2018"
   echo "* Notice: Subject to horrific and drastic change at any instant."
+  echo "* Changes since original version:"
+  echo "  a) Revised 3dGrayplot and @grayplot to plot data with a fixed range,"
+  echo "     so the images from different datasets can be compared."
+  echo "  b) Revised to use +orig datasets if +tlrc datasets aren't found."
   exit 0
+endif
+
+# check for pnmtopng
+
+which pnmtopng > /dev/null
+if( $status != 0 )then
+  echo "** ERROR: program pnmtopng not found - to use @grayplot you need the NETPBM package"
+  exit 1
 endif
 
 # set defaults
@@ -152,18 +169,32 @@ pushd $ddir
 
 # find anat file, extract subj name from it
 
-set aa = ( anat_final.*+tlrc.HEAD )
-if( $#aa != 1 )then
-  echo "** ERROR @grayplot: Can't find anat_final.*+tlrc.HEAD" ; exit 1
+set spac = "NADA"
+set aa   = ( `find . -name anat_final.\*+tlrc.HEAD` )
+if( $#aa == 1 )then
+  echo "++ Found anatomical dataset $aa[1]"
+  set subj = `basename $aa[1] | sed -e 's/+tlrc.HEAD//' -e 's/anat_final.//'`
+  set spac = tlrc
+else
+  set aa = ( `find . -name anat_final.\*+orig.HEAD` )
+  if( $#aa == 1 )then
+    echo "++ Found anatomical dataset $aa[1]"
+    set subj = `basename $aa[1] | sed -e 's/+orig.HEAD//' -e 's/anat_final.//'`
+    set spac = orig
+  endif
 endif
 
-set subj = `echo $aa[1] | sed -e 's/+tlrc.HEAD//' -e 's/anat_final.//'`
+if( $spac == "NADA" )then
+  echo "** ERROR @grayplot: Can't find anat_final.*+{tlrc|orig}.HEAD" ; exit 1
+endif
+
+echo "++ Subject ID = $subj    Processing +$spac datasets"
 
 # find EPI mask file
 
-set dmask = mask_epi_anat.${subj}+tlrc.HEAD
+set dmask = mask_epi_anat.${subj}+${spac}.HEAD
 if( ! -f $dmask )then
-  set dmask = full_mask.${subj}+tlrc.HEAD
+  set dmask = full_mask.${subj}+${spac}.HEAD
   if( ! -f $dmask )then
     echo "** ERROR @grayplot: Can't find EPI mask :(" ; exit 1
   endif
@@ -219,10 +250,10 @@ endif
 
 if( $?ccc )then
   set Gplot = \
-   "1dplot -nopush -naked -pnms 2000 Gplot.ppm -aspect 10 -censor_RGB $cencol -censor $ccc"
+   "1dplot -nopush -naked -pnms 1800 Gplot.ppm -aspect 10 -censor_RGB $cencol -censor $ccc"
 else
   set Gplot = \
-   "1dplot -nopush -naked -pnms 2000 Gplot.ppm -aspect 10"
+   "1dplot -nopush -naked -pnms 1800 Gplot.ppm -aspect 10"
 endif
 
 # numeric range of enorm plot
@@ -235,19 +266,19 @@ set Cstrin = `ccalc -form '%.2f' $Crange`
 
 # make a mask of GM, WM, and CSF (in that order), if needed
 
-if( -f Classes+tlrc.HEAD )then
+if( -f Classes+${spac}.HEAD )then
   echo "----- Using existing segmentation"
 else
   echo "----- Segmenting $aa[1]"
   3dSeg -anat $aa[1] -mask AUTO -blur_meth BIM -classes 'CSF; GM; WM'
-  if( -f Segsy/Classes+tlrc.HEAD ) mv Segsy/Classes+tlrc.* .
+  if( -f Segsy/Classes+${spac}.HEAD ) mv Segsy/Classes+${spac}.* .
   if( -d Segsy ) \rm -rf Segsy
 endif
 
-if( -f Classes+tlrc.HEAD )then
+if( -f Classes+${spac}.HEAD )then
 # convert CSF=1 to CSF=4 (so GM=2 WM=3 CSF=4 is the grayplot order)
   if( -f GmaskA.nii ) \rm GmaskA.nii
-  3dcalc -a Classes+tlrc.HEAD -expr 'ifelse(equals(a,1),4,a)' \
+  3dcalc -a Classes+${spac}.HEAD -expr 'ifelse(equals(a,1),4,a)' \
          -datum byte -nscale -prefix GmaskA.nii
 # convert from anat resolution to EPI resolution
   if( -f GmaskB.nii ) \rm GmaskB.nii
@@ -265,7 +296,7 @@ endif
 
 # grayplot diverse errts files
 
-set elist = ( errts.*+tlrc.HEAD )
+set elist = ( errts.*+${spac}.HEAD )
 
 foreach iii ( `count -dig 1 1 $num_order` )
   set order = $order_list[$iii]
@@ -274,12 +305,12 @@ foreach iii ( `count -dig 1 1 $num_order` )
   foreach eee ( $elist )
     if( -f $eee )then
       echo "----- Grayplot $eee"
-      set ppp = `basename $eee +tlrc.HEAD`
+      set ppp = `basename $eee +${spac}.HEAD`
       set fff = Grayplot.${ppp}.${osuff}
       set lll = `echo $fff | sed -e 's/.png//' -e 's/Grayplot.//'`
-      3dGrayplot -dimen 2000 1000     \
+      3dGrayplot -dimen 1800 1200     \
                  $order               \
-                 -polort -1           \
+                 -polort -1 -fwhm 0   \
                  -range 3.89          \
                  -mask $ggg           \
                  -input $eee          \
@@ -303,18 +334,18 @@ foreach iii ( `count -dig 1 1 $num_order` )
   set order = $order_list[$iii]
   set osuff = $osuff_list[$iii]
 
-  foreach eee ( all_runs.*+tlrc.HEAD )
+  foreach eee ( all_runs.*+${spac}.HEAD )
     if( -f $eee )then
       echo "----- Grayplot $eee"
-      set ppp = `basename $eee +tlrc.HEAD`
+      set ppp = `basename $eee +${spac}.HEAD`
       set fff = Grayplot.${ppp}.${osuff}
       set lll = `echo $fff | sed -e 's/.png//' -e 's/Grayplot.//'`
-      3dGrayplot -dimen 2000 1000     \
-                 $order               \
-                 -polort $port        \
-                 -percent -range 3.89 \
-                 -mask $ggg           \
-                 -input $eee          \
+      3dGrayplot -dimen 1800 1200      \
+                 $order                \
+                 -polort $port -fwhm 0 \
+                 -percent -range 3.89  \
+                 -mask $ggg            \
+                 -input $eee           \
                  -prefix G.errts.pgm
 # make graph image
  #     $Gplot -plabel "\small\small _{\noesc  $lll\esc}  _{\uparrow\small\ $Ustrin}" $Ufile

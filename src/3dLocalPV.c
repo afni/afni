@@ -75,7 +75,7 @@ int main( int argc , char *argv[] )
        " -vnorm              = normalize data vectors [strongly recommended]\n"
        " -vproj [2]          = project central data time series onto local SVD vector;\n"
        "                        if followed by '2', then the central data time series\n"
-       "                        will be projected on the the 2-dimensional subspace\n"
+       "                        will be projected on the 2-dimensional subspace\n"
        "                        spanned by the first 2 principal SVD vectors.\n"
        "                        [default: just output principal singular vector]\n"
        "                        [for 'smoothing' purposes, '-vnorm -vproj' is an idea]\n"
