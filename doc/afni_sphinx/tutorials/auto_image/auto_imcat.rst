@@ -1,7 +1,8 @@
 .. _tut_auto_imcat:
 
+***********
 Using imcat
-===========
+***********
 
 .. contents::
    :depth: 3
