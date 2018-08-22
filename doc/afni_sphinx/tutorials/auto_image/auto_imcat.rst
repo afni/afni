@@ -29,7 +29,7 @@ these dsets has multiple bricks.  We provide examples of combining:
 
 * and more
 
-Each short script creates a subdirectory ("QC_imcat_\*") for the both
+Each short script creates a subdirectory ("QC_imcat\*") for the both
 the individual, intermediate images and the final concatenated matrix
 of images.  
 
