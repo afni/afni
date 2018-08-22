@@ -1692,7 +1692,7 @@ typedef struct {
    int pbar_fullrange ;                          /* 03 Jun 2014 */
 
    int local_display ;                           /* 20 Aug 2018 */
-   int have_play ;                               /* 20 Aug 2018 */
+   int have_sox ;                                /* 20 Aug 2018 */
 
 } AFNI_library_type ;
 
