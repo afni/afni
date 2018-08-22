@@ -271,7 +271,7 @@ void calc_linear_regression
 
 /*---------------------------------------------------------------------------*/
 /*
-  Routine to calculate the least squares fit corresponding the the (linear)
+  Routine to calculate the least squares fit corresponding the (linear)
   reduced model.
 */
 

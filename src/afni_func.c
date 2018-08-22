@@ -1468,7 +1468,7 @@ if(aset >= 0 && PRINT_TRACING)
 }
 
 /*-----------------------------------------------------------------------*/
-/* Hollow out the the overlay in place -- 21 Mar 2005 - RWCox.
+/* Hollow out the overlay in place -- 21 Mar 2005 - RWCox.
    An interior pixel is defined as one whose 4 nearest neighbors are
    all nonzero.  This editing is done in-place (in the input image).
 -------------------------------------------------------------------------*/
@@ -7489,7 +7489,19 @@ ENTRY("AFNI_hidden_CB") ;
 
    else if( w == im3d->vwid->prog->hidden_melter_pb ){   /* 18 Feb 2011 */
      MCW_melt_widget( im3d->vwid->top_form ) ;
-     SENSITIZE(w,0) ; /* 25 Jan 2017 */
+     NI_sleep(333) ;
+     MCW_melt_widget( im3d->vwid->top_form ) ;
+     NI_sleep(333) ;
+     if( GLOBAL_library.have_sox && GLOBAL_library.local_display )
+       AFNI_startup_sound() ;
+     SENSITIZE(w,0) ;
+   }
+
+   else if( w == im3d->vwid->prog->hidden_sound_pb ){    /* 20 Aug 2018 */
+     if( GLOBAL_library.have_sox && GLOBAL_library.local_display )
+       AFNI_startup_sound() ;
+     else
+       WARNING_message("sound playing not available :(") ;
    }
 
    else if( w == im3d->vwid->prog->hidden_gamberi_pb ){

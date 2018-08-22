@@ -53,11 +53,18 @@ Copy+paste::
 Install AFNI binaries
 ---------------------
 
-Copy+paste::
-   
-  cd
-  curl -O https://afni.nimh.nih.gov/pub/dist/bin/linux_ubuntu_16_64/@update.afni.binaries
-  tcsh @update.afni.binaries -package linux_openmp_64 -do_extras
+* *For Fedora 21 (and higher)*, copy+paste::
+
+    cd
+    curl -O https://afni.nimh.nih.gov/pub/dist/bin/linux_ubuntu_16_64/@update.afni.binaries
+    tcsh @update.afni.binaries -package linux_openmp_64 -do_extras
+
+* *For CentOS/RHEL 7*, copy+paste::
+
+    cd
+    curl -O https://afni.nimh.nih.gov/pub/dist/bin/linux_ubuntu_16_64/@update.afni.binaries
+    tcsh @update.afni.binaries -package linux_centos_7_64 -do_extras
+
 
 **Purpose:** These commands: download and unpack the current binaries
 into your ``$HOME`` directory (and yes, that ``@update*`` file works

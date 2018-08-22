@@ -169,7 +169,7 @@ static char *tip[] = {
    "   AFNI image viewer is take from the grid size of the Underlay dataset.\n"
    "* But you can change that using the 'Datamode' control panel, by choosing\n"
    "   'Warp ULay on Demand', then setting the grid resampling mode below\n"
-   *   (e.g., to Li=Linear or Cu=Cubic interpolation).\n"
+   "   (e.g., to Li=Linear or Cu=Cubic interpolation).\n"
    "* Sometimes using this to make the display grid more fine is useful for\n"
    "   creating nicer looking functional images, especially when 'Alpha' is\n"
    "   turned on (to outline above-threshold clusters and at the same time\n"
@@ -378,6 +378,24 @@ static char *tip[] = {
   "important to press the <Enter> (or <Return>) key at the end of the digit(s)\n"
   "after N, otherwise the graph window will not respond to any other key presses."
  ,
+  "Set environment variable AFNI_STARTUP_SOUND to YES to hear the AFNI startup\n"
+  "sound when the GUI opens. Or use the right click popup menu in the logo\n"
+  "square right of the 'done' button and select the 'Play startup sound' item.\n"
+  " - But whatever you do, DO NOT use the 'Activate Omega-13' menu item!\n"
+  " - Sound playing requires the 'sox' software.\n"
+  " - To find out if sox is on your system, type the command 'which sox'."
+ ,
+  "If the 'sox' software is installed on your system, you can play sounds\n"
+  "from the AFNI graph viewer window.\n"
+  " - Keypress 'p' will play a sequence of tones based on the central sub-graph.\n"
+  " - Keypress 'P' will play based on the average of all sub-graphs.\n"
+  " - Filtering and detrending the graphs will affect the notes played.\n"
+  " - Sound can only be played if you are displaying locally, not remotely.\n"
+  " - Environment variable AFNI_SOUND_NOTE_TYPE is used to set the note type:\n"
+  "     sine square triangle sawtooth trapezium pluck\n"
+  "     ('pluck' sounds halfway between guitar and piano notes)\n"
+  " - See README.environment for a few more details.\n"
+  " - To find out if sox is on your system, type the command 'which sox'."
 
 /*-- tips below here are for non-GUI programs --*/
 
@@ -606,6 +624,7 @@ static char *tip[] = {
 #undef  NGBY
 #define NGBY ((int)(sizeof(gby)/sizeof(char *)))
 static char *gby[] = {
+
      "Farewell, my friend"                                           ,
      "Farewell?  A long farewell to all my greatness"                ,
      "Sweet is the memory of distant friends"                        ,
@@ -684,6 +703,7 @@ static char *gby[] = {
      "Drink to me only with thine eyes, and I will drink with mine"  ,
      "O Captain, My Captain, rise up and hear the bells"             ,
      "O Captain, My Captain, our fearful trip is done"               ,
+     "I recall the experience sweet and sad"                         ,
      "Ever returning spring, trinity sure to me you bring"           ,
      "If thou wast not grant to sing, thou would'st surely die"      ,
      "Here, user that slowly passes, I give you my sprig of lilac"   ,
@@ -1275,6 +1295,7 @@ static char *gby[] = {
      "What you do speaks so loudly I cannot hear what you say"                        ,
      "Those who say it can't be done are usually interrupted by those doing it"       ,
      "Spending any mental energy looking back cannot help you move forward"           ,
+     "The supra-ultracrepidarian-est software you'll ever need"                       ,
 
      "The problem with science: answering 1 question creates 20 new (and harder) ones"        ,
      "When all you have is a computer, every problem looks like it needs linear algebra"      ,
@@ -1288,6 +1309,8 @@ static char *gby[] = {
      "You can always find me out on the Long Line -- I hang out by the Church-Kleene ordinal" ,
      "Outside of a dog, a book is Man's best friend; inside of a dog, it's too dark to read"  ,
      "I've narrowed the answer to your hypothesis down to two possibilities: right and wrong" ,
+     "If there was closed-book test on how to be YOU, would you get a passing grade?"         ,
+     "An alternative fact: truth isn't truth"                                                 ,
 
      "Someday I'll tell you of the Giant Rat of Sumatra, a tale for which the world is not prepared"    ,
      "People have to learn to live with newly-discovered facts; if they don't, they die of them"        ,
@@ -1403,6 +1426,9 @@ static char *gby[] = {
      " what you see is all that you will ever be. And then you accept it.\n"
      " Or you stop looking in mirrors" ,
 
+     "\n  Next time you are afraid to share your ideas, remember that someone\n"
+     "  once said in a meeting 'Let's make a film with a tornado full of sharks'" ,
+
      /* from Quentin Crisp */
 
      "Don't clean your house. After 4 years, the dirt doesn't get any worse" ,
@@ -1416,7 +1442,7 @@ static char *gby[] = {
      "  than an exact answer to the wrong question"                                    ,
 
      "\n  The combination of some data and an aching desire for an answer does not\n"
-     "  ensure that a reasonable answer can be extracted from a given body of data"
+     "  ensure that a reasonable answer can be extracted from a given body of data" 
 
 } ;
 
