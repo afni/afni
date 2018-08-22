@@ -249,6 +249,9 @@ ENTRY("new_MCW_grapher") ;
                        "F      = turn threshold 'Fading' on/off\n"
                        "v/V    = Video up/down in time\n"
                        "r/R    = Video ricochet up/down in time\n"
+                       "p      = play sound from central graph\n"
+                       "P      = play sound from average graph\n"
+                       "         [sound requires 'sox' package]\n"
                        "F5     = Meltdown!\n"
                        "\n"
                        "See the 'Opt' menu for other keypress actions\n"
@@ -3890,6 +3893,20 @@ STATUS(str); }
                            "  * end in .jpg or .png *\n"
                            "  * for those formats   *" , NULL ,
                            GRA_saver_CB , (XtPointer) grapher ) ;
+      break ;
+
+      case 'p':                             /* play sound [20 Aug 2018] */
+        if( GLOBAL_library.local_display && grapher->cen_tsim != NULL ){
+          int ib = grapher->init_ignore ;
+          play_sound_1D( grapher->cen_tsim->nx-ib , MRI_FLOAT_PTR(grapher->cen_tsim)+ib ) ;
+        }
+      break ;
+
+      case 'P':                             /* play sound [20 Aug 2018] */
+        if( GLOBAL_library.local_display && grapher->ave_tsim != NULL ){
+          int ib = grapher->init_ignore ;
+          play_sound_1D( grapher->ave_tsim->nx-ib , MRI_FLOAT_PTR(grapher->ave_tsim)+ib ) ;
+        }
       break ;
 
       case 'L':

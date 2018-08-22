@@ -381,8 +381,21 @@ static char *tip[] = {
   "Set environment variable AFNI_STARTUP_SOUND to YES to hear the AFNI startup\n"
   "sound when the GUI opens. Or use the right click popup menu in the logo\n"
   "square right of the 'done' button and select the 'Play startup sound' item.\n"
-  "(But whatever you don't, DO NOT use the 'Activate Omega-13' menu item!)"
+  " - But whatever you do, DO NOT use the 'Activate Omega-13' menu item!\n"
+  " - Sound playing requires the 'sox' software.\n"
+  " - To find out if sox is on your system, type the command 'which sox'."
  ,
+  "If the 'sox' software is installed on your system, you can play sounds\n"
+  "from the AFNI graph viewer window.\n"
+  " - Keypress 'p' will play a sequence of tones based on the central sub-graph.\n"
+  " - Keypress 'P' will play based on the average of all sub-graphs.\n"
+  " - Filtering and detrending the graphs will affect the notes played.\n"
+  " - Sound can only be played if you are displaying locally, not remotely.\n"
+  " - Environment variable AFNI_SOUND_NOTE_TYPE is used to set the note type:\n"
+  "     sine square triangle sawtooth trapezium pluck\n"
+  "     ('pluck' sounds halfway between guitar and piano notes)\n"
+  " - See README.environment for a few more details.\n"
+  " - To find out if sox is on your system, type the command 'which sox'."
 
 /*-- tips below here are for non-GUI programs --*/
 
@@ -690,6 +703,7 @@ static char *gby[] = {
      "Drink to me only with thine eyes, and I will drink with mine"  ,
      "O Captain, My Captain, rise up and hear the bells"             ,
      "O Captain, My Captain, our fearful trip is done"               ,
+     "I recall the experience sweet and sad"                         ,
      "Ever returning spring, trinity sure to me you bring"           ,
      "If thou wast not grant to sing, thou would'st surely die"      ,
      "Here, user that slowly passes, I give you my sprig of lilac"   ,
@@ -1281,6 +1295,7 @@ static char *gby[] = {
      "What you do speaks so loudly I cannot hear what you say"                        ,
      "Those who say it can't be done are usually interrupted by those doing it"       ,
      "Spending any mental energy looking back cannot help you move forward"           ,
+     "The supra-ultracrepidarian-est software you'll ever need"                       ,
 
      "The problem with science: answering 1 question creates 20 new (and harder) ones"        ,
      "When all you have is a computer, every problem looks like it needs linear algebra"      ,
@@ -1411,6 +1426,9 @@ static char *gby[] = {
      " what you see is all that you will ever be. And then you accept it.\n"
      " Or you stop looking in mirrors" ,
 
+     "\n  Next time you are afraid to share your ideas, remember that someone\n"
+     "  once said in a meeting 'Let's make a film with a tornado full of sharks'" ,
+
      /* from Quentin Crisp */
 
      "Don't clean your house. After 4 years, the dirt doesn't get any worse" ,
@@ -1424,7 +1442,7 @@ static char *gby[] = {
      "  than an exact answer to the wrong question"                                    ,
 
      "\n  The combination of some data and an aching desire for an answer does not\n"
-     "  ensure that a reasonable answer can be extracted from a given body of data"
+     "  ensure that a reasonable answer can be extracted from a given body of data" 
 
 } ;
 
