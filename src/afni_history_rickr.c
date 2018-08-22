@@ -51,7 +51,7 @@ afni_history_struct rickr_history[] = {
 
  { 22, Aug, 2018, RCR, "tedana_wrapper.py", MINOR, TYPE_MODIFY,
    "change exec_or_error() to use afni_util.py, which returns strings",
-   NULL
+   "Thanks to J Gonzalez-Castillo for noting this python3 update."
  } ,
 
  { 17, Aug, 2018, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_NEW_OPT,
