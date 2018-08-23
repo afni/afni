@@ -20,7 +20,7 @@ void usage_1dsound(int detail)
      "                [default is 8-bit mu-law encoding]\n"
      "\n"
      " -tper X      = X seconds of sound per time point in 'tsfile'.\n"
-     "  *or*          Allowed range for 'X' is 0.1 to 1.0 (inclusive).\n"
+     "  *or*          Allowed range for 'X' is 0.01 to 1.0 (inclusive).\n"
      " -dt X          [default is 0.5 s]\n"
      "\n"
      " -play        = Plays the sound file after it is written.\n"
@@ -51,6 +51,11 @@ void usage_1dsound(int detail)
      "  another way to play .au files, you can use that.\n"
      "  * Mac OS X: Quicktime (GUI) or afplay (command line)\n"
      "  * Linux:    sox is probably the simplest\n"
+     "              another possibility is the aplay program\n"
+     "* The audio output file is sampled at 16K bytes per second.\n"
+     "  For example, a 30 second file will be 480K bytes in size.\n"
+     "* The sound impression varies significantly with the '-tper'\n"
+     "  parameter X; '-tper 0.02' is very different than '-tper 0.1'.\n"
      "\n"
      "--- Quick hack for experimentation and fun - RWCox - Aug 2018 ---\n"
      "\n"
@@ -60,10 +65,9 @@ void usage_1dsound(int detail)
 }
 
 /*---------------------------------------------------------------------------*/
-/* This program is a very elaborate wrapper for the plot_ts.c functions. */
 /*---------------------------------------------------------------------------*/
 
-#define SRATE 48000
+#define SRATE 16000  /* sampling rate of output audio file */
 
 int main( int argc , char *argv[] )
 {
@@ -94,19 +98,27 @@ int main( int argc , char *argv[] )
        exit(0) ;
      }
 
+     /*-----*/
+
      if( strcmp(argv[iarg],"-prefix") == 0 ){
        if( iarg >= argc-1 )
          ERROR_exit("need arg after %s",argv[iarg]) ;
        prefix = strdup(argv[++iarg]) ; iarg++ ; continue ;
      }
 
+     /*-----*/
+
      if( strcmp(argv[iarg],"-8PCM") == 0 ){
        do_8PCM = 1 ; iarg++ ; continue ;
      }
 
+     /*-----*/
+
      if( strcmp(argv[iarg],"-play") == 0 ){
        do_play = 1 ; iarg++ ; continue ;
      }
+
+     /*-----*/
 
      if( strcmp(argv[iarg],"-tper") == 0 || strcmp(argv[iarg],"-dt") == 0 ){
        if( iarg >= argc-1 )
@@ -117,6 +129,7 @@ int main( int argc , char *argv[] )
                     argv[iarg-1],argv[iarg]) ;
        iarg++ ; continue ;
      }
+
 
      /*--- symplectically stoopid user ---*/
 
@@ -131,11 +144,17 @@ int main( int argc , char *argv[] )
    if( iarg >= argc )
       ERROR_exit("No time series file on command line!\n") ;
 
+   /*----- read input data file -----*/
+
    inim = mri_read_1D( argv[iarg] ) ;
    if( inim == NULL )
      ERROR_exit("Can't read input file '%s' iarg=%d\n",argv[iarg],iarg) ;
 
+   /*-- samples per time point --*/
+
    nsper = (int)rintf( SRATE * tper ) ;
+
+   /*-- create float time series of sound (cs_playsound.c) --*/
 
    phim = mri_sound_1D_to_FM( inim ,
                               0.0f , 0.0f , SRATE , nsper ) ;
@@ -143,8 +162,13 @@ int main( int argc , char *argv[] )
    if( phim == NULL )
      ERROR_exit("mri_sound_1D_to_FM fails") ;
 
+   /*-- create filename from prefix --*/
+
    if( STRING_HAS_SUFFIX(prefix,".au") ) strcpy(fname,prefix) ;
    else                                  sprintf(fname,"%s.au",prefix) ;
+
+   /*-- write .au file out (cs_playsound.c) --*/
+
    if( do_8PCM ){
      sound_write_au_8PCM( fname, phim->nx, MRI_FLOAT_PTR(phim), SRATE, 0.2f );
    } else {
@@ -152,6 +176,10 @@ int main( int argc , char *argv[] )
    }
    INFO_message  ("output sound file %s",fname) ;
    ININFO_message(" %.1f s of audio" , phim->nx/(float)SRATE ) ;
+
+   mri_free(phim) ;
+
+   /*----- play the sound as well? -----*/
 
    if( do_play ){
      char *pprog , cmd[2048] ;
