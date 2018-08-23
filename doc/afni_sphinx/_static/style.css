@@ -10,3 +10,7 @@ div.document {
 .centered {
     text-align: center;
 }
+
+body {
+  font-family: PT Sans, Roboto, Helvetica, sans-serif;
+}

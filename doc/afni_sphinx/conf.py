@@ -177,7 +177,8 @@ html_theme_options = {
     "lighter_header_decor": "true",
     "linkcolor": "#1874CD",
     "bgcolor": "#F5F5F5",
-    "bodyfont": "Lucida Sans Unicode",
+    "bodyfont": "PT Sans, sans-serif",
+    "fontcssurl" : "//fonts.googleapis.com/css?family=PT+Sans|Noticia+Text|Open+Sans|Droid+Sans+Mono|Roboto",
     "bodylineheight": "1.4em",
     "codevarfont":  "Menlo,  monospace",
     "codeblockfont": "Menlo, monospace",
@@ -190,10 +191,15 @@ html_theme_options = {
     "rubricbgcolor": "#8B0000",
     "headtextcolor": "#8B0000",
     "headlinkcolor": "#8B0000"
-} 
+}  
 #    "bodyfont": "Arial",
 #    "borderless_decor": "true", 
 #    "linkcolor": "#009ACD",
+#    "bodyfont": "Lucida Sans Unicode, sans-serif",
+
+# Adding fonts from googleapis described here:
+# https://developers.google.com/fonts/docs/getting_started
+# in the "theme.conf" file, above
 
 # Add any paths that contain custom themes here, relative to this directory.
 #html_theme_path = []
