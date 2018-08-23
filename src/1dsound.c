@@ -2,6 +2,8 @@
 
 #include "cs_playsound.c"
 
+static char *pprog = NULL ;
+
 void usage_1dsound(int detail)
 {
    printf(
@@ -24,7 +26,14 @@ void usage_1dsound(int detail)
      " -dt X          [default is 0.5 s]\n"
      "\n"
      " -play        = Plays the sound file after it is written.\n"
-     "                [Uses the sox package 'play' program]\n"
+     "                This binary %s %s\n"
+    , (pprog != NULL)
+        ? "uses program"
+        : "can't find any sound playing program"
+    ,
+      (pprog != NULL) ? pprog : " :("
+   ) ;
+   printf(
      "\n"
      "--------\n"
      "EXAMPLES\n"
@@ -79,9 +88,19 @@ int main( int argc , char *argv[] )
    int do_8PCM=0 ; int do_play=0 ;
    float tper=0.5f ; int nsper ;
 
-   /*---------- startup bureaucracy ----------*/
+   /*---------- find a sound playing program ----------*/
+
+     pprog = THD_find_executable("play") ;
+   if( pprog == NULL )
+     pprog = THD_find_executable("afplay") ;
+   if( pprog == NULL )
+     pprog = THD_find_executable("aplay") ;
+
+   /*----- immediate help and quit? -----*/
 
    if( argc < 2 ){ usage_1dsound(1) ; exit(0) ; }
+
+   /*---------- startup bureaucracy ----------*/
 
    mainENTRY("1dsound main"); machdep();
 
@@ -115,7 +134,12 @@ int main( int argc , char *argv[] )
      /*-----*/
 
      if( strcmp(argv[iarg],"-play") == 0 ){
-       do_play = 1 ; iarg++ ; continue ;
+       if( pprog == NULL ){
+         WARNING_message("no program available for playing sound :(") ;
+       } else {
+         do_play = 1 ;
+       }
+       iarg++ ; continue ;
      }
 
      /*-----*/
@@ -181,16 +205,8 @@ int main( int argc , char *argv[] )
 
    /*----- play the sound as well? -----*/
 
-   if( do_play ){
-     char *pprog , cmd[2048] ;
-       pprog = THD_find_executable("play") ;
-     if( pprog == NULL )
-       pprog = THD_find_executable("afplay") ;
-     if( pprog == NULL )
-       pprog = THD_find_executable("aplay") ;
-     if( pprog == NULL ){
-       WARNING_message("Can't find a program to play audio :(") ; exit(0) ;
-     }
+   if( pprog != NULL && do_play ){
+     char cmd[2048] ;
      sprintf(cmd,"%s %s >& /dev/null &",pprog,fname) ;
      ININFO_message(" running command %s",cmd) ;
      system(cmd) ;
