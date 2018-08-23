@@ -15,11 +15,16 @@ void usage_1dsound(int detail)
      "-------\n"
      " -prefix ppp  = Output filename will be ppp.au\n"
      "                [old Sun audio format]\n"
+     "\n"
      " -8PCM        = Output in 8-bit linear PCM encoding\n"
      "                [default is 8-bit mu-law encoding]\n"
+     "\n"
      " -tper X      = X seconds of sound per time point in 'tsfile'.\n"
-     "                Allowed range for 'X' is 0.1 to 1.0 (inclusive).\n"
-     "                [default is 0.5 s]\n"
+     "  *or*          Allowed range for 'X' is 0.1 to 1.0 (inclusive).\n"
+     " -dt X          [default is 0.5 s]\n"
+     "\n"
+     " -play        = Plays the sound file after it is written.\n"
+     "                [Uses the sox package 'play' program]\n"
      "\n"
      "--------\n"
      "EXAMPLES\n"
@@ -64,9 +69,10 @@ int main( int argc , char *argv[] )
 {
    int iarg ;
    char *prefix = "sound.au" ;
+   char fname[1024] ;
    MRI_IMAGE *inim , *phim ;
    float *far ;
-   int do_8PCM=0 ;
+   int do_8PCM=0 ; int do_play=0 ;
    float tper=0.5f ; int nsper ;
 
    /*---------- startup bureaucracy ----------*/
@@ -96,6 +102,10 @@ int main( int argc , char *argv[] )
 
      if( strcmp(argv[iarg],"-8PCM") == 0 ){
        do_8PCM = 1 ; iarg++ ; continue ;
+     }
+
+     if( strcmp(argv[iarg],"-play") == 0 ){
+       do_play = 1 ; iarg++ ; continue ;
      }
 
      if( strcmp(argv[iarg],"-tper") == 0 || strcmp(argv[iarg],"-dt") == 0 ){
@@ -133,16 +143,29 @@ int main( int argc , char *argv[] )
    if( phim == NULL )
      ERROR_exit("mri_sound_1D_to_FM fails") ;
 
-   if( phim != NULL ){
-     char fname[1024] ;
-     if( STRING_HAS_SUFFIX(prefix,".au") ) strcpy(fname,prefix) ;
-     else                                  sprintf(fname,"%s.au",prefix) ;
-     if( do_8PCM ){
-       sound_write_au_8PCM( fname, phim->nx, MRI_FLOAT_PTR(phim), SRATE, 0.2f );
-     } else {
-       sound_write_au_ulaw( fname, phim->nx, MRI_FLOAT_PTR(phim), SRATE, 0.2f );
+   if( STRING_HAS_SUFFIX(prefix,".au") ) strcpy(fname,prefix) ;
+   else                                  sprintf(fname,"%s.au",prefix) ;
+   if( do_8PCM ){
+     sound_write_au_8PCM( fname, phim->nx, MRI_FLOAT_PTR(phim), SRATE, 0.2f );
+   } else {
+     sound_write_au_ulaw( fname, phim->nx, MRI_FLOAT_PTR(phim), SRATE, 0.2f );
+   }
+   INFO_message  ("output sound file %s",fname) ;
+   ININFO_message(" %.1f s of audio" , phim->nx/(float)SRATE ) ;
+
+   if( do_play ){
+     char *pprog , cmd[2048] ;
+       pprog = THD_find_executable("play") ;
+     if( pprog == NULL )
+       pprog = THD_find_executable("afplay") ;
+     if( pprog == NULL )
+       pprog = THD_find_executable("aplay") ;
+     if( pprog == NULL ){
+       WARNING_message("Can't find a program to play audio :(") ; exit(0) ;
      }
-     INFO_message("output sound file %s",fname) ;
+     sprintf(cmd,"%s %s >& /dev/null &",pprog,fname) ;
+     ININFO_message(" running command %s",cmd) ;
+     system(cmd) ;
    }
 
    exit(0) ;
