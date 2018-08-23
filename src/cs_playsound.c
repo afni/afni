@@ -223,6 +223,36 @@ static uint32_t INLINE swap_fourby( uint32_t ii )
 }
 
 /*---------------------------------------------------------------------------*/
+
+void sound_write_au_header( FILE *fp , int nn , int srate , int code )
+{
+   uint32_t ival ;
+
+   set_little_endian() ;  /* do we need to swap bytes in header output? */
+
+   fwrite( ".snd" , 1 , 4, fp ) ;                 /*----- magic 'number' -----*/
+
+   ival = 32    ; if( little_endian ) ival = swap_fourby(ival) ;
+   fwrite( &ival  , 1 , 4 , fp ) ;                /*----- offset to data -----*/
+
+   ival = nn    ; if( little_endian ) ival = swap_fourby(ival) ;
+   fwrite( &ival  , 1 , 4 , fp ) ;          /*----- number of data bytes -----*/
+
+   ival =  code ; if( little_endian ) ival = swap_fourby(ival) ;
+   fwrite( &ival  , 1 , 4 , fp ) ;                      /*----- encoding -----*/
+
+   ival = srate ; if( little_endian ) ival = swap_fourby(ival) ;
+   fwrite( &ival  , 1 , 4 , fp ) ;            /*----- samples per second -----*/
+
+   ival =  1    ; if( little_endian ) ival = swap_fourby(ival) ;
+   fwrite( &ival  , 1 , 4 , fp ) ;            /*----- number of channels -----*/
+
+   fwrite( "AFNI.au"  , 1 , 8 , fp ) ;     /*----- 8 bytes of annotation -----*/
+
+   return ;
+}
+
+/*---------------------------------------------------------------------------*/
 /* samples in aa[] are between -1 and 1.
    sample rate (per second) is in srate.
    scl is a scale down factor (0 < scl <= 1).
@@ -253,26 +283,9 @@ void sound_write_au_ulaw( char *fname, int nn, float *aa, int srate, float scl )
      return ;
    }
 
-   set_little_endian() ;  /* do we need to swap bytes in header output? */
+   /* write .au file header */
 
-   /* write header */
-
-   fwrite( ".snd" , 1 , 4, fp ) ;                 /*----- magic 'number' -----*/
-
-   ival = 24    ; if( little_endian ) ival = swap_fourby(ival) ;
-   fwrite( &ival  , 1 , 4 , fp ) ;                /*----- offset to data -----*/
-
-   ival = nn    ; if( little_endian ) ival = swap_fourby(ival) ;
-   fwrite( &ival  , 1 , 4 , fp ) ;          /*----- number of data bytes -----*/
-
-   ival =  1    ; if( little_endian ) ival = swap_fourby(ival) ;
-   fwrite( &ival  , 1 , 4 , fp ) ;          /*----- encoding = 1 = u-law -----*/
-
-   ival = srate ; if( little_endian ) ival = swap_fourby(ival) ;
-   fwrite( &ival  , 1 , 4 , fp ) ;            /*----- samples per second -----*/
-
-   ival =  1    ; if( little_endian ) ival = swap_fourby(ival) ;
-   fwrite( &ival  , 1 , 4 , fp ) ;            /*----- number of channels -----*/
+   sound_write_au_header( fp , nn , srate , 1 ) ;
 
    /* convert and write data */
 
@@ -293,12 +306,12 @@ void sound_write_au_ulaw( char *fname, int nn, float *aa, int srate, float scl )
    scl is a scale down factor (0 < scl <= 1).
 *//*-------------------------------------------------------------------------*/
 
-void sound_write_au_8bitPCM( char *fname, int nn, float *aa, int srate, float scl )
+void sound_write_au_8PCM( char *fname, int nn, float *aa, int srate, float scl )
 {
    FILE *fp ;
    uint32_t ival , jval ;
-   byte *bb ;
-   int ii ; float fac ;
+   int8_t *bb ;
+   int ii ; float fac , val ;
 
    /* check inputs */
 
@@ -318,33 +331,18 @@ void sound_write_au_8bitPCM( char *fname, int nn, float *aa, int srate, float sc
      return ;
    }
 
-   set_little_endian() ;  /* do we need to swap bytes in header output? */
+   /* write .au file header */
 
-   /* write header */
-
-   fwrite( ".snd" , 1 , 4, fp ) ;                 /*----- magic 'number' -----*/
-
-   ival = 24    ; if( little_endian ) ival = swap_fourby(ival) ;
-   fwrite( &ival  , 1 , 4 , fp ) ;                /*----- offset to data -----*/
-
-   ival = nn    ; if( little_endian ) ival = swap_fourby(ival) ;
-   fwrite( &ival  , 1 , 4 , fp ) ;          /*----- number of data bytes -----*/
-
-   ival =  2    ; if( little_endian ) ival = swap_fourby(ival) ;
-   fwrite( &ival  , 1 , 4 , fp ) ;      /*----- encoding = 1 = 8-bit PCM -----*/
-
-   ival = srate ; if( little_endian ) ival = swap_fourby(ival) ;
-   fwrite( &ival  , 1 , 4 , fp ) ;            /*----- samples per second -----*/
-
-   ival =  1    ; if( little_endian ) ival = swap_fourby(ival) ;
-   fwrite( &ival  , 1 , 4 , fp ) ;            /*----- number of channels -----*/
+   sound_write_au_header( fp , nn , srate , 2 ) ;
 
    /* convert and write data */
 
-   bb = (byte *)malloc(sizeof(byte)*nn) ;
-   fac = 127.444f ;
+   bb  = (int8_t *)malloc(sizeof(int8_t)*nn) ;
+   fac = 127.444f * scl ;
    for( ii=0 ; ii < nn ; ii++ ){
-     bb[ii] = BYTEIZE( fac*(aa[ii]+1.0f) ) ;
+     val = fac*aa[ii] ;
+     bb[ii] = ( val < -127.0f ) ? -127 :
+              ( val >  127.0f ) ?  127 : (int8_t)rintf(val) ;
    }
    fwrite( bb , 1 , nn , fp ) ;
 
@@ -366,7 +364,7 @@ MRI_IMAGE * mri_sound_1D_to_FM( MRI_IMAGE *imin ,
 {
    float *aa,*bb ;
    float abot,atop , lfbot,lftop,dlf,dfac,ai,ap,di,dp ;
-   float afac,dph,ph ;
+   float afac,dph,ph , val ;
    int nout , ii,jj,kk,ip , nn ;
    MRI_IMAGE *imout , *qim ;
 
@@ -386,7 +384,7 @@ MRI_IMAGE * mri_sound_1D_to_FM( MRI_IMAGE *imin ,
    aa = MRI_FLOAT_PTR(qim) ;
 
    if( fbot <= 0.0f || fbot >= ftop ){
-     fbot = 0.1f * A4 ; ftop = 10.0f * A4 ;
+     fbot = 0.25f * A4 ; ftop = 4.0f * A4 ;
    }
    if( ftop > 10000.0f ) ftop = 10000.0f ;
    if( fbot <    30.0f ) fbot =    30.0f ;
@@ -402,15 +400,21 @@ MRI_IMAGE * mri_sound_1D_to_FM( MRI_IMAGE *imin ,
       else if( aa[ii] > atop ) atop = aa[ii] ;
    }
 
-   if( abot >= atop ){
-     if( qim != imin ) mri_free(qim) ;
-     ERROR_message("mri_sound_1D_to_FM: abot=%g atop=%g",abot,atop) ;
-     return NULL ;
-   }
-
    nout  = nsper * nn ;
    imout = mri_new( nout , 1 , MRI_float ) ;
    bb    = MRI_FLOAT_PTR(imout) ;
+
+   if( abot >= atop ){
+     float fmid = sqrtf(fbot*ftop) ;
+     INFO_message("mri_sound_1D_to_FM: only 1 value == sine wave output f=%.1g",fmid) ;
+     ph  = 0.0f ;
+     dph = 2.0f * PI * fmid / srate ;
+     for( ii=0 ; ii < nout ; ii++ ){
+       bb[ii] = sin(ph) ; ph += dph ;
+     }
+     if( qim != imin ) mri_free(qim) ;
+     return imout ;
+   }
 
    lfbot = log2(fbot) ; lftop = log2(ftop) ; dlf = lftop-lfbot ;
 
@@ -424,13 +428,21 @@ MRI_IMAGE * mri_sound_1D_to_FM( MRI_IMAGE *imin ,
    dph = 2.0f * PI / srate ;
    for( jj=ii=0 ; ii < nn ; ii++ ){
      ph += FRMOD(aa[ii]) * dph ; bb[jj++] = sin(ph) ;
+#if 0
+val = FRMOD(aa[ii]) ;
+ININFO_message(" %g  %g",val,bb[jj-1]) ;
+#endif
      if( nsper > 1 ){
        ip = ii+1 ; if( ip >= nn ) ip = nn-1 ;
        ai = aa[ii] ; ap = aa[ip] ;
        di = 1.0f   ; dp = 0.0f   ;
        for( kk=1 ; kk < nsper ; kk++ ){
          di -= dfac ; dp += dfac ;
-         ph += FRMOD( di*ai+dp*ap ) * dp ; bb[jj++] = sin(ph) ;
+         ph += FRMOD( di*ai+dp*ap ) * dph ; bb[jj++] = sin(ph) ;
+#if 0
+val = FRMOD( di*ai+dp*ap ) ;
+ININFO_message(" %g  %g",val,bb[jj-1]) ;
+#endif
        }
      }
    }
