@@ -2396,7 +2396,20 @@ extern int THD_nwarp_inverse_xyz( THD_3dim_dataset *dset_nwarp ,
                                   float dfac , int npt ,
                                   float *xin , float *yin , float *zin ,
                                   float *xut , float *yut , float *zut  ) ;
+/*----------------------------------------------------------------------------*/
+/* Aug 2018 - sound stuff - cs_playsound.c */
 
+extern void play_sound_1D( int nn , float *xx ) ;
+extern void set_sound_note_type( char *typ ) ;
+extern void set_sound_gain_value( int ggg ) ;
+extern void set_sound_twotone( int ggg ) ;      /* do not use this */
+
+extern void sound_write_au_header( FILE *fp, int nn, int srate, int code ) ;
+extern void sound_write_au_ulaw( char *fname, int nn, float *aa, int srate, float scl ) ;
+extern void sound_write_au_8PCM( char *fname, int nn, float *aa, int srate, float scl ) ;
+
+extern MRI_IMAGE * mri_sound_1D_to_FM( MRI_IMAGE *imin,
+                                float fbot, float ftop, int srate, int nsper ) ;
 /*----------------------------------------------------------------------------*/
 
 #define CPU_IS_64_BIT() ((sizeof(void *) == 8) ? 1 : 0 )
