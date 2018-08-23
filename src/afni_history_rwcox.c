@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 23 , AUG , 2018 , RWC , "1dsound" , MINOR , TYPE_NEW_PROG ,
+   "program to generate .au sound file from a 1D file" ,
+   "Very primitive at this moment." } ,
+
  { 20 , AUG , 2018 , RWC , "AFNI GUI" , MINOR , TYPE_ENHANCE ,
    "Play sound with 'p' or 'P' keypresses" ,
    "p = sound from central graph.\n"
