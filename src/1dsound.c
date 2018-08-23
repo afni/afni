@@ -17,6 +17,7 @@ void usage_1dsound(int detail)
      "-------\n"
      " -prefix ppp  = Output filename will be ppp.au\n"
      "                [old Sun audio format]\n"
+     "                If you don't use '-prefix', the output is file 'sound.au'.\n"
      "\n"
      " -8PCM        = Output in 8-bit linear PCM encoding\n"
      "                [default is 8-bit mu-law encoding]\n"
