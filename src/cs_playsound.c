@@ -586,7 +586,7 @@ void sound_make_note( float frq, int waveform, int srate, int nsam, float *sam )
 
    /* apply envelope (if note has enough samples) */
 
-   if( nsam > 63 ){
+   if( nsam > 127 ){
      dt = 1.0f/nsam ; tt= 0.0f ;
      for( ii=0 ; ii < nsam ; ii++ ){ sam[ii] *= ADSR_env(tt); tt += dt; }
    }
