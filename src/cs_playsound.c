@@ -272,7 +272,7 @@ void sound_write_au_ulaw( char *fname, int nn, float *aa, int srate, float scl )
      return ;
    }
 
-   if( srate < 100 ) srate = 8000 ;
+   if( srate < 8000 ) srate = 8000 ;
    if( scl   < 0.0f || scl > 1.0f ) scl = 1.0f ;
 
    /* open output file */
@@ -320,7 +320,7 @@ void sound_write_au_8PCM( char *fname, int nn, float *aa, int srate, float scl )
      return ;
    }
 
-   if( srate < 100 ) srate = 8000 ;
+   if( srate < 8000 ) srate = 8000 ;
    if( scl   < 0.0f || scl > 1.0f ) scl = 1.0f ;
 
    /* open output file */
@@ -448,6 +448,211 @@ ININFO_message(" %g  %g",val,bb[jj-1]) ;
    }
 
 #undef FRMOD
+
+   if( qim != imin ) mri_free(qim) ;
+   return imout ;
+}
+
+#undef A4
+
+/*---------------------------------------------------------------------------*/
+
+#define PA 54.0f  /* 5 base notes (Hz) */
+#define PC 64.0f
+#define PD 72.0f
+#define PE 81.0f
+#define PG 96.0f
+
+#define POCTA 4   /* number of octaves */
+
+static int   npenta = 0 ;     /* will be 5*POCTA+1 */
+static float *penta = NULL ;  /* will hold all the notes */
+
+void sound_setup_penta( int octstart )
+{
+   int ii , jj ; float fac ;
+
+   if( npenta > 0 ) return ;
+   if( octstart < 0 || octstart >= POCTA ) octstart = 0 ;
+
+   npenta = 5*POCTA+1 ;
+    penta = (float *)malloc(sizeof(float)*npenta) ;
+   fac    = 1.0f ;
+
+   for( jj=ii=0 ; ii < POCTA ; ii++ ){
+     if( ii >= octstart ){
+       penta[jj++] = fac * PA ;
+       penta[jj++] = fac * PC ;
+       penta[jj++] = fac * PD ;
+       penta[jj++] = fac * PE ;
+       penta[jj++] = fac * PG ;
+     }
+     fac *= 2.0f ;
+   }
+   penta[jj++] = fac * PA ; /* complete last octave */
+   npenta      = jj ;
+
+   return ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static int note_waveform = SOUND_WAVEFORM_TRIANGLE ;
+
+void sound_set_note_waveform( int nn ){ note_waveform = nn; }
+
+#undef  twoPI
+#define twoPI   6.283185f
+#undef  fourPI
+#define fourPI 12.566371f
+#undef  sixPI
+#define sixPI  18.849556f
+
+/* wav_xxx functions have period 1, amplitude 1, and assume t > 0 */
+
+static INLINE float wav_sine(float t){ return ( 0.999f*sinf(twoPI*t) ) ; }
+
+static INLINE float wav_h2sine(float t){
+  return ( 0.953f*sinf(twoPI*t)+0.3f*cosf(fourPI*t) ) ;
+}
+
+static INLINE float wav_square(float t){
+  float dt = fmodf(t,1.0f) ;
+  return ( (dt < 0.45f) ? 0.999f
+          :(dt < 0.55f) ? 0.999f-19.98f*(dt-0.45f)
+          : -0.999f ) ;
+}
+
+#undef  TW
+#define TW(x) (0.999f-3.996f*fabsf(x))
+
+static INLINE float wav_triangle(float t){
+  float dt = fmodf(t,1.0f) ;
+  return ( (dt < 0.5f) ? TW(dt-0.25f) : -TW(dt-0.75f) ) ;
+}
+
+#undef  envA
+#undef  envD
+#undef  envS
+#define envA 0.0666f
+#define envD 0.1666f
+#define envS 0.9333f
+
+/* Envelope for note, with 0 <= t <= 1 */
+
+static INLINE float ADSR_env(float t){
+       if( t <= envA ) return (0.07f+0.93f*t/envA) ;
+  else if( t <= envD ) return (1.0f-0.1f*(t-envD)/(envD-envA)) ;
+  else if( t <= envS ) return (0.9f) ;
+                       return (0.9f-0.83f*(t-envS)/(1.0f-envS)) ;
+}
+  
+/*---------------------------------------------------------------------------*/
+/* Note that if frq >= 0.5*srate, bad things will happen due to Mr Nyquist!! */
+/*---------------------------------------------------------------------------*/
+
+void sound_make_note( float frq, int waveform, int srate, int nsam, float *sam )
+{
+   int ii ; float dt,tt ;
+
+   if( frq <= 0.0f || nsam < 9 || sam == NULL ) return ;
+
+   if( srate < 8000 ) srate = 8000 ;
+
+   dt = frq / srate ; tt = 0.0f ;
+
+   /* form periodic waveform */
+
+   switch( waveform ){
+
+     default:
+     case SOUND_WAVEFORM_SINE:
+       for( ii=0 ; ii < nsam ; ii++ ){ sam[ii] = wav_sine(tt); tt += dt; }
+     break ;
+
+     case SOUND_WAVEFORM_SQUARE:
+       for( ii=0 ; ii < nsam ; ii++ ){ sam[ii] = wav_square(tt); tt += dt; }
+     break ;
+
+     case SOUND_WAVEFORM_TRIANGLE:
+       for( ii=0 ; ii < nsam ; ii++ ){ sam[ii] = wav_triangle(tt); tt += dt; }
+     break ;
+
+     case SOUND_WAVEFORM_H2SINE:
+       for( ii=0 ; ii < nsam ; ii++ ){ sam[ii] = wav_h2sine(tt); tt += dt; }
+     break ;
+
+   }
+
+   /* apply envelope (if note has enough samples) */
+
+   if( nsam > 63 ){
+     dt = 1.0f/nsam ; tt= 0.0f ;
+     for( ii=0 ; ii < nsam ; ii++ ){ sam[ii] *= ADSR_env(tt); tt += dt; }
+   }
+
+   return ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+MRI_IMAGE * mri_sound_1D_to_notes( MRI_IMAGE *imin, int srate, int nsper )
+{
+   float *aa,*bb ;
+   float abot,atop , fac ;
+   int nout , ii,jj , nn ;
+   MRI_IMAGE *imout , *qim ;
+
+   /*--- deal with inputs ---*/
+
+   if( imin == NULL ) return NULL ;
+
+   nn = imin->nx ;
+   if( nn < 2 ){
+     ERROR_message("mri_sound_1D_to_notes: nn = %d",nn) ;
+     return NULL ;
+   }
+
+   if( imin->kind != MRI_float ){
+     qim = mri_to_float(imin) ;
+   } else {
+     qim = imin ;
+   }
+   aa = MRI_FLOAT_PTR(qim) ;
+
+   if( srate < 8000 ) srate = 8000 ;
+   if( nsper <= 9   ) nsper = srate/2 ;
+
+   abot = atop = aa[0] ;
+   for( ii=1 ; ii < nn ; ii++ ){
+           if( aa[ii] < abot ) abot = aa[ii] ;
+      else if( aa[ii] > atop ) atop = aa[ii] ;
+   }
+
+   /*-- create output ---*/
+
+   nout  = nsper * nn ;
+   imout = mri_new( nout , 1 , MRI_float ) ;
+   bb    = MRI_FLOAT_PTR(imout) ;
+
+   sound_setup_penta(1) ; /* skip octave 0 -- it's too low */
+
+   if( abot >= atop ){    /* no data range??? */
+
+     INFO_message("mri_sound_1D_to_notes: only 1 data value == something random") ;
+     for( ii=0 ; ii < nn ; ii++ ){
+       jj = lrand48() % npenta ;
+       sound_make_note( penta[jj], note_waveform, srate, nsper, bb+(ii*nsper) ) ;
+     }
+
+   } else {
+
+     fac = (npenta-1.0f) / (atop-abot) ;
+     for( ii=0 ; ii < nn ; ii++ ){
+       jj = rintf( fac*(aa[ii]-abot) ) ;
+       sound_make_note( penta[jj], note_waveform, srate, nsper, bb+(ii*nsper) ) ;
+     }
+   }
 
    if( qim != imin ) mri_free(qim) ;
    return imout ;

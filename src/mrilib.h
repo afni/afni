@@ -2410,6 +2410,16 @@ extern void sound_write_au_8PCM( char *fname, int nn, float *aa, int srate, floa
 
 extern MRI_IMAGE * mri_sound_1D_to_FM( MRI_IMAGE *imin,
                                 float fbot, float ftop, int srate, int nsper ) ;
+
+#define SOUND_WAVEFORM_SINE     1
+#define SOUND_WAVEFORM_SQUARE   2
+#define SOUND_WAVEFORM_TRIANGLE 3
+#define SOUND_WAVEFORM_H2SINE   4
+
+extern void sound_set_note_waveform( int nn ) ;
+extern void sound_make_note( float frq, int waveform, int srate, int nsam, float *sam ) ;
+extern MRI_IMAGE * mri_sound_1D_to_notes( MRI_IMAGE *imin, int srate, int nsper ) ;
+
 /*----------------------------------------------------------------------------*/
 
 #define CPU_IS_64_BIT() ((sizeof(void *) == 8) ? 1 : 0 )
