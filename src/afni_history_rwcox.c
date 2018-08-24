@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 24 , AUG , 2018 , RWC , "1dsound" , MICRO , TYPE_NEW_OPT ,
+   "-notes option makes notes" ,
+   "This is the default. Pentatonic notes with triangle waveforms." } ,
+
  { 23 , AUG , 2018 , RWC , "1dsound" , MINOR , TYPE_NEW_PROG ,
    "program to generate .au sound file from a 1D file" ,
    "Very primitive at this moment." } ,
