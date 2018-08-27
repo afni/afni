@@ -32,6 +32,7 @@ float qnzmean_float( int n , float *ar )
 	    v = ar[ii];
 	    if(v!=0.0) sum += ar[ii] ;
 	    else n--;
+   }
    /* might have no non-zero voxels, so just return 0*/
    if(n<=0) sum = 0.0;
    /* otherwise return average */
