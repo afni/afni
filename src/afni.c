@@ -2260,18 +2260,12 @@ int main( int argc , char *argv[] )
    }
 #endif
 
-   { char *eee = getenv("DISPLAY") ;  /* 20 Aug 2018 */
+   { char *eee = getenv("DISPLAY") ;  /* Sound stuff [20 Aug 2018] */
      GLOBAL_library.local_display = (eee == NULL) || (strstr(eee,":0") != NULL ) ;
      GLOBAL_library.have_sox      = ( THD_find_executable("sox") != NULL ) ;
-     eee = getenv("AFNI_SOUND_NOTE_TYPE") ;
-     if( eee != NULL ) set_sound_note_type(eee) ;
-     eee = getenv("AFNI_SOUND_GAIN") ;
-     if( eee != NULL ){
-       int gg = (int)strtod(eee,NULL) ;
-       if( gg < 0 ) set_sound_gain_value(gg) ;
-       else         WARNING_message("AFNI_SOUND_GAIN is not negative :(") ;
-     }
-     if( AFNI_yesenv("AFNI_SOUND_TWOTONE") ) set_sound_twotone(1) ;
+     GLOBAL_library.sound_player  = get_sound_player() ;
+     sound_set_note_ADSR(1) ;
+     sound_set_note_waveform(SOUND_WAVEFORM_TRIANGLE) ;
    }
 
    /* if we used xrdb to set X11 resources, re-set them back to their old

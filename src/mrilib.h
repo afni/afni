@@ -2404,6 +2404,7 @@ extern void mri_play_sound( MRI_IMAGE *im , int ignore ) ;
 extern void set_sound_note_type( char *typ ) ;
 extern void set_sound_gain_value( int ggg ) ;
 extern void set_sound_twotone( int ggg ) ;      /* do not use this */
+extern char * get_sound_player(void) ;
 
 extern void sound_write_au_header( FILE *fp, int nn, int srate, int code ) ;
 extern void sound_write_au_ulaw( char *fname, int nn, float *aa, int srate, float scl ) ;
