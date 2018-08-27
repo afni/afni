@@ -131,7 +131,7 @@ void kill_sound_players(void)
 void mri_play_sound( MRI_IMAGE *imin , int ignore )
 {
    MRI_IMAGE *qim ;
-   char *pre , fname[256] , cmd[2048] ;
+   char *pre , fname[256] , cmd[2048] , extras[1024] ;
    int ii , nsper ; float dt ;
 
    (void)get_sound_player() ;
@@ -172,7 +172,10 @@ void mri_play_sound( MRI_IMAGE *imin , int ignore )
    sprintf(fname,"AFNI_SOUND_TEMP.%s.au",pre) ;
    unlink(fname) ;           /* remove sound file, in case it already exists */
    sound_write_au_ulaw( fname, qim->nx, MRI_FLOAT_PTR(qim), DEFAULT_SRATE, 0.1f ) ;
-   sprintf(cmd,"%s %s >& /dev/null",pprog,fname) ;
+   extras[0] = '\0' ;
+   if( strcmp(pprog_name,"play") == 0 )
+     strcat(extras," reverb 77") ;
+   sprintf(cmd,"%s %s %s >& /dev/null",pprog,fname,extras) ;
    system(cmd) ;
    unlink(fname) ;
    _exit(0) ;
