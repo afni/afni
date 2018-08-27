@@ -1,18 +1,19 @@
-.. from: https://afni.nimh.nih.gov/pub/dist/HOWTO/howto/ht00_inst/html/linux_inst_current.html
 
-.. _install_steps_linux_ubuntu16:
+.. _install_steps_linux_ubuntu18:
 
 
-**Linux, Ubuntu 16.04 - 17.10**: *The essential system setup*
-=================================================================
+**Linux, Ubuntu 18.04**: *The essential system setup*
+===================================================================
 
 .. contents:: :local:
 
 What to do?
 -----------
 
-Here we describe installation and system setup for Ubuntu Linux
-versions 16.04 (Xenial Xerus) through 17.10 (Artful Aardvark).
+Here we describe installation and system setup for modern Ubuntu Linux
+versions, specifically 18.04 (Bionic Beaver).  And a note of thanks to
+Kiyotaka and other AFNI users who contributed advice to these
+instructions on the MB!
 
 .. include:: substep_intro.rst
 
@@ -23,7 +24,7 @@ a. Copy+paste::
 
      sudo add-apt-repository universe
 
-   Copy+paste::
+   ::
 
      sudo apt-get update
 
@@ -32,7 +33,9 @@ a. Copy+paste::
                              libjpeg62 xvfb xterm vim curl     \
                              gedit evince                      \
                              libglu1-mesa-dev libglw1-mesa     \
-                             libxm4 build-essential
+                             libxm4 build-essential            \
+                             libcurl4-openssl-dev libxml2-dev  \
+                             libssl-dev libgfortran3 
 
    **Purpose:** Installs a lot of packages that AFNI depends on (so we
    don't have to reinvent the wheel!).
@@ -47,12 +50,14 @@ a. Copy+paste::
    or (older) :ref:`BoUoW <install_steps_windows10_beta>`
    instructions. This may take a little while to complete running.
 
-.. internal note/comment: at this moment, we are eschewing
-   including 'mwm', which is the replacement for 'motif-clients'
-   from earlier Ubuntu versions.  If problems arise, that might be
-   useful
+#. Copy+paste::
+     
+     sudo ln -s /usr/lib/x86_64-linux-gnu/libgsl.so.23 /usr/lib/x86_64-linux-gnu/libgsl.so.19 
 
-.. _setup_Ubu16_tcsh:
+   **Purpose:** Make a symbolic link for the specific version of GSL
+   included in this version of Ubuntu.
+
+.. _setup_Ubu18_tcsh:
 Make "tcsh" default shell (optional/recommended)
 ------------------------------------------------
 
@@ -102,28 +107,27 @@ a. Copy+paste:
        setenv R_LIBS $HOME/R
        mkdir $R_LIBS
        echo 'setenv R_LIBS ~/R' >> ~/.cshrc
-       curl -O https://afni.nimh.nih.gov/pub/dist/src/scripts_src/@add_rcran_ubuntu.tcsh
-       sudo tcsh @add_rcran_ubuntu.tcsh
+       sudo apt-get install -y r-base-dev r-cran-rmpi 
 
    * *for* ``bash``::
    
        export R_LIBS=$HOME/R
        mkdir $R_LIBS
        echo 'export R_LIBS=$HOME/R' >> ~/.bashrc
-       curl -O https://afni.nimh.nih.gov/pub/dist/src/scripts_src/@add_rcran_ubuntu.tcsh
-       sudo tcsh @add_rcran_ubuntu.tcsh
+       sudo apt-get install -y r-base-dev r-cran-rmpi 
 
    **Purpose:** Setup modern R from scratch. This relies on the
    environment variable ``$R_LIBS``, which specifies where to install
    the packages and where to read them from later (when R programs
-   run).  The file obtained using ``curl`` contains instructions to
-   add a more uptodate set of R libraries to the source list.
+   run). 
 
 #. Copy+paste::
      
      rPkgsInstall -pkgs ALL
 
    **Purpose:** Get specific R packages needed for AFNI programs.
+   This step might take a while to complete (installing the various R
+   package dependencies).
    
 .. ---------- HERE/BELOW: copy for all installs --------------
 

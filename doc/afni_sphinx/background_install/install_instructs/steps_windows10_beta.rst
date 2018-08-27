@@ -1,8 +1,8 @@
 .. _install_steps_windows10_beta:
 
 
-\*old\* **Windows 10 beta ('Bash on Ubuntu')**: *The essential system setup*
-================================================================
+\*old\* **Windows 10, "Bash on Ubuntu" (beta)**: *The essential system setup*
+==============================================================================
 
 .. contents:: :local:
 
