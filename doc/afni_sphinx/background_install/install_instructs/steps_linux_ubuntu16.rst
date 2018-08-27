@@ -3,15 +3,13 @@
 .. _install_steps_linux_ubuntu16:
 
 
-**Ubuntu Linux (16.04 through 17.10)**: *The essential system setup*
+**Linux, Ubuntu 16.04 - 17.10**: *The essential system setup*
 =================================================================
 
 .. contents:: :local:
 
-Here we describe installation and system setup for modern Ubuntu Linux
-versions, specifically 16.04 (Xenial Xerus).  It *may* work for later
-systems, as well.  For earlier versions of Ubuntu, please see the
-relevant :ref:`instructions here <install_steps_linux_ubuntu>`.
+Here we describe installation and system setup for Ubuntu Linux
+versions 16.04 (Xenial Xerus) through 17.10 (Artful Aardvark).
 
 .. include:: substep_intro.rst
 
@@ -21,6 +19,9 @@ Install prerequisite packages
 a. Copy+paste::
 
      sudo add-apt-repository universe
+
+   Copy+paste::
+
      sudo apt-get update
 
      sudo apt-get install -y tcsh xfonts-base python-qt4       \
@@ -91,7 +92,7 @@ shell, and path updates.
 Install R
 ---------
  
-a. Copy+paste the following:
+a. Copy+paste:
 
    * *for* ``tcsh``::
    
@@ -115,7 +116,7 @@ a. Copy+paste the following:
    run).  The file obtained using ``curl`` contains instructions to
    add a more uptodate set of R libraries to the source list.
 
-#. Copy+paste the following::
+#. Copy+paste::
      
      rPkgsInstall -pkgs ALL
 
