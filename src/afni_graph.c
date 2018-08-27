@@ -251,7 +251,8 @@ ENTRY("new_MCW_grapher") ;
                        "r/R    = Video ricochet up/down in time\n"
                        "p      = play sound from central graph\n"
                        "P      = play sound from average graph\n"
-                       "         [sound requires 'sox' package]\n"
+                       "         and central graph (polyphony)\n"
+                       "K      = kill any running sound player\n"
                        "F5     = Meltdown!\n"
                        "\n"
                        "See the 'Opt' menu for other keypress actions\n"
@@ -3898,15 +3899,26 @@ STATUS(str); }
       case 'p':                             /* play sound [20 Aug 2018] */
         if( GLOBAL_library.local_display && grapher->cen_tsim != NULL ){
           int ib = grapher->init_ignore ;
-          play_sound_1D( grapher->cen_tsim->nx-ib , MRI_FLOAT_PTR(grapher->cen_tsim)+ib ) ;
+          mri_play_sound( grapher->cen_tsim , ib ) ;
         }
       break ;
 
       case 'P':                             /* play sound [20 Aug 2018] */
-        if( GLOBAL_library.local_display && grapher->ave_tsim != NULL ){
+        if( GLOBAL_library.local_display &&
+            grapher->ave_tsim != NULL    && grapher->cen_tsim != NULL ){
           int ib = grapher->init_ignore ;
-          play_sound_1D( grapher->ave_tsim->nx-ib , MRI_FLOAT_PTR(grapher->ave_tsim)+ib ) ;
+          MRI_IMARR *imar ; MRI_IMAGE *qim ;
+          INIT_IMARR(imar) ;
+          ADDTO_IMARR(imar,grapher->ave_tsim) ;
+          ADDTO_IMARR(imar,grapher->cen_tsim) ;
+          qim = mri_catvol_1D( imar , 2 ) ;
+          mri_play_sound( qim , ib ) ;
+          mri_free(qim) ; FREE_IMARR(imar) ;
         }
+      break ;
+
+      case 'K':                     /* kill sound players [27 Aug 2018] */
+        kill_sound_players() ;
       break ;
 
       case 'L':

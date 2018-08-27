@@ -1,22 +1,39 @@
 #include "mrilib.h"
 
-/*----- Play music, using the sox program (must be installed) -----*/
-
-#define NUM_NOTE 48
-#define DUR_NOTE 0.3
-
-static int have_sox = -1 ;
-
 static byte mulaw( float x ) ; /* prototype */
+
+#undef  DEFAULT_SRATE
+#define DEFAULT_SRATE 16000
+
+/*--------------------------------------------------------------------------*/
+/*---------- find a sound playing program ----------*/
+
+static int found_pprog = -1 ;
+static char *pprog      = NULL ;
+static char *pprog_name = NULL ;
+
+char * get_sound_player(void)
+{
+   if( found_pprog < 0 ){
+       pprog = THD_find_executable("play") ;      /* sox */
+     if( pprog == NULL )
+       pprog = THD_find_executable("afplay") ;    /* OS X */
+     if( pprog == NULL )
+       pprog = THD_find_executable("mplayer") ;   /* Linux */
+     if( pprog == NULL )
+       pprog = THD_find_executable("aplay") ;     /* Linux */
+
+     found_pprog = (pprog != NULL) ;
+     if( found_pprog ) pprog_name = THD_trailname(pprog,0) ;
+   }
+
+   return pprog ;
+}
 
 /*--------------------------------------------------------------------------*/
 static char note_type[32] = "pluck" ;
 static int  gain_value    = -27 ;
 static int  two_tone      = 0 ;
-
-#define NFORKLIST 4
-static int  nfork = 0 ;
-static int  forklist[NFORKLIST] ;
 
 void set_sound_note_type( char *typ )
 {
@@ -56,93 +73,108 @@ void set_sound_twotone( int ggg )
 
 static int psk_set = 0 ;
 
-void play_sound_killer(void){
+/*-----*/
+
+#if 0
+#define NFORKLIST 4
+static int  nfork_pg = 0 ;
+static int  forklist_pg[NFORKLIST] ;
+
+void play_sound_killpg(void){
   int ii ;
   for( ii=0 ; ii < NFORKLIST ; ii++ ){
-    if( forklist[ii] > 0 ){
-      killpg(forklist[ii],SIGKILL) ;
+    if( forklist_pg[ii] > 0 ){
+      killpg(forklist_pg[ii],SIGKILL) ;
     }
   }
   return ;
 }
+#endif
 
-/*--------------------------------------------------------------------------*/
+/*-----*/
 
-void play_sound_1D( int nn , float *xx )
+#if 0
+static int  nfork_id = 0 ;
+static int  forklist_id[NFORKLIST] ;
+
+void play_sound_killid(void)
 {
-   float xbot , xtop , fac , shf , duration ;
-   int ii ;
-   char *pre , fname[64] , cmd[256] ;
-   static int first_big_call=1 ;
+  int ii ;
+INFO_message("play_sound_killid()") ;
+  for( ii=0 ; ii < NFORKLIST ; ii++ ){
+    if( forklist_id[ii] > 0 ){
+ININFO_message("try to kill pid %d",forklist_id[ii]) ;
+      kill(forklist_id[ii],SIGKILL) ;
+      forklist_id[ii] = 0 ;
+    }
+  }
+  nfork_id = 0 ;
+  return ;
+}
+#endif
 
-   if( nn < 2 || xx == NULL ) return ;
+/*-----*/
 
-   if( have_sox < 0 ) have_sox = ( THD_find_executable("sox") != NULL ) ;
+void kill_sound_players(void)
+{
+  char cmd[1024] ;
+  if( pprog_name != NULL ){
+    sprintf(cmd,"killall %s >& /dev/null",pprog_name) ;
+    system(cmd) ;
+  }
+  return ;
+}
 
-   if( have_sox == 0 ) return ;
+/*---------------------------------------------------------------------------*/
+/* Play sound from a 1D image (up to 4 columns) */
 
-   /*--- fork a sub-process to do the work and play the sound ---*/
+void mri_play_sound( MRI_IMAGE *imin , int ignore )
+{
+   MRI_IMAGE *qim ;
+   char *pre , fname[256] , cmd[2048] ;
+   int ii , nsper ; float dt ;
 
-   if( nn > 199 && first_big_call ){
-     INFO_message("long sound timeseries ==> several seconds for setup") ;
-     first_big_call = 0 ;
-   }
+   (void)get_sound_player() ;
+   if( imin == NULL || imin->nx < 2 || pprog == NULL ) return ;
 
-   if( !psk_set ){ atexit(play_sound_killer) ; psk_set = 1 ; }
+   kill_sound_players() ;
+
+   if( !psk_set ){ atexit(kill_sound_players) ; psk_set = 1 ; }
 
    ii = (int)fork() ;
    if( ii != 0 ){  /*-- return to parent process --*/
+#if 0
      int jj = getpgid(ii) ;
-     if( nfork == 0 || (nfork > 0 && jj != forklist[nfork-1]) ){
-       forklist[nfork] = getpgid(ii) ;
-       nfork           = (nfork+1)%NFORKLIST ;
+     if( nfork_pg == 0 || (nfork_pg > 0 && jj != forklist_pg[nfork_pg-1]) ){
+       forklist_pg[nfork_pg] = getpgid(ii) ;
+       nfork_pg              = (nfork_pg+1)%NFORKLIST ;
      }
+#endif
+#if 0
+     jj = ii ;
+     if( nfork_id == 0 || (nfork_id > 0 && jj != forklist_id[nfork_id-1]) ){
+       forklist_id[nfork_id] = jj ;
+       nfork_id              = (nfork_id+1)%NFORKLIST ;
+     }
+#endif
      return ;
    }
 
-   /*--- from here on, am in sub-process, which quits when done ---*/
+   dt = (imin->nx <= 100) ? 0.20f
+       :(imin->nx <= 200) ? 0.15f
+       :                    0.10f ;
+   nsper = (int)rintf(DEFAULT_SRATE*dt) ;
 
-   xbot = xtop = xx[0] ;
-   for( ii=1 ; ii < nn ; ii++ ){
-           if( xx[ii] < xbot ) xbot = xx[ii] ;
-      else if( xx[ii] > xtop ) xtop = xx[ii] ;
-   }
-   if( xbot == xtop ) _exit(0) ;
-
-   fac      = (NUM_NOTE+0.5f) / (xtop-xbot) ;
-   shf      = 0.6f * NUM_NOTE ;
-   duration = (nn < 66) ?  DUR_NOTE : (DUR_NOTE/1.5f) ;
+   qim = mri_sound_1D_to_notes( imin , DEFAULT_SRATE , nsper , 4 , ignore ) ;
+   if( qim == NULL ) _exit(0) ;
 
    pre = UNIQ_idcode_11() ;  /* make up name for sound file */
-   sprintf(fname,"AFNI_SOUND_TEMP.%s.ul",pre) ;
+   sprintf(fname,"AFNI_SOUND_TEMP.%s.au",pre) ;
    unlink(fname) ;           /* remove sound file, in case it already exists */
-
-   if( two_tone ){                  /* doesn't work well for some reason */
-     for( ii=0 ; ii < nn ; ii++ ){
-       sprintf( cmd ,
-                "sox -e mu-law -r 48000 -n -t raw - synth %.2f %s %%%d %s %%%d gain -h %d >> %s" ,
-                duration ,
-                note_type , (int)rintf( fac*(xx[ii]-xbot)-shf )-2 ,
-                note_type , (int)rintf( fac*(xx[ii]-xbot)-shf )+2 ,
-                gain_value , fname ) ;
-       system(cmd) ;
-     }
-   } else {                         /* single tone [default] */
-     for( ii=0 ; ii < nn ; ii++ ){
-       sprintf( cmd ,
-                "sox -e mu-law -r 48000 -n -t raw - synth %.2f %s %%%d gain -h %d >> %s" ,
-                duration ,
-                note_type , (int)rintf( fac*(xx[ii]-xbot)-shf ) ,
-                gain_value , fname ) ;
-       system(cmd) ;
-     }
-   }
-
-   /* play the raw (-r) single change (-c 1) file */
-
-   sprintf( cmd , "sox -r 48000 -c 1 %s -d &> /dev/null" , fname ) ;
+   sound_write_au_ulaw( fname, qim->nx, MRI_FLOAT_PTR(qim), DEFAULT_SRATE, 0.1f ) ;
+   sprintf(cmd,"%s %s >& /dev/null",pprog,fname) ;
    system(cmd) ;
-   unlink(fname) ; /* and delete the file */
+   unlink(fname) ;
    _exit(0) ;
 }
 
@@ -272,7 +304,7 @@ void sound_write_au_ulaw( char *fname, int nn, float *aa, int srate, float scl )
      return ;
    }
 
-   if( srate < 8000 ) srate = 8000 ;
+   if( srate < 8000 ) srate = DEFAULT_SRATE ;
    if( scl   < 0.0f || scl > 1.0f ) scl = 1.0f ;
 
    /* open output file */
@@ -320,7 +352,7 @@ void sound_write_au_8PCM( char *fname, int nn, float *aa, int srate, float scl )
      return ;
    }
 
-   if( srate < 8000 ) srate = 8000 ;
+   if( srate < 8000 ) srate = DEFAULT_SRATE ;
    if( scl   < 0.0f || scl > 1.0f ) scl = 1.0f ;
 
    /* open output file */
@@ -389,7 +421,7 @@ MRI_IMAGE * mri_sound_1D_to_FM( MRI_IMAGE *imin ,
    if( ftop > 10000.0f ) ftop = 10000.0f ;
    if( fbot <    30.0f ) fbot =    30.0f ;
 
-   if( srate < 8000 ) srate = 8000 ;
+   if( srate < 8000 ) srate = DEFAULT_SRATE ;
    if( nsper <= 0   ) nsper = 1 ;
 
    /* will scale so abot..atop = log(fbot)..log(ftop) */
@@ -546,7 +578,11 @@ static INLINE float ADSR_env(float t){
   else if( t <= envS ) return (0.9f) ;
                        return (0.9f-0.83f*(t-envS)/(1.0f-envS)) ;
 }
-  
+
+static int use_ADSR = 0 ;
+
+void sound_set_note_ADSR(int qq){ use_ADSR = qq ; }
+
 /*---------------------------------------------------------------------------*/
 /* Note that if frq >= 0.5*srate, bad things will happen due to Mr Nyquist!! */
 /*---------------------------------------------------------------------------*/
@@ -557,7 +593,7 @@ void sound_make_note( float frq, int waveform, int srate, int nsam, float *sam )
 
    if( frq <= 0.0f || nsam < 9 || sam == NULL ) return ;
 
-   if( srate < 8000 ) srate = 8000 ;
+   if( srate < 8000 ) srate = DEFAULT_SRATE ;
 
    dt = frq / srate ; tt = 0.0f ;
 
@@ -586,7 +622,7 @@ void sound_make_note( float frq, int waveform, int srate, int nsam, float *sam )
 
    /* apply envelope (if note has enough samples) */
 
-   if( nsam > 127 ){
+   if( nsam > 127 && use_ADSR ){
      dt = 1.0f/nsam ; tt= 0.0f ;
      for( ii=0 ; ii < nsam ; ii++ ){ sam[ii] *= ADSR_env(tt); tt += dt; }
    }
@@ -596,11 +632,12 @@ void sound_make_note( float frq, int waveform, int srate, int nsam, float *sam )
 
 /*---------------------------------------------------------------------------*/
 
-MRI_IMAGE * mri_sound_1D_to_notes( MRI_IMAGE *imin, int srate, int nsper )
+MRI_IMAGE * mri_sound_1D_to_notes( MRI_IMAGE *imin,
+                                   int srate, int nsper, int ny, int ignore )
 {
-   float *aa,*bb ;
-   float abot,atop , fac ;
-   int nout , ii,jj , nn ;
+   float *aa,*bb,*qa ;
+   float abot,atop , fac , *valn ;
+   int nout , ii,jj , nn , qq ;
    MRI_IMAGE *imout , *qim ;
 
    /*--- deal with inputs ---*/
@@ -613,6 +650,8 @@ MRI_IMAGE * mri_sound_1D_to_notes( MRI_IMAGE *imin, int srate, int nsper )
      return NULL ;
    }
 
+   if( ignore < 0 || nn-ignore < 2 ) ignore = 0 ;
+
    if( imin->kind != MRI_float ){
      qim = mri_to_float(imin) ;
    } else {
@@ -620,40 +659,52 @@ MRI_IMAGE * mri_sound_1D_to_notes( MRI_IMAGE *imin, int srate, int nsper )
    }
    aa = MRI_FLOAT_PTR(qim) ;
 
-   if( srate < 8000 ) srate = 8000 ;
-   if( nsper <= 9   ) nsper = srate/2 ;
+        if( ny <= 0       ) ny = 1 ;
+   else if( ny >  qim->ny ) ny = qim->ny ;
 
-   abot = atop = aa[0] ;
-   for( ii=1 ; ii < nn ; ii++ ){
-           if( aa[ii] < abot ) abot = aa[ii] ;
-      else if( aa[ii] > atop ) atop = aa[ii] ;
-   }
+   if( srate < 8000 ) srate = DEFAULT_SRATE ;
+   if( nsper <= 9   ) nsper = srate/2 ;
 
    /*-- create output ---*/
 
-   nout  = nsper * nn ;
+   nout  = nsper * (nn-ignore) ;
    imout = mri_new( nout , 1 , MRI_float ) ;
-   bb    = MRI_FLOAT_PTR(imout) ;
+   bb    = MRI_FLOAT_PTR(imout) ;  /* is full of zeros */
 
    sound_setup_penta(1) ; /* skip octave 0 -- it's too low */
 
-   if( abot >= atop ){    /* no data range??? */
+   valn = (float *)malloc(sizeof(float)*nsper) ; /* notes */
 
-     INFO_message("mri_sound_1D_to_notes: only 1 data value == something random") ;
+   for( qq=0 ; qq < ny ; qq++ ){  /* process first ny columns */
+     qa = aa + (nn*qq) ;          /* add their sounds all up */
+     abot = atop = qa[ignore] ;
+     for( ii=ignore+1 ; ii < nn ; ii++ ){
+             if( qa[ii] < abot ) abot = qa[ii] ;
+        else if( qa[ii] > atop ) atop = qa[ii] ;
+     }
+
+     if( abot < atop ){ /* some range to the numbers */
+       fac = (npenta-1.0f) / (atop-abot) ;
+       for( ii=ignore ; ii < nn ; ii++ ){
+         jj = rintf( fac*(qa[ii]-abot) ) ;
+         sound_make_note( penta[jj], note_waveform, srate, nsper, valn ) ;
+         for( jj=0 ; jj < nsper ; jj++ ) bb[((ii-ignore)*nsper)+jj] += valn[jj];
+       }
+     }
+   }
+
+   abot = mri_maxabs(imout) ;
+   if( abot == 0.0f ){  /* nothing computed? do something random! */
      for( ii=0 ; ii < nn ; ii++ ){
        jj = lrand48() % npenta ;
        sound_make_note( penta[jj], note_waveform, srate, nsper, bb+(ii*nsper) ) ;
      }
-
-   } else {
-
-     fac = (npenta-1.0f) / (atop-abot) ;
-     for( ii=0 ; ii < nn ; ii++ ){
-       jj = rintf( fac*(aa[ii]-abot) ) ;
-       sound_make_note( penta[jj], note_waveform, srate, nsper, bb+(ii*nsper) ) ;
-     }
    }
 
+   THD_normmax( nout , bb ) ;  /* max abs value = 1 */
+
+   free(valn) ;
    if( qim != imin ) mri_free(qim) ;
+
    return imout ;
 }
