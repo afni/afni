@@ -3,7 +3,7 @@
 .. _install_steps_linux_ubuntu:
 
 
-**Ubuntu Linux (15.10 and earlier)**: *The essential system setup*
+**Linux, Ubuntu 15.10 and earlier**: *The essential system setup*
 ==================================================================
 
 .. contents:: :local:
@@ -13,8 +13,8 @@ What to do?
 
 Here we describe a complete AFNI installation and system setup for
 reasonably modern Ubuntu Linux versions, up through version 15.10
-(Wily Werewolf).  For later systems, please see the :ref:`instructions
-here <install_steps_linux_ubuntu16>`.
+(Wily Werewolf). 
+
 
 .. include:: substep_intro.rst
 
@@ -34,6 +34,9 @@ Install prerequisite packages
     sudo apt-get install -y tcsh xfonts-base python-qt4 gedit evince       \
                             libmotif4 libmotif-dev motif-clients           \
                             gsl-bin netpbm xvfb gnome-tweak-tool libjpeg62
+
+  ::
+
     sudo apt-get update
     sudo ln -s /usr/lib/x86_64-linux-gnu/libgsl.so /usr/lib/libgsl.so.0
     sudo dpkg -i http://mirrors.kernel.org/ubuntu/pool/main/libx/libxp/libxp6_1.0.2-2_amd64.deb
@@ -85,7 +88,7 @@ shell, and path updates.
 Install R
 ---------
 
-a. Copy+paste the following:
+a. Copy+paste:
 
    * *for* ``tcsh``::
    
@@ -109,7 +112,7 @@ a. Copy+paste the following:
    run).  The file obtained using ``curl`` contains instructions to
    add a more uptodate set of R libraries to the source list.
 
-#. Copy+paste the following::
+#. Copy+paste::
      
      rPkgsInstall -pkgs ALL
 

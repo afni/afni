@@ -25,18 +25,21 @@ float qmean_float( int n , float *ar )
 float qnzmean_float( int n , float *ar )
 {
    int ii ; float sum=0.0f, v ;
+   int ngood = 0;
 
    if( n <= 0 || ar == NULL ) return sum ;
 
    for( ii=0 ; ii < n ; ii++ ){
 	    v = ar[ii];
-	    if(v!=0.0) sum += ar[ii] ;
-	    else n--;
+	    if(v!=0.0) {
+			sum += ar[ii] ;
+			ngood++;
+	    }
    }
    /* might have no non-zero voxels, so just return 0*/
-   if(n<=0) sum = 0.0;
+   if(ngood<=0) sum = 0.0;
    /* otherwise return average */
-   else sum /= n ; 
+   else sum /= ngood ; 
    return sum ;
 }
 
