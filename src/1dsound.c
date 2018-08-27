@@ -2,8 +2,6 @@
 
 #include "cs_playsound.c"
 
-static char *pprog = NULL ;
-
 void usage_1dsound(int detail)
 {
    printf(
@@ -41,15 +39,31 @@ void usage_1dsound(int detail)
      "\n"
      " -notes       = Output sound is a sequence of notes, low to high pitch\n"
      "                based on min to max in the input 1D file.\n"
+     "                + This is the default method of operation.\n"
      "\n"
      " -notewave W  = Selects the shape of the notes used. 'W' is one of these:\n"
      "                  sine     = pure sine wave\n"
      "                  h2sine   = sine wave with some second harmonic\n"
      "                  square   = square wave\n"
-     "                  triangle = triangle wave\n"
+     "                  triangle = triangle wave [the default waveform]\n"
      "\n"
-     " ** At this time, the default production method is '-notes',\n"
-     " **               using the triangle waveform (I like this best).\n"
+     " -noADSR      = turn off the note 'envelope' to make sound more continuous.\n"
+     "                + The envelope is used to ramp each note's sound up and\n"
+     "                  then back down over the '-tper' interval, making the\n"
+     "                  notes sound somewhat discrete.\n"
+     "                + ADSR stands for Attack, Decay, Sustain, Release, which\n"
+     "                  are the components of the envelope shape that modulates\n"
+     "                  a note's pure waveform.\n"
+     "                + At this time, you cannot set the ADSR parameters;\n"
+     "                  you can only turn the ADSR envelope off.\n"
+     "\n"
+     " ===== Notes about notes =====\n"
+     "\n"
+     " ** At this time, the default production method is '-notes',      **\n"
+     " **               using the triangle waveform (I like this best). **\n"
+     "\n"
+     " ** With '-notes', up to 4 columns of the input file will be used **\n"
+     " ** to produce a polyphonic sound (in a single channel).          **\n"
      "\n"
      " ===== hear the sound right away! =====\n"
      "\n"
@@ -79,11 +93,6 @@ void usage_1dsound(int detail)
      "-----\n"
      "NOTES\n"
      "-----\n"
-     "* At this time, program is very limited in what it does:\n"
-     "  + frequency modulated between 110 and 1760 Hz\n"
-     "    [min to max in tsfile]\n"
-     "  + Is this useful? Probably not.\n"
-     "\n"
      "* File can be played with the 'sox' audio library command\n"
      "    play A1.au gain -5\n"
      "  + Here 'gain -5' turns the volume down :)\n"
@@ -134,13 +143,7 @@ int main( int argc , char *argv[] )
 
    /*---------- find a sound playing program ----------*/
 
-     pprog = THD_find_executable("play") ;
-   if( pprog == NULL )
-     pprog = THD_find_executable("afplay") ;
-   if( pprog == NULL )
-     pprog = THD_find_executable("mplayer") ;
-   if( pprog == NULL )
-     pprog = THD_find_executable("aplay") ;
+   pprog = get_sound_player() ;
 
    /*----- immediate help and quit? -----*/
 
@@ -181,7 +184,7 @@ int main( int argc , char *argv[] )
 
      if( strcasecmp(argv[iarg],"-play") == 0 ){
        if( pprog == NULL ){
-         WARNING_message("no program available for playing sound :(") ;
+         WARNING_message("No program available for playing sound :(") ;
        } else {
          do_play = 1 ;
        }
@@ -196,6 +199,11 @@ int main( int argc , char *argv[] )
 
      if( strcasecmp(argv[iarg],"-NOTES") == 0 ){
        opcode = CODE_NOTES ; iarg++ ; continue ;
+     }
+
+     if( strcasecmp(argv[iarg],"-noADSR") == 0 ||
+         strcasecmp(argv[iarg],"-noENV" ) == 0   ){
+       sound_set_note_ADSR(0) ; iarg++ ; continue ;
      }
 
      if( strcasecmp(argv[iarg],"-notewave") == 0 ){
@@ -270,7 +278,7 @@ int main( int argc , char *argv[] )
 
      default:
      case CODE_NOTES:
-       phim = mri_sound_1D_to_notes( inim , SRATE , nsper ) ;
+       phim = mri_sound_1D_to_notes( inim , SRATE , nsper , 4 ) ;
        if( phim == NULL )
          ERROR_exit("mri_sound_1D_to_notes fails") ;
      break ;
