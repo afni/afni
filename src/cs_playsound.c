@@ -579,7 +579,7 @@ static INLINE float ADSR_env(float t){
                        return (0.9f-0.83f*(t-envS)/(1.0f-envS)) ;
 }
 
-static int use_ADSR = 0 ;
+static int use_ADSR = 1 ;
 
 void sound_set_note_ADSR(int qq){ use_ADSR = qq ; }
 

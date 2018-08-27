@@ -1693,6 +1693,7 @@ typedef struct {
 
    int local_display ;                           /* 20 Aug 2018 */
    int have_sox ;                                /* 20 Aug 2018 */
+   char *sound_player ;                          /* 27 Aug 2018 */
 
 } AFNI_library_type ;
 

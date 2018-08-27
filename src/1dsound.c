@@ -2,6 +2,8 @@
 
 #include "cs_playsound.c"
 
+#define SRATE 16000  /* sampling rate of output audio file */
+
 void usage_1dsound(int detail)
 {
    printf(
@@ -19,13 +21,14 @@ void usage_1dsound(int detail)
      " ===== output filename =====\n"
      "\n"
      " -prefix ppp  = Output filename will be ppp.au\n"
-     "                [old Sun audio format]\n"
+     "                [Sun audio format https://en.wikipedia.org/wiki/Au_file_format]\n"
      "                If you don't use '-prefix', the output is file 'sound.au'.\n"
      "\n"
      " ===== encoding details =====\n"
      "\n"
      " -8PCM        = Output in 8-bit linear PCM encoding\n"
      "                [default is 8-bit mu-law encoding]\n"
+     "                + There is no good reason to use this option.\n"
      "\n"
      " -tper X      = X seconds of sound per time point in 'tsfile'.\n"
      " -TR X          Allowed range for 'X' is 0.01 to 1.0 (inclusive).\n"
@@ -36,16 +39,20 @@ void usage_1dsound(int detail)
      "\n"
      " -FM          = Output sound is frequency modulated between 110 and 1760 Hz\n"
      "                from min to max in the input 1D file.\n"
+     "                + Usually 'sounds terrible'.\n"
      "\n"
      " -notes       = Output sound is a sequence of notes, low to high pitch\n"
      "                based on min to max in the input 1D file.\n"
      "                + This is the default method of operation.\n"
+     "                + A pentatonic scale is used, which usually 'sounds nice':\n"
+     "                  https://en.wikipedia.org/wiki/Pentatonic_scale\n"
      "\n"
      " -notewave W  = Selects the shape of the notes used. 'W' is one of these:\n"
-     "                  sine     = pure sine wave\n"
+     "                  sine     = pure sine wave (sounds simplistic)\n"
      "                  h2sine   = sine wave with some second harmonic\n"
-     "                  square   = square wave\n"
+     "                  square   = square wave (sounds harsh)\n"
      "                  triangle = triangle wave [the default waveform]\n"
+#if 0
      "\n"
      " -noADSR      = turn off the note 'envelope' to make sound more continuous.\n"
      "                + The envelope is used to ramp each note's sound up and\n"
@@ -56,6 +63,7 @@ void usage_1dsound(int detail)
      "                  a note's pure waveform.\n"
      "                + At this time, you cannot set the ADSR parameters;\n"
      "                  you can only turn the ADSR envelope off.\n"
+#endif
      "\n"
      " ===== Notes about notes =====\n"
      "\n"
@@ -69,6 +77,8 @@ void usage_1dsound(int detail)
      "\n"
      " -play        = Plays the sound file after it is written.\n"
      "                On this computer: %s %s\n"
+     "            ===>> Playing sound on a remote computer is\n"
+     "                  annoying, pointless, and likely to get you punched.\n"
     , (pprog != NULL)
         ? "uses program"
         : "can't find any sound playing program"
@@ -125,8 +135,6 @@ void usage_1dsound(int detail)
 /*---------------------------------------------------------------------------*/
 /*---------------------------------------------------------------------------*/
 
-#define SRATE 16000  /* sampling rate of output audio file */
-
 #define CODE_FM    1
 #define CODE_NOTES 2
 
@@ -152,6 +160,8 @@ int main( int argc , char *argv[] )
    /*---------- startup bureaucracy ----------*/
 
    mainENTRY("1dsound main"); machdep();
+   sound_set_note_ADSR(1) ;
+   sound_set_note_waveform(SOUND_WAVEFORM_TRIANGLE) ;
 
    /*------------ scan arguments that X11 didn't eat ------------*/
 
@@ -221,7 +231,7 @@ int main( int argc , char *argv[] )
              sound_set_note_waveform(SOUND_WAVEFORM_SQUARE) ;
        else if( strncasecmp(argv[iarg],"triangle",3) == 0 )
              sound_set_note_waveform(SOUND_WAVEFORM_TRIANGLE) ;
-       else 
+       else
              WARNING_message("unknown note waveform '%s'",argv[iarg]) ;
 
        iarg++ ; continue ;
@@ -278,7 +288,7 @@ int main( int argc , char *argv[] )
 
      default:
      case CODE_NOTES:
-       phim = mri_sound_1D_to_notes( inim , SRATE , nsper , 4 ) ;
+       phim = mri_sound_1D_to_notes( inim , SRATE , nsper , 4,0 ) ;
        if( phim == NULL )
          ERROR_exit("mri_sound_1D_to_notes fails") ;
      break ;
