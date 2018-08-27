@@ -7,6 +7,9 @@
 
 .. contents:: :local:
 
+What to do?
+-----------
+
 Here we describe installation and system setup for modern Ubuntu Linux
 versions, specifically 18.04 (Bionic Beaver).  And a note of thanks to
 Kiyotaka and other AFNI users who contributed advice to these

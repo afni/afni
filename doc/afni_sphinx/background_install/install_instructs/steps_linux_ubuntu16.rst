@@ -8,6 +8,9 @@
 
 .. contents:: :local:
 
+What to do?
+-----------
+
 Here we describe installation and system setup for Ubuntu Linux
 versions 16.04 (Xenial Xerus) through 17.10 (Artful Aardvark).
 
