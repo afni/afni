@@ -2400,16 +2400,31 @@ extern int THD_nwarp_inverse_xyz( THD_3dim_dataset *dset_nwarp ,
 /* Aug 2018 - sound stuff - cs_playsound.c */
 
 extern void play_sound_1D( int nn , float *xx ) ;
+extern void mri_play_sound( MRI_IMAGE *im , int ignore ) ;
 extern void set_sound_note_type( char *typ ) ;
 extern void set_sound_gain_value( int ggg ) ;
 extern void set_sound_twotone( int ggg ) ;      /* do not use this */
+extern char * get_sound_player(void) ;
 
 extern void sound_write_au_header( FILE *fp, int nn, int srate, int code ) ;
 extern void sound_write_au_ulaw( char *fname, int nn, float *aa, int srate, float scl ) ;
 extern void sound_write_au_8PCM( char *fname, int nn, float *aa, int srate, float scl ) ;
 
 extern MRI_IMAGE * mri_sound_1D_to_FM( MRI_IMAGE *imin,
-                                float fbot, float ftop, int srate, int nsper ) ;
+                                       float fbot, float ftop, int srate, int nsper ) ;
+
+extern void kill_sound_players(void) ;
+
+#define SOUND_WAVEFORM_SINE     1
+#define SOUND_WAVEFORM_SQUARE   2
+#define SOUND_WAVEFORM_TRIANGLE 3
+#define SOUND_WAVEFORM_H2SINE   4
+
+extern void sound_set_note_waveform( int nn ) ;
+extern void sound_make_note( float frq, int waveform, int srate, int nsam, float *sam ) ;
+extern MRI_IMAGE * mri_sound_1D_to_notes( MRI_IMAGE *imin,
+                                          int srate, int nsper, int ny, int ignore ) ;
+
 /*----------------------------------------------------------------------------*/
 
 #define CPU_IS_64_BIT() ((sizeof(void *) == 8) ? 1 : 0 )

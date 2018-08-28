@@ -2,9 +2,12 @@
 
 #@global_parse `basename $0` "$*" ; if ($status) exit 0
 
-set version   = "1.1";   set rev_dat   = "July 10, 2018"
+#set version   = "1.1";   set rev_dat   = "July 10, 2018"
 #     + birth
 # 
+set version = "1.2"; set rev_dat = "Aug 28, 2018"
+#   + use update xyz -> ijk prog!
+#
 # =====================================================================
 
 # -------------------------------------------------------------
@@ -76,7 +79,7 @@ end
 # =======================================================================
 
 if ( "$coor_type" == "SET_DICOM_XYZ" ) then
-    set coords = `@djunct_vol_xyz_to_ijk $dset $coorxyz`
+    set coords = `@xyz_to_ijk -inset $dset -xyz $coorxyz`
     echo "++ Translated xyz coords (${coorxyz}) to ijk: ${coords}"
 endif
 

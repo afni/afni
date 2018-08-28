@@ -251,7 +251,8 @@ ENTRY("new_MCW_grapher") ;
                        "r/R    = Video ricochet up/down in time\n"
                        "p      = play sound from central graph\n"
                        "P      = play sound from average graph\n"
-                       "         [sound requires 'sox' package]\n"
+                       "         and central graph (polyphony)\n"
+                       "K      = kill any running sound player\n"
                        "F5     = Meltdown!\n"
                        "\n"
                        "See the 'Opt' menu for other keypress actions\n"
@@ -3729,6 +3730,7 @@ STATUS("allocating new Pixmap") ;
 void GRA_handle_keypress( MCW_grapher *grapher , char *buf , XEvent *ev )
 {
    int ii=0 ;
+   static int first_sound=1 ;
 
 ENTRY("GRA_handle_keypress") ;
 
@@ -3895,18 +3897,57 @@ STATUS(str); }
                            GRA_saver_CB , (XtPointer) grapher ) ;
       break ;
 
+#define POPUP_SOUND_ERROR_MESSAGE                                               \
+ do{ if( first_sound ){                                                         \
+       char msg[2048] ;                                                         \
+       strcpy(msg," \n" "Cannot play sound:\n" ) ;                              \
+       if( !GLOBAL_library.local_display )                                      \
+         strcat( msg+strlen(msg) , " You are running AFNI remotely :(\n" ) ;    \
+       if( GLOBAL_library.sound_player==NULL )                                  \
+         strcat( msg+strlen(msg) , " No sound playing program is found :(\n") ; \
+       strcat( msg+strlen(msg) , " \n") ;                                       \
+       (void) MCW_popup_message(                                                \
+                 grapher->fdw_graph , msg , MCW_USER_KILL | MCW_TIMER_KILL ) ;  \
+ } } while(0)
+
+#define PRINT_SOUND_INFO_MESSAGE                                                             \
+ do{ if( first_sound ){                                                                      \
+         INFO_message("Use K keypress to kill playing sounds:") ;                            \
+       ININFO_message(" will leave sound file named AFNI_SOUND_TEMP.something.au on disk;"); \
+       ININFO_message(" you will have to delete such files manually :(") ;                   \
+ } } while(0)
+
       case 'p':                             /* play sound [20 Aug 2018] */
-        if( GLOBAL_library.local_display && grapher->cen_tsim != NULL ){
+        if( !GLOBAL_library.local_display || GLOBAL_library.sound_player==NULL ){
+          POPUP_SOUND_ERROR_MESSAGE ;
+        } else if( grapher->cen_tsim != NULL ){
           int ib = grapher->init_ignore ;
-          play_sound_1D( grapher->cen_tsim->nx-ib , MRI_FLOAT_PTR(grapher->cen_tsim)+ib ) ;
+          PRINT_SOUND_INFO_MESSAGE ;
+          mri_play_sound( grapher->cen_tsim , ib ) ;
         }
+        first_sound = 0 ;
       break ;
 
       case 'P':                             /* play sound [20 Aug 2018] */
-        if( GLOBAL_library.local_display && grapher->ave_tsim != NULL ){
+        if( !GLOBAL_library.local_display || GLOBAL_library.sound_player==NULL ){
+          POPUP_SOUND_ERROR_MESSAGE ;
+        } else if( grapher->ave_tsim != NULL && grapher->cen_tsim != NULL ){
           int ib = grapher->init_ignore ;
-          play_sound_1D( grapher->ave_tsim->nx-ib , MRI_FLOAT_PTR(grapher->ave_tsim)+ib ) ;
+          MRI_IMARR *imar ; MRI_IMAGE *qim ;
+          INIT_IMARR(imar) ;
+          ADDTO_IMARR(imar,grapher->ave_tsim) ; /* glue the 2 */
+          ADDTO_IMARR(imar,grapher->cen_tsim) ; /* timeseries */
+          qim = mri_catvol_1D( imar , 2 ) ;     /* together   */
+          PRINT_SOUND_INFO_MESSAGE ;
+          mri_play_sound( qim , ib ) ;
+          mri_free(qim) ; FREE_IMARR(imar) ;
         }
+        first_sound = 0 ;
+      break ;
+
+      case 'K':                     /* kill sound players [27 Aug 2018] */
+        if( !first_sound )
+          kill_sound_players() ;
       break ;
 
       case 'L':
