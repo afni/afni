@@ -194,7 +194,9 @@ int main( int argc , char *argv[] )
 
      if( strcasecmp(argv[iarg],"-play") == 0 ){
        if( pprog == NULL ){
-         WARNING_message("No program available for playing sound :(") ;
+         WARNING_message("No external program available for playing sound :(") ;
+       } else if( getenv("SSH_CLIENT") != NULL ){
+         WARNING_message("You are logged in remotely: -play is not allowed!") ;
        } else {
          do_play = 1 ;
        }
@@ -307,7 +309,8 @@ int main( int argc , char *argv[] )
    } else {
      sound_write_au_ulaw( fname, phim->nx, MRI_FLOAT_PTR(phim), SRATE, 0.2f );
    }
-   INFO_message  ("output sound file %s",fname) ;
+   INFO_message  ("output sound file %s = %s bytes",
+                   fname , commaized_integer_string(THD_filesize(fname)) ) ;
    ININFO_message(" %.1f s of audio" , phim->nx/(float)SRATE ) ;
 
    mri_free(phim) ;
