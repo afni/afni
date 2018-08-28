@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 28, Aug , 2018 , PT , "@xyz_to_ijk" , MINOR , TYPE_NEW_PROG,
+   "Helper program to be able to convert xyz coors to ijk indices.",
+   "Supplementary program.\n"
+},
+
 { 15, Mar , 2018 , PT , "fat_proc_convert_dwis" , MINOR , TYPE_NEW_OPT,
    "Can provide NIFTI+bvec+bval files as inp, not just a directory of dicoms.",
    "All niceifying steps can thus be applied to already-converted vol.\n"
