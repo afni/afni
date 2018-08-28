@@ -2154,29 +2154,6 @@ of the GUI 'done' button. For that button to work, conditions
 a) and b) above must be true. On a Mac, you can install 'sox'
 using the 'brew' package (e.g.).
 
-------------------------------
-Variable: AFNI_SOUND_NOTE_TYPE
-------------------------------
-This variable can be set to control the type of notes played by
-sox when using the 'p' or 'P' key in an AFNI graph viewer window.
-The values allowed here (from the 'sox' program) are
-  sine square triangle sawtooth trapezium pluck
-You can abbreviate the name to the first 3 characters, if you
-really want to save typing. The name must be in lower case letters;
-upper case letters (e.g., SINE) won't work.
-The default is 'pluck', which sounds sort of like a cross between
-a piano note and a guitar note. The other note types are more
-continuous sounding. You might have to adjust the sound gain to
-get the volume right for you when changing the note type.
-
--------------------------
-Variable: AFNI_SOUND_GAIN
--------------------------
-This numeric variable controls the sound volume. The default value
-is '-27'. Smaller (more negative) is quieter. The largest value
-allowed here is -1, which will be loud and your neighbors
-will not be happy.
-
 -----------------------------
 Variable: AFNI_STARTUP_SCRIPT
 -----------------------------

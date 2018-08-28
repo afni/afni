@@ -44,6 +44,21 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 27 , AUG , 2018 , RWC , "1dsound and AFNI GUI" , MINOR , TYPE_MODIFY ,
+   "modify sound output" ,
+   "1dsound now can make sound from up to 4 columns from input file.\n"
+   "AFNI graph viewer GUI keypresses:\n"
+   " p = play sound from central sub-graph\n"
+   " P = play sound from central and average sub-graph (2 toned)\n"
+   " K = kill running sound player\n"
+   "Note that killing AFNI while sound is playing, or using K to kill sound,\n"
+   "will leave a file whose name is like AFNI_SOUND_TEMP.something.au on the\n"
+   "disk, and the user will have to clean it up." } ,
+
+ { 24 , AUG , 2018 , RWC , "1dsound" , MICRO , TYPE_NEW_OPT ,
+   "-notes option makes notes" ,
+   "This is the default. Pentatonic notes with triangle waveforms." } ,
+
  { 23 , AUG , 2018 , RWC , "1dsound" , MINOR , TYPE_NEW_PROG ,
    "program to generate .au sound file from a 1D file" ,
    "Very primitive at this moment." } ,
