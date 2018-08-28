@@ -321,6 +321,7 @@ int main( int argc , char *argv[] )
      char cmd[2048] ;
      sprintf(cmd,"%s %s >& /dev/null &",pprog,fname) ;
      ININFO_message(" running command %s",cmd) ;
+     ININFO_message(" to stop it early: killall %s",pprog_name) ;
      system(cmd) ;
    }
 
