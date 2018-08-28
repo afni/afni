@@ -174,7 +174,7 @@ void mri_play_sound( MRI_IMAGE *imin , int ignore )
    sound_write_au_ulaw( fname, qim->nx, MRI_FLOAT_PTR(qim), DEFAULT_SRATE, 0.1f ) ;
    extras[0] = '\0' ;
    if( strcmp(pprog_name,"play") == 0 )
-     strcat(extras," reverb 77") ;
+     strcat(extras," reverb 33") ;
    sprintf(cmd,"%s %s %s >& /dev/null",pprog,fname,extras) ;
    system(cmd) ;
    unlink(fname) ;
