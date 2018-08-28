@@ -24,6 +24,7 @@ set lay = ()
 set hostopt = '-host 127.0.0.1'
 set unlayed = 1
 set do_deoblique = 1
+set master_dset = ""
 
 PARSE:
    set Narg = $#
@@ -115,6 +116,18 @@ PARSE:
             set donext = 0   
          endif   
       endif
+
+      if ($donext && "$argv[$cnt]" == "-master") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Must supply a master dataset name after -master"
+            goto END
+         else
+            @ cnt ++
+            set master_dset = "$argv[$cnt]"
+            set donext = 0   
+         endif   
+      endif
       
       if ($donext && "$argv[$cnt]" == "-opa") then
          set pLoc = $cnt      
@@ -188,19 +201,31 @@ if ($#argrem == 0) goto DANCE
 #to avoid negative values
 
 #Set resolutions
+# assuming an EPI dataset is first dataset and anatomicals for all others
 set epi = $argrem[1]
 set analist = ($argrem[2-])
 
 RESAMPLE_ANATS:
 set anabox = $analist[1]
 set minres = 1000
-foreach ana ($analist)
-   set mm = `@GetAfniRes -min $ana`
-   if (`ccalc -i -expr "step($minres-$mm)"`) then
-      set minres = $mm
-      set anabox = $ana
-   endif  
-end
+# if master is set, use that instead of the found anatomical dataset
+if ($master_dset != "") then
+       set anabox = $master_dset
+	   set mm = `@GetAfniRes -min $analist[1]`
+	   if (`ccalc -i -expr "step($minres-$mm)"`) then
+	      set minres = $mm
+	   endif  
+else
+    # find lowest resolution dataest to use as new master
+	foreach ana ($epi $analist)
+	   set mm = `@GetAfniRes -min $ana`
+	   if (`ccalc -i -expr "step($minres-$mm)"`) then
+	      set minres = $mm
+	      set anabox = $ana
+	   endif  
+	end
+endif
+
 #resample all anatomies
 set analistn = ()
 foreach ana ($analist)

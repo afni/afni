@@ -529,7 +529,7 @@
 3 :: 3dZcat            :: Assemble a 3D+time dataset from multiple input sub-bricks
 3 :: 3dAutobox         :: Automatically crop a dataset to remove empty space
 3 :: 3dZcutup          :: Cut slices out of a dataset to make a 'thinner' dataset
-1 :: 3dXYZcat          :: Glue multiple sub-bricks together along the {x|y|z}-axis
+3 :: 3dXYZcat          :: Glue multiple sub-bricks together along the {x|y|z}-axis
 1 :: 3dZregrid         :: Interpolate a dataset to a different slice thickness
 
 
@@ -569,7 +569,7 @@
 4 :: afni_history        :: Display a log of updates to AFNI code
 5 :: apsearch            :: Simple+approx string searching; used in atlases and helps
 1 :: byteorder           :: Report the byteorder of the current CPU
-
+2 :: @xyz_to_ijk         :: calculate (i, j, k) indices in a volume from (x, y, z) coordinates
 
 ++ 1 :: Miscellaneous visualization tools
 3 :: aiv                  :: AFNI Image Viewer program

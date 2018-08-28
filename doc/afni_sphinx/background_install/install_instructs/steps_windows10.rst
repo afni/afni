@@ -1,7 +1,7 @@
 .. _install_steps_windows10:
 
 
-**Windows 10 (Windows Subsystem for Linux (WSL))**: *The essential system setup*
+**Windows 10, "Windows Subsystem for Linux (WSL)"**: *The essential system setup*
 ===========================================================================
 
 .. contents:: :local:
