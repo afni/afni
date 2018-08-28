@@ -2820,7 +2820,7 @@ def cmd_combine_tedana(proc, block, method='tedana'):
       olist, rv = block.opts.get_string_list(oname)
       if rv: return
       if len(olist) > 0:
-         exopts.append("%s-tedana_opts '%s' \\\n" % (oindent,' '.join(olist)))
+         exopts.append("%s-tedana_opts ' %s' \\\n" % (oindent,' '.join(olist)))
       else:
          print("** found -combine_opts_tedana without any options")
          return
