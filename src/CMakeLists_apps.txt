@@ -1,0 +1,221 @@
+##
+## This file is to be included in the toplevel CMakeLists.txt
+##
+
+# 3rd-party stuff
+# TODO there seems to be stuff missing
+SET(EXTRAS whirlgif myget Xphace rmz aiv mycat quotize)
+
+# Programs using only AFNI_LIBS
+SET(PROGRAMS
+  to3d from3d abut 3dclust 3dETC nsize 3dinfo 3dproject 3dmerge count sfim tfim
+  ftosh 3dttest 3ddup imrotate imreg imstat 3dnvals imand sqwave immask
+  imdump imaver 3dhistog cdf 2swap 4swap mritopgm 3dANOVA 3dANOVA2
+  3dANOVA3 plugout_tta waver 3dnewid 3dcalc ccalc imcalc 1dmatcalc 3drefit
+  3dbucket AlphaSim 3dFWHM plugout_tt 3dnoise plugout_ijk 3dMannWhitney
+  3dWilcoxon 3dKruskalWallis 3dFriedman 3dmaskave 3dbuc2fim byteorder
+  imstack 3dTcat 3drotate 3dvolreg 3dpc 3dfractionize 1dplot imupsam
+  3dIntracranial 24swap 3dTsmooth float_scan 1dtranspose 3dFourier 3dNotes
+  3dROIstats 1deval 3dTstat 3dmaskdump 3dTshift 3dDetrend 1dfft 1dcat
+  3drename 1dnorm afni_vcheck 3ddot 3dWavelets imcutup imcat 3dWinsor
+  3dZeropad 3dTagalign 3dMean 3dAttribute cat_matvec 3dOverlap 3dClipLevel
+  3dZregrid 3dEntropy ent16 3dRowFillin 1dgrayplot 3dToutcount 1dsum
+  3dExtrema strblast 3dZcutup 3dZcat 3dTqual 3dGetrow 3dTcorrelate
+  3dAnatNudge 3dcopy Vecwarp 3dMINCtoAFNI 3dCM fdrval 3dAFNItoANALYZE
+  siemens_vision stimband 1dNLfit ge_header mayo_analyze 3dAFNItoNIFTI
+  3dAutoTcorrelate 3dFDR rtfeedme 3dAutomask 3dAFNItoMINC 3dBrickStat
+  3dThreetoRGB Ifile
+  3dAutobox 3dLRflip 3dANALYZEtoAFNI dicom_hdr 3dDespike dicom_to_raw
+  rotcom 1ddot 1dsvd 3dAnhist 3dAFNIto3D 3dWarp nicat fftest 3dDTeig
+  3dWarpDrive plugout_drive 3dLSS 3dMedianFilter 3dAFNItoNIML 3dAFNItoRaw
+  im2niml DTIStudioFibertoSegments 3dLocalstat 3dTwotoComplex 3dInvFMRI
+  3dmatcalc 3dAcost 3dLocalBistat 3dFWHMx 3dBlurToFWHM 3dDFT 3dSynthesize
+  1dMarry 3dEmpty 1dFlagMotion 3dTsort 1dTsort 3dTfitter 1dUpsample
+  3dLocalSVD niml_feedme 3dErrtsCormat 3dUndump 3dREMLfit 3dTnorm
+  3dUpsample 3dTcorrMap 3dmatmult 3dmaskSVD 1dBandpass 3dBlurInMask 3dRank
+  3dDeconvolve 1dGentimes 2dImReg 3dStatClust 3dDWItoDT 3dRegAna
+  3dUniformize 3ddelay 3dfim+ 3dNeocon 3dConvolve RSFgen
+  3dFFT 1dgenARMA11 3dPeriodogram 1dAstrip 3dLocalPV 3dBandpass
+  3dSetupGroupInCorr 3dGroupInCorr 3dDimRed 3dSatCheck 3dTcorr1D 3dSimARMA11
+  3dClustSim 3dRetinoPhase 3dMaskToASCII 3dttest++ 3dDTtoDWI niccc
+  3dRankizer 3dXYZcat 3dDeghost 3dPolyfit 3dNwarpApply 1dCorrelate 3dCountSpikes
+  3dNwarpCalc dicom_hinfo apsearch 3dNormalizer 3dNormalityTest 3dmask_tool
+  FIRdesign 2perm 3dClustCount 3dTransformGroupInCorr 3dExtractGroupInCorr
+  3dUnifize 3dNwarpCat 3dQwarp 3dLocalHistog 3dNwarpAdjust 3dNwarpFuncs
+  3dTproject afni_open 3dConformist 3dNwarpXYZ 3dTRfix 3dToyProg images_equal
+  uniq_images GLTsymtest 3dPval csfft_cache 3dLocalACF
+  3dBrainSync 3dDegreeCentrality 3dLFCD 3dMSE 3dSharpen 3dTsplit4D
+  3dTto1D 3dsvm_linpredict 3dMultiThresh 3dTfilter 3dXClustSim 3dtoXdataset
+  ${EXTRAS})
+
+FILE(GLOB SCRIPTS scripts_install/*)
+
+#
+# The shiny things - just pure scripts to be installed among other scripts
+#
+FILE(GLOB SHINY_SCRIPTS discoraj/*/@* discoraj/*/*.py)
+LIST(APPEND SCRIPTS ${SHINY_SCRIPTS})
+
+##
+## Targets
+##
+FOREACH(program ${PROGRAMS})
+  ADD_EXECUTABLE(${program} ${program}.c)
+  TARGET_LINK_LIBRARIES(${program} ${AFNI_LIBS})
+ENDFOREACH(program)
+
+#
+# More programs with more linking
+#
+FOREACH(program
+  3dAllineate 3dSpatNorm whereami 3dSegment 3dABoverlap 3daxialize adwarp)
+  ADD_EXECUTABLE(${program} ${program}.c)
+  TARGET_LINK_LIBRARIES(${program} ${AFNI_LIBS})
+  LIST(APPEND PROGRAMS ${program})
+ENDFOREACH(program)
+
+
+#
+# Further customized targets
+#
+ADD_EXECUTABLE(1dBport 1dBport.c)
+TARGET_LINK_LIBRARIES(1dBport ${AFNI_LIBS} -ldl)
+LIST(APPEND PROGRAMS 1dBport)
+
+ADD_EXECUTABLE(3dTSgen 3dTSgen.c)
+TARGET_LINK_LIBRARIES(3dTSgen ${AFNI_LIBS} -ldl)
+LIST(APPEND PROGRAMS 3dTSgen)
+
+ADD_EXECUTABLE(3dNLfim 3dNLfim.c)
+TARGET_LINK_LIBRARIES(3dNLfim ${AFNI_LIBS} -ldl)
+LIST(APPEND PROGRAMS 3dNLfim)
+
+ADD_EXECUTABLE(1dSEM 1dSEM.c sqrmat.c matrix.c)
+TARGET_LINK_LIBRARIES(1dSEM ${AFNI_LIBS})
+LIST(APPEND PROGRAMS 1dSEM)
+
+ADD_EXECUTABLE(3danisosmooth 3danisosmooth.c DWIstructtensor.c)
+TARGET_LINK_LIBRARIES(3danisosmooth ${AFNI_LIBS})
+LIST(APPEND PROGRAMS 3danisosmooth)
+
+ADD_EXECUTABLE(3dECM 3dECM.c sparse_array.c)
+TARGET_LINK_LIBRARIES(3dECM ${AFNI_LIBS})
+LIST(APPEND PROGRAMS 3dECM)
+
+ADD_EXECUTABLE(3dfim 3dfim.c afni_pcor_update.c ts.c)
+# This is for compiling to an object that was called afni_pcor_float.o
+SET_SOURCE_FILES_PROPERTIES(afni_pcor_update.c PROPERTIES COMPILE_FLAGS "-DDTYPE=float")
+TARGET_LINK_LIBRARIES(3dfim ${AFNI_LIBS})
+LIST(APPEND PROGRAMS 3dfim)
+
+ADD_EXECUTABLE(3dmaxima 3dmaxima.c maxima.c)
+TARGET_LINK_LIBRARIES(3dmaxima ${AFNI_LIBS})
+LIST(APPEND PROGRAMS 3dmaxima)
+
+ADD_EXECUTABLE(3dretroicor 3dretroicor.c)
+TARGET_LINK_LIBRARIES(3dretroicor ${AFNI_LIBS})
+LIST(APPEND PROGRAMS 3dretroicor)
+
+ADD_EXECUTABLE(FD2 FD2.c ts.c mcw.c overfim.c pcor.c csfft_AJ.c)
+# This is for compiling pcor.c to an object that was called pcorsh.o
+SET_SOURCE_FILES_PROPERTIES(pcor.c PROPERTIES COMPILE_FLAGS "-DREF_FLOAT_SINGLE -DVOX_SHORT")
+TARGET_LINK_LIBRARIES(FD2 ${AFNI_LIBS})
+LIST(APPEND PROGRAMS FD2)
+
+ADD_EXECUTABLE(fim2 fim2.c ts.c pcor.c)
+TARGET_LINK_LIBRARIES(fim2 ${AFNI_LIBS})
+LIST(APPEND PROGRAMS fim2)
+
+ADD_EXECUTABLE(3dDeconvolve_f 3dDeconvolve.c matrix_f.c)
+# This is for compiling 3dDeconvolve.c and matrix_f.c to objects that were
+# called 3dDeconvolve_f.o and matrix_f.o
+SET_TARGET_PROPERTIES(3dDeconvolve_f PROPERTIES COMPILE_FLAGS "-DFLOATIZE")
+TARGET_LINK_LIBRARIES(3dDeconvolve_f ${AFNI_LIBS})
+LIST(APPEND PROGRAMS 3dDeconvolve_f)
+
+ADD_EXECUTABLE(help_format help_format.c)
+LIST(APPEND PROGRAMS help_format)
+
+ADD_EXECUTABLE(afni_history
+  afni_history.c afni_history_bpittman.c afni_history_christip.c
+  afni_history_dglen.c afni_history_gangc.c afni_history_rickr.c
+  afni_history_rwcox.c afni_history_ziad.c afni_history_ptaylor.c afni_history_discoraj.c
+)
+TARGET_LINK_LIBRARIES(afni_history ${AFNI_LIBS})
+LIST(APPEND PROGRAMS afni_history)
+
+ADD_EXECUTABLE(gwarp mri_gwarp.c)
+TARGET_LINK_LIBRARIES(gwarp ${AFNI_LIBS})
+LIST(APPEND PROGRAMS gwarp)
+
+#
+# AFNI
+#
+SET(AFSRC
+  afni.c afni_func.c afni_widg.c afni_fimmer.c afni_pcor.c
+  afni_pcor_update.c afni_transforms.c pbar.c afni_graph.c afni_plugin.c
+  afni_cluster.c afni_plugout.c afni_fimfunc.c
+  afni_setup.c afni_receive.c mcw_graf.c afni_splash.c afni_pplug_env.c
+  afni_pplug_2dfunc.c afni_friends.c afni_ttren.c afni_pplug_1dfunc.c
+  afni_driver.c afni_niml.c afni_sumafunc.c afni_version.c afni_lock.c
+  afni_vol2surf.c afni_pplug_instacorr.c afni_pplug_instacalc.c
+  afni_filer.c afni_whelp.c)
+# This is for compiling to an object that was called afni_pcor_float.o
+SET_SOURCE_FILES_PROPERTIES(afni_pcor_update.c
+                            PROPERTIES COMPILE_FLAGS "-DDTYPE=float")
+ADD_EXECUTABLE(afni ${AFSRC})
+TARGET_LINK_LIBRARIES(afni ${AFNI_LIBS} -ldl)
+LIST(APPEND PROGRAMS afni)
+
+
+#
+# Optional stuff depending on additional external software
+#
+
+# add local nifti apps if desired
+IF(AFNI_BUILD_LOCAL_NIFTICLIBS)
+  ADD_EXECUTABLE(nifti1_test nifti/utils/nifti1_test.c)
+  TARGET_LINK_LIBRARIES(nifti1_test ${AFNI_LIBS})
+
+  ADD_EXECUTABLE(nifti_tool nifti/utils/nifti_tool.c)
+  TARGET_LINK_LIBRARIES(nifti_tool ${AFNI_LIBS})
+
+  ADD_EXECUTABLE(nifti_stats nifti/utils/nifti_stats.c)
+  TARGET_LINK_LIBRARIES(nifti_stats ${AFNI_LIBS})
+
+  ADD_EXECUTABLE(cifti_tool
+    nifti/cifti/cifti_tool.c nifti/cifti/afni_xml_io.c nifti/cifti/afni_xml.c)
+  TARGET_LINK_LIBRARIES(cifti_tool ${AFNI_LIBS})
+
+  LIST(APPEND PROGRAMS nifti1_test nifti_tool nifti_stats)
+  MESSAGE(STATUS "Using internal NIfTI libs, compiling nifti_* tools")
+ENDIF(AFNI_BUILD_LOCAL_NIFTICLIBS)
+
+# add local 3dedge3 if desired
+IF(AFNI_BUILD_LOCAL_3DEDGE3)
+  ADD_EXECUTABLE(3dedge3 3dedge3.c)
+  TARGET_LINK_LIBRARIES(3dedge3 ${AFNI_LIBS} ${THREEDEDGE_LIBS})
+  LIST(APPEND PROGRAMS 3dedge3)
+  MESSAGE(STATUS "Using internal 3DEdge3, compiling '3dedge3'")
+ENDIF(AFNI_BUILD_LOCAL_3DEDGE3)
+
+
+IF(GSL_LIBRARY)
+  MESSAGE(STATUS "Found GSL library, compiling 'balloon'")
+  ADD_EXECUTABLE(balloon balloon.c)
+  TARGET_LINK_LIBRARIES(balloon ${GSL_LIBRARIES} m)
+  LIST(APPEND PROGRAMS balloon)
+ENDIF(GSL_LIBRARY)
+
+
+##
+## Install targets
+##
+
+INSTALL(TARGETS ${PROGRAMS} ${ADDPROGRAMS}
+  RUNTIME DESTINATION ${AFNI_INSTALL_BIN_DIR} COMPONENT Runtime
+  LIBRARY DESTINATION ${AFNI_INSTALL_LIB_DIR} COMPONENT Runtime
+  ARCHIVE DESTINATION ${AFNI_INSTALL_LIB_DIR} COMPONENT Development)
+
+INSTALL(PROGRAMS ${SCRIPTS}
+  DESTINATION ${AFNI_INSTALL_SCRIPT_DIR} COMPONENT Runtime)

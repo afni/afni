@@ -1,0 +1,230 @@
+##
+## This file is to be included in the toplevel CMakeLists.txt
+##
+
+INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}
+                    ${CMAKE_SOURCE_DIR}/src
+                    ${CMAKE_SOURCE_DIR}/src/niml
+                    ${CMAKE_SOURCE_DIR}/src/rickr
+                    ${CMAKE_SOURCE_DIR}/src/ptaylor
+                    ${CMAKE_SOURCE_DIR}/src/jzosky
+                    )
+
+#
+# Define sets of source files
+#
+# These reside in main dir
+SET(MRI_SRC
+  mri_cfft.c mri_complex_arith.c mri_fft_complex.c mri_free.c mri_max.c
+  mri_new.c mri_read.c mri_swapbytes.c mri_dup.c mri_to_byte.c
+  mri_to_complex.c mri_to_float.c mri_to_short.c mri_warp.c mri_write.c
+  mri_float_func.c mri_edit.c mri_stat_seq.c mri_add_name.c mri_histog.c
+  mri_nsize.c mri_lsqfit.c mri_sobel.c csfft.c mri_filt_fft.c mri_align.c
+  mri_rota.c mri_thresh.c mri_to_mri.c mri_flippo.c mri_percents.c
+  mri_stats.c mri_cat2D.c mri_transpose.c mri_shifter.c mcw_glob.c
+  mri_2dalign.c mri_order.c mri_3dalign.c mri_render.c mri_to_rgb.c
+  mcw_malloc.c mri_cut.c mri_overlay.c mri_copy.c mri_uncat2D.c
+  cox_render.c mri_histobyte.c mri_aff2d.c debugtrace.c mri_zeropad.c
+  mri_write_angif.c mri_histoshort.c mri_shift2D.c mri_drawing.c
+  mri_coxplot.c mri_get_cmass.c mri_scale.c mri_write_analyze.c
+  mri_to_rgba.c mri_rgba_compose.c mri_blur3d.c mri_dicom_hdr.c
+  mri_read_dicom.c mri_read_stuff.c mri_flip3D.c mri_warp3D.c
+  mri_fromstring.c ge4_header.c mri_equal.c mri_scalize.c mri_isgray.c
+  mri_read_mpeg.c mri_entropy16.c mri_symbolize.c mri_colorsetup.c
+  mri_warp3D_align.c mri_medianfilter.c mri_nstats.c mri_scaled_diff.c
+  mri_matrix.c mri_genalign.c mri_clusterize.c mri_nbistats.c mri_fwhm.c
+  mri_blur3d_variable.c mri_purger.c mri_counter.c mri_to_imarr.c
+  mri_pcvector.c mri_fdrize.c mri_floatvec.c mri_sort.c mri_warpfield.c
+  mri_dicom_stuff.c mri_check.c mri_allzero.c mri_subset.c mri_to_fvect.c
+  mri_genalign_util.c rcmat.c dmat44.c mri_rbfinterp.c matrix.c
+  gifti_choice.c zfun.c cs_pv.c cs_sort_iv.c cs_sort_d misc_math.c
+  mri_sharpness.c mri_genARMA11.c mri_catvol.c mri_polyfit.c mri_nwarp.c
+  mri_extract.c mri_to_pval.c mri_sharpen3D.c retroicor.c)
+
+SET(THD_SRC
+  thd_atr.c thd_dsetto1D.c thd_initalldir.c thd_reconpar.c thd_auxdata.c
+  thd_editdaxes.c thd_initdblk.c thd_sarr.c thd_bstats.c thd_fdbrick.c
+  thd_initdkptr.c thd_statpval.c thd_compress.c thd_fdto1D.c
+  thd_initprefix.c thd_timeof.c thd_coords.c thd_fdto2D.c thd_initsess.c
+  thd_warps.c thd_countb.c thd_filestuff.c thd_linecount.c thd_writeatr.c
+  thd_delete.c thd_forcemalloc.c thd_loaddblk.c thd_writedblk.c
+  thd_dsetdblk.c thd_get1D.c thd_manydset.c thd_writedset.c
+  thd_dsetinsess.c thd_idcode.c thd_opendset.c thd_zblock.c
+  thd_dsetinslist.c thd_info.c thd_purgedblk.c thd_http.c thd_iochan.c
+  thd_makefbuc.c thd_makefim.c thd_makefith.c thd_trusthost.c thd_rot3d.c
+  thd_mastery.c thd_intlist.c thd_checkidc.c thd_floatscan.c thd_notes.c
+  thd_makemask.c thd_shift2.c thd_1Dtodset.c thd_detrend.c thd_fitter.c
+  thd_winsor.c thd_zeropad.c thd_rot3d_byte.c thd_shear3d.c thd_tmask.c
+  thd_rotangles.c thd_center.c thd_mismatch.c thd_read_vecmat.c
+  thd_tshift.c thd_newprefix.c thd_entropy16.c thd_dsetrow.c
+  thd_rowfillin.c thd_fetchdset.c thd_getpathprogs.c thd_zfillin.c
+  thd_ttatlas_query.c thd_dsetto3D.c thd_median.c thd_cliplevel.c
+  thd_automask.c thd_outlier_count.c thd_correlate.c thd_autonudge.c
+  thd_avts.c thd_mincread.c thd_mincwrite.c thd_mnicoords.c thd_strfunc.c
+  thd_niftiwrite.c thd_analyzeread.c thd_ctfread.c thd_1Ddset.c
+  thd_getorient.c thd_3Ddset.c thd_mattor.c thd_niftiread.c thd_mpegread.c
+  thd_brainormalize.c thd_opentcat.c thd_nimlatr.c thd_dsetatr.c
+  thd_logafni.c thd_dset_nbhd.c thd_vcheck.c thd_matdaxes.c thd_niml.c
+  afni_vedit.c thd_fdrcurve.c thd_dset_to_vectim.c thd_bandpass.c
+  thd_instacorr.c thd_svdblur.c thd_ttest.c thd_satcheck.c thd_dumdset.c
+  ktaub.c bilinear_warp3D.c thd_table.c thd_atlas.c thd_warp_tables.c
+  thd_lasso.c thd_mean_dset.c thd_despike_L1.c thd_Tcorr1D.c thd_selenium.c
+  thd_openimage.c thd_remove_allzero.c)
+
+SET(EDT_SRC
+  edt_addbrick.c edt_blur.c edt_buildmask.c edt_checkargv.c edt_clust.c
+  edt_clustarr.c edt_coerce.c edt_dsetitems.c edt_emptycopy.c
+  edt_filtervol.c edt_help.c edt_onedset.c edt_scl2max.c edt_substbrick.c
+  edt_volamax.c edt_zscore.c edt_fullcopy.c edt_calcmask.c edt_volpad.c
+  edt_sortmask.c edt_clust2.c edt_wodcopy.c edt_clustalpha.c
+  edt_geomcon.c edt_floatize.c)
+
+SET(SUMA_SRC
+  suma_datasets.c suma_algorithms.c suma_help.c suma_string_manip.c suma_utils.c)
+
+SET(CS_SRC
+  cs_sort_fi.c cs_sort_di.c cs_symeig.c cs_sort_ii.c cs_sort_ff.c
+  cs_addto_args.c multivector.c afni_environ.c cs_qmed.c cl2.c
+  cs_sort_fv.c cs_laguerre.c machdep.c cs_qhull.c afni_logger.c cl1.c
+  cs_misc.c powell_int.c powell_newuoa.c afni_suma.c suma_afni_surface.c
+  vol2surf.c cs_sort_dv.c rhdd.c cs_fgets.c list_struct.c svdlib.c cs_gamfit.c)
+
+# Assimilate NIfTI lib pieces into libmri, if we do not link against a
+# system NIfTI lib
+IF(AFNI_BUILD_LOCAL_NIFTICLIBS)
+  # Will also be built-in to libgifti
+  SET(LOCAL_NIFTICLIB_SRC nifti/nifti2/nifti2_io.c nifti/znzlib/znzlib.c
+       nifti/utils/nifti_stats.c nifti/nifticdf/nifticdf.c nifti_statlib.c)
+  LIST(APPEND CS_SRC ${LOCAL_NIFTICLIB_SRC})
+  SET_SOURCE_FILES_PROPERTIES(nifti/nifticdf/nifticdf.c
+                PROPERTIES COMPILE_FLAGS "-D__COMPILE_UNUSED_FUNCTIONS__")
+ENDIF(AFNI_BUILD_LOCAL_NIFTICLIBS)
+
+# These reside in niml/
+SET(NIML_SRC
+  niml_b64.c niml_element.c niml_elemio.c niml_registry.c niml_util.c
+  niml_byteorder.c niml_header.c niml_malloc.c niml_rowtype.c niml_uuid.c
+  niml_do.c niml_htable.c niml_md5.c niml_url.c niml_stream.c
+  niml_struct.c niml_dataset.c niml_vector.c niml_stat.c niml_dtable.c
+  niml_sucker.c)
+
+# These belong to rickr/ but no longer compose its own library
+SET(RICKR_SRC
+  r_idisp.c r_misc.c r_new_resam_dset.c)
+
+# These reside in eispack/
+CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/eispack/eis_svd.c
+               ${CMAKE_CURRENT_BINARY_DIR}/eis_svd_slow.c COPYONLY)
+SET(EIS_SRC
+  eis_bakvec.c eis_balanc.c eis_balbak.c eis_bandr.c eis_bandv.c
+  eis_bisect.c eis_bqr.c eis_cbabk2.c eis_cbal.c eis_cdiv.c eis_cg.c
+  eis_ch.c eis_cinvit.c eis_combak.c eis_comhes.c eis_comlr.c eis_comlr2.c
+  eis_comqr.c eis_comqr2.c eis_cortb.c eis_corth.c eis_csroot.c
+  eis_elmbak.c eis_elmhes.c eis_eltran.c eis_epslon.c eis_figi.c
+  eis_figi2.c eis_hqr.c eis_hqr2.c eis_htrib3.c eis_htribk.c eis_htrid3.c
+  eis_htridi.c eis_imtql1.c eis_imtql2.c eis_imtqlv.c eis_invit.c
+  eis_minfit.c eis_ortbak.c eis_orthes.c eis_ortran.c eis_pythag.c
+  eis_qzhes.c eis_qzit.c eis_qzval.c eis_qzvec.c eis_ratqr.c eis_rebak.c
+  eis_rebakb.c eis_reduc.c eis_reduc2.c eis_rg.c eis_rgg.c eis_rs.c
+  eis_rsb.c eis_rsg.c eis_rsgab.c eis_rsgba.c eis_rsm.c eis_rsp.c
+  eis_rst.c eis_rt.c eis_svd.c eis_tinvit.c eis_tql1.c eis_tql2.c
+  eis_tqlrat.c eis_trbak1.c eis_trbak3.c eis_tred1.c eis_tred2.c
+  eis_tred3.c eis_tridib.c eis_tsturm.c)
+
+# These reside in netcdf-3.5.0/src/
+SET(NETCDF_OBJS netcdf_attr.o netcdf_dim.o netcdf_error.o netcdf_libvers.o
+ netcdf_nc.o netcdf_ncio.o netcdf_ncx.o netcdf_putget.o
+ netcdf_string.o netcdf_v1hpg.o netcdf_v2i.o netcdf_var.o
+)
+
+#
+# afni_warp to be included into libmri
+#
+SET(WARP_SRC afni_warp.c)
+FOREACH(TYPE byte short float complex rgbyte)
+  CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/afni_slice.c
+                 ${CMAKE_CURRENT_BINARY_DIR}/afni_slice_${TYPE}.c COPYONLY)
+  LIST(APPEND WARP_SRC ${CMAKE_CURRENT_BINARY_DIR}/afni_slice_${TYPE}.c)
+  SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_BINARY_DIR}/afni_slice_${TYPE}.c
+                              PROPERTIES COMPILE_FLAGS "-DDTYPE=${TYPE}")
+ENDFOREACH(TYPE)
+
+SET(MRILIB_SOURCES
+   afni_ports.c pbar_color_defs.c parser.c parser_int.c ${MRI_SRC} ${THD_SRC} ${EDT_SRC} ${CS_SRC} ${SUMA_SRC} ${WARP_SRC})
+# Add source files residing in subdirectories
+FOREACH(src ${NIML_SRC})
+  LIST(APPEND MRILIB_SOURCES "niml/${src}")
+ENDFOREACH(src)
+FOREACH(src ${RICKR_SRC})
+  LIST(APPEND MRILIB_SOURCES "rickr/${src}")
+ENDFOREACH(src)
+FOREACH(src ${EIS_SRC})
+  LIST(APPEND MRILIB_SOURCES "eispack/${src}")
+ENDFOREACH(src)
+# add generate eispack file
+# This is copied from eis_svd above
+LIST(APPEND MRILIB_SOURCES ${CMAKE_CURRENT_BINARY_DIR}/eis_svd_slow.c)
+SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_BINARY_DIR}/eis_svd_slow.c
+                            PROPERTIES COMPILE_FLAGS "-DFUNCNAME=svd_slow_")
+
+# TODO port from full AFNI source code
+#FOREACH(src ${NETCDF_OBJS})
+# LIST(APPEND MRILIB_SOURCES "netcdf-3.5.0/src/libsrc/${src}")
+#ENDFOREACH(src)
+
+#
+# from old libmrix
+#
+SET(IMSRC
+  display.c imseq.c bbox.c xim.c xutil.c LiteClue.c thd_xwebber.c)
+
+#
+# libmri
+#
+ADD_LIBRARY(mri ${MRILIB_SOURCES} ${IMSRC})
+TARGET_LINK_LIBRARIES(mri ${X11_Xt_LIB} ${VOLPACK_LIBRARY} ${NETCDF_LIBRARY}
+                          ${F2C_LIBRARY} giftiio nifticdf niftiio m z
+
+                          ${MOTIF_LIBRARIES} ${X11_LIBRARIES} coxplot XmHTML)
+# this workaround is brought to you by Ubuntu! Where you can link to libXext
+# but still don't get its symbols resolved -- only in Ubuntu
+SET_TARGET_PROPERTIES(mri PROPERTIES LINK_FLAGS "-Wl,--no-as-needed")
+
+# if libmri doesn't have niftilib built-in, we need to link against it
+IF(NOT AFNI_BUILD_LOCAL_NIFTICLIBS)
+  TARGET_LINK_LIBRARIES(mri nifticdf niftiio)
+ENDIF(NOT AFNI_BUILD_LOCAL_NIFTICLIBS)
+
+IF(NOT AFNI_BUILD_LOCAL_GIFTI)
+  TARGET_LINK_LIBRARIES(mri giftiio)
+ENDIF(NOT AFNI_BUILD_LOCAL_GIFTI)
+
+#
+# librio
+#
+
+# Find R
+FIND_LIBRARY(R_LIB NAMES R PATH /usr/lib /usr/lib/R/lib)
+FIND_PATH(R_INCLUDE_DIRS R.h /usr/share/R/include)
+INCLUDE_DIRECTORIES(${R_INCLUDE_DIRS})
+
+SET(RIOSRC R_io.c)
+ADD_LIBRARY(rio ${RIOSRC})
+TARGET_LINK_LIBRARIES(rio mri ${R_LIB})
+SET_TARGET_PROPERTIES(rio PROPERTIES COMPILE_FLAGS "-std=gnu99")
+
+#
+# Install targets
+#
+INSTALL(TARGETS mri rio
+  RUNTIME DESTINATION ${AFNI_INSTALL_BIN_DIR} COMPONENT Runtime
+  LIBRARY DESTINATION ${AFNI_INSTALL_LIB_DIR} COMPONENT Runtime
+  ARCHIVE DESTINATION ${AFNI_INSTALL_LIB_DIR} COMPONENT Development)
+
+# consider all headers as development headers
+# TODO determine which of them are really necessary
+FILE(GLOB DEV_HDRS "*.h" "rickr/*.h" "niml/niml.h")
+INSTALL(FILES ${DEV_HDRS}
+  DESTINATION ${AFNI_INSTALL_INCLUDE_DIR}
+  PERMISSIONS ${FILE_PERMISSIONS}
+  COMPONENT Development)
