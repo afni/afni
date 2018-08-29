@@ -1261,7 +1261,7 @@ static int model_help(void)
 "                      2sigma_x^2       2sigma_y^2\n"
 "\n"
 "                       sin(2theta)     sin(2theta)\n"
-"                 B =   -----------  -  -----------\n   (signs mean CCW rot)"
+"                 B =   -----------  -  -----------     (signs mean CCW rot)\n"
 "                       4sigma_x^2      4sigma_y^2\n"
 "\n"
 "                     sin^2(theta)     cox^2(theta)\n"
