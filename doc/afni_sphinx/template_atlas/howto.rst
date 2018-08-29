@@ -7,8 +7,7 @@
 This document describes the steps to add a new atlas to AFNI, as
 guided by the near spoken-word poetry of DR Glen.
 
-.. contents::
-   :depth: 3
+.. contents:: :local:
 
 Overview
 --------

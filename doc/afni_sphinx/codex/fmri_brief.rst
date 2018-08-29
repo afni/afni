@@ -4,8 +4,7 @@
 **FMRI examples (brief)**
 *************************
 
-.. contents::
-   :depth: 3
+.. contents:: :local:
 
 Overview
 ========
