@@ -32,7 +32,7 @@ played through an external (non-AFNI) program, such as 'sox', 'afplay'
 (Mac), 'mplayer', or 'aplay' (Linux). If one of these programs is
 installed on your system, you can also play sound directly from the
 AFNI GUI graph viewer. The 'p' keypress into a graph viewer will play
-sound computed from the central subgraph. The ‘P’ keypress will play
+sound computed from the central subgraph. The 'P' keypress will play
 sound combined from the central subgraph and the average of all
 visible subgraphs. The 'K' keypress will kill any playing sound, if
 you get tired of it before it finishes. (There are checks to prevent
