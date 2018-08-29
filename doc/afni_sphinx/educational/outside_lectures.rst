@@ -30,7 +30,8 @@ Other AFNI Bootcamp recordings
   `<https://cbmm.mit.edu/afni>`_
 
   Thanks to the Center for Brains, Minds and Machines, and to
-  Frederico Azevedo in particular, for hosting and organizing it.
+  Frederico Azevedo and in particular, for hosting and organizing
+  it. Thanks also to Kris Brewer for coordinating the videos.
 
 |
 
