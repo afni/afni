@@ -4,8 +4,7 @@
 **Sound features in AFNI**
 ==========================
 
-.. contents::
-   :depth: 3
+.. contents:: :local:
 
 Overview
 --------

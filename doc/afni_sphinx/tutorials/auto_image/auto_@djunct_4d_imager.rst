@@ -4,8 +4,7 @@
 Using @djunct_4d_imager
 ***********************
 
-.. contents::
-   :depth: 3
+.. contents:: :local:
 
 .. highlight:: Tcsh
 

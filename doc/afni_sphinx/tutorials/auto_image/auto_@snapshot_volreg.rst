@@ -4,8 +4,7 @@
 Using @snapshot_volreg
 **********************
 
-.. contents::
-   :depth: 3
+.. contents:: :local:
 
 .. highlight:: Tcsh
 

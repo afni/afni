@@ -3,8 +3,7 @@
 Post-preproc, I: tensor estimation and checking
 ===============================================
 
-.. contents::
-   :depth: 3
+.. contents:: :local:
 
 .. highlight:: Tcsh
 
