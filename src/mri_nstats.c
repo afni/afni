@@ -1,10 +1,7 @@
 #include "mrilib.h"
 
-/** if using OpenMP, this file should be #include-d into the main program! **/
-
 #ifdef USE_OMP
 #include <omp.h>
-#include "cs_qmed.c"
 #endif
 
 /* default fill and unfill values */
