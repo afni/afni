@@ -3,8 +3,7 @@
 Post-preproc, IV: Tracking
 ======================================
 
-.. contents::
-   :depth: 3
+.. contents:: :local:
 
 .. highlight:: Tcsh
 

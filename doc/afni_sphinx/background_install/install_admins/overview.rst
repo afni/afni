@@ -6,8 +6,7 @@
 Overview
 ********
 
-.. contents::
-   :depth: 3
+.. contents:: :local:
 
 Preamble Ramble
 ---------------

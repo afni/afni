@@ -19,3 +19,4 @@ Tutorials, Examples
    FATCAT_matplot/main_toc
    3dMVM_validator/main_toc
    auto_image/main_toc
+   sound/afni_sound

@@ -2154,6 +2154,18 @@ of the GUI 'done' button. For that button to work, conditions
 a) and b) above must be true. On a Mac, you can install 'sox'
 using the 'brew' package (e.g.).
 
+---------------------------
+Variable: AFNI_SOUND_PLAYER
+---------------------------
+The 'p' and 'P' keys in the AFNI graph viewer can be used to generate
+sound from the graph data time series. However, AFNI itself does not
+play sound - it uses an external player program. By default, AFNI can
+use any one of these programs:
+  play (part of sox) ; afplay (Mac) ; mplayer ; aplay (Linux)
+and it will search your path to find one of these (in that order).
+If you have some other player program you want to use, you can provide
+the full path to that program in this variable, as in '/usr/bin/afplay'.
+
 -----------------------------
 Variable: AFNI_STARTUP_SCRIPT
 -----------------------------

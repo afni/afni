@@ -3,8 +3,7 @@
 Pre-preproc, II: examine and filter
 =========================================
 
-.. contents::
-   :depth: 3
+.. contents:: :local:
 
 .. highlight:: Tcsh
 

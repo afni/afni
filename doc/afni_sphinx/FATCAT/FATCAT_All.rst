@@ -5,8 +5,7 @@
 **FATCAT Commands**
 *******************
 
-.. contents::
-   :depth: 3
+.. contents:: :local:
 
 Overview
 ========

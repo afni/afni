@@ -3,8 +3,7 @@
 Post-preproc, II: mapping ROIs to DTI space
 ===========================================
 
-.. contents::
-   :depth: 3
+.. contents:: :local:
 
 .. highlight:: Tcsh
 

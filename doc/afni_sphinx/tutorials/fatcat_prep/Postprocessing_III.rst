@@ -3,8 +3,7 @@
 Post-preproc, III: ROI map preparation
 ======================================
 
-.. contents::
-   :depth: 3
+.. contents:: :local:
 
 .. highlight:: Tcsh
 

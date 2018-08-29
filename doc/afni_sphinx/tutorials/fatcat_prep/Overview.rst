@@ -3,8 +3,7 @@
 Background and additional software
 ==================================
 
-.. contents::
-   :depth: 3
+.. contents:: :local:
 
 
 Overview

@@ -5,10 +5,7 @@
 **(Useful) Outside lectures**
 *****************************
 
-.. contents::
-   :depth: 3
-
-******IN PROGRESS!*******
+.. contents:: :local:
 
 Overview
 ========

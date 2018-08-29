@@ -3,8 +3,7 @@
 Overview
 ========
 
-.. contents::
-   :depth: 3
+.. contents:: :local:
 
 *************************
 Auto-image making in AFNI
