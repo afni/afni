@@ -15,13 +15,19 @@ static char *pprog_name = NULL ;
 char * get_sound_player(void)
 {
    if( found_pprog < 0 ){
-       pprog = THD_find_executable("play") ;      /* sox */
-     if( pprog == NULL )
-       pprog = THD_find_executable("afplay") ;    /* OS X */
-     if( pprog == NULL )
-       pprog = THD_find_executable("mplayer") ;   /* Linux */
-     if( pprog == NULL )
-       pprog = THD_find_executable("aplay") ;     /* Linux */
+     char *eee ;
+     eee = getenv("AFNI_SOUND_PLAYER") ;
+     if( eee != NULL || THD_is_executable(eee) ){
+       pprog = strdup(eee) ;
+     } else {
+         pprog = THD_find_executable("play") ;      /* sox */
+       if( pprog == NULL )
+         pprog = THD_find_executable("afplay") ;    /* OS X */
+       if( pprog == NULL )
+         pprog = THD_find_executable("mplayer") ;   /* Linux or Mac */
+       if( pprog == NULL )
+         pprog = THD_find_executable("aplay") ;     /* Linux */
+     }
 
      found_pprog = (pprog != NULL) ;
      if( found_pprog ) pprog_name = THD_trailname(pprog,0) ;
