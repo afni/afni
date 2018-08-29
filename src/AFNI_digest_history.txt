@@ -1,3 +1,46 @@
+AFNI Digest, week of 2018/08/29.
+
+00) New examples of scripting images, montages and matrices of images.
+There are several wrapper programs in AFNI that make use of the
+convenient ability to "drive" the AFNI GUI from the command line,
+generating images automatically. This can make it easier to view
+individual subject results during processing, as well as to make
+matrices of images across subjects for group analysis and/or
+presentations.  Examples using AFNI Bootcamp datasets (for
+@chauffeur_afni and imcat so far) are now available here:
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/tutorials/auto_image/main_toc.html
+
+01) Ubuntu 18.04 installation instructions.
+Installation instructions for AFNI on Ubuntu 18.04 (Bionic Beaver) are
+now available:
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/background_install/install_instructs/steps_linux_ubuntu18.html
+Thanks to several people on the Message Board for weighing in on this
+and essentially sorting these out for us!
+
+02) Build instructions for administered systems now available.
+On administered systems, the pieces installed by the administrator and
+regular user are split up.  We have made this more clear for both
+parties now (on administered Macs) here:
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/background_install/install_admins/index.html
+
+03) The hills are alive, with the sound of AFNI.
+... Or at least your computers can be: AFNI can now generate and play
+sound from timeseries data.
+The new program "1dsound" will read .1D files (columns of ASCII
+numbers) and generate an audio .au file (an old Sun format). Sound is
+played through an external (non-AFNI) program, such as 'sox', 'afplay'
+(Mac), 'mplayer', or 'aplay' (Linux). If one of these programs is
+installed on your system, you can also play sound directly from the
+AFNI GUI graph viewer. The 'p' keypress into a graph viewer will play
+sound computed from the central subgraph. The ‘P’ keypress will play
+sound combined from the central subgraph and the average of all
+visible subgraphs. The 'K' keypress will kill any playing sound, if
+you get tired of it before it finishes. (There are checks to prevent
+you playing sound from the AFNI GUI except when you are running on a
+local computer.)
+
+========================================================================
+
 AFNI Digest, week of 2018/07/04.
 
 00) The syntax of running @SSwarper is changed now in the latest AFNI.
