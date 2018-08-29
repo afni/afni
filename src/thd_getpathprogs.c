@@ -528,7 +528,9 @@ THD_string_array * THD_get_all_afni_executables(void )
 THD_string_array * THD_get_all_afni_readmes(void )
 {
    THD_string_array *outar=NULL, *elist=NULL;
+   /* Debian: README* files are in stock documentation directory */
    char *af=NULL, *etr=NULL, *key="README.";
+   char *af_debian="/usr/share/doc/afni-common";
    int N_af, N_afni=strlen("afni"), iaf=0, ii=0, *isrt=NULL, N_key=0;
    char scomm[256]={""};
    
@@ -541,9 +543,9 @@ THD_string_array * THD_get_all_afni_readmes(void )
    }
    
    /* remove afni from the end to get the path */
-   N_af = strlen(af);
+   N_af = strlen(af_debian);
    
-   elist = THD_get_all_files(af,'\0');
+   elist = THD_get_all_files(af_debian,'\0');
    
    /* Now get all readmes under af */
    N_key = strlen(key);
@@ -551,7 +553,7 @@ THD_string_array * THD_get_all_afni_readmes(void )
    for (ii=0, iaf=0; ii<elist->num ; ii++ ){
       etr = THD_trailname( elist->ar[ii] , 0 ) ; 
       if (!THD_is_directory(elist->ar[ii]) &&
-          !strncmp(af, elist->ar[ii], N_af)  &&
+          !strncmp(af_debian, elist->ar[ii], N_af)  &&
           !strncmp(key, etr, N_key)
               )  {
          ADDTO_SARR( outar , elist->ar[ii] ) ; ++iaf;

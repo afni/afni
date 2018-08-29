@@ -12534,6 +12534,9 @@ byte *SUMA_WordOverlapMask(int Nwidth, int Nheight, int N_n,
 SUMA_Boolean SUMA_LoadImageNIDOnel(NI_element *nel)
 {
    static char FuncName[]={"SUMA_LoadImageNIDOnel"};
+   static char ImagesPATH[]={"/usr/share/afni/pics:/usr/share/afni:"
+                             "/usr/share/pixmaps:/usr/share/images:"
+                             "/usr/share/images/desktop-base"};
    MRI_IMAGE *im=NULL;
    int ir, ic, i1d, i1df, imx, i1d3, i1d4;
    byte *rgb = NULL, *imar=NULL;
@@ -12554,7 +12557,10 @@ SUMA_Boolean SUMA_LoadImageNIDOnel(NI_element *nel)
    
    if (! (fname = SUMA_copy_string(NI_get_attribute(nel,"filename"))) )
       SUMA_RETURN(NOPE);
-   if (!SUMA_search_file(&fname, NULL)) { /* can't find it */ 
+   /* Debian: It is not sensible to search for images among PATHs, thus
+      providing alternative paths were to expect images on standard deployments
+   */
+   if (!SUMA_search_file(&fname, ImagesPATH)) { /* can't find it */ 
       SUMA_free(fname); fname = NULL;
       SUMA_RETURN(NOPE);
    }

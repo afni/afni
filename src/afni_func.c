@@ -6615,7 +6615,7 @@ ENTRY("AFNI_tips_CB") ;
      XMapRaised( XtDisplay(tips_hw->wshell) , XtWindow(tips_hw->wshell) ) ;
      EXRETURN ;
    } else if( !AFNI_noenv("AFNI_DONT_USE_HTMLWIN") ){
-     fpt = THD_find_regular_file("afnigui.html", NULL) ;
+     fpt = THD_find_regular_file("afnigui.html", "/usr/share/afni/html") ;
      if( fpt != NULL && *fpt != '\0' ){
        inf = (char *)malloc(sizeof(char)*(strlen(fpt)+16)) ;
        strcpy(inf,"file:") ; strcat(inf,fpt) ; free(fpt) ;
@@ -7614,6 +7614,8 @@ ENTRY("AFNI_find_poem_files") ;
    /*----- get path to search -----*/
 
                        epath = getenv("AFNI_PLUGINPATH") ;
+   /* Debian puts them into a separate dir */
+   epath = "/usr/share/afni/poems";
    if( epath == NULL ) epath = getenv("AFNI_PLUGIN_PATH") ;
    if( epath == NULL ) epath = getenv("PATH") ;
    if( epath == NULL ){ num_poem=-1; EXRETURN ; }

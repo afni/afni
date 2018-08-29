@@ -635,6 +635,9 @@ char * get_env_atlas_path()
 {
    char *epath;
                        epath = getenv("AFNI_ATLAS_PATH") ;
+   /* Debian puts them into a separate dir.  Still allow for
+      override via environment variable above  */
+   if( epath == NULL ) epath = "/usr/share/afni/atlases";
    if( epath == NULL ) epath = getenv("AFNI_PLUGINPATH") ;
    if( epath == NULL ) epath = getenv("AFNI_PLUGIN_PATH") ;
    if( epath == NULL ) epath = getenv("PATH") ;
