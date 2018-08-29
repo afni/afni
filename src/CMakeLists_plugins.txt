@@ -1,0 +1,69 @@
+##
+## This file is to be included in the toplevel CMakeLists.txt
+##
+
+SET(baseplugins
+  plug_clust plug_copy plug_rename plug_tag plug_power plug_stats
+  plug_lsqfit plug_imreg plug_edit plug_nlfit plug_realtime plug_3ddot
+  plug_coorder plug_compress plug_volreg plug_drawdset plug_maskave
+  plug_deconvolve plug_render plug_notes plug_histog plug_scatplot
+  plug_nudge plug_wavelets plug_second_dataset plug_betafit plug_zeropad
+  plug_nth_dataset plug_roiplot plug_ttget plug_L1fit plug_3ddup
+  plug_histog_multi plug_afnihistory)
+
+SET(models
+  model_constant model_linear model_quadratic model_null model_diffusion
+  model_beta model_sinewave_ap model_sinewave_apf model_squarewave_ap
+  model_squarewave_apf model_trnglwave_ap model_trnglwave_apf model_exp
+  model_diffexp model_gammavar model_convgamma model_convgamma2a
+  model_michaelis_menton model_linplusort model_zero model_demri_3
+  model_expr2 model_conv_diffgamma model_expMEMRI model_expMEMRI3
+  model_conv_cosine4 model_conv_PRF model_conv_PRF_6 model_conv_PRF_DOG)
+
+SET(ziad_plugins
+  plug_3Ddump_V2 plug_4Ddump plug_delay_V2 plug_extract)
+
+SET(fredtam_plugins
+  plug_retroicor)
+
+SET(birn_plugins
+  plug_stavg)
+
+SET(kummer_plugins
+  plug_reorder)
+
+SET(rickr_plugins
+  plug_roiedit plug_hemisub plug_maskcalc plug_crender plug_vol2surf)
+
+SET(tross_plugins
+  plug_fourier)
+
+SET(belmonte_plugins
+  plug_threshold plug_permtest)
+
+SET(davidshin_plugins
+  plug_aslA3D3)
+
+# all contributed plugins
+SET(contrib_plugins
+  ${ziad_plugins} ${birn_plugins} ${kummer_plugins} ${rickr_plugins}
+  ${tross_plugins} ${belmonte_plugins} ${fredtam_plugins} ${davidshin_plugins})
+
+# all plugins
+SET(plugins
+  ${baseplugins} ${models} ${contrib_plugins})
+
+# add targets for all plugins
+FOREACH(plugin ${plugins})
+ ADD_LIBRARY(${plugin} MODULE ${plugin}.c)
+ENDFOREACH(plugin)
+ADD_LIBRARY(plug_maxima MODULE plug_maxima.c maxima.c)
+SET(allplugins ${plugins} plug_maxima)
+
+# prevent plugins from having 'lib' prefix
+SET_TARGET_PROPERTIES(${allplugins} PROPERTIES PREFIX "")
+
+# TODO check if special permissions are necessary
+INSTALL(TARGETS ${allplugins}
+  DESTINATION ${AFNI_INSTALL_PLUGIN_DIR} COMPONENT Runtime
+  PERMISSIONS ${FILE_PERMISSIONS})

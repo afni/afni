@@ -5,9 +5,9 @@ PROJECT(gifticlib)
 cmake_minimum_required(VERSION 2.6)
 
 # install destinations
-SET(GIFTI_INSTALL_BIN_DIR "${CMAKE_INSTALL_PREFIX}/bin")
-SET(GIFTI_INSTALL_LIB_DIR "${CMAKE_INSTALL_PREFIX}/lib")
-SET(GIFTI_INSTALL_INCLUDE_DIR "${CMAKE_INSTALL_PREFIX}/include/gifti")
+#SET(GIFTI_INSTALL_BIN_DIR "${CMAKE_INSTALL_PREFIX}/bin")
+#SET(GIFTI_INSTALL_LIB_DIR "${CMAKE_INSTALL_PREFIX}/lib")
+#SET(GIFTI_INSTALL_INCLUDE_DIR "${CMAKE_INSTALL_PREFIX}/include/gifti")
 
 FIND_PACKAGE(ITK)
 IF(ITK_FOUND)
@@ -45,6 +45,14 @@ ${gifticlib_BINARY_DIR}
 )
 
 SET(GIFTIIO_SRC gifti_io.c gifti_xml.c)
+
+IF(AFNI_BUILD_LOCAL_NIFTICLIBS)
+  # include nifti2 sources into gifti, following the upstream's recipe
+  LIST(APPEND GIFTIIO_SRC
+    ${CMAKE_SOURCE_DIR}/src/nifti/nifti2/nifti2_io.c
+    ${CMAKE_SOURCE_DIR}/src/nifti/znzlib/znzlib.c
+  )
+ENDIF(AFNI_BUILD_LOCAL_NIFTICLIBS)
 
 # shared version
 ADD_LIBRARY(giftiio SHARED ${GIFTIIO_SRC})

@@ -5801,12 +5801,31 @@ ENTRY("AFNI_read_inputs") ;
       /*-- 20 Dec 2001: Try to read a "global" session --*/
       /*-- 11 May 2002: Move read global session up here --*/
 
+      char debian_atlases[30] = "/usr/share/afni/atlases";
       eee = getenv( "AFNI_GLOBAL_SESSION" ) ;   /* where it's supposed to be */
+      /* Debian: if there is now global session, use the atlases */
+      if( eee == NULL ){
+         eee = debian_atlases ;
+         REPORT_PROGRESS("ONLY ATLASES");
+      }
       if( eee != NULL ){
          THD_3dim_dataset *dset ;
          STATUS("reading global session") ;
          gss =
           GLOBAL_library.session = THD_init_session( eee ); /* try to read datasets */
+         /* Debian: always add the global atlas dir, if not the only global
+          * session */
+         if( gss != NULL ){
+             /* do not add twice */
+             if ( eee != debian_atlases ){
+                 REPORT_PROGRESS("PLUS ATLASES");
+                 AFNI_append_sessions(gss, THD_init_session( debian_atlases));
+             }
+         } else {
+            /* try reading the atlases (again) in case failure on custom
+             * session dir caused nothing to be loaded */
+            gss = GLOBAL_library.session = THD_init_session( debian_atlases );
+         }
 
          if( gss != NULL ){                               /* got at least one */
             gss->parent = NULL ;                          /* parentize them */

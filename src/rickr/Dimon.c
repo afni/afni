@@ -213,6 +213,7 @@ static char * g_history[] =
 #define MAIN
 #define IFM_PROG_NAME   "Dimon"
 
+#include "mcw_malloc.h"
 #include "mrilib.h"
 #include "Dimon.h"      /* broken off from Imon.h */
 #include "realtime.h"
@@ -292,7 +293,7 @@ static int set_ftype(param_t * p, char * name)
 #include "l_mcw_glob.h"
 #include "thd_iochan.h"
 #include "mri_image.h"
-#include "dbtrace.h"
+#include "debugtrace.h"
 
 extern char  DI_MRL_orients[8];
 extern float DI_MRL_tr;

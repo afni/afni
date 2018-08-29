@@ -17,7 +17,7 @@ text = "Node 0"
 />
 <I
 node = "10"
-filename = "funstuff/face_hamepark.jpg"
+filename = "pics/face_hamepark.jpg"
 />
 <Tex
 target = "FRAME"
@@ -26,7 +26,7 @@ frame_coords = "
 200.0 240.0 260
 240.0 240.0 260
 240.0 200.0 260"
-filename = "funstuff/face_sumabucks.jpg"
+filename = "pics/face_sumabucks.jpg"
 />
 <S
 node = '0'
@@ -40,5 +40,5 @@ slices = '20'
 mix_mode = "decal"
 coord_gen = "sphere"
 target = "ALL_SURFS"
-filename = "funstuff/face_daveperlman.jpg"
+filename = "pics/face_daveperlman.jpg"
 />

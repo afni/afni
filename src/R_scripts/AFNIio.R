@@ -9,7 +9,7 @@ SHOW_TRC <<- FALSE
 # Functions for library loading
 #------------------------------------------------------------------
 find.in.path <- function(file) { #Pretty much same as first.in.path
-   ff <- paste(strsplit(Sys.getenv('PATH'),':')[[1]],'/', file, sep='')
+   ff <- paste(strsplit(paste(Sys.getenv('PATH'),'/usr/lib/afni/lib', sep=':'),':')[[1]],'/', file, sep='')
    ff <- ff[lapply(ff,file.exists)==TRUE];
    aa <- gsub('//','/',ff[1], fixed=TRUE)
    if (is.na(aa)) aa <- NULL
@@ -155,12 +155,12 @@ exit.AFNI <- function(str='The piano has been drinking.', stat=0) {
 #Locate and load R_io.so
 set_R_io <- function() {
    rio <- 0
-   ll <- find.in.path('R_io.so')
+   ll <- find.in.path('librio.so')
    if (!is.null(ll)) {
       dd <- try(dyn.load(ll), silent=TRUE)
       # newer versions might return R_io.so   8 Dec 2017 [rickr]
-      if (dd[[1]]!="R_io" && dd[[1]]!="R_io.so") {
-         warn.AFNI(paste("Failed to load R_io.so with this error message:\n"));
+      if (dd[[1]]!="librio" && dd[[1]]!="librio.so") {
+         warn.AFNI(paste("Failed to load librio.so with this error message:\n"));
          dyn.load(ll)
       } else {
          rio <- 1
@@ -616,7 +616,7 @@ compressed.AFNI.name <- function(an) {
 
 modify.AFNI.name <- function (name, what="append", val="_new", cwd=NULL) {
    if (!is.loaded('R_SUMA_ParseModifyName')) {
-      err.AFNI("Missing R_io.so");
+      err.AFNI("Missing librio.so");
       return(NULL);
    }
    an <- .Call("R_SUMA_ParseModifyName", 
@@ -2924,7 +2924,7 @@ read.AFNI <- function(filename, verb = 0, ApplyScale = 1, PercMask=0.0,
 
 read.c.AFNI <- function(filename, verb = 0, ApplyScale = 1, PercMask=0.0) {
    if (!is.loaded('R_THD_load_dset')) {
-      err.AFNI("Missing R_io.so");
+      err.AFNI("Missing librio.so");
       return(NULL);
    }
    if (ApplyScale != 1 || PercMask != 0.0) {
@@ -3097,7 +3097,7 @@ write.c.AFNI <- function( filename, dset=NULL, label=NULL, space=NULL,
    }
    
    if (!is.loaded('R_THD_write_dset')) {
-      err.AFNI("Missing R_io.so.");
+      err.AFNI("Missing librio.so.");
       return(NULL);
    } 
    

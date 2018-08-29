@@ -673,6 +673,8 @@ ENTRY("AFNI_find_jpegs") ;
    /*----- get path to search -----*/
 
                        epath = getenv("AFNI_PLUGINPATH") ;
+   /* Debian puts them into a separate dir */
+   epath = "/usr/share/afni/pics";
    if( epath == NULL ) epath = getenv("AFNI_PLUGIN_PATH") ;
    if( epath == NULL ) epath = getenv("PATH") ;
    if( epath == NULL ) epath = getenv("HOME") ;
