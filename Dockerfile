@@ -33,7 +33,7 @@ RUN apt-get install cmake-curses-gui
 ADD . /afni/
 RUN  mkdir -p /afni/build
 WORKDIR /afni/build
-RUN cmake   -DAFNI_BUILD_CORELIBS_ONLY=ON -DAFNI_BUILD_LOCAL_NIFTICLIBS=ON .. && make -j 4
+RUN cmake   -DAFNI_BUILD_CORELIBS_ONLY=OFF -DAFNI_BUILD_LOCAL_NIFTICLIBS=ON -DBUILD_SHARED_LIBS:BOOL=ON .. && make -j 20
 
 
 # WORKDIR /afni
