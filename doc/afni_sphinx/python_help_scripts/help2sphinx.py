@@ -192,8 +192,8 @@ for afni_prog in prog_list:
 
     ## table of contents and a blank to remove the indentation for the
     ## next line
-    sphinx_out.write(".. contents:: \n")
-    sphinx_out.write("    :depth: 4 \n\n")
+    sphinx_out.write(".. contents:: :local:\n") # [PT: Aug 29, 2018]
+    #sphinx_out.write("    :depth: 4 \n\n")
     sphinx_out.write("| \n\n")
 
     ## flag for the existence of codes
@@ -265,8 +265,8 @@ for afni_prog in prog_list:
         sphinx_out.write((str("*") * len(afni_prog))+"\n\n")
 
         ## table of contents
-        sphinx_out.write(".. contents:: \n")
-        sphinx_out.write("    :depth: 4 \n\n")
+        sphinx_out.write(".. contents:: :local:\n") # [PT: Aug 29, 2018]
+        #sphinx_out.write("    :depth: 4 \n\n")
         sphinx_out.write("| \n\n")
 
         ## set for code block for all
