@@ -80,7 +80,7 @@ STATUS("create index list") ;
    if( ignore > 0 ){  /* extract 1 at a time, save what we want */
 
 #pragma omp critical (MALLOC)
-     float *var = (float *)malloc(sizeof(float)*(nvals+ignore)) ;
+     {float *var = (float *)malloc(sizeof(float)*(nvals+ignore)) ;
 STATUS("ignore > 0 --> extracting one at a time") ;
      for( kk=iv=0 ; iv < nvox ; iv++ ){
        if( mmm[iv] == 0 ) continue ;
@@ -90,7 +90,7 @@ STATUS("ignore > 0 --> extracting one at a time") ;
      }
      free(var) ;
 
-   } else {  /* do all at once: this way is a lot faster */
+   }} else {  /* do all at once: this way is a lot faster */
 
 STATUS("ignore==0 --> extracting all at once") ;
      THD_extract_many_arrays( nmask , mrv->ivec , dset , mrv->fvec ) ;
@@ -312,7 +312,7 @@ ENTRY("THD_dset_to_vectim_stend") ;
    if( nvals < DSET_NVALS(dset) ){ /* extract 1 at a time, save what we want */
 
 #pragma omp critical (MALLOC)
-     float *var = (float *)malloc(sizeof(float)*(DSET_NVALS(dset))) ;
+     {float *var = (float *)malloc(sizeof(float)*(DSET_NVALS(dset))) ;
      for( kk=iv=0 ; iv < nvox ; iv++ ){
        if( mmm[iv] == 0 ) continue ;
        (void)THD_extract_array( iv , dset , 0 , var ) ;
@@ -321,7 +321,7 @@ ENTRY("THD_dset_to_vectim_stend") ;
      }
      free(var) ;
 
-   } else {  /* do all at once: this way is a lot faster */
+   }} else {  /* do all at once: this way is a lot faster */
 
      THD_extract_many_arrays( nmask , mrv->ivec , dset , mrv->fvec ) ;
 
@@ -479,7 +479,7 @@ ENTRY("THD_2dset_to_vectim") ;
    if( ignore > 0 ){  /* extract 1 at a time, save what we want */
 
 #pragma omp critical (MALLOC)
-     float *var = (float *)malloc(sizeof(float)*(nvals+ignore)) ;
+     {float *var = (float *)malloc(sizeof(float)*(nvals+ignore)) ;
      mmmt = mmmv[0];
      for( kk=iv=0 ; iv < nvoxv[0] ; iv++ ){
        if( mmmt[iv] == 0 ) continue ;
@@ -497,7 +497,7 @@ ENTRY("THD_2dset_to_vectim") ;
 
      free(var) ;
 
-   } else {  /* do all at once: this way is a lot faster */
+   }} else {  /* do all at once: this way is a lot faster */
 
      THD_extract_many_arrays( nmaskv[0] ,  mrv->ivec  ,
                                dsetv[0] ,   mrv->fvec  ) ;
