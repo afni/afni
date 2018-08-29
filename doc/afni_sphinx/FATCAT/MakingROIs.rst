@@ -5,8 +5,7 @@
 **3dROIMaker: making (networks of) ROIs**
 *****************************************
 
-.. contents::
-   :depth: 3
+.. contents:: :local:
 
 Overview
 ========

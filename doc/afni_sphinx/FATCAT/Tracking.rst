@@ -5,8 +5,7 @@
 **3dTrackID: making tracts**
 ****************************
 
-.. contents::
-   :depth: 3
+.. contents:: :local:
 
 Overview
 ========
