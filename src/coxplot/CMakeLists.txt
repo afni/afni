@@ -11,7 +11,7 @@ SET(SOURCES
  ppak_perim.c ppak_pwrit.c ppak_pwritf.c ppak_srface.c
  plot_cox.c plot_ps.c plot_ps2.c plot_x11.c
  plot_motif.c plot_ts.c ppak_commons.c plot_strip.c
- find_color_name.c
+ find_color_name.c zzphys.c
 )
 
 ADD_LIBRARY(coxplot STATIC ${SOURCES})
