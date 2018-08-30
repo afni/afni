@@ -2421,6 +2421,7 @@ extern void kill_sound_players(void) ;
 #define SOUND_WAVEFORM_SQUARE   2
 #define SOUND_WAVEFORM_TRIANGLE 3
 #define SOUND_WAVEFORM_H2SINE   4
+#define SOUND_WAVEFORM_SQSINE   5
 
 extern void sound_set_note_waveform( int nn ) ;
 extern void sound_make_note( float frq, int waveform, int srate, int nsam, float *sam ) ;
