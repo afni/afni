@@ -22,28 +22,41 @@ void usage_1dsound(int detail)
      "\n"
      " -prefix ppp  = Output filename will be ppp.au\n"
      "                [Sun audio format https://en.wikipedia.org/wiki/Au_file_format]\n"
-     "                If you don't use '-prefix', the output is file 'sound.au'.\n"
+     "                + If you don't use '-prefix', the output is file 'sound.au'.\n"
+     "                + If 'ppp' ends in '.au', this program won't add another '.au.\n"
      "\n"
      " ===== encoding details =====\n"
      "\n"
+     " -16PCM       = Output in 16-bit linear PCM encoding (uncompressed)\n"
+     "                + Less quantization noise (audible hiss)            :)\n"
+     "                + Takes twice as much disk space for output as 8-bit output :(\n"
+     "              +++ This is the default method now!\n"
+     "                + https://en.wikipedia.org/wiki/Pulse-code_modulation\n"
+     "\n"
      " -8PCM        = Output in 8-bit linear PCM encoding\n"
-     "                [default is 8-bit mu-law encoding]\n"
      "                + There is no good reason to use this option.\n"
+     "\n"
+     " -8ulaw       = Output in 8-bit mu-law encoding.\n"
+     "                + Provides a little better quality than -8PCM,\n"
+     "                  but still has audible quantization noise hiss.\n"
+     "                +  https://en.wikipedia.org/wiki/M-law_algorithm\n"
      "\n"
      " -tper X      = X seconds of sound per time point in 'tsfile'.\n"
      " -TR X          Allowed range for 'X' is 0.01 to 1.0 (inclusive).\n"
      " -dt X          [default time step is 0.2 s]\n"
      "                You can use '-tper', '-dt', or '-TR', as you like.\n"
      "\n"
-     " ===== how the sound is produced from the data =====\n"
+     " ===== how the sound timeseries is produced from the data timeseries =====\n"
      "\n"
      " -FM          = Output sound is frequency modulated between 110 and 1760 Hz\n"
      "                from min to max in the input 1D file.\n"
      "                + Usually 'sounds terrible'.\n"
+     "                + The only reason this is here is that it was the first method\n"
+     "                  I implemented, and I kept it for the sake of nostalgia.\n"
      "\n"
      " -notes       = Output sound is a sequence of notes, low to high pitch\n"
      "                based on min to max in the input 1D file.\n"
-     "                + This is the default method of operation.\n"
+     "              +++ This is the default method of operation.\n"
      "                + A pentatonic scale is used, which usually 'sounds nice':\n"
      "                  https://en.wikipedia.org/wiki/Pentatonic_scale\n"
      "\n"
@@ -108,6 +121,8 @@ void usage_1dsound(int detail)
      "  + Here 'gain -5' turns the volume down :)\n"
      "  + sox is not provided with AFNI :(\n"
      "  + To see if sox is on your system, type the command 'which sox'\n"
+     "  + If you have sox, you can add 'reverb 100' at the end of the\n"
+     "    'play' command line, and have some fun.\n"
      "\n"
      "* Creation of the file does not depend on sox, so if you have\n"
      "  another way to play .au files, you can use that.\n"
@@ -120,7 +135,8 @@ void usage_1dsound(int detail)
      "              + Another possibility is the aplay program.\n"
      "\n"
      "* The audio output file is sampled at 16K bytes per second.\n"
-     "  For example, a 30 second file will be 480K bytes in size.\n"
+     "  For example, a 30 second file will be 960K bytes in size,\n"
+     "  at 16 bits per sample [the default].\n"
      "\n"
      "* The -FM auditory effect varies significantly with the '-tper'\n"
      "  parameter X; '-tper 0.02' is very different than '-tper 0.4'.\n"
@@ -138,6 +154,10 @@ void usage_1dsound(int detail)
 #define CODE_FM    1
 #define CODE_NOTES 2
 
+#define ENCODE_8ULAW 1
+#define ENCODE_8PCM  2
+#define ENCODE_16PCM 3
+
 int main( int argc , char *argv[] )
 {
    int iarg ;
@@ -145,7 +165,8 @@ int main( int argc , char *argv[] )
    char fname[1024] ;
    MRI_IMAGE *inim , *phim ;
    float *far ;
-   int do_8PCM=0 ; int do_play=0 ;
+   int encoding=ENCODE_16PCM ;
+   int do_play=0 ;
    float tper=0.2f ; int nsper ;
    int opcode = CODE_NOTES ;
 
@@ -187,7 +208,15 @@ int main( int argc , char *argv[] )
      /*-----*/
 
      if( strcasecmp(argv[iarg],"-8PCM") == 0 ){
-       do_8PCM = 1 ; iarg++ ; continue ;
+       encoding = ENCODE_8PCM ; iarg++ ; continue ;
+     }
+
+     if( strcasecmp(argv[iarg],"-16PCM") == 0 ){
+       encoding = ENCODE_16PCM ; iarg++ ; continue ;
+     }
+
+     if( strcasecmp(argv[iarg],"-8ulaw") == 0 ){
+       encoding = ENCODE_8ULAW ; iarg++ ; continue ;
      }
 
      /*-----*/
@@ -304,11 +333,21 @@ int main( int argc , char *argv[] )
 
    /*-- write .au file out (cs_playsound.c) --*/
 
-   if( do_8PCM ){
-     sound_write_au_8PCM( fname, phim->nx, MRI_FLOAT_PTR(phim), SRATE, 0.2f );
-   } else {
-     sound_write_au_ulaw( fname, phim->nx, MRI_FLOAT_PTR(phim), SRATE, 0.2f );
+   switch( encoding ){
+     default:
+     case ENCODE_8ULAW:
+       sound_write_au_ulaw( fname, phim->nx, MRI_FLOAT_PTR(phim), SRATE, 0.2f );
+     break ;
+
+     case ENCODE_8PCM:
+       sound_write_au_8PCM( fname, phim->nx, MRI_FLOAT_PTR(phim), SRATE, 0.2f );
+     break ;
+
+     case ENCODE_16PCM:
+       sound_write_au_16PCM( fname, phim->nx, MRI_FLOAT_PTR(phim), SRATE, 0.2f );
+     break ;
    }
+
    INFO_message  ("output sound file %s = %s bytes",
                    fname , commaized_integer_string(THD_filesize(fname)) ) ;
    ININFO_message(" %.1f s of audio" , phim->nx/(float)SRATE ) ;

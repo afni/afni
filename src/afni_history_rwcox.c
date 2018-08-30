@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 30 , AUG , 2018 , RWC , "1dsound" , MICRO , TYPE_ENHANCE ,
+   "Default sound output is now 16-bit (less hiss than 8-bit)" ,
+   NULL } ,
+
  { 27 , AUG , 2018 , RWC , "1dsound and AFNI GUI" , MINOR , TYPE_MODIFY ,
    "modify sound output" ,
    "1dsound now can make sound from up to 4 columns from input file.\n"
