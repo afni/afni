@@ -628,6 +628,12 @@ static INLINE float wav_h2sine(float t){
   return ( 0.953f*sinf(twoPI*t)+0.3f*cosf(fourPI*t) ) ;
 }
 
+static INLINE float wav_sqsine(float t){
+  float val = sinf(twoPI*t) ;
+  return ( (val >= 0.0f ) ?  sqrtf( val)
+                          : -sqrtf(-val) ) ;
+}
+
 static INLINE float wav_square(float t){
   float dt = fmodf(t,1.0f) ;
   return ( (dt < 0.45f) ? 0.999f
@@ -696,6 +702,10 @@ void sound_make_note( float frq, int waveform, int srate, int nsam, float *sam )
 
      case SOUND_WAVEFORM_H2SINE:
        for( ii=0 ; ii < nsam ; ii++ ){ sam[ii] = wav_h2sine(tt); tt += dt; }
+     break ;
+
+     case SOUND_WAVEFORM_SQSINE:
+       for( ii=0 ; ii < nsam ; ii++ ){ sam[ii] = wav_sqsine(tt); tt += dt; }
      break ;
 
    }
@@ -775,9 +785,10 @@ MRI_IMAGE * mri_sound_1D_to_notes( MRI_IMAGE *imin,
 
    abot = mri_maxabs(imout) ;
    if( abot == 0.0f ){  /* nothing computed? do something random! */
-     for( ii=0 ; ii < nn ; ii++ ){
+     for( ii=ignore ; ii < nn ; ii++ ){
        jj = lrand48() % npenta ;
-       sound_make_note( penta[jj], note_waveform, srate, nsper, bb+(ii*nsper) ) ;
+       sound_make_note( penta[jj], note_waveform,
+                        srate, nsper, bb+((ii-ignore)*nsper) ) ;
      }
    }
 
