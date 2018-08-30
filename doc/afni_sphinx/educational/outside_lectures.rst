@@ -21,6 +21,20 @@ policy or position of AFNI-Land.*
 
 |
 
+Other AFNI Bootcamp recordings
+==============================
+
+* **May, 2018 (MIT):** Here are some video recordings from an AFNI
+  Bootcamp at MIT in May/June, 2018:
+
+  `<https://cbmm.mit.edu/afni>`_
+
+  Thanks to the Center for Brains, Minds and Machines, and to
+  Frederico Azevedo and in particular, for hosting and organizing
+  it. Thanks also to Kris Brewer for coordinating the videos.
+
+|
+
 FMRIF Summer Course
 ===================
 
