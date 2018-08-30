@@ -63,9 +63,10 @@ void usage_1dsound(int detail)
      " -notewave W  = Selects the shape of the notes used. 'W' is one of these:\n"
      "                  sine     = pure sine wave (sounds simplistic)\n"
      "                  h2sine   = sine wave with some second harmonic\n"
-     "                  square   = square wave (sounds harsh)\n"
+     "                  sqsine   = square root of sine wave (a little harsh)\n"
+     "                  square   = square wave              (a lot harsh)\n"
      "                  triangle = triangle wave [the default waveform]\n"
-#if 0
+#if 0  /** hidden - doesn't sound good **/
      "\n"
      " -noADSR      = turn off the note 'envelope' to make sound more continuous.\n"
      "                + The envelope is used to ramp each note's sound up and\n"
@@ -116,13 +117,22 @@ void usage_1dsound(int detail)
      "-----\n"
      "NOTES\n"
      "-----\n"
-     "* File can be played with the 'sox' audio library command\n"
+     "* File can be played with the 'sox' audio package command\n"
      "    play A1.au gain -5\n"
      "  + Here 'gain -5' turns the volume down :)\n"
      "  + sox is not provided with AFNI :(\n"
      "  + To see if sox is on your system, type the command 'which sox'\n"
-     "  + If you have sox, you can add 'reverb 100' at the end of the\n"
-     "    'play' command line, and have some fun.\n"
+     "  + If you have sox, you can add 'reverb 99' at the end of the\n"
+     "    'play' command line, and have some extra fun.\n"
+     "  + Many other effects are available with sox 'play',\n"
+     "    and they can also be used to produce edited sound files:\n"
+     "    http://sox.sourceforge.net/sox.html#EFFECTS\n"
+     "  + You can convert the .au file produced from here to other\n"
+     "    formats using sox; for example:\n"
+     "      sox Bob.au Cox.au BobCox.aiff\n"
+     "    combines the 2 .au input files to a 2-channel (stereo)\n"
+     "    Apple .aiff output file. See this for more information:\n"
+     "    http://sox.sourceforge.net/soxformat.html\n"
      "\n"
      "* Creation of the file does not depend on sox, so if you have\n"
      "  another way to play .au files, you can use that.\n"
@@ -256,6 +266,8 @@ int main( int argc , char *argv[] )
              sound_set_note_waveform(SOUND_WAVEFORM_SINE) ;
        else if( strncasecmp(argv[iarg],"h2sine",3) == 0 )
              sound_set_note_waveform(SOUND_WAVEFORM_H2SINE) ;
+       else if( strncasecmp(argv[iarg],"sqsine",3) == 0 )
+             sound_set_note_waveform(SOUND_WAVEFORM_SQSINE) ;
        else if( strncasecmp(argv[iarg],"square",3) == 0 )
              sound_set_note_waveform(SOUND_WAVEFORM_SQUARE) ;
        else if( strncasecmp(argv[iarg],"boxcar",3) == 0 )
