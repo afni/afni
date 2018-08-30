@@ -87,7 +87,8 @@ SET(CS_SRC
   cs_addto_args.c multivector.c afni_environ.c cs_qmed.c cl2.c
   cs_sort_fv.c cs_laguerre.c machdep.c cs_qhull.c afni_logger.c cl1.c
   cs_misc.c powell_int.c powell_newuoa.c afni_suma.c suma_afni_surface.c
-  vol2surf.c cs_sort_dv.c rhdd.c cs_fgets.c list_struct.c svdlib.c cs_gamfit.c)
+  vol2surf.c cs_sort_dv.c rhdd.c cs_fgets.c list_struct.c svdlib.c cs_gamfit.c
+  cs_sort_str.c cs_playsound.c)
 
 # Assimilate NIfTI lib pieces into libmri, if we do not link against a
 # system NIfTI lib
