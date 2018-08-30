@@ -1,6 +1,6 @@
 #include "mrilib.h"
 
-static byte mulaw( float x ) ; /* prototype */
+static byte mulaw( float x ) ; /* prototype for mu-law conversion */
 
 #undef  DEFAULT_SRATE
 #define DEFAULT_SRATE 16000
@@ -177,7 +177,7 @@ void mri_play_sound( MRI_IMAGE *imin , int ignore )
    pre = UNIQ_idcode_11() ;  /* make up name for sound file */
    sprintf(fname,"AFNI_SOUND_TEMP.%s.au",pre) ;
    unlink(fname) ;           /* remove sound file, in case it already exists */
-   sound_write_au_ulaw( fname, qim->nx, MRI_FLOAT_PTR(qim), DEFAULT_SRATE, 0.1f ) ;
+   sound_write_au_16PCM( fname, qim->nx, MRI_FLOAT_PTR(qim), DEFAULT_SRATE, 0.1f ) ;
    extras[0] = '\0' ;
    if( strcmp(pprog_name,"play") == 0 )
      strcat(extras," reverb 33") ;
@@ -261,6 +261,22 @@ static uint32_t INLINE swap_fourby( uint32_t ii )
    qf.ff.b = qf.ff.c ;
    qf.ff.c = tt ;
    return qf.qq ;
+}
+
+typedef struct { unsigned char a,b ; } twoby ;
+
+static void swap_twobyar( int n , void *ar )
+{
+   int ii ;
+   twoby *tb = (twoby *)ar ;
+   unsigned char tt ;
+
+   for( ii=0 ; ii < n ; ii++ ){
+     tt       = tb[ii].a ;
+     tb[ii].a = tb[ii].b ;
+     tb[ii].b = tt ;
+   }
+   return ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -386,6 +402,61 @@ void sound_write_au_8PCM( char *fname, int nn, float *aa, int srate, float scl )
               ( val >  127.0f ) ?  127 : (int8_t)rintf(val) ;
    }
    fwrite( bb , 1 , nn , fp ) ;
+
+   /* done done done */
+
+   fclose(fp) ;
+   free(bb) ;
+   return ;
+}
+
+/*---------------------------------------------------------------------------*/
+/* samples in aa[] are between -1 and 1.
+   sample rate (per second) is in srate.
+   scl is a scale down factor (0 < scl <= 1).
+*//*-------------------------------------------------------------------------*/
+
+void sound_write_au_16PCM( char *fname, int nn, float *aa, int srate, float scl )
+{
+   FILE *fp ;
+   uint32_t ival , jval ;
+   int16_t *bb ;
+   int ii ; float fac , val ;
+
+   /* check inputs */
+
+   if( fname == NULL || nn < 2 || aa == NULL ){
+     ERROR_message("Illegal inputs to sound_write_au :(") ;
+     return ;
+   }
+
+   if( srate < 8000 ) srate = DEFAULT_SRATE ;
+   if( scl   < 0.0f || scl > 1.0f ) scl = 1.0f ;
+
+   /* open output file */
+
+   fp = fopen( fname , "w" ) ;
+   if( fp == NULL ){
+     ERROR_message("Can't open audio output file '%s'",fname) ;
+     return ;
+   }
+
+   /* write .au file header */
+
+   sound_write_au_header( fp , 2*nn , srate , 3 ) ;
+
+   /* convert and write data */
+
+   bb  = (int16_t *)malloc(sizeof(int16_t)*nn) ;
+   fac = 32767.444f * scl ;
+   for( ii=0 ; ii < nn ; ii++ ){
+     val = fac*aa[ii] ;
+     bb[ii] = ( val < -32767.0f ) ? -32767 :
+              ( val >  32767.0f ) ?  32767 : (int16_t)rintf(val) ;
+   }
+   if( little_endian ) swap_twobyar( nn , bb ) ;
+
+   fwrite( bb , 2 , nn , fp ) ;
 
    /* done done done */
 
