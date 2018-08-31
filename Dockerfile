@@ -28,13 +28,13 @@ RUN echo deb-src http://neuro.debian.net/debian bionic main contrib> /etc/apt/so
 
 RUN apt-get update & apt-get -y build-dep afni
 
-RUN apt-get install 
 
 # #######################################
 # # this copies source code from the host
 # # into the image and invalidates the cache
 ADD . /afni/
-RUN  mkdir -p /afni/build
-WORKDIR /afni/build
-# RUN cmake   -DAFNI_BUILD_CORELIBS_ONLY=OFF -DAFNI_BUILD_LOCAL_NIFTICLIBS=ON -DBUILD_SHARED_LIBS:BOOL=ON .. && make -j 20
+RUN  mkdir -p /build
+WORKDIR /build
+RUN cmake   -DAFNI_BUILD_CORELIBS_ONLY=OFF -DAFNI_BUILD_LOCAL_NIFTICLIBS=ON -DBUILD_SHARED_LIBS:BOOL=ON ../afni 
+RUN make -j 20
 
