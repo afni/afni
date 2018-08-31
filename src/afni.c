@@ -5819,7 +5819,7 @@ ENTRY("AFNI_read_inputs") ;
              /* do not add twice */
              if ( eee != debian_atlases ){
                  REPORT_PROGRESS("PLUS ATLASES");
-                 AFNI_append_sessions(gss, THD_init_session( debian_atlases));
+                 // AFNI_append_sessions(gss, THD_init_session( debian_atlases));
              }
          } else {
             /* try reading the atlases (again) in case failure on custom
