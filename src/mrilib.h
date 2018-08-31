@@ -2423,10 +2423,12 @@ extern void kill_sound_players(void) ;
 #define SOUND_WAVEFORM_H2SINE   4
 #define SOUND_WAVEFORM_SQSINE   5
 
+#define SOUND_WAVECODE_BASE     1048576.0f
+
 extern void sound_set_note_waveform( int nn ) ;
 extern void sound_make_note( float frq, int waveform, int srate, int nsam, float *sam ) ;
-extern MRI_IMAGE * mri_sound_1D_to_notes( MRI_IMAGE *imin,
-                                          int srate, int nsper, int ny, int ignore ) ;
+extern MRI_IMAGE * mri_sound_1D_to_notes( MRI_IMAGE *imin, int srate, int nsper,
+                                          int ny, int ignore , int use_wavecodes ) ;
 
 /*----------------------------------------------------------------------------*/
 

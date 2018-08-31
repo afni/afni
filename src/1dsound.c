@@ -61,12 +61,14 @@ void usage_1dsound(int detail)
      "                  https://en.wikipedia.org/wiki/Pentatonic_scale\n"
      "\n"
      " -notewave W  = Selects the shape of the notes used. 'W' is one of these:\n"
-     "                  sine     = pure sine wave (sounds simplistic)\n"
+     " -waveform W      sine     = pure sine wave (sounds simplistic)\n"
+#if 0
      "                  h2sine   = sine wave with some second harmonic\n"
-     "                  sqsine   = square root of sine wave (a little harsh)\n"
-     "                  square   = square wave              (a lot harsh)\n"
-     "                  triangle = triangle wave [the default waveform]\n"
-#if 0  /** hidden - doesn't sound good **/
+#endif
+     "                  sqsine   = square root of sine wave (a little harsh and loud)\n"
+     "                  square   = square wave              (a lot harsh and loud)\n"
+     "                  triangle = triangle wave            [the default waveform]\n"
+#if 0  /** hidden - doesn't do much **/
      "\n"
      " -noADSR      = turn off the note 'envelope' to make sound more continuous.\n"
      "                + The envelope is used to ramp each note's sound up and\n"
@@ -252,12 +254,13 @@ int main( int argc , char *argv[] )
        opcode = CODE_NOTES ; iarg++ ; continue ;
      }
 
-     if( strcasecmp(argv[iarg],"-noADSR") == 0 ||
+     if( strcasecmp(argv[iarg],"-noADSR") == 0 ||     /* hidden option */
          strcasecmp(argv[iarg],"-noENV" ) == 0   ){
        sound_set_note_ADSR(0) ; iarg++ ; continue ;
      }
 
-     if( strcasecmp(argv[iarg],"-notewave") == 0 ){
+     if( strcasecmp (argv[iarg],"-notewave")   == 0 ||
+         strncasecmp(argv[iarg],"-waveform",5) == 0   ){
        if( iarg >= argc-1 )
          ERROR_exit("need arg after %s",argv[iarg]) ;
 
@@ -331,7 +334,7 @@ int main( int argc , char *argv[] )
 
      default:
      case CODE_NOTES:
-       phim = mri_sound_1D_to_notes( inim , SRATE , nsper , 4,0 ) ;
+       phim = mri_sound_1D_to_notes( inim , SRATE , nsper , 4,0,0 ) ;
        if( phim == NULL )
          ERROR_exit("mri_sound_1D_to_notes fails") ;
      break ;
