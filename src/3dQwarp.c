@@ -1,5 +1,7 @@
 #include "mrilib.h"
 #include "thd_conformist.c"
+#include "extrema.h"
+
 
 /*---------------------------------------------------------------------------*/
 /* Features to ruminate about:
