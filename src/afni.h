@@ -8,6 +8,7 @@
 #define _AFNI_HEADER_
 
 #include "mrilib.h"
+#include "extrema.h"
 #include "imseq.h"
 #include "xutil.h"
 #include "pbar.h"

@@ -6,6 +6,7 @@
 
 #include "mrilib.h"
 #include "r_new_resam_dset.h"
+#include "extrema.h"
 
 #ifdef USE_OMP
 # include <omp.h>
