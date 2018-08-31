@@ -1705,7 +1705,13 @@ to3d:to3d.h $(T3OBJS) libcoxplot.a
 	$(RM) $@
 	$(CC) -o to3d $(T3OBJS) $(LFLAGS) -lmrix -lcoxplot $(LLIBS)
 
+cs_playsound.o:cs_playsound.c
+	$(RM) $@
+	$(CC) -c cs_playsound.c -I./Audio $(INFLAGS)
+
 1dsound.o:1dsound.c cs_playsound.c
+	$(RM) $@
+	$(CC) -c 1dsound.c -I./Audio $(INFLAGS)
 
 1dsound:1dsound.o
 	$(RM) $@

@@ -5,6 +5,8 @@ static byte mulaw( float x ) ; /* prototype for mu-law conversion */
 #undef  DEFAULT_SRATE
 #define DEFAULT_SRATE 16000
 
+#include "cs_sounds.h"         /* in Audio subdirectory */
+
 /*--------------------------------------------------------------------------*/
 /*---------- find a sound playing program ----------*/
 
@@ -171,7 +173,7 @@ void mri_play_sound( MRI_IMAGE *imin , int ignore )
        :                    0.10f ;
    nsper = (int)rintf(DEFAULT_SRATE*dt) ;
 
-   qim = mri_sound_1D_to_notes( imin , DEFAULT_SRATE , nsper , 4 , ignore ) ;
+   qim = mri_sound_1D_to_notes( imin , DEFAULT_SRATE , nsper , 4 , ignore , 0 ) ;
    if( qim == NULL ) _exit(0) ;
 
    pre = UNIQ_idcode_11() ;  /* make up name for sound file */
@@ -629,9 +631,13 @@ static INLINE float wav_h2sine(float t){
 }
 
 static INLINE float wav_sqsine(float t){
-  float val = sinf(twoPI*t) ;
-  return ( (val >= 0.0f ) ?  sqrtf( val)
-                          : -sqrtf(-val) ) ;
+  float val = sinf(twoPI*t) , aval ;
+#if 1
+  aval = sqrtf(fabsf(val)) ;
+#else
+  aval = powf( fabsf(val) , 0.6f ) ;
+#endif
+  return ( (val >= 0.0f ) ?  aval : -aval ) ;
 }
 
 static INLINE float wav_square(float t){
@@ -673,6 +679,10 @@ void sound_set_note_ADSR(int qq){ use_ADSR = qq ; }
 /* Note that if frq >= 0.5*srate, bad things will happen due to Mr Nyquist!! */
 /*---------------------------------------------------------------------------*/
 
+static float ttn = 0.0f ;  /* continuous time between notes */
+
+static void reset_note_ttn(void){ ttn = 0.0f ; }
+
 void sound_make_note( float frq, int waveform, int srate, int nsam, float *sam )
 {
    int ii ; float dt,tt ;
@@ -681,7 +691,7 @@ void sound_make_note( float frq, int waveform, int srate, int nsam, float *sam )
 
    if( srate < 8000 ) srate = DEFAULT_SRATE ;
 
-   dt = frq / srate ; tt = 0.0f ;
+   dt = frq / srate ; tt = ttn ;
 
    /* form periodic waveform */
 
@@ -710,11 +720,20 @@ void sound_make_note( float frq, int waveform, int srate, int nsam, float *sam )
 
    }
 
+   ttn = tt ;  /* continuous time between notes */
+
    /* apply envelope (if note has enough samples) */
 
    if( nsam > 127 && use_ADSR ){
      dt = 1.0f/nsam ; tt= 0.0f ;
      for( ii=0 ; ii < nsam ; ii++ ){ sam[ii] *= ADSR_env(tt); tt += dt; }
+   } else if( nsam > 24 ){
+#if 0
+     float fac ;
+     for( ii=0 ; ii < 9 ; ii++ ){
+       fac = (ii+1)*0.1f ; sam[ii] *= fac ; sam[nsam-1-ii] *= fac ;
+     }
+#endif
    }
 
    return ;
@@ -722,13 +741,17 @@ void sound_make_note( float frq, int waveform, int srate, int nsam, float *sam )
 
 /*---------------------------------------------------------------------------*/
 
-MRI_IMAGE * mri_sound_1D_to_notes( MRI_IMAGE *imin,
-                                   int srate, int nsper, int ny, int ignore )
+#define VAL_TO_CODE(v) ((int)rintf((v)-SOUND_WAVECODE_BASE))
+
+MRI_IMAGE * mri_sound_1D_to_notes( MRI_IMAGE *imin, int srate, int nsper,
+                                   int ny, int ignore, int use_wavecodes )
 {
    float *aa,*bb,*qa ;
    float abot,atop , fac , *valn ;
    int nout , ii,jj , nn , qq ;
    MRI_IMAGE *imout , *qim ;
+   int max_wavecode=0 ;
+   int ncode=0 , nsamcode=0 ;
 
    /*--- deal with inputs ---*/
 
@@ -755,6 +778,16 @@ MRI_IMAGE * mri_sound_1D_to_notes( MRI_IMAGE *imin,
    if( srate < 8000 ) srate = DEFAULT_SRATE ;
    if( nsper <= 9   ) nsper = srate/2 ;
 
+   /*-- check for wavecodes embedded in the data --*/
+
+   if( use_wavecodes ){
+     max_wavecode  = get_num_sound_waveforms() ;
+     use_wavecodes = max_wavecode > 0 ;
+   }
+
+   if( use_wavecodes ){
+   }
+
    /*-- create output ---*/
 
    nout  = nsper * (nn-ignore) ;
@@ -762,6 +795,7 @@ MRI_IMAGE * mri_sound_1D_to_notes( MRI_IMAGE *imin,
    bb    = MRI_FLOAT_PTR(imout) ;  /* is full of zeros */
 
    sound_setup_penta(1) ; /* skip octave 0 -- it's too low */
+   reset_note_ttn() ;     /* re-start time at 0 */
 
    valn = (float *)malloc(sizeof(float)*nsper) ; /* notes */
 
