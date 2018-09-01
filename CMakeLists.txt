@@ -19,6 +19,11 @@ PROJECT(AFNI)
 OPTION(AFNI_BUILD_LOCAL_NIFTICLIBS
        "Build and use AFNI's local copy of the NIfTI libs"
        OFF)
+# add option to build shared libraries. The default is OFF to maintain the
+# current build behavior
+OPTION(BUILD_SHARED_LIBS
+       "Build and use AFNI's local copy of the NIfTI libs"
+       OFF)
 OPTION(AFNI_BUILD_LOCAL_3DEDGE3
        "Build and use AFNI's local copy of lib3dedge3"
        OFF)

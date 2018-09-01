@@ -9,9 +9,6 @@ endif(COMMAND cmake_policy)
 subdirs(znzlib niftilib)
 add_definitions(-DHAVE_ZLIB)
 
-# add option to build shared libraries. The default is OFF to maintain the
-# current build behavior
-option( BUILD_SHARED_LIBS "Toggle building shared libraries")
 
 # Michael Hanke 2007-04-25 Note:
 # 'Utilities' is merged into the include install path to be able to easily
