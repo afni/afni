@@ -106,11 +106,17 @@ FOREACH(program ${PROGRAMS})
 ENDFOREACH(program)
 
 # SUMA prefixed programs or programs without SUMA_ prefix altogether
-FOREACH(program SUMA_glxdino SUMA_paperplane SUMA_pixmap2eps
-                SUMA_Load_Surface_Object SUMA_inflate_compare SUMA_Homer
+FOREACH(program SUMA_Load_Surface_Object SUMA_inflate_compare SUMA_Homer
 				prompt_popup)
   ADD_EXECUTABLE(${program} ${program}.c)
   LIST(APPEND PROGRAMS ${program})
+ENDFOREACH(program)
+
+# SUMA programs that require f2c dir
+FOREACH(program SUMA_paperplane SUMA_pixmap2eps SUMA_glxdino)
+ADD_EXECUTABLE(${program} ${program}.c)
+TARGET_LINK_LIBRARIES(${program} ${F2C_LIBRARY})
+LIST(APPEND PROGRAMS ${program})
 ENDFOREACH(program)
 
 #
