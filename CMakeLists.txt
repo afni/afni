@@ -15,6 +15,7 @@ PROJECT(AFNI)
 ##
 ## Define options to customize the build-process
 ##
+set_target_properties(${EXE} PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 OPTION(AFNI_BUILD_LOCAL_NIFTICLIBS
        "Build and use AFNI's local copy of the NIfTI libs"
