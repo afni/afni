@@ -35,6 +35,6 @@ RUN apt-get update & apt-get -y build-dep afni
 ADD . /afni/
 RUN  mkdir -p /build
 WORKDIR /build
-RUN cmake   -DAFNI_BUILD_CORELIBS_ONLY=OFF -DAFNI_BUILD_LOCAL_NIFTICLIBS=ON -DBUILD_SHARED_LIBS:BOOL=ON ../afni 
+RUN cmake ../afni 
 RUN make -j 20
 
