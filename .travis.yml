@@ -9,5 +9,5 @@ before_install:
   - docker build -t timdanaos/afni .
 
 script:
-  - docker run -v $PWD:/afni -ti --rm ndebian_afni bash -c '. /afni/tests/xvfb-driver -- afni -com "OPEN_WINDOW axialimage; SAVE_JPEG axialimage test1; QUIT"'
-  - docker run -v $PWD:/afni -ti --rm ndebian_afni bash -c '. /afni/tests/xvfb-driver -- 3dinfo'
+  - docker run -v $PWD:/afni -ti --rm timdanaos/afni bash -c '. /afni/tests/xvfb-driver -- afni -com "OPEN_WINDOW axialimage; SAVE_JPEG axialimage test1; QUIT"'
+  - docker run -v $PWD:/afni -ti --rm timdanaos/afni bash -c '. /afni/tests/xvfb-driver -- 3dinfo'
