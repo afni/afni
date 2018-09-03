@@ -14,8 +14,7 @@ PROJECT(AFNI)
 
 ##
 ## Define options to customize the build-process
-##
-set_target_properties(${EXE} PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
+
 
 OPTION(AFNI_BUILD_LOCAL_NIFTICLIBS
        "Build and use AFNI's local copy of the NIfTI libs"
@@ -67,11 +66,18 @@ SET(AFNI_INSTALL_ATLAS_DIR "atlases" CACHE PATH
 SET(AFNI_SHOWOFF "${CMAKE_SYSTEM}" CACHE STRING
     "Identify this build of AFNI (no blanks)")
 
+
+## Needed for correct linking when installing.
+## see https://gitlab.kitware.com/cmake/community/wikis/doc/cmake/RPATH-handling
+SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/bin")
+
+
 # main sources
 ADD_SUBDIRECTORY(src)
 
 IF(AFNI_BUILD_TESTS)
   ENABLE_TESTING()
   ADD_SUBDIRECTORY(tests)
+
 ENDIF(AFNI_BUILD_TESTS)
 
