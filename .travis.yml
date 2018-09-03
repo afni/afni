@@ -1,25 +1,13 @@
+sudo: required
+
 language: c
-cache:
-    - apt
-    - ccache
-env:
- global:
-    - FLAVOR=linux_ubuntu_12_64
+
+services:
+  - docker
+
 before_install:
-    # install build-dependencies as the doc says
-    - sudo sh src/other_builds/OS_notes.$FLAVOR
-    # install packages needed for testing
-    - sudo apt-get install xvfb xauth libgl1-mesa-dri mesa-utils tcsh libjpeg-progs
-install:
-    - cd src
-    - cp other_builds/Makefile.$FLAVOR Makefile
-    - make vastness
+  - docker build -t timdanaos/afni .
+
 script:
-    # to gain access to built binaries, include path first
-    # (otherwise the wrong `count` binary may be used in the tests)
-    - export PATH=$PWD/$FLAVOR:$PATH
-    - mkdir ../testing; cd ../testing # from here will run tests
-    - cmake -DAFNI_BUILD_TESTS:BOOL=ON ..
-    - ctest --verbose
-    # Smoke tests for some additional commands
-    - 3dinfo
+  - docker run -v $PWD:/afni -ti --rm ndebian_afni bash -c '. /afni/tests/xvfb-driver -- afni -com "OPEN_WINDOW axialimage; SAVE_JPEG axialimage test1; QUIT"'
+  - docker run -v $PWD:/afni -ti --rm ndebian_afni bash -c '. /afni/tests/xvfb-driver -- 3dinfo'
