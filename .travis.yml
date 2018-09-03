@@ -11,7 +11,7 @@ before_install:
     # install packages needed for testing
     - sudo apt-get install xvfb xauth libgl1-mesa-dri mesa-utils tcsh libjpeg-progs
 install:
-    - mkdir build;cd build;cmake ..; make -j 10 install
+    - mkdir build;cd build;cmake ..; make -j 10
 script:
     # to gain access to built binaries, include path first
     # (otherwise the wrong `count` binary may be used in the tests)
