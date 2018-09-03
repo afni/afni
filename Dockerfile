@@ -36,5 +36,6 @@ ADD . /afni/
 RUN  mkdir -p /build
 WORKDIR /build
 RUN cmake ../afni 
-RUN make -j 20
+RUN make -j 20 install
+ENV LD_LIBRARY_PATH=/usr/local/bin
 
