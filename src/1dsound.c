@@ -1,6 +1,7 @@
 #include "mrilib.h"
 
 #include "cs_playsound.c"
+#include "despike_inc.c"
 
 #define SRATE 16000  /* sampling rate of output audio file */
 
@@ -81,13 +82,18 @@ void usage_1dsound(int detail)
      "                  you can only turn the ADSR envelope off.\n"
 #endif
      "\n"
+     " -despike     = apply a simple despiking algorithm, to avoid the artifact\n"
+     "                of one very large or small value making all the other notes\n"
+     "                end up being the same.\n"
+     "\n"
      " ===== Notes about notes =====\n"
      "\n"
      " ** At this time, the default production method is '-notes',      **\n"
      " **               using the triangle waveform (I like this best). **\n"
      "\n"
-     " ** With '-notes', up to 4 columns of the input file will be used **\n"
+     " ** With '-notes', up to 6 columns of the input file will be used **\n"
      " ** to produce a polyphonic sound (in a single channel).          **\n"
+     " ** (Any columns past the 6th in the input 'tsfile' are ignored.) **\n"
      "\n"
      " ===== hear the sound right away! =====\n"
      "\n"
@@ -148,9 +154,9 @@ void usage_1dsound(int detail)
      "\n"
      "* The audio output file is sampled at 16K bytes per second.\n"
      "  For example, a 30 second file will be 960K bytes in size,\n"
-     "  at 16 bits per sample [the default].\n"
+     "  at 16 bits per sample.\n"
      "\n"
-     "* The -FM auditory effect varies significantly with the '-tper'\n"
+     "* The auditory effect varies significantly with the '-tper'\n"
      "  parameter X; '-tper 0.02' is very different than '-tper 0.4'.\n"
      "\n"
      "--- Quick hack for experimentation and fun - RWCox - Aug 2018 ---\n"
@@ -181,6 +187,7 @@ int main( int argc , char *argv[] )
    int do_play=0 ;
    float tper=0.2f ; int nsper ;
    int opcode = CODE_NOTES ;
+   int do_despike = 0 ;
 
    /*---------- find a sound playing program ----------*/
 
@@ -242,6 +249,12 @@ int main( int argc , char *argv[] )
          do_play = 1 ;
        }
        iarg++ ; continue ;
+     }
+
+     /*-----*/
+
+     if( strcasecmp(argv[iarg],"-despike") == 0 ){
+       do_despike = 1 ; iarg++ ; continue ;
      }
 
      /*-----*/
@@ -317,6 +330,18 @@ int main( int argc , char *argv[] )
    if( inim == NULL )
      ERROR_exit("Can't read input file '%s' iarg=%d\n",argv[iarg],iarg) ;
 
+   if( do_despike ){
+     int nx = inim->nx, ny = inim->ny, jj , nspike=0 ;
+     float *iar = MRI_FLOAT_PTR(inim), *far ;
+     if( ny > 6 ) ny = 6 ;
+     for( jj=0 ; jj < ny ; jj++ ){
+       nspike += DES_despike25( nx , iar+jj*nx , NULL ) ;
+     }
+     INFO_message( "%d spike%s squashed from %d input column%s" ,
+                   nspike , (nspike!=1)?"s were":" was" ,
+                   ny     , (ny    !=1)?"s"     :"\n"    ) ;
+   }
+
    /*-- samples per time point --*/
 
    nsper = (int)rintf( SRATE * tper ) ;
@@ -334,7 +359,7 @@ int main( int argc , char *argv[] )
 
      default:
      case CODE_NOTES:
-       phim = mri_sound_1D_to_notes( inim , SRATE , nsper , 4,0,0 ) ;
+       phim = mri_sound_1D_to_notes( inim , SRATE , nsper , 6,0,0 ) ;
        if( phim == NULL )
          ERROR_exit("mri_sound_1D_to_notes fails") ;
      break ;
