@@ -5,7 +5,8 @@ static byte mulaw( float x ) ; /* prototype for mu-law conversion */
 #undef  DEFAULT_SRATE
 #define DEFAULT_SRATE 16000
 
-#include "cs_sounds.h"         /* in Audio subdirectory */
+                               /* get specific sound recordings */
+#include "cs_sounds.h"         /* stored in Audio subdirectory */
 
 /*--------------------------------------------------------------------------*/
 /*---------- find a sound playing program ----------*/
@@ -795,13 +796,13 @@ MRI_IMAGE * mri_sound_1D_to_notes( MRI_IMAGE *imin, int srate, int nsper,
    bb    = MRI_FLOAT_PTR(imout) ;  /* is full of zeros */
 
    sound_setup_penta(1) ; /* skip octave 0 -- it's too low */
-   reset_note_ttn() ;     /* re-start time at 0 */
 
    valn = (float *)malloc(sizeof(float)*nsper) ; /* notes */
 
    for( qq=0 ; qq < ny ; qq++ ){  /* process first ny columns */
      qa = aa + (nn*qq) ;          /* add their sounds all up */
      abot = atop = qa[ignore] ;
+     reset_note_ttn() ;           /* re-start time at 0 */
      for( ii=ignore+1 ; ii < nn ; ii++ ){
              if( qa[ii] < abot ) abot = qa[ii] ;
         else if( qa[ii] > atop ) atop = qa[ii] ;
