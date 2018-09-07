@@ -47,7 +47,9 @@ static int DES_despike9( int num , float *vec , float *wks )
 
    if( num < 9 || vec == NULL ) return 0 ;
 
-   zme = wks ; zma = zme + num ;
+   if( wks != NULL ) zme = wks ;
+   else              zme = (float *)malloc(sizeof(float)*(2*num)) ;
+   zma = zme + num ;
 
    for( ii=0 ; ii < num ; ii++ ){
      mead9(ii) ; zme[ii] = med ; zma[ii] = mad ;
@@ -59,6 +61,7 @@ static int DES_despike9( int num , float *vec , float *wks )
    for( nsp=ii=0 ; ii < num ; ii++ )
      if( fabsf(vec[ii]-zme[ii]) > mad ){ vec[ii] = zme[ii]; nsp++; }
 
+   if( wks == NULL ) free(zme) ;
    return nsp ;
 }
 #undef mead9
@@ -123,7 +126,9 @@ static int DES_despike25( int num , float *vec , float *wks )
    if( vec == NULL ) return 0 ;
    if( num <  25   ) return DES_despike9(num,vec,wks) ;
 
-   zme = wks ; zma = zme + num ;
+   if( wks != NULL ) zme = wks ;
+   else              zme = (float *)malloc(sizeof(float)*(2*num)) ;
+   zma = zme + num ;
 
    for( ii=0 ; ii < num ; ii++ ){
      mead25(ii) ; zme[ii] = med ; zma[ii] = mad ;
@@ -135,6 +140,7 @@ static int DES_despike25( int num , float *vec , float *wks )
    for( nsp=ii=0 ; ii < num ; ii++ )
      if( fabsf(vec[ii]-zme[ii]) > mad ){ vec[ii] = zme[ii]; nsp++; }
 
+   if( wks == NULL ) free(zme) ;
    return nsp ;
 }
 #undef mead25

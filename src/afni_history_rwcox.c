@@ -44,6 +44,15 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 31 , AUG , 2018 , RWC , "1D file input" , MICRO , TYPE_ENHANCE ,
+   "mri_read_1D() now reads 3D: format files" ,
+   "This allows input of 'raw' data files into 1dplot, 1dcat, etc. Mostly\n"
+   "useful for converting raw binary data files to text via 1dcat." } ,
+
+ { 30 , AUG , 2018 , RWC , "1dsound" , MICRO , TYPE_ENHANCE ,
+   "Default sound output is now 16-bit (less hiss than 8-bit)" ,
+   NULL } ,
+
  { 27 , AUG , 2018 , RWC , "1dsound and AFNI GUI" , MINOR , TYPE_MODIFY ,
    "modify sound output" ,
    "1dsound now can make sound from up to 4 columns from input file.\n"

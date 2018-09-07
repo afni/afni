@@ -1,9 +1,12 @@
 #include "mrilib.h"
 
-static byte mulaw( float x ) ; /* prototype */
+static byte mulaw( float x ) ; /* prototype for mu-law conversion */
 
 #undef  DEFAULT_SRATE
 #define DEFAULT_SRATE 16000
+
+                               /* get specific sound recordings */
+#include "cs_sounds.h"         /* stored in Audio subdirectory */
 
 /*--------------------------------------------------------------------------*/
 /*---------- find a sound playing program ----------*/
@@ -15,13 +18,19 @@ static char *pprog_name = NULL ;
 char * get_sound_player(void)
 {
    if( found_pprog < 0 ){
-       pprog = THD_find_executable("play") ;      /* sox */
-     if( pprog == NULL )
-       pprog = THD_find_executable("afplay") ;    /* OS X */
-     if( pprog == NULL )
-       pprog = THD_find_executable("mplayer") ;   /* Linux */
-     if( pprog == NULL )
-       pprog = THD_find_executable("aplay") ;     /* Linux */
+     char *eee ;
+     eee = getenv("AFNI_SOUND_PLAYER") ;
+     if( eee != NULL || THD_is_executable(eee) ){
+       pprog = strdup(eee) ;
+     } else {
+         pprog = THD_find_executable("play") ;      /* sox */
+       if( pprog == NULL )
+         pprog = THD_find_executable("afplay") ;    /* OS X */
+       if( pprog == NULL )
+         pprog = THD_find_executable("mplayer") ;   /* Linux or Mac */
+       if( pprog == NULL )
+         pprog = THD_find_executable("aplay") ;     /* Linux */
+     }
 
      found_pprog = (pprog != NULL) ;
      if( found_pprog ) pprog_name = THD_trailname(pprog,0) ;
@@ -165,13 +174,13 @@ void mri_play_sound( MRI_IMAGE *imin , int ignore )
        :                    0.10f ;
    nsper = (int)rintf(DEFAULT_SRATE*dt) ;
 
-   qim = mri_sound_1D_to_notes( imin , DEFAULT_SRATE , nsper , 4 , ignore ) ;
+   qim = mri_sound_1D_to_notes( imin , DEFAULT_SRATE , nsper , 4 , ignore , 0 ) ;
    if( qim == NULL ) _exit(0) ;
 
    pre = UNIQ_idcode_11() ;  /* make up name for sound file */
    sprintf(fname,"AFNI_SOUND_TEMP.%s.au",pre) ;
    unlink(fname) ;           /* remove sound file, in case it already exists */
-   sound_write_au_ulaw( fname, qim->nx, MRI_FLOAT_PTR(qim), DEFAULT_SRATE, 0.1f ) ;
+   sound_write_au_16PCM( fname, qim->nx, MRI_FLOAT_PTR(qim), DEFAULT_SRATE, 0.1f ) ;
    extras[0] = '\0' ;
    if( strcmp(pprog_name,"play") == 0 )
      strcat(extras," reverb 33") ;
@@ -255,6 +264,22 @@ static uint32_t INLINE swap_fourby( uint32_t ii )
    qf.ff.b = qf.ff.c ;
    qf.ff.c = tt ;
    return qf.qq ;
+}
+
+typedef struct { unsigned char a,b ; } twoby ;
+
+static void swap_twobyar( int n , void *ar )
+{
+   int ii ;
+   twoby *tb = (twoby *)ar ;
+   unsigned char tt ;
+
+   for( ii=0 ; ii < n ; ii++ ){
+     tt       = tb[ii].a ;
+     tb[ii].a = tb[ii].b ;
+     tb[ii].b = tt ;
+   }
+   return ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -380,6 +405,61 @@ void sound_write_au_8PCM( char *fname, int nn, float *aa, int srate, float scl )
               ( val >  127.0f ) ?  127 : (int8_t)rintf(val) ;
    }
    fwrite( bb , 1 , nn , fp ) ;
+
+   /* done done done */
+
+   fclose(fp) ;
+   free(bb) ;
+   return ;
+}
+
+/*---------------------------------------------------------------------------*/
+/* samples in aa[] are between -1 and 1.
+   sample rate (per second) is in srate.
+   scl is a scale down factor (0 < scl <= 1).
+*//*-------------------------------------------------------------------------*/
+
+void sound_write_au_16PCM( char *fname, int nn, float *aa, int srate, float scl )
+{
+   FILE *fp ;
+   uint32_t ival , jval ;
+   int16_t *bb ;
+   int ii ; float fac , val ;
+
+   /* check inputs */
+
+   if( fname == NULL || nn < 2 || aa == NULL ){
+     ERROR_message("Illegal inputs to sound_write_au :(") ;
+     return ;
+   }
+
+   if( srate < 8000 ) srate = DEFAULT_SRATE ;
+   if( scl   < 0.0f || scl > 1.0f ) scl = 1.0f ;
+
+   /* open output file */
+
+   fp = fopen( fname , "w" ) ;
+   if( fp == NULL ){
+     ERROR_message("Can't open audio output file '%s'",fname) ;
+     return ;
+   }
+
+   /* write .au file header */
+
+   sound_write_au_header( fp , 2*nn , srate , 3 ) ;
+
+   /* convert and write data */
+
+   bb  = (int16_t *)malloc(sizeof(int16_t)*nn) ;
+   fac = 32767.444f * scl ;
+   for( ii=0 ; ii < nn ; ii++ ){
+     val = fac*aa[ii] ;
+     bb[ii] = ( val < -32767.0f ) ? -32767 :
+              ( val >  32767.0f ) ?  32767 : (int16_t)rintf(val) ;
+   }
+   if( little_endian ) swap_twobyar( nn , bb ) ;
+
+   fwrite( bb , 2 , nn , fp ) ;
 
    /* done done done */
 
@@ -551,6 +631,16 @@ static INLINE float wav_h2sine(float t){
   return ( 0.953f*sinf(twoPI*t)+0.3f*cosf(fourPI*t) ) ;
 }
 
+static INLINE float wav_sqsine(float t){
+  float val = sinf(twoPI*t) , aval ;
+#if 1
+  aval = sqrtf(fabsf(val)) ;
+#else
+  aval = powf( fabsf(val) , 0.6f ) ;
+#endif
+  return ( (val >= 0.0f ) ?  aval : -aval ) ;
+}
+
 static INLINE float wav_square(float t){
   float dt = fmodf(t,1.0f) ;
   return ( (dt < 0.45f) ? 0.999f
@@ -590,6 +680,10 @@ void sound_set_note_ADSR(int qq){ use_ADSR = qq ; }
 /* Note that if frq >= 0.5*srate, bad things will happen due to Mr Nyquist!! */
 /*---------------------------------------------------------------------------*/
 
+static float ttn = 0.0f ;  /* continuous time between notes */
+
+static void reset_note_ttn(void){ ttn = 0.0f ; }
+
 void sound_make_note( float frq, int waveform, int srate, int nsam, float *sam )
 {
    int ii ; float dt,tt ;
@@ -598,7 +692,7 @@ void sound_make_note( float frq, int waveform, int srate, int nsam, float *sam )
 
    if( srate < 8000 ) srate = DEFAULT_SRATE ;
 
-   dt = frq / srate ; tt = 0.0f ;
+   dt = frq / srate ; tt = ttn ;
 
    /* form periodic waveform */
 
@@ -621,13 +715,26 @@ void sound_make_note( float frq, int waveform, int srate, int nsam, float *sam )
        for( ii=0 ; ii < nsam ; ii++ ){ sam[ii] = wav_h2sine(tt); tt += dt; }
      break ;
 
+     case SOUND_WAVEFORM_SQSINE:
+       for( ii=0 ; ii < nsam ; ii++ ){ sam[ii] = wav_sqsine(tt); tt += dt; }
+     break ;
+
    }
+
+   ttn = tt ;  /* continuous time between notes */
 
    /* apply envelope (if note has enough samples) */
 
    if( nsam > 127 && use_ADSR ){
      dt = 1.0f/nsam ; tt= 0.0f ;
      for( ii=0 ; ii < nsam ; ii++ ){ sam[ii] *= ADSR_env(tt); tt += dt; }
+   } else if( nsam > 24 ){
+#if 0
+     float fac ;
+     for( ii=0 ; ii < 9 ; ii++ ){
+       fac = (ii+1)*0.1f ; sam[ii] *= fac ; sam[nsam-1-ii] *= fac ;
+     }
+#endif
    }
 
    return ;
@@ -635,13 +742,17 @@ void sound_make_note( float frq, int waveform, int srate, int nsam, float *sam )
 
 /*---------------------------------------------------------------------------*/
 
-MRI_IMAGE * mri_sound_1D_to_notes( MRI_IMAGE *imin,
-                                   int srate, int nsper, int ny, int ignore )
+#define VAL_TO_CODE(v) ((int)rintf((v)-SOUND_WAVECODE_BASE))
+
+MRI_IMAGE * mri_sound_1D_to_notes( MRI_IMAGE *imin, int srate, int nsper,
+                                   int ny, int ignore, int use_wavecodes )
 {
    float *aa,*bb,*qa ;
    float abot,atop , fac , *valn ;
    int nout , ii,jj , nn , qq ;
    MRI_IMAGE *imout , *qim ;
+   int max_wavecode=0 ;
+   int ncode=0 , nsamcode=0 ;
 
    /*--- deal with inputs ---*/
 
@@ -668,6 +779,16 @@ MRI_IMAGE * mri_sound_1D_to_notes( MRI_IMAGE *imin,
    if( srate < 8000 ) srate = DEFAULT_SRATE ;
    if( nsper <= 9   ) nsper = srate/2 ;
 
+   /*-- check for wavecodes embedded in the data --*/
+
+   if( use_wavecodes ){
+     max_wavecode  = get_num_sound_waveforms() ;
+     use_wavecodes = max_wavecode > 0 ;
+   }
+
+   if( use_wavecodes ){
+   }
+
    /*-- create output ---*/
 
    nout  = nsper * (nn-ignore) ;
@@ -681,6 +802,7 @@ MRI_IMAGE * mri_sound_1D_to_notes( MRI_IMAGE *imin,
    for( qq=0 ; qq < ny ; qq++ ){  /* process first ny columns */
      qa = aa + (nn*qq) ;          /* add their sounds all up */
      abot = atop = qa[ignore] ;
+     reset_note_ttn() ;           /* re-start time at 0 */
      for( ii=ignore+1 ; ii < nn ; ii++ ){
              if( qa[ii] < abot ) abot = qa[ii] ;
         else if( qa[ii] > atop ) atop = qa[ii] ;
@@ -698,9 +820,10 @@ MRI_IMAGE * mri_sound_1D_to_notes( MRI_IMAGE *imin,
 
    abot = mri_maxabs(imout) ;
    if( abot == 0.0f ){  /* nothing computed? do something random! */
-     for( ii=0 ; ii < nn ; ii++ ){
+     for( ii=ignore ; ii < nn ; ii++ ){
        jj = lrand48() % npenta ;
-       sound_make_note( penta[jj], note_waveform, srate, nsper, bb+(ii*nsper) ) ;
+       sound_make_note( penta[jj], note_waveform,
+                        srate, nsper, bb+((ii-ignore)*nsper) ) ;
      }
    }
 

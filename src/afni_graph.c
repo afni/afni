@@ -3910,11 +3910,11 @@ STATUS(str); }
                  grapher->fdw_graph , msg , MCW_USER_KILL | MCW_TIMER_KILL ) ;  \
  } } while(0)
 
-#define PRINT_SOUND_INFO_MESSAGE                                                             \
- do{ if( first_sound ){                                                                      \
+#define PRINT_SOUND_INFO_MESSAGE                                                           \
+ do{ if( first_sound ){                                                                     \
          INFO_message("Use K keypress to kill playing sounds:") ;                            \
-       ININFO_message(" will leave sound file named AFNI_SOUND_TEMP.something.au on disk;"); \
-       ININFO_message(" you will have to delete such files manually :(") ;                   \
+       ININFO_message(" might leave sound file named AFNI_SOUND_TEMP.something.au on disk;"); \
+       ININFO_message(" if so, you will have to delete such files manually :(") ;             \
  } } while(0)
 
       case 'p':                             /* play sound [20 Aug 2018] */

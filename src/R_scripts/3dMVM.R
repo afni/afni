@@ -32,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to 3dMVM ~1~
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.9.4, Dec 21, 2016
+Version 4.0.0, Sept 5, 2018
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -274,6 +274,13 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    "         across factor levels at the center value of each covariate.\n", sep = '\n'
                      ) ),
 
+      '-resid' = apl(n = 1, d = NA,  h = paste(
+   "-resid PREFIX: Output file name for the residuals. For AFNI format, provide",
+   "         prefix only without view+suffix. Filename for NIfTI format should",
+   "         have .nii attached, while file name for surface data is expected",
+   "         to end with .niml.dset.\n", sep = '\n'
+                     ) ),       
+   
       '-mask' = apl(n=1,  d = NA, h = paste(
    "-mask MASK: Process voxels inside this mask only.\n",
    "         Default is no masking.\n"
@@ -520,9 +527,10 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    "-gltCode k CODING: Specify the k-th general linear t-test (GLT) through a",
    "         weighted combination among factor levels. The symbolic coding has",
    "         to be within (single or double) quotes. For example, the following",
-   "         'Condition : 2*House -3*Face Emotion : 1*positive '",
-   "         requests for a test of comparing 2 times House condition",
-   "         with 3 times Face condition while Emotion is held at positive",
+   "         'Group : 1*A -1*B & 1*A -1*C' tests the main effect across the 3",
+   "         groups A, B, and C. Important Note: this option is only valid for",
+   "         a hypothesis that involves between-subjects variables. For an F-test",
+   "         involving a within-subject variable, use -glfCode with 3dLME instead.\n",
    "         valence.\n",
    "         NOTE:\n",
    "         1) The weights for a variable do not have to add up to 0.\n",   
@@ -597,6 +605,8 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    "         4) The context of the table can be saved as a separate file, e.g.,",
    "         called table.txt. Do not forget to include a backslash at the end of",
    "         each row. In the script specify the data with '-dataTable @table.txt'.",
+   "         Do NOT put any quotes around the square brackets for each sub-brick!",
+   "         Otherwise, the program cannot properly read the files for some reason.",
    "         This option is useful: (a) when there are many input files so that",
    "         the program complains with an 'Arg list too long' error; (b) when",
    "         you want to try different models with the same dataset (see 3) above).\n",
@@ -668,6 +678,7 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
       opname <- opname[length(opname)];
       switch(opname,
              prefix = lop$outFN  <- pprefix.AFNI.name(ops[[i]]),
+             resid  = lop$resid  <- pprefix.AFNI.name(ops[[i]]),
              mask = lop$maskFN <- ops[[i]],
              jobs   = lop$nNodes <- ops[[i]],
              verb = lop$verb  <- ops[[i]],
@@ -809,6 +820,24 @@ process.MVM.opts <- function (lop, verb = 0) {
    if(an$type != 'BRIK' && lop$iometh != 'clib') 
       errex.AFNI(c('Must of use -cio option with any input/output ',
                    'format other than BRIK'))
+
+   if(!is.null(lop$resid)) {
+      an2 <- parse.AFNI.name(lop$resid)
+      if(an2$type == "NIML") {
+         if(file.exists(lop$resid)) errex.AFNI(c("File ", lop$resid, " exists! Try a different name.\n"))
+      } else if(file.exists(paste(lop$resid,"+tlrc.HEAD", sep="")) || 
+        file.exists(paste(lop$resid,"+tlrc.BRIK", sep="")) || 
+        file.exists(paste(lop$resid,"+orig.HEAD", sep="")) || 
+        file.exists(paste(lop$resid,"+orig.BRIK", sep=""))) {
+        errex.AFNI(c("File ", lop$resid, " exists! Try a different name.\n"))
+        return(NULL)
+      }  
+      #Make sure new io must be used with anything but BRIK format
+      #an <- parse.AFNI.name(lop$resid)
+      if(an2$type != 'BRIK' && lop$iometh != 'clib') 
+          errex.AFNI(c('Must of use -cio option with any input/output ',
+                       'format other than BRIK'))   
+   }  
 
    if(!is.na(lop$qVars[1])) lop$QV <- strsplit(lop$qVars, '\\,')[[1]]
    if(!is.null(lop$vVars[1])) lop$vQV <- strsplit(lop$vVars, '\\,')[[1]]
@@ -962,8 +991,10 @@ process.MVM.opts <- function (lop, verb = 0) {
    #   }
    #}
  
-   if(lop$iometh == 'Rlib') 
-      lop$outFN <- paste(lop$outFN, "+tlrc", sep="") else {
+   if(lop$iometh == 'Rlib') {
+      lop$outFN <- paste(lop$outFN, "+tlrc", sep="")
+      if(!is.null(lop$resid)) lop$resid <- paste(lop$resid, "+tlrc", sep="") 
+   } else {
       an <- parse.AFNI.name(lop$outFN)
       if(an$type == "BRIK" && an$ext == "" && is.na(an$view))
          lop$outFN <- paste(lop$outFN, "+tlrc", sep="")      
@@ -971,6 +1002,13 @@ process.MVM.opts <- function (lop, verb = 0) {
             exists.AFNI.name(lop$outFN) || 
             exists.AFNI.name(modify.AFNI.name(lop$outFN,"view","+tlrc"))))
          errex.AFNI(c("File ", lop$outFN, " exists! Try a different name.\n"))
+      if(!is.null(lop$resid)) {  
+         if(an2$type == "BRIK" && an2$ext == "" && is.na(an2$view))
+            lop$resid <- paste(lop$resid, "+tlrc", sep="")      
+         if (exists.AFNI.name(lop$resid) || 
+             exists.AFNI.name(modify.AFNI.name(lop$resid,"view","+tlrc")))
+             errex.AFNI(c("File ", lop$resid, " exists! Try a different name.\n"))
+      }      
    }
 
    if(lop$nNodes < 1) lop$nNodes <- 1
@@ -1074,6 +1112,7 @@ mvCom5 <- function(fm, nF_mvE5) {
                                                 
 runAOV <- function(inData, dataframe, ModelForm) {
    out <- lop$outInit
+   if(!is.null(lop$resid)) residout <- rep(0, length(inData))
    options(warn = -1)
    if (!all(abs(inData) < 10e-8)) {       
       dataframe$Beta<-inData[1:lop$NoFile]
@@ -1208,9 +1247,10 @@ runAOV <- function(inData, dataframe, ModelForm) {
                out[lop$nF+lop$GES*lop$nFu+2*lop$num_glt+ii] <- glfRes$F[2] else
                tryCatch(out[lop$nF+lop$GES*lop$nFu+2*lop$num_glt+ii] <- maov(glfRes$SSPE, glfRes$SSPH, glfRes$df, glfRes$df.residual)[2], error=function(e) NULL)
          } #if(pars[[3]]>=1) for(ii in 1:pars[[3]])
-            
+         if(!is.null(lop$resid)) residout <- as.vector(t(unname(residuals(fm$lm))))  
       } # if(!is.null(fm))
    } # if (!all(abs(inData) < 10e-8))
+   if(!is.null(lop$resid)) out <- c(out, residout)
    return(out)
 }
 # covariates=pars[[6]][7], adjustment="none", idata = fm[["idata"]]), error=function(e) NULL) else
@@ -1775,7 +1815,7 @@ if(dimy == 1 & dimz == 1) {
    # pad with extra 0s
    inData <- rbind(inData, array(0, dim=c(fill, lop$NoFile)))
    # declare output receiver
-   out <- array(0, dim=c(dimx_n, nSeg, NoBrick))
+   out <- array(0, dim=c(dimx_n, nSeg, NoBrick+(!is.null(lop$resid))*nrow(lop$dataStr)))
    # break input multiple segments for parrel computation
    # test runAOV(inData[ii,kk,], dataframe=lop$dataStr, ModelForm=ModelForm)
    dim(inData) <- c(dimx_n, nSeg, lop$NoFile)
@@ -1807,13 +1847,13 @@ if(dimy == 1 & dimz == 1) {
    stopCluster(cl)
    }
    # convert to 4D
-   dim(out) <- c(dimx_n*nSeg, 1, 1, NoBrick)
+   dim(out) <- c(dimx_n*nSeg, 1, 1, NoBrick+(!is.null(lop$resid))*nrow(lop$dataStr))
    # remove the trailers (padded 0s)
    out <- out[-c((dimx_n*nSeg-fill+1):(dimx_n*nSeg)), 1, 1,,drop=F]
 } else {
 
 # Initialization
-out <- array(0, dim=c(dimx, dimy, dimz, NoBrick))
+out <- array(0, dim=c(dimx, dimy, dimz, NoBrick+(!is.null(lop$resid))*nrow(lop$dataStr)))
 
 # set up a voxel @ ii jj kk to test
 #runAOV(inData[ii, jj, kk,], dataframe=lop$dataStr, ModelForm=ModelForm)
@@ -1888,6 +1928,10 @@ write.AFNI(lop$outFN, out, brickNames, defhead=head, idcode=newid.AFNI(),
    com_hist=lop$com_history, statsym=statsym, addFDR=1, type='MRI_short',
    overwrite=lop$overwrite)
 
+if(!is.null(lop$resid))
+   write.AFNI(lop$resid, out[,,,(NoBrick+1):(NoBrick+(!is.null(lop$resid))*nrow(lop$dataStr)), drop=FALSE],
+      label=NULL, defhead=head, idcode=newid.AFNI(), com_hist=lop$com_history, type='MRI_short')    
+    
 cat("\nCongratulations! You have got an output ", lop$outFN, ".\n\n", sep='')
 
 } else { # if(is.numeric(lop$dataStr[, FileCol])): the last column is values instead of input file names
