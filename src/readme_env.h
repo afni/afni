@@ -2156,6 +2156,18 @@ static char *readme_env[] = {
    "a) and b) above must be true. On a Mac, you can install 'sox'\n" ,
    "using the 'brew' package (e.g.).\n" ,
    "\n" ,
+   "---------------------------\n" ,
+   "Variable: AFNI_SOUND_PLAYER\n" ,
+   "---------------------------\n" ,
+   "The 'p' and 'P' keys in the AFNI graph viewer can be used to generate\n" ,
+   "sound from the graph data time series. However, AFNI itself does not\n" ,
+   "play sound - it uses an external player program. By default, AFNI can\n" ,
+   "use any one of these programs:\n" ,
+   "  play (part of sox) ; afplay (Mac) ; mplayer ; aplay (Linux)\n" ,
+   "and it will search your path to find one of these (in that order).\n" ,
+   "If you have some other player program you want to use, you can provide\n" ,
+   "the full path to that program in this variable, as in '/usr/bin/afplay'.\n" ,
+   "\n" ,
    "-----------------------------\n" ,
    "Variable: AFNI_STARTUP_SCRIPT\n" ,
    "-----------------------------\n" ,
@@ -4314,4 +4326,4 @@ static char *readme_env[] = {
    "If set to YES, enable distance measures that are not ready for prime\n" ,
    "time in the instacorr interface.\n" ,
    NULL } ;
-#define NUM_readme_env 4313
+#define NUM_readme_env 4325
