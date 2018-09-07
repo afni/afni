@@ -4,8 +4,7 @@
 **AFNI Bootcamp Lecture Recordings**
 ************************************
 
-.. contents::
-   :depth: 3
+.. contents:: :local:
 
 ******IN PROGRESS!*******
 

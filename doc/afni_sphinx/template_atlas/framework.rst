@@ -7,8 +7,7 @@
 A brief overview and description of how AFNI handles atlases,
 templates, spaces and transformations.
 
-.. contents::
-   :depth: 3
+.. contents:: :local:
 
 Atlases and AFNI
 ----------------

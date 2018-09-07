@@ -8,8 +8,7 @@ A brief description of the special multi-volume datasets used as a
 reference for the program ``@SSwarper``, which both skull-strips
 and generates a nonlinear warp to a reference template space.
 
-.. contents::
-   :depth: 3
+.. contents:: :local:
 
 @SSwarper
 ---------

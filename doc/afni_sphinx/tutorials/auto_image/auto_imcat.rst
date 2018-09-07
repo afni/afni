@@ -4,8 +4,7 @@
 Using imcat
 ***********
 
-.. contents::
-   :depth: 3
+.. contents:: :local:
 
 .. highlight:: Tcsh
 

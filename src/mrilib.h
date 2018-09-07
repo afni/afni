@@ -2410,6 +2410,8 @@ extern void sound_write_au_header( FILE *fp, int nn, int srate, int code ) ;
 extern void sound_write_au_ulaw( char *fname, int nn, float *aa, int srate, float scl ) ;
 extern void sound_write_au_8PCM( char *fname, int nn, float *aa, int srate, float scl ) ;
 
+extern void sound_write_au_16PCM( char *fname, int nn, float *aa, int srate, float scl ) ;
+
 extern MRI_IMAGE * mri_sound_1D_to_FM( MRI_IMAGE *imin,
                                        float fbot, float ftop, int srate, int nsper ) ;
 
@@ -2419,11 +2421,14 @@ extern void kill_sound_players(void) ;
 #define SOUND_WAVEFORM_SQUARE   2
 #define SOUND_WAVEFORM_TRIANGLE 3
 #define SOUND_WAVEFORM_H2SINE   4
+#define SOUND_WAVEFORM_SQSINE   5
+
+#define SOUND_WAVECODE_BASE     1048576.0f
 
 extern void sound_set_note_waveform( int nn ) ;
 extern void sound_make_note( float frq, int waveform, int srate, int nsam, float *sam ) ;
-extern MRI_IMAGE * mri_sound_1D_to_notes( MRI_IMAGE *imin,
-                                          int srate, int nsper, int ny, int ignore ) ;
+extern MRI_IMAGE * mri_sound_1D_to_notes( MRI_IMAGE *imin, int srate, int nsper,
+                                          int ny, int ignore , int use_wavecodes ) ;
 
 /*----------------------------------------------------------------------------*/
 

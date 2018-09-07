@@ -9,8 +9,7 @@
              important to understand and deal with (hopefully just
              once at the beginning of a study).
 
-.. contents::
-   :depth: 3
+.. contents:: :local:
 
 Overview
 ========

@@ -5,10 +5,7 @@
 **(Useful) Outside lectures**
 *****************************
 
-.. contents::
-   :depth: 3
-
-******IN PROGRESS!*******
+.. contents:: :local:
 
 Overview
 ========
@@ -21,6 +18,20 @@ other groups and kindly provided for public dissemination.
 *Note: The views and opinions expressed in videos linked here are
 those of the authors and do not necessarily reflect the official
 policy or position of AFNI-Land.*
+
+|
+
+Other AFNI Bootcamp recordings
+==============================
+
+* **May, 2018 (MIT):** Here are some video recordings from an AFNI
+  Bootcamp at MIT in May/June, 2018:
+
+  `<https://cbmm.mit.edu/afni>`_
+
+  Thanks to the Center for Brains, Minds and Machines, and to
+  Frederico Azevedo and in particular, for hosting and organizing
+  it. Thanks also to Kris Brewer for coordinating the videos.
 
 |
 

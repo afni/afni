@@ -1018,6 +1018,8 @@ static int fill_computed_farray(float * ts, int tslen, THD_3dim_dataset * dset,
       return 1;
    }
 
+
+   /* at each time point, take dot product of mask and gaussian grid */
    for( tind = 0; tind < tslen; tind++ ) {
       mptr = DBLK_ARRAY(dset->dblk, tind);
       eptr = sexpgrid;
@@ -1037,7 +1039,7 @@ static int fill_computed_farray(float * ts, int tslen, THD_3dim_dataset * dset,
       ts[tind] = A * sum;
    }
 
-   /* if requested, write this 2D image (one time only) */
+   /* if requested, write this 2D gaussian image (one time only) */
    if( genv_gauss_file ) {
       char hist[256];
       sprintf(hist, "\n   == %s\n   x = %g, y = %g, "
@@ -1261,7 +1263,7 @@ static int model_help(void)
 "                      2sigma_x^2       2sigma_y^2\n"
 "\n"
 "                       sin(2theta)     sin(2theta)\n"
-"                 B =   -----------  -  -----------\n   (signs mean CCW rot)"
+"                 B =   -----------  -  -----------     (signs mean CCW rot)\n"
 "                       4sigma_x^2      4sigma_y^2\n"
 "\n"
 "                     sin^2(theta)     cox^2(theta)\n"

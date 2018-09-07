@@ -4,8 +4,7 @@
 Preproc: TORTOISE
 =================
 
-.. contents::
-   :depth: 3
+.. contents:: :local:
 
 .. highlight:: Tcsh
 

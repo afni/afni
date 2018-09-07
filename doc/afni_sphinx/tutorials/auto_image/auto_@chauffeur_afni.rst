@@ -4,8 +4,7 @@
 Using @chauffeur_afni
 *********************
 
-.. contents::
-   :depth: 3
+.. contents:: :local:
 
 .. highlight:: Tcsh
 

@@ -4,8 +4,7 @@
 Preproc: FreeSurfer (+ @SUMA_Make_Spec_FS)
 ==================================================
 
-.. contents::
-   :depth: 3
+.. contents:: :local:
 
 .. highlight:: Tcsh
 

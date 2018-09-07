@@ -3,8 +3,7 @@
 General fat_proc script properties
 ==================================
 
-.. contents::
-   :depth: 3
+.. contents:: :local:
 
 Specifying output location and prefix
 -------------------------------------

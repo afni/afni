@@ -5,8 +5,7 @@
 **1dDW_Grad_o_Mat++: dealing with DW gradients**
 ************************************************
 
-.. contents::
-   :depth: 3
+.. contents:: :local:
 
 Overview
 ========
