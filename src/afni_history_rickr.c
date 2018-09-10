@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10, Sep, 2018, RCR, "Makefile.INCLUDE", MICRO, TYPE_BUG_FIX,
+   "add (copy of) Audio directory to afni_src.tgz build target",
+   NULL
+ } ,
+
  { 22, Aug, 2018, RCR, "tedana_wrapper.py", MINOR, TYPE_MODIFY,
    "change exec_or_error() to use afni_util.py, which returns strings",
    "Thanks to J Gonzalez-Castillo for noting this python3 update."
