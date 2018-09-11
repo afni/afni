@@ -4,7 +4,6 @@ jobs:
     machine: true
     steps:
       - checkout
-      - run: docker build -t afni/afni:$CIRCLE_BUILD_NUM-${CIRCLE_SHA1:0:6} -f Dockerfile .
       - run: docker build -t afni/afni_dev:$CIRCLE_BUILD_NUM-${CIRCLE_SHA1:0:6} -f Dockerfile.dev .
       - run: docker run afni/afni_dev:$CIRCLE_BUILD_NUM-${CIRCLE_SHA1:0:6} afni_system_check.py -check_all
       - run:
@@ -13,6 +12,7 @@ jobs:
             if [ $DOCKER_USER == 'afni' ] 
             then
               docker login -u $DOCKER_USER -p $DOCKER_PASS
+              docker build -t afni/afni:$CIRCLE_BUILD_NUM-${CIRCLE_SHA1:0:6} -f Dockerfile .
               docker tag afni/afni_dev:$CIRCLE_BUILD_NUM-${CIRCLE_SHA1:0:6} afni/afni_dev:latest
               docker tag afni/afni:$CIRCLE_BUILD_NUM-${CIRCLE_SHA1:0:6} afni/afni:latest
               docker push afni/afni
