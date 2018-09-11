@@ -9,6 +9,7 @@ import sys, os, glob, subprocess, csv, re, argparse, signal, textwrap, json
 
 ## locations of stuff
 import afni_base, abids_lib
+from collections import OrderedDict
 
 ########################################################################
 ## parse command line arguments / build help
@@ -106,15 +107,15 @@ if '-list_fields' in arg_list and len(arg_list) > 1:
 for i in json_files:
 
     ## create the json_info object and a list to print
-    j = abids_lib.json_info(i)
+    j = abids_lib.json_info_dset(i)
     out_list = []
 
     ########################################################################
     ## print out all available fields from the json file
     if field_list:
+        j.dict = OrderedDict(j.dict)
         for key, value in j.dict.items():
             print(key)
-        print("")
         continue
 
     ########################################################################
