@@ -496,3 +496,21 @@ char * trailname( char *fname , int lev )
 
    return (fname+fpos) ;
 }
+
+/*--------------------------------------------------------------------------*/
+/*! Given an array of strings, determine how many are numbers [11 Sep 2018] */
+
+int NI_count_numbers( int nstr , char **str )
+{
+   int nnum=0 , ii ; double val ; char *cpt ;
+
+   if( nstr < 1 || str == NULL ) return nnum ;
+
+   for( ii=0 ; ii < nstr ; ii++ ){
+     if( str[ii] != NULL ){
+       val = strtod(str[ii],&cpt) ;
+       if( *cpt == '\0' || isspace(*cpt) ) nnum++ ;
+     }
+   }
+   return nnum ;
+}
