@@ -39,5 +39,6 @@ RUN make -f  Makefile.linux_ubuntu_16_64  afni_src.tgz \
     && cp Makefile.linux_ubuntu_16_64 Makefile
 WORKDIR /usr/afni_build_dir/src/afni_src
 # RUN make libmri.so
-RUN make itall && mv linux_ubuntu_16_64 /opt/abin && export PATH=/opt/abin:$PATH
+RUN make itall && mv linux_ubuntu_16_64 /opt/abin
+ENV PATH="/opt/abin:${PATH}"
 WORKDIR /opt/abin
