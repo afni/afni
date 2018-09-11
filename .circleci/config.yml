@@ -2,7 +2,6 @@ version: 2
 jobs:
   build:
     machine: true
-    parallelism: 2
     steps:
       - checkout
       - run: docker login -u $DOCKER_USER -p $DOCKER_PASS
