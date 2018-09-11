@@ -499,6 +499,8 @@ char * trailname( char *fname , int lev )
 
 /*--------------------------------------------------------------------------*/
 /*! Given an array of strings, determine how many are numbers [11 Sep 2018] */
+/*  (After conversion to floats, thd_floatscan() can be used to for fixups) */
+/*--------------------------------------------------------------------------*/
 
 int NI_count_numbers( int nstr , char **str )
 {
