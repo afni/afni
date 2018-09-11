@@ -211,6 +211,7 @@ typedef struct {
    int    vec_filled ; /*!< Length that each one was filled up. */
    int   *vec_typ ;    /*!< Type code for each vector. */
    void **vec ;        /*!< Pointer to each vector. */
+   char **vec_lab ;    /*!< Ptr to label string for each vector [optional] */
 
    int    vec_rank ;        /*!< Number of dimensions, from ni_dimen. */
    int   *vec_axis_len ;    /*!< Array of dimensions, from ni_dimen. */
@@ -594,13 +595,14 @@ extern char * NI_element_name( void * ) ;  /* 18 Apr 2005 */
 
 extern NI_element * NI_new_data_element( char *, int ) ;
 extern void NI_add_column( NI_element *, int, void * ) ;
+extern void NI_set_column_label( NI_element *nel, int cc, char *lab ) ; /* 11 Sep 2018 */
 extern void NI_move_column(NI_element *nel, int ibefore, int iafter);
 extern void NI_insert_column( NI_element *nel , int typ , void *arr, int icol );
 extern void NI_remove_column(NI_element *nel, int irm);
 extern void NI_copy_all_attributes( void *nisrc , void *nitrg );
 void *NI_duplicate(void *vel, byte with_data);
 void *NI_duplicate_element (void *vel, byte with_data);
-void *NI_duplicate_group (void *vel, byte with_data); 
+void *NI_duplicate_group (void *vel, byte with_data);
 extern void   NI_kill_attribute( void *, char * ) ;
 extern void   NI_set_attribute( void *, char *, char * ) ;
 extern char * NI_get_attribute( void *, char * ) ;
@@ -627,8 +629,7 @@ extern void NI_swap_vector( int, int, void * ) ;
 #undef  NI_set_attribute_int
 #define NI_set_attribute_int(el,nm,vv)  \
  do{ char ib[16]; sprintf(ib,"%d",(vv)); NI_set_attribute((el),(nm),ib); } while(0)
- 
- 
+
 /* port assignment functions from afni_ports.c */
 extern int init_ports_list();
 extern void set_ports_list_reinit(void);
