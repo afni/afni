@@ -8,7 +8,7 @@ jobs:
       - run: 
           command: |
             ci_env=`bash <(curl -s https://codecov.io/env)`
-            docker run $ci_env afni/afni_dev:$CIRCLE_BUILD_NUM-${CIRCLE_SHA1:0:6} run_tests.sh
+            docker run $ci_env afni/afni_dev:$CIRCLE_BUILD_NUM-${CIRCLE_SHA1:0:6} /usr/afni_build_dir/tests/run_tests.sh
       - run:
           command: |
             set +o pipefail 
