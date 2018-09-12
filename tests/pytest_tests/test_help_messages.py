@@ -39,7 +39,7 @@ def _get_programs(afni_root):
 
 
 def test_prog_list_helps():
-    programs = _get_programs("/afni")
+    programs = _get_programs("/usr/afni_build_dir")
     not_found = []
     no_success = []
 
