@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12, Sep, 2018, RCR, "3dClusterize.c", MICRO, TYPE_BUG_FIX,
+   "fix limit check on -idat and -ithr",
+   NULL
+ } ,
+
  { 10, Sep, 2018, RCR, "Makefile.INCLUDE", MICRO, TYPE_BUG_FIX,
    "add (copy of) Audio directory to afni_src.tgz build target",
    NULL
