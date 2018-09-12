@@ -13,15 +13,17 @@ RUN apt-get install -y r-base m4
 RUN apt-get install -y python-qt4 git
 RUN apt-get install -yq --no-install-recommends gcc
 RUN apt-get install -yq --no-install-recommends g++
+RUN apt-get install -y python3-pip && pip3 install pytest pytest-cov codecov
 
 #######################################
 # this copies source code from the host
 # into the image and invalidates the cache
 RUN mkdir /usr/afni_build_dir
 WORKDIR /usr/afni_build_dir
-RUN mkdir src .git
+RUN mkdir src .git tests
 ADD src src
 ADD .git .git
+ADD tests tests
 
 ENV PATH=$PATH:/usr/afni_build_dir/src/afni_src/abin
 ARG VERSION
@@ -41,4 +43,5 @@ WORKDIR /usr/afni_build_dir/src/afni_src
 # RUN make libmri.so
 RUN make itall && mv linux_ubuntu_16_64 /opt/abin
 ENV PATH="/opt/abin:${PATH}"
+
 WORKDIR /opt/abin

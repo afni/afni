@@ -5,7 +5,7 @@ jobs:
     steps:
       - checkout
       - run: docker build -t afni/afni_dev:$CIRCLE_BUILD_NUM-${CIRCLE_SHA1:0:6} -f Dockerfile.dev .
-      - run: docker run afni/afni_dev:$CIRCLE_BUILD_NUM-${CIRCLE_SHA1:0:6} afni_system_check.py -check_all
+      - run: docker run afni/afni_dev:$CIRCLE_BUILD_NUM-${CIRCLE_SHA1:0:6} run_tests.sh
       - run:
           command: |
             set +o pipefail 
