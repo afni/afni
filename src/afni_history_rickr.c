@@ -50,7 +50,7 @@
 afni_history_struct rickr_history[] = {
 
  { 12, Sep, 2018, RCR, "3dClusterize.c", MICRO, TYPE_BUG_FIX,
-   "fix limit check on -idat and -ithr",
+   "fix limit check on -idat and -ithr; disable MMAP for input",
    NULL
  } ,
 
