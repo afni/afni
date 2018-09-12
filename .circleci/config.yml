@@ -5,7 +5,10 @@ jobs:
     steps:
       - checkout
       - run: docker build -t afni/afni_dev:$CIRCLE_BUILD_NUM-${CIRCLE_SHA1:0:6} -f Dockerfile.dev .
-      - run: docker run afni/afni_dev:$CIRCLE_BUILD_NUM-${CIRCLE_SHA1:0:6} run_tests.sh
+      - run: 
+          command: |
+          ci_env=`bash <(curl -s https://codecov.io/env)`
+          docker run $ci_env afni/afni_dev:$CIRCLE_BUILD_NUM-${CIRCLE_SHA1:0:6} run_tests.sh
       - run:
           command: |
             set +o pipefail 
