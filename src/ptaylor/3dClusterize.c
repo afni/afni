@@ -854,7 +854,7 @@ int main(int argc, char *argv[]) {
       INFO_message("Found string label '%s' as volume [%d]", cval, ival);
    }
 
-   if( ival > DSET_NVALS(insetA) )
+   if( ival >= DSET_NVALS(insetA) )
       ERROR_exit("Bad index (too large) for data volume: %d", ival);
    else if( ival < 0 ) {
       INFO_message("No extra data block input (via '-idat ..'): "
@@ -872,7 +872,7 @@ int main(int argc, char *argv[]) {
       INFO_message("Data volume:      %s", repval);
    }
 
-   if( ithr < 0 || ithr > DSET_NVALS(insetA) )
+   if( ithr < 0 || ithr >= DSET_NVALS(insetA) )
       ERROR_exit("Bad index for threshold volume: %d", ithr);
    else {
       if ( DSET_HAS_LABEL(insetA, ithr) )
