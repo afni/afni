@@ -670,3 +670,63 @@ ENTRY("THD_string_table_read") ;
 
    free(dname) ; RETURN(nel) ;
 }
+
+/*----------------------------------------------------------------------------*/
+/* Read a tab-separated file, and convert to a NI_element with
+   vector labels (vec_lab) and with numeric columns where possible.
+*//*--------------------------------------------------------------------------*/
+
+NI_element * THD_read_tsv( char *fname )
+{
+   NI_element *tnel , *fnel=NULL ;
+   int ii,jj , vnum,vlen , nbad ;
+   char **vec_lab , **cpt ;
+
+ENTRY("mri_read_tsv") ;
+
+   /* try to read as a table of strings */
+
+   tnel = THD_string_table_read( fname , 1 ) ;
+   if( tnel == NULL )                           RETURN(NULL) ;
+
+   vnum = tnel->vec_num ;     /* number of columns */
+   vlen = tnel->vec_len - 1 ; /* first row is labels */
+   if( vnum < 1 && vlen < 2 )                   RETURN(NULL) ;
+
+   /* extract labels from first string of each column vector */
+
+/* INFO_message("TSV data from %s - %d cols %d rows",fname,vnum,vlen) ; */
+   vec_lab = NI_malloc( char* , sizeof(char *)*vnum ) ;
+   for( ii=0 ; ii < vnum ; ii++ ){
+     cpt = (char **)tnel->vec[ii] ;
+     vec_lab[ii] = NI_strdup( cpt[0] ) ;
+/* ININFO_message(" vec_lab[%d] = %s",ii,vec_lab[ii]) ; */
+   }
+
+   fnel = NI_new_data_element( "tsv" , vlen ) ;
+
+/* ININFO_message("---columns---")  ; */
+   for( ii=0 ; ii < vnum ; ii++ ){
+     cpt = (char **)tnel->vec[ii] ;
+     jj  = NI_count_numbers( vlen , cpt+1 ) ;
+     if( jj == vlen ){  /* pure numbers */
+       float *far = (float *)malloc(sizeof(float)*vlen) ;
+       for( jj=0 ; jj < vlen ; jj++ ){
+         far[jj] = (float)strtod(cpt[jj+1],NULL) ;
+       }
+       nbad = thd_floatscan( vlen , far ) ;
+       NI_add_column( fnel , NI_FLOAT , far ) ;
+       NI_set_column_label( fnel , ii , vec_lab[ii] ) ;
+       free(far) ;
+/* ININFO_message(" column %s: floats with %d errors",vec_lab[ii],nbad) ; */
+     } else {           /* strings */
+       NI_add_column( fnel , NI_STRING , cpt+1 ) ;
+       NI_set_column_label( fnel , ii , vec_lab[ii] ) ;
+/* ININFO_message(" column %s: strings",vec_lab[ii]) ; */
+     }
+   }
+
+/*   NI_write_element_tofile( "stderr:" , fnel , NI_TEXT_MODE ) ; */
+
+   RETURN(fnel) ;
+}

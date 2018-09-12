@@ -172,4 +172,7 @@ extern void NI_reset_buffer( NI_stream_type * ) ;
 extern int  NI_decode_one_double( NI_stream_type *, double *, int ) ;
 extern int  NI_decode_one_string( NI_stream_type *, char ** , int ) ;
 
+extern void NI_set_veclab_from_stringlist( NI_element *nel , char *vstr ) ;
+extern void NI_set_attribute_from_veclab_array( NI_element *nel , char **vec_lab ) ;
+
 #endif
