@@ -48,6 +48,7 @@ NI_dpr("ENTER make_empty_data_element\n") ;
    nel->vec_len = 0 ;
    nel->vec_typ = NULL ;
    nel->vec     = NULL ;
+   nel->vec_lab = NULL ;  /* 11 Sep 2018 */
 
    nel->vec_filled = 0 ;  /* no data has been filled into vectors */
 
@@ -149,6 +150,22 @@ NI_dpr("ENTER make_empty_data_element\n") ;
            for( pp=0 ; pp < nd ; pp++ )
              nel->vec_axis_label[pp] = NI_strdup(sar->str[pp]) ;
            NI_delete_str_array(sar) ;
+        }
+     }
+
+     /* see if we have vector label strings [11 Sep 2018] */
+
+     ii = string_index( "ni_veclab" , nel->attr_num , nel->attr_lhs ) ;
+     if( nel->vec_num > 0 && ii > 0 ){
+        int pp ;
+        NI_str_array *sar = NI_decode_string_list( nel->attr_rhs[ii] , NULL ) ;
+        if( sar != NULL && sar->num > 0 ){
+           int ns=sar->num  ;
+           nel->vec_lab = (char **)NI_malloc(char*,sizeof(char *)*nel->vec_num) ;
+           for( pp=0 ; pp < nel->vec_num ; pp++ ){
+             nel->vec_lab[pp] = (pp < ns) ? NI_strdup(sar->str[pp])
+                                          : NI_strdup("\0")        ;
+           }
         }
      }
 
@@ -456,6 +473,7 @@ NI_element * NI_new_data_element( char *name , int veclen )
    nel->vec_num = 0 ;                      /* no vectors yet */
    nel->vec_typ = NULL ;
    nel->vec     = NULL ;
+   nel->vec_lab = NULL ;  /* 11 Sep 2018 */
 
    NI_init_veclen( nel , veclen ) ;  /* 19 Sep 2008 */
 
@@ -465,6 +483,30 @@ NI_element * NI_new_data_element( char *name , int veclen )
    nel->vec_axis_label  = NULL ;
 
    return nel ;
+}
+
+/*-----------------------------------------------------------------------*/
+/*! Insert a label for column #cc into a data element.
+    Note that if column #cc does not exist, nothing will happen,
+    so this function should be called AFTER NI_add_column(). [11 Sep 2018]
+-------------------------------------------------------------------------*/
+
+void NI_set_column_label( NI_element *nel , int cc , char *lab )
+{
+
+   if( nel == NULL || nel->vec_len <= 0 )            return ;
+   if( nel->type != NI_ELEMENT_TYPE )                return ;
+   if( cc < 0 || cc >= nel->vec_num || lab == NULL ) return ;
+
+   if( nel->vec_lab == NULL ){  /* create label array */
+     int pp ;
+     nel->vec_lab = (char **)NI_malloc(char*,sizeof(char *)*nel->vec_num) ;
+     for( pp=0 ; pp < nel->vec_num ; pp++ ) nel->vec_lab[pp] = NI_strdup("\0") ;
+   }
+
+   if( nel->vec_lab[cc] != NULL ) NI_free(nel->vec_lab[cc]) ;
+   nel->vec_lab[cc] = NI_strdup(lab) ;
+   return ;
 }
 
 /*-----------------------------------------------------------------------*/
@@ -512,6 +554,11 @@ void NI_add_column( NI_element *nel , int typ , void *arr )
    else
      nel->vec[nn] = NI_malloc(void, rt->size * nel->vec_len ) ;
 
+   if( nel->vec_lab != NULL ){  /* 11 Sep 2018 */
+     nel->vec_lab = NI_realloc( nel->vec_lab , char* , sizeof(char *)*(nn+1) ) ;
+     nel->vec_lab[nn] = NI_strdup("\0") ;
+   }
+
    /* add 1 to the count of vectors */
 
    nel->vec_num = nn+1 ;
@@ -539,19 +586,19 @@ void NI_insert_column( NI_element *nel , int typ , void *arr, int icol )
    if( nel == NULL || nel->vec_len <= 0 )            return ;
    if( nel->type != NI_ELEMENT_TYPE )                return ;
    rt = NI_rowtype_find_code(typ) ; if( rt == NULL ) return ;
-   
+
    /* get number of vectors currently in element */
    nn = nel->vec_num ;
-   
+
    if (icol > nn || icol < 0) icol = nn;
-   
+
    /* call add column */
    NI_add_column(nel, typ, arr);
-   
+
    /* check on success */
    if (nel->vec_num != nn+1) return ;  /* misere */
    nn = nel->vec_num ;  /* the new number of vectors */
-   
+
    NI_move_column(nel, nn-1, icol);
 
    return ;
@@ -560,47 +607,55 @@ void NI_insert_column( NI_element *nel , int typ , void *arr, int icol )
 /*-------------------------------------------------------------------------*/
 /*!
    move a column from index ibefore to iafter
-   if ibefore (or iafter) is (< 0 || > nel->vec_num) then  
-      ibefore = nel->vec_num-1
+   if ibefore (or iafter) is (< 0 || > nel->vec_num) then
+      ibefore (or iafter) = nel->vec_num-1
 */
 void NI_move_column(NI_element *nel, int ibefore, int iafter)
 {
    int nn, ii ;
    int typ_buf;
    void *col_buf;
-   
+   char *lab_buf=NULL ;  /* 11 Sep 2018 */
+
    if (nel == NULL || nel->vec_len <= 0 )            return ;
-   
+
    nn = nel->vec_num ;
    if (ibefore < 0 || ibefore >= nn) ibefore = nn-1;
-   if (iafter < 0 || iafter >= nn) iafter = nn-1;
-   
+   if (iafter  < 0 || iafter  >= nn) iafter  = nn-1;
+
    /* nothing to see here? */
    if (ibefore == iafter) return;
-   
+
    /* do the deed */
    /* store the initial values */
    typ_buf = nel->vec_typ[ibefore];
    col_buf = nel->vec[ibefore];
+   if( nel->vec_lab != NULL ) lab_buf = nel->vec_lab[ibefore] ;
    /* shift */
    if (ibefore > iafter) {
       /* shift columns to left*/
       for (ii=ibefore; ii > iafter; --ii) {
          nel->vec[ii] = nel->vec[ii-1];
          nel->vec_typ[ii] = nel->vec_typ[ii-1];
+         if( nel->vec_lab != NULL )
+           nel->vec_lab[ii] = nel->vec_lab[ii-1] ;
       }
    } else {
       /* shift columns to right*/
       for (ii=ibefore; ii < iafter; ++ii) {
          nel->vec[ii] = nel->vec[ii+1];
          nel->vec_typ[ii] = nel->vec_typ[ii+1];
+         if( nel->vec_lab != NULL )
+           nel->vec_lab[ii] = nel->vec_lab[ii+1] ;
       }
    }
-   
+
    /* insert the trouble maker back*/
    nel->vec[iafter] = col_buf;
    nel->vec_typ[iafter] = typ_buf;
-   
+   if( nel->vec_lab != NULL )
+     nel->vec_lab[iafter] = lab_buf ;
+
    /* house keeping */
    /* if element has "ni_type" attribute, adjust it   14 Jul 2006 [rickr] */
    if( NI_get_attribute(nel, "ni_type") )
@@ -611,41 +666,43 @@ void NI_move_column(NI_element *nel, int ibefore, int iafter)
 
 /*-------------------------------------------------------------------------*/
 /*!
-   Do we really need to document this too?
+   Do we really need to document this too?        [[Cox says YES]]
    Removes column irm from nel. If irm < 0 or
-   irm >= nel->vec_num irm = nel->vec_num -1 
+   irm >= nel->vec_num irm = nel->vec_num -1
 */
 void NI_remove_column(NI_element *nel, int irm)
 {
    int nn;
-   
+
    if (nel == NULL || nel->vec_len <= 0 )            return ;
-   
+
    if (!(nn = nel->vec_num)) return;
 
    if (irm < 0 || irm >= nn) irm = nn-1;
-   
+
    /* move irm to last column */
    NI_move_column(nel, irm, -1);
-   
+
    /* free the last column */
    NI_free_column( NI_rowtype_find_code(nel->vec_typ[nn-1]) ,
                            nel->vec_len , nel->vec[nn-1]             ) ;
    nel->vec[nn-1] = NULL; /* to be sure */
-   
+
    /* decrease the number of columns */
-   --nn; 
-   nel->vec_num = nn; 
-   
+   --nn;
+   nel->vec_num = nn;
+
    /* get rid of extra space */
    nel->vec_typ = NI_realloc( nel->vec_typ, int, sizeof(int)*(nn) ) ;
    nel->vec = NI_realloc( nel->vec , void*, sizeof(void *)*(nn) ) ;
+   if( nel->vec_lab != NULL )
+     nel->vec_lab = NI_realloc( nel->vec_lab , char*, sizeof(char *)*(nn) ) ;
 
    /* if element has "ni_type" attribute, adjust it   14 Jul 2006 [rickr] */
    if( NI_get_attribute(nel, "ni_type") )
       NI_set_ni_type_atr(nel) ;
 
-   
+
    return;
 }
 /*------------------------------------------------------------------------*/
@@ -741,14 +798,14 @@ void NI_insert_column_stride( NI_element *nel, int typ, void *arr, int stride, i
    nn = nel->vec_num ;
 
    if (icol > nn || icol < 0) icol = nn;
-   
+
    /* call add column_stride */
    NI_add_column_stride(nel, typ, arr, stride);
-   
+
    /* check on success */
    if (nel->vec_num != nn+1) return ;  /* misere */
    nn = nel->vec_num ;  /* the new number of vectors */
-   
+
    NI_move_column(nel, nn-1, icol);
 
    return ;
@@ -878,8 +935,9 @@ void NI_insert_string( NI_element *nel, int row, int col, char *str )
 
 /*------------------------------------------------------------------------*/
 /*! Remove an attribute, if it exists from a data or group element.
-                                    ZSS Feb 09 
+                                    ZSS Feb 09
 --------------------------------------------------------------------------*/
+
 void NI_kill_attribute( void *nini , char *attname  )
 {
    int nn , tt=NI_element_type(nini) ;
@@ -896,7 +954,7 @@ void NI_kill_attribute( void *nini , char *attname  )
       for( nn=0 ; nn < nel->attr_num ; nn++ )
          if( strcmp(nel->attr_lhs[nn],attname) == 0 ) break ;
 
-      
+
 
       if( nn == nel->attr_num ){ /* not found, return */
         return;
@@ -905,16 +963,16 @@ void NI_kill_attribute( void *nini , char *attname  )
         NI_free(nel->attr_rhs[nn]) ;
         if ( nn < nel->attr_num-1 ) { /* move last attr to nn */
          nel->attr_lhs[nn] = nel->attr_lhs[nel->attr_num-1];
-         nel->attr_lhs[nel->attr_num-1] = NULL; 
+         nel->attr_lhs[nel->attr_num-1] = NULL;
          nel->attr_rhs[nn] = nel->attr_rhs[nel->attr_num-1];
-         nel->attr_rhs[nel->attr_num-1] = NULL;      
+         nel->attr_rhs[nel->attr_num-1] = NULL;
         }
         --nel->attr_num;
         /* reallocate */
-        nel->attr_lhs = NI_realloc( nel->attr_lhs, 
+        nel->attr_lhs = NI_realloc( nel->attr_lhs,
                                     char*, sizeof(char *)*(nel->attr_num) );
-        nel->attr_rhs = NI_realloc( nel->attr_rhs, 
-                                    char*, sizeof(char *)*(nel->attr_num) ); 
+        nel->attr_rhs = NI_realloc( nel->attr_rhs,
+                                    char*, sizeof(char *)*(nel->attr_num) );
       }
 
    /* input is a group element */
@@ -932,16 +990,16 @@ void NI_kill_attribute( void *nini , char *attname  )
         NI_free(ngr->attr_rhs[nn]) ;
         if ( nn < ngr->attr_num-1 ) { /* move last attr to nn */
          ngr->attr_lhs[nn] = ngr->attr_lhs[ngr->attr_num-1];
-         ngr->attr_lhs[ngr->attr_num-1] = NULL; 
+         ngr->attr_lhs[ngr->attr_num-1] = NULL;
          ngr->attr_rhs[nn] = ngr->attr_rhs[ngr->attr_num-1];
-         ngr->attr_rhs[ngr->attr_num-1] = NULL;      
+         ngr->attr_rhs[ngr->attr_num-1] = NULL;
         }
         --ngr->attr_num;
         /* reallocate */
-        ngr->attr_lhs = NI_realloc( ngr->attr_lhs, 
+        ngr->attr_lhs = NI_realloc( ngr->attr_lhs,
                                     char*, sizeof(char *)*(ngr->attr_num) );
-        ngr->attr_rhs = NI_realloc( ngr->attr_rhs, 
-                                    char*, sizeof(char *)*(ngr->attr_num) ); 
+        ngr->attr_rhs = NI_realloc( ngr->attr_rhs,
+                                    char*, sizeof(char *)*(ngr->attr_num) );
       }
 
    /* input is a processing instruction */
@@ -959,16 +1017,16 @@ void NI_kill_attribute( void *nini , char *attname  )
         NI_free(npi->attr_rhs[nn]) ;
         if ( nn < npi->attr_num-1 ) { /* move last attr to nn */
          npi->attr_lhs[nn] = npi->attr_lhs[npi->attr_num-1];
-         npi->attr_lhs[npi->attr_num-1] = NULL; 
+         npi->attr_lhs[npi->attr_num-1] = NULL;
          npi->attr_rhs[nn] = npi->attr_rhs[npi->attr_num-1];
-         npi->attr_rhs[npi->attr_num-1] = NULL;      
+         npi->attr_rhs[npi->attr_num-1] = NULL;
         }
         --npi->attr_num;
         /* reallocate */
-        npi->attr_lhs = NI_realloc( npi->attr_lhs, 
+        npi->attr_lhs = NI_realloc( npi->attr_lhs,
                                     char*, sizeof(char *)*(npi->attr_num) );
-        npi->attr_rhs = NI_realloc( npi->attr_rhs, 
-                                    char*, sizeof(char *)*(npi->attr_num) ); 
+        npi->attr_rhs = NI_realloc( npi->attr_rhs,
+                                    char*, sizeof(char *)*(npi->attr_num) );
       }
 
    }
@@ -1070,7 +1128,7 @@ void NI_copy_all_attributes( void *nisrc , void *nitrg )
    if( tttrg != ttsrc) {
       fprintf(stderr,"Error NI_copy_all_attributes:\n"
                      "Src and trg elements must have same type.\n");
-      return; 
+      return;
    }
    /* input is a data element */
    if( ttsrc == NI_ELEMENT_TYPE ){
@@ -1082,20 +1140,20 @@ void NI_copy_all_attributes( void *nisrc , void *nitrg )
             then continue below */
          fprintf(stderr,"Error NI_copy_all_attributes:\n"
                         "Must have no attributes in target element.\n");
-         return; 
+         return;
       }
 
-      neltrg->attr_lhs = NI_realloc ( neltrg->attr_lhs, 
+      neltrg->attr_lhs = NI_realloc ( neltrg->attr_lhs,
                                      char*, sizeof(char *)*nelsrc->attr_num);
-      neltrg->attr_rhs = NI_realloc ( neltrg->attr_rhs, 
+      neltrg->attr_rhs = NI_realloc ( neltrg->attr_rhs,
                                      char*, sizeof(char *)*nelsrc->attr_num);
       neltrg->attr_num = nelsrc->attr_num;
-      
+
       for( nn=0 ; nn < nelsrc->attr_num ; nn++ ) {
          neltrg->attr_lhs[nn] = NI_strdup(nelsrc->attr_lhs[nn]);
          neltrg->attr_rhs[nn] = NI_strdup(nelsrc->attr_rhs[nn]);
       }
-      
+
    /* input is a group element */
 
    } else if( ttsrc == NI_GROUP_TYPE ){
@@ -1107,20 +1165,20 @@ void NI_copy_all_attributes( void *nisrc , void *nitrg )
             then continue below */
          fprintf(stderr,"Error NI_copy_all_attributes:\n"
                         "Must have no attributes in target element.\n");
-         return; 
+         return;
       }
-      
-      ngrtrg->attr_lhs = NI_realloc ( ngrtrg->attr_lhs, 
+
+      ngrtrg->attr_lhs = NI_realloc ( ngrtrg->attr_lhs,
                                      char*, sizeof(char *)*ngrsrc->attr_num);
-      ngrtrg->attr_rhs = NI_realloc ( ngrtrg->attr_rhs, 
+      ngrtrg->attr_rhs = NI_realloc ( ngrtrg->attr_rhs,
                                      char*, sizeof(char *)*ngrsrc->attr_num);
       ngrtrg->attr_num = ngrsrc->attr_num;
-      
+
       for( nn=0 ; nn < ngrsrc->attr_num ; nn++ ) {
          ngrtrg->attr_lhs[nn] = NI_strdup(ngrsrc->attr_lhs[nn]);
          ngrtrg->attr_rhs[nn] = NI_strdup(ngrsrc->attr_rhs[nn]);
       }
-   
+
    /* input is a processing instruction */
 
    } else if( ttsrc == NI_PROCINS_TYPE ){
@@ -1132,15 +1190,15 @@ void NI_copy_all_attributes( void *nisrc , void *nitrg )
             then continue below */
          fprintf(stderr,"Error NI_copy_all_attributes:\n"
                         "Must have no attributes in target element.\n");
-         return; 
+         return;
       }
 
-      npitrg->attr_lhs = NI_realloc ( npitrg->attr_lhs, 
+      npitrg->attr_lhs = NI_realloc ( npitrg->attr_lhs,
                                      char*, sizeof(char *)*npisrc->attr_num);
-      npitrg->attr_rhs = NI_realloc ( npitrg->attr_rhs, 
+      npitrg->attr_rhs = NI_realloc ( npitrg->attr_rhs,
                                      char*, sizeof(char *)*npisrc->attr_num);
       npitrg->attr_num = npisrc->attr_num;
-      
+
       for( nn=0 ; nn < npisrc->attr_num ; nn++ ) {
          npitrg->attr_lhs[nn] = NI_strdup(npisrc->attr_lhs[nn]);
          npitrg->attr_rhs[nn] = NI_strdup(npisrc->attr_rhs[nn]);
@@ -1151,22 +1209,23 @@ void NI_copy_all_attributes( void *nisrc , void *nitrg )
 }
 
 /*------------------------------------------------------------------------*/
-/*! Duplicate a niml group or element.     
+/*! Duplicate a niml group or element.
    Function tested with test program niccc and -dup option  ZSS Oct 2010
 --------------------------------------------------------------------------*/
-void *NI_duplicate(void *vel, byte with_data) 
+
+void *NI_duplicate(void *vel, byte with_data)
 {
    void *vdup=NULL;
    int tt=-1;
-   
-   if (!vel) return(vdup); 
+
+   if (!vel) return(vdup);
    tt = NI_element_type(vel);
    if (tt == NI_ELEMENT_TYPE) {
       return(NI_duplicate_element(vel, with_data));
    } else if (tt == NI_GROUP_TYPE){
       return(NI_duplicate_group(vel, with_data));
    } else {
-      fprintf(stderr, 
+      fprintf(stderr,
          "Error NI_duplicate:\n"
          "Can only deal with elements on group types\n");
       return(NULL);
@@ -1175,10 +1234,11 @@ void *NI_duplicate(void *vel, byte with_data)
 }
 
 /*------------------------------------------------------------------------*/
-/*! Duplicate niml element only.   
+/*! Duplicate niml element only.
     Better use function NI_duplicate                     ZSS Oct 2010
 --------------------------------------------------------------------------*/
-void *NI_duplicate_element (void *vel, byte with_data) 
+
+void *NI_duplicate_element (void *vel, byte with_data)
 {
    NI_element *ndup = NULL;
    NI_element *nel = (NI_element *)vel;
@@ -1186,68 +1246,69 @@ void *NI_duplicate_element (void *vel, byte with_data)
    NI_group *gdup = NULL;
    int tt=-1, i=0;
    void *vdup=NULL;
-   
-   if (!vel) return(vdup); 
-   
+
+   if (!vel) return(vdup);
+
    tt = NI_element_type(vel);
    if (tt != NI_ELEMENT_TYPE) {
-      fprintf(stderr, 
+      fprintf(stderr,
          "Error NI_duplicate_element:\n"
          "Can only deal with elements\n");
       return(vdup);
    }
-   
+
    ndup = NI_new_data_element(nel->name, nel->vec_len);
-   
+
    /* copy the attributes */
    NI_copy_all_attributes(nel, ndup);
-   
+
    if (with_data) {
       /* copy the columns */
       for (i=0; i<nel->vec_num; ++i) {
          NI_add_column(ndup, nel->vec_typ[i],(void *)nel->vec[i]);
       }
    }
-   
+
    if (tt == NI_ELEMENT_TYPE) return((void *)ndup);
    else return(vdup);
 }
 
 /*------------------------------------------------------------------------*/
-/*! Duplicate niml group only. 
+/*! Duplicate niml group only.
     Better use function NI_duplicate                        ZSS Oct 2010
 --------------------------------------------------------------------------*/
-void *NI_duplicate_group (void *vel, byte with_data) 
+
+void *NI_duplicate_group (void *vel, byte with_data)
 {
    NI_group *gel = (NI_group *)vel;
    NI_group *gdup = NULL;
    void *vv=NULL;
    int tt=-1, i=0;
    void *vdup=NULL, *gg=NULL;
-   
-   if (!vel) return(vdup); 
-   
+
+   if (!vel) return(vdup);
+
    tt = NI_element_type(vel);
    if (tt != NI_GROUP_TYPE) {
-      fprintf(stderr, 
+      fprintf(stderr,
          "Error NI_duplicate_group:\n"
          "Can only deal with groups in this function\n");
       return(vdup);
    }
-   
+
    gdup = NI_new_group_element();
    NI_rename_group(gdup, gel->name);
-   
+
    /* copy the attributes to gdup*/
    NI_copy_all_attributes(gel, gdup);
-   
+
    /* copy all the elements */
    for (i=0; i<gel->part_num; ++i) {
       switch( gel->part_typ[i] ){
          /*-- a sub-group ==> recursion! --*/
          case NI_GROUP_TYPE:
             if (!(gg = NI_duplicate_group(gel->part[i], with_data))) {
-               fprintf(stderr, 
+               fprintf(stderr,
                   "Error NI_duplicate_group:\n"
                   "Failed at recursion\n");
                return(NULL);
@@ -1256,7 +1317,7 @@ void *NI_duplicate_group (void *vel, byte with_data)
             break ;
          case NI_ELEMENT_TYPE:
             if (!(gg = NI_duplicate_element(gel->part[i],with_data))) {
-               fprintf(stderr, 
+               fprintf(stderr,
                   "Error NI_duplicate_element:\n"
                   "Failed at recursion\n");
                return(NULL);
@@ -1264,7 +1325,7 @@ void *NI_duplicate_group (void *vel, byte with_data)
             NI_add_to_group(gdup, gg);
             break;
          default:
-            fprintf(stderr, 
+            fprintf(stderr,
                   "Error NI_duplicate_group:\n"
                   "No duplication implemented for type %d, ignoring.\n",
                   gel->part_typ[i]);
@@ -1273,7 +1334,6 @@ void *NI_duplicate_group (void *vel, byte with_data)
    }
    return(gdup);
 }
-
 
 /*-----------------------------------------------------------------------*/
 /*! Get an attribute with the given LHS name.  Returns a pointer to the

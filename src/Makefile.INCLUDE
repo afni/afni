@@ -2498,13 +2498,13 @@ mrilib_raw.c: mrilib_all.c
 
 # the library of libraries
 
-libmri.a: niml.h mrilib.h Aomp.h 3ddata.h                       \
-	$(NIML_OBJS) $(MRI_OBJS) $(THD_OBJS) thd_selenium.o     \
+libmri.a: niml.h mrilib.h Aomp.h 3ddata.h                      \
+	$(NIML_OBJS) $(MRI_OBJS) $(THD_OBJS) thd_selenium.o         \
          $(EDT_OBJS)  $(CS_OBJS)  $(EIS_OBJS) $(NETCDF_OBJS)   \
          $(SUMA_OBJS) $(MISC_OBJS) $(SOMEAFOBJS)
 	$(RM) $@
 	$(AR) q libmri.a $(MRI_OBJS) $(THD_OBJS) $(EDT_OBJS)        \
-		$(NIML_OBJS) $(CS_OBJS) $(EIS_OBJS) $(NETCDF_OBJS)  \
+		$(NIML_OBJS) $(CS_OBJS) $(EIS_OBJS) $(NETCDF_OBJS)       \
 		$(SUMA_OBJS) $(MISC_OBJS) $(SOMEAFOBJS) thd_selenium.o
 	$(RANLIB) libmri.a
 
