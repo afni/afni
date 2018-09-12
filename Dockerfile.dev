@@ -2,28 +2,21 @@ FROM ubuntu:bionic-20180526@sha256:c8c275751219dadad8fa56b3ac41ca6cb22219ff117ca
 USER root
 RUN apt-get update -y ; apt-get upgrade -y
 
-ENV DEBIAN_FRONTEND=noninteractive
+ARG DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get install -y tcsh vim
-RUN apt-get install -y libxmu-dev libxt-dev libmotif-dev
-RUN apt-get install -y libxpm-dev libxi-dev libxmhtml-dev
-RUN apt-get install -y libglw1-mesa-dev libglu1-mesa-dev
-RUN apt-get install -y libglib2.0-dev libgsl-dev
-RUN apt-get install -y r-base m4
-RUN apt-get install -y python-qt4 git
-RUN apt-get install -yq --no-install-recommends gcc
-RUN apt-get install -yq --no-install-recommends g++
-RUN apt-get install -y python3-pip && pip3 install pytest pytest-cov codecov
+RUN apt-get install -y \
+      python-qt4 git tcsh vim libxmu-dev libxt-dev libmotif-dev libxpm-dev \
+      libxi-dev libxmhtml-dev libglw1-mesa-dev libglu1-mesa-dev libglib2.0-dev \
+      libgsl-dev r-base m4
+RUN apt-get install -yq --no-install-recommends g++ gcc
+RUN apt-get install -y python3-pip \
+    && pip3 install --no-cache-dir pytest pytest-cov codecov
 
 #######################################
 # this copies source code from the host
 # into the image and invalidates the cache
-RUN mkdir /usr/afni_build_dir
 WORKDIR /usr/afni_build_dir
-RUN mkdir src .git tests
-ADD src src
-ADD .git .git
-ADD tests tests
+COPY . .
 
 ENV PATH=$PATH:/usr/afni_build_dir/src/afni_src/abin
 ARG VERSION
@@ -31,7 +24,7 @@ ARG VERSION
 WORKDIR /usr/afni_build_dir/src
 
 # make changes to add coverage flags to makefile
-RUN sed -i 's/# CPROF = /CPROF =  -coverage /' Makefile.linux_ubuntu_16_64 
+RUN sed -i 's/# CPROF = /CPROF =  -coverage /' Makefile.linux_ubuntu_16_64
 
 # o files are ignored by the repo but will
 # cause the build to fail.

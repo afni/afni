@@ -8,8 +8,8 @@ jobs:
       - run: docker run afni/afni_dev:$CIRCLE_BUILD_NUM-${CIRCLE_SHA1:0:6} run_tests.sh
       - run:
           command: |
-            set +o pipefail 
-            if [ $DOCKER_USER == 'afni' ] 
+            set +o pipefail
+            if [ $DOCKER_USER == 'afni' ]
             then
               docker login -u $DOCKER_USER -p $DOCKER_PASS
               docker build -t afni/afni:$CIRCLE_BUILD_NUM-${CIRCLE_SHA1:0:6} -f Dockerfile .
