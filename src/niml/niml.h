@@ -1244,6 +1244,8 @@ extern NI_str_array * NI_strict_decode_string_list( char *ss , char *sep );
 
 extern int NI_str_array_find( char *, NI_str_array *) ; /* 20 May 2010 */
 
+extern int NI_count_numbers( int nstr , char **str ) ;  /* 11 Sep 2018 */
+
 /*-------------------------------------------------------------------------*/
 /*! An array of floats. */
 
