@@ -33,3 +33,7 @@ ___*
 # Octave workspace
 octave-workspace
 /Debug/
+
+# Python
+__pycache__
+*.pyc
