@@ -10,7 +10,7 @@ import subprocess
 
 # TODO(kaczmarj): this should be more general.
 AFNI_DATA6_ROOT = "/usr/afni_build_dir/tests/pytest_tests/afni_test_data/AFNI_data6"
-FT_PATH = os.path.join(AFNI_data6, "FT_analysis", "FT")
+FT_PATH = os.path.join(AFNI_DATA6_ROOT, "FT_analysis", "FT")
 
 
 def _get_afni_proc_path():
