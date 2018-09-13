@@ -10,10 +10,10 @@ import pathlib
 import shutil
 import subprocess
 
-here = os.path.realpath(os.path.abspath(__file__))
+here = os.path.realpath(os.path.dirname(__file__))
 
-# This assumes we are in afni_root/tests directory.
-AFNI_ROOT = os.path.join(here, '..')
+# This assumes we are in afni_root/tests/pytest_tests directory.
+AFNI_ROOT = os.path.join(here, '..', '..')
 
 SHOULD_NOT_BE_EXECUTABLE = [
     'afni_fs_aparc+aseg_2000.txt',
@@ -39,7 +39,7 @@ def _get_programs(afni_root):
 
 
 def test_prog_list_helps():
-    programs = _get_programs("/usr/afni_build_dir")
+    programs = _get_programs(AFNI_ROOT)
     not_found = []
     no_success = []
 
