@@ -1,0 +1,39 @@
+#!/bin/tcsh
+
+# clean up the trash
+
+\rm -f TTest_* runit.out
+
+echo '===== 3dttest++ run with fixed covariates ====='               >>        runit.out
+3dttest++ -setA R[0123]?+orig.HEAD -setB R[456]?+orig.HEAD \
+          -prefix TTest_zov -covariates Zovar                        |& tee -a runit.out
+
+echo '===== 3dttest++ run with voxel-wise covariates ====='          >>        runit.out
+3dttest++ -setA R[0123]?+orig.HEAD -setB R[456]?+orig.HEAD \
+          -prefix TTest_tov -covariates Tovar                        |& tee -a runit.out
+
+if ( ! -f Baseline_TTest_zov+orig.HEAD ) then
+  echo '===== renaming output to be the Baseline ====='
+  \rm -f Baseline_*
+  3drename TTest_zov+orig Baseline_TTest_zov
+  3drename TTest_tov+orig Baseline_TTest_tov
+else
+  echo '===== 3dttest++ difference from Baseline ====='              |& tee -a runit.out
+  3dinfo -sval_diff TTest_zov+orig   Baseline_TTest_zov+orig         |& tee -a runit.out
+  3dinfo -sval_diff TTest_tov+orig   Baseline_TTest_tov+orig         |& tee -a runit.out
+endif
+
+gzip -9v *.BRIK
+
+if( $#argv == 0 ) then
+  echo '..... deleting output files .....'
+  \rm -f TTest_* .REML_cmd
+  exit 0
+else if( $argv[1] != 'KEEP' ) then
+  echo '..... deleting output files .....'
+  \rm -f TTest_* .REML_cmd
+else
+  echo '..... keeping output files .....'
+endif
+
+exit 0
