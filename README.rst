@@ -15,11 +15,10 @@ Currently top directory contains three sub-directories
 
 doc/
     documentation for AFNI
-tests/
-    tests for AFNI
 src/
     source code for AFNI
-
+tests/
+    tests for AFNI
 
 Relevant git-ology for AFNI
 ---------------------------
