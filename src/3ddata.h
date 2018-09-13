@@ -4423,6 +4423,7 @@ extern NI_element * THD_mixed_table_read ( char *fname ) ; /* 26 Jul 2010 */
 extern NI_element * THD_string_table_read( char *fname , int flags ) ;
 
 extern NI_element * THD_read_tsv(char *fname) ;            /* 12 Sep 2018 */
+extern void THD_write_tsv( char *fname , NI_element *nel ) ;
 
 extern MRI_IMARR * THD_get_all_timeseries( char * ) ;
 extern MRI_IMARR * THD_get_many_timeseries( THD_string_array * ) ;

@@ -744,5 +744,55 @@ ENTRY("mri_read_tsv") ;
 
 /*   NI_write_element_tofile( "stderr:" , fnel , NI_TEXT_MODE ) ; */
 
+#if 0 /* debug */
+INFO_message("=========== tsv dump ==========") ;
+   THD_write_tsv( "stdout:" , fnel ) ;
+INFO_message("===============================") ;
+#endif
+
    RETURN(fnel) ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+void THD_write_tsv( char *fname , NI_element *nel )
+{
+   char ssep[2] ; int notfirst,ii,kk ;
+   FILE *fp ;
+
+   if( fname == NULL || NI_element_type(nel) != NI_ELEMENT_TYPE ) return ;
+   if( nel->vec_lab == NULL || nel->vec_num == 0 )                return ;
+
+   fp = fopen_maybe(fname) ; if( fp == NULL ) return ;
+
+#undef  SET_SEPCHAR
+#define SET_SEPCHAR  do{ ssep[0] = ( (notfirst++) ? '\t' : '\0' ) ; } while(0)
+   ssep[1] = '\0' ;
+
+   /* header row */
+
+   for( notfirst=kk=0 ; kk < nel->vec_num ; kk++ ){
+     SET_SEPCHAR ;
+     fprintf(fp,"%s%s",ssep,nel->vec_lab[kk]) ;
+   }
+   fprintf(fp,"\n") ;
+
+   /* data rows */
+
+   for( ii=0 ; ii < nel->vec_len ; ii++ ){
+     for( notfirst=kk=0 ; kk < nel->vec_num ; kk++ ){
+       SET_SEPCHAR ;
+       if( nel->vec_typ[kk] == NI_FLOAT ){
+         float *far = (float *)nel->vec[kk] ;
+         fprintf(fp,"%s%g",ssep,far[ii]) ;
+       } else if( nel->vec_typ[kk] == NI_STRING ){
+         char **cpt = (char **)nel->vec[kk] ;
+         fprintf(fp,"%s%s" , ssep , (cpt[ii] != NULL) ? cpt[ii] : "(null)" ) ;
+       }
+     }
+     fprintf(fp,"\n") ;
+   }
+
+   fclose_maybe(fp) ;
+   return ;
 }
