@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 13, Sep, 2018, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "have programs return 0 on terminal options, like -help",
+   "So far: 3dSurf2Vol, 3dVol2Surf."
+ } ,
+
  { 12, Sep, 2018, RCR, "3dClusterize.c", MICRO, TYPE_BUG_FIX,
    "fix limit check on -idat and -ithr; disable MMAP for input",
    NULL
