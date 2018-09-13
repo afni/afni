@@ -528,6 +528,7 @@ ENTRY("THD_mixed_table_read") ;
 /* This table has only strings, and no header labels.
    Bit flags:
      1 = read as tsv (tab separated values)
+     2 = skip column selectors
 *//*----------------------------------------------------------------------*/
 
 NI_element * THD_string_table_read( char *fname , int flags )
@@ -539,7 +540,8 @@ NI_element * THD_string_table_read( char *fname , int flags )
    FILE *fts ;
    float val ;
    int verb = AFNI_yesenv("AFNI_DEBUG_TABLE") ;
-   int do_tsv = (flags & 1) != 0 ;
+   int do_tsv   = (flags & 1) != 0 ;
+   int skip_sel = (flags & 2) != 0 ;
 
 ENTRY("THD_string_table_read") ;
 
@@ -576,7 +578,7 @@ ENTRY("THD_string_table_read") ;
 
    /* 21 Jul 2011 -- get column list, if present */
 
-   if( cpt != NULL ){
+   if( cpt != NULL && !skip_sel ){
      if( verb ) ININFO_message("  processing column selector '%s'",cpt) ;
      ivlist = MCW_get_intlist( 6666 , cpt ) ;
      if( ivlist != NULL ){
@@ -680,13 +682,13 @@ NI_element * THD_read_tsv( char *fname )
 {
    NI_element *tnel , *fnel=NULL ;
    int ii,jj , vnum,vlen , nbad ;
-   char **vec_lab , **cpt ;
+   char **vec_lab , **cpt , *dpt ;
 
 ENTRY("mri_read_tsv") ;
 
    /* try to read as a table of strings */
 
-   tnel = THD_string_table_read( fname , 1 ) ;
+   tnel = THD_string_table_read( fname , 3 ) ;
    if( tnel == NULL )                           RETURN(NULL) ;
 
    vnum = tnel->vec_num ;     /* number of columns */
@@ -723,6 +725,20 @@ ENTRY("mri_read_tsv") ;
        NI_add_column( fnel , NI_STRING , cpt+1 ) ;
        NI_set_column_label( fnel , ii , vec_lab[ii] ) ;
 /* ININFO_message(" column %s: strings",vec_lab[ii]) ; */
+     }
+   }
+
+   NI_free_element(tnel) ; /* old stuff gets thrown out */
+
+   /* see if we have to deal with column selectors */
+
+   dpt = strstr(fname,"[") ;
+   if( dpt != NULL ){
+     int *ivlist ;
+     ivlist = MCW_get_labels_intlist( fnel->vec_lab , vnum , dpt ) ;
+     if( ivlist != NULL && ivlist[0] > 0 ){ /* extract subset of columns */
+       NI_element *qnel = NI_extract_columns( fnel , ivlist[0] , ivlist+1 ) ;
+       if( qnel != NULL ){ NI_free_element(fnel) ; fnel = qnel ; }
      }
    }
 
