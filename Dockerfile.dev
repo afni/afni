@@ -1,40 +1,68 @@
 FROM ubuntu:bionic-20180526@sha256:c8c275751219dadad8fa56b3ac41ca6cb22219ff117ca98fe82b42f24e1ba64e
-USER root
-RUN apt-get update -y ; apt-get upgrade -y
 
 ARG DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get install -y \
-      python-qt4 git tcsh vim libxmu-dev libxt-dev libmotif-dev libxpm-dev \
-      libxi-dev libxmhtml-dev libglw1-mesa-dev libglu1-mesa-dev libglib2.0-dev \
-      libgsl-dev r-base m4
-RUN apt-get install -yq --no-install-recommends g++ gcc
-RUN apt-get install -y python3-pip \
-    && pip3 install --no-cache-dir pytest pytest-cov codecov
+RUN apt-get update -y -qq \
+    && apt-get install -yq --no-install-recommends \
+          ca-certificates \
+          curl \
+          g++ \
+          gcc \
+          git \
+          libglib2.0-dev \
+          libglu1-mesa-dev \
+          libglw1-mesa-dev \
+          libgsl-dev \
+          libmotif-dev \
+          libxi-dev \
+          libxmhtml-dev \
+          libxmu-dev \
+          libxpm-dev \
+          libxt-dev \
+          m4 \
+          python-qt4 \
+          r-base \
+          tcsh \
+          vim \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-#######################################
-# this copies source code from the host
-# into the image and invalidates the cache
-WORKDIR /usr/afni_build_dir
-COPY . .
+# Install pip.
+RUN curl -fsSL https://bootstrap.pypa.io/get-pip.py | python3 - --no-cache-dir \
+    && pip install --no-cache-dir --quiet \
+          codecov \
+          pytest \
+          pytest-cov
 
-ENV PATH=$PATH:/usr/afni_build_dir/src/afni_src/abin
-ARG VERSION
-# RUN git checkout "${VERSION}"
-WORKDIR /usr/afni_build_dir/src
+# Copy AFNI source code. This can invalidate the build cache.
+ARG AFNI_ROOT=/opt/afni
+COPY [".", "$AFNI_ROOT/"]
 
-# make changes to add coverage flags to makefile
-RUN sed -i 's/# CPROF = /CPROF =  -coverage /' Makefile.linux_ubuntu_16_64
+# NOTE(kaczmarj): I don't think we should checkout in the Dockerfile. The user
+# should checkout their local copy of the code and then build. The local copy
+# is checked out to the desired version anyway.
 
-# o files are ignored by the repo but will
-# cause the build to fail.
-RUN make -f  Makefile.linux_ubuntu_16_64  afni_src.tgz \
-    && tar zxvf afni_src.tgz \
-    && cd afni_src \
-    && cp Makefile.linux_ubuntu_16_64 Makefile
-WORKDIR /usr/afni_build_dir/src/afni_src
-# RUN make libmri.so
-RUN make itall && mv linux_ubuntu_16_64 /opt/abin
-ENV PATH="/opt/abin:${PATH}"
+ARG AFNI_MAKEFILE_SUFFIX=linux_ubuntu_16_64
+WORKDIR "$AFNI_ROOT/src"
+RUN \
+    # Add coverage flags to Makefile.
+    sed -i 's/# CPROF = /CPROF =  -coverage /' Makefile.$AFNI_MAKEFILE_SUFFIX \
+    \
+    # Clean AFNI src directory (*.o files can cause build to fail).
+    && make -f  Makefile.$AFNI_MAKEFILE_SUFFIX afni_src.tgz \
+    && mv afni_src.tgz .. \
+    && cd .. \
+    \
+    # Empty the src directory, and replace with the contents of afni_src.tgz
+    && rm -rf src/ && mkdir src \
+    && tar -xzf afni_src.tgz -C $AFNI_ROOT/src --strip-components=1 \
+    && rm afni_src.tgz \
+    \
+    # Build AFNI.
+    && cd src \
+    && cp Makefile.$AFNI_MAKEFILE_SUFFIX Makefile \
+    && make itall \
+    && mv $AFNI_MAKEFILE_SUFFIX $AFNI_ROOT/bin
 
-WORKDIR /opt/abin
+ENV PATH="$AFNI_ROOT/bin:$PATH"
+WORKDIR "$AFNI_ROOT"
