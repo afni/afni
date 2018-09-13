@@ -1321,6 +1321,32 @@ void *NI_duplicate_element (void *vel, byte with_data)
 }
 
 /*------------------------------------------------------------------------*/
+/* Make a new element from a list of columns in the old element */
+
+NI_element * NI_extract_columns( NI_element *nel , int nc , int *cc )
+{
+   NI_element *vnel ; int ii , jj ;
+
+   if( NI_element_type(nel) != NI_ELEMENT_TYPE ) return(NULL) ;
+   if( nc < 1 || cc == NULL                    ) return(NULL) ;
+
+   vnel = NI_new_data_element(nel->name, nel->vec_len);
+
+   NI_copy_all_attributes( nel, vnel ) ;
+
+   /* copy desired columns */
+
+   for( ii=0 ; ii < nc ; ii++ ){
+     jj = cc[ii] ; if( jj < 0 || jj >= nel->vec_num ) continue ;
+     NI_add_column( vnel , nel->vec_typ[jj] , (void *)nel->vec[jj] ) ;
+     if( nel->vec_lab != NULL )
+       NI_set_column_label( vnel , ii , nel->vec_lab[jj] ) ;
+   }
+
+   return(vnel) ;
+}
+
+/*------------------------------------------------------------------------*/
 /*! Duplicate niml group only.
     Better use function NI_duplicate                        ZSS Oct 2010
 --------------------------------------------------------------------------*/
