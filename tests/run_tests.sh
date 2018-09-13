@@ -25,3 +25,4 @@ pytest
 afni_system_check.py -check_all
 cd $AFNI_ROOT/src
 gcov *.c
+codecov
