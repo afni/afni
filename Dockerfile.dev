@@ -27,26 +27,24 @@ RUN apt-get update -y -qq \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# Install pip.
-RUN curl -fsSL https://bootstrap.pypa.io/get-pip.py | python3 - --no-cache-dir \
-    && pip install --no-cache-dir --quiet \
-          codecov \
-          pytest \
-          pytest-cov
-
 # Copy AFNI source code. This can invalidate the build cache.
 ARG AFNI_ROOT=/opt/afni
 COPY [".", "$AFNI_ROOT/"]
 
-# NOTE(kaczmarj): I don't think we should checkout in the Dockerfile. The user
-# should checkout their local copy of the code and then build. The local copy
-# is checked out to the desired version anyway.
-
 ARG AFNI_MAKEFILE_SUFFIX=linux_ubuntu_16_64
+ARG AFNI_WITH_COVERAGE="0"
+
 WORKDIR "$AFNI_ROOT/src"
 RUN \
-    # Add coverage flags to Makefile.
-    sed -i 's/# CPROF = /CPROF =  -coverage /' Makefile.$AFNI_MAKEFILE_SUFFIX \
+    if [ "$AFNI_WITH_COVERAGE" != "0" ]; then \
+      echo "Adding testing and coverage components" \
+      && sed -i 's/# CPROF = /CPROF =  -coverage /' Makefile.$AFNI_MAKEFILE_SUFFIX \
+      && curl -fsSL https://bootstrap.pypa.io/get-pip.py | python3 - --no-cache-dir \
+      && pip3 install --no-cache-dir \
+            codecov \
+            pytest \
+            pytest-cov; \
+    fi \
     \
     # Clean AFNI src directory (*.o files can cause build to fail).
     && make -f  Makefile.$AFNI_MAKEFILE_SUFFIX afni_src.tgz \
@@ -62,7 +60,7 @@ RUN \
     && cd src \
     && cp Makefile.$AFNI_MAKEFILE_SUFFIX Makefile \
     && make itall \
-    && mv $AFNI_MAKEFILE_SUFFIX $AFNI_ROOT/bin
+    && mv $AFNI_MAKEFILE_SUFFIX $AFNI_ROOT/abin
 
-ENV PATH="$AFNI_ROOT/bin:$PATH"
+ENV PATH="$AFNI_ROOT/abin:$PATH"
 WORKDIR "$AFNI_ROOT"
