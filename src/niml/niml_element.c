@@ -1,6 +1,53 @@
 #include "niml_private.h"
 
 /*-----------------------------------------------------------------------*/
+/* Vector labels [12 Sep 2018] */
+
+void NI_set_veclab_from_stringlist( NI_element *nel , char *vstr )
+{
+   if( NI_element_type(nel) != NI_ELEMENT_TYPE || vstr == NULL ) return ;
+
+   if( nel->vec_num > 0 ){
+     int pp ;
+     NI_str_array *sar = NI_decode_string_list( vstr , "," ) ;
+     if( sar != NULL && sar->num > 0 ){
+       int ns=sar->num  ;
+       if( nel->vec_lab != NULL ) NI_free(nel->vec_lab) ;
+       nel->vec_lab = (char **)NI_malloc(char*,sizeof(char *)*nel->vec_num) ;
+       for( pp=0 ; pp < nel->vec_num ; pp++ ){
+          nel->vec_lab[pp] = (pp < ns) ? NI_strdup(sar->str[pp])
+                                       : NI_strdup("\0")        ;
+       }
+     }
+   }
+   return ;
+}
+
+void NI_set_attribute_from_veclab_array( NI_element *nel , char **vec_lab )
+{
+   char *vla ; int nvla , ii ;
+
+   if( NI_element_type(nel) != NI_ELEMENT_TYPE || nel->vec_num == 0 ) return ;
+
+   if( vec_lab == NULL ) vec_lab = nel->vec_lab ;
+   if( vec_lab == NULL ) return ;
+
+   for( nvla=ii=0 ; ii < nel->vec_num ; ii++ )
+     nvla += NI_strlen(vec_lab[ii])+8 ;
+
+   vla = (char *)malloc(sizeof(char)*nvla) ; vla[0] = '\0' ;
+   for( ii=0 ; ii < nel->vec_num ; ii++ ){
+     sprintf( vla+strlen(vla) , "%s%s" ,
+              (vec_lab[ii] != NULL) ? vec_lab[ii] : "\0" ,
+              (ii < nel->vec_num-1) ? ","         : "\0"  ) ;
+   }
+
+   NI_set_attribute(nel,"ni_veclab",vla) ;
+   free(vla) ;
+   return ;
+}
+
+/*-----------------------------------------------------------------------*/
 /*! Construct an empty data element from a header.
     - The data vectors will have space allocated, but they will be
       filled with all zero bytes.
@@ -157,16 +204,7 @@ NI_dpr("ENTER make_empty_data_element\n") ;
 
      ii = string_index( "ni_veclab" , nel->attr_num , nel->attr_lhs ) ;
      if( nel->vec_num > 0 && ii > 0 ){
-        int pp ;
-        NI_str_array *sar = NI_decode_string_list( nel->attr_rhs[ii] , NULL ) ;
-        if( sar != NULL && sar->num > 0 ){
-           int ns=sar->num  ;
-           nel->vec_lab = (char **)NI_malloc(char*,sizeof(char *)*nel->vec_num) ;
-           for( pp=0 ; pp < nel->vec_num ; pp++ ){
-             nel->vec_lab[pp] = (pp < ns) ? NI_strdup(sar->str[pp])
-                                          : NI_strdup("\0")        ;
-           }
-        }
+       NI_set_veclab_from_stringlist( nel , nel->attr_rhs[ii] ) ;
      }
 
      /* supply vector parameters if none was given */
@@ -328,10 +366,12 @@ void NI_free_element( void *nini )
 
       /* 14 Feb 2003: NI_free_column() will also free var dim arrays */
 
-      if( nel->vec != NULL )
-        for( ii=0 ; ii < nel->vec_num ; ii++ )
+      if( nel->vec != NULL ){
+        for( ii=0 ; ii < nel->vec_num ; ii++ ){
            NI_free_column( NI_rowtype_find_code(nel->vec_typ[ii]) ,
                            nel->vec_len , nel->vec[ii]             ) ;
+        }
+      }
 
       NI_free( nel->vec_typ  ) ;
       NI_free( nel->vec ) ;
@@ -341,6 +381,11 @@ void NI_free_element( void *nini )
       NI_free(nel->vec_axis_origin) ;
       NI_free(nel->vec_axis_unit) ;
       NI_free(nel->vec_axis_label) ;
+
+      if( nel->vec_lab != NULL ){  /* 12 Sep 2018 */
+        for( ii=0 ; ii < nel->vec_num ; ii++ ) NI_free(nel->vec_lab[ii]) ;
+        NI_free(nel->vec_lab) ;
+      }
 
       NI_free( nel ) ;
 
@@ -498,7 +543,7 @@ void NI_set_column_label( NI_element *nel , int cc , char *lab )
    if( nel->type != NI_ELEMENT_TYPE )                return ;
    if( cc < 0 || cc >= nel->vec_num || lab == NULL ) return ;
 
-   if( nel->vec_lab == NULL ){  /* create label array */
+   if( nel->vec_lab == NULL ){  /* create empty label array */
      int pp ;
      nel->vec_lab = (char **)NI_malloc(char*,sizeof(char *)*nel->vec_num) ;
      for( pp=0 ; pp < nel->vec_num ; pp++ ) nel->vec_lab[pp] = NI_strdup("\0") ;
@@ -555,7 +600,7 @@ void NI_add_column( NI_element *nel , int typ , void *arr )
      nel->vec[nn] = NI_malloc(void, rt->size * nel->vec_len ) ;
 
    if( nel->vec_lab != NULL ){  /* 11 Sep 2018 */
-     nel->vec_lab = NI_realloc( nel->vec_lab , char* , sizeof(char *)*(nn+1) ) ;
+     nel->vec_lab     = NI_realloc( nel->vec_lab , char* , sizeof(char *)*(nn+1) ) ;
      nel->vec_lab[nn] = NI_strdup("\0") ;
    }
 
@@ -702,9 +747,9 @@ void NI_remove_column(NI_element *nel, int irm)
    if( NI_get_attribute(nel, "ni_type") )
       NI_set_ni_type_atr(nel) ;
 
-
    return;
 }
+
 /*------------------------------------------------------------------------*/
 /*! Change the length of all the columns in a data element.
      - If the columns are longer, they will be zero filled.
@@ -953,8 +998,6 @@ void NI_kill_attribute( void *nini , char *attname  )
 
       for( nn=0 ; nn < nel->attr_num ; nn++ )
          if( strcmp(nel->attr_lhs[nn],attname) == 0 ) break ;
-
-
 
       if( nn == nel->attr_num ){ /* not found, return */
         return;
@@ -1269,8 +1312,38 @@ void *NI_duplicate_element (void *vel, byte with_data)
       }
    }
 
+   if( nel->vec_lab != NULL && ndup->vec_num > 0 ){  /* 12 Sep 2018 */
+     NI_set_attribute_from_veclab_array( ndup , nel->vec_lab ) ;
+   }
+
    if (tt == NI_ELEMENT_TYPE) return((void *)ndup);
    else return(vdup);
+}
+
+/*------------------------------------------------------------------------*/
+/* Make a new element from a list of columns in the old element */
+
+NI_element * NI_extract_columns( NI_element *nel , int nc , int *cc )
+{
+   NI_element *vnel ; int ii , jj ;
+
+   if( NI_element_type(nel) != NI_ELEMENT_TYPE ) return(NULL) ;
+   if( nc < 1 || cc == NULL                    ) return(NULL) ;
+
+   vnel = NI_new_data_element(nel->name, nel->vec_len);
+
+   NI_copy_all_attributes( nel, vnel ) ;
+
+   /* copy desired columns */
+
+   for( ii=0 ; ii < nc ; ii++ ){
+     jj = cc[ii] ; if( jj < 0 || jj >= nel->vec_num ) continue ;
+     NI_add_column( vnel , nel->vec_typ[jj] , (void *)nel->vec[jj] ) ;
+     if( nel->vec_lab != NULL )
+       NI_set_column_label( vnel , ii , nel->vec_lab[jj] ) ;
+   }
+
+   return(vnel) ;
 }
 
 /*------------------------------------------------------------------------*/

@@ -614,6 +614,9 @@ extern void NI_insert_string( NI_element *, int,int, char *);       /* 19 Apr 20
 extern void NI_alter_veclen( NI_element * , int ) ;                 /* 19 Apr 2005 */
 extern void NI_set_ni_type_atr( NI_element * ) ;       /* 14 Jul 2006 [rickr] */
 
+extern NI_element * NI_extract_columns( NI_element *nel, int nc, int *cc ) ; /* 13 Sep 2018 */
+
+
 extern NI_group * NI_new_group_element(void) ;
 extern void NI_add_to_group( NI_group *, void * ) ;
 extern void NI_rename_group( NI_group *, char * ) ;                 /* 03 Jun 2002 */
