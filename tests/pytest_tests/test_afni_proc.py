@@ -8,10 +8,11 @@ import os
 import shutil
 import subprocess
 
-# TODO(kaczmarj): this should be more general.
-AFNI_DATA6_ROOT = "/usr/afni_build_dir/tests/pytest_tests/afni_test_data/AFNI_data6"
-FT_PATH = os.path.join(AFNI_DATA6_ROOT, "FT_analysis", "FT")
+here = os.path.abspath(os.path.dirname(__file__))
+AFNI_TEST_DATA_PATH = os.path.join(here, 'afni_test_data')
+FT_PATH = os.path.join(AFNI_TEST_DATA_PATH, "AFNI_data6", "FT_analysis", "FT")
 
+_subj = "FT"
 
 def _get_afni_proc_path():
     loc = shutil.which('afni_proc.py')
@@ -54,12 +55,12 @@ def test_handout_realcase2():
         -regress_run_clustsim yes"""
     cmd = cmd.format(
         afni_proc=_get_afni_proc_path(),
-        subj='FT',
+        subj=_subj,
         data=FT_PATH)
     # Raises error on failure.
     subprocess.run(cmd.split(), check=True)
 
-    procfile = "proc.{}".format('FT')
+    procfile = "proc.{}".format(_subj)
     assert os.path.isfile(procfile)
 
 
@@ -78,10 +79,10 @@ def test_handout_realcase3():
         -blur_size 4.0"""
     cmd = cmd.format(
         afni_proc=_get_afni_proc_path(),
-        subj='FT',
+        subj=_subj,
         data=FT_PATH)
     # Raises error on failure.
     subprocess.run(cmd.split(), check=True)
 
-    procfile = "proc.{}".format('FT')
+    procfile = "proc.{}".format(_subj)
     assert os.path.isfile(procfile)
