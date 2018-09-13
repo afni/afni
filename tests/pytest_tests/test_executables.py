@@ -1,8 +1,15 @@
 import subprocess
+import sys
 
 def test_3dAllineate():
-	subprocess.check_output('cd pytest_tests/test_dirs/3dAllineate && tcsh runit', shell=True)
+   cp = subprocess.run('cd pytest_tests/test_dirs/3dAllineate && tcsh runit',
+                       check=True,
+                       close_fds=True,
+                       shell=True)
+
 
 def test_3dClustSim():
-	subprocess.check_output('cd pytest_tests/test_dirs/3dClustSim && tcsh runit', shell=True)
-
+    cp = subprocess.run('cd pytest_tests/test_dirs/3dClustSim && tcsh runit',
+                        check=True,
+                        close_fds=True,
+                        shell=True)
