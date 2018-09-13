@@ -5,4 +5,4 @@ pytest
 afni_system_check.py -check_all
 cd /usr/afni_build_dir/src/afni_src
 gcov *.c
-coverage
+codecov
