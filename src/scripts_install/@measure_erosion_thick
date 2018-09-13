@@ -1,5 +1,5 @@
-#/bin/tcsh
-# @measure_erosionthick
+#!/bin/tcsh
+# @measure_erosion_thick
 # erode a dataset repeatedly to separate datasets until nothing left
 # add up all the erosions at the end to get erosion_levels depth dataset
 # and normalize to get erosionnorm dataset
@@ -31,7 +31,7 @@ HELP:
     echo "@measure_erosion_thick -maskset maskset -surfset surfacedset.gii -outdir thickdir"
     echo
     echo "where maskset is the dataset to find thickness"
-    echo " using the largest non-zero value in the mask." 
+    echo " using the largest non-zero value in the mask."
     echo " If dataset has values -2,-1 and 1 for different regions, this script"
     echo " calculates the thickness only for voxels with a value of 1"
     echo "surfset is a surface to use to find normals into the volume"
@@ -119,8 +119,8 @@ while ( $ac <= $#argv )
         endif
         set  thickdir = $argv[$ac]
         @ ac ++; continue;
-        
-    # now tweak the options    
+
+    # now tweak the options
     else if ( "$argv[$ac]" == "-resample" ) then
         @ ac ++
         if ( $ac > $#argv ) then
@@ -135,8 +135,8 @@ while ( $ac <= $#argv )
            if ("$status" != "0") then
               echo "resample set to $argv[$ac] is not valid"
               exit 1
-           endif 
-           echo "resample voxel size to $resample mm"       
+           endif
+           echo "resample voxel size to $resample mm"
         endif
         @ ac ++; continue;
     else if ( "$argv[$ac]" == "-maxthick" ) then
@@ -207,7 +207,7 @@ while ( $ac <= $#argv )
         @ ac ++; continue;
 
     # unknown options - exit
-    else 
+    else
         if ("$ignore_unknown_options" != "yes") then
           echo "** unknown option $argv[$ac]"
           exit 1
@@ -238,7 +238,7 @@ endif
 # do everything in a new directory for simplicity
 mkdir $thickdir
 
-# put original dataset into output directory with specific name 
+# put original dataset into output directory with specific name
 #  this is easier and allows for mask range selectors, sub-brick selectors, and NIFTI
 3dTcat -prefix $thickdir/allmaskset.nii.gz -overwrite $maskset
 if ($surfset != "") then
@@ -256,7 +256,7 @@ set maskset = maskset.nii.gz
 set vrange = `3dBrickStat -non-zero -min -max allmaskset.nii.gz`
 if ($vrange[1] != $vrange[2]) then
    # can do in-out, but use a simpler mask for the other methods
-   3dTcat -overwrite -prefix maskset.nii.gz allmaskset.nii.gz"<${vrange[2]}>" 
+   3dTcat -overwrite -prefix maskset.nii.gz allmaskset.nii.gz"<${vrange[2]}>"
 else
    # just a single value mask - can't do in-out calculation
    rm maskset.nii.gz
@@ -269,7 +269,7 @@ if ("$resample" != "") then
    if ("$resample" == "auto") then
       set voxsize = `ccalc -expr "${voxsize}/2"`
    else
-      set voxsize = $resample         
+      set voxsize = $resample
    endif
    3dresample -rmode NN -prefix maskset_rs.nii.gz -overwrite \
       -bound_type SLAB -dxyz $voxsize $voxsize $voxsize -input $maskset
@@ -295,7 +295,7 @@ while ( $nvox != 0 )
    -b a+i -c a-i -d a+j -e a-j -f a+k -g a-k \
    -expr 'and(a,b,c,d,e,f,g)' \
    -prefix __tt_erode_${iterp1}.nii.gz -overwrite
-   
+
    set iter = $iterp1
    set iterp1 = `ccalc -form "%2.2d" "$iterp1+1"`
 
@@ -350,9 +350,9 @@ rm -rf erosion_depth_vox.nii.gz erosion_depth.nii.gz erosion_thick.nii.gz erosio
 
 # sort coordinates from smallest to largest thickness
 sort -n -k 4 sphere_centers_pre.1D > sphere_centers_sorted.1D
-# calculate radius again - need this for 3dUndump 
-1deval -a sphere_centers_sorted.1D'[3]' -expr "(a-${voxsize})/2" > radii.1D 
-# 1D file is "i j k thickness radius" sorted by radius 
+# calculate radius again - need this for 3dUndump
+1deval -a sphere_centers_sorted.1D'[3]' -expr "(a-${voxsize})/2" > radii.1D
+# 1D file is "i j k thickness radius" sorted by radius
 1dcat sphere_centers_sorted.1D radii.1D > sphere_centers.1D
 
 # fill spheres around centers with 1/2 thickness radii and values of the thickness
@@ -384,7 +384,7 @@ if($surfset != "") then
      -oob_value $voxsize -oom_value $voxsize \
      -out_niml erosion_thick.niml.dset -overwrite
 
-   # smooth data on surface 
+   # smooth data on surface
    # (HEAT_05 method is more robust from quick tests than HEAT_07 method
    #  recommended in help for SurfSmooth, but HEAT_07 gives smoother
    #  results that look reasonable)
@@ -396,7 +396,7 @@ endif
 # unless the user is a hoarder, trash the intermediate files
 if ("$keep_temp_files" != "keep") then
 # cleanup all the erosion iterations and the voxel level erosions
-   rm -f __tt_* erosion_depth_vox.nii.gz sphere_centers*.1D *.smrec 
+   rm -f __tt_* erosion_depth_vox.nii.gz sphere_centers*.1D *.smrec
 endif
 
 echo "#\!/bin/tcsh" > @show_thick
