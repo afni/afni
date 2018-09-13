@@ -11,7 +11,7 @@
 /*-------------------------------------------------------------------------*/
 /*! Open a file for writing, if practicable.  Use fclose_maybe() to close. */
 
-static FILE * fopen_maybe( char *fname )  /* 05 Feb 2008 */
+FILE * fopen_maybe( char *fname )  /* 05 Feb 2008 */
 {
    FILE *imfile ;
    char *tname = NULL;
@@ -59,7 +59,7 @@ static FILE * fopen_maybe( char *fname )  /* 05 Feb 2008 */
 
 /*---------------------------------------------------------------------------*/
 
-static void fclose_maybe( FILE *fp )  /* 05 Feb 2008 */
+void fclose_maybe( FILE *fp )  /* 05 Feb 2008 */
 {
         if( fp == NULL   ) return ;
         if( fp == stdout ) fflush(fp) ;
