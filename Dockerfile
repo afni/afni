@@ -20,6 +20,7 @@ RUN apt-get update -y -qq \
           libxpm-dev \
           libxt-dev \
           m4 \
+          python-numpy \
           python-qt4 \
           r-base \
           tcsh \
