@@ -352,6 +352,8 @@ void usage_1dplot(int detail)
      " -plabel '\\Upsilon\\Phi\\Chi\\Psi\\Omega\\red\\leftrightarrow\\blue\\partial^{2}f/\\partial x^2'\n"
      "\n"
      TS_HELP_STRING
+     "\n"
+     TSV_HELP_STRING
    ) ;
 
    printf("\n"

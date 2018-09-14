@@ -2983,6 +2983,19 @@ ENTRY("mri_read_1D") ;
 
    if( fname == NULL || fname[0] == '\0' ) RETURN(NULL) ;
 
+   /*-- 14 Sep 2018: read a TSV file? */
+
+   cpt = strcasestr(fname,".tsv") ;
+   if( cpt != NULL && ( cpt[4] == '\0' || cpt[4] == '[' ) ){
+     NI_element *nel ;
+     nel = THD_read_tsv(fname) ;            /* cf. thd_table.c */
+     if( nel != NULL ){
+       outim = THD_niml_to_mri(nel) ;  /* only numeric columns */
+       NI_free_element(nel) ;
+       if( outim != NULL ) RETURN(outim) ;
+     } /* if it falls thru to here, read or conversion failed */
+   }
+
    /*-- 25 Jan 2008: read from stdin? --*/
 
    ii = strlen(fname) ;
