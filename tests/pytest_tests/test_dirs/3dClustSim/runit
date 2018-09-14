@@ -19,13 +19,12 @@ setenv AFNI_RANDOM_SEEDVAL 31416
 setenv OMP_NUM_THREADS 1
 time 3dClustSim -nxyz 16 8 4 -dxyz 3 3 3 -BALL -acf 0.7 3 3 \
                 -LOTS -seed 31416 -prefix CLout_OMP_NO               |& tee runit.out
-
 if ( ! -f Baseline_CLout_OMP_NO.NN1_1sided.1D ) then
   \rm -f Baseline_*
   mv -f CLout_OMP_NO.NN1_1sided.1D Baseline_CLout_OMP_NO.NN1_1sided.1D             |& tee -a runit.out
 else
   echo '===== 3dClustSim (no OpenMP) difference from Baseline =====' |& tee -a runit.out
-  diff CLout_OMP_NO.NN1_1sided.1D Baseline_CLout_OMP_NO.NN1_1sided.1D              |& tee -a runit.out
+  diff CLout_OMP_NO.NN1_1sided.1D Baseline_CLout_OMP_NO.NN1_1sided.1D              |& tee -a runit.out |& tee OMP_NO_diff.out
 endif
 
 # Note that the random sequence will vary in the OpenMP version,
@@ -34,11 +33,11 @@ endif
 unsetenv OMP_NUM_THREADS
 if ( ! $NO_OMP ) then
   time 3dClustSim -nxyz 16 8 4 -dxyz 3 3 3 -BALL -acf 0.7 3 3 \
-                  -LOTS -seed 31416 -prefix CLout_OMP_YES              |& tee runit.out
+                  -LOTS -seed 31416 -prefix CLout_OMP_YES              |& tee -a runit.out
   if ( -f Baseline_CLout_OMP_NO.NN1_1sided.1D ) then
     echo '===== 3dClustSim (w/OpenMP) difference from Baseline ====='  |& tee -a runit.out
     echo '.....  (these are not expected to be exactly zero)  .....'   |& tee -a runit.out
-    diff CLout_OMP_YES.NN1_1sided.1D Baseline_CLout_OMP_NO.NN1_1sided.1D             |& tee -a runit.out
+    diff CLout_OMP_YES.NN1_1sided.1D Baseline_CLout_OMP_NO.NN1_1sided.1D             |& tee -a runit.out |& tee OMP_YES_diff.out
   endif
 endif
 
