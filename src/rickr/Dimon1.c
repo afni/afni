@@ -358,7 +358,7 @@ int main( int argc, char * argv[] )
     int        ret_val;
 
     mainENTRY("Dimon");
-    
+
     /* validate inputs and init options structure */
     if ( (ret_val = init_options( p, ac, argc, argv )) != 0 )
         return ret_val;
@@ -381,7 +381,7 @@ int main( int argc, char * argv[] )
  *
  * This function runs until either a volume is located, or an
  * error occurs.
- * 
+ *
  * return:     0 : on success
  *          else : error
  *----------------------------------------------------------------------
@@ -496,9 +496,9 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
                     }
                 }
             }
-    
+
             /* make sure there is enough memory for bad volumes */
-            if ( p->nalloc < (4 * v->nim) ) 
+            if ( p->nalloc < (4 * v->nim) )
             {
                 p->nalloc = 4 * v->nim;
                 p->flist = (finfo_t *)realloc( p->flist,
@@ -509,29 +509,29 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
                                      "structs!\n", p->nalloc );
                     return -1;
                 }
-    
+
                 if ( gD.level > 2 )
                     idisp_param_t( "++ final realloc of flist : ", p );
             }
-    
+
             /* use this volume to complete the geh.orients string */
             if ( complete_orients_str( v, p ) < 0 )
                 return -1;
-    
+
             /* use this volume to note the byte order of image data */
             if ( check_im_byte_order( &ac->byte_order, v, p ) < 0 )
                 return -1;
-    
+
             /* if wanted, verify afni link, send image info and first volume */
             if ( ac->state == ART_STATE_TO_OPEN )
                 ART_open_afni_link( ac, 5, 0, gD.level );
-    
+
             if ( ac->state == ART_STATE_TO_SEND_CTRL )
                 ART_send_control_info( ac, v, gD.level );
-    
+
             if ( ac->state == ART_STATE_IN_USE )
                 ART_send_volume( ac, v, gD.level );
-    
+
             if ( gD.level > 2 )
             {
                 ART_idisp_ART_comm( "-- first vol ", ac );
@@ -551,7 +551,7 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
  * find_more_volumes:   given first volume, keep scanning for others
  *
  * This function runs until a fatal error occurs.
- * 
+ *
  * return:     0 : on success
  *          else : error
  *----------------------------------------------------------------------
@@ -761,11 +761,11 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
  *
  *     - start should be at the expected beginning of a volume!
  *     - *fl_start may be returned as a new starting index into fnames
- * 
+ *
  * state:     0 :  < 2 slices found (in the past)
  *            1 : >= 2 slices (new 'bound')
  *            2 : >= 2 slices (repeated 'bound', may be one volume run)
- * 
+ *
  * return:   -2 : on programming error
  *           -1 : on data error
  *            0 : on success - no volume yet
@@ -1123,7 +1123,7 @@ static int num_slices_ok( int num_slices, int nfound, char * mesg )
  * volume_match:   scan p->flist for a matching volume
  *
  *     - start should be at the expected beginning of a volume!
- * 
+ *
  * return:   -2 : fatal error
  *           -1 : recoverable data error
  *            0 : on success - no volume yet
@@ -1201,7 +1201,7 @@ static int volume_match( vol_t * vin, vol_t * vout, param_t * p, int start )
             else        /* unknown error - find start of next volume */
             {
                 /* search for a next starting point */
-                next_start = find_next_zoff( p, start+count, vin->z_first, 
+                next_start = find_next_zoff( p, start+count, vin->z_first,
                                                              vin->nim );
                 if ( next_start < 0 )   /* come back and try again later */
                     return 0;
@@ -1239,7 +1239,7 @@ static int volume_match( vol_t * vin, vol_t * vout, param_t * p, int start )
         /* check last slice - count and fp should be okay*/
         if ( (p->nused - start) <= vin->nim )   /* no more images to check */
             return 0;                           /* wait for more data      */
-        
+
         fp_test = fp + 1;                              /* check next image */
         if ( fabs( vin->z_first - fp_test->geh.zoff ) < gD_epsilon )
         {
@@ -1270,7 +1270,7 @@ static int volume_match( vol_t * vin, vol_t * vout, param_t * p, int start )
         else    /* unknown error - find start of next volume */
         {
             /* search for a next starting point */
-            next_start = find_next_zoff( p, start+count+1, vin->z_first, 
+            next_start = find_next_zoff( p, start+count+1, vin->z_first,
                                                            vin->nim );
 
             if ( next_start < 0 )       /* come back and try again later */
@@ -1386,7 +1386,7 @@ static int check_error( int * retry, float tr, char * note )
  *     - decide number of files to scan (max == 0 implies the rest)
  *     - allocate necessary p->flist memory
  *     - read GE structures
- * 
+ *
  * return:       < 0  : on error
  *         files read : on success
  *----------------------------------------------------------------------
@@ -1474,7 +1474,7 @@ static int read_ge_files(
             return 0;
         }
     }
-    
+
     if ( gD.level > 4 )
     {
         int fnum;
@@ -1671,7 +1671,7 @@ static int scan_ge_files (
             rv = read_dicom_image( p->fnames[fnum], fp, 1 );
         else if ( IM_IS_AFNI(p->ftype) )
             rv = read_afni_image( p->fnames[fnum], fp, 1 );
-        else 
+        else
             rv = read_ge_image( p->fnames[fnum], fp, 1, need_M );
 
         /* don't lose any allocated memory, regardless of the return value */
@@ -1773,7 +1773,7 @@ static int dicom_order_files( param_t * p )
     } else if( p->nfiles < 2 ) {
         fprintf(stderr,"** but ordering only 1 file is easy...\n");
         return 0;
-    } 
+    }
 
     if ( ! IM_IS_DICOM(p->ftype) ) {
         fprintf(stderr,"** Dimon: needs update to sort '%s' files\n",
@@ -1867,7 +1867,7 @@ static int dicom_order_files( param_t * p )
             scount++;  /* count sort inversions, say */
 
     if( bad == 1 ){ free(flist);  return -1; }
- 
+
     /* if we don't accomplish anything, return 0, else 1 */
     if( scount == 0 && p->nfiles == dcount ) rv = 0;
     else                                     rv = 1;
@@ -2626,7 +2626,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
     }
 
     if ( ! IM_IS_GEMS(p->ftype) )
-    {   
+    {
         if( ! p->opts.dicom_glob && ! p->opts.infile_list )
         {
             fprintf(stderr,"** missing -infile_pattern option\n");
@@ -2696,7 +2696,7 @@ static int init_extras( param_t * p, ART_comm * ac )
         ac->mode = AFNI_OPEN_CONTROL_MODE;
         ART_open_afni_link( ac, 2, 1, gD.level );
     }
-    
+
     /* check directory depth of start_file against glob_dir */
     if ( p->opts.start_file != NULL )
     {
@@ -2921,7 +2921,7 @@ static int read_dicom_image( char * pathname, finfo_t * fp, int get_data )
     int         rv = 0, ind;
 
     /* now use mri_read_dicom() directly                     4 Jan 2011 */
-    /* im = r_mri_read_dicom( pathname, gD.level,    
+    /* im = r_mri_read_dicom( pathname, gD.level,
                               get_data ? &fp->image : NULL);            */
 
     /* init globals to be used in mri_read_dicom.c           4 Jan 2011 */
@@ -2959,7 +2959,7 @@ static int read_dicom_image( char * pathname, finfo_t * fp, int get_data )
 
     /* --------------------------------------------------------------- */
     /* process any siemens timing info only once           15 Apr 2011
-     *  
+     *
      * Process the times by calling populate_g_siemens_times() after
      * reading a single DICOM file.  If valid, g_siemens_timing_nused
      * and g_siemens_timing_times[] will be set.
@@ -2988,7 +2988,7 @@ static int read_dicom_image( char * pathname, finfo_t * fp, int get_data )
             pathname,
             g_image_info.study, g_image_info.series,
             g_image_info.image, g_image_info.image_index, g_image_info.acq_time,
-            g_image_info.is_obl, g_image_info.is_mosaic, 
+            g_image_info.is_obl, g_image_info.is_mosaic,
             g_image_info.mos_nx, g_image_info.mos_ny, g_image_info.mos_nslice
                );
         fprintf(stderr,"   GIPx, GIPy, GIPz (M_z) (%6.1f, %6.1f, %6.1f (%f))\n",
@@ -3219,7 +3219,7 @@ static int read_ge_image( char * pathname, finfo_t * fp,
 
    /* nuke mosaic structs */
    memset(&fp->minfo, 0, sizeof(mosaic_info));
-        
+
    if( hi == NULL ) return -1;            /* bad */
    hi->good = 0 ;                       /* not good yet */
    if( pathname    == NULL ||
@@ -3382,7 +3382,7 @@ static int read_ge_image( char * pathname, finfo_t * fp,
         fread( &uv17 , 4, 1 , imfile ) ;
         if( swap ) swap_4(&uv17) ;
         /* printf ("%d ", (int)uv17);  */
-        hi->uv17 = (int)uv17; 
+        hi->uv17 = (int)uv17;
         /* printf ("\n"); */
 
         /* store the ge_extra info */
@@ -3394,7 +3394,7 @@ static int read_ge_image( char * pathname, finfo_t * fp,
         fp->gex.kk     = kk;
 
         memcpy( fp->gex.xyz, xyz, sizeof(xyz) );
-        
+
         hi->good = 1 ;                  /* this is a good file */
 
     } /* end of actually reading image header */
@@ -3610,7 +3610,7 @@ static int disp_ftype( char * info, int ftype )
     if ( info ) fputs(info, stdout);
 
     printf("%s (%d)\n", ftype_string(ftype), ftype);
-    
+
     fflush(stdout);
 
     return 0;
@@ -3753,7 +3753,7 @@ static int idisp_mosaic_info( char * info, mosaic_info * I )
 }
 
 /*----------------------------------------------------------------------
- * usage 
+ * usage
  *----------------------------------------------------------------------
 */
 static int usage ( char * prog, int level )
@@ -4067,7 +4067,7 @@ static int usage ( char * prog, int level )
       prog, prog, prog, prog, prog, prog, prog, prog, prog,
       prog, prog, prog, prog, prog, prog, prog,
       prog, prog, prog, prog, prog, prog, prog, prog );
-          
+
       printf(
           "  notes:\n"
           "\n"
@@ -4887,7 +4887,7 @@ static int create_gert_dicom( stats_t * s, param_t * p )
     /* If the user did not give a slice pattern string, use the default *
      * (default is "FROM_IMAGE" if siemens timing info).
      * Check that siemens timing info has correct nz.      15 Apr 2011  */
-    
+
     spat = (g_siemens_timing_nused > 0) ? "FROM_IMAGE" : IFM_SLICE_PAT;
     if ( opts->sp ) spat = opts->sp;
 
@@ -4984,7 +4984,7 @@ static int create_gert_dicom( stats_t * s, param_t * p )
             else                         nspaces = 0;
 
             /* if gert_format = 1, write as NIfTI */
-            fprintf(fp, "to3d%s -prefix %s%s  \\\n", 
+            fprintf(fp, "to3d%s -prefix %s%s  \\\n",
                      opts->gert_quiterr==1 ? " -quit_on_err" : "",
                      pname,
                      opts->gert_format==1 ? ".nii" : "" );
@@ -5203,7 +5203,7 @@ static int show_run_stats( stats_t * s )
 
     /* note image file type and set type string */
     ftypestr = get_ftype_str(gP.ftype);
-    
+
     if ( s->mos_nslices > 1 ) {
        if      ( IM_IS_AFNI(gP.ftype)  ) tstr = "(AFNI volume)";
        else if ( IM_IS_DICOM(gP.ftype) ) tstr = "(DICOM mosaic)";
@@ -5596,7 +5596,7 @@ static int complete_orients_str( vol_t * v, param_t * p )
                     v->geh.orients[5] = 'P';
                 }
                 break;
-                
+
             case 3:                                     /* IS */
                 if ( v->z_delta > 0 )
                 {
@@ -5609,7 +5609,7 @@ static int complete_orients_str( vol_t * v, param_t * p )
                     v->geh.orients[5] = 'I';
                 }
                 break;
-                
+
             default:
             {
                 fprintf(stderr, "** COS failure: kk (%d) not in [1,3]\n", kk);
@@ -5621,7 +5621,7 @@ static int complete_orients_str( vol_t * v, param_t * p )
     v->geh.orients[6] = '\0';
 
     if ( gD.level > 2 ) fprintf(stderr,"'%s'\n", v->geh.orients);
-                                
+
     return 0;
 }
 
@@ -5790,4 +5790,3 @@ int disp_obl_info(char * mesg)
 
     return 0;
 }
-

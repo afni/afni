@@ -33,3 +33,11 @@ ___*
 # Octave workspace
 octave-workspace
 /Debug/
+
+# Python
+__pycache__
+*.pyc
+
+# Test and coverage artifacts
+.pytest_cache
+.coverage
