@@ -920,6 +920,10 @@ extern MRI_IMAGE * mri_expand_2D( int , MRI_IMAGE * ) ;  /* 22 Feb 2004 */
 extern MRI_IMAGE *mri_new( int , int , MRI_TYPE ) ;
 extern MRI_IMAGE *mri_read( char * ) ;
 extern MRI_IMAGE *mri_read_ge4( char * ) ;               /* 03 Jun 2003 */
+
+extern void   fclose_maybe( FILE *fp ) ;
+extern FILE * fopen_maybe ( char *fname ) ;
+
 extern int mri_write( char * , MRI_IMAGE * ) ;
 extern int mri_write_pnm( char * , MRI_IMAGE * ) ;
 extern int mri_write_jpg( char * , MRI_IMAGE * ) ;       /* 15 Apr 2005 */

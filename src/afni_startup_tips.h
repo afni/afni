@@ -989,6 +989,7 @@ static char *gby[] = {
      "There is no mistake so great as being right ahead of time"     ,
      "We give you tools; You build things with them"                 ,
      "Do not take life too seriously. You won't get out of it alive" ,
+     "For great justice. Move ZIG."                                  ,
 
      /* bastardizations of Shakespeare */
 
