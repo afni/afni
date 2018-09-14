@@ -105,3 +105,11 @@ def test_prog_list_helps():
 
     if not_found or no_success:
         assert False
+
+
+def main():
+    test_prog_list_helps()
+
+
+if __name__ == '__main__':
+    main()
