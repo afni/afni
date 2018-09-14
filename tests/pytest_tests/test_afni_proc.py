@@ -86,3 +86,12 @@ def test_handout_realcase3():
 
     procfile = "proc.{}".format(_subj)
     assert os.path.isfile(procfile)
+
+
+def main():
+    test_handout_realcase2()
+    test_handout_realcase3()
+
+
+if __name__ == '__main__':
+    main()
