@@ -4418,15 +4418,21 @@ char *find_readme_file(char *str);
 extern int THD_is_dataset( char * , char * , int ) ; /* 17 Mar 2000 */
 extern char * THD_dataset_headname( char * , char * , int ) ;
 
+/*--------------------- functions for reading tables -------------------------*/
+
 extern NI_element * THD_simple_table_read( char *fname ) ; /* 19 May 2010 */
 extern NI_element * THD_mixed_table_read ( char *fname ) ; /* 26 Jul 2010 */
 extern NI_element * THD_string_table_read( char *fname , int flags ) ;
+
+/*--------------------- functions for TSV (.tsv) files -----------------------*/
 
 extern NI_element * THD_read_tsv(char *fname) ;            /* 12 Sep 2018 */
 extern void THD_write_tsv( char *fname , NI_element *nel ) ;
 extern void THD_set_tsv_column_labels( NI_element *fnel , char **clab ) ;
 extern NI_element * THD_mri_to_tsv_element( MRI_IMAGE *imin , char **clab ) ;
 extern MRI_IMAGE * THD_niml_to_mri( NI_element *nel ) ;
+
+/*---------------------------------------------------------------------------*/
 
 extern MRI_IMARR * THD_get_all_timeseries( char * ) ;
 extern MRI_IMARR * THD_get_many_timeseries( THD_string_array * ) ;
@@ -4758,6 +4764,8 @@ extern THD_3dim_dataset * THD_copy_one_sub  ( THD_3dim_dataset * , int ) ;
    "take the AFNI Jedi Master test.  I won't insult you by telling you\n"     \
    "where to find this examination.\n"
 
+/*---------------------------- TSV (.tsv) file help  -------------------------*/
+
 #undef  TSV_HELP_STRING
 #define TSV_HELP_STRING                                                          \
    "TAB SEPARATED VALUE (.tsv) FILES [Sep 2018]\n"                               \
@@ -4787,8 +4795,21 @@ extern THD_3dim_dataset * THD_copy_one_sub  ( THD_3dim_dataset * , int ) ;
    "(sideways - along rows) .tsv and .1D files together. It also has an\n"       \
    "option to write the output in .tsv format.\n"                                \
    "\n"                                                                          \
+   "For example, to get the 'onset', 'duration', and 'trial_type' columns\n"     \
+   "out of a BIDS task .tsv file, a command like this could be used:\n"          \
+   "  1dcat sub-10506_task-pamenc_events.tsv'[onset,duration,trial_type]'\n"     \
+   "Note that the column headers are lost in this output, but could be kept\n"   \
+   "if the 1dcat '-tsvout' option were used. In reverse, a numeric .1D file\n"   \
+   "can be converted to .tsv format by a command like:\n"                        \
+   "  1dcat -tsvout Fred.1D\n"                                                   \
+   "In this case, since a the data for .1D file doesn't have headers for its\n"  \
+   "columns, 1dcat will invent some column names.\n"                             \
+   "\n"                                                                          \
    "At this time, other programs don't 'know' much about .tsv files, and will\n" \
-   "ignore the header row and non-numeric columns.\n"
+   "ignore the header row and non-numeric columns when reading a .tsv file.\n"   \
+   "in place of a .1D file.\n"
+
+/*----------------------------------------------------------------------------*/
 
 extern void THD_delete_3dim_dataset( THD_3dim_dataset * , Boolean ) ;
 extern void *DSET_Label_Dtable(THD_3dim_dataset *dset);
