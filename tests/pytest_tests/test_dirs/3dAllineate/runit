@@ -32,7 +32,7 @@ else
   echo                                                                 |& tee -a runit.out
   echo '===== 3dAllineate (no OpenMP) difference from Baseline ====='  |& tee -a runit.out
   3dinfo -sval_diff ALvol_OMP_NO+tlrc Baseline_ALvol+tlrc              |& tee -a runit.out
-  diff   ALparam_OMP_NO.1D Baseline_ALparam.1D                         |& tee -a runit.out
+  diff   ALparam_OMP_NO.1D Baseline_ALparam.1D                         |& tee -a runit.out |& tee OMP_NO_diff.out
 endif
 
 unsetenv OMP_NUM_THREADS
@@ -45,7 +45,7 @@ if ( ! $NO_OMP ) then
     echo                                                               |& tee -a runit.out
     echo '===== 3dAllineate (w/OpenMP) difference from Baseline =====' |& tee -a runit.out
     3dinfo -sval_diff ALvol_OMP_YES+tlrc Baseline_ALvol+tlrc           |& tee -a runit.out
-    diff   ALparam_OMP_YES.1D Baseline_ALparam.1D                      |& tee -a runit.out
+    diff   ALparam_OMP_YES.1D Baseline_ALparam.1D                      |& tee -a runit.out |& tee OMP_YES_diff.out
 endif
 
 if( $#argv == 0 ) then
