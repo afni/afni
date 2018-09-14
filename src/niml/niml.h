@@ -22,6 +22,7 @@
 #include <fcntl.h>
 #include <sys/times.h>
 #include <limits.h>
+#include <math.h>     /* 14 Sep 2018 */
 
 #ifdef  __cplusplus
 extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
@@ -598,6 +599,7 @@ extern void NI_add_column( NI_element *, int, void * ) ;
 extern void NI_set_column_label( NI_element *nel, int cc, char *lab ) ; /* 11 Sep 2018 */
 extern void NI_move_column(NI_element *nel, int ibefore, int iafter);
 extern void NI_insert_column( NI_element *nel , int typ , void *arr, int icol );
+extern float NI_extract_float_value( NI_element *nel , int row , int col ) ; /* 14 Sep 2018 */
 extern void NI_remove_column(NI_element *nel, int irm);
 extern void NI_copy_all_attributes( void *nisrc , void *nitrg );
 void *NI_duplicate(void *vel, byte with_data);

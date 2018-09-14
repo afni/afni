@@ -667,7 +667,6 @@ int main( int argc , char *argv[] )
       "                        the '-GOFORIT' option. [Ides of March, MMX A.D.]\n"
      ) ;
 
-     if( AFNI_yesenv("AFNI_POMOC") )
      printf(
       "\n"
       " Semi-Hidden Alternative Ways to Define the Matrix\n"
@@ -678,10 +677,10 @@ int main( int argc , char *argv[] )
       "               produces a matrix with a single column of all ones.\n"
       " -matim M  = Read a standard .1D file as the matrix.\n"
       "           ** N.B.: You can use only 'Col' as a name in GLTs\n"
-      "                    with these nonstandard matrix input methods,\n"
-      "                    since the other names come from the '-matrix' file.\n"
+      "                    with these nonstandard matrix input methods, since\n"
+      "                    the other column names come from the '-matrix' file.\n"
       " ** These mutually exclusive options are ignored if -matrix is used.\n"
-      " -------------------------------------------------------------------\n"
+      " -----------------------------------------------------------------------\n"
      ) ;
 
      printf(
