@@ -24,6 +24,7 @@ RUN apt-get update -y -qq \
           python-numpy \
           python-qt4 \
           python-rpy2 \
+          python-tk \
           r-base \
           tcsh \
           vim \
