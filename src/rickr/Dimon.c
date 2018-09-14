@@ -2870,8 +2870,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
         else if ( ! strncmp( argv[ac], "-help", 5 ) )
         {
             usage( IFM_PROG_NAME, IFM_USE_LONG );
-            /* exit with success if user wants help */
-            exit(0);
+            return 1;
         }
         else if ( ! strncmp( argv[ac], "-hist", 5 ) )
         {
