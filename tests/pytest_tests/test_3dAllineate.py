@@ -1,8 +1,13 @@
 import subprocess
 import sys
+from pathlib import Path
+from test_utils.diff import diff_parser
+
 
 def test_3dAllineate():
-   cp = subprocess.run('cd pytest_tests/test_dirs/3dAllineate && tcsh runit',
-                       check=True,
-                       close_fds=True,
-                       shell=True)
+    wd = Path(__file__).parent.as_posix()
+    print(wd)
+    cp = subprocess.run(f'cd {wd}/test_dirs/3dAllineate && tcsh runit',
+                        check=True,
+                        close_fds=True,
+                        shell=True)
