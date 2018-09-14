@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14, Sep, 2018, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "have programs return 0 on terminal options, like -help",
+   "Adding: @Install_D99_macaque."
+ } ,
+
  { 13, Sep, 2018, RCR, "afni-general", MICRO, TYPE_MODIFY,
    "have programs return 0 on terminal options, like -help",
    "So far: 3dSurf2Vol, 3dVol2Surf, 3dmaxima."
