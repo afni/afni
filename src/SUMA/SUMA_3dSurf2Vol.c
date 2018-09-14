@@ -137,13 +137,8 @@ static char g_history[] =
  "3.9  September 13, 2018  [rickr]\n"
  "  - return 0 on terminal options\n"
  "----------------------------------------------------------------------\n";
-<<<<<<< HEAD
-
-#define VERSION "version  3.8 (April 4, 2011)"
-=======
 
 #define VERSION "version  3.9 (September 13, 2018)"
->>>>>>> dylan/ADD_tests
 
 
 /*----------------------------------------------------------------------
