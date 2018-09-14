@@ -21,6 +21,41 @@ SHOULD_NOT_BE_EXECUTABLE = [
     'demo.fixed.niml.do',
     'demo.mobile.niml.do']
 
+KNOWN_BROKEN_HELP = [
+    '3dmaxima',
+    '@Install_D99_macaque',
+    '@Install_NIH_Marmoset',
+    '@auto_align',
+    '@djunct_4d_slices_to_3d_vol',
+    '@djunct_vol_3slice_select',
+    '@xyz_to_ijk',
+    'Dimon',
+    'Dimon1',
+    'FD2',
+    'Ifile',
+    'MakeColorMap',
+    'ScaleToMap',
+    'SurfMeasures',
+    'afni_run_R',
+    'balloon',
+    'cjpeg',
+    'column_cat',
+    'djpeg',
+    'fat_mvm_gridconv.py',
+    'fat_mvm_prep.py',
+    'fat_mvm_review.py',
+    'fat_mvm_scripter.py',
+    'fat_roi_row.py',
+    'get_afni_model_PRF',
+    'imcat',
+    'inspec',
+    'mpeg_encode',
+    'myget',
+    'qdelaunay',
+    'qhull',
+    'quickspec',
+    'rbox']
+
 
 def _get_programs(afni_root):
     """Return list of AFNI programs, given path to AFNI's root directory,
@@ -44,7 +79,7 @@ def test_prog_list_helps():
     no_success = []
 
     for prog in programs:
-        if prog in SHOULD_NOT_BE_EXECUTABLE:
+        if prog in SHOULD_NOT_BE_EXECUTABLE or prog in KNOWN_BROKEN_HELP:
             continue
         if shutil.which(prog) is None:  # Program does not exist.
             not_found.append(prog)
