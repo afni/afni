@@ -760,10 +760,12 @@ void THD_write_tsv( char *fname , NI_element *nel )
    char ssep[2] ; int notfirst,ii,kk ;
    FILE *fp ;
 
-   if( fname == NULL || NI_element_type(nel) != NI_ELEMENT_TYPE ) return ;
-   if( nel->vec_lab == NULL || nel->vec_num == 0 )                return ;
+ENTRY("THD_write_tsv") ;
 
-   fp = fopen_maybe(fname) ; if( fp == NULL ) return ;
+   if( fname == NULL || NI_element_type(nel) != NI_ELEMENT_TYPE ) EXRETURN ;
+   if( nel->vec_lab == NULL || nel->vec_num == 0 )                EXRETURN ;
+
+   fp = fopen_maybe(fname) ; if( fp == NULL ) EXRETURN ;
 
 #undef  SET_SEPCHAR
 #define SET_SEPCHAR  do{ ssep[0] = ( (notfirst++) ? '\t' : '\0' ) ; } while(0)
@@ -794,5 +796,101 @@ void THD_write_tsv( char *fname , NI_element *nel )
    }
 
    fclose_maybe(fp) ;
-   return ;
+   EXRETURN ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+void THD_set_tsv_column_labels( NI_element *fnel , char **clab )
+{
+   int jj ;
+
+ENTRY("THD_set_tsv_column_labels") ;
+
+   if( NI_element_type(fnel) != NI_ELEMENT_TYPE ||
+       fnel->vec_num         == 0               ||
+       clab                  == NULL              ) EXRETURN ;
+
+   for( jj=0 ; jj < fnel->vec_num ; jj++ )
+      NI_set_column_label( fnel , jj , clab[jj] ) ;
+
+   EXRETURN ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* convert 1D or 2D MRI_IMAGE to a TSV NI_element */
+
+NI_element * THD_mri_to_tsv_element( MRI_IMAGE *imin , char **clab )
+{
+   MRI_IMAGE *qim ;
+   int nx,ny , jj ;
+   float *far ;
+   NI_element *fnel ;
+   char qlab[32] ;
+
+ENTRY("THD_mri_to_tsv_element") ;
+
+   if( imin == NULL || imin->nz > 1 ) RETURN(NULL) ;
+
+   nx = imin->nx ; ny = imin->ny ;
+   if( nx < 1 || ny < 1 )             RETURN(NULL) ;
+
+   if( imin->kind != MRI_float ) qim = mri_to_float(imin) ;
+   else                          qim = imin ;
+
+   far = MRI_FLOAT_PTR(qim) ;
+
+   fnel = NI_new_data_element( "tsv" , nx ) ;
+
+   for( jj=0 ; jj < ny ; jj++ ){
+     NI_add_column( fnel , NI_FLOAT , far+jj*nx ) ;
+     if( clab != NULL ){
+       NI_set_column_label( fnel , jj , clab[jj] ) ;
+     } else {
+       sprintf(qlab,"Col#%d",jj) ;
+       NI_set_column_label( fnel , jj , qlab ) ;
+     }
+   }
+
+   if( qim != imin ) mri_free(qim) ;
+
+   RETURN(fnel) ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* convert NIML data element to an MRI_IMAGE;
+   only numeric columns are included in the output;
+   if none are found, NULL is returned.
+*//*--------------------------------------------------------------------------*/
+
+MRI_IMAGE * THD_niml_to_mri( NI_element *nel )
+{
+   int ncol , *icol , ii,jj , nx ;
+   MRI_IMAGE *outim=NULL ;
+   float *outar , *far ;
+
+ENTRY("THD_niml_to_mri") ;
+
+   if( NI_element_type(nel) != NI_ELEMENT_TYPE ) RETURN(NULL) ;
+   if( nel->vec_num < 1 || nel->vec_len < 1 )    RETURN(NULL) ;
+
+   /* find numeric columns */
+
+   icol = (int *)malloc(sizeof(int)*nel->vec_num) ;
+   for( ncol=jj=0 ; jj < nel->vec_num ; jj++ ){
+     if( NI_IS_NUMERIC_TYPE(nel->vec_typ[jj]) ) icol[ncol++] = jj ;
+   }
+   if( ncol == 0 ){ free(icol) ; RETURN(NULL) ; } /* nothing */
+
+   nx    = nel->vec_len ;
+   outim = mri_new( nx , ncol , MRI_float ) ;
+   outar = MRI_FLOAT_PTR(outim) ;
+   for( jj=0 ; jj < ncol ; jj++ ){
+     far = outar + jj*nx ;
+     for( ii=0 ; ii < nx ; ii++ )
+       far[ii] = NI_extract_float_value(nel,ii,icol[jj]) ;
+   }
+
+   free(icol) ;
+   RETURN(outim) ;
 }
