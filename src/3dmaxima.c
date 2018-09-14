@@ -329,7 +329,7 @@ ENTRY("process_args");
 	else if( ! strcmp( argv[ac], "-help" ) )
 	{
 	    disp_str_list(g_help, sizeof(g_help)/sizeof(char*));
-            exit(0);
+            RETURN(1);
 	}
 	else if( ! strcmp( argv[ac], "-hist" ) )
 	{
