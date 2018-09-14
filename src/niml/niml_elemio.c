@@ -1154,8 +1154,12 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
 
       /* space to hold attribute strings */
 
-      att_len = 8192 + 64*nel->vec_num + 128*nel->vec_rank ;
+      att_len = 8192 + 256*nel->vec_num + 128*nel->vec_rank ;
       att     = NI_malloc(char, att_len ) ;
+
+      /* create ni_veclab attribute if needed [12 Sep 2018] */
+
+      NI_set_attribute_from_veclab_array( nel , nel->vec_lab ) ;
 
 #undef  AF
 #define AF NI_free(att)  /* free att if we have to quit early now */
