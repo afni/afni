@@ -133,9 +133,17 @@ static char g_history[] =
  "  - 7.5 years since the last change, again??  done until late 2024?\n"
  "  - added -stop_gap option\n"
  "  - added mapping functions: nzave, nzmode, median, nzmedian\n"
+ "\n"
+ "3.9  September 13, 2018  [rickr]\n"
+ "  - return 0 on terminal options\n"
  "----------------------------------------------------------------------\n";
+<<<<<<< HEAD
 
 #define VERSION "version  3.8 (April 4, 2011)"
+=======
+
+#define VERSION "version  3.9 (September 13, 2018)"
+>>>>>>> dylan/ADD_tests
 
 
 /*----------------------------------------------------------------------
@@ -182,8 +190,10 @@ int main( int argc , char * argv[] )
     AFNI_logger("3dSurf2Vol",argc,argv);
 
     /* validate inputs and init options structure */
-    if ( ( ret_val = init_options(&opts, argc, argv) ) != 0 )
-        return ret_val;
+    if ( ( ret_val = init_options(&opts, argc, argv) ) != 0 ) {
+        if( ret_val > 0 ) return 0;
+        else              return 1;
+    }
 
     if ( ( ret_val = validate_options(&opts, &params) ) != 0 )
         return ret_val;
@@ -2061,7 +2071,7 @@ ENTRY("init_options");
     if ( argc < 2 )
     {
         usage( PROG_NAME, S2V_USE_LONG );
-        RETURN(-1);
+        RETURN(1);
     }
 
     /* clear out the options structure, pointers get explicit NULL */
@@ -2236,12 +2246,12 @@ ENTRY("init_options");
         else if ( ! strncmp(argv[ac], "-help", 5) )
         {
             usage( PROG_NAME, S2V_USE_LONG );
-            exit(0);
+            RETURN(1);
         }
         else if ( ! strncmp(argv[ac], "-hist", 5) )
         {
             usage( PROG_NAME, S2V_USE_HIST );
-            RETURN(-1);
+            RETURN(1);
         }
         else if ( ! strncmp(argv[ac], "-map_func", 4) )  /* mapping function */
         {
@@ -2353,7 +2363,7 @@ ENTRY("init_options");
         else if ( ! strncmp(argv[ac], "-version", 2) )
         {
             usage( PROG_NAME, S2V_USE_VERSION );
-            RETURN(-1);
+            RETURN(1);
         }
         else     /* invalid option */
         {

@@ -221,9 +221,10 @@ static char g_history[] =
     "6.8  Dec 15, 2006 [rickr] - added example for EPI -> surface in help\n"
     "6.9  Jan 14, 2009 [rickr] - allow f_steps == 1\n"
     "6.10 Aug 30, 2010 [rickr] - check for -sv dset\n"
+    "6.11 Sep 13, 2018 [rickr] - terminal options return 0\n"
     "---------------------------------------------------------------------\n";
 
-#define VERSION "version  6.10 (Aug 30, 2010)"
+#define VERSION "version  6.11 (September 13, 2018)"
 
 /*----------------------------------------------------------------------
  * todo:
@@ -267,8 +268,10 @@ int main( int argc , char * argv[] )
     AFNI_logger("3dVol2Surf",argc,argv);
 
     /* validate inputs and init options structure */
-    if ( ( ret_val = init_options(&opts, argc, argv) ) != 0 )
-        return ret_val;
+    if ( ( ret_val = init_options(&opts, argc, argv) ) != 0 ) {
+        if( ret_val > 0 ) return 0;
+        else              return 1;
+    }
 
     if ( ( ret_val = validate_options(&opts, &params) ) != 0 )
         return ret_val;
@@ -1042,7 +1045,7 @@ ENTRY("init_options");
     if ( argc < 2 )
     {
         usage( PROG_NAME, V2S_USE_LONG );
-        RETURN(-1);
+        RETURN(1);
     }
 
     /* clear out the options structure */
@@ -1205,17 +1208,17 @@ ENTRY("init_options");
         else if ( ! strncmp(argv[ac], "-help", 5) )
         {
             usage( PROG_NAME, V2S_USE_LONG );
-            exit(0);
+            RETURN(1);
         }
         else if ( ! strncmp(argv[ac], "-hist", 5) )
         {
             usage( PROG_NAME, V2S_USE_HIST );
-            RETURN(-1);
+            RETURN(1);
         }
         else if ( ! strncmp(argv[ac], "-v2s_hist", 9) )
         {
             usage( PROG_NAME, V2S_USE_LIB_HIST );
-            RETURN(-1);
+            RETURN(1);
         }
         else if ( ! strncmp(argv[ac], "-grid_parent", 5) ||
                   ! strncmp(argv[ac], "-inset", 6)       ||
