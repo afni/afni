@@ -20,8 +20,10 @@ RUN apt-get update -y -qq \
           libxpm-dev \
           libxt-dev \
           m4 \
+          python-matplotlib \
           python-numpy \
           python-qt4 \
+          python-rpy2 \
           r-base \
           tcsh \
           vim \
