@@ -52,7 +52,8 @@ afni_history_struct rickr_history[] = {
  { 17, Sep, 2018, RCR, "afni-general", MICRO, TYPE_MODIFY,
    "have programs return 0 on terminal options, like -help",
    "Adding: @Install_NIH_Marmoset, @auto_align, @djunct_4d_slices_to_3d_vol,\n"
-   "        @djunct_vol_3slice_select."
+   "        @djunct_vol_3slice_select, @xyz_to_ijk.\n"
+   "Bigger changes to Dimon, Dimon1."
  } ,
 
  { 14, Sep, 2018, RCR, "afni-general", MICRO, TYPE_MODIFY,
