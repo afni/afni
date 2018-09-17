@@ -111,7 +111,7 @@ foreach ii ( `seq 1 1 3` )
     @ maxind = $dset_fov[$ii] - 1 # bc of zero-based counting
     if ( $coords[$ii] > $maxind ) then
         @ iii = $ii - 1
-        echo "** ERROR! [$iii]th coor ($xyz[$ii]) is outside FOV:"
+        echo "** ERROR! [$iii]th coor ($xyz[$ii]) is outside FOV:" \
              "          $coords[$ii] > $maxind"
         goto BAD_EXIT
     endif
@@ -215,6 +215,8 @@ EXAMPLES ~1~
         -prefix ../saved_ijk.txt
 
 EOF
+
+goto GOOD_EXIT
 
 # ---------------------------------- 
 
