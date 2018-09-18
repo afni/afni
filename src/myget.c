@@ -5,7 +5,7 @@ int main( int argc , char * argv[] )
    char * buf ;
    int    nbuf , iarg=1 ;
 
-   if( argc < 2 ){ 
+   if( argc < 2 || ( argc == 2 && ! strcmp(argv[1], "-help") ) ) { 
       fprintf(stderr,"Usage: myget [-1|-1.1] URL > filename\n"); 
       exit(0) ; 
    }
