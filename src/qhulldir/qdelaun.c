@@ -278,7 +278,8 @@ int main(int argc, char *argv[]) {
     fprintf(stdout, qh_prompt2, qh_version);
     exit(qh_ERRnone);
   }
-  if (argc > 1 && *argv[1] == '-' && !*(argv[1]+1)) {
+  if (argc > 1 && *argv[1] == '-'
+               && (!*(argv[1]+1) || !strcmp(argv[1],"-help"))) {
     fprintf(stdout, qh_prompta, qh_version,
                 qh_promptb, qh_promptc, qh_promptd, qh_prompte);
     exit(qh_ERRnone);
