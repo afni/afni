@@ -175,7 +175,7 @@ int main( int argc , char * argv[] )
        if( strcmp(argv[iarg],"-help") == 0 ||
            strcmp(argv[iarg],"-h") == 0 ) {
          imcat_usage(strlen(argv[iarg])>2 ? 2:1);
-         iarg++ ; continue ;
+         exit(0);  /* do not continue   18 Sep 2018 [rickr] */
        }
 
        if( strcmp(argv[iarg],"-rand_wrap") == 0  ) {

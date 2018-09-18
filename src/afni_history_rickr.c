@@ -56,7 +56,8 @@ afni_history_struct rickr_history[] = {
 
  { 18, Sep, 2018, RCR, "afni-general", MICRO, TYPE_MODIFY,
    "have programs return 0 on terminal options, like -help",
-   "Adding: FD2, Ifile, MakeColorMap, ScaleToMap, SurfMeasures, afni_run_R."
+   "Adding: FD2, Ifile, MakeColorMap, ScaleToMap, SurfMeasures, afni_run_R,\n"
+   "        balloon, imcat, inspec, myget, quickspec."
  } ,
 
  { 17, Sep, 2018, RCR, "afni-general", MICRO, TYPE_MODIFY,

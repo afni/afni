@@ -72,48 +72,48 @@ int main (int argc,char *argv[])
    
    SUMA_mainENTRY;
    
-	/* allocate space for CommonFields structure */
-	SUMAg_CF = SUMA_Create_CommonFields ();
-	if (SUMAg_CF == NULL) {
-		fprintf( SUMA_STDERR,
+   /* allocate space for CommonFields structure */
+   SUMAg_CF = SUMA_Create_CommonFields ();
+   if (SUMAg_CF == NULL) {
+      fprintf( SUMA_STDERR,
                "Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
-		exit(1);
-	}
+      exit(1);
+   }
    
    ps = SUMA_Parse_IO_Args(argc, argv, "-t;");
    
    if (argc < 3)
        {
           usage_SUMA_quickspec (ps);
-          exit (1);
+          exit (0);     /* status 0 on -help    18 Sep 2018 [rickr] */
        }
    
    kar = 1;
-	brk = NOPE;
+   brk = NOPE;
    detail = 1;
    N_surf = 0;
    N_name = 0;
    spec_name = NULL;
-	while (kar < argc) { /* loop accross command ine options */
-		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
-		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
-			 usage_SUMA_quickspec(ps);
-          exit (1);
-		}
-		if (!brk && (strcmp(argv[kar], "-spec") == 0)) {
+   while (kar < argc) { /* loop accross command ine options */
+      /*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
+      if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
+          usage_SUMA_quickspec(ps);
+          exit (0);     /* status 0 on -help    18 Sep 2018 [rickr] */
+      }
+      if (!brk && (strcmp(argv[kar], "-spec") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -spec \n");
-				exit (1);
-			}
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -spec \n");
+            exit (1);
+         }
          spec_name = argv[kar];
-			if (!THD_ok_overwrite() && SUMA_filexists(spec_name)) {
+         if (!THD_ok_overwrite() && SUMA_filexists(spec_name)) {
             fprintf (SUMA_STDERR, 
                "File %s exists, choose another one.\n", spec_name);
             exit(1);
          }
-			brk = YUP;
-		}
+         brk = YUP;
+      }
       if (!brk && (strcmp(argv[kar], "-tn") == 0)) {
          if (N_surf >= SUMA_MAX_N_SURFACE_SPEC) {
             SUMA_SL_Err("Exceeding maximum number of allowed surfaces...");
@@ -121,10 +121,10 @@ int main (int argc,char *argv[])
          }
          /* get the type */
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "Type argument must follow -tn \n");
-				exit (1);
-			}
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "Type argument must follow -tn \n");
+            exit (1);
+         }
          TypeC[N_surf] = SUMA_SurfaceTypeCode(argv[kar]);
          if (TypeC[N_surf] == SUMA_FT_ERROR || 
              TypeC[N_surf] == SUMA_FT_NOT_SPECIFIED) {
@@ -136,9 +136,9 @@ int main (int argc,char *argv[])
             N_name = 2;
          else N_name = 1;
          if (kar+N_name >= argc)  {
-		  		fprintf (SUMA_STDERR, "need %d elements for NAME \n", N_name);
-				exit (1);
-			}
+            fprintf (SUMA_STDERR, "need %d elements for NAME \n", N_name);
+            exit (1);
+         }
          kar ++; Name_coord[N_surf] = argv[kar];
          if (N_name == 2) {
             kar ++; Name_topo[N_surf] = argv[kar];
@@ -149,8 +149,8 @@ int main (int argc,char *argv[])
          Anat[N_surf] = 'Y';
          LDP[N_surf] = NULL;
          ++N_surf; 
-			brk = YUP;
-		}
+         brk = YUP;
+      }
       if (!brk && (strcmp(argv[kar], "-tsn") == 0)) {
          if (N_surf >= SUMA_MAX_N_SURFACE_SPEC) {
             SUMA_SL_Err("Exceeding maximum number of allowed surfaces...");
@@ -158,10 +158,10 @@ int main (int argc,char *argv[])
          }
          /* get the type */
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "TYPE argument must follow -tsn \n");
-				exit (1);
-			}
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "TYPE argument must follow -tsn \n");
+            exit (1);
+         }
          TypeC[N_surf] = SUMA_SurfaceTypeCode(argv[kar]);
          if (  TypeC[N_surf] == SUMA_FT_ERROR || 
                TypeC[N_surf] == SUMA_FT_NOT_SPECIFIED) {
@@ -170,11 +170,11 @@ int main (int argc,char *argv[])
          }
          /* get the state */
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, 
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, 
                      "STATE argument must follow TYPE with -tsn \n");
-				exit (1);
-			}
+            exit (1);
+         }
          State[N_surf] = argv[kar];
          
          /* get the name */
@@ -182,9 +182,9 @@ int main (int argc,char *argv[])
                TypeC[N_surf] == SUMA_VEC) N_name = 2;
          else N_name = 1;
          if (kar+N_name >= argc)  {
-		  		fprintf (SUMA_STDERR, "need %d elements for NAME \n", N_name);
-				exit (1);
-			}
+            fprintf (SUMA_STDERR, "need %d elements for NAME \n", N_name);
+            exit (1);
+         }
          kar ++; Name_coord[N_surf] = argv[kar];
          if (N_name == 2) {
             kar ++; Name_topo[N_surf] = argv[kar];
@@ -195,8 +195,8 @@ int main (int argc,char *argv[])
          Anat[N_surf] = 'Y';
          LDP[N_surf] = NULL;
          ++N_surf; 
-			brk = YUP;
-		}
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-tsnad") == 0)) {
          if (N_surf >= SUMA_MAX_N_SURFACE_SPEC) {
@@ -205,10 +205,10 @@ int main (int argc,char *argv[])
          }
          /* get the type */
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "TYPE argument must follow -tsnad \n");
-				exit (1);
-			}
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "TYPE argument must follow -tsnad \n");
+            exit (1);
+         }
          TypeC[N_surf] = SUMA_SurfaceTypeCode(argv[kar]);
          if (  TypeC[N_surf] == SUMA_FT_ERROR || 
                TypeC[N_surf] == SUMA_FT_NOT_SPECIFIED) {
@@ -217,11 +217,11 @@ int main (int argc,char *argv[])
          }
          /* get the state */
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, 
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, 
                      "STATE argument must follow TYPE with -tsnad \n");
-				exit (1);
-			}
+            exit (1);
+         }
          State[N_surf] = argv[kar];
          
          /* get the name */
@@ -229,9 +229,9 @@ int main (int argc,char *argv[])
                TypeC[N_surf] == SUMA_VEC) N_name = 2;
          else N_name = 1;
          if (kar+N_name >= argc)  {
-		  		fprintf (SUMA_STDERR, "need %d elements for NAME \n", N_name);
-				exit (1);
-			}
+            fprintf (SUMA_STDERR, "need %d elements for NAME \n", N_name);
+            exit (1);
+         }
          kar ++; Name_coord[N_surf] = argv[kar];
          if (N_name == 2) {
             kar ++; Name_topo[N_surf] = argv[kar];
@@ -242,11 +242,11 @@ int main (int argc,char *argv[])
          
          /* get the anatomical flag */
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, 
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, 
                      "Anatomical flag must follow NAME with -tsnad \n");
-				exit (1);
-			}
+            exit (1);
+         }
          Anat[N_surf] = SUMA_TO_UPPER_C(argv[kar][0]);
          if (Anat[N_surf] != 'Y' && Anat[N_surf] != 'N') {
             SUMA_S_Err("Anatomical flag must be either 'y' or 'n'");
@@ -254,16 +254,16 @@ int main (int argc,char *argv[])
          }
          /* get the LDP */
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, 
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, 
                  "LocalDomainParent must follow Anatomical flag with -tsnad \n");
-				exit (1);
-			}
+            exit (1);
+         }
          LDP[N_surf] = argv[kar];
          
          ++N_surf; 
-			brk = YUP;
-		}
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-tsnadm") == 0)) {
          if (N_surf >= SUMA_MAX_N_SURFACE_SPEC) {
@@ -272,10 +272,10 @@ int main (int argc,char *argv[])
          }
          /* get the type */
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "TYPE argument must follow -tsnad \n");
-				exit (1);
-			}
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "TYPE argument must follow -tsnad \n");
+            exit (1);
+         }
          TypeC[N_surf] = SUMA_SurfaceTypeCode(argv[kar]);
          if (  TypeC[N_surf] == SUMA_FT_ERROR || 
                TypeC[N_surf] == SUMA_FT_NOT_SPECIFIED) {
@@ -284,11 +284,11 @@ int main (int argc,char *argv[])
          }
          /* get the state */
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, 
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, 
                      "STATE argument must follow TYPE with -tsnad \n");
-				exit (1);
-			}
+            exit (1);
+         }
          State[N_surf] = argv[kar];
          
          /* get the name */
@@ -296,9 +296,9 @@ int main (int argc,char *argv[])
                TypeC[N_surf] == SUMA_VEC) N_name = 2;
          else N_name = 1;
          if (kar+N_name >= argc)  {
-		  		fprintf (SUMA_STDERR, "need %d elements for NAME \n", N_name);
-				exit (1);
-			}
+            fprintf (SUMA_STDERR, "need %d elements for NAME \n", N_name);
+            exit (1);
+         }
          kar ++; Name_coord[N_surf] = argv[kar];
          if (N_name == 2) {
             kar ++; Name_topo[N_surf] = argv[kar];
@@ -309,11 +309,11 @@ int main (int argc,char *argv[])
          
          /* get the anatomical flag */
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, 
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, 
                      "Anatomical flag must follow NAME with -tsnad \n");
-				exit (1);
-			}
+            exit (1);
+         }
          Anat[N_surf] = SUMA_TO_UPPER_C(argv[kar][0]);
          if (Anat[N_surf] != 'Y' && Anat[N_surf] != 'N') {
             SUMA_S_Err("Anatomical flag must be either 'y' or 'n'");
@@ -321,24 +321,24 @@ int main (int argc,char *argv[])
          }
          /* get the LDP */
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, 
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, 
                  "LocalDomainParent must follow Anatomical flag with -tsnad \n");
-				exit (1);
-			}
+            exit (1);
+         }
          LDP[N_surf] = argv[kar];
          
          /* get the nodeMarker */
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, 
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, 
                  "LocalDomainParent must follow Anatomical flag with -tsnad \n");
-				exit (1);
-			}
+            exit (1);
+         }
          MARK[N_surf] = argv[kar];
          ++N_surf; 
-			brk = YUP;
-		}
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-tsnadl") == 0)) {
          if (N_surf >= SUMA_MAX_N_SURFACE_SPEC) {
@@ -347,10 +347,10 @@ int main (int argc,char *argv[])
          }
          /* get the type */
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "TYPE argument must follow -tsnad \n");
-				exit (1);
-			}
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "TYPE argument must follow -tsnad \n");
+            exit (1);
+         }
          TypeC[N_surf] = SUMA_SurfaceTypeCode(argv[kar]);
          if (  TypeC[N_surf] == SUMA_FT_ERROR || 
                TypeC[N_surf] == SUMA_FT_NOT_SPECIFIED) {
@@ -359,11 +359,11 @@ int main (int argc,char *argv[])
          }
          /* get the state */
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, 
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, 
                      "STATE argument must follow TYPE with -tsnad \n");
-				exit (1);
-			}
+            exit (1);
+         }
          State[N_surf] = argv[kar];
          
          /* get the name */
@@ -371,9 +371,9 @@ int main (int argc,char *argv[])
                TypeC[N_surf] == SUMA_VEC) N_name = 2;
          else N_name = 1;
          if (kar+N_name >= argc)  {
-		  		fprintf (SUMA_STDERR, "need %d elements for NAME \n", N_name);
-				exit (1);
-			}
+            fprintf (SUMA_STDERR, "need %d elements for NAME \n", N_name);
+            exit (1);
+         }
          kar ++; Name_coord[N_surf] = argv[kar];
          if (N_name == 2) {
             kar ++; Name_topo[N_surf] = argv[kar];
@@ -384,11 +384,11 @@ int main (int argc,char *argv[])
          
          /* get the anatomical flag */
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, 
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, 
                      "Anatomical flag must follow NAME with -tsnad \n");
-				exit (1);
-			}
+            exit (1);
+         }
          Anat[N_surf] = SUMA_TO_UPPER_C(argv[kar][0]);
          if (Anat[N_surf] != 'Y' && Anat[N_surf] != 'N') {
             SUMA_S_Err("Anatomical flag must be either 'y' or 'n'");
@@ -396,34 +396,34 @@ int main (int argc,char *argv[])
          }
          /* get the LDP */
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, 
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, 
                  "LocalDomainParent must follow Anatomical flag with -tsnad \n");
-				exit (1);
-			}
+            exit (1);
+         }
          LDP[N_surf] = argv[kar];
          
          /* get the nodeMarker */
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, 
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, 
                  "LocalDomainParent must follow Anatomical flag with -tsnad \n");
-				exit (1);
-			}
+            exit (1);
+         }
          LABEL[N_surf] = argv[kar];
          ++N_surf; 
-			brk = YUP;
-		}
+         brk = YUP;
+      }
       
       if (!brk) {
-			fprintf (SUMA_STDERR,
+         fprintf (SUMA_STDERR,
                   "Error %s: Option %s not understood. Try -help for usage\n", 
                   FuncName, argv[kar]);
-			exit (1);
-		} else {	
-			brk = NOPE;
-			kar ++;
-		}
+         exit (1);
+      } else { 
+         brk = NOPE;
+         kar ++;
+      }
    }
    
    /* write out the comments */
