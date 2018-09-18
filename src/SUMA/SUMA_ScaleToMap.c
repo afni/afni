@@ -195,12 +195,10 @@ int main (int argc,char *argv[])
    SUMA_mainENTRY;
    
    /* this is placed down here to */
-   /* 
-   if (argc < 3) {
+   if (argc < 2) {
       SUMA_ScaleToMap_usage();
-      exit (1);
+      exit (0);
    }
-   */
    
    kar = 1;
    brfact = 1; /* the brightness factor */
@@ -229,7 +227,7 @@ int main (int argc,char *argv[])
       /*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
       if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
          SUMA_ScaleToMap_usage();
-         exit (1);
+         exit (0);
       }
       
       SUMA_SKIP_COMMON_OPTIONS(brk, kar);
