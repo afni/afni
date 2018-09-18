@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18, Sep, 2018, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "have programs return 0 on terminal options, like -help",
+   "Adding: FD2, Ifile, MakeColorMap, ScaleToMap, SurfMeasures."
+ } ,
+
  { 17, Sep, 2018, RCR, "afni-general", MICRO, TYPE_MODIFY,
    "have programs return 0 on terminal options, like -help",
    "Adding: @Install_NIH_Marmoset, @auto_align, @djunct_4d_slices_to_3d_vol,\n"
