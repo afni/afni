@@ -612,9 +612,11 @@ g_history = """
     6.16 Jul  5, 2018: added -mask_opts_automask for L Atlas
     6.17 Aug  7, 2018: 3drefit for tedana results should include space
     6.18 Aug 13, 2018: actually apply -blur_opts_BIM
+    6.19 Sep 18, 2018:
+        - show sample BIDS-like directory struct under DIRECTORY STRUCTURE NOTE
 """
 
-g_version = "version 6.18, August 13, 2018"
+g_version = "version 6.19, September 18, 2018"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
