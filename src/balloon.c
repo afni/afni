@@ -333,7 +333,8 @@ char **argv;
 	"\tevent-related values could for example be made to depend on a\n"
 	"\tbehavioural variable such as reaction time.)\n",
       *argv);
-    exit(1);
+    if( argc < 4 ) exit(0);  /* status 0 on -help    18 Sep 2018 [rickr] */
+    else           exit(1);
     }
   evtfile = fopen(argv[3], "r");
   if(evtfile == NULL)

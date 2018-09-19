@@ -360,8 +360,10 @@ int main( int argc, char * argv[] )
     mainENTRY("Dimon");
     
     /* validate inputs and init options structure */
-    if ( (ret_val = init_options( p, ac, argc, argv )) != 0 )
-        return ret_val;
+    if ( (ret_val = init_options( p, ac, argc, argv )) != 0 ) {
+        if( ret_val > 0 ) return 0;
+        else              return 1;
+    }
 
     if ( (ret_val = init_extras( p, ac )) != 0 )
         return ret_val;
@@ -2066,6 +2068,10 @@ int compare_finfo( const void * v0, const void * v1 )
  *
  *     1. check usage: Imon -start_dir DIR
  *     2. do initial allocation of data structures
+ *
+ * return  0 on success
+ *         1 on success, but terminate
+ *        -1 on error
  *----------------------------------------------------------------------
 */
 static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
@@ -2073,7 +2079,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
     int ac, errors = 0;
 
     if ( p == NULL )
-        return 2;
+        return -1;
 
     if ( argc < 2 )
     {
@@ -2109,7 +2115,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -debug LEVEL\n", stderr );
-                return 1;
+                return -1;
             }
 
             p->opts.debug = atoi(argv[ac]);
@@ -2130,7 +2136,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -epsilon EPSILON\n", stderr );
-                return 1;
+                return -1;
             }
 
             p->opts.ep = atof(argv[ac]);
@@ -2159,7 +2165,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -gert_filename FILENAME\n", stderr );
-                return 1;
+                return -1;
             }
 
             p->opts.gert_filename = argv[ac];
@@ -2169,7 +2175,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -gert_nz NZ\n", stderr );
-                return 1;
+                return -1;
             }
 
             p->opts.gert_nz = atoi(argv[ac]);
@@ -2177,7 +2183,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             {
                 fprintf(stderr,"gert_nz error: NZ must be positive (have %d)\n",
                         p->opts.gert_nz);
-                return 1;
+                return -1;
             }
         }
         else if ( ! strncmp( argv[ac], "-GERT_Reco", 7 ) )
@@ -2189,7 +2195,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -gert_to3d_prefix PREFIX\n", stderr );
-                return 1;
+                return -1;
             }
 
             p->opts.gert_prefix = argv[ac];
@@ -2217,7 +2223,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -infile_list FILE\n", stderr );
-                return 1;
+                return -1;
             }
             /* just append a '*' to the PREFIX */
             p->opts.infile_list = argv[ac];
@@ -2228,7 +2234,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -infile_pattern FILE_PATTERN\n", stderr );
-                return 1;
+                return -1;
             }
 
             p->opts.dicom_glob = argv[ac];
@@ -2238,7 +2244,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -infile_prefix FILE_PREFIX\n", stderr );
-                return 1;
+                return -1;
             }
             /* just append a '*' to the PREFIX */
             p->opts.dicom_glob = calloc(strlen(argv[ac])+2, sizeof(char));
@@ -2250,7 +2256,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -max_images NUM_IMAGES\n", stderr );
-                return 1;
+                return -1;
             }
 
             p->opts.max_images = atoi(argv[ac]);
@@ -2260,7 +2266,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -max_quiet_trs NUM_TRs\n", stderr );
-                return 1;
+                return -1;
             }
 
             p->opts.max_quiet_trs = atoi(argv[ac]);
@@ -2270,7 +2276,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -nice INCREMENT\n", stderr );
-                return 1;
+                return -1;
             }
 
             p->opts.nice = atoi(argv[ac]);
@@ -2292,7 +2298,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -nt VOLUMES_PER_RUN\n", stderr );
-                return 1;
+                return -1;
             }
 
             p->opts.nt = atoi(argv[ac]);
@@ -2310,7 +2316,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -num_slices NUM_SLICES\n", stderr );
-                return 1;
+                return -1;
             }
 
             p->opts.num_slices = atoi(argv[ac]);
@@ -2321,7 +2327,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -gert_outdir OUTPUT_DIR\n", stderr );
-                return 1;
+                return -1;
             }
 
             p->opts.gert_outdir = argv[ac];
@@ -2331,7 +2337,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -pause milliseconds\n", stderr );
-                return 1;
+                return -1;
             }
 
             p->opts.pause = atoi(argv[ac]);
@@ -2364,7 +2370,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -save_file_list FILENAME\n", stderr );
-                return 1;
+                return -1;
             }
 
             p->opts.flist_file = argv[ac];
@@ -2378,7 +2384,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -sleep_vol TIME\n", stderr );
-                return 1;
+                return -1;
             }
 
             p->opts.sleep_frac = atof(argv[ac]);
@@ -2388,7 +2394,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -sleep_init TIME\n", stderr );
-                return 1;
+                return -1;
             }
 
             p->opts.sleep_init = atoi(argv[ac]);
@@ -2398,7 +2404,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -sleep_vol TIME\n", stderr );
-                return 1;
+                return -1;
             }
 
             p->opts.sleep_vol = atoi(argv[ac]);
@@ -2416,7 +2422,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -sp PATTERN\n", stderr );
-                return 1;
+                return -1;
             }
 
             p->opts.sp = argv[ac];
@@ -2426,7 +2432,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -start_dir DIRECTORY\n", stderr );
-                return 1;
+                return -1;
             }
 
             p->opts.start_dir = argv[ac];
@@ -2436,7 +2442,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -start_file DIR/FIRST_FILE\n", stderr );
-                return 1;
+                return -1;
             }
 
             p->opts.start_file = argv[ac];
@@ -2446,7 +2452,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -tr TR  (in seconds)\n", stderr );
-                return 1;
+                return -1;
             }
 
             p->opts.tr = atof(argv[ac]);
@@ -2454,7 +2460,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             {
                 fprintf(stderr,"bad value for -tr: %g (from '%s')\n",
                         p->opts.tr, argv[ac]);
-                return 1;
+                return -1;
             }
         }
         else if ( ! strncmp( argv[ac], "-version", 2 ) )
@@ -2468,13 +2474,13 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -drive_afni COMMAND\n", stderr );
-                return 1;
+                return -1;
             }
 
             if ( add_to_string_list( &p->opts.drive_list, argv[ac], 0 ) <= 0 )
             {
                 fprintf(stderr,"** failed add '%s' to drive_list\n",argv[ac]);
-                return 1;
+                return -1;
             }
         }
         else if ( ! strncmp( argv[ac], "-drive_wait", 8 ) )
@@ -2482,13 +2488,13 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -drive_wait COMMAND\n", stderr );
-                return 1;
+                return -1;
             }
 
             if ( add_to_string_list( &p->opts.wait_list, argv[ac], 0 ) <= 0 )
             {
                 fprintf(stderr,"** failed add '%s' to drive_wait\n",argv[ac]);
-                return 1;
+                return -1;
             }
         }
         else if ( ! strncmp( argv[ac], "-host", 4 ) )
@@ -2496,7 +2502,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -host HOSTNAME\n", stderr );
-                return 1;
+                return -1;
             }
 
             p->opts.host = argv[ac];    /* note and store the user option   */
@@ -2508,7 +2514,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -num_chan NUM_CHANNELS\n", stderr );
-                return 1;
+                return -1;
             }
 
             p->opts.num_chan = atoi(argv[ac]);
@@ -2522,13 +2528,13 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -rt_cmd COMMAND\n", stderr );
-                return 1;
+                return -1;
             }
 
             if ( add_to_string_list( &p->opts.rt_list, argv[ac], 0 ) <= 0 )
             {
                 fprintf(stderr,"** failed add '%s' to rt_list\n",argv[ac]);
-                return 1;
+                return -1;
             }
         }
         else if ( ! strncmp( argv[ac], "-rt", 3 ) )
@@ -2546,7 +2552,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -file_type TYPE\n", stderr );
-                return 1;
+                return -1;
             }
             p->opts.file_type = argv[ac];
         }
@@ -2569,7 +2575,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -zorder ORDER\n", stderr );
-                return 1;
+                return -1;
             }
 
             A->zorder = argv[ac];
@@ -2577,26 +2583,26 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
         else
         {
             fprintf( stderr, "error: invalid option <%s>\n\n", argv[ac] );
-            return 1;
+            return -1;
         }
     }
 
     if ( errors > 0 )          /* check for all minor errors before exiting */
     {
         usage( IFM_PROG_NAME, IFM_USE_SHORT );
-        return 1;
+        return -1;
     }
 
     gD_epsilon = p->opts.ep;    /* store new epsilon globally, for dimon_afni */
 
     /* set the p->ftype parameter, based on any file_type option  22 Jan 2013 */
-    if ( set_ftype( p, p->opts.file_type ) ) return 1;
+    if ( set_ftype( p, p->opts.file_type ) ) return -1;
 
     if ( IM_IS_GEMS(p->ftype) && p->opts.start_dir == NULL )
     {
         fputs( "error: missing '-start_dir DIR' option\n", stderr );
         usage( IFM_PROG_NAME, IFM_USE_SHORT );
-        return 1;
+        return -1;
     }
 
     if ( ! IM_IS_GEMS(p->ftype) &&   p->opts.show_sorted_list &&
@@ -2604,7 +2610,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
     {
         fputs( "error: -dicom_org is required with -show_sorted_list", stderr );
         usage( IFM_PROG_NAME, IFM_USE_SHORT );
-        return 1;
+        return -1;
     }
 
     if ( p->opts.rev_bo && p->opts.swap )
@@ -2612,7 +2618,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
         fprintf( stderr, "error: options '-rev_byte_order' and '-swap' "
                  "cannot both be used\n");
         usage( IFM_PROG_NAME, IFM_USE_SHORT );
-        return 1;
+        return -1;
     }
 
     if ( A->zorder )
@@ -2621,7 +2627,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
         {
             fprintf(stderr,"** order '%s' is invalid for '-zorder' option,\n"
                     "   must be either 'alt' or 'seq'\n", A->zorder);
-            return 1;
+            return -1;
         }
     }
 
@@ -2630,12 +2636,12 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
         if( ! p->opts.dicom_glob && ! p->opts.infile_list )
         {
             fprintf(stderr,"** missing -infile_pattern option\n");
-            return 1;
+            return -1;
         }
         if( p->opts.flist_file && !p->opts.dicom_org )
         {
             fprintf(stderr,"** -save_file_list invalid without -dicom_org\n");
-            return 1;
+            return -1;
         }
     }
 
@@ -2652,7 +2658,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
     }
     else
     {
-        if ( dir_expansion_form(p->opts.start_dir, &p->glob_dir) ) return 2;
+        if ( dir_expansion_form(p->opts.start_dir, &p->glob_dir) ) return -1;
     }
 
     /* save command arguments to add as a NOTE to any AFNI datasets */

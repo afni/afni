@@ -441,4 +441,11 @@ endif
 exit 0
 
 
+SHOW_HELP:
+cat << EOF
+   $this_prog           - do something really useful
+
+EOF
+
+exit 0
 
