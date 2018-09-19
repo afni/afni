@@ -39,75 +39,75 @@ int main (int argc,char *argv[])
    
    SUMA_mainENTRY;
    
-	/* allocate space for CommonFields structure */
-	SUMAg_CF = SUMA_Create_CommonFields ();
-	if (SUMAg_CF == NULL) {
-		fprintf(SUMA_STDERR,
+   /* allocate space for CommonFields structure */
+   SUMAg_CF = SUMA_Create_CommonFields ();
+   if (SUMAg_CF == NULL) {
+      fprintf(SUMA_STDERR,
          "Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
-		exit(1);
-	}
+      exit(1);
+   }
    
    if (argc < 3)
-       {
-          usage_SUMA_inspec ();
-          exit (1);
-       }
+   {
+      usage_SUMA_inspec ();
+      exit (0);
+   }
    
    kar = 1;
-	brk = NOPE;
+   brk = NOPE;
    detail = -1;
    spec_name = NULL;
    spec_name_right = NULL;
-	while (kar < argc) { /* loop accross command ine options */
-		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
-		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
-			 usage_SUMA_inspec();
-          exit (1);
-		}
-		if (!brk && (strcmp(argv[kar], "-prefix") == 0)) {
+   while (kar < argc) { /* loop accross command ine options */
+      /*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
+      if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
+          usage_SUMA_inspec();
+          exit (0);
+      }
+      if (!brk && (strcmp(argv[kar], "-prefix") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -prefix ");
-				exit (1);
-			}
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -prefix ");
+            exit (1);
+         }
          outname = SUMA_Extension(argv[kar], ".spec", NOPE);
-			brk = YUP;
-		}
+         brk = YUP;
+      }
       if (!brk && (strcmp(argv[kar], "-spec") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -spec ");
-				exit (1);
-			}
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -spec ");
+            exit (1);
+         }
          spec_name = argv[kar];
-			if (!SUMA_filexists(spec_name)) {
+         if (!SUMA_filexists(spec_name)) {
             fprintf (SUMA_STDERR, 
                      "File %s not found or not readable.\n", spec_name);
             exit(1);
          }
-			brk = YUP;
-		}
+         brk = YUP;
+      }
 
       if (!brk && (strcmp(argv[kar], "-remove_state") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need state after -remove_state ");
-				exit (1);
-			}
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need state after -remove_state ");
+            exit (1);
+         }
          state_rm = argv[kar];
-			brk = YUP;
-		}
+         brk = YUP;
+      }
 
 
       if (!brk && (strcmp(argv[kar], "-LRmerge") == 0)) {
          kar ++;
-			if (kar+1 >= argc)  {
-		  		fprintf (SUMA_STDERR, "need 2 arguments after -LRmerge ");
-				exit (1);
-			}
+         if (kar+1 >= argc)  {
+            fprintf (SUMA_STDERR, "need 2 arguments after -LRmerge ");
+            exit (1);
+         }
          spec_name = argv[kar]; kar ++;
          spec_name_right = argv[kar];
-			if (!SUMA_filexists(spec_name)) {
+         if (!SUMA_filexists(spec_name)) {
             fprintf (SUMA_STDERR, 
                      "File %s not found or not readable.\n", spec_name);
             exit(1);
@@ -117,32 +117,32 @@ int main (int argc,char *argv[])
                      "File %s not found or not readable.\n", spec_name_right);
             exit(1);
          }
-			brk = YUP;
-		}
+         brk = YUP;
+      }
 
       if (!brk && (strcmp(argv[kar], "-detail") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -detail ");
-				exit (1);
-			}
-			detail = atoi(argv[kar]);
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need argument after -detail ");
+            exit (1);
+         }
+         detail = atoi(argv[kar]);
          if (detail < 0 || detail > 3) {
             SUMA_SL_Err("detail is < 0 or > 3");
             exit (1);
          }
-			brk = YUP;
-		}
+         brk = YUP;
+      }
       
       if (!brk) {
-			fprintf (SUMA_STDERR,
+         fprintf (SUMA_STDERR,
                   "Error %s: Option %s not understood. Try -help for usage\n", 
                   FuncName, argv[kar]);
-			exit (1);
-		} else {	
-			brk = NOPE;
-			kar ++;
-		}
+         exit (1);
+      } else { 
+         brk = NOPE;
+         kar ++;
+      }
    }
    
    if (spec_name_right && detail < 0) detail = 0;

@@ -19,7 +19,10 @@ int main(int argc, char * argv[])
    float * result, parms[4];
    int   nt = 144;
 
-   if( argc != 5 ) {
+   if( argc <= 2 ) {
+      fprintf(stderr, "** usage: %s A x y sigma\n", argv[0]);
+      return 0;  /* gentle help-style exit */
+   } else if( argc != 5 ) {
       fprintf(stderr, "** usage: %s A x y sigma\n", argv[0]);
       return 1;
    }

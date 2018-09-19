@@ -49,6 +49,25 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18, Sep, 2018, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "outline BIDS-like analysis directory structure",
+   "Add new DIRECTORY STRUCTURE NOTE section to -help output."
+ } ,
+
+ { 18, Sep, 2018, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "have programs return 0 on terminal options, like -help",
+   "Adding: FD2, Ifile, MakeColorMap, ScaleToMap, SurfMeasures, afni_run_R,\n"
+   "        balloon, imcat, inspec, myget, quickspec, qhull, rbox, qdelaunay."
+ } ,
+
+ { 17, Sep, 2018, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "have programs return 0 on terminal options, like -help",
+   "Adding: @Install_NIH_Marmoset, @auto_align, @djunct_4d_slices_to_3d_vol,\n"
+   "        @djunct_vol_3slice_select, @xyz_to_ijk, column_cat,\n"
+   "        get_afni_model_PRF.\n"
+   "Bigger changes to Dimon, Dimon1."
+ } ,
+
  { 14, Sep, 2018, RCR, "afni-general", MICRO, TYPE_MODIFY,
    "have programs return 0 on terminal options, like -help",
    "Adding: @Install_D99_macaque, @Install_NIH_Marmoset."

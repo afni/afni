@@ -175,7 +175,7 @@ int main (int argc,char *argv[])
    
    if (argc < 2) {
       SUMA_MakeColorMap_usage();
-      exit (1);
+      exit (0);
    }
    
    kar = 1;
@@ -200,8 +200,8 @@ int main (int argc,char *argv[])
    sdset_prefix=NULL;
    while (kar < argc) { /* loop accross command ine options */
       if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
-          SUMA_MakeColorMap_usage();
-         exit (1);
+         SUMA_MakeColorMap_usage();
+         exit (0);
       }
       
       SUMA_SKIP_COMMON_OPTIONS(brk, kar);
@@ -406,26 +406,26 @@ int main (int argc,char *argv[])
    
       if (!brk && (strcmp(argv[kar], "-sdset") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need surface dataset after -sdset \n");
-				exit (1);
-			}
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need surface dataset after -sdset \n");
+            exit (1);
+         }
          iform = SUMA_NO_DSET_FORMAT;
          if (!(sdset = SUMA_LoadDset_s (argv[kar], &iform, 0))) {
             SUMA_S_Err("Failed to load surface dset");
             exit(1);
          }
-			brk = YUP;
-		}
+         brk = YUP;
+      }
       if (!brk && (strcmp(argv[kar], "-sdset_prefix") == 0)) {
          kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need prefix dataset after -sdset_prefix \n");
-				exit (1);
-			}
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need prefix dataset after -sdset_prefix \n");
+            exit (1);
+         }
          sdset_prefix = argv[kar];
-			brk = YUP;
-		}
+         brk = YUP;
+      }
       if (!brk) {
          SUMA_S_Errv("Option %s not understood. Try -help for usage\n", 
                      argv[kar]);
