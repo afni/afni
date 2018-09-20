@@ -3700,8 +3700,9 @@ int main( int argc , char *argv[] )
                ERROR_message("Can't assemble dataset vectors for covariate #%d",jj+1) ;
                nbad++ ;
              } else {
-               sprintf(msg,"3dttest++ -setB covariate #%d",jj+1) ;
-               THD_check_vectim(covvim_BBB[jj],msg) ;
+               /* B/BBB -> A/AAA        20 Sep 2018 [rickr] */
+               sprintf(msg,"3dttest++ -setA covariate #%d",jj+1) ;
+               THD_check_vectim(covvim_AAA[jj],msg) ;
              }
            }
            for( kk=0 ; kk < ndset_AAA ; kk++ )       /* tossola la trashola */
