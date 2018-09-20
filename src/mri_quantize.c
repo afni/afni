@@ -123,7 +123,7 @@ static int stack[QS_STACK] ;  /* stack for qsort "recursion" */
 #define IMORE(a,b)  ( ((a)&smask) >  ((b)&smask) )
 #define IEQUAL(a,b) ( ((a)&smask) == ((b)&smask) )
 
-void isort_int( int n , int * ar , int smask )
+static void isort_int( int n , int * ar , int smask )
 {
    register int  j , p ;  /* array indices */
    register int temp ;  /* a[j] holding place */
@@ -148,7 +148,7 @@ void isort_int( int n , int * ar , int smask )
 
 /*--------- qsrec : recursive part of quicksort (stack implementation) ----------*/
 
-void qsrec_int( int n , int * ar , int cutoff , int smask )
+static void qsrec_int( int n , int * ar , int cutoff , int smask )
 {
    register int i , j ;         /* scanning indices */
    register int temp , pivot ;  /* holding places */
