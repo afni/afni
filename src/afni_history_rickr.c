@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 20, Sep, 2018, RCR, "3dttest++", MICRO, TYPE_BUG_FIX,
+   "fix copy-and-paste error for processing of voxelwise covariates",
+   "Use of voxelwize covariates when only using -setA was crashing.\n"
+   "Thanks to S. Kippenhan for noting the problem."
+ } ,
+
  { 18, Sep, 2018, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
    "outline BIDS-like analysis directory structure",
    "Add new DIRECTORY STRUCTURE NOTE section to -help output."
