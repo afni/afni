@@ -31,6 +31,7 @@ typedef struct {
   short  **sdat ;           /* pointer to data from each file (mmap-ed) */
   size_t *ssiz ;                         /* length of each file (bytes) */
   size_t totsiz ;                        /* length of all files (bytes) */
+  int    is_mapped ;                        /* is it mapped? [Sep 2018] */
 } Xdataset ;
 
 /*----------------------------------------------------------*/
@@ -137,6 +138,8 @@ Xdataset * open_Xdataset( char *mask_fname, int nsdat, char **sdat_fname )
 
    xds->nvtot = nvtot ;
 
+   xds->is_mapped = 1 ;
+
    /* e finito */
 
    return xds ;
@@ -148,11 +151,12 @@ void unmap_Xdataset( Xdataset *xds )
 {
    int jj ;
 
-   if( xds == NULL ) return ;
+   if( xds == NULL || xds->is_mapped==0 ) return ;
 
    for( jj=0 ; jj < xds->nsdat ; jj++ )
      munmap( xds->sdat[jj] , xds->ssiz[jj] ) ;
 
+   xds->is_mapped = 0 ;
    return ;
 }
 
@@ -162,7 +166,7 @@ void remap_Xdataset( Xdataset *xds )  /* undo the unmap [22 Aug 2017] */
 {
    int ids,fdes ; int64_t fsiz ;
 
-   if( xds == NULL ) return ; /* duh */
+   if( xds == NULL || xds->is_mapped ) return ; /* duh */
 
    for( ids=0 ; ids < xds->nsdat ; ids++ ){
 
@@ -189,6 +193,7 @@ void remap_Xdataset( Xdataset *xds )  /* undo the unmap [22 Aug 2017] */
 
    } /* end of loop over input .sdat files */
 
+   xds->is_mapped = 1 ;
    return ;
 }
 
@@ -201,6 +206,9 @@ void load_from_Xdataset( Xdataset *xds , int ival , float *far )
 
    if( ival < 0 || ival >= xds->nvtot )
      ERROR_exit("load_from_Xdataset: ival=%d nvol=%d",ival,xds->nvtot) ;
+
+   if( !xds->is_mapped )
+     ERROR_exit("load_from_Xdataset: not mapped!? :(") ;
 
    AAmemset( far , 0 , sizeof(float)*xds->nvox ) ;
 

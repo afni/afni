@@ -44,6 +44,18 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 20 , SEP , 2018 , RWC , "3dttest++ etc." , MAJOR , TYPE_ENHANCE ,
+   "ETAC now output global thresholds as well as local" ,
+   "Global thresholds are text tables of cluster-size (or cluster-FOM)\n"
+   "thresholds that apply to the whole volume in the multi-threshold way,\n"
+   "rather than dataset tables that apply voxelwise. Moderately extensive\n"
+   "hanges to programs\n"
+   "  3dMultiThresh  3dXClustSim  3dttest++\n"
+   "and to support files\n"
+   "  mri_threshX.c  thd_Xdataset.c\n"
+   "3dttest++ now has options to turn on/off global and local ETAC threshold\n"
+   "calculations." } ,
+
  { 31 , AUG , 2018 , RWC , "1D file input" , MICRO , TYPE_ENHANCE ,
    "mri_read_1D() now reads 3D: format files" ,
    "This allows input of 'raw' data files into 1dplot, 1dcat, etc. Mostly\n"
