@@ -3547,7 +3547,7 @@ libGLws.a:
 	$(CP) SUMA/libGLws.a ${INSTALLDIR}; \
 	$(CP) SUMA/libGLws.a ./;	)
 
-SUMA_PROGS = testGL suma ScaleToMap CompareSurfaces MakeColorMap ROI2dataset  \
+SUMA_PROGS = suma ScaleToMap CompareSurfaces MakeColorMap ROI2dataset  \
    3dVol2Surf 3dSurf2Vol SurfMeasures SurfFWHM ConvertSurface ConvertDset     \
    SurfClust IsoSurface ConvexHull MapIcosahedron CreateIcosahedron 	      \
    SurfaceMetrics SurfSmooth inspec quickspec FSread_annot SurfPatch SurfQual \
@@ -3560,12 +3560,14 @@ SUMA_PROGS = testGL suma ScaleToMap CompareSurfaces MakeColorMap ROI2dataset  \
 
 SUMA_GTS_PROGS = SurfMesh
 
+SUMA_MAKE_LIST = testGL $(SUMA_PROGS)
+
 
 ###
 #link executables but check for libraries first and create them if needed
 suma_exec:libGLws.a libSUMA.a libtracktools.a libmri.a xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.a libf2c.a
 	( cd SUMA ;	\
-	$(MAKE) -f $(SUMA_MAKEFILE_NAME) $(SUMA_PROGS) \
+	$(MAKE) -f $(SUMA_MAKEFILE_NAME) $(SUMA_MAKE_LIST) \
    'INSTALLDIR=$(INSTALLDIR)' \
 	'SUMA_MDEFS=$(SUMA_MDEFS)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
