@@ -279,7 +279,7 @@ Xcluster_array * find_Xcluster_array( MRI_IMAGE *fim, int nnlev,
        fpt0 = (float *)thptr0; if( fpt0 != NULL ){ fth0 = *fpt0; dofth0 = (fth0 > 0.0f); }
        fpt1 = (float *)thptr1; if( fpt1 != NULL ){ fth1 = *fpt1; dofth1 = (fth1 > 0.0f); }
        fpt2 = (float *)thptr2; if( fpt2 != NULL ){ fth2 = *fpt2; dofth2 = (fth2 > 0.0f); }
-INFO_message("find_Xcluster_array: fth0=%.1f fth1=%.1f fth2=%.1f",fth0,fth1,fth2) ;
+/* INFO_message("find_Xcluster_array: fth0=%.1f fth1=%.1f fth2=%.1f",fth0,fth1,fth2) ; */
        dofff = (dofth0||dofth1||dofth2) ;
      break ;
 
