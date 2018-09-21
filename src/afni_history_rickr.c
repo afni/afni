@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21, Sep, 2018, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "have programs return 0 on terminal options, like -help",
+   "Adding: fat_mvm_gridconv.py."
+ } ,
+
  { 20, Sep, 2018, RCR, "3dttest++", MICRO, TYPE_BUG_FIX,
    "fix copy-and-paste error for processing of voxelwise covariates",
    "Use of voxelwize covariates when only using -setA was crashing.\n"
