@@ -279,6 +279,7 @@ Xcluster_array * find_Xcluster_array( MRI_IMAGE *fim, int nnlev,
        fpt0 = (float *)thptr0; if( fpt0 != NULL ){ fth0 = *fpt0; dofth0 = (fth0 > 0.0f); }
        fpt1 = (float *)thptr1; if( fpt1 != NULL ){ fth1 = *fpt1; dofth1 = (fth1 > 0.0f); }
        fpt2 = (float *)thptr2; if( fpt2 != NULL ){ fth2 = *fpt2; dofth2 = (fth2 > 0.0f); }
+INFO_message("find_Xcluster_array: fth0=%.1f fth1=%.1f fth2=%.1f",fth0,fth1,fth2) ;
        dofff = (dofth0||dofth1||dofth2) ;
      break ;
 
@@ -429,8 +430,8 @@ Xcluster_array * find_Xcluster_array( MRI_IMAGE *fim, int nnlev,
        if( dott0 && xcc->fomh[0] >= xcc->cth[0] ) ngood += 1 ;
        if( dott1 && xcc->fomh[1] >= xcc->cth[1] ) ngood += 2 ;
        if( dott2 && xcc->fomh[2] >= xcc->cth[2] ) ngood += 4 ;
-       if( ngood == 0 ){  /* didn't pass any threshold ==> recycle */
-         xcc->npt = xcc->norig = 0; continue;
+       if( ngood == 0 ){            /* didn't pass any threshold ==> recycle */
+         xcc->npt = xcc->norig = 0; continue;  /* cluster is set to be empty */
        } else {
          xcc->hmask = ngood ;
        }
