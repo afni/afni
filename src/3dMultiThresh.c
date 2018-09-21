@@ -43,6 +43,7 @@ int main( int argc , char *argv[] )
    int do_maskonly=0 , do_pos=-1 ;
    MRI_IMARR *cimar0=NULL , *cimar1=NULL , *cimar2=NULL ;
    MRI_IMARR *allmask=NULL ; char *prefix_allmask=NULL , *case_allmask=NULL ;
+   float *melvec=NULL ;
 
    /*----- help, I'm trapped in an instance of vi and can't get out -----*/
 
@@ -267,8 +268,9 @@ int main( int argc , char *argv[] )
              mel->vec_rank   != 2          ){
            ERROR_message("badly formed data element in %s",argv[nopt]) ; nbad++ ;
          } else {
-           nv0 = mel->vec_axis_len[0] ; /* should be nzthr */
-           nv1 = mel->vec_axis_len[1] ; /* should be nhpow */
+           nv0 = mel->vec_axis_len[0] ;     /* should be nzthr */
+           nv1 = mel->vec_axis_len[1] ;     /* should be nhpow */
+           melvec = (float *)mel->vec[0] ;  /* list of thresholds */
          }
 
          atr = NI_get_attribute(mel,"NNlev") ;
@@ -435,7 +437,7 @@ int main( int argc , char *argv[] )
 
    } else {  /*--- spatially constant cluster-FOM thresholds [Sep 2018] ---*/
 
-     float *fth0=NULL , *fth1=NULL , *fth2=NULL , *zqq=zthr ;
+     float *fth0=NULL , *fth1=NULL , *fth2=NULL , *zqq=melvec ;
 
      /* get pointers into the global FOM-threshold array */
 
