@@ -50,6 +50,12 @@
 afni_history_struct rickr_history[] = {
 
  { 21, Sep, 2018, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "add new text_install dir; move scripts_install txt files there",
+   "Moved afni_fs_aparc+aseg_*.txt and demo*.niml.do there.\n"
+   "This helps with the accuracy of 'make prog_list'."
+ } ,
+
+ { 21, Sep, 2018, RCR, "afni-general", MICRO, TYPE_MODIFY,
    "have programs return 0 on terminal options, like -help",
    "Adding: fat_mvm_gridconv.py."
  } ,
