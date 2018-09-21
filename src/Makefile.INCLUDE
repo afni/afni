@@ -204,6 +204,9 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
 SCRIPTS_DIR = scripts_install
 SCRIPTS_SRC = scripts_src
 
+# put plain text files to install here (no scripts)
+TEXT_DIR    = text_install
+
 PY_ROOT = python_scripts
 PY_DIR = $(PY_ROOT)/afni_python
 PY_SCRIPTS = 1d_tool.py afni_proc.py afni_restproc.py afni_system_check.py   \
@@ -2006,7 +2009,8 @@ afni_src.tgz:
 	$(CP) -p *.c *.f *.inc *.h *.hhh Makefile.* *.xbm $(MINDOCS) $(MISC)     ./afni_src
 	$(CP) -pr coxplot volpack moveup moveAFNI* eispack                       ./afni_src
 	$(CP) -pr avovk ptaylor pkundu jzosky crorden discoraj                   ./afni_src
-	$(CP) -pr $(SCRIPTS_DIR) $(SCRIPTS_SRC) $(PY_ROOT) $(R_DIR) $(SHINY_DIR)  ./afni_src
+	$(CP) -pr $(SCRIPTS_DIR) $(SCRIPTS_SRC) $(TEXT_DIR) ./afni_src
+	$(CP) -pr $(PY_ROOT) $(R_DIR) $(SHINY_DIR) ./afni_src
 	$(CP) -pr gifsicledir qhulldir f2cdir mpeg_encodedir                     ./afni_src
 	$(CP) -pr 3DEdge netcdf-3.5.0 jpeg-6b niml Makefile_* nifti dlcompat     ./afni_src
 	$(CP) -pr SUMA svm matlab rickr faces poems gifti ni_test_? README.*     ./afni_src
@@ -2042,6 +2046,7 @@ install_devs: ptaylor_install pkundu_install jzosky_install
 
 install: $(INSTALLDIR) $(INSTALL_PREREQ) install_devs
 	$(CP) $(SCRIPTS_DIR)/* $(INSTALLDIR)
+	$(CP) $(TEXT_DIR)/* $(INSTALLDIR)
 	$(MV) $(PROGRAMS) $(INSTALLDIR)
 	$(CP) $(PY_DIR)/*.py  $(R_DIR)/*.R $(INSTALLDIR)
 	$(CP) -r $(SHINY_DIR) $(INSTALLDIR)
@@ -2059,6 +2064,7 @@ install: $(INSTALLDIR) $(INSTALL_PREREQ) install_devs
 install_noplug: $(INSTALLDIR)
 	$(MV) $(PROGRAMS_NOPLUG) $(INSTALLDIR)
 	$(CP) $(SCRIPTS_DIR)/* $(INSTALLDIR)
+	$(CP) $(TEXT_DIR)/* $(INSTALLDIR)
 	$(CP) $(PY_DIR)/*.py $(R_DIR)/*.R $(INSTALLDIR)
 	$(CP) -r $(SHINY_DIR) $(INSTALLDIR)
 
@@ -2072,6 +2078,7 @@ install_exe: $(INSTALLDIR)
              qq=`basename $$pp .exe`; $(MV) $${qq}.exe $(INSTALLDIR) ; \
           done )
 	$(CP) $(SCRIPTS_DIR)/* $(INSTALLDIR)
+	$(CP) $(TEXT_DIR)/* $(INSTALLDIR)
 	$(CP) $(PY_DIR)/*.py $(R_DIR)/*.R $(INSTALLDIR)
 	$(CP) -r $(SHINY_DIR) $(INSTALLDIR)
 
