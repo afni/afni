@@ -47,7 +47,9 @@ RUN \
       && pip3 install --no-cache-dir \
             codecov \
             pytest \
-            pytest-cov; \
+            pytest-cov \
+            numpy \
+            pandas; \
     fi \
     \
     # Clean AFNI src directory (*.o files can cause build to fail).
