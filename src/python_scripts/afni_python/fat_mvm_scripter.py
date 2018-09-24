@@ -271,6 +271,11 @@ def main(argv):
     comm_str = ''        
     CAT_PAIR_COMP = 1    # for categ var, now do rel compar by default
 
+    # allow status 0 on -help   24 Sep 2018 [rickr]
+    if "-help" in argv:
+        print help_line
+        sys.exit()
+
     try:
         opts, args = getopt.getopt(argv,"hnNcv:f:p:t:l:r:R:F:P:s:",
                                    ["help",
