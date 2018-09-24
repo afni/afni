@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24, Sep, 2018, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "have programs return 0 on terminal options, like -help",
+   "Adding: mpeg_encode."
+ } ,
+
  { 21, Sep, 2018, RCR, "afni-general", MICRO, TYPE_MODIFY,
    "separate testGL build target from SUMA_PROGS",
    "Again, for accuracy of 'make prog_list'."
