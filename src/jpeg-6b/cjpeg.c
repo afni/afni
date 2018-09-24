@@ -138,8 +138,9 @@ static char * outfilename;	/* for -outfile switch */
 
 
 LOCAL(void)
-usage (void)
+usage (int exit_code)
 /* complain about bad command line */
+/* exit with passed status   24 Sep 2018 [rickr] */
 {
   fprintf(stderr, "usage: %s [switches] ", progname);
 #ifdef TWO_FILE_COMMANDLINE
@@ -191,7 +192,7 @@ usage (void)
 #ifdef C_MULTISCAN_FILES_SUPPORTED
   fprintf(stderr, "  -scans file    Create multi-scan JPEG per script file\n");
 #endif
-  exit(EXIT_FAILURE);
+  exit(exit_code);
 }
 
 
@@ -244,7 +245,10 @@ parse_switches (j_compress_ptr cinfo, int argc, char **argv,
     }
     arg++;			/* advance past switch marker character */
 
-    if (keymatch(arg, "arithmetic", 1)) {
+    /* exit status 0 on -help  24 Sep 2018 [rickr] */
+    if (keymatch(arg, "help", 1)) {
+	usage(0);
+    } else if (keymatch(arg, "arithmetic", 1)) {
       /* Use arithmetic coding. */
 #ifdef C_ARITH_CODING_SUPPORTED
       cinfo->arith_code = TRUE;
@@ -261,7 +265,7 @@ parse_switches (j_compress_ptr cinfo, int argc, char **argv,
     } else if (keymatch(arg, "dct", 2)) {
       /* Select DCT algorithm. */
       if (++argn >= argc)	/* advance to next argument */
-	usage();
+	usage(EXIT_FAILURE);
       if (keymatch(argv[argn], "int", 1)) {
 	cinfo->dct_method = JDCT_ISLOW;
       } else if (keymatch(argv[argn], "fast", 2)) {
@@ -269,7 +273,7 @@ parse_switches (j_compress_ptr cinfo, int argc, char **argv,
       } else if (keymatch(argv[argn], "float", 2)) {
 	cinfo->dct_method = JDCT_FLOAT;
       } else
-	usage();
+	usage(EXIT_FAILURE);
 
     } else if (keymatch(arg, "debug", 1) || keymatch(arg, "verbose", 1)) {
       /* Enable debug printouts. */
@@ -293,9 +297,9 @@ parse_switches (j_compress_ptr cinfo, int argc, char **argv,
       char ch = 'x';
 
       if (++argn >= argc)	/* advance to next argument */
-	usage();
+	usage(EXIT_FAILURE);
       if (sscanf(argv[argn], "%ld%c", &lval, &ch) < 1)
-	usage();
+	usage(EXIT_FAILURE);
       if (ch == 'm' || ch == 'M')
 	lval *= 1000L;
       cinfo->mem->max_memory_to_use = lval * 1000L;
@@ -313,7 +317,7 @@ parse_switches (j_compress_ptr cinfo, int argc, char **argv,
     } else if (keymatch(arg, "outfile", 4)) {
       /* Set output file name. */
       if (++argn >= argc)	/* advance to next argument */
-	usage();
+	usage(EXIT_FAILURE);
       outfilename = argv[argn];	/* save it away for later use */
 
     } else if (keymatch(arg, "progressive", 1)) {
@@ -330,16 +334,16 @@ parse_switches (j_compress_ptr cinfo, int argc, char **argv,
     } else if (keymatch(arg, "quality", 1)) {
       /* Quality factor (quantization table scaling factor). */
       if (++argn >= argc)	/* advance to next argument */
-	usage();
+	usage(EXIT_FAILURE);
       if (sscanf(argv[argn], "%d", &quality) != 1)
-	usage();
+	usage(EXIT_FAILURE);
       /* Change scale factor in case -qtables is present. */
       q_scale_factor = jpeg_quality_scaling(quality);
 
     } else if (keymatch(arg, "qslots", 2)) {
       /* Quantization table slot numbers. */
       if (++argn >= argc)	/* advance to next argument */
-	usage();
+	usage(EXIT_FAILURE);
       qslotsarg = argv[argn];
       /* Must delay setting qslots until after we have processed any
        * colorspace-determining switches, since jpeg_set_colorspace sets
@@ -349,7 +353,7 @@ parse_switches (j_compress_ptr cinfo, int argc, char **argv,
     } else if (keymatch(arg, "qtables", 2)) {
       /* Quantization tables fetched from file. */
       if (++argn >= argc)	/* advance to next argument */
-	usage();
+	usage(EXIT_FAILURE);
       qtablefile = argv[argn];
       /* We postpone actually reading the file in case -quality comes later. */
 
@@ -359,11 +363,11 @@ parse_switches (j_compress_ptr cinfo, int argc, char **argv,
       char ch = 'x';
 
       if (++argn >= argc)	/* advance to next argument */
-	usage();
+	usage(EXIT_FAILURE);
       if (sscanf(argv[argn], "%ld%c", &lval, &ch) < 1)
-	usage();
+	usage(EXIT_FAILURE);
       if (lval < 0 || lval > 65535L)
-	usage();
+	usage(EXIT_FAILURE);
       if (ch == 'b' || ch == 'B') {
 	cinfo->restart_interval = (unsigned int) lval;
 	cinfo->restart_in_rows = 0; /* else prior '-restart n' overrides me */
@@ -375,7 +379,7 @@ parse_switches (j_compress_ptr cinfo, int argc, char **argv,
     } else if (keymatch(arg, "sample", 2)) {
       /* Set sampling factors. */
       if (++argn >= argc)	/* advance to next argument */
-	usage();
+	usage(EXIT_FAILURE);
       samplearg = argv[argn];
       /* Must delay setting sample factors until after we have processed any
        * colorspace-determining switches, since jpeg_set_colorspace sets
@@ -386,7 +390,7 @@ parse_switches (j_compress_ptr cinfo, int argc, char **argv,
       /* Set scan script. */
 #ifdef C_MULTISCAN_FILES_SUPPORTED
       if (++argn >= argc)	/* advance to next argument */
-	usage();
+	usage(EXIT_FAILURE);
       scansarg = argv[argn];
       /* We must postpone reading the file in case -progressive appears. */
 #else
@@ -400,11 +404,11 @@ parse_switches (j_compress_ptr cinfo, int argc, char **argv,
       int val;
 
       if (++argn >= argc)	/* advance to next argument */
-	usage();
+	usage(EXIT_FAILURE);
       if (sscanf(argv[argn], "%d", &val) != 1)
-	usage();
+	usage(EXIT_FAILURE);
       if (val < 0 || val > 100)
-	usage();
+	usage(EXIT_FAILURE);
       cinfo->smoothing_factor = val;
 
     } else if (keymatch(arg, "targa", 1)) {
@@ -412,7 +416,7 @@ parse_switches (j_compress_ptr cinfo, int argc, char **argv,
       is_targa = TRUE;
 
     } else {
-      usage();			/* bogus switch */
+      usage(EXIT_FAILURE);			/* bogus switch */
     }
   }
 
@@ -427,15 +431,15 @@ parse_switches (j_compress_ptr cinfo, int argc, char **argv,
     if (qtablefile != NULL)	/* process -qtables if it was present */
       if (! read_quant_tables(cinfo, qtablefile,
 			      q_scale_factor, force_baseline))
-	usage();
+	usage(EXIT_FAILURE);
 
     if (qslotsarg != NULL)	/* process -qslots if it was present */
       if (! set_quant_slots(cinfo, qslotsarg))
-	usage();
+	usage(EXIT_FAILURE);
 
     if (samplearg != NULL)	/* process -sample if it was present */
       if (! set_sample_factors(cinfo, samplearg))
-	usage();
+	usage(EXIT_FAILURE);
 
 #ifdef C_PROGRESSIVE_SUPPORTED
     if (simple_progressive)	/* process -progressive; -scans can override */
@@ -445,7 +449,7 @@ parse_switches (j_compress_ptr cinfo, int argc, char **argv,
 #ifdef C_MULTISCAN_FILES_SUPPORTED
     if (scansarg != NULL)	/* process -scans if it was present */
       if (! read_scan_script(cinfo, scansarg))
-	usage();
+	usage(EXIT_FAILURE);
 #endif
   }
 
@@ -516,21 +520,21 @@ main (int argc, char **argv)
     if (file_index != argc-2) {
       fprintf(stderr, "%s: must name one input and one output file\n",
 	      progname);
-      usage();
+      usage(EXIT_FAILURE);
     }
     outfilename = argv[file_index+1];
   } else {
     if (file_index != argc-1) {
       fprintf(stderr, "%s: must name one input and one output file\n",
 	      progname);
-      usage();
+      usage(EXIT_FAILURE);
     }
   }
 #else
   /* Unix style: expect zero or one file name */
   if (file_index < argc-1) {
     fprintf(stderr, "%s: only one input file\n", progname);
-    usage();
+    usage(EXIT_FAILURE);
   }
 #endif /* TWO_FILE_COMMANDLINE */
 
