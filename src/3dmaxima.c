@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 static char * g_history[] =
 {
     "History:",
@@ -452,4 +452,3 @@ ENTRY("process_args");
 
     RETURN(0);
 }
-
