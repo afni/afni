@@ -22,7 +22,9 @@ SHOULD_NOT_BE_EXECUTABLE = [
     'demo.mobile.niml.do']
 
 KNOWN_BROKEN_HELP = [
-    'testGL']
+    'testGL',
+    'fat_lat_csv.py',
+    'fat_proc_grad_plot']
 
 
 def _get_programs(afni_root):
