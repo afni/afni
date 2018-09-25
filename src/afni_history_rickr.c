@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25, Sep, 2018, RCR, "timing_tool.py", MICRO, TYPE_MODIFY,
+   "update prog_list.txt from 'make prog_list'; we might remove this file",
+   NULL
+ } ,
+
  { 25, Sep, 2018, RCR, "timing_tool.py", MICRO, TYPE_BUG_FIX,
    "fix first timediff in -multi_timing_to_event_list",
    NULL
