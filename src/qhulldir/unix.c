@@ -344,6 +344,13 @@ int main(int argc, char *argv[]) {
     fprintf(stdout, qh_prompt2, qh_version);
     exit(qh_ERRnone);
   }
+
+  /* catch -help    18 Sep 2018 [rickr] */
+  if ( argc == 2 && !strcmp(argv[1], "-help") ) {
+    fprintf(stdout, qh_prompt2, qh_version);
+    exit(qh_ERRnone);
+  }
+
   if (argc > 1 && *argv[1] == '-' && !*(argv[1]+1)) {
     fprintf(stdout, qh_prompta, qh_version, qh_DEFAULTbox,
                 qh_promptb, qh_promptc, qh_promptd, qh_prompte);

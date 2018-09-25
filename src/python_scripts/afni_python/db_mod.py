@@ -8599,6 +8599,58 @@ g_help_notes = """
        ======================================================================
 
     --------------------------------------------------
+    DIRECTORY STRUCTURE NOTE: ~2~
+
+    We are working to have a somewhat BIDS-like directory structure.  If our
+    tools know where to be able to find processed data, many things beyond the
+    single subject level can be automated.
+    
+    Starting with a main STUDY (ds000210 in the example) tree, the directory
+    structure has individual subject input trees at the top level.  Each
+    subject directory (e.g. sub-001) would contain all of the original data for
+    that subject, possibly including multiple tasks or resting state data,
+    anatomical, DWI, etc.  The example includes 1 run of rest, 3 runs of the
+    cuedSGT task data, and corresponding cuedSGT timing files.
+
+    Processed data would then go under a 'derivatives' directory under STUDY
+    (ds000210), with each sub-directory being a single analysis.  The example
+    shows a preperatory analysis to do non-linear registration, plus a resting
+    state analysis and the cuedSGT analysis.
+
+    In our case, assuming one is using non-linear registration, the derivatives
+    directory might contain directories like:
+
+        AFNI_01_SSwarp      - single subject non-linear warp results
+                              (these would be used as input to afni_proc.py
+                              in any other analyses)
+
+        AFNI_02_task_XXXX   - some main analysis, including single subject
+                              (via afni_proc.py?) and possibly group results
+
+        AFNI_03_rest        - maybe a resting state analysis, for example
+
+
+    So a sample directory tree might look something like:
+
+    ds000210 (main study directory)
+    |        \\                \\
+    sub-001  sub-002           derivatives
+    |                          |            \\               \\
+    anat                    AFNI_01_SSwarp  AFNI_02_rest    AFNI_03_cuedSGT
+       \\                    |               |        \\
+       sub-001_T1w.nii.gz   sub-001         sub-001   sub-002  ...
+    |                        |               |
+    func                    WARP.nii        cmd.afni_proc
+       \\                                    proc.sub-001
+       sub-001_task-rest_run-01.nii.gz      output.proc.sub-001
+       sub-001_task-cuedSGT_run-01.nii.gz   sub-001.results
+       sub-001_task-cuedSGT_run-02.nii.gz   stim_timing
+       sub-001_task-cuedSGT_run-03.nii.gz
+       sub-001_task-cuedSGT_run-01_events.tsv
+       sub-001_task-cuedSGT_run-02_events.tsv
+       sub-001_task-cuedSGT_run-03_events.tsv
+
+    --------------------------------------------------
     QUALITY CONTROL NOTE: ~2~
 
     Look at the data.
