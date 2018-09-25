@@ -227,6 +227,11 @@ def main(argv):
     Percentile = 99
     N_iter = 5000
 
+    # allow status 0 on -help   24 Sep 2018 [rickr]
+    if "-help" in argv:
+        print help_line
+        sys.exit()
+
     try:
         opts, args = getopt.getopt(argv,"hNgc:m:l:i:n:C:L:P:I:p:v:f:",
                                    ["help",

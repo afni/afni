@@ -49,7 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
- { 25, Sep, 2018, RCR, "timing_tool.py", MICRO, TYPE_MODIFY,
+ { 25, Sep, 2018, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "have programs return 0 on -help",
+   "Adding: fat_lat_csv.py, fat_proc_grad_plot."
+ } ,
+
+ { 25, Sep, 2018, RCR, "prog_list.txt", MICRO, TYPE_MODIFY,
    "update prog_list.txt from 'make prog_list'; we might remove this file",
    NULL
  } ,
