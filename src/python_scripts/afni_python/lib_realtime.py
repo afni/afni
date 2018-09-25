@@ -12,9 +12,9 @@
 # ----------------------------------------------------------------------
 
 
-import sys, os
-
 from __future__ import print_function
+
+import sys, os
 
 # system libraries : test, then import as local symbols
 import module_test_lib
