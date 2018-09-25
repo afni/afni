@@ -49,13 +49,13 @@
  * examples:
  *
  *    3dSurf2Vol -spec        SubjectA.spec                              \
- *               -sv          SubjectA_spgr+orig                         \ 
+ *               -sv          SubjectA_spgr+orig                         \
  *               -grid_parent SubjA_EPI+orig                             \
  *               -map_func    mask2                                      \
  *               -prefix      SubjA_mask
  *
  *    3dSurf2Vol -spec        SubjectA.spec                              \
- *               -sv          SubjectA_spgr+orig                         \ 
+ *               -sv          SubjectA_spgr+orig                         \
  *               -cmask       '-a SubjA.func+orig[2] -expr step(a-0.6)'  \
  *               -grid_parent SubjA_EPI+orig                             \
  *               -map_func    mask2                                      \
@@ -137,7 +137,7 @@ static char g_history[] =
  "3.9  September 13, 2018  [rickr]\n"
  "  - return 0 on terminal options\n"
  "----------------------------------------------------------------------\n";
- 
+
 #define VERSION "version  3.9 (September 13, 2018)"
 
 
@@ -179,7 +179,7 @@ int main( int argc , char * argv[] )
     s2v_opts_t         sopt;
     opts_t             opts;
     int                ret_val;
-    
+
     mainENTRY("3dSurf2Vol main");
     machdep();
     AFNI_logger("3dSurf2Vol",argc,argv);
@@ -201,7 +201,7 @@ int main( int argc , char * argv[] )
        fprintf( stderr, "** failed to initialize spec\n" );
        return(-1);
     }
-    
+
     /* read surface files */
     ret_val = read_surf_files(&opts, &params, &spec, &sopt, &node_list);
 
@@ -210,13 +210,13 @@ int main( int argc , char * argv[] )
 
     /* free memory */
     final_clean_up( &node_list );
-    
+
     /* free the spec ZSS Jan 9 06*/
     if (!SUMA_FreeSpecFields(&spec)) {
        fprintf( stderr, "** failed to free spec\n" );
        return(-1);
     }
-    
+
     return ret_val;
 }
 
@@ -323,7 +323,7 @@ ENTRY("s2v_nodes2volume");
         DSET_delete( dout );
         RETURN(NULL);
     }
-    
+
     /* allocate an array of ints for functional counting */
     if ( (cdata = (int *)malloc(nvox * sizeof(int))) == NULL )
     {
@@ -356,7 +356,7 @@ ENTRY("s2v_nodes2volume");
                 RETURN(NULL);
             }
     }
-    
+
     dsize = mri_datum_size(sopt->datum);
     /* create the sub-brick data for output */
     for ( sub = 0; sub < p->nsubs; sub++ )
@@ -933,7 +933,7 @@ ENTRY("insert_value");
  *        < 0 on error
  *----------------------------------------------------------------------
 */
-int make_point_list( THD_fvec3 * list, THD_fvec3 * p1, THD_fvec3 * pn, 
+int make_point_list( THD_fvec3 * list, THD_fvec3 * p1, THD_fvec3 * pn,
                      s2v_opts_t * sopt )
 {
     float rat1, ratn;
@@ -1082,7 +1082,7 @@ ENTRY("set_node_list_data");
 
         RETURN(0);
     } else if ( p->sdata_im ) {
-    
+
        /* else sdata exists: check column, and copy data from sdata_im */
        if ( col > (p->sdata_im->nx - 2) && !p->parser.pcode )
        {
@@ -1103,7 +1103,7 @@ ENTRY("set_node_list_data");
        }
        else if ( p->parser.pcode && col != 0 )             /* let's be safe */
        {
-           fprintf(stderr,"** snld error: cannot use parser with col = %d\n", 
+           fprintf(stderr,"** snld error: cannot use parser with col = %d\n",
                           col);
            RETURN(-1);
        }
@@ -1111,7 +1111,7 @@ ENTRY("set_node_list_data");
        /* hmmmm, we're still missing something...  oh yes, data! */
 
        fp = MRI_FLOAT_PTR( p->sdata_im ) + col+1;  /* offset by column number */
-   
+
        for ( c = 0; c < N->ilen; c++ )
          {
         if ( p->parser.pcode )
@@ -1132,7 +1132,7 @@ ENTRY("set_node_list_data");
          fprintf(stderr,"** snld error: Failed to get col %d from dset\n",
                         col);
          RETURN(-1);
-      } 
+      }
        for ( c = 0; c < N->ilen; c++ )
        {
            if ( p->parser.pcode )
@@ -1142,7 +1142,7 @@ ENTRY("set_node_list_data");
                    p->parser.atoz[lposn] = (float)
                         SUMA_GetDsetValInCol2(p->dset,
                                               lposn, c);
-               N->fdata[c] = PARSER_evaluate_one(p->parser.pcode, 
+               N->fdata[c] = PARSER_evaluate_one(p->parser.pcode,
                                  p->parser.atoz);
            }
            else
@@ -1153,8 +1153,8 @@ ENTRY("set_node_list_data");
       fprintf(stderr,"** snld error: This NULLity should not be.\n");
       RETURN(-1);
    }
-    
-    
+
+
     RETURN(0);
 }
 
@@ -1564,7 +1564,7 @@ ENTRY("final_clean_up");
 
 
 /*----------------------------------------------------------------------
- * 
+ *
  *----------------------------------------------------------------------
 */
 int read_surf_files ( opts_t * opts, param_t * p, SUMA_SurfSpecFile * spec,
@@ -1713,12 +1713,12 @@ ENTRY("verify_parser_expr");
         fprintf(stderr,"** vpe: invalid params (%p,%p)\n", opts, p);
         RETURN(-1);
     }
-    
+
     /* if no parser code, there is nothing to do */
     if ( ! p->parser.pcode )
         RETURN(0);
 
-    
+
     for ( max_used = 25; max_used >= 0; max_used-- )
         if ( p->parser.has_sym[max_used] )
             break;
@@ -1726,14 +1726,14 @@ ENTRY("verify_parser_expr");
     p->parser.max_sym = max_used;
 
     /* if the expression is not constant, we need some data */
-    if ( !p->sdata_im && !p->dset) 
+    if ( !p->sdata_im && !p->dset)
     {
          fprintf(stderr, "** parser expression requires surface data\n"
                          "   (see '-sdata_1D' or '-sdata')\n");
          RETURN(-1);
     }
-    if (p->sdata_im) 
-    { 
+    if (p->sdata_im)
+    {
        if ( max_used > 0 )
        {
            if ( max_used > p->sdata_im->nx - 1 )
@@ -1749,8 +1749,8 @@ ENTRY("verify_parser_expr");
        if ( opts->debug > 1 )
            fprintf(stderr,"-- surf_vals = %d, expr_vals = %d\n",
                    p->sdata_im ? (p->sdata_im->nx - 1) : 0, max_used);
-   } else if (p->dset) 
-   { 
+   } else if (p->dset)
+   {
       if ( max_used > 0 )
        {
            if ( max_used > SDSET_VECNUM(p->dset) )
@@ -1767,7 +1767,7 @@ ENTRY("verify_parser_expr");
            fprintf(stderr,"-- surf_vals = %d, expr_vals = %d\n",
                    p->dset ? SDSET_VECNUM(p->dset) : 0, max_used);
    }
-   
+
    RETURN(0);
 }
 
@@ -1922,18 +1922,18 @@ ENTRY("sdata_from_niml");
     if ( !opts || !N || !p )
         RETURN(-1);
 
-    if ( !(p->dset = SUMA_LoadDset_s(opts->sdata_file_niml, 
+    if ( !(p->dset = SUMA_LoadDset_s(opts->sdata_file_niml,
                                      &form, 0)) )     {
         fprintf(stderr,"** failed to read file '%s'\n", opts->sdata_file_niml);
         RETURN(-2);
     }
     if (!(SUMA_PopulateDsetNodeIndexNel(p->dset,1))) {
-        fprintf(stderr,"** failed to populate node indices in '%s'\n", 
+        fprintf(stderr,"** failed to populate node indices in '%s'\n",
                 opts->sdata_file_niml);
         RETURN(-2);
     }
     if (!(nind = SDSET_NODE_INDEX_COL(p->dset))) {
-         fprintf(stderr,"** No node index column in '%s'\n", 
+         fprintf(stderr,"** No node index column in '%s'\n",
                   opts->sdata_file_niml);
         RETURN(-2);
     }
@@ -1942,7 +1942,7 @@ ENTRY("sdata_from_niml");
     if ( opts->debug > 0 )
         fprintf(stderr,"++ read surface dset file '%s' (nx = %d, ny = %d)\n",
                 opts->sdata_file_niml, SDSET_VECNUM(p->dset), N->ilen );
-    
+
     /* only allocate space ilist */
     if ( (N->ilist = (int *)malloc(N->ilen*sizeof(int))) == NULL )
     {
@@ -1960,7 +1960,7 @@ ENTRY("sdata_from_niml");
 
 /*----------------------------------------------------------------------
  * read surfaces (much stolen from SUMA_suma.c - thanks Ziad!)
- * 
+ *
  * return 0 on success
  *----------------------------------------------------------------------
 */
@@ -2437,7 +2437,7 @@ ENTRY("validate_options");
 int check_datum_type ( char * datum_str, int default_type )
 {
     int c, dt = -1;
-    
+
 ENTRY("check_datum_type");
 
     if ( datum_str )
@@ -3415,7 +3415,7 @@ ENTRY("disp_param_t");
             , p,
             p->gpar, ISVALID_DSET(p->gpar) ? "valid" : "invalid",
             p->oset, ISVALID_DSET(p->oset) ? "valid" : "invalid",
-            p->sxyz_im, p->sdata_im, 
+            p->sxyz_im, p->sdata_im,
             p->dset,
             p->f3mm_min.xyz[0], p->f3mm_min.xyz[1], p->f3mm_min.xyz[2],
             p->f3mm_max.xyz[0], p->f3mm_max.xyz[1], p->f3mm_max.xyz[2],
@@ -3490,7 +3490,7 @@ ENTRY("disp_s2v_opts_t");
             sopt->debug, sopt->dnode, sopt->dvox,
             sopt->stop_gap, sopt->sxyz_ori_gpar,
             sopt->cmask, sopt->f_steps, sopt->f_index,
-            sopt->f_p1_fr, sopt->f_pn_fr, sopt->f_p1_mm, sopt->f_pn_mm 
+            sopt->f_p1_fr, sopt->f_pn_fr, sopt->f_p1_mm, sopt->f_pn_mm
             );
 
     RETURN(0);
@@ -3648,4 +3648,3 @@ ENTRY("integral_doubles");
 
     RETURN(1);
 }
-
