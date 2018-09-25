@@ -50,8 +50,10 @@ int main ( int argc, char * argv[] )
     info_s I;
     int    rv;
 
-    if ( (rv = read_args( argc, argv, &I )) != 0 )
-	return rv;
+    if ( (rv = read_args( argc, argv, &I )) != 0 ) {
+	if ( rv == P_EXIT) return 0;
+        else               return 1;
+    }
 
     if ( (rv = open_files( &I )) != 0 )
 	return rv;

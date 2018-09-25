@@ -979,6 +979,77 @@ void NI_insert_string( NI_element *nel, int row, int col, char *str )
 }
 
 /*------------------------------------------------------------------------*/
+/* Return a float value. If the data type does not pass NI_IS_NUMERIC_TYPE,
+   or if any other thing is non-copasetic, then return value is 0.0f.
+*//*----------------------------------------------------------------------*/
+
+float NI_extract_float_value( NI_element *nel , int row , int col )
+{
+   char *cdat ;
+   NI_rowtype *rt ;
+
+   /* check for stoopid stufff */
+
+   if( nel         == NULL                     ) return 0.0f ;
+   if( nel->type   != NI_ELEMENT_TYPE          ) return 0.0f ;
+   if( row < 0     || row >= nel->vec_len      ) return 0.0f ;
+   if( col < 0     || col >= nel->vec_num      ) return 0.0f ;
+   if( ! NI_IS_NUMERIC_TYPE(nel->vec_typ[col]) ) return 0.0f ;
+
+   rt = NI_rowtype_find_code( nel->vec_typ[col] ) ;
+   if( rt == NULL )                             return 0.0f ;
+
+   cdat = (char *) nel->vec[col] ;   /* points to column data */
+   cdat = cdat + rt->size * row ;    /* points to data to get */
+
+   switch( nel->vec_typ[col] ){
+      default: return 0.0f ;         /* should not happen */
+
+      case NI_FLOAT:{
+        float *ar = (float *)cdat ; return ar[0] ;
+      }
+
+      case NI_BYTE:{
+        byte *ar = (byte *)cdat ; return (float)ar[0] ;
+      }
+
+      case NI_SHORT:{
+        short *ar = (short *)cdat ; return (float)ar[0] ;
+      }
+
+      case NI_INT:{
+        int *ar = (int *)cdat ; return (float)ar[0] ;
+      }
+
+      case NI_DOUBLE:{
+        double *ar = (double *)cdat ; return (float)ar[0] ;
+      }
+
+      case NI_COMPLEX:{
+        complex *ar = (complex *)cdat ;
+        double x = (double)ar[0].r , y = (double)ar[0].i ;
+        return (float)sqrt(x*x+y*y) ;
+      }
+
+      case NI_RGB:{
+        rgb *ar = (rgb *)cdat ;
+        float rr = (float)ar[0].r, gg = (float)ar[0].g, bb = (float)ar[0].b ;
+        return (0.299f*rr+0.587f*gg+0.114f*bb) ;
+      }
+
+      case NI_RGBA:{
+        rgba *ar = (rgba *)cdat ;
+        float rr = (float)ar[0].r, gg = (float)ar[0].g, bb = (float)ar[0].b ;
+        float aa = (float)ar[0].a ;
+        return (0.299f*rr+0.587f*gg+0.114f*bb)*(aa/255.0f) ;
+      }
+
+    }
+
+    return 0.0f ; /* unreachable */
+}
+
+/*------------------------------------------------------------------------*/
 /*! Remove an attribute, if it exists from a data or group element.
                                     ZSS Feb 09
 --------------------------------------------------------------------------*/
@@ -1810,4 +1881,3 @@ void NI_set_ni_type_atr( NI_element * nel )
 
    return ;
 }
-

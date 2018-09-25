@@ -87,8 +87,9 @@ static char * outfilename;	/* for -outfile switch */
 
 
 LOCAL(void)
-usage (void)
+usage (int exit_code)
 /* complain about bad command line */
+/* exit with passed status   24 Sep 2018 [rickr] */
 {
   fprintf(stderr, "usage: %s [switches] ", progname);
 #ifdef TWO_FILE_COMMANDLINE
@@ -154,7 +155,7 @@ usage (void)
   fprintf(stderr, "  -maxmemory N   Maximum memory to use (in kbytes)\n");
   fprintf(stderr, "  -outfile name  Specify name for output file\n");
   fprintf(stderr, "  -verbose  or  -debug   Emit debug output\n");
-  exit(EXIT_FAILURE);
+  exit(exit_code);
 }
 
 
@@ -192,7 +193,10 @@ parse_switches (j_decompress_ptr cinfo, int argc, char **argv,
     }
     arg++;			/* advance past switch marker character */
 
-    if (keymatch(arg, "bmp", 1)) {
+    /* exit status 0 on -help  24 Sep 2018 [rickr] */
+    if (keymatch(arg, "help", 1)) {
+        usage(0);
+    } else if (keymatch(arg, "bmp", 1)) {
       /* BMP output format. */
       requested_fmt = FMT_BMP;
 
@@ -202,16 +206,16 @@ parse_switches (j_decompress_ptr cinfo, int argc, char **argv,
       int val;
 
       if (++argn >= argc)	/* advance to next argument */
-	usage();
+	usage(EXIT_FAILURE);
       if (sscanf(argv[argn], "%d", &val) != 1)
-	usage();
+	usage(EXIT_FAILURE);
       cinfo->desired_number_of_colors = val;
       cinfo->quantize_colors = TRUE;
 
     } else if (keymatch(arg, "dct", 2)) {
       /* Select IDCT algorithm. */
       if (++argn >= argc)	/* advance to next argument */
-	usage();
+	usage(EXIT_FAILURE);
       if (keymatch(argv[argn], "int", 1)) {
 	cinfo->dct_method = JDCT_ISLOW;
       } else if (keymatch(argv[argn], "fast", 2)) {
@@ -219,12 +223,12 @@ parse_switches (j_decompress_ptr cinfo, int argc, char **argv,
       } else if (keymatch(argv[argn], "float", 2)) {
 	cinfo->dct_method = JDCT_FLOAT;
       } else
-	usage();
+	usage(EXIT_FAILURE);
 
     } else if (keymatch(arg, "dither", 2)) {
       /* Select dithering algorithm. */
       if (++argn >= argc)	/* advance to next argument */
-	usage();
+	usage(EXIT_FAILURE);
       if (keymatch(argv[argn], "fs", 2)) {
 	cinfo->dither_mode = JDITHER_FS;
       } else if (keymatch(argv[argn], "none", 2)) {
@@ -232,7 +236,7 @@ parse_switches (j_decompress_ptr cinfo, int argc, char **argv,
       } else if (keymatch(argv[argn], "ordered", 2)) {
 	cinfo->dither_mode = JDITHER_ORDERED;
       } else
-	usage();
+	usage(EXIT_FAILURE);
 
     } else if (keymatch(arg, "debug", 1) || keymatch(arg, "verbose", 1)) {
       /* Enable debug printouts. */
@@ -266,7 +270,7 @@ parse_switches (j_decompress_ptr cinfo, int argc, char **argv,
     } else if (keymatch(arg, "map", 3)) {
       /* Quantize to a color map taken from an input file. */
       if (++argn >= argc)	/* advance to next argument */
-	usage();
+	usage(EXIT_FAILURE);
       if (for_real) {		/* too expensive to do twice! */
 #ifdef QUANT_2PASS_SUPPORTED	/* otherwise can't quantize to supplied map */
 	FILE * mapfile;
@@ -289,9 +293,9 @@ parse_switches (j_decompress_ptr cinfo, int argc, char **argv,
       char ch = 'x';
 
       if (++argn >= argc)	/* advance to next argument */
-	usage();
+	usage(EXIT_FAILURE);
       if (sscanf(argv[argn], "%ld%c", &lval, &ch) < 1)
-	usage();
+	usage(EXIT_FAILURE);
       if (ch == 'm' || ch == 'M')
 	lval *= 1000L;
       cinfo->mem->max_memory_to_use = lval * 1000L;
@@ -311,7 +315,7 @@ parse_switches (j_decompress_ptr cinfo, int argc, char **argv,
     } else if (keymatch(arg, "outfile", 4)) {
       /* Set output file name. */
       if (++argn >= argc)	/* advance to next argument */
-	usage();
+	usage(EXIT_FAILURE);
       outfilename = argv[argn];	/* save it away for later use */
 
     } else if (keymatch(arg, "pnm", 1) || keymatch(arg, "ppm", 1)) {
@@ -325,17 +329,17 @@ parse_switches (j_decompress_ptr cinfo, int argc, char **argv,
     } else if (keymatch(arg, "scale", 1)) {
       /* Scale the output image by a fraction M/N. */
       if (++argn >= argc)	/* advance to next argument */
-	usage();
+	usage(EXIT_FAILURE);
       if (sscanf(argv[argn], "%d/%d",
 		 &cinfo->scale_num, &cinfo->scale_denom) != 2)
-	usage();
+	usage(EXIT_FAILURE);
 
     } else if (keymatch(arg, "targa", 1)) {
       /* Targa output format. */
       requested_fmt = FMT_TARGA;
 
     } else {
-      usage();			/* bogus switch */
+      usage(EXIT_FAILURE);			/* bogus switch */
     }
   }
 
@@ -481,21 +485,21 @@ main (int argc, char **argv)
     if (file_index != argc-2) {
       fprintf(stderr, "%s: must name one input and one output file\n",
 	      progname);
-      usage();
+      usage(EXIT_FAILURE);
     }
     outfilename = argv[file_index+1];
   } else {
     if (file_index != argc-1) {
       fprintf(stderr, "%s: must name one input and one output file\n",
 	      progname);
-      usage();
+      usage(EXIT_FAILURE);
     }
   }
 #else
   /* Unix style: expect zero or one file name */
   if (file_index < argc-1) {
     fprintf(stderr, "%s: only one input file\n", progname);
-    usage();
+    usage(EXIT_FAILURE);
   }
 #endif /* TWO_FILE_COMMANDLINE */
 

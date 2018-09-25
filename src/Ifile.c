@@ -66,13 +66,15 @@ int main( int argc , char *argv[] )
    char fmt[128] ;
    FILE * fout_dbg, *fout_panga;
 
-   if (argc == 1) { Ifile_help(); exit(1); }
+   if (argc == 1) { Ifile_help(); exit(0); } /* 1 -> 0  18 Sep 2018 [rickr] */
    kar = 1;
 	brk = 0;
    StrtFiles = 0;
 	UseUv17 = 0;
    while (kar < argc && !StrtFiles) { /* loop accross command ine options */
-      if (strcmp (argv[kar],"-h") == 0 || strcmp (argv[kar],"-help") == 0) { Ifile_help(); exit(1); }
+      if (strcmp (argv[kar],"-h") == 0 || strcmp (argv[kar],"-help") == 0) {
+        Ifile_help(); exit(0);        /* 1 -> 0  18 Sep 2018 [rickr] */
+      }
       
       if (!brk && (strcmp(argv[kar], "-nt") == 0)) {
          UseUv17 = 1;

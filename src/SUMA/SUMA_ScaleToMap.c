@@ -195,13 +195,10 @@ int main (int argc,char *argv[])
    SUMA_mainENTRY;
 
    /* this is placed down here to */
-   /*
-   if (argc < 3) {
+   if (argc < 2) {
       SUMA_ScaleToMap_usage();
-      exit (1);
+      exit (0);
    }
-   */
-
    kar = 1;
    brfact = 1; /* the brightness factor */
    MaskColor[0] = MaskColor[1] = MaskColor[2] = 0.3;

@@ -36,6 +36,11 @@ def main(argv):
     thr_out = 10**6
     TRUNC = 0
 
+    # allow status 0 on -help   24 Sep 2018 [rickr]
+    if "-help" in argv:
+        print help_line
+        sys.exit()
+
     try:
         opts, args = getopt.getopt(argv,"hTf:p:t:",["help",
                                                     "Trunc_labs",
