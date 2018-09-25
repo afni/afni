@@ -251,7 +251,7 @@ def main(argv):
         sys.exit(2)
 
     for opt, arg in opts:
-        if opt in ("-h", "--help"):
+        if opt in ("-h", "--help", "-help"):
             print help_line
             sys.exit()
         elif opt in ("-N", "--NA_warn_off"):
