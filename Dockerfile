@@ -20,16 +20,23 @@ RUN apt-get update -y -qq \
           libxpm-dev \
           libxt-dev \
           m4 \
+          pyton-dev \
           python-matplotlib \
           python-numpy \
+          python-scipy \
           python-qt4 \
           python-rpy2 \
           python-tk \
+          python-mpltoolkits.basemap \
           r-base \
           tcsh \
           vim \
     && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
+    && curl -fsSL https://bootstrap.pypa.io/get-pip.py | python - --no-cache-dir \
+    && pip install --no-cache-dir \
+          scipy \
+          rpy2 
 
 # Copy AFNI source code. This can invalidate the build cache.
 ARG AFNI_ROOT=/opt/afni
