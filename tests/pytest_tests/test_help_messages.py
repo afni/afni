@@ -21,7 +21,8 @@ SHOULD_NOT_BE_EXECUTABLE = [
     'demo.fixed.niml.do',
     'demo.mobile.niml.do']
 
-KNOWN_BROKEN_HELP = []
+KNOWN_BROKEN_HELP = [
+    'testGL']
 
 
 def _get_programs(afni_root):
