@@ -20,7 +20,7 @@ RUN apt-get update -y -qq \
           libxpm-dev \
           libxt-dev \
           m4 \
-          pyton-dev \
+          python-dev \
           python-matplotlib \
           python-numpy \
           python-scipy \
