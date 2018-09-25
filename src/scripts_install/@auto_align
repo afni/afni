@@ -11,4 +11,4 @@ goto END
 
 
 END:
-exit 1
+exit 0

@@ -49,6 +49,57 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24, Sep, 2018, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "have programs return 0 on terminal options, like -help",
+   "Adding: mpeg_encode, cjpeg, djpeg, fat_roi_row.py, fat_mvm_scripter.py,\n"
+   "        fat_mat_sel.py, fat_mvm_prep.py, fat_mvm_review.py."
+ } ,
+
+ { 21, Sep, 2018, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "separate testGL build target from SUMA_PROGS",
+   "Again, for accuracy of 'make prog_list'."
+ } ,
+
+ { 21, Sep, 2018, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "add new text_install dir; move scripts_install txt files there",
+   "Moved afni_fs_aparc+aseg_*.txt and demo*.niml.do there.\n"
+   "This helps with the accuracy of 'make prog_list'."
+ } ,
+
+ { 21, Sep, 2018, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "have programs return 0 on terminal options, like -help",
+   "Adding: fat_mvm_gridconv.py."
+ } ,
+
+ { 20, Sep, 2018, RCR, "3dttest++", MICRO, TYPE_BUG_FIX,
+   "fix copy-and-paste error for processing of voxelwise covariates",
+   "Use of voxelwize covariates when only using -setA was crashing.\n"
+   "Thanks to S. Kippenhan for noting the problem."
+ } ,
+
+ { 18, Sep, 2018, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "outline BIDS-like analysis directory structure",
+   "Add new DIRECTORY STRUCTURE NOTE section to -help output."
+ } ,
+
+ { 18, Sep, 2018, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "have programs return 0 on terminal options, like -help",
+   "Adding: FD2, Ifile, MakeColorMap, ScaleToMap, SurfMeasures, afni_run_R,\n"
+   "        balloon, imcat, inspec, myget, quickspec, qhull, rbox, qdelaunay."
+ } ,
+
+ { 17, Sep, 2018, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "have programs return 0 on terminal options, like -help",
+   "Adding: @auto_align, @djunct_4d_slices_to_3d_vol, @djunct_vol_3slice_select,\n"
+   "        @xyz_to_ijk, column_cat, get_afni_model_PRF.\n"
+   "Bigger changes to Dimon, Dimon1."
+ } ,
+
+ { 14, Sep, 2018, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "have programs return 0 on terminal options, like -help",
+   "Adding: @Install_D99_macaque, @Install_NIH_Marmoset."
+ } ,
+
  { 13, Sep, 2018, RCR, "afni-general", MICRO, TYPE_MODIFY,
    "have programs return 0 on terminal options, like -help",
    "So far: 3dSurf2Vol, 3dVol2Surf, 3dmaxima."

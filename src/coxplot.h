@@ -207,6 +207,7 @@ extern void           plotball_memplot( float,float,float ) ;
 extern int            create_memplot_surely( char *, float ) ;      /* 20 Sep 2001 */
 extern void           set_opacity_memplot( float ) ;                /* 22 Jul 2004 */
 extern float          get_opacity_memplot(void) ;
+extern void           plot_ts_do_naked  (int) ;                     /* 14 Sep 2018 */
 
 extern MEM_plotdata * copy_memplot( MEM_plotdata * ) ; /*-- 26 Feb 2001 --*/
 extern void           append_to_memplot( MEM_plotdata *,MEM_plotdata * ) ;

@@ -180,7 +180,7 @@ char    encoder_name[1024];
  * INTERNAL PROCEDURE prototypes *
  *===============================*/
 
-static void Usage _ANSI_ARGS_((void));
+static void Usage _ANSI_ARGS_((int));
 static void CompileTests _ANSI_ARGS_((void));
 
 
@@ -227,8 +227,9 @@ main(argc, argv)
 
     time(&initTimeStart);
 
-    if ( argc == 1 ) {
-	Usage();
+    /* return exit status 0 on intended help   24 Sep 2018 [rickr] */
+    if ( argc == 1 || strcmp(argv[1], "-help") == 0 ) {
+	Usage(0);
     }
 
     SetStatFileName("");
@@ -237,7 +238,7 @@ main(argc, argv)
     idx = 1;
     while ( idx < argc-1 ) {
 	if ( argv[idx][0] != '-' ) {
-	    Usage();
+	    Usage(1);
 	}
 
 	if ( strcmp(argv[idx], "-stat") == 0 ) {
@@ -245,22 +246,22 @@ main(argc, argv)
 		SetStatFileName(argv[idx+1]);
 		idx += 2;
 	    } else {
-		Usage();
+		Usage(1);
 	    }
 	} else if ( strcmp(argv[idx], "-gop") == 0 ) {
 	    if ( (function != ENCODE_FRAMES) || (frameStart != -1) ) {
-		Usage();
+		Usage(1);
 	    }
 
 	    if ( idx+1 < argc-1 ) {
 		whichGOP = atoi(argv[idx+1]);
 		idx += 2;
 	    } else {
-		Usage();
+		Usage(1);
 	    }
 	} else if ( strcmp(argv[idx], "-frames") == 0 ) {
 	    if ( (function != ENCODE_FRAMES) || (whichGOP != -1) ) {
-		Usage();
+		Usage(1);
 	    }
 
 	    if ( idx+2 < argc-1 ) {
@@ -269,17 +270,17 @@ main(argc, argv)
 
 		if ( (frameStart > frameEnd) || (frameStart < 0) ) {
 		    fprintf(stderr, "ERROR:  bad frame numbers!\n");
-		    Usage();
+		    Usage(1);
 		}
 
 		idx += 3;
 	    } else {
-		Usage();
+		Usage(1);
 	    }
 	} else if ( strcmp(argv[idx], "-combine_gops") == 0 ) {
 	    if ( (function != ENCODE_FRAMES) || (whichGOP != -1) || 
 		 (frameStart != -1) ) {
-		Usage();
+		Usage(1);
 	    }
 
 	    function = COMBINE_GOPS;
@@ -287,7 +288,7 @@ main(argc, argv)
 	} else if ( strcmp(argv[idx], "-combine_frames") == 0 ) {
 	    if ( (function != ENCODE_FRAMES) || (whichGOP != -1) ||
 		 (frameStart != -1) ) {
-		Usage();
+		Usage(1);
 	    }
 
 	    function = COMBINE_FRAMES;
@@ -304,7 +305,7 @@ main(argc, argv)
 
 		IOhostName = hostName;
 	    } else {
-		Usage();
+		Usage(1);
 	    }
 
 	    childProcess = TRUE;
@@ -314,7 +315,7 @@ main(argc, argv)
 		hostName = argv[idx+1];
 		portNumber = atoi(argv[idx+2]);
 	    } else {
-		Usage();
+		Usage(1);
 	    }
 
 	    ioServer = TRUE;
@@ -325,7 +326,7 @@ main(argc, argv)
 		portNumber = atoi(argv[idx+2]);
 		outputFrames = atoi(argv[idx+3]);
 	    } else {
-		Usage();
+		Usage(1);
 	    }
 
 	    function = COMBINE_FRAMES;
@@ -337,7 +338,7 @@ main(argc, argv)
 		portNumber = atoi(argv[idx+2]);
 		outputFrames = atoi(argv[idx+3]);
 	    } else {
-		Usage();
+		Usage(1);
 	    }
 
 	    function = COMBINE_FRAMES;
@@ -350,7 +351,7 @@ main(argc, argv)
 	    if ( idx+1 < argc-1 ) {
 		maxMachines = atoi(argv[idx+1]);
 	    } else {
-		Usage();
+		Usage(1);
 	    }
 
 	    idx += 2;
@@ -358,7 +359,7 @@ main(argc, argv)
 	    if ( idx+1 < argc-1 ) {
 		quietTime = atoi(argv[idx+1]);
 	    } else {
-		Usage();
+		Usage(1);
 	    }
 
 	    idx += 2;
@@ -375,7 +376,7 @@ main(argc, argv)
 	    if ( idx < argc-1 ) {
 		frameSummary = FALSE;
 	    } else {
-		Usage();
+		Usage(1);
 	    }
 
 	    idx++;
@@ -397,18 +398,18 @@ main(argc, argv)
 		SetBitRateFileName(argv[idx+1]);
 		idx += 2;
 	    } else {
-		Usage();
+		Usage(1);
 	    }
 	} else if ( strcmp(argv[idx], "-mv_histogram") == 0 ) {
 	    computeMVHist = TRUE;
 	    idx++;
 	} else {
-	    Usage();
+	    Usage(1);
 	}
     }
 
     if ( ! ReadParamFile(argv[argc-1], function) ) {
-	Usage();
+	Usage(1);
     }
 
     /* Jim Boucher's stuff:
@@ -543,7 +544,7 @@ main(argc, argv)
  *
  *===========================================================================*/
 static void
-Usage()
+Usage(int exit_val)
 {
     fprintf(stderr, "Usage:  mpeg_encode [options] param_file\n");
     fprintf(stderr, "Options:\n");
@@ -561,7 +562,7 @@ Usage()
     fprintf(stderr, "\t-snr:  print signal-to-noise ratio\n");
     fprintf(stderr, "\t-bit_rate_info rate_file:  put bit rate in specified file\n");
     fprintf(stderr, "\t-mv_histogram:  show histograms of motion vectors\n");
-    exit(1);
+    exit(exit_val);
 
 /* extended usage (used by parallel code; shouldn't be called by user):
     -child parallelHostName portNumber ioPortNumber combinePortNumber machineNumber remote

@@ -12,6 +12,7 @@
 #include "random.h"
 #include "libqhull.h"
 
+#include <string.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -78,9 +79,10 @@ int main(int argc, char **argv) {
   argc= ccommand(&argv);
 #endif
 
-  if (argc == 1) {
+  /* return 0 on -help     18 Sep 2018 [rickr] */
+  if (argc == 1 || (argc == 2 && !strcmp(argv[1], "-help")) ) {
     printf(prompt, qh_DEFAULTbox, qh_DEFAULTzbox);
-    return 1;
+    return 0;
   }
 
   command_size= qh_argv_to_command_size(argc, argv);

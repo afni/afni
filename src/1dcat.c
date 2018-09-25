@@ -46,34 +46,46 @@ int main( int argc , char * argv[] )
 " TSV files: [Sep 2018]\n"
 "-----------\n"
 "* 1dcat can now also read .tsv files, which are columns of values separated\n"
-"  by tab characters (tsv = tab separated values). The first row of a .tsv file\n"
-"  is a set of column labels. After the header row, each column is either all\n"
-"  numbers, or is a column of strings. For example\n"
-"     Column 1	Column 2	Column 3\n"
-"     3.2	7.2		Elvis\n"
-"     8.2	-1.2		Sinatra\n"
-"     4.444	33.3		1954\n"
-"  In this example, the labels contain spaces, which are NOT separators; the\n"
-"  only column separator used is the tab character.\n"
+"  by tab characters (tsv = tab separated values). The first row of a .tsv \n"
+"  file is a set of column labels. After the header row, each column is either\n"
+"  all numbers, or is a column of strings. For example\n"
+"     Col 1	Col 2	Col 3\n"
+"     3.2	7.2	Elvis\n"
+"     8.2	-1.2	Sinatra\n"
+"     6.66 	33.3	20892\n"
+"  In this example, the column labels contain spaces, which are NOT separators;\n"
+"  the only column separator used in a .tsv file is the tab character.\n"
 "  The first and second columns are converted to number columns, since every\n"
 "  value (after the label/header row) is a numeric string. The third column\n"
 "  is stored as strings, since some of the entries are not valid numbers.\n"
+"\n"
 "* 1dcat can deal with a mix of .1D and .tsv files. The .tsv file header\n"
-"  rows are NOT output, since .1D files don't have headers.\n"
+"  rows are NOT output by default, since .1D files don't have such headers.\n"
+"\n"
+"* The usual output from 1dcat is NOT a .tsv file - blanks are used for\n"
+"  separators. You can use the '-tsvout' option to get TSV formatted output.\n"
+"\n"
 "* If you mix .1D and .tsv files, the number of data rows in each file\n"
 "  must be the same. Since the header row in a .tsv file is NOT used here,\n"
 "  the total number of lines in a .tsv file must be 1 more than the number\n"
 "  of lines in a .1D file for the two files to match in this program.\n"
+"\n"
 "* The purpose of supporting .tsv files is for eventual compatibility with\n"
 "  the BIDS format http://bids.neuroimaging.io - which uses .tsv files\n"
 "  extensively to provide auxiliary information for (F)MRI datasets.\n"
-"* The usual output from 1dcat is NOT a .tsv file - blanks are used for separators\n"
-"  You can use the '-tsvout' option to get TSV formatted output.\n"
+"\n"
 "* Column selectors (like '[0,3]') can be used on .tsv files, but row selectors\n"
-"  (like '{0,3..5}') cannot be used on .tsv files - at this time.\n"
+"  (like '{0,3..5}') cannot be used on .tsv files - at this time :(\n"
+"\n"
 "* You can also select a column in a .tsv file by using the label at the top of\n"
-"  of the column. Since .1D files don't have headers, this method doesn't work\n"
-"  with such inputs; you have to use integer column selectors on .1D files.\n"
+"  of the column. A BIDS-related example:\n"
+"    1dcat sub-666_task-XXX_events.tsv'[onset,duration,trial_type,reaction_time]'\n"
+"  A similar example, which outputs a list of the trial types in an imaging run:\n"
+"    1dcat sub-666_task-XXX_events.tsv'[trial_type]' | sort | uniq\n"
+"\n"
+"* Since .1D files don't have headers, the label method of column selection\n"
+"  doesn't work with such inputs; you must use integer column selectors\n"
+"  on .1D files.\n"
 "\n"
 "--------\n"
 "OPTIONS:\n"
@@ -168,7 +180,7 @@ int main( int argc , char * argv[] )
       } else if (strcmp(argv[narg],"-sel") == 0) {
          ++narg;
          if (narg >= argc)  {
-	         ERROR_exit("need argument after -sel ");
+           ERROR_exit("need argument after -sel ");
          }
          sel = argv[narg]; ++narg;
       } else if (strncmp(argv[narg],"-d",2) == 0) {
@@ -366,7 +378,7 @@ fprintf(stderr,"\n") ;
                    }
                  }
                }
-            } 
+            }
             printf("\n") ;
          }
       } else {

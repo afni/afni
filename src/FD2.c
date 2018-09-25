@@ -928,7 +928,7 @@ int           swap_bytes = 0;     // in place of macro #ifdef LINUX
 #endif
   fprintf (stderr,"\n\n ");
 
-  if (ex == 1) exit(1);
+  if (ex == 1) exit(0);                 /* 1 -> 0   18 Sep 2018 [rickr] */
 }
 
 /* ------------------------- */

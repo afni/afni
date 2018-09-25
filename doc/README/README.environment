@@ -3898,6 +3898,17 @@ HISTORY_NOTE which can be seen via 3dinfo, for example.  If set to NO,
 output datasets will not have any HISTORY.  This is one method for
 making datasets anonymous.
 
+---------------------------------------------------------
+Variables: AFNI_XCLUSTSIM_GLOBAL and AFNI_XCLUSTSIM_LOCAL
+---------------------------------------------------------
+These variables control the setting of the 'global' and 'local' ETAC
+calculations, and are equivalent to using the '-ETAC_global' and
+'-ETAC_local' command line switches to 3dttest++. If you set a
+variable to YES, then that commands the relevant ETAC thresholds
+to be calculated; if you set a variable to NO, it turns off the
+relevant calculation. If you do not set a variable, and you do
+not use the 3dttest++ command line option, you will get whatever
+the default ETAC method(s) are enabled.
 
 =============================================
 | Robert W Cox, PhD                         |
