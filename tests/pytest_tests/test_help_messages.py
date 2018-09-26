@@ -22,8 +22,6 @@ SHOULD_NOT_BE_EXECUTABLE = [
     'demo.mobile.niml.do']
 
 KNOWN_BROKEN_HELP = [
-    'testGL',
-    'fat_lat_csv.py',
     'fat_proc_grad_plot']
 
 
