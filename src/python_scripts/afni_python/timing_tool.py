@@ -1241,9 +1241,10 @@ g_history = """
    3.01 Dec 22, 2017 - added -select_runs and -mplaces
    3.02 Jan 31, 2018 - in MT2_event_list, if 'part' and no events in run, '* *'
    3.03 Sep 25, 2018 - fixed first timediff in -multi_timing_to_event_list
+   3.04 Sep 27, 2018 - handle weakly formatted FSL timing files (fewer columns)
 """
 
-g_version = "timing_tool.py version 3.03, September 25, 2018"
+g_version = "timing_tool.py version 3.04, September 27, 2018"
 
 
 
