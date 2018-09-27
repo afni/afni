@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, Sep, 2018, RCR, "@update.afni.binaries", MICRO, TYPE_MODIFY,
+   "added macos_10.12 examples to help",
+   NULL
+ } ,
+
  { 27, Sep, 2018, RCR, "timing_tool.py", MICRO, TYPE_MODIFY,
    "handle FSL timing files with fewer than 3 columns",
    "For T Radman."
