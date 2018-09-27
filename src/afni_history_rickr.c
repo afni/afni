@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, Sep, 2018, RCR, "timing_tool.py", MICRO, TYPE_MODIFY,
+   "handle FSL timing files with fewer than 3 columns",
+   "For T Radman."
+ } ,
+
  { 25, Sep, 2018, RCR, "afni-general", MICRO, TYPE_MODIFY,
    "have programs return 0 on -help",
    "Adding: fat_lat_csv.py, fat_proc_grad_plot."
