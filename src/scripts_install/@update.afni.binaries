@@ -288,13 +288,14 @@ examples:
     other examples:
 
        $prog -defaults
+       $prog -defaults -package macos_10.12_local
        $prog -defaults -package macosx_10.7_local
        $prog -package linux_openmp_64
        $prog -package linux_openmp_64 -bindir ~/abin
        $prog -package linux_openmp_64 -programs suma 3dRSFC
        $prog -package linux_openmp_64 -programs file_tool python_scripts/*.py
 
-       $prog -local_package macosx_10.7_local.tgz
+       $prog -local_package macos_10.12_local.tgz
 
 options:
 
