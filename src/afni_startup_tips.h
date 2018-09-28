@@ -1443,8 +1443,27 @@ static char *gby[] = {
      "  than an exact answer to the wrong question"                                    ,
 
      "\n  The combination of some data and an aching desire for an answer does not\n"
-     "  ensure that a reasonable answer can be extracted from a given body of data" 
+     "  ensure that a reasonable answer can be extracted from a given body of data"    ,
 
+     /* from Crooked Timber */
+
+     "\n The following contradictory statements are all DEEP and PROFOUND:\n"
+     "    Forget about the afterlife, about the Elsewhere, seize the day, enjoy life\n"
+     "      fully here and now, it's the only life you've got!\n"
+     "    Do not get trapped in the illusory and vain pleasures of earthly life;\n"
+     "      money, power, and passions are all destined to vanish into thin air\n"
+     "      -- think about eternity!\n"
+     "    Bring eternity into your everyday life, live your life on this earth as\n"
+     "      if it is already permeated by Eternity!\n"
+     "    Do not try in vain to bring together eternity and your terrestrial life,\n"
+     "      accept humbly that you are forever split between Heaven and Earth!\n"
+     "    Life is an enigma, do not try to penetrate its secrets, accept the\n"
+     "      beauty of its unfathomable mystery!\n"
+     "    Do not allow yourself to be distracted by false mysteries that just\n"
+     "      dissimulate the fact that, ultimately, life is very simple - it is\n"
+     "      what it is, it is simply here without reason and rhyme!\n"
+     "    The ultimate, unfathomable mystery of life resides in its very simplicity,\n"
+     "    in the simple fact that there is life.\n"
 } ;
 
 #endif
