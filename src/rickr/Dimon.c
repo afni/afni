@@ -6518,7 +6518,8 @@ static int show_run_stats( stats_t * s )
     putchar( '\n' );
 
     if ( gP.opts.gert_reco )
-        (void)create_gert_script( s, &gP );
+        if ( create_gert_script( s, &gP ) )
+            fprintf(stderr,"** failed creating GERT script (and dataset)\n");
 
     if( gP.opts.flist_file )
        create_file_list(&gP, gP.opts.flist_file, 0, NULL);
