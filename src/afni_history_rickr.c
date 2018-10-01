@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  1, Oct, 2018, RCR, "NIFTI", MICRO, TYPE_MODIFY,
+   "errors should all mention NIFTI; slight additional clarity",
+   NULL
+ } ,
+
  {  1, Oct, 2018, RCR, "afni-general", MICRO, TYPE_MODIFY,
    "mri_dicom_hdr.c: init vars in DICOM reading functions",
    NULL
