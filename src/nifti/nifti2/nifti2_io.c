@@ -31,7 +31,7 @@
 static char const * const gni1_history[] =
 {
   "----------------------------------------------------------------------\n"
-  "history (of nifti library changes):\n"
+  "history (of nifti-1 library changes):\n"
   "\n",
   "0.0  August, 2003 [rwcox]\n"
   "     (Robert W Cox of the National Institutes of Health, SSCC/DIRP/NIMH)\n"
