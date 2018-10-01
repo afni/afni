@@ -7032,7 +7032,7 @@ static CONDITION
 handleGroupItem(PRIVATE_OBJECT ** obj, PRV_GROUP_ITEM ** groupItem,
 		unsigned short group)
 {
-    CTNBOOLEAN createGroupFlag;
+    CTNBOOLEAN createGroupFlag = TRUE;
 
     if (*groupItem == NULL)
 	createGroupFlag = TRUE;
@@ -7080,22 +7080,23 @@ readFile1(const char *name, unsigned char *callerBuf, int fd, U32 size,
 	  CONDITION(*rd) (void *ctx, void *buf, int toRead, int *bytesRead),
 	  CONDITION(*sk) (void *ctx, int offset, int flag))
 {
+    /* avoid 'uninitialized elements'   28 Sep 2018 [rickr] */
     CONDITION
-    cond;
+    cond = DCM_NORMAL;
     int
-        byteOrder;
+        byteOrder = NATIVE_ORDER;
     long
         lastGroup = -1,
         lastElement = -1;
     U32
-	sequenceLength,
-	scannedSequenceLength;
+	sequenceLength = 0,
+	scannedSequenceLength = 0;
     PRIVATE_OBJECT
-	** object;
+	** object=NULL;
     PRV_GROUP_ITEM
 	* groupItem = NULL;
     DCM_ELEMENT
-	e;
+	e = {};
     CTNBOOLEAN
 	convertFlag = FALSE,
 	done = FALSE,
@@ -7109,7 +7110,7 @@ readFile1(const char *name, unsigned char *callerBuf, int fd, U32 size,
 	* elementItem = NULL;
     CTNBOOLEAN
 	fileFlag = TRUE;
-    CONDITION flag;
+    CONDITION flag = TRUE;
     CTNBOOLEAN allowRepeatElements = FALSE;
 
 ENTRY("readFile1") ;

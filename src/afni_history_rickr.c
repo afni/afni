@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  1, Oct, 2018, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "mri_dicom_hdr.c: init vars in DICOM reading functions",
+   NULL
+ } ,
+
  { 27, Sep, 2018, RCR, "@update.afni.binaries", MICRO, TYPE_MODIFY,
    "added macos_10.12 examples to help",
    NULL
