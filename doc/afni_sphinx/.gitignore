@@ -1,8 +1,0 @@
-#Ignore Sphinx build objects
-pdf
-ps
-tex
-_build
-programs/programs.rst
-SUMA/media/*Cont.auto.*jpg
-SUMA/auto_inc/*.inc
