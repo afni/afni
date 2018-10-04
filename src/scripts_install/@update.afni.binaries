@@ -288,14 +288,13 @@ examples:
     other examples:
 
        $prog -defaults
-       $prog -defaults -package macos_10.12_local
        $prog -defaults -package macosx_10.7_local
        $prog -package linux_openmp_64
        $prog -package linux_openmp_64 -bindir ~/abin
        $prog -package linux_openmp_64 -programs suma 3dRSFC
        $prog -package linux_openmp_64 -programs file_tool python_scripts/*.py
 
-       $prog -local_package macos_10.12_local.tgz
+       $prog -local_package macosx_10.7_local.tgz
 
 options:
 
@@ -693,6 +692,10 @@ if ( $do_recur ) then
    echo "++ getting install prog: $get_prog $package/$prog ..."
    echo $get_prog $get_package
    $get_prog $get_package
+   if ( ! -x $prog ) then
+      echo "-- fixing lost permissions on $prog"
+      chmod +x $prog
+   endif
 
    # ----- might not exist: try twice and skip if fail       26 Sep 2012
 
