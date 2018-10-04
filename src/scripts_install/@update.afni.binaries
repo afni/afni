@@ -692,10 +692,6 @@ if ( $do_recur ) then
    echo "++ getting install prog: $get_prog $package/$prog ..."
    echo $get_prog $get_package
    $get_prog $get_package
-   if ( ! -x $prog ) then
-      echo "-- fixing lost permissions on $prog"
-      chmod +x $prog
-   endif
 
    # ----- might not exist: try twice and skip if fail       26 Sep 2012
 
@@ -733,6 +729,12 @@ if ( $do_recur ) then
    endif
 
    # ----- okay, we have a new installer to check on
+
+   # make sure it is executable
+   if ( ! -x $prog ) then
+      echo "-- fixing lost permissions on $prog"
+      chmod +x $prog
+   endif
 
    # see if there are any changes to apply
    cmp -s $prog ../$prog
