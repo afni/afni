@@ -234,7 +234,7 @@ LIBHEADERS = mrilib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h            \
              multivector.h afni_environ.h niml.h cs_sort_template.h vol2surf.h\
              AFNI_label.h Amalloc.h afni_suma.h debugtrace.h list_struct.h    \
              mri_dicom_stuff.h mri_warpfield.h nifti/niftilib/nifti1.h        \
-             nifti/niftilib/nifti1_io.h nifti/nifticdf/nifticdf.h             \
+             nifti/nifti2/nifti2_io.h nifti/nifticdf/nifticdf.h               \
              nifti/znzlib/znzlib.h Aomp.h rcmat.h misc_math.h                 \
              rickr/r_new_resam_dset.h rickr/r_idisp.h rickr/r_misc.h          \
              thd_atlas.h thd_ttatlas_query.h thd_ttatlas_CA_EZ.h              \
@@ -3403,11 +3403,11 @@ nifti_tool.exe:nifti_tool.o nifti2_io.o znzlib.o
 	$(CC) -o nifti_tool.exe nifti_tool.o nifti2_io.o znzlib.o $(LZLIB) -lm
 
 # just compile completely, removing issue of libraries
-gifti_tool:nifti1_io.o znzlib.o
+gifti_tool:nifti2_io.o znzlib.o
 	$(RM) $@
 	$(CC) -o gifti_tool $(INFLAGS) $(LFLAGS) 			\
 		gifti/gifti_tool.c gifti/gifti_io.c gifti/gifti_xml.c 	\
-		nifti1_io.o znzlib.o $(LGIFTI) $(LZLIB) -lm
+		nifti2_io.o znzlib.o $(LGIFTI) $(LZLIB) -lm
 
 gifti_choice.o:gifti_choice.c thd_gifti.c suma_gifti.c
 	$(RM) $@
