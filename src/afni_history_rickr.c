@@ -49,9 +49,9 @@
 
 afni_history_struct rickr_history[] = {
 
- {  1, Oct, 2018, RCR, "NIFTI", MICRO, TYPE_MODIFY,
-   "errors should all mention NIFTI; slight additional clarity",
-   NULL
+ {  1, Oct, 2018, RCR, "gifti_tool", MICRO, TYPE_MODIFY,
+   "link to nifti2_io.o, rather than nifti1_io.o",
+   "Also, install nifti2_io.h rather than nifti2_io.h with other headers."
  } ,
 
  {  1, Oct, 2018, RCR, "afni-general", MICRO, TYPE_MODIFY,
