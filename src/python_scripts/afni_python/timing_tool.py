@@ -1242,9 +1242,10 @@ g_history = """
    3.02 Jan 31, 2018 - in MT2_event_list, if 'part' and no events in run, '* *'
    3.03 Sep 25, 2018 - fixed first timediff in -multi_timing_to_event_list
    3.04 Sep 27, 2018 - handle weakly formatted FSL timing files (fewer columns)
+   3.05 Oct  5, 2018 - directly go after expected column headers in TSV files
 """
 
-g_version = "timing_tool.py version 3.04, September 27, 2018"
+g_version = "timing_tool.py version 3.05, October 5, 2018"
 
 
 
