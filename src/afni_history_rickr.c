@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  5, Oct, 2018, RCR, "timing_tool.py", MINOR, TYPE_ENHANCE,
+   "directly go after expected column headers in TSV files",
+   NULL
+ } ,
+
  {  4, Oct, 2018, RCR, "@update.afni.binaries", MICRO, TYPE_BUG_FIX,
    "wget/curl may remove execute permision, so re-add it",
    NULL
