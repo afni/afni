@@ -2248,6 +2248,8 @@ class RandTiming:
              print("** failed to open '%s' for writing event list" % fname)
              return 1
        else:
+          # if we will write to stderr, flush stdout to synchronize output
+          sys.stdout.flush()
           fd = sys.stderr
 
        # note how much space will we need for '(NAME)'
@@ -3852,6 +3854,7 @@ class RandTiming:
           - try to allocate min time for all types
           - for all types with means, decide on total needed time (above min)
           - if there is not quite enough time, rescale their times
+          - if no mean, distribute remaining (still above min)
           - for now, extra rest will trickle to end
 
           return status, rtimes
@@ -3873,6 +3876,9 @@ class RandTiming:
        if remain < 0:
           print('** partition rest: insufficient space for even min rest')
           return 1, []
+       if self.verb > 3:
+          print("-- part rest: tot %s = min %s + remain %s" \
+                % (rtot, tot_min, remain))
 
        # now go back and track those with applied means (mean > min)
        # - also, note whether we can alter the times later
@@ -3893,6 +3899,9 @@ class RandTiming:
           # total requested remaining time is mean * nevents
           mt = offset * rcounts[rind]
           tot_mean += mt
+       if self.verb > 3:
+          print("-- part rest: tot_mean = %s, rand = %s, alter = %s" \
+                % (tot_mean, have_rand, can_alter))
 
        # -----------------------------------------------------------------
        # check for early exit if remain == 0 (warn user if not complete)
@@ -3909,9 +3918,16 @@ class RandTiming:
        mean_scalar = 1
        if tot_mean > remain:
           mean_scalar = remain * 1.0 / tot_mean
+          if self.verb > 2:
+             print("++ scaling mean down from %s to %s (by 1/%s)" \
+                   % (remain, tot_mean, mean_scalar))
        # or, scale UP if there are no max-less classes
        elif have_rand == 0 and tot_mean > 0:
+          # same computation as above means scaling up this time
           mean_scalar = remain * 1.0 / tot_mean
+          if self.verb > 2:
+             print("++ scaling mean up from %s to %s (by %s)" \
+                   % (remain, tot_mean, 1/mean_scalar))
 
        # possibly provide more details on scalar
        if abs(mean_scalar-1) > 0.05 or self.verb > 2:
@@ -3942,7 +3958,8 @@ class RandTiming:
           # then partition time based on fractional number of events
           for rind, rc in enumerate(rtypes):
              if rc.mean_dur < rc.min_dur:
-                rtimes[rind] = remain * rcounts[rind] * 1.0 / nevents
+                # add in the remaining offset
+                rtimes[rind] += remain * rcounts[rind] * 1.0 / nevents
 
        # any undistributed rest will trickle to post-stim rest
 
