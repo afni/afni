@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  9, Oct, 2018, RCR, "make_random_timing.py", MINOR, TYPE_BUG_FIX,
+   "fix decay rest with non-zero min",
+   "Thanks to D Plunkett for noting the problem."
+ } ,
+
  {  5, Oct, 2018, RCR, "timing_tool.py", MINOR, TYPE_ENHANCE,
    "directly go after expected column headers in TSV files",
    NULL

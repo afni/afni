@@ -888,6 +888,11 @@ Advanced usage (make_random_timing.py) ~1~
         min, mean, max, dtype           : implies default t_grid
         min, mean, max, dtype, t_grid
 
+   NOTE: dtype and t_grid are specified as named parameters, e.g.
+
+            dtype=decay_fixed
+            t_grid=0.001
+
 
    Every stimulus class type is followed by a fixed rest class type.  So rest
    periods are "attached" to the preceding stimulus periods.  For example, the
@@ -1310,9 +1315,10 @@ g_history = """
     3.1  Nov 21, 2017: added -not_first and -not_last for C Smith
                        (still needs to be added to advanced case)
     3.2  Jan 30, 2018: added -help_concerns
+    3.3  Oct  9, 2018: fixed decay rest with non-zero min
 """
 
-g_version = "version 3.2 January 30, 2018"
+g_version = "version 3.3 January 30, 2018"
 
 g_todo = """
    - add -show_consec_stats option?
@@ -2070,7 +2076,7 @@ class RandTiming:
        # ------------------------------------------------------------
        # ready to roll, create the actual stim class instance
        sclass = LRT.StimClass(name, nreps, sclass, rclass, verb=self.verb)
-       if sclass == None:
+       if sclass.status:
           print(error_string)
           return 1
 
