@@ -50,7 +50,7 @@
 afni_history_struct rickr_history[] = {
 
  {  9, Oct, 2018, RCR, "make_random_timing.py", MINOR, TYPE_BUG_FIX,
-   "fix decay rest with non-zero min",
+   "fix decay rest with non-zero min; block unlimited decay stim dur",
    "Thanks to D Plunkett for noting the problem."
  } ,
 
