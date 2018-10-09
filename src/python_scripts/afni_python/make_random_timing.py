@@ -1315,10 +1315,12 @@ g_history = """
     3.1  Nov 21, 2017: added -not_first and -not_last for C Smith
                        (still needs to be added to advanced case)
     3.2  Jan 30, 2018: added -help_concerns
-    3.3  Oct  9, 2018: fixed decay rest with non-zero min
+    3.3  Oct  9, 2018:
+         - fixed decay rest with non-zero min
+         - block unlimited decay stim dur
 """
 
-g_version = "version 3.3 January 30, 2018"
+g_version = "version 3.3 October 9, 2018"
 
 g_todo = """
    - add -show_consec_stats option?
