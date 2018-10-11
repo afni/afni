@@ -133,6 +133,14 @@ def write_data_as_json(data, fname='stdout', indent=3, newline=1):
    """dump to json file; check for stdout or stderr
       return 0 on success
    """
+   # import locally, unless it is needed in at least a few functions
+   # (will make default in afni_proc.py, so be safe)
+   try:
+      import json
+   except:
+      print("** afni_util.py: 'json' python library is missing")
+      return 1
+
    if fname == 'stdout' or fname == '-':
       fp = sys.stdout
    elif fname == 'stderr':
@@ -140,11 +148,8 @@ def write_data_as_json(data, fname='stdout', indent=3, newline=1):
    else:
       try: fp = open(fname, 'w')
       except:
-         print("** write to json: could not open '%s' for writing" % fname)
+         print("** write_as_json: could not open '%s' for writing" % fname)
          return 1
-
-   # import locally, unless it is needed in at least a few functions
-   import json
 
    # actual write
    json.dump(data, fp, indent=indent)
