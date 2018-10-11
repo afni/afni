@@ -208,9 +208,10 @@ g_history = """
    0.30 Sep 27, 2017 - PyQt4 is no longer needed for an AFNI bootcamp
    1.00 Nov  7, 2017 - python3 compatible
    1.01 Nov 27, 2017 - warn user on python 3 (!= 2.7 even)
+   1.02 Oct 11, 2018 - check for consistency between python and PyQt4 paths
 """
 
-g_version = "afni_system_check.py version 1.01, November 27, 2017"
+g_version = "afni_system_check.py version 1.02, October 11, 2018"
 
 
 class CmdInterface:

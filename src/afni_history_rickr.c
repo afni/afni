@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11, Oct, 2018, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
+   "check for consistency between python and PyQt4 ",
+   NULL
+ } ,
+
  { 11, Oct, 2018, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
    "have gen_ss_review_scripts.py always write out.gen_ss_uvars.json",
    "This is to help occupy Paul."
