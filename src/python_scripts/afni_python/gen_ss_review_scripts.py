@@ -127,6 +127,7 @@ gen_ss_review_scripts.py - generate single subject analysis review scripts
       -exit0                    : regardless of errors, exit with status 0
       -prefix OUT_PREFIX        : set prefix for script names
       -verb LEVEL               : set the verbosity level
+      -write_uvars_json FNAME   : write json file of uvars dict to FNAME
 
    options for setting main variables
 
@@ -877,7 +878,7 @@ g_history = """
    0.51 May 30, 2017: plot volreg params with enorm/outlier plot
    1.0  Apr 25, 2018: updated for python3
    1.1  Aug 17, 2018:
-        - added -show_computed_uvars
+        - added -show_computed_uvars, -write_uvars_json
         - set afni_ver, afni_package, template, final_epi_dset
 """
 
