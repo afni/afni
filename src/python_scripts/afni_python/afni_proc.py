@@ -614,9 +614,10 @@ g_history = """
     6.18 Aug 13, 2018: actually apply -blur_opts_BIM
     6.19 Sep 18, 2018:
         - show sample BIDS-like directory struct under DIRECTORY STRUCTURE NOTE
+    6.20 Oct 11, 2018: have gen_ss_r_s always write out.gen_ss_uvars.json
 """
 
-g_version = "version 6.19, September 18, 2018"
+g_version = "version 6.20, October 11, 2018"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \

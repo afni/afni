@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11, Oct, 2018, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "have gen_ss_review_scripts.py always write out.gen_ss_uvars.json",
+   "This is to help occupy Paul."
+ } ,
+
  {  9, Oct, 2018, RCR, "make_random_timing.py", MINOR, TYPE_BUG_FIX,
    "fix decay rest with non-zero min; block unlimited decay stim dur",
    "Thanks to D Plunkett for noting the problem."
