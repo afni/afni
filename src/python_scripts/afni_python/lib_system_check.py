@@ -30,6 +30,7 @@ class SysInfo:
       self.afni_ver        = ''
       self.afni_label      = ''
       self.afni_dir        = ''
+      self.python_prog     = '' # path to program
       self.os_dist         = ''
       self.comments        = [] # comments to print at the end
       self.afni_fails      = 0
@@ -87,7 +88,7 @@ class SysInfo:
 
       if logshell not in ['csh', 'tcsh']:
          self.comments.append("login shell '%s', trusting user to translate" \
-                              " from 'tcsh'" % logshell)
+                              " code examples from 'tcsh'" % logshell)
 
       print('apparent login shell: %s%s' % (logshell, note))
 
@@ -379,6 +380,20 @@ class SysInfo:
                      print('   consider:%s' % ls)
                      self.comments.append(cs)
                      self.comments.append(ls)
+
+            # warn user if PyQt4 does not match python
+            cs = ''
+            if self.python_prog and ghead.startswith('/sw'):
+               if not self.python_prog.startswith('/sw/bin'):
+                  cs = 'have fink PyQt4, but non-fink python %s' % \
+                       self.python_prog
+            elif self.python_prog and ghead.startswith('/usr/local'):
+               if not self.python_prog.startswith('/usr/local'):
+                  cs = 'have brew? PyQt4, but non-brew python %s' % \
+                       self.python_prog
+            if cs:
+               print("** warning: %s" % cs)
+               self.comments.append(cs)
                
          elif self.repo_prog == 'fink':
             fcmd = 'sudo fink install pyqt4-mac-py27'
@@ -722,11 +737,15 @@ class SysInfo:
             # if we do not yet know of a repo program, mark as this one
             if repos and self.repo_prog == '': self.repo_prog = prog
 
-            print('%-20s : %s' % (cmd, so.strip()))
+            progpath = so.strip()
+            print('%-20s : %s' % (cmd, progpath))
             s, v = self.get_prog_version(prog)
             if s: print('%-20s : %s' % ('%s version'%prog, v))
 
-            if prog == 'afni': self.afni_ver = v # save result
+            # save some results
+            if prog == 'afni': self.afni_ver = v
+            if prog == 'python': self.python_prog = progpath
+               
             nfound += 1
          elif show_missing:
             print('%-20s : %s' % (cmd, se))
