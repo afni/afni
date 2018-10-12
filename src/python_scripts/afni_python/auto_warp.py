@@ -15,7 +15,7 @@ import ask_me
 
 g_help_string = """
     ===========================================================================
-    auto_warp.py     - Non-linear regisration 
+    auto_warp.py     - Nonlinear regisration 
     
     Basic Usage:
       auto_warp.py -base TT_N27+tlrc -input anat.nii  \\
@@ -167,6 +167,15 @@ class RegWrap:
              helpstr="Specify follower datasets\n")
       self.valid_opts.add_opt('-affine_followers_xmat', npar=-1, deflist=[],\
              helpstr="Specify follower datasets' affine transforms\n")    
+
+      self.valid_opts.add_opt('-skullstrip_opts', -1, [],
+             helpstr="3dSkullstrip miscellaneous options.\n"  \
+                     "Parameters will get passed directly to 3dSkullstrip.\n")
+
+      self.valid_opts.add_opt('-at_opts', -1, [],
+             helpstr="@auto_tlrc miscellaneous options.\n"  \
+                     "Parameters will get passed directly to @auto_tlrc.\n")
+
       self.valid_opts.trailers = 0   # do not allow unknown options
         
   
@@ -460,11 +469,19 @@ class RegWrap:
          self.error_ex("Could not find base")
 
       #get 3dSkullstrip options
-      opt = self.user_opts.find_opt('-skullstrip_opt')
+      opt = self.user_opts.find_opt('-skullstrip_opts')
       if opt != None: 
          ps.skullstrip_opt = ' '.join(opt.parlist)
       else:
          ps.skullstrip_opt = ''
+
+      #get auto_tlrc options
+      opt = self.user_opts.find_opt('-at_opts')
+      if opt != None: 
+         ps.at_opt = ' '.join(opt.parlist)
+      else:
+         ps.at_opt = ''
+
 
       # user says it's okay to overwrite existing files 
       opt = self.user_opts.find_opt('-overwrite')
@@ -663,7 +680,7 @@ class RegWrap:
    
    def align_auto_tlrc(  self, a=None, b=None,  \
                         alopt=" ",\
-                        suf = ".aff",
+                        suf = ".aff", at_opt = "",
                         xmat=None):
                         #m is the weight brick
       self.info_msg( "Aligning %s data to %s data" % \
@@ -677,8 +694,8 @@ class RegWrap:
                    "          -input  %s "      \
                    "          -suffix %s "      \
                    "          -no_ss -no_pre"   \
-                   "          -init_xform CENTER " \
-                   % ( b.input(), a.input(), suf ), \
+                   "          -init_xform CENTER %s" \
+                   % ( b.input(), a.input(), suf, at_opt ), \
                      ps.oexec)
          else:
             com = shell_com(  \
@@ -822,7 +839,7 @@ if __name__ == '__main__':
       if (ps.affine_dxyz != 0.0):
          a,b = ps.match_resolutions(a,b, '.rs', ps.affine_dxyz)
       #now run auto_tlrc
-      a, ps.affine_input_xmat = ps.align_auto_tlrc(a,b)
+      a, ps.affine_input_xmat = ps.align_auto_tlrc(a,b, at_opt=ps.at_opt)
    elif (ps.affine_input_xmat == 'ID'): #input already in std space
       if (0): print("Nothing to do")
    else: #User specified matrix to take input to std space
