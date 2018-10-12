@@ -95,9 +95,11 @@ examples (very basic for now): ~1~
 
          1d_tool.py -infile t3.1D -transpose -write ttr.1D
 
-   Example 4a. Pad a file of regressors for a single run (#2) with zeros. ~2~
+   Example 4a. Zero-pad a single-run 1D file across many runs. ~2~
 
-       So that it becomes run 2 of 7 (runs are 1-based).
+       Given a file of regressors (for example) across a single run (run 2),
+       created a new file that is padded with zeros, so that it now spans
+       many (7) runs.  Runs are 1-based here.
 
          1d_tool.py -infile ricor_r02.1D -pad_into_many_runs 2 7 \\
                     -write ricor_r02_all.1D
@@ -114,7 +116,11 @@ examples (very basic for now): ~1~
 
        a. Display number of rows and columns for a 1D dataset.
 
-         1d_tool.py -infile ricor_r02.1D -show_rows_cols
+          Note: to display them "quietly" (only the numbers), add -verb 0.
+                This is useful for setting a script variable.
+
+         1d_tool.py -infile X.xmat.1D -show_rows_cols
+         1d_tool.py -infile X.xmat.1D -show_rows_cols -verb 0
 
        b. Display indices of regressors of interest.
 

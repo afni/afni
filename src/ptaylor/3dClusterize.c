@@ -492,7 +492,7 @@ int main(int argc, char *argv[]) {
    int CL_noabs     = 0;  
    int do_binary    = 0;
    THD_coorder CL_cord;
-   float dx, dy, dz, xx, yy, zz, mm, ms, fimfac,
+   float dx, dy, dz, xx, yy, zz, mm, ms, fimfac=0.0,
       xxmax, yymax, zzmax, mmmax, msmax,
       RLmax, RLmin, APmax, APmin, ISmax, ISmin;
    double xxsum, yysum, zzsum, mmsum, volsum, mssum;
@@ -822,6 +822,8 @@ int main(int argc, char *argv[]) {
                  "For example, '-2sided ...', '-1sided ...', etc.\n");
 
    // check input dsets and matching, if necessary
+   // (insetA is possibly modified my masking operation)
+   THD_load_no_mmap();
    DSET_load(insetA); CHECK_LOAD_ERROR(insetA);
    Dim = (int *)calloc(4, sizeof(int));
    if( (Dim == NULL) ) 
@@ -854,7 +856,7 @@ int main(int argc, char *argv[]) {
       INFO_message("Found string label '%s' as volume [%d]", cval, ival);
    }
 
-   if( ival > DSET_NVALS(insetA) )
+   if( ival >= DSET_NVALS(insetA) )
       ERROR_exit("Bad index (too large) for data volume: %d", ival);
    else if( ival < 0 ) {
       INFO_message("No extra data block input (via '-idat ..'): "
@@ -872,7 +874,7 @@ int main(int argc, char *argv[]) {
       INFO_message("Data volume:      %s", repval);
    }
 
-   if( ithr < 0 || ithr > DSET_NVALS(insetA) )
+   if( ithr < 0 || ithr >= DSET_NVALS(insetA) )
       ERROR_exit("Bad index for threshold volume: %d", ithr);
    else {
       if ( DSET_HAS_LABEL(insetA, ithr) )

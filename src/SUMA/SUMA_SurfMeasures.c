@@ -163,8 +163,10 @@ int main ( int argc, char * argv[] )
     machdep();
     AFNI_logger(PROG_NAME,argc,argv);
 
-    if ( (rv = init_options(&opts, argc, argv)) != 0 )
-	return rv;
+    if ( (rv = init_options(&opts, argc, argv)) != 0 ) {
+	if( rv > 0 ) return 0;
+        else         return 1;
+    }
 
     if ( opts.debug > 1 )
 	fprintf(stderr,"-- timing: init opts         : time = %.3f\n",
@@ -2027,7 +2029,8 @@ ENTRY("init_options");
 	{
 	    fprintf(stderr,"invalid option <%s>\n",argv[ac]);
 	    suggest_best_prog_option(argv[0], argv[ac]);
-       RETURN( usage(PROG_NAME, ST_USE_SHORT) );
+            usage(PROG_NAME, ST_USE_SHORT);
+            RETURN(-1);
 	}
     }
 
@@ -2371,12 +2374,13 @@ ENTRY("validate_option_lists");
  * ST_USE_LONG
  * ST_USE_VERSION
  *
- * return -1 to signal this as a terminal function
+ * return non-zero to signal this as a terminal function
+ *        1 on good return, -1 on error
  *----------------------------------------------------------------------
 */
 int usage( char * prog, int use_type )
 {
-    int c;
+    int c, rval=1;  /* 1 means good return, -1 means error */
 
 ENTRY("usage");
 
@@ -2740,10 +2744,12 @@ ENTRY("usage");
     {
 	printf("%s: %s, compile date: %s\n", prog, VERSION, __DATE__);
     }
-    else
+    else {
 	fprintf(stderr,"** error: usage - invalid use_type %d\n", use_type); 
+        rval = -1;
+    }
 
-    RETURN(-1);
+    RETURN(rval);
 }
 
 

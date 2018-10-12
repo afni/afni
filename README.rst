@@ -11,13 +11,14 @@ purposes as well.  See https://afni.nimh.nih.gov/afni for more fun.
 AFNI directory
 --------------
 
-Currently top directory contains only two sub-directories
+Currently top directory contains three sub-directories
 
 doc/
     documentation for AFNI
 src/
     source code for AFNI
-
+tests/
+    tests for AFNI
 
 Relevant git-ology for AFNI
 ---------------------------
@@ -90,7 +91,7 @@ To make and install everything do::
     make vastness
 
 The command::
-    
+
     make cleanest
-    
+
 will remove all the *.o files, etc.

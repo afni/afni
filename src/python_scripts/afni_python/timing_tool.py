@@ -1240,9 +1240,12 @@ g_history = """
    3.00 Nov  9, 2017 - python3 compatible
    3.01 Dec 22, 2017 - added -select_runs and -mplaces
    3.02 Jan 31, 2018 - in MT2_event_list, if 'part' and no events in run, '* *'
+   3.03 Sep 25, 2018 - fixed first timediff in -multi_timing_to_event_list
+   3.04 Sep 27, 2018 - handle weakly formatted FSL timing files (fewer columns)
+   3.05 Oct  5, 2018 - directly go after expected column headers in TSV files
 """
 
-g_version = "timing_tool.py version 3.02, January 31, 2018"
+g_version = "timing_tool.py version 3.05, October 5, 2018"
 
 
 
@@ -2157,7 +2160,7 @@ class ATInterface:
                tprev = 0
                dprev = 0
             else:
-                cprev  = allevents[eind-1][3]
+                cprev = allevents[eind-1][3]
                 tprev = allevents[eind-1][0]
                 dprev = allevents[eind-1][2]
 
@@ -2225,8 +2228,8 @@ class ATInterface:
          elif st == 'd': astr = '%8.3f' % dur
          elif st == 'o':
             offset = etime-tprev-pdur
-            # check for first event per run
-            if tprev == 0.0: offset = etime
+            # first event is now handled in list construction
+            # if tprev == 0.0: offset = etime
             if offset == 0.0:
                          astr = '   0    '
             else:        astr = '%8.3f' % offset

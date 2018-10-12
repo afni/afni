@@ -4418,9 +4418,21 @@ char *find_readme_file(char *str);
 extern int THD_is_dataset( char * , char * , int ) ; /* 17 Mar 2000 */
 extern char * THD_dataset_headname( char * , char * , int ) ;
 
+/*--------------------- functions for reading tables -------------------------*/
+
 extern NI_element * THD_simple_table_read( char *fname ) ; /* 19 May 2010 */
 extern NI_element * THD_mixed_table_read ( char *fname ) ; /* 26 Jul 2010 */
 extern NI_element * THD_string_table_read( char *fname , int flags ) ;
+
+/*--------------------- functions for TSV (.tsv) files -----------------------*/
+
+extern NI_element * THD_read_tsv(char *fname) ;            /* 12 Sep 2018 */
+extern void THD_write_tsv( char *fname , NI_element *nel ) ;
+extern void THD_set_tsv_column_labels( NI_element *fnel , char **clab ) ;
+extern NI_element * THD_mri_to_tsv_element( MRI_IMAGE *imin , char **clab ) ;
+extern MRI_IMAGE * THD_niml_to_mri( NI_element *nel ) ;
+
+/*---------------------------------------------------------------------------*/
 
 extern MRI_IMARR * THD_get_all_timeseries( char * ) ;
 extern MRI_IMARR * THD_get_many_timeseries( THD_string_array * ) ;
@@ -4716,9 +4728,9 @@ extern THD_3dim_dataset * THD_copy_one_sub  ( THD_3dim_dataset * , int ) ;
    "  'fred.1D[5,9,17]'       ==> use columns #5, #9, and #17\n"              \
    "  'fred.1D[5..8]'         ==> use columns #5, #6, #7, and #8\n"           \
    "  'fred.1D[5..13(2)]'     ==> use columns #5, #7, #9, #11, and #13\n"     \
-   "Column indices start at 0.  You can use the character '$'\n"           \
-   "to indicate the last column in a 1D file; for example, you\n"          \
-   "can select every third column in a 1D file by using the selection list\n"           \
+   "Column indices start at 0.  You can use the character '$'\n"              \
+   "to indicate the last column in a 1D file; for example, you\n"             \
+   "can select every third column in a 1D file by using the selection list\n" \
    "  'fred.1D[0..$(3)]'      ==> use columns #0, #3, #6, #9, ....\n"         \
    "\n"                                                                       \
    "** ROW SELECTION WITH {} **\n"                                            \
@@ -4751,6 +4763,53 @@ extern THD_3dim_dataset * THD_copy_one_sub  ( THD_3dim_dataset * , int ) ;
    "When you have reached this level of understanding, you are ready to\n"    \
    "take the AFNI Jedi Master test.  I won't insult you by telling you\n"     \
    "where to find this examination.\n"
+
+/*---------------------------- TSV (.tsv) file help  -------------------------*/
+
+#undef  TSV_HELP_STRING
+#define TSV_HELP_STRING                                                          \
+   "TAB SEPARATED VALUE (.tsv) FILES [Sep 2018]\n"                               \
+   "-------------------------------------------\n"                               \
+   "These files are used in BIDS http://bids.neuroimaging.io and AFNI\n"         \
+   "programs can read these in a few places.\n"                                  \
+   "\n"                                                                          \
+   "The format of a .tsv file is a set of columns, where the values in\n"        \
+   "each row are separated by tab characters -- spaces are NOT separators.\n"    \
+   "Each element is string, some of which are numeric (e.g. 3.1416).\n"          \
+   "The first row of a .tsv file is a set of strings which are column\n"         \
+   "desciptors (separated by tabs, of course). For the most part, the\n"         \
+   "following data in each column are exclusively numeric or exclusively\n"      \
+   "strings. Strings can contain blanks/spaces since only tabs are used\n"       \
+   "to separate values.\n"                                                       \
+   "\n"                                                                          \
+   "A .tsv file can be read in most places where a .1D file is read.\n"          \
+   "However, columns (after the header row) that are not purely numeric\n"       \
+   "will be ignored, since the internal usage of .1D data in AFNI is numeric.\n" \
+   "Thus, you can do something like\n"                                           \
+   "  1dplot -nopush -sepscl sub-10506_task-pamenc_events.tsv\n"                 \
+   "and you will get a plot of all the numeric columns in this BIDS file.\n"     \
+   "Column selection '[]' can be done, using numbers to specify columns\n"       \
+   "or using the column labels in the .tsv file.\n"                              \
+   "\n"                                                                          \
+   "Program 1dcat has special knowledge of .tsv files, and will cat\n"           \
+   "(sideways - along rows) .tsv and .1D files together. It also has an\n"       \
+   "option to write the output in .tsv format.\n"                                \
+   "\n"                                                                          \
+   "For example, to get the 'onset', 'duration', and 'trial_type' columns\n"     \
+   "out of a BIDS task .tsv file, a command like this could be used:\n"          \
+   "  1dcat sub-10506_task-pamenc_events.tsv'[onset,duration,trial_type]'\n"     \
+   "Note that the column headers are lost in this output, but could be kept\n"   \
+   "if the 1dcat '-tsvout' option were used. In reverse, a numeric .1D file\n"   \
+   "can be converted to .tsv format by a command like:\n"                        \
+   "  1dcat -tsvout Fred.1D\n"                                                   \
+   "In this case, since a the data for .1D file doesn't have headers for its\n"  \
+   "columns, 1dcat will invent some column names.\n"                             \
+   "\n"                                                                          \
+   "At this time, other programs don't 'know' much about .tsv files, and will\n" \
+   "ignore the header row and non-numeric columns when reading a .tsv file.\n"   \
+   "in place of a .1D file.\n"
+
+/*----------------------------------------------------------------------------*/
 
 extern void THD_delete_3dim_dataset( THD_3dim_dataset * , Boolean ) ;
 extern void *DSET_Label_Dtable(THD_3dim_dataset *dset);

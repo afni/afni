@@ -110,7 +110,7 @@ PROGS_4  = 3dBlurInMask 3dRank 3dFFT 1dgenARMA11 3dPeriodogram 1dAstrip         
            uniq_images tokens 3dLocalACF 3dXClustSim 3dtoXdataset 3dMultiThresh \
            3dLFCD 3dDegreeCentrality 3dECM 3dMSE 3dsvm_linpredict 3dTfilter     \
            3dTsplit4D 3dSharpen 3dExtractGroupInCorr dcm2niix_afni 3dTto1D      \
-           3dBrainSync 3dGrayplot                                               \
+           3dBrainSync 3dGrayplot 1dsound                                       \
            get_afni_model_PRF get_afni_model_PRF_6 get_afni_model_PRF_6_BAD     \
            $(EXTRAS)
 
@@ -204,6 +204,9 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
 SCRIPTS_DIR = scripts_install
 SCRIPTS_SRC = scripts_src
 
+# put plain text files to install here (no scripts)
+TEXT_DIR    = text_install
+
 PY_ROOT = python_scripts
 PY_DIR = $(PY_ROOT)/afni_python
 PY_SCRIPTS = 1d_tool.py afni_proc.py afni_restproc.py afni_system_check.py   \
@@ -231,7 +234,7 @@ LIBHEADERS = mrilib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h            \
              multivector.h afni_environ.h niml.h cs_sort_template.h vol2surf.h\
              AFNI_label.h Amalloc.h afni_suma.h debugtrace.h list_struct.h    \
              mri_dicom_stuff.h mri_warpfield.h nifti/niftilib/nifti1.h        \
-             nifti/niftilib/nifti1_io.h nifti/nifticdf/nifticdf.h             \
+             nifti/nifti2/nifti2_io.h nifti/nifticdf/nifticdf.h               \
              nifti/znzlib/znzlib.h Aomp.h rcmat.h misc_math.h                 \
              rickr/r_new_resam_dset.h rickr/r_idisp.h rickr/r_misc.h          \
              thd_atlas.h thd_ttatlas_query.h thd_ttatlas_CA_EZ.h              \
@@ -360,7 +363,7 @@ Ifile:Ifile.o
 3dGetrow:3dGetrow.o
 	$(CC) -o 3dGetrow 3dGetrow.o $(LFLAGS) $(LLIBS)
 
-3dGrayplot.o: 3dGrayplot.c thd_dset_to_grayplot.c
+3dGrayplot.o: 3dGrayplot.c thd_dset_to_grayplot.c mri_pvmap.c
 
 3dGrayplot:3dGrayplot.o
 	$(CC) -o 3dGrayplot 3dGrayplot.o $(LFLAGS) $(LLIBS)
@@ -1705,6 +1708,18 @@ to3d:to3d.h $(T3OBJS) libcoxplot.a
 	$(RM) $@
 	$(CC) -o to3d $(T3OBJS) $(LFLAGS) -lmrix -lcoxplot $(LLIBS)
 
+cs_playsound.o:cs_playsound.c
+	$(RM) $@
+	$(CC) -c cs_playsound.c -I./Audio $(INFLAGS)
+
+1dsound.o:1dsound.c cs_playsound.c
+	$(RM) $@
+	$(CC) -c 1dsound.c -I./Audio $(INFLAGS)
+
+1dsound:1dsound.o
+	$(RM) $@
+	$(CC) -o 1dsound 1dsound.o $(LFLAGS) $(LLIBS)
+
 1dplot:libcoxplot.a 1dplot.o display.o
 	$(RM) $@
 	$(CC) -o 1dplot 1dplot.o display.o $(LFLAGS) -lcoxplot -lmrix $(LLIBS)
@@ -1994,11 +2009,12 @@ afni_src.tgz:
 	$(CP) -p *.c *.f *.inc *.h *.hhh Makefile.* *.xbm $(MINDOCS) $(MISC)     ./afni_src
 	$(CP) -pr coxplot volpack moveup moveAFNI* eispack                       ./afni_src
 	$(CP) -pr avovk ptaylor pkundu jzosky crorden discoraj                   ./afni_src
-	$(CP) -pr $(SCRIPTS_DIR) $(SCRIPTS_SRC) $(PY_ROOT) $(R_DIR) $(SHINY_DIR)  ./afni_src
+	$(CP) -pr $(SCRIPTS_DIR) $(SCRIPTS_SRC) $(TEXT_DIR) ./afni_src
+	$(CP) -pr $(PY_ROOT) $(R_DIR) $(SHINY_DIR) ./afni_src
 	$(CP) -pr gifsicledir qhulldir f2cdir mpeg_encodedir                     ./afni_src
 	$(CP) -pr 3DEdge netcdf-3.5.0 jpeg-6b niml Makefile_* nifti dlcompat     ./afni_src
 	$(CP) -pr SUMA svm matlab rickr faces poems gifti ni_test_? README.*     ./afni_src
-	$(CP) -pr XmHTML html other_builds                                       ./afni_src
+	$(CP) -pr XmHTML html other_builds Audio                                 ./afni_src
 	chmod -R ugo+rw                                                          ./afni_src
 	$(TAR) cf - afni_src | $(GZIP) -9v > afni_src.tgz
 	$(RM) -r ./afni_src
@@ -2030,6 +2046,7 @@ install_devs: ptaylor_install pkundu_install jzosky_install
 
 install: $(INSTALLDIR) $(INSTALL_PREREQ) install_devs
 	$(CP) $(SCRIPTS_DIR)/* $(INSTALLDIR)
+	$(CP) $(TEXT_DIR)/* $(INSTALLDIR)
 	$(MV) $(PROGRAMS) $(INSTALLDIR)
 	$(CP) $(PY_DIR)/*.py  $(R_DIR)/*.R $(INSTALLDIR)
 	$(CP) -r $(SHINY_DIR) $(INSTALLDIR)
@@ -2047,6 +2064,7 @@ install: $(INSTALLDIR) $(INSTALL_PREREQ) install_devs
 install_noplug: $(INSTALLDIR)
 	$(MV) $(PROGRAMS_NOPLUG) $(INSTALLDIR)
 	$(CP) $(SCRIPTS_DIR)/* $(INSTALLDIR)
+	$(CP) $(TEXT_DIR)/* $(INSTALLDIR)
 	$(CP) $(PY_DIR)/*.py $(R_DIR)/*.R $(INSTALLDIR)
 	$(CP) -r $(SHINY_DIR) $(INSTALLDIR)
 
@@ -2060,6 +2078,7 @@ install_exe: $(INSTALLDIR)
              qq=`basename $$pp .exe`; $(MV) $${qq}.exe $(INSTALLDIR) ; \
           done )
 	$(CP) $(SCRIPTS_DIR)/* $(INSTALLDIR)
+	$(CP) $(TEXT_DIR)/* $(INSTALLDIR)
 	$(CP) $(PY_DIR)/*.py $(R_DIR)/*.R $(INSTALLDIR)
 	$(CP) -r $(SHINY_DIR) $(INSTALLDIR)
 
@@ -2398,7 +2417,7 @@ CS_OBJS  = cs_sort_fi.o cs_sort_di.o cs_symeig.o cs_sort_ii.o cs_sort_ff.o \
            cs_sort_fv.o cs_laguerre.o machdep.o cs_qhull.o afni_logger.o   \
            cl1.o cs_misc.o powell_int.o powell_newuoa.o cs_sort_dv.o       \
            rhdd.o zfun.o cs_pv.o cs_sort_iv.o cs_sort_d.o cs_fgets.o       \
-           svdlib.o cs_gamfit.o cs_sort_str.o
+           svdlib.o cs_gamfit.o cs_sort_str.o cs_playsound.o
 
 CS_SRCS  = cs_sort_fi.c cs_sort_di.c cs_symeig.c cs_sort_ii.c cs_sort_ff.c \
            cs_addto_args.c multivector.c afni_environ.c cs_qmed.c cl2.c    \
@@ -2486,13 +2505,13 @@ mrilib_raw.c: mrilib_all.c
 
 # the library of libraries
 
-libmri.a: niml.h mrilib.h Aomp.h 3ddata.h                       \
-	$(NIML_OBJS) $(MRI_OBJS) $(THD_OBJS) thd_selenium.o     \
+libmri.a: niml.h mrilib.h Aomp.h 3ddata.h                      \
+	$(NIML_OBJS) $(MRI_OBJS) $(THD_OBJS) thd_selenium.o         \
          $(EDT_OBJS)  $(CS_OBJS)  $(EIS_OBJS) $(NETCDF_OBJS)   \
          $(SUMA_OBJS) $(MISC_OBJS) $(SOMEAFOBJS)
 	$(RM) $@
 	$(AR) q libmri.a $(MRI_OBJS) $(THD_OBJS) $(EDT_OBJS)        \
-		$(NIML_OBJS) $(CS_OBJS) $(EIS_OBJS) $(NETCDF_OBJS)  \
+		$(NIML_OBJS) $(CS_OBJS) $(EIS_OBJS) $(NETCDF_OBJS)       \
 		$(SUMA_OBJS) $(MISC_OBJS) $(SOMEAFOBJS) thd_selenium.o
 	$(RANLIB) libmri.a
 
@@ -2520,7 +2539,7 @@ libmri.so: mrilib.h                                                          \
           Aomp.h shared_netcdf_attr thd_selenium_off.o                       \
           libf2c.a libvolpack.a libmrix.a libcoxplot.a
 	$(RM) $@
-	$(CC) -shared -fPIC -o libmri.so                                     \
+	$(CC) -shared -fPIC -o libmri.so                                          \
                 -L. $(LZLIB) $(LGIFTI) -lf2c -lvolpack -lmrix -lcoxplot      \
                 -L/usr/lib -L/usr/local/lib -L/usr/X11R6/lib -L/sw/lib       \
                 $(XROOT_L) $(XLIBS) -lXm -lXt                                \
@@ -3384,11 +3403,11 @@ nifti_tool.exe:nifti_tool.o nifti2_io.o znzlib.o
 	$(CC) -o nifti_tool.exe nifti_tool.o nifti2_io.o znzlib.o $(LZLIB) -lm
 
 # just compile completely, removing issue of libraries
-gifti_tool:nifti1_io.o znzlib.o
+gifti_tool:nifti2_io.o znzlib.o
 	$(RM) $@
 	$(CC) -o gifti_tool $(INFLAGS) $(LFLAGS) 			\
 		gifti/gifti_tool.c gifti/gifti_io.c gifti/gifti_xml.c 	\
-		nifti1_io.o znzlib.o $(LGIFTI) $(LZLIB) -lm
+		nifti2_io.o znzlib.o $(LGIFTI) $(LZLIB) -lm
 
 gifti_choice.o:gifti_choice.c thd_gifti.c suma_gifti.c
 	$(RM) $@
@@ -3528,7 +3547,7 @@ libGLws.a:
 	$(CP) SUMA/libGLws.a ${INSTALLDIR}; \
 	$(CP) SUMA/libGLws.a ./;	)
 
-SUMA_PROGS = testGL suma ScaleToMap CompareSurfaces MakeColorMap ROI2dataset  \
+SUMA_PROGS = suma ScaleToMap CompareSurfaces MakeColorMap ROI2dataset  \
    3dVol2Surf 3dSurf2Vol SurfMeasures SurfFWHM ConvertSurface ConvertDset     \
    SurfClust IsoSurface ConvexHull MapIcosahedron CreateIcosahedron 	      \
    SurfaceMetrics SurfSmooth inspec quickspec FSread_annot SurfPatch SurfQual \
@@ -3541,12 +3560,14 @@ SUMA_PROGS = testGL suma ScaleToMap CompareSurfaces MakeColorMap ROI2dataset  \
 
 SUMA_GTS_PROGS = SurfMesh
 
+SUMA_MAKE_LIST = testGL $(SUMA_PROGS)
+
 
 ###
 #link executables but check for libraries first and create them if needed
 suma_exec:libGLws.a libSUMA.a libtracktools.a libmri.a xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.a libf2c.a
 	( cd SUMA ;	\
-	$(MAKE) -f $(SUMA_MAKEFILE_NAME) $(SUMA_PROGS) \
+	$(MAKE) -f $(SUMA_MAKEFILE_NAME) $(SUMA_MAKE_LIST) \
    'INSTALLDIR=$(INSTALLDIR)' \
 	'SUMA_MDEFS=$(SUMA_MDEFS)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \

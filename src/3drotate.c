@@ -141,7 +141,7 @@ int main( int argc , char * argv[] )
        "  * If -matvec_dicom is used, the matrix and vector are given in Dicom\n"
        "     coordinate order (+x=L, +y=P, +z=S).  This is the option to use\n"
        "     if mfile is generated using 3dTagalign -matvec mfile.\n"
-       "  * If -matvec_order is used, the the matrix and vector are given in the\n"
+       "  * If -matvec_order is used, the matrix and vector are given in the\n"
        "     coordinate order of the dataset axes, whatever they may be.\n"
        "  * You can't mix -matvec_* options with -rotate and -*shift.\n"
        "\n"

@@ -202,7 +202,9 @@ ENTRY("htmlize") ;
 void RefreshHTML_AtEvent( Widget w , XtPointer client_data ,
                   XEvent * ev , Boolean * continue_to_dispatch )
 {
+#if 0
     XmHTMLRefresh(client_data);
+#endif
 }
 
 /*----------------------------------------------------------------------------*/

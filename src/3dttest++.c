@@ -214,6 +214,9 @@ static int     nnopt_Xclu  = 0 ;
 static Xclu_opt **opt_Xclu = NULL ;
 static char *Xclu_arg      = NULL ; /* 10 Sep 2016 */
 
+static int do_global_etac  = 1 ;    /* Sep 2018 */
+static int do_local_etac   = 1 ;
+
 static char *clustsim_prog = NULL ; /* 30 Aug 2016 */
 static char *clustsim_opt  = NULL ;
 
@@ -1131,12 +1134,12 @@ void display_help_menu(void)
       "Then the 3dClustSim program (for -Clustsim) and 3dXClustSim program (for -ETAC)\n"
       "use multi-threaded processing to carry out their clusterization statistics.\n"
       "If your computer does NOT have multiple CPU cores, then these options will\n"
-      "run very slowly.\n"
+      "run very very slowly.\n"
       "\n"
 #ifdef ALLOW_BOTH_CLUSTIMS
       "You can use both -ETAC and -Clustsim in the same run. The main reason for\n"
       "doing this is to compare the results of the two methods. Using both methods\n"
-      "in one 3dttest++ run will be very slow.\n"
+      "in one 3dttest++ run will be super slow.\n"
       " ++ In such a dual-use case, and if '-ETAC_blur' is also given, note that\n"
       "     3dClustSim will be run once for each blur level, giving a set of cluster-\n"
       "     size threshold tables for each blur case. This process is necessary since\n"
@@ -1209,7 +1212,11 @@ void display_help_menu(void)
       "                   set csize = `1dcat Fred.NN1_1sided.1D\"{10}[6]\"`\n"
       "                 to pick out the number in the #10 row, #6 column (counting\n"
       "                 from #0), which is the p=0.010 FPR=0.05 entry in the table.\n"
-      "                 (-: Further adventures in scripting I leave to your whimsy :-)\n"
+      "          -->++  Or even *better* now for extracting a table value:\n"
+      "                 a clever person added command line options to 1d_tool.py\n"
+      "                 to extract a value from the table having a voxelwise p-value\n"
+      "                 ('-csim_pthr ..') and an FDR alpha level ('-csim_alpha ..').\n"
+      "                 Be sure to check out those options in 1d_tool.py's help!\n"
       "\n"
       "  ---==>>> PLEASE NOTE: This option has been tested for 1- and 2-sample\n"
       "  ---==>>> unpaired and paired tests vs. resting state data -- to see if the\n"
@@ -1399,6 +1406,32 @@ void display_help_menu(void)
       "                          to be used after the '-ETAC' option, or let the\n"
       "                          program figure out how many to use.\n"
       "\n"
+      " -ETAC_global         = Do the ETAC calculations 'globally' - that is, produce\n"
+      "                        multi-threshold values to apply to the entire volume\n"
+      "                        rather than voxelwise.\n"
+      "                       ++ These global calculations are kind of like '-Clustsim'\n"
+      "                          in that they produce a set of cluster thresholds to\n"
+      "                          apply everywhere in the brain - a small set of numbers.\n"
+      "                          The difference from '-Clustsim' is that for a given FPR,\n"
+      "                          the set of cluster threshold values are intended to\n"
+      "                          be applied simultaneously.\n"
+      "                       ++ These output thresholds are stored in text files\n"
+      "                          (using an XML format) with a name like\n"
+      "                            globalETAC.mthresh.{PREFIX}.{CASE}.{FPR}.niml\n"
+      "\n"
+      " -ETAC_local          = Do the ETAC calculations 'locally' - that is, produce\n"
+      "                        3D datasets with voxelwise cluster multi-threshold.\n"
+      "                       ++ At the present time, the default is to do BOTH\n"
+      "                          local and global calculations, but in the future\n"
+      "                          this default may change unpredictably!\n"
+      "\n"
+      " -noETAC_global       = Turn off the 'global' ETAC calculations.\n"
+      " -noETAC_local        = Turn off the 'local' ETAC calculations.\n"
+      "                       ++ If you turn them both off, then you are not doing ETAC!\n"
+      "                       ++ You can also control these local/global settings by\n"
+      "                          setting these Unix environment variables to YES or NO:\n"
+      "                            AFNI_XCLUSTSIM_GLOBAL  and  AFNI_XCLUSTSIM_LOCAL\n"
+      "\n"
       " -ETAC_mem            = This option tells the program to print out the\n"
       "                        estimate of how much memory is required by the ETAC\n"
       "                        run ordered, and then stop.\n"
@@ -1472,7 +1505,7 @@ void display_help_menu(void)
       "                        There is almost no reason to use this option that I\n"
       "                        can think of, except perhaps this example:\n"
       "                          -ETAC_arg -verb\n"
-      "                        which will cause 3dXClustSim to print more verbose\n"
+      "                        which will cause 3dXClustSim to print more fun fun fun\n"
       "                        information as it progresses through the ETAC stages.\n"
       "\n"
       "-----------------\n"
@@ -2127,6 +2160,13 @@ int main( int argc , char *argv[] )
    debug = AFNI_yesenv("AFNI_DEBUG") ;
    dryrun = AFNI_yesenv("AFNI_DRYRUN") ;
 
+   /* Initialize global/local ETAC calculations [Sep 2018] */
+
+   if( AFNI_yesenv("AFNI_XCLUSTSIM_GLOBAL") ) do_global_etac = 1 ;
+   if( AFNI_yesenv("AFNI_XCLUSTSIM_LOCAL")  ) do_local_etac  = 1 ;
+   if( AFNI_noenv ("AFNI_XCLUSTSIM_GLOBAL") ) do_global_etac = 0 ;
+   if( AFNI_noenv ("AFNI_XCLUSTSIM_LOCAL")  ) do_local_etac  = 0 ;
+
    while( nopt < argc ){
 
      if( debug ) INFO_message("=== argv[%d] = %s",nopt,argv[nopt]) ;
@@ -2398,6 +2438,21 @@ int main( int argc , char *argv[] )
        }
 
        continue ;
+     }
+
+     /*-----  local and global ETAC [Sep 2018]  -----*/
+
+     if( strcasecmp(argv[nopt],"-ETAC_local") == 0 ){
+       do_local_etac = 1 ; nopt++ ; continue ;
+     }
+     if( strcasecmp(argv[nopt],"-ETAC_global") == 0 ){
+       do_global_etac = 1 ; nopt++ ; continue ;
+     }
+     if( strcasecmp(argv[nopt],"-noETAC_local") == 0 ){
+       do_local_etac = 0 ; nopt++ ; continue ;
+     }
+     if( strcasecmp(argv[nopt],"-noETAC_global") == 0 ){
+       do_global_etac = 0 ; nopt++ ; continue ;
      }
 
      /*-----  -ETAC_mem [22 Aug 2017]  -----*/
@@ -3210,6 +3265,11 @@ int main( int argc , char *argv[] )
      ERROR_exit("You can't use -Clustsim and -ETAC/-Xclustsim together /:(") ;
 #endif
 
+   if( do_Xclustsim && ( !do_local_etac && !do_global_etac) ){ /* Sep 2018 */
+     WARNING_message("local and global ETAC are both turned off - disabling -ETAC :(") ;
+     do_Xclustsim = 0 ;
+   }
+
    if( nnopt_Xclu > 0 && !do_Xclustsim )
      ERROR_exit("You can't use -ETAC_opt/-Xclu_opt without -ETAC/-Xclustsim /:( !!") ;
 
@@ -3696,8 +3756,9 @@ int main( int argc , char *argv[] )
                ERROR_message("Can't assemble dataset vectors for covariate #%d",jj+1) ;
                nbad++ ;
              } else {
-               sprintf(msg,"3dttest++ -setB covariate #%d",jj+1) ;
-               THD_check_vectim(covvim_BBB[jj],msg) ;
+               /* B/BBB -> A/AAA        20 Sep 2018 [rickr] */
+               sprintf(msg,"3dttest++ -setA covariate #%d",jj+1) ;
+               THD_check_vectim(covvim_AAA[jj],msg) ;
              }
            }
            for( kk=0 ; kk < ndset_AAA ; kk++ )       /* tossola la trashola */
@@ -4497,14 +4558,14 @@ LABELS_ARE_DONE:  /* target for goto above */
    /*----------------- Cluster Simulation now [10 Feb 2016] -----------------*/
    /*------------------------------------------------------------------------*/
 
-   if( do_clustsim || do_Xclustsim ){
+   if( do_clustsim || do_Xclustsim ){  /* this will take a while */
 
      char fname[1024] , *cmd , *ccc ; int qq,pp , nper ; double ct1,ct2 ;
      int ncsim , ncase , icase ; float cblur ;
      int use_sdat ;
      char **tfname=NULL  , *bmd=NULL  , *qmd=NULL ;
      char   bprefix[1024], **clab=NULL, **cprefix=NULL ;
-     int ncmin = (do_Xclustsim) ? 40000 : 10000 ;
+     int ncmin = (do_Xclustsim && do_local_etac) ? 30000 : 10000 ;
 
      use_sdat = do_Xclustsim ||
                 ( name_mask != NULL && !AFNI_yesenv("AFNI_TTEST_NIICSIM") ) ;
@@ -4912,6 +4973,7 @@ LABELS_ARE_DONE:  /* target for goto above */
        int nnlev, sid, npthr ; float *pthr ; char *nam , *mod=NULL ;
        int do_hpow0, do_hpow1, do_hpow2 ; float fgoal ;
        int numfarp=1 ; float *flist=NULL ;
+       char gprefix[1024] ;
 
        for( ixx=0 ; ixx < nxx ; ixx++ ){   /* loop over -Xclu_opt cases */
          if( ixx < nnopt_Xclu ){   /* and run 3dXClustSim once for each */
@@ -4942,8 +5004,15 @@ LABELS_ARE_DONE:  /* target for goto above */
 
          sprintf( cmd+strlen(cmd) , " \\\n   ") ;
 
+         sprintf( cmd+strlen(cmd) , " %s %s \\\n   " ,
+                  do_local_etac  ? "-local"  : "-nolocal"  ,
+                  do_global_etac ? "-global" : "-noglobal"  ) ;   /* Sep 2018 */
+
          sprintf( cmd+strlen(cmd) ,
                  " -prefix %s.%s.ETAC.nii" , prefix_clustsim , nam ) ;
+
+         /* save prefix for global threshold .niml files [Sep 2018] */
+         sprintf( gprefix , "globalETAC.mthresh.%s.%s.ETAC" , prefix_clustsim , nam ) ;
 
          if( fgoal > 0.0f ){
            sprintf( cmd+strlen(cmd) , " -FPR %.1f" , fgoal ) ;
@@ -4998,6 +5067,7 @@ LABELS_ARE_DONE:  /* target for goto above */
          } else {
            ININFO_message("3dttest++ ===== starting 3dXClustSim : elapsed = %.1f s",
                           COX_clock_time() ) ;
+
                           /*----------------------------------------------------*/
            system(cmd) ;  /*----- run 3dXClustSim here (will take a while) -----*/
                           /*----------------------------------------------------*/
@@ -5010,82 +5080,153 @@ LABELS_ARE_DONE:  /* target for goto above */
                if( sid == 2 ){
                  INFO_message("3dttest++ ----- merging %d blur cases to make 2-sided activation mask",ncase) ;
                  for( icase=0 ; icase < ncase ; icase++ ){ /* make masks for each blur case */
-                   sprintf( cmd , "3dMultiThresh -input %s -1tindex 1 -maskonly \\\n   " ,
-                                  cprefix[icase] ) ;
-                   sprintf( cmd+strlen(cmd) , " -prefix %s.ETACtmask.%s.nii" ,
-                                              prefix_clustsim , clab[icase] ) ;
-                   sprintf( cmd+strlen(cmd) , " -mthresh %s.%s.ETAC.mthresh.%s.%s.nii" ,
-                                              prefix_clustsim , nam , clab[icase],sfarp ) ;
-                   sprintf( cmd+strlen(cmd) , " -allmask %s.ETACamask.%s.nii %s" ,
-                                              prefix_clustsim , clab[icase] , clab[icase] ) ;
+                   if( do_local_etac ){
+                     sprintf( cmd , "3dMultiThresh -input %s -1tindex 1 -maskonly \\\n   " ,
+                                    cprefix[icase] ) ;
+                     sprintf( cmd+strlen(cmd) , " -prefix %s.ETACtmask.%s.nii" ,
+                                                prefix_clustsim , clab[icase] ) ;
+                     sprintf( cmd+strlen(cmd) , " -mthresh %s.%s.ETAC.mthresh.%s.%s.nii" ,
+                                                prefix_clustsim , nam , clab[icase],sfarp ) ;
+                     sprintf( cmd+strlen(cmd) , " -allmask %s.ETACamask.%s.nii %s" ,
+                                                prefix_clustsim , clab[icase] , clab[icase] ) ;
+                     system(cmd) ;
+                   }
+                   if( do_global_etac ){
+                     sprintf( cmd , "3dMultiThresh -input %s -1tindex 1 -maskonly \\\n   " ,
+                                    cprefix[icase] ) ;
+                     sprintf( cmd+strlen(cmd) , " -prefix %s.ETACtmask.global.%s.nii" ,
+                                                prefix_clustsim , clab[icase] ) ;
+                     sprintf( cmd+strlen(cmd) , " -mthresh %s.%s.%s.niml" ,
+                                                gprefix , clab[icase] , sfarp ) ;
+                     sprintf( cmd+strlen(cmd) , " -allmask %s.ETACamask.global.%s.nii %s" ,
+                                                prefix_clustsim , clab[icase] , clab[icase] ) ;
+                     system(cmd) ;
+                   }
+                 }
+                 if( do_local_etac ){
+                   sprintf( cmd ,  /* combine the masks */
+                            "3dmask_tool -input %s.ETACtmask.*.nii -union -prefix %s.%s.ETACmask.2sid.%s.nii.gz" ,
+                            prefix_clustsim , prefix_clustsim , nam , sfarp ) ;
+                   system(cmd) ;
+                   sprintf( cmd ,  /* cat the amasks */
+                            "3dbucket -prefix %s.%s.ETACmaskALL.2sid.%s.nii.gz %s.ETACamask.*.nii" ,
+                            prefix_clustsim , nam , sfarp , prefix_clustsim ) ;
                    system(cmd) ;
                  }
-                 sprintf( cmd ,  /* combine the masks */
-                          "3dmask_tool -input %s.ETACtmask.*.nii -union -prefix %s.%s.ETACmask.2sid.%s.nii.gz" ,
-                          prefix_clustsim , prefix_clustsim , nam , sfarp ) ;
-                 system(cmd) ;
-                 sprintf( cmd ,  /* cat the amasks */
-                          "3dbucket -prefix %s.%s.ETACmaskALL.2sid.%s.nii.gz %s.ETACamask.*.nii" ,
-                          prefix_clustsim , nam , sfarp , prefix_clustsim ) ;
-/* INFO_message("about to run:\n   %s",cmd) ; */
-                 system(cmd) ;
+                 if( do_global_etac ){
+                   sprintf( cmd ,  /* combine the masks */
+                            "3dmask_tool -input %s.ETACtmask.global.*.nii -union -prefix %s.%s.ETACmask.global.2sid.%s.nii.gz" ,
+                            prefix_clustsim , prefix_clustsim , nam , sfarp ) ;
+                   system(cmd) ;
+                   sprintf( cmd ,  /* cat the amasks */
+                            "3dbucket -prefix %s.%s.ETACmaskALL.global.2sid.%s.nii.gz %s.ETACamask.global.*.nii" ,
+                            prefix_clustsim , nam , sfarp , prefix_clustsim ) ;
+                   system(cmd) ;
+                 }
                } else {
                  INFO_message("3dttest++ ----- merging %d blur cases to make pos 1-sided activation mask",ncase) ;
                  for( icase=0 ; icase < ncase ; icase++ ){
-                   sprintf( cmd , "3dMultiThresh -input %s -1tindex 1 -maskonly -pos \\\n   " ,
-                                  cprefix[icase] ) ;
-                   sprintf( cmd+strlen(cmd) , " -prefix %s.ETACtmask.1pos.%s.nii" ,
-                                              prefix_clustsim , clab[icase] ) ;
-                   sprintf( cmd+strlen(cmd) , " -mthresh %s.%s.ETAC.mthresh.%s.%s.nii" ,
-                                              prefix_clustsim , nam , clab[icase],sfarp ) ;
-                   sprintf( cmd+strlen(cmd) , " -allmask %s.ETACamask.1pos.%s.nii %s" ,
-                                              prefix_clustsim , clab[icase] , clab[icase] ) ;
+                   if( do_local_etac ){
+                     sprintf( cmd , "3dMultiThresh -input %s -1tindex 1 -maskonly -pos \\\n   " ,
+                                    cprefix[icase] ) ;
+                     sprintf( cmd+strlen(cmd) , " -prefix %s.ETACtmask.1pos.%s.nii" ,
+                                                prefix_clustsim , clab[icase] ) ;
+                     sprintf( cmd+strlen(cmd) , " -mthresh %s.%s.ETAC.mthresh.%s.%s.nii" ,
+                                                prefix_clustsim , nam , clab[icase],sfarp ) ;
+                     sprintf( cmd+strlen(cmd) , " -allmask %s.ETACamask.1pos.%s.nii %s" ,
+                                                prefix_clustsim , clab[icase] , clab[icase] ) ;
+                     system(cmd) ;
+                   }
+                   if( do_global_etac ){
+                     sprintf( cmd , "3dMultiThresh -input %s -1tindex 1 -maskonly -pos \\\n   " ,
+                                    cprefix[icase] ) ;
+                     sprintf( cmd+strlen(cmd) , " -prefix %s.ETACtmask.global.1pos.%s.nii" ,
+                                                prefix_clustsim , clab[icase] ) ;
+                     sprintf( cmd+strlen(cmd) , " -mthresh %s.%s.%s.niml" ,
+                                                gprefix , clab[icase] , sfarp ) ;
+                     sprintf( cmd+strlen(cmd) , " -allmask %s.ETACamask.global.1pos.%s.nii %s" ,
+                                                prefix_clustsim , clab[icase] , clab[icase] ) ;
+                     system(cmd) ;
+                   }
+                 }
+                 if( do_local_etac ){
+                   sprintf( cmd ,
+                            "3dmask_tool -input %s.ETACtmask.1pos.*.nii -union -prefix %s.%s.ETACmask.1pos.%s.nii.gz" ,
+                            prefix_clustsim , prefix_clustsim , nam , sfarp ) ;
+                   system(cmd) ;
+                   sprintf( cmd ,  /* cat the masks */
+                            "3dbucket -prefix %s.%s.ETACmaskALL.1pos.%s.nii.gz %s.ETACamask.1pos.*.nii" ,
+                            prefix_clustsim , nam , sfarp , prefix_clustsim ) ;
                    system(cmd) ;
                  }
-                 sprintf( cmd ,
-                          "3dmask_tool -input %s.ETACtmask.1pos.*.nii -union -prefix %s.%s.ETACmask.1pos.%s.nii.gz" ,
-                          prefix_clustsim , prefix_clustsim , nam , sfarp ) ;
-                 system(cmd) ;
-                 sprintf( cmd ,  /* cat the masks */
-                          "3dbucket -prefix %s.%s.ETACmaskALL.1pos.%s.nii.gz %s.ETACamask.1pos.*.nii" ,
-                          prefix_clustsim , nam , sfarp , prefix_clustsim ) ;
-/* INFO_message("about to run:\n   %s",cmd) ; */
-                 system(cmd) ;
+                 if( do_global_etac ){
+                   sprintf( cmd ,
+                            "3dmask_tool -input %s.ETACtmask.global.1pos.*.nii -union -prefix %s.%s.ETACmask.global.1pos.%s.nii.gz" ,
+                            prefix_clustsim , prefix_clustsim , nam , sfarp ) ;
+                   system(cmd) ;
+                   sprintf( cmd ,  /* cat the masks */
+                            "3dbucket -prefix %s.%s.ETACmaskALL.global.1pos.%s.nii.gz %s.ETACamask.global.1pos.*.nii" ,
+                            prefix_clustsim , nam , sfarp , prefix_clustsim ) ;
+                   system(cmd) ;
+                 }
                  INFO_message("3dttest++ ----- merging %d blur cases to make neg 1-sided activation mask",ncase) ;
                  for( icase=0 ; icase < ncase ; icase++ ){
-                   sprintf( cmd , "3dMultiThresh -input %s -1tindex 1 -maskonly -neg \\\n   " ,
-                                  cprefix[icase] ) ;
-                   sprintf( cmd+strlen(cmd) , " -prefix %s.ETACtmask.1neg.%s.nii" ,
-                                              prefix_clustsim , clab[icase] ) ;
-                   sprintf( cmd+strlen(cmd) , " -mthresh %s.%s.ETAC.mthresh.%s.%s.nii" ,
-                                              prefix_clustsim , nam , clab[icase],sfarp ) ;
-                   sprintf( cmd+strlen(cmd) , " -allmask %s.ETACamask.1neg.%s.nii %s" ,
-                                              prefix_clustsim , clab[icase] , clab[icase] ) ;
+                   if( do_local_etac ){
+                     sprintf( cmd , "3dMultiThresh -input %s -1tindex 1 -maskonly -neg \\\n   " ,
+                                    cprefix[icase] ) ;
+                     sprintf( cmd+strlen(cmd) , " -prefix %s.ETACtmask.1neg.%s.nii" ,
+                                                prefix_clustsim , clab[icase] ) ;
+                     sprintf( cmd+strlen(cmd) , " -mthresh %s.%s.ETAC.mthresh.%s.%s.nii" ,
+                                                prefix_clustsim , nam , clab[icase],sfarp ) ;
+                     sprintf( cmd+strlen(cmd) , " -allmask %s.ETACamask.1neg.%s.nii %s" ,
+                                                prefix_clustsim , clab[icase] , clab[icase] ) ;
+                     system(cmd) ;
+                   }
+                   if( do_global_etac ){
+                     sprintf( cmd , "3dMultiThresh -input %s -1tindex 1 -maskonly -neg \\\n   " ,
+                                    cprefix[icase] ) ;
+                     sprintf( cmd+strlen(cmd) , " -prefix %s.ETACtmask.global.1neg.%s.nii" ,
+                                                prefix_clustsim , clab[icase] ) ;
+                     sprintf( cmd+strlen(cmd) , " -mthresh %s.%s.%s.niml" ,
+                                                gprefix , clab[icase] , sfarp ) ;
+                     sprintf( cmd+strlen(cmd) , " -allmask %s.ETACamask.global.1neg.%s.nii %s" ,
+                                                prefix_clustsim , clab[icase] , clab[icase] ) ;
+                     system(cmd) ;
+                   }
+                 }
+                 if( do_local_etac ){
+                   sprintf( cmd ,
+                            "3dmask_tool -input %s.ETACtmask.1neg.*.nii -union -prefix %s.%s.ETACmask.1neg.%s.nii.gz" ,
+                                  prefix_clustsim , prefix_clustsim , nam , sfarp ) ;
+                   system(cmd) ;
+                   sprintf( cmd ,  /* cat the masks */
+                            "3dbucket -prefix %s.%s.ETACmaskALL.1neg.%s.nii.gz %s.ETACamask.1neg.*.nii" ,
+                            prefix_clustsim , nam , sfarp , prefix_clustsim ) ;
                    system(cmd) ;
                  }
-                 sprintf( cmd ,
-                          "3dmask_tool -input %s.ETACtmask.1neg.*.nii -union -prefix %s.%s.ETACmask.1neg.%s.nii.gz" ,
-                                prefix_clustsim , prefix_clustsim , nam , sfarp ) ;
-                 system(cmd) ;
-                 sprintf( cmd ,  /* cat the masks */
-                          "3dbucket -prefix %s.%s.ETACmaskALL.1neg.%s.nii.gz %s.ETACamask.1neg.*.nii" ,
-                          prefix_clustsim , nam , sfarp , prefix_clustsim ) ;
-/* INFO_message("about to run:\n   %s",cmd) ; */
-                 system(cmd) ;
+                 if( do_global_etac ){
+                   sprintf( cmd ,
+                            "3dmask_tool -input %s.ETACtmask.global.1neg.*.nii -union -prefix %s.%s.ETACmask.global.1neg.%s.nii.gz" ,
+                            prefix_clustsim , prefix_clustsim , nam , sfarp ) ;
+                   system(cmd) ;
+                   sprintf( cmd ,  /* cat the masks */
+                            "3dbucket -prefix %s.%s.ETACmaskALL.global.1neg.%s.nii.gz %s.ETACamask.global.1neg.*.nii" ,
+                            prefix_clustsim , nam , sfarp , prefix_clustsim ) ;
+                   system(cmd) ;
+                 }
                }
 #if 1
                sprintf( cmd , "\\rm %s.ETACtmask.*.nii %s.ETACamask.*.nii" , prefix_clustsim,prefix_clustsim );
-/* INFO_message("about to run:\n   %s",cmd) ; */
                system(cmd);
 #endif
              } /* end of loop over farp goals */
            } /* end of multi-blur mask making */
-         } /* not dryrun */
+         } /* else not dryrun */
        }  /* loop over 3dXClustSim (-Xclu_opt) cases to run */
 
-     } /*--- end 3dXClustSim runs ---*/
+     } /*--- end 3dXClustSim runs [it's been a long, been a long, been a long day] ---*/
 
-     /* remove intermediate files */
+     /* remove diverse intermediate files */
 
      if( do_clustsim != 3 && do_Xclustsim != 2 ){
        strcpy(cmd,"\\rm -vf") ;
@@ -5108,7 +5249,7 @@ LABELS_ARE_DONE:  /* target for goto above */
        }
      }
 
-     /* et viola (or maybe cello? or gelato?) */
+     /* et viola (or maybe cello? or gelato?!) */
 
 #if 0
      free(ccc) ; free(cmd) ;

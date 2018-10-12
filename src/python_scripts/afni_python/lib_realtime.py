@@ -98,7 +98,7 @@ class RTInterface:
       if self.verb > 2: print('-- bind()...')
       try: self.server_sock.bind(('', self.server_port))
       except(socket.error, socket.herror, socket.gaierror, socket.timeout):
-         print('** failed to bind incoming socket to port', self.server_port)
+         print('** failed to bind incoming socket to port %s'%self.server_port)
          errs = 1
       if errs: return 1
 
@@ -135,7 +135,8 @@ class RTInterface:
                % (nbytes, UTIL.data_to_hex_str(self.bytes_to_ord(data))))
 
       if len(data) != nbytes:
-         print('** read only %d of %d bytes from data socket'%(len(data),nbytes))
+         print('** read only %d of %d bytes from data socket' \
+               %(len(data),nbytes))
          return None
 
       return data
@@ -187,14 +188,7 @@ class RTInterface:
       # swap one value at a time
       vals = []
       if self.swap:
-         for ind in range(nvals):
-            off = ind*4
-            v           = data[off]     # swap d[0] and d[3]
-            data[off]   = data[off+3]
-            data[off+3] = v
-            v           = data[off+1]   # swap d[1] and d[2]
-            data[off+1] = data[off+2]
-            data[off+2] = v
+         swap4(data)
 
       vals = list(struct.unpack('f'*nvals,data))
 
@@ -253,7 +247,7 @@ class RTInterface:
          #    version 2: receive num_voxels (for 8 vals each) int over socket
 
          ilist = self.read_ints_from_socket(1)
-         if ilist == None: return 1
+         if ilist is None: return 1
 
          if ilist[0] < 0: print('** received invalid num_extra = %d' % ilist[0])
          elif self.version == 1:
@@ -281,7 +275,7 @@ class RTInterface:
 
       self.data_sock, self.data_address = self.server_sock.accept()
 
-      if self.data_sock == None:
+      if self.data_sock is None:
          print('** failed accept(), closing and restarting...')
          return 1
 
@@ -532,7 +526,7 @@ class SerialInterface:
 
 # ----------------------------------------------------------------------
 class TextFileInterface:
-   """interface class to deal with serial port information"""
+   """interface class to deal with writing to text file"""
    def __init__(self, fname='-', append=1, verb=1):
       # main variables
       self.fname        = fname         # text file name

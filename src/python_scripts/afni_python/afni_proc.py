@@ -611,9 +611,13 @@ g_history = """
         - Thanks to J Reed for mentioning them.
     6.16 Jul  5, 2018: added -mask_opts_automask for L Atlas
     6.17 Aug  7, 2018: 3drefit for tedana results should include space
+    6.18 Aug 13, 2018: actually apply -blur_opts_BIM
+    6.19 Sep 18, 2018:
+        - show sample BIDS-like directory struct under DIRECTORY STRUCTURE NOTE
+    6.20 Oct 11, 2018: have gen_ss_r_s always write out.gen_ss_uvars.json
 """
 
-g_version = "version 6.17, August 7, 2018"
+g_version = "version 6.20, October 11, 2018"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \

@@ -89,6 +89,11 @@ def main(argv):
     ele = 0
     SWITCH_ExternLabsOK = 1
 
+    # allow status 0 on -help   24 Sep 2018 [rickr]
+    if "-help" in argv:
+        print help_line
+        sys.exit()
+
     try:
         opts, args = getopt.getopt(argv,"hEm:l:r:",[ "help",
                                                      "ExternLabsNo",

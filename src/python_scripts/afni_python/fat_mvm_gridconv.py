@@ -86,6 +86,12 @@ def main(argv):
     file_prefix = ''
     file_listmatch = ''
 
+    # allow -help with exit status 0   21 Sep 2018 [rickr]
+    for opt in ("-h", "--help", "-help"):
+        if opt in argv:
+            print help_line
+            sys.exit()
+
     try:
         opts, args = getopt.getopt(argv,"hm:l:",["matr_in=","list_match="])
     except getopt.GetoptError:

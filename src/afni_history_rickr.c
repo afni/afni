@@ -49,6 +49,165 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11, Oct, 2018, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
+   "check for consistency between python and PyQt4 ",
+   NULL
+ } ,
+
+ { 11, Oct, 2018, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "have gen_ss_review_scripts.py always write out.gen_ss_uvars.json",
+   "This is to help occupy Paul."
+ } ,
+
+ {  9, Oct, 2018, RCR, "make_random_timing.py", MINOR, TYPE_BUG_FIX,
+   "fix decay rest with non-zero min; block unlimited decay stim dur",
+   "Thanks to D Plunkett for noting the problem."
+ } ,
+
+ {  5, Oct, 2018, RCR, "timing_tool.py", MINOR, TYPE_ENHANCE,
+   "directly go after expected column headers in TSV files",
+   NULL
+ } ,
+
+ {  4, Oct, 2018, RCR, "@update.afni.binaries", MICRO, TYPE_BUG_FIX,
+   "wget/curl may remove execute permision, so re-add it",
+   NULL
+ } ,
+
+ {  1, Oct, 2018, RCR, "gifti_tool", MICRO, TYPE_MODIFY,
+   "link to nifti2_io.o, rather than nifti1_io.o",
+   "Also, install nifti2_io.h rather than nifti2_io.h with other headers."
+ } ,
+
+ {  1, Oct, 2018, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "mri_dicom_hdr.c: init vars in DICOM reading functions",
+   NULL
+ } ,
+
+ { 27, Sep, 2018, RCR, "@update.afni.binaries", MICRO, TYPE_MODIFY,
+   "added macos_10.12 examples to help",
+   NULL
+ } ,
+
+ { 27, Sep, 2018, RCR, "timing_tool.py", MICRO, TYPE_MODIFY,
+   "handle FSL timing files with fewer than 3 columns",
+   "For T Radman."
+ } ,
+
+ { 25, Sep, 2018, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "have programs return 0 on -help",
+   "Adding: fat_lat_csv.py, fat_proc_grad_plot."
+ } ,
+
+ { 25, Sep, 2018, RCR, "prog_list.txt", MICRO, TYPE_MODIFY,
+   "update prog_list.txt from 'make prog_list'; we might remove this file",
+   NULL
+ } ,
+
+ { 25, Sep, 2018, RCR, "timing_tool.py", MICRO, TYPE_BUG_FIX,
+   "fix first timediff in -multi_timing_to_event_list",
+   NULL
+ } ,
+
+ { 24, Sep, 2018, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "have programs return 0 on terminal options, like -help",
+   "Adding: mpeg_encode, cjpeg, djpeg, fat_roi_row.py, fat_mvm_scripter.py,\n"
+   "        fat_mat_sel.py, fat_mvm_prep.py, fat_mvm_review.py."
+ } ,
+
+ { 21, Sep, 2018, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "separate testGL build target from SUMA_PROGS",
+   "Again, for accuracy of 'make prog_list'."
+ } ,
+
+ { 21, Sep, 2018, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "add new text_install dir; move scripts_install txt files there",
+   "Moved afni_fs_aparc+aseg_*.txt and demo*.niml.do there.\n"
+   "This helps with the accuracy of 'make prog_list'."
+ } ,
+
+ { 21, Sep, 2018, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "have programs return 0 on terminal options, like -help",
+   "Adding: fat_mvm_gridconv.py."
+ } ,
+
+ { 20, Sep, 2018, RCR, "3dttest++", MICRO, TYPE_BUG_FIX,
+   "fix copy-and-paste error for processing of voxelwise covariates",
+   "Use of voxelwize covariates when only using -setA was crashing.\n"
+   "Thanks to S. Kippenhan for noting the problem."
+ } ,
+
+ { 18, Sep, 2018, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "outline BIDS-like analysis directory structure",
+   "Add new DIRECTORY STRUCTURE NOTE section to -help output."
+ } ,
+
+ { 18, Sep, 2018, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "have programs return 0 on terminal options, like -help",
+   "Adding: FD2, Ifile, MakeColorMap, ScaleToMap, SurfMeasures, afni_run_R,\n"
+   "        balloon, imcat, inspec, myget, quickspec, qhull, rbox, qdelaunay."
+ } ,
+
+ { 17, Sep, 2018, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "have programs return 0 on terminal options, like -help",
+   "Adding: @auto_align, @djunct_4d_slices_to_3d_vol, @djunct_vol_3slice_select,\n"
+   "        @xyz_to_ijk, column_cat, get_afni_model_PRF.\n"
+   "Bigger changes to Dimon, Dimon1."
+ } ,
+
+ { 14, Sep, 2018, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "have programs return 0 on terminal options, like -help",
+   "Adding: @Install_D99_macaque, @Install_NIH_Marmoset."
+ } ,
+
+ { 13, Sep, 2018, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "have programs return 0 on terminal options, like -help",
+   "So far: 3dSurf2Vol, 3dVol2Surf, 3dmaxima."
+ } ,
+
+ { 12, Sep, 2018, RCR, "3dClusterize.c", MICRO, TYPE_BUG_FIX,
+   "fix limit check on -idat and -ithr; disable MMAP for input",
+   NULL
+ } ,
+
+ { 10, Sep, 2018, RCR, "Makefile.INCLUDE", MICRO, TYPE_BUG_FIX,
+   "add (copy of) Audio directory to afni_src.tgz build target",
+   NULL
+ } ,
+
+ { 22, Aug, 2018, RCR, "tedana_wrapper.py", MINOR, TYPE_MODIFY,
+   "change exec_or_error() to use afni_util.py, which returns strings",
+   "Thanks to J Gonzalez-Castillo for noting this python3 update."
+ } ,
+
+ { 17, Aug, 2018, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_NEW_OPT,
+   "add option -write_uvars_json; add a few more user vars",
+   "Add afni_ver, afni_package and final_epi_dset to uvars.\n"
+   "Add 'AFNI version' and 'AFNI package' to review basic output.\n"
+   "Add afni_util:write_data_as_json(), lib_vars_object:get_attribute_dict()."
+ } ,
+
+ { 16, Aug, 2018, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_NEW_OPT,
+   "add -show_computed_uvars; set template",
+   NULL
+ } ,
+
+ { 15, Aug, 2018, RCR, "afni_util.py", MINOR, TYPE_NEW_OPT,
+   "added functions for extracting version information from dataset HISTORY",
+   "E.g. get_last_history_ver_pack(), get_last_history_version().\n"
+   "This file now depends on 're'."
+ } ,
+
+ { 14, Aug, 2018, RCR, "model_conv_PRF_6", MINOR, TYPE_BUG_FIX,
+   "return a zero array on invalid parameters",
+   "Thanks to E Silson for noting the problem."
+ } ,
+
+ { 13, Aug, 2018, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "actually apply opt -blur_opts_BIM",
+   "Thanks to D Zhu for noting the problem."
+ } ,
+
  {  7, Aug, 2018, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
    "if converting tedana.py results to standard space, include -space",
    "Thanks to L Dowdle for noting the problem."
@@ -219,7 +378,7 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
- {  7, May, 2018, RCR, "afni_pro.py", MINOR, TYPE_MODIFY,
+ {  7, May, 2018, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
    "EPI automask (full_mask) is no longer dilated by default",
    "Also, add -show_process_changes, to report changes affecting results."
  } ,

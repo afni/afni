@@ -648,6 +648,14 @@ static void conv_model( float *  gs      , int     ts_length ,
 
    for( ii=0 ; ii < ts_length ; ii++ ) ts_array[ii] = 0.0 ;
 
+   /* if any inputs are invalid, return the zero array   14 Aug 2018 */
+   /* sigma <= 0 is invalid, and check sigrat, just to be sure       */
+   /* A == 0 implies a zero vector in any case ...                   */
+   if( gs[0] == 0 || gs[3] <= 0 || gs[4] <= 0 ) {
+      if( genv_debug > 1 ) disp_floats("** invalid input params: ", gs, 4);
+      return;
+   }
+
    /* if we had some failure, bail */
    if( !g_saset ) return;
 
@@ -795,7 +803,7 @@ MODEL_interface * initialize_model ()
 
   /*----- minimum and maximum parameter constraints -----*/
 
-  /* amplitude, x/y ranges, and sigma range */
+  /* amplitude, x/y ranges, sigma range, sigrat and theta ranges */
   mi->min_constr[0] =    -10.0;   mi->max_constr[0] =    10.0;
 
   mi->min_constr[1] =    -1.0;    mi->max_constr[1] =     1.0;
@@ -1010,6 +1018,8 @@ static int fill_computed_farray(float * ts, int tslen, THD_3dim_dataset * dset,
       return 1;
    }
 
+
+   /* at each time point, take dot product of mask and gaussian grid */
    for( tind = 0; tind < tslen; tind++ ) {
       mptr = DBLK_ARRAY(dset->dblk, tind);
       eptr = sexpgrid;
@@ -1029,7 +1039,7 @@ static int fill_computed_farray(float * ts, int tslen, THD_3dim_dataset * dset,
       ts[tind] = A * sum;
    }
 
-   /* if requested, write this 2D image (one time only) */
+   /* if requested, write this 2D gaussian image (one time only) */
    if( genv_gauss_file ) {
       char hist[256];
       sprintf(hist, "\n   == %s\n   x = %g, y = %g, "
@@ -1253,7 +1263,7 @@ static int model_help(void)
 "                      2sigma_x^2       2sigma_y^2\n"
 "\n"
 "                       sin(2theta)     sin(2theta)\n"
-"                 B =   -----------  -  -----------\n   (signs mean CCW rot)"
+"                 B =   -----------  -  -----------     (signs mean CCW rot)\n"
 "                       4sigma_x^2      4sigma_y^2\n"
 "\n"
 "                     sin^2(theta)     cox^2(theta)\n"

@@ -15,7 +15,9 @@ static float r2D( int n , float *a , float *b , float *x )
    }
    if( sxx <= 0.0001f ) return 0.0f ;
    sax = (sax*sax+sbx*sbx)/sxx ;
+#if 0
    if( sax > 1.0f ) sax = 1.0f ;
+#endif
    return sax ;
 }
 
@@ -59,6 +61,15 @@ for( ii=0 ; ii < nx ; ii++ ){
 
    outim = mri_new( ny , 1 , MRI_float ) ;
    outar = MRI_FLOAT_PTR(outim) ;
+
+   THD_normalize(nx,uvec) ;
+   THD_normalize(nx,vvec) ;
+
+#if 0
+INFO_message("uvec %g   svec %g",svals.a,svals.b) ;
+for( ii=0 ; ii < nx ; ii++ )
+  fprintf(stderr," %7.4f %7.4f\n",uvec[ii],vvec[ii]) ;
+#endif
 
    for( ii=0 ; ii < ny ; ii++ ){
      outar[ii] = r2D( nx , uvec , vvec , iar+ii*nx ) ;

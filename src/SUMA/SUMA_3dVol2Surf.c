@@ -43,11 +43,11 @@
  *
  * examples:
  *
- *    3dVol2Surf -spec     SubjA.spec     -sv       SubjA_anat+orig   \ 
+ *    3dVol2Surf -spec     SubjA.spec     -sv       SubjA_anat+orig   \
  *               -grid_par SubjA_EPI+orig -map_func mask  >  output.txt
  *
  *    3dVol2Surf -spec       SubjectA.spec                              \
- *               -sv         SubjectA_spgr+orig                         \ 
+ *               -sv         SubjectA_spgr+orig                         \
  *               -grid_par   SubjA_EPI+orig                             \
  *               -cmask      '-a SubjA.func+orig[2] -expr step(a-0.6)'  \
  *               -map_func   midpoint                                   \
@@ -58,7 +58,7 @@
 
 /* define program history for -hist option */
 
-static char g_history[] = 
+static char g_history[] =
 
     "----------------------------------------------------------------------\n"
     "history:\n"
@@ -221,9 +221,10 @@ static char g_history[] =
     "6.8  Dec 15, 2006 [rickr] - added example for EPI -> surface in help\n"
     "6.9  Jan 14, 2009 [rickr] - allow f_steps == 1\n"
     "6.10 Aug 30, 2010 [rickr] - check for -sv dset\n"
+    "6.11 Sep 13, 2018 [rickr] - terminal options return 0\n"
     "---------------------------------------------------------------------\n";
 
-#define VERSION "version  6.10 (Aug 30, 2010)"
+#define VERSION "version  6.11 (September 13, 2018)"
 
 /*----------------------------------------------------------------------
  * todo:
@@ -267,8 +268,10 @@ int main( int argc , char * argv[] )
     AFNI_logger("3dVol2Surf",argc,argv);
 
     /* validate inputs and init options structure */
-    if ( ( ret_val = init_options(&opts, argc, argv) ) != 0 )
-        return ret_val;
+    if ( ( ret_val = init_options(&opts, argc, argv) ) != 0 ) {
+        if( ret_val > 0 ) return 0;
+        else              return 1;
+    }
 
     if ( ( ret_val = validate_options(&opts, &params) ) != 0 )
         return ret_val;
@@ -481,15 +484,15 @@ ENTRY("check_norm_dirs");
                 "      maxs0      : %f, %f, %f\n"
                 "      maxs1      : %f, %f, %f\n"
                 "      maxs2      : %f, %f, %f\n",
-                min[0], min[1], min[2], 
-                fmin[0], fmin[1], fmin[2], 
-                coords[min[0]].x, coords[min[0]].y, coords[min[0]].z, 
-                coords[min[1]].x, coords[min[1]].y, coords[min[1]].z, 
-                coords[min[2]].x, coords[min[2]].y, coords[min[2]].z, 
-                max[0], max[1], max[2], 
-                fmax[0], fmax[1], fmax[2], 
-                coords[max[0]].x, coords[max[0]].y, coords[max[0]].z, 
-                coords[max[1]].x, coords[max[1]].y, coords[max[1]].z, 
+                min[0], min[1], min[2],
+                fmin[0], fmin[1], fmin[2],
+                coords[min[0]].x, coords[min[0]].y, coords[min[0]].z,
+                coords[min[1]].x, coords[min[1]].y, coords[min[1]].z,
+                coords[min[2]].x, coords[min[2]].y, coords[min[2]].z,
+                max[0], max[1], max[2],
+                fmax[0], fmax[1], fmax[2],
+                coords[max[0]].x, coords[max[0]].y, coords[max[0]].z,
+                coords[max[1]].x, coords[max[1]].y, coords[max[1]].z,
                 coords[max[2]].x, coords[max[2]].y, coords[max[2]].z);
 
     /* now count the number of normals pointing "away from" the center */
@@ -526,7 +529,7 @@ ENTRY("check_norm_dirs");
     /* or do we just warn the user? */
     if ( (ncount == 1) || (ncount == 5) )
         fprintf(stderr,"** warning: only 83%% sure of direction of normals\n");
-    
+
     /* do we need to reverse the direction? */
     if ( ncount < 2 )
     {
@@ -949,7 +952,7 @@ ENTRY("final_clean_up");
 int read_surf_files ( opts_t * opts, SUMA_SurfSpecFile * spec )
 {
     int debug, rv;                                      /* v3.5 [rickr] */
-    
+
 ENTRY("read_surf_files");
 
     debug = (opts->debug > 2);
@@ -1042,7 +1045,7 @@ ENTRY("init_options");
     if ( argc < 2 )
     {
         usage( PROG_NAME, V2S_USE_LONG );
-        RETURN(-1);
+        RETURN(1);
     }
 
     /* clear out the options structure */
@@ -1205,17 +1208,17 @@ ENTRY("init_options");
         else if ( ! strncmp(argv[ac], "-help", 5) )
         {
             usage( PROG_NAME, V2S_USE_LONG );
-            RETURN(-1);
+            RETURN(1);
         }
         else if ( ! strncmp(argv[ac], "-hist", 5) )
         {
             usage( PROG_NAME, V2S_USE_HIST );
-            RETURN(-1);
+            RETURN(1);
         }
         else if ( ! strncmp(argv[ac], "-v2s_hist", 9) )
         {
             usage( PROG_NAME, V2S_USE_LIB_HIST );
-            RETURN(-1);
+            RETURN(1);
         }
         else if ( ! strncmp(argv[ac], "-grid_parent", 5) ||
                   ! strncmp(argv[ac], "-inset", 6)       ||
@@ -1371,7 +1374,7 @@ ENTRY("init_options");
             opts->skip_cols |= V2S_SKIP_K;
         else if ( ! strncmp(argv[ac], "-skip_col_vals", 13) )
             opts->skip_cols |= V2S_SKIP_NVALS;
-        else if ( ! strncmp(argv[ac], "-skip_col_results", 13) || 
+        else if ( ! strncmp(argv[ac], "-skip_col_results", 13) ||
                   ! strncmp(argv[ac], "-outcols_1_result", 14) )
             opts->skip_cols |= V2S_SKIP_VALS;
         else if ( ! strncmp(argv[ac], "-spec", 3) )
@@ -2601,7 +2604,7 @@ ENTRY("usage");
         fputs(gv2s_history, stdout);
     else if ( level == V2S_USE_VERSION )
         fprintf(stderr,"%s : %s, compile date: %s\n", prog, VERSION, __DATE__);
-    else 
+    else
         fprintf( stderr, "usage called with illegal level <%d>\n", level );
 
     RETURN(-1);
@@ -2703,4 +2706,3 @@ ENTRY("disp_opts_t");
 
     RETURN(0);
 }
-

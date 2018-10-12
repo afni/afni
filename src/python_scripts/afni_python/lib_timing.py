@@ -1046,7 +1046,7 @@ def read_multi_3col_tsv(flist, verb=1):
                 #   - array of event lists, per run
    elist = []   # temporary variable, events for 1 run at a time
    for rind, fname in enumerate(flist):
-      nvals, header, elist = parse_Ncol_tsv(fname)
+      nvals, header, elist = parse_Ncol_tsv(fname, verb=verb)
       if nvals <= 0: return 1, tlist
 
       # store original header, else check for consistency
@@ -1091,11 +1091,18 @@ def read_multi_3col_tsv(flist, verb=1):
 
    return 0, tlist
 
-def parse_Ncol_tsv(fname, verb=1):
+def parse_Ncol_tsv(fname, verb=1, hlabels=['onset', 'duration', 'trial_type']):
    """Read one N column tsv (tab separated value) file, and return:
         - ncol: -1 on error, else >= 0
         - header list (length ncol)
         - list of onset, duration, label values, amplitudes?
+
+      If all hlabels exist in header labels, then extract those columns.
+      If all hlabels are integers, extract those 0-based columns.
+      The format for hlabels should indicate :
+         onset, duration, type and amplitudes, if any:
+
+         onset time, duration, trial type, amp1, amp2, ... ampA
 
       An N column tsv file should have an optional header line,
       followed by rows of VAL VAL LABEL, separated by tabs.
@@ -1134,37 +1141,47 @@ def parse_Ncol_tsv(fname, verb=1):
       print("** parse_Ncol_tsv for '%s' is empty" % fname)
       return -1, [], []
    if norig < 3:
-      print("** parse_Ncol_tsv: bad ncols = %d" % norig)
+      print("** parse_Ncol_tsv: bad ncols = %d in %s" % (norig, fname))
+      return -1, [], []
+
+   # decide on column extration indices, based on hlabels and lines[0:2]
+   col_inds = tsv_hlabels_to_col_list(hlabels, lines, verb=verb)
+   if len(col_inds) < 3:
+      print("** failed to make tsv column index list in %s" % fname)
       return -1, [], []
 
    # set header list, if a header exists
    header = []
    l0 = lines[0]
    try:
-      onset = float(l0[0])
-      dur   = float(l0[1])
-      lab   = l0[2].replace(' ', '_')   # and convert spaces to underscores
+      onset = float(l0[col_inds[0]])
+      dur   = float(l0[col_inds[1]])
+      lab   = l0[col_inds[2]].replace(' ', '_') # convert spaces to underscores
    except:
-      header = lines.pop(0)
+      l0 = lines.pop(0)
+      header = [l0[col_inds[i]] for i in range(len(col_inds))]
 
    # decide whether there are amplitudes
-   ainds = []
-   if len(lines) > 0 and norig > 3:
-      line = lines[0]
-      # find all columns that look like floats
-      for ind in range(3, len(line)):
-         try:
-            amp = float(line[ind])
-            ainds.append(ind)
-         except: pass
+   ainds = col_inds[3:]
+   #if len(lines) > 0 and norig > 3:
+   #   line = lines[0]
+   #   # find all columns that look like floats
+   #   for ind in range(3, len(line)):
+   #      try:
+   #         amp = float(line[ind])
+   #         ainds.append(ind)
+   #      except: pass
 
    # now lines should be all: onset, duration, label and possibly amplitudes
    slist = []
+   oind = col_inds[0]
+   dind = col_inds[1]
+   lind = col_inds[2]
    for line in lines:
       try:
-         onset = float(line[0])
-         dur   = float(line[1])
-         lab   = line[2].replace(' ', '_')   # convert spaces to underscores
+         onset = float(line[oind])
+         dur   = float(line[dind])
+         lab   = line[lind].replace(' ', '_')   # convert spaces to underscores
          if len(ainds) > 0:
              amps = [float(line[aind]) for aind in ainds]
       except:
@@ -1173,10 +1190,85 @@ def parse_Ncol_tsv(fname, verb=1):
       if len(ainds) > 0: slist.append([onset, dur, lab, amps])
       else:              slist.append([onset, dur, lab])
 
-   if len(ainds) > 0: nuse = 4
-   else:              nuse = 3
+   nuse = len(col_inds)
 
    return nuse, header, slist
+
+def tsv_hlabels_to_col_list(hlabs, linelists, verb=1):
+   """return a list of columns to extract, in order of:
+        onset, duration, label, amplitude1, amplitude2 ...
+
+      if hlabs are integers, extract those columns
+      else, try to find in linelists[0]
+         if linelists[0] is not text, return 0, 1, 2, ...
+         else if labels do not match
+            if ncols matches, return 0, 1, 2, ...
+            else: fail
+   """
+
+   nlabs = len(hlabs)
+   ncols = len(linelists[0])
+
+   if nlabs < 3:
+      if verb: print("** tsv hlabs has only %d entries: %s" % (nlabs, hlabs))
+      return []
+   if ncols < 3:
+      if verb: print("** tsv file has only %d columns" % ncols)
+      return []
+
+   # first, decide whether hlabs are text labels or integers
+   try:
+      lints = [int(entry) for entry in hlabs]
+   except:
+      lints = []
+
+   # if they are integers, we are done
+   if len(lints) >= 3:
+      if verb > 2: print("-- tsv labels is via index list: %s" % lints)
+      return lints
+
+
+   # decide whether linelists[0] is text (count floats in line[0])
+   list0 = linelists[0]
+   nfloat = ntext = 0
+   for entry in list0:
+      try:
+         fval = float(entry)
+         nfloat += 1
+      except:
+         ntext += 1
+
+   # if at least 2 floats, assume no header and return
+   if nfloat >= 2:
+      if verb > 1: print("-- tsv file has no header, using first columns")
+      # so hlabs must now be taken sequential, just check the length
+      if nlabs <= ncols:
+         return [i for i in range(nlabs)]
+      else:
+         return [i for i in range(ncols)]
+
+   # so we have text in the header, check whether all hlabs are found
+   lints = []
+   for label in hlabs:
+      if label in list0:
+         lints.append(list0.index(label))
+
+   # if we did not find them all, require same ncols or fail
+   if len(lints) < nlabs:
+      if nlabs == ncols:
+         if verb > 0: print("-- tsv has unexpected labels, assuming sequential")
+         return [i for i in range(nlabs)]
+      else:
+         if verb > 0: print("** tsv has unexpected labels, failing")
+         return []
+       
+   # all are found, yay!
+   if verb > 1: print("++ found expected labels in tsv file")
+   if verb > 2:
+       print("-- labels     : %s" % ', '.join(hlabs))
+       print("-- index list : %s" % UTIL.int_list_string(lints, sepstr=', '))
+
+   return lints
 
 def parse_3col_tsv(fname, verb=1):
    """Read one 3 column tsv (tab separated value) file, and return:

@@ -952,6 +952,7 @@ typedef struct {
    Widget hidden_uscon_pb   ;  /* 30 Dec 2010 */
    Widget hidden_usdecl_pb  ;  /* 06 Jan 2011 */
    Widget hidden_melter_pb  ;  /* 18 Feb 2011 */
+   Widget hidden_sound_pb   ;  /* 20 Aug 2018 */
    Widget hidden_pvalue_pb  ;  /* 06 Mar 2014 */
    Widget hidden_papers_pb  ;  /* 02 May 2014 */
 
@@ -1689,6 +1690,10 @@ typedef struct {
    int dont_hear_suma ;     /* 1 = I can't hear you SUMA        */
 
    int pbar_fullrange ;                          /* 03 Jun 2014 */
+
+   int local_display ;                           /* 20 Aug 2018 */
+   int have_sox ;                                /* 20 Aug 2018 */
+   char *sound_player ;                          /* 27 Aug 2018 */
 
 } AFNI_library_type ;
 
