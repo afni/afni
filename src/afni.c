@@ -2253,12 +2253,20 @@ int main( int argc , char *argv[] )
    if( MAIN_shell == NULL ) ERROR_exit("Cannot initialize X11") ;
 
 #if 1
-{ Display *dpy = XtDisplay(MAIN_shell) ;
-  char msg[256] , *xsv ; int xvr ;
-  xsv = XServerVendor(dpy) ; xvr = XVendorRelease(dpy) ;
-  if( xsv != NULL ){ sprintf(msg,"[%s v %d]",xsv,xvr); REPORT_PROGRESS(msg); }
-}
+   { Display *dpy = XtDisplay(MAIN_shell) ;
+     char msg[256] , *xsv ; int xvr ;
+     xsv = XServerVendor(dpy) ; xvr = XVendorRelease(dpy) ;
+     if( xsv != NULL ){ sprintf(msg,"[%s v %d]",xsv,xvr); REPORT_PROGRESS(msg); }
+   }
 #endif
+
+   { char *eee = getenv("DISPLAY") ;  /* Sound stuff [20 Aug 2018] */
+     GLOBAL_library.local_display = (eee == NULL) || (strstr(eee,":0") != NULL ) ;
+     GLOBAL_library.have_sox      = ( THD_find_executable("sox") != NULL ) ;
+     GLOBAL_library.sound_player  = get_sound_player() ;
+     sound_set_note_ADSR(1) ;
+     sound_set_note_waveform(SOUND_WAVEFORM_TRIANGLE) ;
+   }
 
    /* if we used xrdb to set X11 resources, re-set them back to their old
       state so that other AFNIs don't use these new settings by default   */
@@ -2499,7 +2507,16 @@ STATUS("call 0") ;
       /*** For the Mac users! ***/
 
       case 1:
+#if 0
         AFNI_speak("[[volm 0.65; inpt PHON; rate -10; pbas +5]]1AEf=nnnIY",0) ;  /* fall thru */
+#endif
+
+#if 1
+        if( check_string("-com",MAIN_argc,MAIN_argv) == 0 &&
+            GLOBAL_library.local_display                  &&
+            GLOBAL_library.have_sox                       &&
+            AFNI_yesenv("AFNI_STARTUP_SOUND")               ) AFNI_startup_sound() ;
+#endif
 
       case 2:
       case 3:

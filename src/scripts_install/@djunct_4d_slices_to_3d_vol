@@ -19,10 +19,12 @@ set this_prog = @djunct_4d_slices_to_3d_vol
 #set version = "1.2"
 #   + work in much better way with 3dXYZcat!
 #
-set rev_dat = "July 25, 2018"
-set version = "1.21"
+#set rev_dat = "July 25, 2018"; set version = "1.21"
 #   + rename to this!
 #   + use "-pass" to avoid null arguments
+#
+set rev_dat = "Aug 28, 2018"; set version = "1.3"
+#   + use update xyz -> ijk prog!
 #
 # ----------------- find AFNI and set viewer ---------------------
 
@@ -264,7 +266,7 @@ if ( $USER_COORS == 1 ) then
         end
     else if ( "$coor_type" == "SET_DICOM_XYZ" ) then
         echo "++ Will have user's chosen: $coor_type $coors"
-        set svals = `@djunct_vol_xyz_to_ijk "$odir/$wdir/${ifileu0}" $coors`
+        set svals = `@xyz_to_ijk -inset "$odir/$wdir/${ifileu0}" -xyz $coors`
         echo "   leads to ijk ---> $svals"
 
     else
@@ -439,4 +441,11 @@ endif
 exit 0
 
 
+SHOW_HELP:
+cat << EOF
+   $this_prog           - do something really useful
+
+EOF
+
+exit 0
 

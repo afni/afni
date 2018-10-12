@@ -11,7 +11,7 @@
 /*-------------------------------------------------------------------------*/
 /*! Open a file for writing, if practicable.  Use fclose_maybe() to close. */
 
-static FILE * fopen_maybe( char *fname )  /* 05 Feb 2008 */
+FILE * fopen_maybe( char *fname )  /* 05 Feb 2008 */
 {
    FILE *imfile ;
    char *tname = NULL;
@@ -59,7 +59,7 @@ static FILE * fopen_maybe( char *fname )  /* 05 Feb 2008 */
 
 /*---------------------------------------------------------------------------*/
 
-static void fclose_maybe( FILE *fp )  /* 05 Feb 2008 */
+void fclose_maybe( FILE *fp )  /* 05 Feb 2008 */
 {
         if( fp == NULL   ) return ;
         if( fp == stdout ) fflush(fp) ;
@@ -267,6 +267,15 @@ int mri_write_1D( char *fname , MRI_IMAGE *im )  /* 16 Nov 1999 */
 ENTRY("mri_write_1D") ;
 
    if( im == NULL || im->nz > 1 ) RETURN( 0 ) ; /* stoopid user */
+
+   if( STRING_HAS_SUFFIX_CASE(fname,".tsv") ){  /* 14 Sep 2018 */
+     NI_element *nel ;
+     nel = THD_mri_to_tsv_element(im,NULL) ;
+     if( nel == NULL ) RETURN( 0 ) ;
+     THD_write_tsv( fname , nel ) ;
+     NI_free_element( nel ) ;
+     RETURN( 1 ) ;
+   }
 
    fim = mri_transpose( im ) ;
    jj  = mri_write_ascii( fname , fim ) ;

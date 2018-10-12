@@ -2139,6 +2139,33 @@ files do not have any compression along the time axis.  Therefore, you
 should use AFNI_AGIF_DELAY to control the frame rate of animated GIF
 files, and not this frame duplication factor.
 
+----------------------------
+Variable: AFNI_STARTUP_SOUND
+----------------------------
+If this variable is set to YES, then when the AFNI GUI starts, a
+pair of notes will be played (softly). For this to happen, it is
+also necessary that
+ a) the 'sox' sound software package be installed
+ b) that the X11 display is local, not remote
+ c) that no '-com' options are on the command line
+You can also try using the 'Play startup sound' button on the
+right-click popup menu attached to the logo space to the right
+of the GUI 'done' button. For that button to work, conditions
+a) and b) above must be true. On a Mac, you can install 'sox'
+using the 'brew' package (e.g.).
+
+---------------------------
+Variable: AFNI_SOUND_PLAYER
+---------------------------
+The 'p' and 'P' keys in the AFNI graph viewer can be used to generate
+sound from the graph data time series. However, AFNI itself does not
+play sound - it uses an external player program. By default, AFNI can
+use any one of these programs:
+  play (part of sox) ; afplay (Mac) ; mplayer ; aplay (Linux)
+and it will search your path to find one of these (in that order).
+If you have some other player program you want to use, you can provide
+the full path to that program in this variable, as in '/usr/bin/afplay'.
+
 -----------------------------
 Variable: AFNI_STARTUP_SCRIPT
 -----------------------------
@@ -2162,7 +2189,7 @@ way.
 
 You can load a Script file interactively during an AFNI run by using
 the button "Datamode->Misc->Run Script".  As a 'secret' option, if you
-enter a line containing a blank in the the filename dialog, that line
+enter a line containing a blank in the filename dialog, that line
 will be executed as a single command, rather than be used as a script
 filename.
 
@@ -2458,7 +2485,7 @@ When the interactive AFNI program starts, it may pop up warnings about
 the programming environment for which it was compiled.  At this time,
 there are two such warning messages possible:
   LessTiff: AFNI will work with LessTif, but works better with Motif.
-  Button-3: On Solaris 2.8, Button-3 popup menus don't work quite 
+  Button-3: On Solaris 2.8, Button-3 popup menus don't work quite
             properly.
 If you are tired of seeing these messages, set AFNI_STARTUP_WARNINGS
 to NO.
@@ -3193,7 +3220,7 @@ with AFNI_AUTO_RESCAN, the AFNI_RESCAN_METHOD settings are respected.)
 ---------------------------
 Variable: AFNI_ALL_DATASETS  [02 Jun 2016]
 ---------------------------
-By default, AFNI creates a session (internal the the program) that
+By default, AFNI creates a session (internal to the program) that
 contains all the input datasets -- if you input more than one session
 directory, that is.  This session is called 'All_Datasets' in the
 'DataDir Switch' popup chooser, and should be the last session listed
@@ -3203,7 +3230,7 @@ AFNI_ALL_DATASETS to NO.
 --------------------------
 Variable: AFNI_WEB_BROWSER
 --------------------------
-This variable should be set to the full executable path to a Web 
+This variable should be set to the full executable path to a Web
 browser, as in
   setenv AFNI_WEB_BROWSER /usr/bin/mozilla
 If it is not set, AFNI will scan your path to see if it can find a
@@ -3871,6 +3898,17 @@ HISTORY_NOTE which can be seen via 3dinfo, for example.  If set to NO,
 output datasets will not have any HISTORY.  This is one method for
 making datasets anonymous.
 
+---------------------------------------------------------
+Variables: AFNI_XCLUSTSIM_GLOBAL and AFNI_XCLUSTSIM_LOCAL
+---------------------------------------------------------
+These variables control the setting of the 'global' and 'local' ETAC
+calculations, and are equivalent to using the '-ETAC_global' and
+'-ETAC_local' command line switches to 3dttest++. If you set a
+variable to YES, then that commands the relevant ETAC thresholds
+to be calculated; if you set a variable to NO, it turns off the
+relevant calculation. If you do not set a variable, and you do
+not use the 3dttest++ command line option, you will get whatever
+the default ETAC method(s) are enabled.
 
 =============================================
 | Robert W Cox, PhD                         |

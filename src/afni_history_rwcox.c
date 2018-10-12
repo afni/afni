@@ -44,6 +44,61 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 20 , SEP , 2018 , RWC , "3dttest++ etc." , MAJOR , TYPE_ENHANCE ,
+   "ETAC now output global thresholds as well as local" ,
+   "Global thresholds are text tables of cluster-size (or cluster-FOM)\n"
+   "thresholds that apply to the whole volume in the multi-threshold way,\n"
+   "rather than dataset tables that apply voxelwise. Moderately extensive\n"
+   "hanges to programs\n"
+   "  3dMultiThresh  3dXClustSim  3dttest++\n"
+   "and to support files\n"
+   "  mri_threshX.c  thd_Xdataset.c\n"
+   "3dttest++ now has options to turn on/off global and local ETAC threshold\n"
+   "calculations." } ,
+
+ { 31 , AUG , 2018 , RWC , "1D file input" , MICRO , TYPE_ENHANCE ,
+   "mri_read_1D() now reads 3D: format files" ,
+   "This allows input of 'raw' data files into 1dplot, 1dcat, etc. Mostly\n"
+   "useful for converting raw binary data files to text via 1dcat." } ,
+
+ { 30 , AUG , 2018 , RWC , "1dsound" , MICRO , TYPE_ENHANCE ,
+   "Default sound output is now 16-bit (less hiss than 8-bit)" ,
+   NULL } ,
+
+ { 27 , AUG , 2018 , RWC , "1dsound and AFNI GUI" , MINOR , TYPE_MODIFY ,
+   "modify sound output" ,
+   "1dsound now can make sound from up to 4 columns from input file.\n"
+   "AFNI graph viewer GUI keypresses:\n"
+   " p = play sound from central sub-graph\n"
+   " P = play sound from central and average sub-graph (2 toned)\n"
+   " K = kill running sound player\n"
+   "Note that killing AFNI while sound is playing, or using K to kill sound,\n"
+   "will leave a file whose name is like AFNI_SOUND_TEMP.something.au on the\n"
+   "disk, and the user will have to clean it up." } ,
+
+ { 24 , AUG , 2018 , RWC , "1dsound" , MICRO , TYPE_NEW_OPT ,
+   "-notes option makes notes" ,
+   "This is the default. Pentatonic notes with triangle waveforms." } ,
+
+ { 23 , AUG , 2018 , RWC , "1dsound" , MINOR , TYPE_NEW_PROG ,
+   "program to generate .au sound file from a 1D file" ,
+   "Very primitive at this moment." } ,
+
+ { 20 , AUG , 2018 , RWC , "AFNI GUI" , MINOR , TYPE_ENHANCE ,
+   "Play sound with 'p' or 'P' keypresses" ,
+   "p = sound from central graph.\n"
+   "P = sound from average of visible graphs.\n"
+   "Sound is played via sox program (not part of AFNI).\n"
+   "Environment variables:\n"
+   "  AFNI_SOUND_NOTE_TYPE sets type of note played\n"
+   "  AFNI_SOUND_GAIN sets loudness" } ,
+
+ { 15 , AUG , 2018 , RWC , "3dGrayplot" , MAJOR , TYPE_ENHANCE ,
+   "Total rewrite of resampling from time+space to X+Y grid" ,
+   "Grid refinement (time-X) is now cubic interpolation rather than linear\n"
+   "Grid coarsening (space-Y) is now minimum sidelobe taper averaging rather\n"
+   "than linear tapering" } ,
+
  { 7 , AUG , 2018 , RWC , "3dQwarp" , MICRO , TYPE_ENHANCE ,
    "-allsave now works with -plusminus" ,
    "Plus tweaked the help to explain some things more better." } ,
@@ -2830,7 +2885,7 @@ afni_history_struct rwcox_history[] = {
    "with tiny random values." } ,
 
  { 20 , OCT , 2010 , RWC , "afni" , MICRO , TYPE_GENERAL ,
-   "Add 'INSTACORR SET' the the drive command list" ,
+   "Add 'INSTACORR SET' to the drive command list" ,
    NULL } ,
 
  { 20 , OCT , 2010 , RWC , "afni and 3dGroupInCorr" , MICRO , TYPE_GENERAL ,

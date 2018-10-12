@@ -1615,7 +1615,7 @@ ENTRY("mri_read_many_files") ;
 
     Added Jan 07
 */
-MRI_IMARR * mri_read_resamp_many_files( int nf, char * fn[] , int nxnew, 
+MRI_IMARR * mri_read_resamp_many_files( int nf, char * fn[] , int nxnew,
                                         int nynew, byte pval)
 {
    MRI_IMARR * newar , * outar ;
@@ -1628,12 +1628,12 @@ MRI_IMARR * mri_read_resamp_many_files( int nf, char * fn[] , int nxnew,
    INIT_IMARR(outar) ;          /* initialize output array */
 
    if (nynew < 0) {
-      keepaspect = 1; 
+      keepaspect = 1;
       nynew = -nynew;
    } else {
       keepaspect = 0;
    }
-   
+
    for( kf=0 ; kf < nf ; kf++ ){
       newar = mri_read_file( fn[kf] ) ;  /* read all images in this file */
 
@@ -1671,21 +1671,21 @@ MRI_IMARR * mri_read_resamp_many_files( int nf, char * fn[] , int nxnew,
                   qim = mri_resize(bim, nxnew, (int)(fx*nyi));
                   /* fprintf(stderr,"qim X now %dx%d\n", qim->nx, qim->ny); */
                   bot = (nynew - (int)(fx*nyi))/2;
-                  zim = mri_valpad_2D( 0 , 0 , 
+                  zim = mri_valpad_2D( 0 , 0 ,
                                         bot, nynew-(int)(fx*nyi)-bot, qim, pval);
                   if (qim != zim) mri_free(qim) ;
                   qim = zim; zim = NULL;
-                  /* fprintf(stderr,"qim X padded %dx%d, bot=%d\n", 
+                  /* fprintf(stderr,"qim X padded %dx%d, bot=%d\n",
                                  qim->nx, qim->ny, bot);     */
                } else {
                   qim = mri_resize(bim, (int)(fy*nxi), nynew);
                   /* fprintf(stderr,"qim Y now %dx%d\n", qim->nx, qim->ny); */
                   bot = (nxnew - (int)(fy*nxi))/2;
-                  zim = mri_valpad_2D( bot, nxnew-(int)(fy*nxi)-bot, 
+                  zim = mri_valpad_2D( bot, nxnew-(int)(fy*nxi)-bot,
                                         0, 0, qim, pval);
                   if (qim != zim) mri_free(qim) ;
                   qim = zim; zim = NULL;
-                  /* fprintf(stderr,"qim Y padded %dx%d, bot=%d\n", 
+                  /* fprintf(stderr,"qim Y padded %dx%d, bot=%d\n",
                                  qim->nx, qim->ny, bot);      */
                }
             } else {
@@ -2118,7 +2118,7 @@ ENTRY("mri_read_ppm") ;
 
 /*! Length of line buffer for mri_read_ascii() */
 /* rcr - improve this */
-#define LBUF 5048576  /* 08 Jul 2004: increased to 512K from 64K 
+#define LBUF 5048576  /* 08 Jul 2004: increased to 512K from 64K
                          27 Dec 2012: increased to 1024K from 512K  */
 
 /*! Free a buffer and set it to NULL */
@@ -2983,6 +2983,19 @@ ENTRY("mri_read_1D") ;
 
    if( fname == NULL || fname[0] == '\0' ) RETURN(NULL) ;
 
+   /*-- 14 Sep 2018: read a TSV file? */
+
+   cpt = strcasestr(fname,".tsv") ;
+   if( cpt != NULL && ( cpt[4] == '\0' || cpt[4] == '[' ) ){
+     NI_element *nel ;
+     nel = THD_read_tsv(fname) ;            /* cf. thd_table.c */
+     if( nel != NULL ){
+       outim = THD_niml_to_mri(nel) ;  /* only numeric columns */
+       NI_free_element(nel) ;
+       if( outim != NULL ) RETURN(outim) ;
+     } /* if it falls thru to here, read or conversion failed */
+   }
+
    /*-- 25 Jan 2008: read from stdin? --*/
 
    ii = strlen(fname) ;
@@ -3008,6 +3021,21 @@ ENTRY("mri_read_1D") ;
        WARNING_message("Can't decode %s",fname) ;
      RETURN(inim) ;
    }
+
+   /* read from a 3D: file? [31 Aug 2018] */
+
+   if( strlen(fname) > 9 &&
+       fname[0] == '3'   &&
+       fname[1] == 'D'   &&
+      (fname[2] == ':' || fname[3] == ':') ){
+
+     MRI_IMARR *imar = mri_read_3D(fname) ;
+     if( imar == NULL ) RETURN(NULL) ;
+     if( IMARR_COUNT(imar) == 0 ){ DESTROY_IMARR(imar); RETURN(NULL); }
+     outim = mri_to_float( IMARR_SUBIM(imar,0) ) ;
+     DESTROY_IMARR(imar) ; RETURN(outim) ;
+   }
+
 
    /*-- back to reading from an actual file --*/
 

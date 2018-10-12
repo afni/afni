@@ -18,6 +18,32 @@ float qmean_float( int n , float *ar )
    sum /= n ; return sum ;
 }
 
+
+/*------------------------------------------------------------------------
+    Compute non-zero mean of an array of floats 
+-------------------------------------------------------------------------*/
+float qnzmean_float( int n , float *ar )
+{
+   int ii ; float sum=0.0f, v ;
+   int ngood = 0;
+
+   if( n <= 0 || ar == NULL ) return sum ;
+
+   for( ii=0 ; ii < n ; ii++ ){
+	    v = ar[ii];
+	    if(v!=0.0) {
+			sum += ar[ii] ;
+			ngood++;
+	    }
+   }
+   /* might have no non-zero voxels, so just return 0*/
+   if(ngood<=0) sum = 0.0;
+   /* otherwise return average */
+   else sum /= ngood ; 
+   return sum ;
+}
+
+
 /*------------------------------------------------------------------------
    Compute the median of an array of floats.  Will rearrange (partially
    sort) the array in the process.  The algorithm is based on Quicksort,
@@ -434,7 +460,6 @@ static float median_float9(float *p)
  * conventions (array indices begin at zero).
  *------- Code mildly adapted from Al Paeth's Median.c --------*
  *//*----------------------------------------------------------*/
-
 #undef  S2
 #define S2(i,j) if(A[i-1]>A[j-1]){temp=A[i-1];A[i-1]=A[j-1];A[j-1]=temp;}
 

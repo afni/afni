@@ -1,0 +1,62 @@
+#!/bin/tcsh
+
+set DAT = ../../afni_test_data/data
+
+cp ../../afni_test_data/3dAllineate/* .
+
+# clean up the trash
+
+\rm -f AL*_OMP_* runit.out
+
+# check for OpenMP
+
+3dClustSim -help | grep -q 'is compiled using OpenMP'
+
+set NO_OMP = $status
+
+setenv AFNI_RANDOM_SEEDVAL 31416
+
+setenv OMP_NUM_THREADS 1
+time 3dAllineate -base ${DAT}/MNIx+tlrc -source ${DAT}/T1vol_SS+tlrc \
+                 -prefix       ./ALvol_OMP_NO                        \
+                 -1Dparam_save ./ALparam_OMP_NO.1D                   \
+                 -verb        -fineblur 2 -hel -twopass                |& tee    runit.out
+
+if ( ! -f Baseline_ALvol+tlrc.HEAD ) then
+  echo "--- Renaming outputs to be Baseline for later tests ---"       |& tee -a runit.out
+  \rm -f Baseline_*
+  3drename ALvol_OMP_NO+tlrc Baseline_ALvol                            |& tee -a runit.out
+  mv -f    ALparam_OMP_NO.1D Baseline_ALparam.1D                       |& tee -a runit.out
+  gzip -9v Baseline_*.BRIK
+else
+  echo                                                                 |& tee -a runit.out
+  echo '===== 3dAllineate (no OpenMP) difference from Baseline ====='  |& tee -a runit.out
+  3dinfo -sval_diff ALvol_OMP_NO+tlrc Baseline_ALvol+tlrc              |& tee -a runit.out
+  diff   ALparam_OMP_NO.1D Baseline_ALparam.1D                         |& tee -a runit.out |& tee OMP_NO_diff.out
+endif
+
+unsetenv OMP_NUM_THREADS
+if ( ! $NO_OMP ) then
+  time 3dAllineate -base ${DAT}/MNIx+tlrc -source ${DAT}/T1vol_SS+tlrc \
+                   -prefix       ./ALvol_OMP_YES                       \
+                   -1Dparam_save ./ALparam_OMP_YES.1D                  \
+                   -verb        -fineblur 2 -hel -twopass              |& tee -a runit.out
+  if ( -f Baseline_ALvol+tlrc.HEAD ) then
+    echo                                                               |& tee -a runit.out
+    echo '===== 3dAllineate (w/OpenMP) difference from Baseline =====' |& tee -a runit.out
+    3dinfo -sval_diff ALvol_OMP_YES+tlrc Baseline_ALvol+tlrc           |& tee -a runit.out
+    diff   ALparam_OMP_YES.1D Baseline_ALparam.1D                      |& tee -a runit.out |& tee OMP_YES_diff.out
+endif
+
+if( $#argv == 0 ) then
+  echo '..... deleting output files .....'
+  \rm -f AL*_OMP_*
+  exit 0
+else if( $argv[1] != 'KEEP' ) then
+  echo '..... deleting output files .....'
+  \rm -f AL*_OMP_*
+else
+  echo '..... keeping output files .....'
+endif
+
+exit 0

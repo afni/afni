@@ -31,7 +31,7 @@
 static char const * const gni1_history[] =
 {
   "----------------------------------------------------------------------\n"
-  "history (of nifti library changes):\n"
+  "history (of nifti-1 library changes):\n"
   "\n",
   "0.0  August, 2003 [rwcox]\n"
   "     (Robert W Cox of the National Institutes of Health, SSCC/DIRP/NIMH)\n"
@@ -379,10 +379,12 @@ static char const * const gni2_history[] =
   "   - have writing try NIFTI-2 if NIFTI-1 seems insufficient\n"
   "2.05 15 Apr, 2016 [rickr]\n"
   "   - print int64_t using PRId64 macro, (ugly, but no warnings)\n"
+  "2.06 01 Oct, 2018 [rickr]\n"
+  "   - errors should all mention NIFTI, slight additional clarity\n"
 };
 
 static const char gni_version[]
-        = "nifti-2 library version 2.05 (15 April, 2016)";
+        = "nifti-2 library version 2.06 (1 October, 2018)";
 
 /*! global nifti options structure - init with defaults */
 /*  see 'option accessor functions'                     */
@@ -511,7 +513,7 @@ void nifti_disp_lib_hist( int ver )
 
    switch ( ver ) {
       default: {
-         fprintf(stderr,"** disp_lib_list: bad ver %d\n", ver);
+         fprintf(stderr,"** NIFTI disp_lib_list: bad ver %d\n", ver);
          break;
       }
 
@@ -698,7 +700,7 @@ int nifti_update_dims_from_array( nifti_image * nim )
    int64_t ndim;
 
    if( !nim ){
-      fprintf(stderr,"** update_dims: missing nim\n");
+      fprintf(stderr,"** NIFTI update_dims: missing nim\n");
       return 1;
    }
 
@@ -710,7 +712,7 @@ int nifti_update_dims_from_array( nifti_image * nim )
 
    /* verify dim[0] first */
    if(nim->dim[0] < 1 || nim->dim[0] > 7){
-      fprintf(stderr,"** invalid dim[0], dim[] = ");
+      fprintf(stderr,"** NIFTI: invalid dim[0], dim[] = ");
       for( c = 0; c < 8; c++ ) fprintf(stderr," %" PRId64, nim->dim[c]);
       fputc('\n',stderr);
       return 1;
@@ -893,7 +895,7 @@ static int nifti_load_NBL_bricks( nifti_image * nim , int64_t * slist,
 
    test = znztell(fp);  /* store current file position */
    if( test < 0 ){
-      fprintf(stderr,"** load bricks: ztell failed??\n");
+      fprintf(stderr,"** NIFTI load bricks: ztell failed??\n");
       return -1;
    }
    fposn = oposn = test;
@@ -903,7 +905,7 @@ static int nifti_load_NBL_bricks( nifti_image * nim , int64_t * slist,
       for( c = 0; c < NBL->nbricks; c++ ) {
          rv = nifti_read_buffer(fp, NBL->bricks[c], NBL->bsize, nim);
          if( rv != NBL->bsize ){
-            fprintf(stderr,"** load bricks: cannot read brick %" PRId64 
+            fprintf(stderr,"** NIFTI load bricks: cannot read brick %" PRId64 
                     " from '%s'\n",
                     c, nim->iname ? nim->iname : nim->fname);
             return -1;
@@ -918,7 +920,7 @@ static int nifti_load_NBL_bricks( nifti_image * nim , int64_t * slist,
    }
 
    if( !sindex ){
-      fprintf(stderr,"** load_NBL_bricks: missing index list\n");
+      fprintf(stderr,"** NIFTI load_NBL_bricks: missing index list\n");
       return -1;
    }
 
@@ -936,7 +938,7 @@ static int nifti_load_NBL_bricks( nifti_image * nim , int64_t * slist,
              /* rcr - znz functions need to handle 64-bit cases, */
              /* see setting _FILE_OFFSET_BITS                    */
              if( znzseek(fp, fposn, SEEK_SET) < 0 ){
-                fprintf(stderr,"** failed to locate brick %" PRId64 
+                fprintf(stderr,"** NIFTI: failed to locate brick %" PRId64 
                         " in file '%s'\n",
                         isrc, nim->iname ? nim->iname : nim->fname);
                 return -1;
@@ -946,7 +948,7 @@ static int nifti_load_NBL_bricks( nifti_image * nim , int64_t * slist,
           /* only 10,000 lines later and we're actually reading something! */
           rv = nifti_read_buffer(fp, NBL->bricks[idest], NBL->bsize, nim);
           if( rv != NBL->bsize ){
-             fprintf(stderr,"** failed to read brick %" PRId64 
+             fprintf(stderr,"** NIFTI: failed to read brick %" PRId64 
                      " from file '%s'\n",
                      isrc, nim->iname ? nim->iname : nim->fname);
              if( g_opts.debug > 1 )
@@ -990,14 +992,15 @@ static int nifti_alloc_NBL_mem(nifti_image * nim, int64_t nbricks,
    nbl->bricks = (void **)malloc(nbl->nbricks * sizeof(void *));
 
    if( ! nbl->bricks ){
-     fprintf(stderr,"** NANM: failed to alloc %" PRId64 " void ptrs\n",nbricks);
+     fprintf(stderr,"** NIFTI NANM: failed to alloc %" PRId64
+             " void ptrs\n",nbricks);
      return -1;
    }
 
    for( c = 0; c < nbl->nbricks; c++ ){
       nbl->bricks[c] = (void *)malloc(nbl->bsize);
       if( ! nbl->bricks[c] ){
-         fprintf(stderr,"** NANM: failed to alloc %" PRId64 
+         fprintf(stderr,"** NIFTI NANM: failed to alloc %" PRId64 
                  " bytes for brick %" PRId64 "\n", nbl->bsize, c);
          /* so free and clear everything before returning */
          while( c > 0 ){
@@ -1041,8 +1044,8 @@ static int nifti_copynsort(int64_t nbricks, const int64_t *blist,
    *sindex = (int64_t *)malloc(nbricks * sizeof(int64_t));
 
    if( !*slist || !*sindex ){
-      fprintf(stderr,"** NCS: failed to alloc %" PRId64 " ints for sorting\n",
-              nbricks);
+      fprintf(stderr,"** NIFTI NCS: failed to alloc %" PRId64
+              " ints for sorting\n", nbricks);
       if(*slist)  free(*slist);   /* maybe one succeeded */
       if(*sindex) free(*sindex);
       return -1;
@@ -1088,7 +1091,7 @@ static int nifti_copynsort(int64_t nbricks, const int64_t *blist,
    /* check the sort (why not?  I've got time...) */
    for( c1 = 0; c1 < nbricks-1; c1++ ){
        if( (stmp[c1] > stmp[c1+1]) || (blist[itmp[c1]] != stmp[c1]) ){
-          fprintf(stderr,"** sorting screw-up, way to go, rick!\n");
+          fprintf(stderr,"** NIFTI sorting screw-up, way to go, rick!\n");
           free(stmp); free(itmp); *slist = NULL; *sindex = NULL;
           return -1;
        }
@@ -1132,7 +1135,7 @@ int valid_nifti_brick_list(nifti_image * nim , int64_t nbricks,
 
    if( nim->dim[0] < 3 ){
       if( disp_error || g_opts.debug > 1 )
-        fprintf(stderr,"** cannot read explict brick list from %" PRId64 
+        fprintf(stderr,"** NIFTI: cannot read explict brick list from %" PRId64 
                 "-D dataset\n", nim->dim[0]);
       return 0;
    }
@@ -1142,8 +1145,8 @@ int valid_nifti_brick_list(nifti_image * nim , int64_t nbricks,
       nsubs *= nim->dim[c];
 
    if( nsubs <= 0 ){
-      fprintf(stderr,"** VNBL warning: bad dim list (%" PRId64 ",%" PRId64 
-                     ",%" PRId64 ",%" PRId64 ")\n",
+      fprintf(stderr,"** NIFTI VNBL warning: bad dim list (%" PRId64 ",%" 
+                     PRId64 ",%" PRId64 ",%" PRId64 ")\n",
                      nim->dim[4], nim->dim[5], nim->dim[6], nim->dim[7]);
       return 0;
    }
@@ -1152,7 +1155,7 @@ int valid_nifti_brick_list(nifti_image * nim , int64_t nbricks,
       if( (blist[c] < 0) || (blist[c] >= nsubs) ){
          if( disp_error || g_opts.debug > 1 )
             fprintf(stderr,
-               "** volume index %" PRId64 " (#%" PRId64 ")"
+               "** NIFTI volume index %" PRId64 " (#%" PRId64 ")"
                " is out of range [0,%" PRId64 "]\n", blist[c], c, nsubs-1);
          return 0;
       }
@@ -1192,14 +1195,14 @@ static int nifti_NBL_matches_nim(const nifti_image *nim,
 
    if( volbytes != NBL->bsize ) {
       if( g_opts.debug > 1 )
-         fprintf(stderr,"** NBL/nim mismatch, volbytes = %" PRId64 
+         fprintf(stderr,"** NIFTI NBL/nim mismatch, volbytes = %" PRId64 
                         ", %" PRId64 "\n", NBL->bsize, volbytes);
       errs++;
    }
 
    if( nvols != NBL->nbricks ) {
       if( g_opts.debug > 1 )
-         fprintf(stderr,"** NBL/nim mismatch, nvols = %" PRId64 
+         fprintf(stderr,"** NIFTI NBL/nim mismatch, nvols = %" PRId64 
                         ", %" PRId64 "\n", NBL->nbricks, nvols);
       errs++;
    }
@@ -3471,7 +3474,8 @@ char * nifti_find_file_extension( const char * name )
    /* if it look like a basic extension, fail or return it */
    if( compare_strlist(extcopy, elist, 4) >= 0 ) {
       if( is_mixedcase(ext) ) {
-         fprintf(stderr,"** mixed case extension '%s' is not valid\n", ext);
+         fprintf(stderr,"** NIFTI: mixed case extension '%s' is not valid\n",
+                 ext);
          return NULL;
       }
       else return (char *)ext; /* Cast away the constness of the input parameter */
@@ -3491,7 +3495,8 @@ char * nifti_find_file_extension( const char * name )
 
    if( compare_strlist(extcopy, elist, 3) >= 0 ) {
       if( is_mixedcase(ext) ) {
-         fprintf(stderr,"** mixed case extension '%s' is not valid\n", ext);
+         fprintf(stderr,"** NIFTI: mixed case extension '%s' is not valid\n",
+                        ext);
          return NULL;
       }
       else return (char *)ext; /* Cast away the constness of the input parameter */
@@ -3820,7 +3825,10 @@ char * nifti_makehdrname(const char * prefix, int nifti_type, int check,
 
    /* add space for extension, optional ".gz", and null char */
    iname = (char *)calloc(sizeof(char),strlen(prefix)+8);
-   if( !iname ){ fprintf(stderr,"** small malloc failure!\n"); return NULL; }
+   if( !iname ){
+      fprintf(stderr,"** NIFTI small malloc failure!\n");
+      return NULL;
+   }
    strcpy(iname, prefix);
 
    /* use any valid extension */
@@ -3850,7 +3858,8 @@ char * nifti_makehdrname(const char * prefix, int nifti_type, int check,
 
    /* check for existence failure */
    if( check && nifti_fileexists(iname) ){
-      fprintf(stderr,"** failure: header file '%s' already exists\n",iname);
+      fprintf(stderr,"** failure: NIFTI header file '%s' already exists\n",
+              iname);
       free(iname);
       return NULL;
    }
@@ -3890,7 +3899,10 @@ char * nifti_makeimgname(const char * prefix, int nifti_type, int check,
 
    /* add space for extension, optional ".gz", and null char */
    iname = (char *)calloc(sizeof(char),strlen(prefix)+8);
-   if( !iname ){ fprintf(stderr,"** small malloc failure!\n"); return NULL; }
+   if( !iname ){
+      fprintf(stderr,"** NIFTI: small malloc failure!\n");
+      return NULL;
+   }
    strcpy(iname, prefix);
 
    /* use any valid extension */
@@ -3920,7 +3932,8 @@ char * nifti_makeimgname(const char * prefix, int nifti_type, int check,
 
    /* check for existence failure */
    if( check && nifti_fileexists(iname) ){
-      fprintf(stderr,"** failure: image file '%s' already exists\n",iname);
+      fprintf(stderr,"** NIFTI failure: image file '%s' already exists\n",
+              iname);
       free(iname);
       return NULL;
    }
@@ -4277,7 +4290,7 @@ int nifti_set_type_from_names( nifti_image * nim )
    if( !nim ){ fprintf(stderr,"** NSTFN: no nifti_image\n");  return -1; }
 
    if( !nim->fname || !nim->iname ){
-      fprintf(stderr,"** NSTFN: missing filename(s) fname @ %p, iname @ %p\n",
+      fprintf(stderr,"** NIFTI_STFN: NULL filename(s) fname @ %p, iname @ %p\n",
               nim->fname, nim->iname);
       return -1;
    }
@@ -4287,7 +4300,8 @@ int nifti_set_type_from_names( nifti_image * nim )
        ! nifti_find_file_extension( nim->fname ) ||
        ! nifti_find_file_extension( nim->iname )
      ) {
-      fprintf(stderr,"** NSTFN: invalid filename(s) fname='%s', iname='%s'\n",
+      fprintf(stderr,"** NIFTI_STFN: invalid filename(s) "
+              "fname='%s', iname='%s'\n",
               nim->fname, nim->iname);
       return -1;
    }
@@ -4348,7 +4362,7 @@ int is_nifti_file( const char *hname )
    tmpname = nifti_findhdrname(hname);
    if( tmpname == NULL ){
       if( g_opts.debug > 0 )
-         fprintf(stderr,"** no header file found for '%s'\n",hname);
+         fprintf(stderr,"** NIFTI: no header file found for '%s'\n",hname);
       return -1;
    }
    fp = znzopen( tmpname , "rb" , nifti_is_gzfile(tmpname) ) ;
@@ -5375,8 +5389,8 @@ int nifti_hdr1_looks_good(const nifti_1_header * hdr)
    /* check dim[0] and sizeof_hdr */
    if( need_nhdr_swap(hdr->dim[0], hdr->sizeof_hdr) < 0 ){
       if( g_opts.debug > 0 )
-         fprintf(stderr,"** bad nhdr fields: dim0, sizeof_hdr = %d, %d\n",
-                 hdr->dim[0], hdr->sizeof_hdr);
+        fprintf(stderr,"** NIFTI: bad hdr1 fields: dim0, sizeof_hdr = %d, %d\n",
+                hdr->dim[0], hdr->sizeof_hdr);
       errs++;
    }
 
@@ -5384,7 +5398,8 @@ int nifti_hdr1_looks_good(const nifti_1_header * hdr)
    for( c = 1; c <= hdr->dim[0] && c <= 7; c++ )
       if( hdr->dim[c] <= 0 ){
          if( g_opts.debug > 0 )
-            fprintf(stderr,"** bad nhdr field: dim[%d] = %d\n",c,hdr->dim[c]);
+            fprintf(stderr,"** NIFTI: bad nhdr field: dim[%d] = %d\n",
+                    c,hdr->dim[c]);
          errs++;
       }
 
@@ -5408,7 +5423,8 @@ int nifti_hdr1_looks_good(const nifti_1_header * hdr)
 
       if( ! nifti_datatype_is_valid(hdr->datatype, 0) ){
          if( g_opts.debug > 0 )
-           fprintf(stderr,"** bad ANALYZE datatype in hdr, %d\n",hdr->datatype);
+           fprintf(stderr,"** NIFTI: bad ANALYZE datatype in hdr, %d\n",
+                   hdr->datatype);
          errs++;
       }
    }
@@ -5482,14 +5498,15 @@ int nifti_hdr2_looks_good(const nifti_2_header * hdr)
    int     ni_ver, c, errs = 0;
    int64_t d0;
 
-   if( !hdr ) { fprintf(stderr,"** n2hdr: hdr is NULL\n"); return 0; }
+   if( !hdr ) { fprintf(stderr,"** NIFTI n2hdr: hdr is NULL\n"); return 0; }
 
    /* for now, just warn if the header sizes are not right */
    if( g_opts.debug > 0 ) (void)nifti_valid_header_size(0, 1);
 
    if( hdr->sizeof_hdr != sizeof(nifti_2_header) ) {
       if( g_opts.debug > 0 )
-         fprintf(stderr,"** bad n2hdr: sizeof_hdr = %d\n", hdr->sizeof_hdr);
+         fprintf(stderr,"** NIFTI bad n2hdr: sizeof_hdr = %d\n",
+                 hdr->sizeof_hdr);
       errs++;
    }
 
@@ -5497,13 +5514,13 @@ int nifti_hdr2_looks_good(const nifti_2_header * hdr)
    d0 = hdr->dim[0];
    if( d0 < 0 || d0 > 7 ) {
       if( g_opts.debug > 0 )
-         fprintf(stderr,"** bad n2hdr: dim0 = %" PRId64 "\n", d0);
+         fprintf(stderr,"** NIFTI: bad n2hdr: dim0 = %" PRId64 "\n", d0);
       errs++;
    } else { /* only check dims if d0 is okay */
       for( c = 1; c <= d0; c++ )
          if( hdr->dim[c] <= 0 ){
            if( g_opts.debug > 0 )
-             fprintf(stderr,"** bad nhdr field: dim[%d] = %" PRId64 "\n",
+             fprintf(stderr,"** NIFTI: bad nhdr field: dim[%d] = %" PRId64 "\n",
                      c, hdr->dim[c]);
            errs++;
          }
@@ -6100,7 +6117,8 @@ static int nifti_read_extensions( nifti_image *nim, znzFile fp, int64_t remain )
    {
       if( nifti_add_exten_to_list(&extn, &Elist, (int)count+1) < 0 ){
          if( g_opts.debug > 0 )
-            fprintf(stderr,"** failed adding ext %" PRId64 " to list\n", count);
+            fprintf(stderr,"** NIFTI: failed adding ext %" PRId64 " to list\n",
+                    count);
          return -1;
       }
 
@@ -6180,7 +6198,7 @@ static int nifti_add_exten_to_list( nifti1_extension *  new_ext,
 
    /* check for failure first */
    if( ! *list ){
-      fprintf(stderr,"** failed to alloc %d extension structs (%d bytes)\n",
+      fprintf(stderr,"** NIFTI: failed to alloc %d ext structs (%d bytes)\n",
               new_length, new_length*(int)sizeof(nifti1_extension));
       if( !tmplist ) return -1;  /* no old list to lose */
 
@@ -6220,11 +6238,11 @@ static int nifti_fill_extension( nifti1_extension *ext, const char * data,
    int esize;
 
    if( !ext || !data || len < 0 ){
-      fprintf(stderr,"** fill_ext: bad params (%p,%p,%d)\n",
+      fprintf(stderr,"** NIFTI fill_ext: bad params (%p,%p,%d)\n",
               (void *)ext, data, len);
       return -1;
    } else if( ! nifti_is_valid_ecode(ecode) ){
-      fprintf(stderr,"** fill_ext: invalid ecode %d\n", ecode);
+      fprintf(stderr,"** NIFTI fill_ext: invalid ecode %d\n", ecode);
       /* should not be fatal    29 Apr 2015 [rickr] */
    }
 
@@ -6236,7 +6254,8 @@ static int nifti_fill_extension( nifti1_extension *ext, const char * data,
    /* allocate esize-8 (maybe more than len), using calloc for fill */
    ext->edata = (char *)calloc(esize-8, sizeof(char));
    if( !ext->edata ){
-      fprintf(stderr,"** NFE: failed to alloc %d bytes for extension\n",len);
+      fprintf(stderr,"** NIFTI NFE: failed to alloc %d bytes for extension\n",
+              len);
       return -1;
    }
 
@@ -6300,7 +6319,7 @@ static int nifti_read_next_extension( nifti1_extension * nex, nifti_image *nim,
 
    if( !nifti_check_extension(nim, size, code, remain) ){
       if( znzseek(fp, -8, SEEK_CUR) < 0 ){      /* back up past any read */
-         fprintf(stderr,"** failure to back out of extension read!\n");
+         fprintf(stderr,"** NIFTI: failure to back out of extension read!\n");
          return -1;
       }
       return 0;
@@ -6313,7 +6332,8 @@ static int nifti_read_next_extension( nifti1_extension * nex, nifti_image *nim,
    size -= 8;  /* subtract space for size and code in extension */
    nex->edata = (char *)malloc(size * sizeof(char));
    if( !nex->edata ){
-      fprintf(stderr,"** failed to allocate %d bytes for extension\n",size);
+      fprintf(stderr,"** NIFTI: failed to allocate %d bytes for extension\n",
+              size);
       return -1;
    }
 
@@ -6536,7 +6556,7 @@ static znzFile nifti_image_load_prep( nifti_image *nim )
    {
       if ( g_opts.debug > 0 ){
          if( !nim ) fprintf(stderr,"** ERROR: N_image_load: no nifti image\n");
-         else fprintf(stderr,"** ERROR: N_image_load: bad params (%p,%d,"
+         else fprintf(stderr,"** ERROR: nifti_image_load: bad params (%p,%d,"
                       "%" PRId64 ")\n", nim->iname, nim->nbyper, nim->nvox);
       }
       return NULL;
@@ -6549,7 +6569,7 @@ static znzFile nifti_image_load_prep( nifti_image *nim )
    tmpimgname = nifti_findimgname(nim->iname , nim->nifti_type);
    if( tmpimgname == NULL ){
       if( g_opts.debug > 0 )
-         fprintf(stderr,"** no image file found for '%s'\n",nim->iname);
+         fprintf(stderr,"** NIFTI: no image file found for '%s'\n",nim->iname);
       return NULL;
    }
 
@@ -6582,7 +6602,8 @@ static znzFile nifti_image_load_prep( nifti_image *nim )
 
    /**- seek to the appropriate read position */
    if( znzseek(fp , (long)ioff , SEEK_SET) < 0 ){
-      fprintf(stderr,"** could not seek to offset %" PRId64 " in file '%s'\n",
+      fprintf(stderr,"** NIFTI: could not seek to offset %" PRId64
+                     " in file '%s'\n",
               ioff, nim->iname);
       znzclose(fp);
       return NULL;
@@ -6635,7 +6656,7 @@ int nifti_image_load( nifti_image *nim )
      nim->data = (void *)calloc(1,ntot) ;  /* create image memory */
      if( nim->data == NULL ){
         if( g_opts.debug > 0 )
-           fprintf(stderr,"** failed to alloc %d bytes for image data\n",
+           fprintf(stderr,"** NIFTI: failed to alloc %d bytes for image data\n",
                    (int)ntot);
         znzclose(fp);
         return -1;
@@ -6880,14 +6901,14 @@ int nifti_write_all_data(znzFile fp, nifti_image * nim,
 
    if( !NBL ){ /* just write one buffer and get out of here */
       if( nim->data == NULL ){
-         fprintf(stderr,"** NWAD: no image data to write\n");
+         fprintf(stderr,"** NIFTI ERROR (NWAD): no image data to write\n");
          return -1;
       }
 
       ss = nifti_write_buffer(fp,nim->data,nim->nbyper * nim->nvox);
       if (ss < nim->nbyper * nim->nvox){
          fprintf(stderr,
-            "** ERROR: NWAD: wrote only %" PRId64 " of %" PRId64 
+            "** NIFTI ERROR (NWAD): wrote only %" PRId64 " of %" PRId64 
             " bytes to file\n",
             ss, nim->nbyper * nim->nvox);
          return -1;
@@ -6897,8 +6918,8 @@ int nifti_write_all_data(znzFile fp, nifti_image * nim,
          fprintf(stderr,"+d wrote single image of %" PRId64 " bytes\n", ss);
    } else {
       if( ! NBL->bricks || NBL->nbricks <= 0 || NBL->bsize <= 0 ){
-         fprintf(stderr,"** NWAD: no brick data to write (%p,%" PRId64 
-                 ",%" PRId64 ")\n",
+         fprintf(stderr,"** NIFTI error (NWAD): no brick data to write (%p,%"
+                        PRId64 ",%" PRId64 ")\n",
                  (void *)NBL->bricks, NBL->nbricks, NBL->bsize);
          return -1;
       }
@@ -6907,8 +6928,8 @@ int nifti_write_all_data(znzFile fp, nifti_image * nim,
          ss = nifti_write_buffer(fp, NBL->bricks[bnum], NBL->bsize);
          if( ss < NBL->bsize ){
             fprintf(stderr,
-            "** NWAD ERROR: wrote %" PRId64 " of %" PRId64 
-            " bytes of brick %" PRId64 " of %" PRId64 " to file",
+            "** NIFTI ERROR (NWAD): wrote only %" PRId64 " of %" PRId64 
+            " bytes of brick %" PRId64 " of %" PRId64 " to file\n",
             ss, NBL->bsize, bnum+1, NBL->nbricks);
             return -1;
          }
@@ -6952,7 +6973,7 @@ static int nifti_write_extensions(znzFile fp, nifti_image *nim)
    /* write out extender block */
    if( nim->num_ext > 0 ) extdr[0] = 1;
    if( nifti_write_buffer(fp, extdr, 4) != 4 ){
-      fprintf(stderr,"** failed to write extender\n");
+      fprintf(stderr,"** NIFTI ERROR: failed to write extender\n");
       return -1;
    }
 
@@ -6970,7 +6991,7 @@ static int nifti_write_extensions(znzFile fp, nifti_image *nim)
       }
 
       if( !ok ){
-         fprintf(stderr,"** failed while writing extension #%d\n",c);
+         fprintf(stderr,"** NIFTI: failed while writing extension #%d\n",c);
          return -1;
       } else if ( g_opts.debug > 2 )
          fprintf(stderr,"+d wrote extension %d of %d bytes\n", c, size);
@@ -7075,7 +7096,7 @@ nifti_2_header * nifti_make_new_n2_header(const int64_t arg_dims[],
 
    nhdr = (nifti_2_header *)calloc(1,sizeof(nifti_2_header));
    if( !nhdr ){
-      fprintf(stderr,"** make_new_n2_header: failed to alloc hdr\n");
+      fprintf(stderr,"** NIFTI make_new_n2_header: failed to alloc hdr\n");
       return NULL;
    }
 
@@ -7155,7 +7176,7 @@ nifti_1_header * nifti_make_new_n1_header(const int64_t arg_dims[],
 
    nhdr = (nifti_1_header *)calloc(1,sizeof(nifti_1_header));
    if( !nhdr ){
-      fprintf(stderr,"** make_new_n1_header: failed to alloc hdr\n");
+      fprintf(stderr,"** NIFTI make_new_n1_header: failed to alloc hdr\n");
       return NULL;
    }
 
@@ -7217,8 +7238,8 @@ nifti_image * nifti_make_new_nim(const int64_t dims[], int datatype,
 
       /* if we cannot allocate data, take ball and go home */
       if( !nim->data ) {
-         fprintf(stderr,"** NMNN: failed to alloc %" PRId64 " bytes for data\n",
-                 nim->nvox*nim->nbyper);
+         fprintf(stderr,"** NIFTI NMNN: failed to alloc %" PRId64
+                        " bytes for data\n", nim->nvox*nim->nbyper);
          nifti_image_free(nim);
          nim = NULL;
       }
@@ -7509,7 +7530,7 @@ int nifti_copy_extensions(nifti_image * nim_dest, const nifti_image * nim_src)
    int      c, size, old_size;
 
    if( nim_dest->num_ext > 0 || nim_dest->ext_list != NULL ){
-      fprintf(stderr,"** will not copy extensions over existing ones\n");
+      fprintf(stderr,"** NIFTI: will not copy over existing extensions\n");
       return -1;
    }
 
@@ -7537,7 +7558,8 @@ int nifti_copy_extensions(nifti_image * nim_dest, const nifti_image * nim_src)
       /* data length is size-8, as esize includes space for esize and ecode */
       data = (char *)calloc(size-8,sizeof(char));      /* maybe size > old */
       if( !data ){
-         fprintf(stderr,"** failed to alloc %d bytes for extention\n", size);
+         fprintf(stderr,"** NIFTI: failed to alloc %d bytes for extention\n",
+                 size);
          if( c == 0 ) { free(nim_dest->ext_list); nim_dest->ext_list = NULL; }
          /* otherwise, keep what we have (a.o.t. deleting them all) */
          return -1;
@@ -7801,7 +7823,8 @@ znzFile nifti_write_ascii_image(nifti_image *nim, const nifti_brick_list * NBL,
    fp = znzopen( nim->fname , opts , nifti_is_gzfile(nim->fname) ) ;
    if( znz_isnull(fp) ){
       free(hstr);
-      fprintf(stderr,"** failed to open '%s' for ascii write\n",nim->fname);
+      fprintf(stderr,"** NIFTI: failed to open '%s' for ascii write\n",
+              nim->fname);
       return fp;
    }
 
@@ -8040,7 +8063,8 @@ static char *escapize_string( const char * str )
    }
    out = (char *)calloc(1,lout) ;     /* allocate output string */
    if( !out ){
-      fprintf(stderr,"** escapize_string: failed to alloc %d bytes\n",lout);
+      fprintf(stderr,"** NIFTI escapize_string: failed to alloc %d bytes\n",
+              lout);
       return NULL;
    }
    out[0] = '\'' ;                    /* opening quote mark */
@@ -8081,7 +8105,7 @@ char *nifti_image_to_ascii( const nifti_image *nim )
 
    buf = (char *)calloc(1,65534); nbuf = 0; /* longer than needed, to be safe */
    if( !buf ){
-      fprintf(stderr,"** NITA: failed to alloc %d bytes\n",65534);
+      fprintf(stderr,"** NIFTI NITA: failed to alloc %d bytes\n",65534);
       return NULL;
    }
 
@@ -8309,7 +8333,8 @@ char *nifti_image_to_ascii( const nifti_image *nim )
 
    nbuf = (int)strlen(buf) ;
    buf  = (char *)realloc((void *)buf, nbuf+1); /* cut back to proper length */
-   if( !buf ) fprintf(stderr,"** NITA: failed to realloc %d bytes\n",nbuf+1);
+   if( !buf ) fprintf(stderr,"** NIFTI NITA: failed to realloc %d bytes\n",
+                      nbuf+1);
    return buf ;
 }
 
@@ -8564,7 +8589,7 @@ int nifti_nim_is_valid(nifti_image * nim, int complain)
    int errs = 0;
 
    if( !nim ){
-      fprintf(stderr,"** is_valid_nim: nim is NULL\n");
+      fprintf(stderr,"** NIFTI is_valid_nim: nim is NULL\n");
       return 0;
    }
 
@@ -8601,8 +8626,8 @@ int nifti_nim_has_valid_dims(nifti_image * nim, int complain)
    if( nim->dim[0] <= 0 || nim->dim[0] > 7 ){
       errs++;
       if( complain )
-        fprintf(stderr,"** NVd: dim[0] (%" PRId64 ") out of range [1,7]\n",
-                nim->dim[0]);
+        fprintf(stderr,"** NIFTI NVd: dim[0] (%" PRId64
+                       ") out of range [1,7]\n", nim->dim[0]);
       return 0;
    }
 
@@ -8610,7 +8635,7 @@ int nifti_nim_has_valid_dims(nifti_image * nim, int complain)
    if( nim->ndim != nim->dim[0] ){
       errs++;
       if( ! complain ) return 0;
-      fprintf(stderr,"** NVd: ndim != dim[0] (%" PRId64 ",%" PRId64 ")\n",
+      fprintf(stderr,"** NIFTI NVd: ndim != dim[0] (%" PRId64 ",%" PRId64 ")\n",
               nim->ndim,nim->dim[0]);
    }
 
@@ -8624,7 +8649,7 @@ int nifti_nim_has_valid_dims(nifti_image * nim, int complain)
        ( (nim->dim[0] >= 7) && (nim->dim[7] != nim->nw) )   ){
       errs++;
       if( !complain ) return 0;
-      fprintf(stderr,"** NVd mismatch: dims    = %" PRId64 ",%" PRId64 
+      fprintf(stderr,"** NIFTI NVd mismatch: dims    = %" PRId64 ",%" PRId64 
               ",%" PRId64 ",%" PRId64 ",%" PRId64 ",%" PRId64 ",%" PRId64 "\n"
               "                 nxyz... = %" PRId64 ",%" PRId64 ",%" PRId64 
               ",%" PRId64 ",%" PRId64 ",%" PRId64 ",%" PRId64 "\n",
@@ -8647,14 +8672,14 @@ int nifti_nim_has_valid_dims(nifti_image * nim, int complain)
          prod *= nim->dim[c];
       else if( nim->dim[c] <= 0 ){
          if( !complain ) return 0;
-         fprintf(stderr,"** NVd: dim[%" PRId64 "] (=%" PRId64 ") <= 0\n",
+         fprintf(stderr,"** NIFTI NVd: dim[%" PRId64 "] (=%" PRId64 ") <= 0\n",
                  c, nim->dim[c]);
          errs++;
       }
    }
    if( prod != nim->nvox ){
       if( ! complain ) return 0;
-      fprintf(stderr,"** NVd: nvox does not match %" PRId64 
+      fprintf(stderr,"** NIFTI NVd: nvox does not match %" PRId64 
               "-dim product (%" PRId64 ", %" PRId64 ")\n",
               nim->dim[0], nim->nvox, prod);
       errs++;
@@ -8666,7 +8691,7 @@ int nifti_nim_has_valid_dims(nifti_image * nim, int complain)
    if( g_opts.debug > 1 )
       for( c = nim->dim[0]+1; c <= 7; c++ )
          if( nim->dim[c] != 0 && nim->dim[c] != 1 )
-            fprintf(stderr,"** NVd warning: dim[%" PRId64 "] = %" PRId64 
+            fprintf(stderr,"** NIFTI NVd warning: dim[%" PRId64 "] = %" PRId64 
                     ", but ndim = %" PRId64 "\n",
                     c, nim->dim[c], nim->dim[0]);
 
@@ -8774,7 +8799,7 @@ int64_t nifti_read_collapsed_image( nifti_image * nim, const int64_t dims [8],
 
    /** - verify that dim[] makes sense */
    if( ! nifti_nim_is_valid(nim, g_opts.debug > 0) ){
-      fprintf(stderr,"** invalid nim (file is '%s')\n", nim->fname );
+      fprintf(stderr,"** NIFTI: invalid nim (file is '%s')\n", nim->fname );
       return -1;
    }
 
@@ -9006,7 +9031,7 @@ static int rci_read_data(nifti_image * nim, int * pivots, int64_t * prods,
 
    /* bad check first - base_offset may not have been checked */
    if( nprods <= 0 ){
-      fprintf(stderr,"** rci_read_data, bad prods, %d\n", nprods);
+      fprintf(stderr,"** NIFTI rci_read_data, bad prods, %d\n", nprods);
       return -1;
    }
 
@@ -9016,7 +9041,7 @@ static int rci_read_data(nifti_image * nim, int * pivots, int64_t * prods,
 
       /* make sure things look good here */
       if( *pivots != 0 ){
-         fprintf(stderr,"** rciRD: final pivot == %d!\n", *pivots);
+         fprintf(stderr,"** NIFTI rciRD: final pivot == %d!\n", *pivots);
          return -1;
       }
 
@@ -9025,7 +9050,7 @@ static int rci_read_data(nifti_image * nim, int * pivots, int64_t * prods,
       bytes = prods[0] * nim->nbyper;
       nread = nifti_read_buffer(fp, data, bytes, nim);
       if( nread != bytes ){
-         fprintf(stderr,"** rciRD: read only %" PRId64 " of %" PRId64 
+         fprintf(stderr,"** NIFTI rciRD: read only %" PRId64 " of %" PRId64 
                  " bytes from '%s'\n",
                  nread, bytes, nim->fname);
          return -1;
@@ -9083,7 +9108,7 @@ static int rci_alloc_mem(void **data, int64_t prods[8], int nprods, int nbyper )
    int     memindex;
 
    if( nbyper < 0 || nprods < 1 || nprods > 8 ){
-      fprintf(stderr,"** rci_am: bad params, %d, %d\n", nbyper, nprods);
+      fprintf(stderr,"** NIFTI rci_am: bad params, %d, %d\n", nbyper, nprods);
       return -1;
    }
 
@@ -9094,12 +9119,13 @@ static int rci_alloc_mem(void **data, int64_t prods[8], int nprods, int nbyper )
 
    if( ! *data ){   /* then allocate what is needed */
       if( g_opts.debug > 1 )
-         fprintf(stderr,"+d alloc %" PRId64 " (%" PRId64 " x %d) bytes for collapsed image\n",
+         fprintf(stderr,"+d alloc %" PRId64
+                 " (%" PRId64 " x %d) bytes for collapsed image\n",
                  size, size/nbyper, nbyper);
 
       *data = malloc(size);   /* actually allocate the memory */
       if( ! *data ){
-        fprintf(stderr,"** rci_am: failed to alloc %" PRId64 
+        fprintf(stderr,"** NIFTI rci_am: failed to alloc %" PRId64 
                 " bytes for data\n", size);
         return -1;
       }
@@ -9231,20 +9257,20 @@ int64_t * nifti_get_int64list( int64_t nvals , const char * str )
       } else {                 /* decode an integer */
          ibot = strtoll( str+ipos , &cpt , 10 ) ;
          if( ibot < 0 ){
-           fprintf(stderr,"** ERROR: list index %" PRId64 
+           fprintf(stderr,"** NIFTI ERROR: list index %" PRId64 
                    " is out of range 0..%" PRId64 "\n",
                    ibot,nvals-1) ;
            free(subv) ; return NULL ;
          }
          if( ibot >= nvals ){
-           fprintf(stderr,"** ERROR: list index %" PRId64
+           fprintf(stderr,"** NIFTI ERROR: list index %" PRId64
                    " is out of range 0..%" PRId64 "\n",
                    ibot,nvals-1) ;
            free(subv) ; return NULL ;
          }
          nused = (cpt-(str+ipos)) ;
          if( ibot == 0 && nused == 0 ){
-           fprintf(stderr,"** ERROR: list syntax error '%s'\n",str+ipos) ;
+           fprintf(stderr,"** NIFTI : list syntax error '%s'\n",str+ipos) ;
            free(subv) ; return NULL ;
          }
          ipos += nused ;
@@ -9275,7 +9301,7 @@ int64_t * nifti_get_int64list( int64_t nvals , const char * str )
       } else if( str[ipos] == '.' && str[ipos+1] == '.' ){
          ipos++ ; ipos++ ;
       } else {
-         fprintf(stderr,"** ERROR: index list syntax is bad: '%s'\n",
+         fprintf(stderr,"** NIFTI ERROR: index list syntax is bad: '%s'\n",
                  str+ipos) ;
          free(subv) ; return NULL ;
       }
@@ -9287,20 +9313,21 @@ int64_t * nifti_get_int64list( int64_t nvals , const char * str )
       } else {                 /* decode an integer */
          itop = strtoll( str+ipos , &cpt , 10 ) ;
          if( itop < 0 ){
-           fprintf(stderr,"** ERROR: index %" PRId64 
+           fprintf(stderr,"** NIFTI ERROR: index %" PRId64 
                    " is out of range 0..%" PRId64 "\n",
                    itop,nvals-1) ;
            free(subv) ; return NULL ;
          }
          if( itop >= nvals ){
-           fprintf(stderr,"** ERROR: index %" PRId64 
+           fprintf(stderr,"** NIFTI ERROR: index %" PRId64 
                    " is out of range 0..%" PRId64 "\n",
                    itop,nvals-1) ;
            free(subv) ; return NULL ;
          }
          nused = (cpt-(str+ipos)) ;
          if( itop == 0 && nused == 0 ){
-           fprintf(stderr,"** ERROR: index list syntax error '%s'\n",str+ipos) ;
+           fprintf(stderr,"** NIFTI: index list syntax error '%s'\n",
+                          str+ipos) ;
            free(subv) ; return NULL ;
          }
          ipos += nused ;
@@ -9318,14 +9345,14 @@ int64_t * nifti_get_int64list( int64_t nvals , const char * str )
          ipos++ ;
          istep = strtoll( str+ipos , &cpt , 10 ) ;
          if( istep == 0 ){
-           fprintf(stderr,"** ERROR: index loop step is 0!\n") ;
+           fprintf(stderr,"** NIFTI ERROR: index loop step is 0!\n") ;
            free(subv) ; return NULL ;
          }
          nused = (cpt-(str+ipos)) ;
          ipos += nused ;
          if( str[ipos] == ')' ) ipos++ ;
          if( (ibot-itop)*istep > 0 ){
-        fprintf(stderr,"** WARNING: index list '%" PRId64 "..%" PRId64 
+        fprintf(stderr,"** NIFTI WARNING: index list '%" PRId64 "..%" PRId64 
                 "(%" PRId64 ")' means nothing\n",
                 ibot,itop,istep ) ;
          }
@@ -9377,7 +9404,7 @@ int * nifti_get_intlist( int nvals , const char * str )
    if( nints <= 0 ) { free(i64list); return NULL; }
 
    if( nints > INT_MAX ) {
-      fprintf(stderr,"** N_get_intlist: %" PRId64 
+      fprintf(stderr,"** nifti_get_intlist: %" PRId64 
               " ints is too long for 32-bits\n", nints);
       free(i64list);
       return NULL;
@@ -9386,7 +9413,7 @@ int * nifti_get_intlist( int nvals , const char * str )
    /* have a valid result, copy as ints */
    ilist = (int *)malloc((nints+1) * sizeof(int));
    if( !ilist ) {
-      fprintf(stderr,"** N_get_intlist: failed to alloc %" PRId64 " ints\n",
+      fprintf(stderr,"** nifti_get_intlist: failed to alloc %" PRId64 " ints\n",
               nints);
       free(i64list);
       return NULL;
@@ -9395,7 +9422,7 @@ int * nifti_get_intlist( int nvals , const char * str )
    /* copy list, including length at index 0 */
    for( index=0; index <= nints; index++ ) {
       if( i64list[index] > INT_MAX ) {
-         fprintf(stderr,"** N_get_intlist: value %" PRId64 
+         fprintf(stderr,"** nifti_get_intlist: value %" PRId64 
                  " too big for 32-bits\n",
                  i64list[index]);
          free(ilist);
@@ -9494,7 +9521,8 @@ int nifti_test_datatype_sizes(int verb)
                 ssize != nifti_type_list[c].swapsize )
         {
             if( verb || g_opts.debug > 2 )
-                fprintf(stderr, "** type mismatch: %s, %d, %d, %d : %d, %d\n",
+                fprintf(stderr, "** NIFTI type mismatch: "
+                    "%s, %d, %d, %d : %d, %d\n",
                     nifti_type_list[c].name, nifti_type_list[c].type,
                     nifti_type_list[c].nbyper, nifti_type_list[c].swapsize,
                     nbyper, ssize);

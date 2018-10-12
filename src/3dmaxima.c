@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 static char * g_history[] =
 {
     "History:",
@@ -13,10 +13,11 @@ static char * g_history[] =
     "  1.1  18 Aug 2006 [rickr]  - added -coords_only option",
     "  1.2  17 Jul 2007 [rickr]  - fixed -n_style_sort option use",
     "  1.3  16 Apr 2013 [rickr]  - apply modern dset coordinate signs",
-    "                              reported by G Pagnoni"
+    "                              reported by G Pagnoni",
+    "  1.4  13 Sep 2018 [rickr]  - return 0 on terminal return"
 };
 
-#define MAXIMA_VERSION "1.3 (April 16, 2013)"
+#define MAXIMA_VERSION "1.4 (September 13, 2018)"
 
 static char * g_help[] =
 {
@@ -226,7 +227,7 @@ int main( int argc, char * argv[] )
 
     mainENTRY("3dmaxima main"); machdep() ;
     if (( rv = process_args( argc, argv, &A, &M )) != 0 )
-	return(rv > 0);
+	return(rv < 0);
 
     if ( ! process_data( &M ) )
 	return 1;
@@ -451,4 +452,3 @@ ENTRY("process_args");
 
     RETURN(0);
 }
-

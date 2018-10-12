@@ -5722,19 +5722,30 @@ STATUS("making prog->rowcol") ;
       prog->hidden_melter_pb =
             XtVaCreateManagedWidget(
                "dialog" , xmPushButtonWidgetClass , prog->hidden_menu ,
-#if 0
-                  LABEL_ARG("AFNI Meltdown") ,
-#else
                   LABEL_ARG("Activate Omega-13") ,
-#endif
                   XmNmarginHeight , 0 ,
                   XmNtraversalOn , True  ,
                   XmNinitialResourcesPersistent , False ,
                NULL ) ;
       XtAddCallback( prog->hidden_melter_pb , XmNactivateCallback ,
                      AFNI_hidden_CB , im3d ) ;
-      MCW_set_widget_bg( prog->hidden_melter_pb , "black" , 0 ) ;        \
-      MCW_set_widget_fg( prog->hidden_melter_pb , "#ffbb88" ) ;          \
+      MCW_set_widget_bg( prog->hidden_melter_pb , "black" , 0 ) ;
+      MCW_set_widget_fg( prog->hidden_melter_pb , "#ffbb88" ) ;
+
+      /*----------*/
+
+      prog->hidden_sound_pb =
+            XtVaCreateManagedWidget(
+               "dialog" , xmPushButtonWidgetClass , prog->hidden_menu ,
+                  LABEL_ARG("Play startup sound") ,
+                  XmNmarginHeight , 0 ,
+                  XmNtraversalOn , True  ,
+                  XmNinitialResourcesPersistent , False ,
+               NULL ) ;
+      XtAddCallback( prog->hidden_sound_pb , XmNactivateCallback ,
+                     AFNI_hidden_CB , im3d ) ;
+      MCW_set_widget_bg( prog->hidden_sound_pb , "#330077" , 0 ) ;
+      MCW_set_widget_fg( prog->hidden_sound_pb , "#ffcc22" ) ;
 
       /*----------*/
 

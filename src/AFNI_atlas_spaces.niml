@@ -559,7 +559,8 @@
  dset_name="HaskinsPeds_aff_atlas1.0+tlrc.HEAD"
  template_space="HaskinsPeds"
  description="Version 1.0"
- comment="Haskins Atlas 1.0.  REF: Molfese, Glen, Mesite, Pugh... (In Prep.)"
+ comment="Haskins Atlas 1.0. Ref: Molfese, Glen, Mesite, Pugh, & Cox (2015, June). The Haskins Pediatric Brain Atlas.
+     Poster session presented at the Organization for Human Brain Mapping, Honolulu, HI"
 ></ATLAS>
 
 <ATLAS
@@ -567,7 +568,8 @@
  dset_name="HaskinsPeds_NL_atlas1.0+tlrc.HEAD"
  template_space="HaskinsPeds"
  description="Version 1.0"
- comment="Haskins Atlas 1.0.  REF: Molfese, Glen, Mesite, Pugh... (In Prep.)"
+ comment="Haskins Atlas 1.0. Ref: Molfese, Glen, Mesite, Pugh, & Cox (2015, June). The Haskins Pediatric Brain Atlas. 
+     Poster session presented at the Organization for Human Brain Mapping, Honolulu, HI"
 ></ATLAS>
 
 #*******Template datasets ************************
@@ -674,13 +676,17 @@
 <TEMPLATE
    template_name="HaskinsPeds_NL_template1.0+tlrc"
    template_space="HaskinsPeds"
-   comment="Haskins Pediatric Atlas 1.0.  REF: Molfese, Glen, Mesite, Pugh... (In Prep.)"
+   comment="Haskins Pediatric Atlas 1.0. Ref: Molfese, Glen, Mesite, Pugh, & Cox (2015, June). 
+     The Haskins Pediatric Brain Atlas. Poster session presented at the 
+     Organization for Human Brain Mapping, Honolulu, HI"
 ></TEMPLATE>
 
 <TEMPLATE
    template_name="HaskinsPeds_aff_template1.0+tlrc"
    template_space="HaskinsPeds"
-   comment="Haskins Pediatric Atlas 1.0.  REF: Molfese, Glen, Mesite, Pugh... (In Prep.)"
+   comment="Haskins Pediatric Atlas 1.0. Ref: Molfese, Glen, Mesite, Pugh, & Cox (2015, June). 
+     The Haskins Pediatric Brain Atlas Poster session presented at the 
+     Organization for Human Brain Mapping, Honolulu, HI"
 ></TEMPLATE>
 
 #**********************************************

@@ -555,11 +555,23 @@ class StimClass:
       self.nreps        = nreps         # number of events (per-/across- runs)
       self.sclass       = sclass        # name of stim TimingClass
       self.rclass       = rclass        # name of rest TimingClass
+      self.status       = 0             # 0 is good
 
       if not isinstance(sclass, TimingClass):
          print('** StimClass stim timing is not a TimingClass')
+         self.status = 1
+         return
       if not isinstance(rclass, TimingClass):
          print('** StimClass rest timing is not a TimingClass')
+         self.status = 1
+         return
+
+      if sclass.mean_dur < 0:
+         print("** error for stim_class '%s':\n"                       \
+               "   cannot have unbounded mean (see timing_class '%s')" \
+               % (self.name, sclass.name))
+         self.status = 1
+         return
 
       self.verb         = verb
 

@@ -527,7 +527,7 @@ void Syntax(int detail)
     "                     period from time 'a' to time 'b'.  For example,\n"
     "                       -dt 2.0 -tstim 13.2:15.7 20.3:25.3\n"
     "                     The amplitude of a response of duration equal to\n"
-    "                     'dt' is equal the the amplitude of a single impulse\n"
+    "                     'dt' is equal to the amplitude of a single impulse\n"
     "                     response (which is the special case a=b).  N.B.: This\n"
     "                     means that something like '5:5.01' is very different\n"
     "                     from '5' (='5:5').  The former will have a small amplitude\n"
