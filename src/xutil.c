@@ -2342,7 +2342,7 @@ void AFNI_speak( char *string , int nofork )
    /* don't have "say" program ==> quit */
 
    if( have_say == -1 ) have_say = (THD_find_executable("say") != NULL) ;
-   if( have_say == 0 ) return ;
+   if( have_say ==  0 ) return ;
 
    /* if want speech to run in a separate process ... */
 
@@ -2378,6 +2378,21 @@ void AFNI_speak( char *string , int nofork ){ return; }  /* dummy function */
 void AFNI_speak_setvoice( char *vvv ){ return; }
 
 #endif
+
+/****************************************************************************/
+
+void AFNI_startup_sound(void)
+{
+#ifndef NO_FRIVOLITIES
+  static int have_sox=-1 ;
+
+  if( have_sox < 0 ) have_sox = ( THD_find_executable("sox") != NULL ) ;
+  if( have_sox == 0 ) return ;
+
+  system("sox -n -d synth 0.5 pluck E3 pluck F3 gain -h -27 delay 0.2 0 fade t 0.05 &> /dev/null") ;
+#endif
+  return ;
+}
 
 /****************************************************************************/
 

@@ -44,13 +44,21 @@ def exec_or_error(cmd_str,error_msg="ERROR!!!"):
     print("")
     print(cmd_str)
     sys.stdout.flush()
-    p = subprocess.Popen(cmd_str,stdout=subprocess.PIPE,shell=True)
-    cmd_output = p.communicate()[0]
-    print("")
-    if p.returncode != 0:
-        print("\n"+error_msg+"\n\n"+cmd_output)
-        sys.exit(1)
-    return p.returncode,cmd_output
+
+    # use local library, which returns strings instead of bytes
+    retcode, cmd_output = afni_util.exec_tcsh_command(cmd_str)
+    if retcode != 0:
+       print("\n%s\n\n%s" % (error_msg, cmd_output))
+       sys.exit(1)
+    return retcode, cmd_output
+
+    #p = subprocess.Popen(cmd_str,stdout=subprocess.PIPE,shell=True)
+    #cmd_output = p.communicate()[0]
+    #print("")
+    #if p.returncode != 0:
+    #    print("\n"+error_msg+"\n\n"+cmd_output)
+    #    sys.exit(1)
+    #return p.returncode,cmd_output
 
 
 ########################################################################
@@ -262,8 +270,10 @@ for e in range(0,len(echos)):
         p50 = cmd_output.split()[1]
 
     ## scale
-    cmd_str = ("3dcalc -float "+overwrite+" -a "+mask_echo.ppv()+" "+
-               "-expr 'a*10000/"+p50+"' -prefix "+out_echo.pp())
+    #  for python3, use %s for string conversion, rather than + 
+    #  (might be a moot point, now that exec_or_error() uses afni_util)
+    cmd_str = "3dcalc -float %s -a %s -expr 'a*10000/%s' -prefix %s" \
+              % (overwrite , mask_echo.ppv(), p50, out_echo.pp())
     exec_or_error(cmd_str,"ERROR: Scaling failed!!!")
 
     # ## mean

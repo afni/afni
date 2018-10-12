@@ -305,7 +305,7 @@ static int write_dset(THD_3dim_dataset * dset, char * name)
    return 0;
 }
 
-/* for monitoring the the RAM usage */
+/* for monitoring the RAM usage */
 static int show_malloc_stats(char * mesg)
 {
    int show_stats, show_ps, get_char;

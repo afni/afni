@@ -502,7 +502,7 @@ for(i = 0; i < *classCount; i++) {
 
 /* Build array of indices for reordering the time-course */
 /* Find the first occurrence of the lowest value class [currentClass].
-   Store the the index positions of that class sequence in the current
+   Store the index positions of that class sequence in the current
    positions available in the 'index' array.
 */
 

@@ -9,6 +9,7 @@ import afni_base as BASE
 import lib_textdata as TD
 import glob
 import pdb
+import re
 
 # global lists for basis functions
 basis_known_resp_l = ['GAM', 'BLOCK', 'dmBLOCK', 'dmUBLOCK', 'SPMG1',
@@ -127,6 +128,37 @@ def read_top_lines(fname='stdin', nlines=1, strip=0, verb=1):
    tdata = read_text_file(fname, strip=strip, verb=verb)
    if nlines != 0: tdata = tdata[0:nlines]
    return tdata
+
+def write_data_as_json(data, fname='stdout', indent=3, newline=1):
+   """dump to json file; check for stdout or stderr
+      return 0 on success
+   """
+   # import locally, unless it is needed in at least a few functions
+   # (will make default in afni_proc.py, so be safe)
+   try:
+      import json
+   except:
+      print("** afni_util.py: 'json' python library is missing")
+      return 1
+
+   if fname == 'stdout' or fname == '-':
+      fp = sys.stdout
+   elif fname == 'stderr':
+      fp = sys.stderr
+   else:
+      try: fp = open(fname, 'w')
+      except:
+         print("** write_as_json: could not open '%s' for writing" % fname)
+         return 1
+
+   # actual write
+   json.dump(data, fp, indent=indent)
+
+   if newline: fp.write('\n')
+   if fp != sys.stdout and fp != sys.stderr:
+      fp.close()
+
+   return 0
 
 def read_AFNI_version_file(vdir='', vfile='AFNI_version.txt', delim=', '):
    """read AFNI_version.txt from vdir (else executable_dir)
@@ -825,21 +857,102 @@ def get_typed_dset_attr_list(dset, attr, atype, verb=1):
 
     return err, result
 
+def get_dset_history(dname, lines=1):
+   """run 3dinfo -history on 'dname' and return the list of lines"""
+   command = '3dinfo -history %s' % dname
+   status, olines = exec_tcsh_command(command, lines=lines, noblank=1)
+   if status: return []
+   return olines
+
 def get_last_history_command(dname, substr):
-   """run 3dNotes -ses on 'dname' and return the last line containing 'substr'
+   """run 3dinfo -history on 'dname' and return the last line
+          containing 'substr'
       return one text line, or '' on failure
    """
-   command = '3dNotes -ses %s' % dname
-   status, olines = exec_tcsh_command(command, lines=1, noblank=1)
-   if status: return ''
-
-   olen   = len(olines)
+   olines = get_dset_history(dname)
+   olen = len(olines)
+   if olen == 0: return ''
 
    # work backwards
    for ind in range(olen-1, -1, -1):
       if olines[ind].find(substr) >= 0: return olines[ind]
 
    return ''
+
+def get_last_history_ver_pack(dname):
+   """run 3dinfo -history on 'dname' and return the last line
+          containing a valid version
+      return status and the version and package strings
+             status = 0 on success, 1 on error
+   """
+   olines = get_dset_history(dname)
+   olen = len(olines)
+   if olen == 0: return ''
+
+   # work backwards and extract the first valid version found
+   for ind in range(olen-1, -1, -1):
+      st, vstrs = find_afni_history_version(olines[ind])
+      if st == 0:
+         return 0, vstrs[0], vstrs[1]
+
+   return 1, '', ''
+
+def get_last_history_version(dname):
+   """get_last_history_version(DSET_NAME):
+      return the last AFNI version from the HISTORY
+      return an empty string on error
+   """
+   st, aver, package = get_last_history_ver_pack(dname)
+   return aver
+
+def get_last_history_package(dname):
+   """get_last_history_package(DSET_NAME):
+      return the last AFNI package from the HISTORY
+      return an empty string on error
+   """
+   st, aver, package = get_last_history_ver_pack(dname)
+   return package
+
+def find_afni_history_version(av_str):
+   """given {AFNI_A.B.C:PACKAGE},
+      return the status and [AFNI_A.B.C, PACKAGE] pair as a list
+      return 1, [] on error
+   """
+   re_format = '{(AFNI_\d+\.\d+\.\d+):(.*)}'
+
+   try:    match = re.search(re_format, av_str)
+   except: return 1, []
+
+   if match is None:
+      return 1, []
+
+   # we have a match, just verify that we found all 4 pieces
+   rv = list(match.groups())
+
+   if len(rv) != 2: return 1, []
+
+   return 0, rv
+
+def parse_afni_version(av_str):
+   """given 'AFNI_18.2.10', return status 0 and the int list [18,2,10]
+      return 1, [] on error
+   """
+   re_format = 'AFNI_(\d+)\.(\d+)\.(\d+)'
+
+   try:    match = re.search(re_format, av_str)
+   except: return 1, []
+
+   if match is None:
+      return 1, []
+
+   # we have a match, convert to ints
+   rv = list(match.groups())
+
+   if len(rv) != 3: return 1, []
+
+   # return what we have
+   try: return 0, [int(val) for val in rv]
+   except: return 1, []
 
 def get_3dinfo(dname, lines=0, verb=0):
    """run 3dinfo, possibly -verb or -VERB
@@ -3764,6 +3877,7 @@ afni_util.py: not really intended as a main program
             afni_util.py -eval "show_process_stack(verb=2)"
             afni_util.py -eval "show_process_stack(pid=1000)"
 
+
       -exec STRING      : execute STRING in the context of afni_util.py
 
          This option is used to simply execute the code in STRING.
@@ -3785,6 +3899,11 @@ afni_util.py: not really intended as a main program
       -print STRING     : print the result of executing STRING
 
          Akin to -eval, but print the results of evaluating STRING.
+
+         Examples for print:
+
+            afni_util.py -print "get_last_history_ver_pack('DSET+tlrc')"
+            afni_util.py -print "get_last_history_version('DSET+tlrc')"
 
       -lprint STRING    : line print: print result list, one element per line
 

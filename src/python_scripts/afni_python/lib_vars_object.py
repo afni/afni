@@ -97,6 +97,14 @@ class VarsObject(object):
       retlist.sort()
       return retlist
 
+   def get_attribute_dict(self, getall=0):
+      dupe = {}
+      for atr in self.attributes():
+         if self.get_atomic_type(atr) == None and not getall: continue
+         val = self.valcopy(atr)
+         dupe[atr] = val
+      return dupe
+
    def copy(self, name=None, as_strings=0):
       """return a copy of this class item by creating a new instance
          and copying all simple attributes

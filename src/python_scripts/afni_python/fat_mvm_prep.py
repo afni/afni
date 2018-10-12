@@ -183,6 +183,11 @@ def main(argv):
     SWITCH_ExternLabsOK = 1
     SWITCH_union = 0
 
+    # allow status 0 on -help   24 Sep 2018 [rickr]
+    if "-help" in argv:
+        print help_line
+        sys.exit()
+
     try:
         opts, args = getopt.getopt(argv,"hNEuc:m:p:l:",["help",
                                                        "NA_warn_off",

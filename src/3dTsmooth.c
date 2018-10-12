@@ -171,7 +171,7 @@ int main( int argc , char *argv[] )
          ntap = (int) strtod(argv[nopt],NULL) ;
          if( ntap < 3 || ntap%2 != 1 ) ERROR_exit("Illegal -hamming: bad value!") ;
          nwin = HAMMING ; lwin = hamming_window ;
-         INFO_message("Hamming window filter (width=%d) will be done",nwin) ;
+         INFO_message("Hamming window filter (width=%d) will be done",ntap) ;
          nopt++ ; continue ;
       }
 
@@ -180,7 +180,7 @@ int main( int argc , char *argv[] )
          ntap = (int) strtod(argv[nopt],NULL) ;
          if( ntap < 3 || ntap%2 != 1 ) ERROR_exit("Illegal -blackman: bad value!") ;
          nwin = BLACKMAN ; lwin = blackman_window ;
-         INFO_message("Blackman window filter (width=%d) will be done",nwin) ;
+         INFO_message("Blackman window filter (width=%d) will be done",ntap) ;
          nopt++ ; continue ;
       }
 
@@ -189,7 +189,7 @@ int main( int argc , char *argv[] )
          strcpy(custom_file, argv[nopt]) ;
          nwin = CUSTOM ; lwin = custom_filter ;
          ntap = 1;
-         INFO_message("Custom window filter (width=%d) will be done",nwin) ;
+         INFO_message("Custom window filter will be done") ;
          nopt++ ; continue ;
       }
 

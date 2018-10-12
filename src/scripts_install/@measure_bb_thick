@@ -1,4 +1,4 @@
-#/bin/tcsh
+#!/bin/tcsh
 # h_view help instead of regular help (opens editor with -help output)
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
@@ -26,7 +26,7 @@ HELP:
     echo "@measure_bb_thick -maskset maskset -surfset surfacedset.gii -outdir thickdir"
     echo
     echo "where maskset is the dataset to find thickness"
-    echo " using the largest non-zero value in the mask." 
+    echo " using the largest non-zero value in the mask."
     echo " If dataset has values -2,-1 and 1 for different regions, this script"
     echo " calculates the thickness only for voxels with a value of 1"
     echo "surfset is a surface to use to find normals into the volume"
@@ -119,8 +119,8 @@ while ( $ac <= $#argv )
         endif
         set  thickdir = $argv[$ac]
         @ ac ++; continue;
-        
-    # now tweak the options    
+
+    # now tweak the options
     else if ( "$argv[$ac]" == "-resample" ) then
         @ ac ++
         if ( $ac > $#argv ) then
@@ -135,8 +135,8 @@ while ( $ac <= $#argv )
            if ("$status" != "0") then
               echo "resample set to $argv[$ac] is not valid"
               exit 1
-           endif 
-           echo "resample voxel size to $resample mm"       
+           endif
+           echo "resample voxel size to $resample mm"
         endif
         @ ac ++; continue;
     else if ( "$argv[$ac]" == "-increment" ) then
@@ -150,7 +150,7 @@ while ( $ac <= $#argv )
        if ("$status" != "0") then
          echo "increment set to $argv[$ac] is not valid"
          exit 1
-       endif        
+       endif
         @ ac ++; continue;
     else if ( "$argv[$ac]" == "-maxthick" ) then
         @ ac ++
@@ -223,7 +223,7 @@ while ( $ac <= $#argv )
         @ ac ++; continue;
 
     # unknown options - exit
-    else 
+    else
         if ("$ignore_unknown_options" != "yes") then
           echo "** unknown option $argv[$ac]"
           exit 1
@@ -254,7 +254,7 @@ endif
 # do everything in a new directory for simplicity
 mkdir $thickdir
 
-# put original dataset into output directory with specific name 
+# put original dataset into output directory with specific name
 #  this is easier and allows for mask range selectors, sub-brick selectors, and NIFTI
 3dTcat -prefix $thickdir/allmaskset.nii.gz -overwrite $maskset
 if ($surfset != "") then
@@ -270,7 +270,7 @@ set maskset = maskset.nii.gz
 set vrange = `3dBrickStat -non-zero -min -max allmaskset.nii.gz`
 if ($vrange[1] != $vrange[2]) then
    # can do in-out, but use a simpler mask for the other methods
-   3dTcat -overwrite -prefix maskset.nii.gz allmaskset.nii.gz"<${vrange[2]}>" 
+   3dTcat -overwrite -prefix maskset.nii.gz allmaskset.nii.gz"<${vrange[2]}>"
 else
    # just a single value mask - can't do in-out calculation
    rm maskset.nii.gz
@@ -283,7 +283,7 @@ if ("$resample" != "") then
    if ("$resample" == "auto") then
       set voxsize = `ccalc -expr "${voxsize}/2"`
    else
-      set voxsize = $resample         
+      set voxsize = $resample
    endif
    3dresample -rmode NN -prefix maskset_rs.nii.gz -overwrite \
       -bound_type SLAB -dxyz $voxsize $voxsize $voxsize -input $maskset
@@ -325,7 +325,7 @@ while ($donext )
         set rthick = `ccalc "$rad*2+$voxsize"`
         3dLocalstat -nbhd "SPHERE($rad)" -stat filled -mask $maskset -fillvalue $rthick \
                     -prefix fill_r$rad.nii.gz -overwrite $maskset
-        # all spheres MUST be filled. 
+        # all spheres MUST be filled.
         # If the spheres are too big, then no spheres are found, and we can stop growing.
         set anytherer = `3dBrickStat -max fill_r$rad.nii.gz`
         set anythere = `ccalc -int "step($anytherer)"`
@@ -380,7 +380,7 @@ else
       -prefix maxfill_spheresonly.nii.gz -overwrite \
       -expr  "step(b)*max(a,$voxsize)"
 
-   # max of cubes 
+   # max of cubes
    3dMean -max -prefix _tt_maxfill_cubesonly.nii.gz -overwrite fill_c*.nii.gz
    3dcalc -a _tt_maxfill_cubesonly.nii.gz -b $maskset \
       -prefix maxfill_cubesonly.nii.gz -overwrite \
@@ -389,7 +389,7 @@ else
    3dMean -max -prefix tmaxfill.nii.gz -overwrite maxfill_spheresonly.nii.gz maxfill_cubesonly.nii.gz
 endif
 
-# all voxels should have at least a thickness of a voxel size 
+# all voxels should have at least a thickness of a voxel size
 #   (don't need a 3dLocalstat for that)
 3dcalc -a tmaxfill.nii.gz -b $maskset -expr "step(b)*max(a,$voxsize)" \
  -prefix maxfill.nii.gz -overwrite
@@ -401,13 +401,13 @@ endif
 
 # sort coordinates from smallest to largest thickness
 sort -n -k 4 sphere_centers_pre.1D > sphere_centers_sorted.1D
-# calculate radius again - need this for 3dUndump 
-1deval -a sphere_centers_sorted.1D'[3]' -expr "(a-${voxsize})/2" > radii.1D 
-# 1D file is "i j k thickness radius" sorted by radius 
+# calculate radius again - need this for 3dUndump
+1deval -a sphere_centers_sorted.1D'[3]' -expr "(a-${voxsize})/2" > radii.1D
+# 1D file is "i j k thickness radius" sorted by radius
 1dcat sphere_centers_sorted.1D radii.1D > sphere_centers.1D
 
 if ("$balls_only" == "true") then
-   set thickvol = bb_thick.nii.gz 
+   set thickvol = bb_thick.nii.gz
 else
    set thickvol = bb_spheresonly_thick.nii.gz
 endif
@@ -423,14 +423,14 @@ if ("$balls_only" != "true") then
     # put boxes back down at each coordinate starting at the maximum radius
     # write out all the coordinates in the mask with the current thickness
     3dmaskdump -mask maxfill_cubesonly.nii.gz -nozero maxfill_cubesonly.nii.gz > cube_centers_pre.1D
-    
+
     # sort coordinates from smallest to largest thickness
     sort -n -k 4 cube_centers_pre.1D > cube_centers_sorted.1D
-    # calculate radius again - need this for 3dUndump 
-    1deval -a cube_centers_sorted.1D'[3]' -expr "(a-${voxsize})/2" > radii.1D 
-    # 1D file is "i j k thickness radius" sorted by radius 
+    # calculate radius again - need this for 3dUndump
+    1deval -a cube_centers_sorted.1D'[3]' -expr "(a-${voxsize})/2" > radii.1D
+    # 1D file is "i j k thickness radius" sorted by radius
     1dcat cube_centers_sorted.1D radii.1D > cube_centers.1D
-    
+
     # fill cubes around centers with 1/2 thickness radii and values of the thickness
     # minimum value in mask should be voxsize
     3dUndump -master $maskset -overwrite -prefix bb_cubesonly_thick.nii.gz \
@@ -471,7 +471,7 @@ if($surfset != "") then
      #-use_norms -norm_len -$depthsearch \
      #-dnode -1 -out_niml bb_thick_max.niml.dset -overwrite
 
-   ## smooth data on surface 
+   ## smooth data on surface
    ## (HEAT_05 method is more robust from quick tests than HEAT_07 method
    ##  recommended in help for SurfSmooth)
    #SurfSmooth -spec quick.spec -surf_A anat.gii -met HEAT_05  \
@@ -492,14 +492,14 @@ if($surfset != "") then
      -oob_value $voxsize -oom_value $voxsize \
      -use_norms -norm_len -$depthsearch \
      -dnode -1 -out_niml bb_thick.niml.dset -overwrite
-   # smooth data on surface 
+   # smooth data on surface
    # (HEAT_05 method is more robust from quick tests than HEAT_07 method
    #  recommended in help for SurfSmooth but HEAT_07 gives smoother
    #  results that look reasonable)
    SurfSmooth -spec quick.spec -surf_A anat.gii -met $heat_method  \
      -input bb_thick.niml.dset -fwhm $surfsmooth \
      -output bb_thick_smooth.niml.dset -overwrite
-endif 
+endif
 
 # unless the user is a hoarder, trash the intermediate files
 if ("$keep_temp_files" != "keep") then

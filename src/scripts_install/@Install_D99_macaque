@@ -93,19 +93,22 @@ PARSE:
 goto RET_PARSE
 
 HELP:
-   echo "Installs the D99 macaque atlas described"
-   echo "in:"
-   echo "    \"Three-dimensional digital template atlas of the macaque brain\""
-   echo      Reveley, Gruslys, Ye, Samaha, Glen, Russ, Saad, Seth, Leopold, Saleem,
-   echo      Cerebral Cortex, 2016, in press
-   echo ""
-   echo "After the archive is downloaded and unpacked, see its README.txt"
-   echo "for details."
-   echo "Options:"
-   echo "[-wget]: Use wget to download archive. Script chooses by default"
-   echo "         with preference for curl"
-   echo "[-curl]: Use curl to download archive. Script chooses by default"
-   echo "         with preference for curl"
+cat << EOF
+   Installs the D99 macaque atlas described
+   in:
+       "Three-dimensional digital template atlas of the macaque brain"
+       Reveley, Gruslys, Ye, Samaha, Glen, Russ, Saad, Seth, Leopold, Saleem,
+       Cerebral Cortex, 2016, in press
+   
+   After the archive is downloaded and unpacked, see its README.txt
+   for details.
+   Options:
+   [-wget]: Use wget to download archive. Script chooses by default
+            with preference for curl
+   [-curl]: Use curl to download archive. Script chooses by default
+            with preference for curl
+
+EOF
    goto END
 
 BEND:

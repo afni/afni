@@ -3935,12 +3935,24 @@ class AfniData(object):
          elif len(td) == 1:
             if UTIL.vals_are_constant(td[0], cval=0):
                if self.verb > 2:
-                  print('-- FSL timing file %s shows no events' % fname)
+                  print('-- FSL timing file %s shows 1 empty event' % fname)
                mdata.append([])
                continue
 
-         elist = [[ev[0], [ev[2]], ev[1]] for ev in td]
-         amp_all.extend([ev[2] for ev in td])
+         # 1 entry is time, 2 includes duration, 3 includes amplitude
+         if len(td[0]) == 0:
+            if self.verb > 2:
+               print('-- FSL timing file %s missing events' % fname)
+            elist = []
+         elif len(td[0]) == 1:
+            elist = [[ev[0], [1], 0] for ev in td]
+         elif len(td[0]) == 2:
+            elist = [[ev[0], [1], ev[1]] for ev in td]
+         else:
+            elist = [[ev[0], [ev[2]], ev[1]] for ev in td]
+            # and track all modulators
+            amp_all.extend([ev[2] for ev in td])
+
          mdata.append(elist)
 
       # if all amplitudes are constand 0 or 1, remove them

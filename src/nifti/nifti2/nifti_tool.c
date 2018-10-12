@@ -333,6 +333,7 @@ int process_opts( int argc, char * argv[], nt_opts * opts )
       else if( ! strcmp(argv[ac], "-nifti_hist") )
       {
          nifti_disp_lib_hist(1);
+         nifti_disp_lib_hist(2);
          return 1;
       }
       else if( ! strcmp(argv[ac], "-nifti_ver") )
