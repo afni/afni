@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 18, Oct , 2018 , PT , "3dAutobox" , MICRO , TYPE_GENERAL,
+   "Allow for subbrick selection of input",
+   "Tiny internal change-- moving where dset is loaded+checked.\n"
+},
+
 { 18, Oct , 2018 , PT , "3dAutobox" , MINOR , TYPE_NEW_OPT,
    "New opt: '-extent_ijk_to_file FF'.",
    "Output IJK extents to a simple-formatted text file.\n"
