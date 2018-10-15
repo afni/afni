@@ -232,6 +232,35 @@ print_atlas_point_list(ATLAS_POINT_LIST *apl)
    INFO_message("");
 }
 
+/* return atlas point from  list of atlas points with name of label*/
+ATLAS_POINT *
+atlas_point_named(ATLAS_POINT_LIST *apl, char *name)
+{
+   int i;
+   ATLAS_POINT *ap;
+   
+   if(apl==NULL)
+      return(NULL);
+   for(i=0;i<apl->n_points;i++) {
+       ap = apl->at_point+i;
+       if(strcmp(ap->name, name)==0)
+            return(ap);
+   }
+   return(NULL);
+}
+
+/* return long name for atlas point with name provided */
+char *
+atlas_point_long_name_named(ATLAS_POINT_LIST *apl, char *name)
+{
+    ATLAS_POINT *ap;
+
+    ap = atlas_point_named(apl, name);
+    if(ap) return(ap->longname);
+    return(NULL);
+}
+
+
 /* convert a NIML table from a dataset to an atlas list structure */
 ATLAS_POINT_LIST * dset_niml_to_atlas_list(THD_3dim_dataset *dset)
 {
@@ -315,8 +344,19 @@ ATLAS_POINT_LIST * niml_atlas_label_table_to_atlas_list(NI_group *ngr)
       temp_str = NI_get_attribute(nel, "STRUCT");
       /* update the pointer for the current atlas point */
       at_pt = &apl->at_point[i];
+
       /* copy "STRUCT" name - segmentation name */
       NI_strncpy(at_pt->name,temp_str,ATLAS_CMAX);
+
+      /* mod - drg 09/25/2018 */
+      /* allow for longer name - later add hierarchial name for larger region*/
+      temp_str = NI_get_attribute(nel, "LONGNAME");
+      /* copy "LONGNAME" name - segmentation name */
+      if(temp_str==NULL)
+         NI_strncpy(at_pt->longname,"",ATLAS_CMAX);
+      else
+         NI_strncpy(at_pt->longname,temp_str,ATLAS_CMAX);
+
       /* sub-brick label for probability maps */
       temp_str = NI_get_attribute(nel, "SB_LABEL");
       if(temp_str==NULL)
@@ -1431,8 +1471,9 @@ atlas_max_label_length(ATLAS_POINT *ap, int n_points)
       return(0);
 
    for(i=0;i<n_points;i++) {
-      len = strlen(ap[i].name);
-      if(len>maxlen) maxlen = len;
+       /* name (+long name?) */ 
+       len = strlen(Atlas_name_choice(&ap[i]));
+       if(len>maxlen) maxlen = len;
    }
 
    return(maxlen);
@@ -2694,6 +2735,10 @@ void AFNI_atlas_list_to_niml()
    for( kk=strlen(lbuf)-1 ; kk > 0 && lbuf[kk] == ch ; kk-- )    \
       lbuf[kk] = '\0' ;                  /* trim trailing .'s */ \
 }
+/* this function was used originally to convert an old atlas format
+ * that was hard coded here to the newer one used in AFNI header
+*  attributes. This is likely not to be used again.
+*/
 static ATLAS_POINT_LIST * AFNI_atlas_list_to_atlas_point_list(
                                  ATLAS_POINT *afni_at_pts, int npts)
 {
@@ -2718,6 +2763,7 @@ static ATLAS_POINT_LIST * AFNI_atlas_list_to_atlas_point_list(
      TRIM_STRING(temp_atp->name, '.');
      NI_strncpy(temp_atp->sblabel,afni_at_pts[i].sblabel,ATLAS_CMAX);
      TRIM_STRING(temp_atp->sblabel, '.');
+     NI_strncpy(temp_atp->longname, "", ATLAS_CMAX);
      if(wami_verb() > 1){
         INFO_message("atlas_point %d %s\n", afni_at_pts[i].tdval, 
                       afni_at_pts[i].name);
@@ -2755,6 +2801,7 @@ ATLAS_POINT_LIST * label_table_to_atlas_point_list(Dtable *dtbl)
      TRIM_STRING(temp_atp->name, '.');
      NI_strncpy(temp_atp->sblabel,lb[i],ATLAS_CMAX);
      TRIM_STRING(temp_atp->sblabel, '.');
+     NI_strncpy(temp_atp->longname,"",ATLAS_CMAX);
      if(wami_verb() > 1){
         INFO_message("Dtable %d %s\n", (int)strtol(la[i],NULL,10), 
                       lb[i]);
@@ -2914,6 +2961,9 @@ atlas_point_to_niml_element(ATLAS_POINT *at_pt)
       it is finally stored */
    if (strcmp(at_pt->sblabel,"")!=0)
      NI_set_attribute(nel, "SB_LABEL", at_pt->sblabel);
+   if (strcmp(at_pt->longname,"")!=0)
+     NI_set_attribute(nel, "LONGNAME", at_pt->longname);
+
    RETURN(nel);
 }
 
@@ -2997,6 +3047,12 @@ niml_to_atlas_list(ATLAS_POINT_LIST *atp, char *atlas_file)
         NI_strncpy(at_pt->sblabel,"",ATLAS_CMAX);
      else
         NI_strncpy(at_pt->sblabel,temp_str,ATLAS_CMAX);
+
+     temp_str = NI_get_attribute(nel, "LONGNAME");
+     if(temp_str==NULL)
+        NI_strncpy(at_pt->longname,"",ATLAS_CMAX);
+     else
+        NI_strncpy(at_pt->longname,temp_str,ATLAS_CMAX);
 
      at_pt->tdval = okey;
      at_pt->xx = cog[0];
