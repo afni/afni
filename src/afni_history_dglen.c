@@ -50,6 +50,13 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 12, OCT, 2018, DRG, "auto_warp.py", MICRO, TYPE_NEW_OPT,
+    "at_opts for @auto_tlrc options"
+},
+{ 12, OCT, 2018, DRG, "whereami", MINOR, TYPE_NEW_ENV,
+    "Longname support in AFNI atlases",
+    "Environment variable AFNI_ATLAS_NAME_TYPE to control"
+},
 { 29, APR, 2018, DRG, "First space xform bug",
 	MICRO, TYPE_BUG_FIX,
 	"Fixed bug where first space in AFNI_atlas_spaces.niml had to have xform "
