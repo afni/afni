@@ -5813,7 +5813,7 @@ extern char * tross_breakup_string( char *, int , int ) ;
 void tross_multi_Append_History( THD_3dim_dataset * , ... ) ;
 
 #define ATLAS_CMAX    64   /* If you change this parameter,edit constant in
-                              CA_EZ_Prep.m (MaxLbl* checks) */
+                              CA_EZ_Prep.m (MaxLbl* checks), thd_ttatlas_query.h TTO_FORMAT */
 
 typedef enum { UNKNOWN_SPC=0, /*!< Dunno */
                AFNI_TLRC_SPC, /*!< The Classic */
@@ -5841,6 +5841,7 @@ typedef struct {
                                   The only time this is used is for
                                   linking an atlas point to the probability
                                   map volume. */
+   char longname[ATLAS_CMAX] ;  /* Leave this one to be the second element */
 } ATLAS_POINT ;
 
 

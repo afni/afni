@@ -112,6 +112,9 @@ void print_xform(ATLAS_XFORM *xf);
 void print_all_xforms(ATLAS_XFORM_LIST *xfl);
 void print_affine_xform_data(float *xfptr);
 
+ATLAS_POINT *atlas_point_named(ATLAS_POINT_LIST *apl, char *name);
+char *atlas_point_long_name_named(ATLAS_POINT_LIST *apl, char *name);
+
 ATLAS_XFORM *calc_xf(ATLAS_XFORM *xf, ATLAS_XFORM *xf2);
 int affine_mult(ATLAS_XFORM *xf, ATLAS_XFORM *xf2, ATLAS_XFORM *xf3);
 int affine_2piece_mult(ATLAS_XFORM *xf,
