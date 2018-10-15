@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 18, Oct , 2018 , PT , "@xyz_to_ijk" , MICRO , TYPE_GENERAL,
+   "Fixed help file to list all opts.",
+   "Now '-prefix ...' appears with apsearch.\n"
+},
+
 { 18, Oct , 2018 , PT , "3dAutobox" , MICRO , TYPE_GENERAL,
    "Allow for subbrick selection of input",
    "Tiny internal change-- moving where dset is loaded+checked.\n"
