@@ -15,6 +15,7 @@ import option_list as OL
 import afni_util as UTIL
 import lib_afni1D as LAD
 import lib_vars_object as VO
+import lib_ss_review as LSS
 
 # ----------------------------------------------------------------------
 # globals
@@ -718,52 +719,18 @@ g_eg_uvar = VO.VarsObject('sample user vars')
 g_uvar_dict = {}
 
 # ------------------------------------------------------------
-def AIF(fname, hint, egval):
-   """This is mostly to be sure g_uvar_dict and g_eg_uvar are synchronized.
+def init_globals():
+   """fill g_uvar_dict and g_eg_uvar via LSS.g_ss_uvar_fields
+      (new variables should be added in lib_ss_review.py)
 
-      to g_uvar_dict add fname=hint
-      to g_eg_uvar add field fname with value egval
+      Do them together to be more sure of synchronization.
    """
    global g_eg_uvar, g_uvar_dict
 
-   g_uvar_dict[fname] = hint
-   g_eg_uvar.set_var(fname, egval)
-   return 0
+   for field in LSS.g_ss_uvar_fields:
+      g_uvar_dict[field[0]] = field[1]
+      g_eg_uvar.set_var(field[0], field[2])
 
-# ------------------------------------------------------------
-def init_globals():
-   """fill g_uvar_dict and g_eg_uvar via AIF()"""
-
-   AIF('subj',            'set subject ID', 'FT')
-   AIF('afni_ver',        'set AFNI version', 'AFNI_18.2.11')
-   AIF('afni_package',    'set AFNI package', 'macos_10.12_local')
-   AIF('rm_trs',          'set number of TRs removed per run', 2)
-   AIF('num_stim',        'set number of main stimulus classes', 2)
-   AIF('tcat_dset',       'set first tcat dataset','pb00.FT.r01.tcat+orig.HEAD')
-   AIF('censor_dset',     'set motion_censor file', 'motion_FT_censor.1D')
-   AIF('enorm_dset',      'set motion_enorm file', 'motion_FT_enorm.1D')
-   AIF('motion_dset',     'set motion parameter file', 'dfile_rall.1D')
-   AIF('volreg_dset','set first volreg dataset', 'pb02.FT.r01.volreg+tlrc.HEAD')
-   AIF('outlier_dset',    'set outcount_rall file', 'outcount_rall.1D')
-   AIF('gcor_dset',       'set gcor_dset file', 'out.gcor.1D')
-   AIF('mask_corr_dset','set anat/EPI correlation file', 'out.mask_ae_corr.txt')
-   AIF('mot_limit',       'set motion limit (maybe for censoring)', 0.3)
-   AIF('out_limit',       'set outlier limit (maybe for censoring)', 0.1)
-   AIF('xmat_regress',    'set X-matrix file used in regression', 'X.xmat.1D')
-   AIF('xmat_uncensored', 'if censoring, set un-censored X-matrix',
-                          'X.nocensor.xmat.1D')
-   AIF('stats_dset', 'set main output from 3dDeconvolve', 'stats.FT+tlrc.HEAD')
-   AIF('sum_ideal',       'set 1D file for ideal sum', 'sum_ideal.1D')
-   AIF('align_anat', 'anat aligned with orig EPI', 'FT_anat_al_junk+orig.HEAD')
-   AIF('final_anat','anat aligned with stats dataset','anat_final.FT+tlrc.HEAD')
-   AIF('final_epi_dset',  'set final EPI base dataset',
-                          'final_epi_vr_base_min_outlier+tlrc.HEAD')
-   AIF('final_view',      'set final view of data (orig/tlrc)', 'tlrc')
-   AIF('template',        'anatomical template', 'TT_N27+tlrc')
-   AIF('template_warp',   'affine or nonlinear', 'affine')
-   AIF('mask_dset',       'set EPI mask', 'full_mask.FT+tlrc.HEAD')
-   AIF('tsnr_dset', 'set temporal signal to noise dataset', 'TSNR.FT+tlrc.HEAD')
-   AIF('errts_dset',      'set residual dataset','errts.FT.fanaticor+tlrc.HEAD')
    return
 
 # ------------------------------------------------------------
@@ -880,9 +847,10 @@ g_history = """
    1.1  Aug 17, 2018:
         - added -show_computed_uvars, -write_uvars_json
         - set afni_ver, afni_package, template, final_epi_dset
+   1.2  Oct 15, 2018: move g_ss_uvar_fields to lib_ss_review.py
 """
 
-g_version = "gen_ss_review_scripts.py version 1.1, August 17, 2018"
+g_version = "gen_ss_review_scripts.py version 1.2, October 15, 2018"
 
 g_todo_str = """
    - add @epi_review execution as a run-time choice (in the 'drive' script)?
