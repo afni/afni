@@ -723,13 +723,15 @@ def init_globals():
    """fill g_uvar_dict and g_eg_uvar via LSS.g_ss_uvar_fields
       (new variables should be added in lib_ss_review.py)
 
+      fields 0, 1 and 2 represent: field_name, hint, example
+
       Do them together to be more sure of synchronization.
    """
    global g_eg_uvar, g_uvar_dict
 
    for field in LSS.g_ss_uvar_fields:
-      g_uvar_dict[field[0]] = field[1]
-      g_eg_uvar.set_var(field[0], field[2])
+      g_uvar_dict[field[0]] = field[1]      # hint
+      g_eg_uvar.set_var(field[0], field[2]) # example
 
    return
 
@@ -1127,6 +1129,7 @@ class MyInterface:
 
       if self.guess_subject_id():  return -1
       if self.guess_xmat_nocen():  return -1
+      if self.guess_nt():          return -1
       if self.guess_num_stim():    return -1
       if self.guess_rm_trs():      return -1
       if self.guess_stats_dset():  return -1
@@ -1148,6 +1151,7 @@ class MyInterface:
       if self.guess_errts_dset():  return -1
       if self.guess_gcor_dset():   return -1
       if self.guess_mask_corr_dset(): return -1
+      if self.guess_warn_files():  return -1
 
       if self.find_censor_file():  return -1
 
@@ -1163,6 +1167,10 @@ class MyInterface:
                print('-- Afni1D %-16s : %s' % (datr, obj.fname))
          print('-' * 75)
 
+         # check whether applied keys match example
+         self.diff_key_lists(self.uvars.attributes(), g_eg_uvar.attributes(),
+                             self.cvars.verb)
+
       if self.cvars.udict_json != '':
          if self.cvars.verb > 1:
             print("++ writing uvars dictionary as JSON file '%s'" \
@@ -1175,6 +1183,33 @@ class MyInterface:
          return 1   # terminal, but not an error
 
       return 0
+
+   def diff_key_lists(self, list0, list1, verb=1):
+      """report differences in key lists
+
+         remove common elements, report the remains
+      """
+      list0.sort()
+      list1.sort()
+
+      # get unique entires
+      only0 = [key for key in list0 if key not in list1]
+      only1 = [key for key in list1 if key not in list0]
+
+      n0 = len(only0)
+      n1 = len(only1)
+
+      if n0 == 0 and n1 == 0:
+         if verb > 1: print("-- diff_key_lists: no diffs")
+         return 0
+
+      if n0 > 0:
+         print("-- extra keys in uvars: %s" % ', '.join(only0))
+      if n1 > 0:
+         print("-- extra keys in eg_uvar: %s" % ', '.join(only1))
+
+      return 0
+    
 
    def find_x_mat(self, verb=-1):
       """try to find the X-matrix files
@@ -1377,6 +1412,50 @@ class MyInterface:
       if self.cvars.verb > 1: print('++ guessing subject id = %s' % sid)
 
       self.uvars.subj = sid
+
+      return 0
+
+   def guess_nt(self):
+      """set uvars.nt_orig and uvars_nt_applied
+
+         return 0 on success
+      """
+
+      # start with applied NT
+      if self.dsets.is_empty('xmat_ad'): return 0
+      self.uvars.nt_applied = self.dsets.xmat_ad.nt
+
+      # if no_censor xmat exists, use that for orig, else same
+      if self.dsets.is_not_empty('xmat_ad_nocen'):
+         self.uvars.nt_orig = self.dsets.xmat_ad_nocen.nt
+      else:
+         self.uvars.nt_orig = self.dsets.xmat_ad.nt
+
+      return 0
+
+   def guess_warn_files(self):
+      """check for any of the fixed text warning files
+            out.pre_ss_warn.txt  out.tent_warn.txt  3dDeconvolve.err
+      """
+
+      # get file names from g_eg_uvar
+      labels = ['pre_ss_warn_dset', 'tent_warn_dset', 'decon_err_dset']
+
+      for label in labels:
+         fname = g_eg_uvar.val(label)
+         if fname is None:
+            print("** guess_warn_files: missing %s in g_eg_uvar" % label)
+            continue
+
+         # if already set, skip
+         if self.uvar_already_set(label): continue
+
+         if os.path.isfile(fname):
+            if self.cvars.verb > 3:
+               print("++ found warn file for %s: %s" % (label, fname))
+            self.uvars.set_var(label, fname)
+         elif self.cvars.verb > 3:
+            print("++ missing warn file for %s: %s" % (label, fname))
 
       return 0
 
