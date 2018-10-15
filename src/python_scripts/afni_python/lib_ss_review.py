@@ -15,6 +15,8 @@ g_ss_uvar_fields = [ \
    ['subj',            'set subject ID', 'FT'],
    ['afni_ver',        'set AFNI version', 'AFNI_18.2.11'],
    ['afni_package',    'set AFNI package', 'macos_10.12_local'],
+   ['nt_orig',         'orig num time points (all runs)', 300],
+   ['nt_applied',      'num time points after censoring', 280],
    ['rm_trs',          'set number of TRs removed per run', 2],
    ['num_stim',        'set number of main stimulus classes', 2],
    ['tcat_dset',       'set first tcat dataset','pb00.FT.r01.tcat+orig.HEAD'],
@@ -41,7 +43,10 @@ g_ss_uvar_fields = [ \
    ['template_warp',   'affine or nonlinear', 'affine'],
    ['mask_dset',       'set EPI mask', 'full_mask.FT+tlrc.HEAD'],
    ['tsnr_dset', 'set temporal signal to noise dataset', 'TSNR.FT+tlrc.HEAD'],
-   ['errts_dset',      'set residual dataset','errts.FT.fanaticor+tlrc.HEAD']
+   ['errts_dset',      'set residual dataset','errts.FT.fanaticor+tlrc.HEAD'],
+   ['pre_ss_warn_dset','out.pre_ss_warn.txt', 'out.pre_ss_warn.txt'],
+   ['tent_warn_dset',  'out.tent_warn.txt file', 'out.tent_warn.txt'],
+   ['decon_err_dset',  '3dDeconvolve.err file', '3dDeconvolve.err']
    ]
 
 
