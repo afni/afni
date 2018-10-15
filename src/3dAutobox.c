@@ -5,6 +5,10 @@
   + added '-extent_ijk_to_file FF' option to get slice numbers of
     auto-bboxing in a nice text file.
 
+  [PT: Oct 15, 2018] 
+  + change where+how input dset check occurs, so subbrick selection is
+    possible
+
  */
 
 void help_autobox()
@@ -87,10 +91,12 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[iarg],"-input") == 0 ){
          iname = argv[++iarg] ;
-         if( !THD_filename_ok(iname) ){
+         // This is a bad check, because it doesn't permit subbrick
+         // selection!  Will do check later.
+         /*if( !THD_filename_ok(iname) ){
             fprintf(stderr,"** 3dAutobox: Illegal string after -input!\n"); 
             exit(1) ;
-         }
+            }*/
          iarg++ ; continue ;
       }
 
@@ -141,7 +147,12 @@ int main( int argc , char * argv[] )
 
    /*-- read data --*/
 
-   dset = THD_open_dataset(iname); CHECK_OPEN_ERROR(dset,iname);
+   dset = THD_open_dataset(iname); 
+   // Check here instead of after -input.
+   if( dset == NULL )
+      ERROR_exit("Can't open time series dataset '%s'.",iname);
+   CHECK_OPEN_ERROR(dset,iname);
+
    if( DSET_BRICK_TYPE(dset,0) != MRI_short &&
        DSET_BRICK_TYPE(dset,0) != MRI_byte  &&
        DSET_BRICK_TYPE(dset,0) != MRI_float   )
