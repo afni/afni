@@ -1,5 +1,12 @@
 #include "mrilib.h"
 
+/*
+  [PT: Oct 15, 2018] 
+  + added '-extent_ijk_to_file FF' option to get slice numbers of
+    auto-bboxing in a nice text file.
+
+ */
+
 void help_autobox()
 {
    printf(
@@ -24,6 +31,13 @@ void help_autobox()
      "                 cropping box, and will clip off small isolated blobs.\n"
      "\n"
      "-extent: Write to standard out the spatial extent of the box\n"
+     "\n"
+     "-extent_ijk_to_file FF: Write out the 6 auto bbox slice numbers to a\n"
+     "                 simple-formatted text file FF (single row file):\n"
+     "                     imin imax jmin jmax kmin kmax\n"
+     "                 Note that resampling would affect the ijk vals (but\n"
+     "                 not necessarily the xyz ones).\n"
+     "\n"
      "-npad NNN      = Number of extra voxels to pad on each side of box,\n"
      "                 since some troublesome people (that's you, LRF) want\n"
      "                 this feature for no apparent reason.\n"
@@ -44,8 +58,10 @@ int main( int argc , char * argv[] )
    int iarg=1, npad = 0, extent=0;
    char *prefix=NULL, *iname=NULL;
 
-   /*-- startup bureaucracy --*/
+   char *oijkext = NULL;
+   FILE *fout_ijkext=NULL;
 
+   /*-- startup bureaucracy --*/
 
    mainENTRY("3dAutobox main"); machdep(); AFNI_logger("3dAutobox",argc,argv);
    PRINT_VERSION("3dAutobox") ;
@@ -63,7 +79,8 @@ int main( int argc , char * argv[] )
       if( strcmp(argv[iarg],"-prefix") == 0 ){
          prefix = argv[++iarg] ;
          if( !THD_filename_ok(prefix) ){
-            fprintf(stderr,"** 3dAutobox: Illegal string after -prefix!\n"); exit(1) ;
+            fprintf(stderr,"** 3dAutobox: Illegal string after -prefix!\n"); 
+            exit(1) ;
          }
          iarg++ ; continue ;
       }
@@ -71,7 +88,8 @@ int main( int argc , char * argv[] )
       if( strcmp(argv[iarg],"-input") == 0 ){
          iname = argv[++iarg] ;
          if( !THD_filename_ok(iname) ){
-            fprintf(stderr,"** 3dAutobox: Illegal string after -input!\n"); exit(1) ;
+            fprintf(stderr,"** 3dAutobox: Illegal string after -input!\n"); 
+            exit(1) ;
          }
          iarg++ ; continue ;
       }
@@ -85,6 +103,13 @@ int main( int argc , char * argv[] )
       if( strcmp(argv[iarg],"-npad") == 0 ){
         npad = (int)strtod(argv[++iarg],NULL) ;
         iarg++ ; continue ;
+      }
+
+      if( strcmp(argv[iarg],"-extent_ijk_to_file") == 0 ){
+			if( ++iarg >= argc ) 
+				ERROR_exit("Need argument after '-extent_ijk_to_file'\n") ;
+         oijkext = argv[iarg];
+         iarg++ ; continue ;
       }
 
       if( strcmp(argv[iarg],"-extent") == 0 ){
@@ -120,7 +145,8 @@ int main( int argc , char * argv[] )
    if( DSET_BRICK_TYPE(dset,0) != MRI_short &&
        DSET_BRICK_TYPE(dset,0) != MRI_byte  &&
        DSET_BRICK_TYPE(dset,0) != MRI_float   )
-       ERROR_exit("** ILLEGAL dataset type: %s :-(",MRI_type_name[DSET_BRICK_TYPE(dset,0)]) ;
+       ERROR_exit("** ILLEGAL dataset type: %s :-(",
+                  MRI_type_name[DSET_BRICK_TYPE(dset,0)]) ;
 
    DSET_load(dset) ; CHECK_LOAD_ERROR(dset) ;
 
@@ -134,6 +160,18 @@ int main( int argc , char * argv[] )
 
       INFO_message("Auto bbox: x=%d..%d  y=%d..%d  z=%d..%d\n",
                    xm,xp,ym,yp,zm,zp ) ;
+
+      // [PT: Oct 18, 2018] New output text file, if desired
+      if( oijkext ) {
+         if( (fout_ijkext = fopen(oijkext, "w")) == NULL ) {
+            fprintf(stderr, "\n\nError opening file %s.\n", oijkext);
+            exit(1);
+         }
+         fprintf( fout_ijkext, "%8d %8d %8d %8d %8d %8d\n",
+                  xm, xp, ym, yp, zm, zp );
+         fclose(fout_ijkext);
+         INFO_message("Wrote ijk extents file: %s", oijkext);
+      }         
 
       if (extent && !prefix) prefix = "EXTENT_ONLY";
       if( prefix ){
@@ -149,7 +187,7 @@ int main( int argc , char * argv[] )
          if( outset == NULL )
             ERROR_exit("3dAutobox: Some error occurred in processing :-(") ;
 
-         tross_Copy_History( dset , outset ) ;             /* 31 Jan 2001 - RWCox */
+         tross_Copy_History( dset , outset ) ;       /* 31 Jan 2001 - RWCox */
          tross_Make_History( "3dAutobox" , argc,argv , outset ) ;
 
          if (!strstr(prefix,"EXTENT_ONLY")) {
