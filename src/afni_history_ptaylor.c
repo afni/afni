@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 18, Oct , 2018 , PT , "3dAutobox" , MINOR , TYPE_NEW_OPT,
+   "More new options",
+   "Also output midslices, more info to screen (on-demand), and xyz stuff.\n"
+},
+
 { 18, Oct , 2018 , PT , "@xyz_to_ijk" , MICRO , TYPE_GENERAL,
    "Fixed help file to list all opts.",
    "Now '-prefix ...' appears with apsearch.\n"
