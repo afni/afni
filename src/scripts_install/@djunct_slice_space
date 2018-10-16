@@ -1,0 +1,160 @@
+#!/bin/tcsh
+
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+
+set version   = "0.0";  set rev_dat   = "Oct 18, 2018"
+#   + this used to be part of @chauffeur_afni, but now is separated
+#     into its own separate @djunct_* program
+#
+set version   = "0.1";  set rev_dat   = "Oct 18, 2018"
+#   + optionify 
+#
+# ================================================================
+
+set Nwin = ""    # number of slices to divide each viewplane into
+set ulay = ""    # dset in question
+
+# ------------------- process options, a la rr ----------------------
+
+if ( $#argv == 0 ) goto SHOW_HELP
+
+set ac = 1
+while ( $ac <= $#argv )
+    # terminal options
+    if ( ("$argv[$ac]" == "-h" ) || ("$argv[$ac]" == "-help" )) then
+        goto SHOW_HELP
+    endif
+    if ( "$argv[$ac]" == "-ver" ) then
+        goto SHOW_VERSION
+    endif
+
+    #  ---------- inputs: required ---------------
+
+    if ( "$argv[$ac]" == "-inset" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set ulay = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-nwin" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        @ Nwin = "$argv[$ac]"
+
+    else
+        echo "\n\n** ERROR: unexpected option #$ac = '$argv[$ac]'\n\n"
+        goto BAD_EXIT
+        
+    endif
+    @ ac += 1
+end
+
+# --------------------------- inputs -------------------------------
+
+if ( $ulay == "" ) then
+    echo "** ERROR: missing input dset! Use '-inset ..'"
+    goto BAD_EXIT
+endif
+
+if ( $Nwin == "" ) then
+    echo "** ERROR: missing number of windows (= num of slices)!"
+    echo "          Use '-nwin ..'"
+    goto BAD_EXIT
+endif
+
+# ----------------------------- ugh ---------------------------------
+
+# needed to deal with orientation permutability : AIL, LAI, PSR, etc.
+
+set listori = ( 'R' 'L' 'A' 'P' 'I' 'S' )
+set listind = (  1   1   2   2   3   3  )
+
+# just the initializing value
+set gapord = ( 0 0 0 )
+
+# ---------------------------- calcs --------------------------------
+
+# always determine dim from ulay, because that's how montaging works!
+set Dim  = `3dinfo -n4 "$ulay"`
+
+# silly stuff to deal with orientation
+set ori  = `3dinfo -orient "$ulay"`
+set ori0 = `echo $ori | awk '{print substr($0,1,1)}'`
+set ori1 = `echo $ori | awk '{print substr($0,2,1)}'`
+set ori2 = `echo $ori | awk '{print substr($0,3,1)}'`
+set all_ori = ( $ori0 $ori1 $ori2 )
+set order  = ()
+foreach oo ( $all_ori )
+    foreach i ( `seq 1 1 ${#listori}` )
+        if ( $oo == "$listori[${i}]" ) then
+            set order  = ( $order ${listind[$i]} )
+            break
+        endif
+    end
+end
+# echo "++ Cryptic info: $ori -> $all_ori -> $order"
+# echo "++ Dimensions (xyzt): $Dim"
+
+foreach i ( `seq 1 1 3` )
+    if( $gapord[$order[$i]] <= 0 ) then
+        @ gapord[$order[$i]] = $Dim[$i] / ( $Nwin )
+        if( $gapord[$order[$i]] <= 0 ) then
+            @ gapord[$order[$i]] = 1
+        endif
+    endif
+end
+
+# finish:
+echo $gapord
+
+
+goto GOOD_EXIT
+
+# ========================================================================
+# ========================================================================
+
+SHOW_HELP:
+cat << EOF
+-------------------------------------------------------------------------
+
+OVERVIEW ~1~
+
+Just a tiny adjunct program for @chauffeur_afni.
+
+Small program to calculate how to evenly space a certain number of
+slices within each view plane of a dset.  Returns three numbers: the
+'delta slices' in the three view planes (in the order of the input
+dset's orientation).
+
+++ constructed by PA Taylor (NIMH, NIH, USA).
+
+# =========================================================================
+
+COMMAND OPTIONS ~1~
+
+-help, -h          :see helpfile (here!)
+-ver               :see version number
+
+-inset   UUU       :name of input dset (req).
+
+-nwin    NN        :number of windows (i.e., slices) that you want
+                    across each view plane (req).
+
+EOF
+
+# ----------------------------------------------------------------------
+
+    goto GOOD_EXIT
+
+SHOW_VERSION:
+   echo "version  $version (${rev_dat})"
+   goto GOOD_EXIT
+
+FAIL_MISSING_ARG:
+    echo "** ERROR! Missing an argument after option flag: '$argv[$ac]'"
+    goto BAD_EXIT
+
+BAD_EXIT:
+    exit 1
+
+GOOD_EXIT:
+    exit 0
