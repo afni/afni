@@ -49,6 +49,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, Oct, 2018, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
+   "added new uvar fields",
+   "Move g_ss_uvar_fields to lib_ss_review.py.\n"
+   "Add uvar fields: nt_applied, nt_orig, ss_review_dset,\n"
+   "   pre_ss_warn_dset, decon_err_dset, tent_warn_dset."
+ } ,
+
  { 16, Oct, 2018, RCR, "@update_afni_binaries", MICRO, TYPE_ENHANCE,
    "darwin defaults to 10.12; newline before dotfile appends",
    NULL
