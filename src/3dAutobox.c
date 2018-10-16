@@ -9,6 +9,11 @@
   + change where+how input dset check occurs, so subbrick selection is
     possible
 
+  [PT: Oct 15, 2018] 
+  + added a couple other slice info things: 
+    '-extent_ijk' to put bounding box slices to screen
+    '-extent_ijk_midslice' to put midslice of bounding box to screen
+
  */
 
 void help_autobox()
@@ -36,11 +41,29 @@ void help_autobox()
      "\n"
      "-extent: Write to standard out the spatial extent of the box\n"
      "\n"
-     "-extent_ijk_to_file FF: Write out the 6 auto bbox slice numbers to a\n"
-     "                 simple-formatted text file FF (single row file):\n"
+     "-extent_ijk    = Write out the 6 auto bbox ijk slice numbers to\n"
+     "                 screen:\n"
      "                     imin imax jmin jmax kmin kmax\n"
      "                 Note that resampling would affect the ijk vals (but\n"
      "                 not necessarily the xyz ones).\n"
+     "                 Also note that this value is calculated before\n"
+     "                 any '-npad ...' option, so it would ignore that.\n"
+     "\n"
+     "-extent_ijk_to_file FF = Write out the 6 auto bbox ijk slice numbers to\n"
+     "                 a simple-formatted text file FF (single row file):\n"
+     "                     imin imax jmin jmax kmin kmax\n"
+     "                 (same notes as above apply).\n"
+     "\n"
+     "-extent_ijk_midslice = Write out the 3 ijk midslices of the autobox to\n"
+     "                 the screen:\n"
+     "                     imid jmid kmid\n"
+     "                 These are obtained via: (imin + imax)/2, etc.\n"
+     "\n"
+     "-extent_xyz_midslice = Write out the 3 xyz midslices of the autobox to\n"
+     "                 the screen:\n"
+     "                     xmid ymid zmid\n"
+     "                 These are obtained via: (xmin + xmax)/2, etc.\n"
+     "                 These follow the same meaning as '-extent'.\n"
      "\n"
      "-npad NNN      = Number of extra voxels to pad on each side of box,\n"
      "                 since some troublesome people (that's you, LRF) want\n"
@@ -64,6 +87,12 @@ int main( int argc , char * argv[] )
 
    char *oijkext = NULL;
    FILE *fout_ijkext=NULL;
+   int extent_ijk=0;
+   int extent_ijk_midslice=0;
+   int imid=0, jmid=0, kmid=0;
+   int extent_xyz_midslice=0;
+   float xmid=0, ymid=0, zmid=0;
+
 
    /*-- startup bureaucracy --*/
 
@@ -111,11 +140,26 @@ int main( int argc , char * argv[] )
         iarg++ ; continue ;
       }
 
+      if( strcmp(argv[iarg],"-extent_ijk") == 0 ){
+        extent_ijk = 1 ;
+        iarg++ ; continue ;
+      }
+
       if( strcmp(argv[iarg],"-extent_ijk_to_file") == 0 ){
 			if( ++iarg >= argc ) 
 				ERROR_exit("Need argument after '-extent_ijk_to_file'\n") ;
          oijkext = argv[iarg];
          iarg++ ; continue ;
+      }
+
+      if( strcmp(argv[iarg],"-extent_ijk_midslice") == 0 ){
+        extent_ijk_midslice = 1 ;
+        iarg++ ; continue ;
+      }
+
+      if( strcmp(argv[iarg],"-extent_xyz_midslice") == 0 ){
+        extent_xyz_midslice = 1 ;
+        iarg++ ; continue ;
       }
 
       if( strcmp(argv[iarg],"-extent") == 0 ){
@@ -182,9 +226,23 @@ int main( int argc , char * argv[] )
                   xm, xp, ym, yp, zm, zp );
          fclose(fout_ijkext);
          INFO_message("Wrote ijk extents file: %s", oijkext);
-      }         
+      }
 
-      if (extent && !prefix) prefix = "EXTENT_ONLY";
+      if( extent_ijk ) 
+         printf( "%8d %8d %8d %8d %8d %8d\n",
+                 xm, xp, ym, yp, zm, zp );
+
+      if( extent_ijk_midslice ) {
+         imid = (xm + xp) / 2;  // integer division fine, b/c we need ints
+         jmid = (ym + yp) / 2;
+         kmid = (zm + zp) / 2;
+         printf( "%8d %8d %8d\n", imid, jmid, kmid );
+      }
+
+
+      if ( (extent && !prefix) || (extent_xyz_midslice && !prefix) )
+         prefix = "EXTENT_ONLY";
+
       if( prefix ){
          outset = THD_zeropad( dset ,
                             -xm, xp-nx+1,
@@ -214,8 +272,16 @@ int main( int argc , char * argv[] )
                     RL_AP_IS[2],RL_AP_IS[3],
                     RL_AP_IS[4],RL_AP_IS[5] ) ;
          }
+         if( extent_xyz_midslice ) {
+            INFO_message("aaa" );
+            float RL_AP_IS2[6];
+            THD_dset_extent(outset, '-', RL_AP_IS2);
+            xmid = (RL_AP_IS2[0] + RL_AP_IS2[1]) / 2.;
+            ymid = (RL_AP_IS2[2] + RL_AP_IS2[3]) / 2.;
+            zmid = (RL_AP_IS2[4] + RL_AP_IS2[5]) / 2.;
+            printf( "%10.5f %10.5f %10.5f\n", xmid, ymid, zmid );
+         }
       }
-
    }
 
    exit(0) ;
