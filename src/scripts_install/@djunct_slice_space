@@ -6,6 +6,9 @@ set version   = "0.0";  set rev_dat   = "Oct 18, 2018"
 #   + this used to be part of @chauffeur_afni, but now is separated
 #     into its own separate @djunct_* program
 #
+set version   = "0.1";  set rev_dat   = "Oct 18, 2018"
+#   + optionify 
+#
 # ================================================================
 
 set Nwin = ""    # number of slices to divide each viewplane into
