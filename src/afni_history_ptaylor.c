@@ -66,37 +66,37 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
-{ 18, Oct , 2018 , PT , "@djunct_edgy_align_check" , MINOR , TYPE_NEW_PROG,
+{ 15, Oct , 2018 , PT , "@djunct_edgy_align_check" , MINOR , TYPE_NEW_PROG,
    "Helper program for @chauffeur_afni-- wrapper of it for QC stuff.",
    "It's for alignment checking, and it's... edgy.\n"
 },
 
-{ 18, Oct , 2018 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
+{ 15, Oct , 2018 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
    "New opt: '-box_focus_slices REF', to avoid looking at empty slices.",
    "Can used a masked dset as REF to focus on certain slices only.\n"
 },
 
-{ 18, Oct , 2018 , PT , "@djunct_slice_space" , MINOR , TYPE_NEW_PROG,
+{ 15, Oct , 2018 , PT , "@djunct_slice_space" , MINOR , TYPE_NEW_PROG,
    "Helper program for @chauffeur_afni.",
    "Calculate even spacing of slices for montaging.\n"
 },
 
-{ 18, Oct , 2018 , PT , "3dAutobox" , MINOR , TYPE_NEW_OPT,
+{ 15, Oct , 2018 , PT , "3dAutobox" , MINOR , TYPE_NEW_OPT,
    "More new options",
    "Also output midslices, more info to screen (on-demand), and xyz stuff.\n"
 },
 
-{ 18, Oct , 2018 , PT , "@xyz_to_ijk" , MICRO , TYPE_GENERAL,
+{ 15, Oct , 2018 , PT , "@xyz_to_ijk" , MICRO , TYPE_GENERAL,
    "Fixed help file to list all opts.",
    "Now '-prefix ...' appears with apsearch.\n"
 },
 
-{ 18, Oct , 2018 , PT , "3dAutobox" , MICRO , TYPE_GENERAL,
+{ 15, Oct , 2018 , PT , "3dAutobox" , MICRO , TYPE_GENERAL,
    "Allow for subbrick selection of input",
    "Tiny internal change-- moving where dset is loaded+checked.\n"
 },
 
-{ 18, Oct , 2018 , PT , "3dAutobox" , MINOR , TYPE_NEW_OPT,
+{ 15, Oct , 2018 , PT , "3dAutobox" , MINOR , TYPE_NEW_OPT,
    "New opt: '-extent_ijk_to_file FF'.",
    "Output IJK extents to a simple-formatted text file.\n"
 },
