@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, Oct, 2018, RCR, "@update_afni_binaries", MICRO, TYPE_ENHANCE,
+   "darwin defaults to 10.12; newline before dotfile appends",
+   NULL
+ } ,
+
  { 11, Oct, 2018, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
    "check for consistency between python and PyQt4 ",
    NULL
