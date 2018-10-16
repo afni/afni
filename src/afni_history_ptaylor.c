@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 18, Oct , 2018 , PT , "@djunct_edgy_align_check" , MINOR , TYPE_NEW_PROG,
+   "Helper program for @chauffeur_afni-- wrapper of it for QC stuff.",
+   "It's for alignment checking, and it's... edgy.\n"
+},
+
 { 18, Oct , 2018 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
    "New opt: '-box_focus_slices REF', to avoid looking at empty slices.",
    "Can used a masked dset as REF to focus on certain slices only.\n"
