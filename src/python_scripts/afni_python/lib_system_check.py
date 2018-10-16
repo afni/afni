@@ -493,10 +493,6 @@ class SysInfo:
       if self.get_osx_ver() < 11 and self.verb <= 1:
          return 0
 
-      # if there were no AFNI program failures, do not warn here
-      if self.afni_fails < 1:
-         return 0
-
       sname   = wpath.split('/')[0]    # short name, e.g. gcc
       libdir  = '/usr/local/lib'
       libpath = '%s/%s' % (libdir, libname)
@@ -525,7 +521,10 @@ class SysInfo:
 
       # if no link, suggest making one (only if there were AFNI program errors)
       if not os.path.islink(libpath):
-         self.comments.append('consider linking %s under %s'%(clibs[0],libdir))
+         mesg = 'consider linking %s under %s' % (clibs[0],libdir)
+         if self.afni_fails > 0:
+            self.comments.append(mesg)
+         print("** %s" % mesg)
          return 1
 
       # huston, we have a bad link, say something useful
@@ -535,8 +534,11 @@ class SysInfo:
       print('   for example:\n' \
             '       rm -f %s\n' \
             '       ln -s %s %s' % (libpath, clibs[0], libpath))
-      self.comments.append('consider fixing link %s \n   to point to %s'\
-                           %(libpath,clibs[0]))
+      mesg = 'consider fixing link %s \n   to point to %s' % (libpath,clibs[0])
+
+      if self.afni_fails > 0:
+         self.comments.append(mesg)
+      print("** %s" % mesg)
 
       return 1
 
