@@ -10,6 +10,12 @@
 # (for g_uvar_dict and g_eg_uvar in gen_ss_review_scripts.py)
 # (and for something in Paul's gen ss html program)
 #
+# when adding a variable:
+#   - possibly add guess_ function and corresponding call to it
+#      - probably want to set it in self.uvars
+#      - possibly want to set an afni_data element in self.dsets
+#   - if it is used in a script, check and apply
+#
 g_ss_uvar_fields = [ \
    # field_name,        hint/description,  example
    ['subj',            'set subject ID', 'FT'],
@@ -44,6 +50,7 @@ g_ss_uvar_fields = [ \
    ['mask_dset',       'set EPI mask', 'full_mask.FT+tlrc.HEAD'],
    ['tsnr_dset', 'set temporal signal to noise dataset', 'TSNR.FT+tlrc.HEAD'],
    ['errts_dset',      'set residual dataset','errts.FT.fanaticor+tlrc.HEAD'],
+   ['ss_review_dset',  'ss_review_basic output file', 'out.ss_review.FT.txt'],
    ['pre_ss_warn_dset','out.pre_ss_warn.txt', 'out.pre_ss_warn.txt'],
    ['tent_warn_dset',  'out.tent_warn.txt file', 'out.tent_warn.txt'],
    ['decon_err_dset',  '3dDeconvolve.err file', '3dDeconvolve.err']

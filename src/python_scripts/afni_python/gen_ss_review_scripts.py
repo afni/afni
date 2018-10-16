@@ -850,9 +850,12 @@ g_history = """
         - added -show_computed_uvars, -write_uvars_json
         - set afni_ver, afni_package, template, final_epi_dset
    1.2  Oct 15, 2018: move g_ss_uvar_fields to lib_ss_review.py
+   1.3  Oct 16, 2018: added new uvar fields
+        - nt_applied, nt_orig, ss_review_dset,
+          pre_ss_warn_dset, decon_err_dset, tent_warn_dset
 """
 
-g_version = "gen_ss_review_scripts.py version 1.2, October 15, 2018"
+g_version = "gen_ss_review_scripts.py version 1.3, October 16, 2018"
 
 g_todo_str = """
    - add @epi_review execution as a run-time choice (in the 'drive' script)?
@@ -1124,36 +1127,37 @@ class MyInterface:
                 -1 : fatal termination
       """
 
-      if self.find_tcat_dset():    return -1
-      if self.find_x_mat():        return -1
+      if self.find_tcat_dset():         return -1
+      if self.find_x_mat():             return -1
 
-      if self.guess_subject_id():  return -1
-      if self.guess_xmat_nocen():  return -1
-      if self.guess_nt():          return -1
-      if self.guess_num_stim():    return -1
-      if self.guess_rm_trs():      return -1
-      if self.guess_stats_dset():  return -1
-      if self.guess_sum_ideal():   return -1
-      if self.guess_volreg_dset(): return -1
-      if self.guess_final_view():  return -1
+      if self.guess_subject_id():       return -1
+      if self.guess_xmat_nocen():       return -1
+      if self.guess_nt():               return -1
+      if self.guess_num_stim():         return -1
+      if self.guess_rm_trs():           return -1
+      if self.guess_stats_dset():       return -1
+      if self.guess_sum_ideal():        return -1
+      if self.guess_volreg_dset():      return -1
+      if self.guess_final_view():       return -1
 
-      if self.guess_afni_ver():    return -1
+      if self.guess_afni_ver():         return -1
 
-      if self.guess_enorm_dset():  return -1
-      if self.guess_motion_dset(): return -1
-      if self.guess_outlier_dset():return -1
-      if self.guess_final_anat():  return -1
-      if self.guess_align_anat():  return -1
-      if self.guess_final_epi_dset(): return -1
-      if self.guess_template():    return -1
-      if self.guess_mask_dset():   return -1
-      if self.guess_tsnr_dset():   return -1
-      if self.guess_errts_dset():  return -1
-      if self.guess_gcor_dset():   return -1
-      if self.guess_mask_corr_dset(): return -1
-      if self.guess_warn_files():  return -1
+      if self.guess_enorm_dset():       return -1
+      if self.guess_motion_dset():      return -1
+      if self.guess_outlier_dset():     return -1
+      if self.guess_final_anat():       return -1
+      if self.guess_align_anat():       return -1
+      if self.guess_final_epi_dset():   return -1
+      if self.guess_template():         return -1
+      if self.guess_mask_dset():        return -1
+      if self.guess_tsnr_dset():        return -1
+      if self.guess_errts_dset():       return -1
+      if self.guess_gcor_dset():        return -1
+      if self.guess_mask_corr_dset():   return -1
 
-      if self.find_censor_file():  return -1
+      if self.find_censor_file():       return -1
+      if self.guess_warn_files():       return -1
+      if self.guess_ss_review_dset():   return -1
 
       if self.cvars.verb > 2:
          print('-' * 75)
@@ -1423,6 +1427,39 @@ class MyInterface:
 
       # start with applied NT
       if self.dsets.is_empty('xmat_ad'): return 0
+      self.uvars.nt_applied = self.dsets.xmat_ad.nt
+
+      # if no_censor xmat exists, use that for orig, else same
+      if self.dsets.is_not_empty('xmat_ad_nocen'):
+         self.uvars.nt_orig = self.dsets.xmat_ad_nocen.nt
+      else:
+         self.uvars.nt_orig = self.dsets.xmat_ad.nt
+
+      return 0
+
+   def guess_ss_review_dset(self):
+      """set uvars.ss_review_dset
+
+         return 0 on success
+      """
+
+      vname = 'ss_review_dset'
+      if self.uvar_already_set(vname): return 0
+
+      glist = glob.glob('out.ss_review.*.txt')
+      # if empty, fail
+      if len(glist) == 0:
+         return 0
+
+      if len(glist) > 1:
+         if self.cvars.verb > 1:
+            print("** have multiple ss_review output files?\n   %s\n" \
+                  % ' '.join(glist))
+
+      self.uvars.set_var(vname, glist[0])
+      self.dsets.set_var(vname, BASE.afni_name(glist[0]))
+
+      # start with applied NT
       self.uvars.nt_applied = self.dsets.xmat_ad.nt
 
       # if no_censor xmat exists, use that for orig, else same
