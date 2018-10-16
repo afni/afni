@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, Oct, 2018, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
+   "if no AFNI errors, skip homebrew library linking warnings",
+   NULL
+ } ,
+
  { 16, Oct, 2018, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
    "added new uvar fields",
    "Move g_ss_uvar_fields to lib_ss_review.py.\n"

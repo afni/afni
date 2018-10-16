@@ -493,6 +493,10 @@ class SysInfo:
       if self.get_osx_ver() < 11 and self.verb <= 1:
          return 0
 
+      # if there were no AFNI program failures, do not warn here
+      if self.afni_fails < 1:
+         return 0
+
       sname   = wpath.split('/')[0]    # short name, e.g. gcc
       libdir  = '/usr/local/lib'
       libpath = '%s/%s' % (libdir, libname)
@@ -519,7 +523,7 @@ class SysInfo:
 
       # ** does not exist: so either no link or a bad one **
 
-      # if no link, suggest making one
+      # if no link, suggest making one (only if there were AFNI program errors)
       if not os.path.islink(libpath):
          self.comments.append('consider linking %s under %s'%(clibs[0],libdir))
          return 1
