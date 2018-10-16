@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 16, Oct , 2018 , PT , "@FindAfniDsetPath" , MINOR , TYPE_BUG_FIX,
+   "Maybe not really a bug, but this program wasn't work as it should have.",
+   "It now should find NIFTI sets better, and use afnirc env vars.\n"
+},
+
 { 15, Oct , 2018 , PT , "@djunct_edgy_align_check" , MINOR , TYPE_NEW_PROG,
    "Helper program for @chauffeur_afni-- wrapper of it for QC stuff.",
    "It's for alignment checking, and it's... edgy.\n"
