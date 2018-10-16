@@ -115,11 +115,14 @@
 #     + deal with percentile values if user entered 4D olay/ulay for
 #       non-4Dmode, but including subbrick selectors
 #
-set version   = "4.1";   set rev_dat   = "Oct 18, 2018"
+#set version   = "4.1";   set rev_dat   = "Oct 18, 2018"
 #     + swap out gapord calc to separate prog: @djunct_slice_space.
 #       this was done because that calc is needed in other places
 #     + also new option to focus slices on box from desired set:
 #          -box_focus_slices REFBOX
+#
+set version   = "4.12";   set rev_dat   = "Oct 18, 2018"
+#     + add in '-pass' option, for other scripty reasons. Does nothing.
 #
 # =====================================================================
 
@@ -568,6 +571,12 @@ while ( $ac <= $#argv )
     else if ( "$argv[$ac]" == "-do_clean" ) then
         set DO_CLEAN = 1
         set my_clean = "-pass" # for @djunct_4d_slices*
+
+    # [PT: Oct 18, 2018] this is to get around having "null args"
+    # entered, because some opts need to be wrapped in quotes because
+    # they might contain subbrickselectors
+    else if ( "$argv[$ac]" == "-pass" ) then
+        echo ""
 
     else
         echo "** unexpected option #$ac = '$argv[$ac]'"
@@ -1585,6 +1594,8 @@ COMMAND OPTIONS ~1~
                     be based on the slice index rather than the
                     spatial (mm) coordinate; thanks, Bob!
                     (see ENV: AFNI_IMAGE_LABEL_IJK)
+
+-pass              :does nothing (no, really).
 
 -do_clean          :by default, the temporary directory of copying
                     files and such is not removed;  using this option
