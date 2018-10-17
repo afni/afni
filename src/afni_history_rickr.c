@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17, Oct, 2018, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "pass -ss_review_dset to gen_ss_review_scripts.py",
+   NULL
+ } ,
+
  { 16, Oct, 2018, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
    "if no AFNI errors, skip homebrew library linking warnings",
    NULL

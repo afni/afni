@@ -7393,7 +7393,9 @@ def db_cmd_gen_review(proc):
     cmd += '# generate scripts to review single subject results\n'      \
            '# (try with defaults, but do not allow bad exit status)\n'  \
            'gen_ss_review_scripts.py%s-exit0 \\\n'                      \
-           '    -write_uvars_json out.ss_review_uvars.json\n\n' % lopts
+           '    -ss_review_dset %s \\\n'                                \
+           '    -write_uvars_json out.ss_review_uvars.json\n\n'         \
+           % (lopts, proc.ssr_b_out)
 
     return cmd
 
