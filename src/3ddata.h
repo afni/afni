@@ -4791,6 +4791,12 @@ extern THD_3dim_dataset * THD_copy_one_sub  ( THD_3dim_dataset * , int ) ;
    "Column selection '[]' can be done, using numbers to specify columns\n"       \
    "or using the column labels in the .tsv file.\n"                              \
    "\n"                                                                          \
+   "N.B.: The string 'N/A' or 'n/a' in a column that is otherwise numeric\n"     \
+   "      will be considered to be a number, and will be replaced on input\n"    \
+   "      with the mean of the \"true\" numbers in the column -- there is\n"     \
+   "      no concept of missing data in an AFNI .1D file.\n"                     \
+   "    ++ If you don't like this, well ... too bad for you.\n"                  \
+   "\n"                                                                          \
    "Program 1dcat has special knowledge of .tsv files, and will cat\n"           \
    "(sideways - along rows) .tsv and .1D files together. It also has an\n"       \
    "option to write the output in .tsv format.\n"                                \
