@@ -502,6 +502,12 @@ char * trailname( char *fname , int lev )
 /*  (After conversion to floats, thd_floatscan() can be used to for fixups) */
 /*--------------------------------------------------------------------------*/
 
+#undef  FBAD
+#define FBAD(sss)                       \
+ ( strcasecmp ((sss),"N/A"  ) == 0 ||   \
+   strncasecmp((sss),"NAN",3) == 0 ||   \
+   strncasecmp((sss),"INF",3) == 0   )
+
 int NI_count_numbers( int nstr , char **str )
 {
    int nnum=0 , ii ; double val ; char *cpt ;
@@ -510,8 +516,11 @@ int NI_count_numbers( int nstr , char **str )
 
    for( ii=0 ; ii < nstr ; ii++ ){
      if( str[ii] != NULL ){
-       val = strtod(str[ii],&cpt) ;
-       if( *cpt == '\0' || isspace(*cpt) ) nnum++ ;
+       if( FBAD(str[ii]) ) nnum++ ;  /* 17 Oct 2018 */
+       else {
+         val = strtod(str[ii],&cpt) ;
+         if( *cpt == '\0' || isspace(*cpt) ) nnum++ ;
+       }
      }
    }
    return nnum ;
