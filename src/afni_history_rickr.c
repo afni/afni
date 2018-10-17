@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17, Oct, 2018, RCR, "gen_ss_review_scritps.py", MICRO, TYPE_ENHANCE,
+   "add uvar xmat_stim",
+   NULL
+ } ,
+
  { 17, Oct, 2018, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
    "pass -ss_review_dset to gen_ss_review_scripts.py",
    NULL

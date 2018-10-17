@@ -38,6 +38,7 @@ g_ss_uvar_fields = [ \
    ['xmat_regress',    'set X-matrix file used in regression', 'X.xmat.1D'],
    ['xmat_uncensored', 'if censoring, set un-censored X-matrix',
                        'X.nocensor.xmat.1D'],
+   ['xmat_stim',       'stim-only X-matrix', 'X.stim.xmat.1D'],
    ['stats_dset', 'set main output from 3dDeconvolve', 'stats.FT+tlrc.HEAD'],
    ['sum_ideal',       'set 1D file for ideal sum', 'sum_ideal.1D'],
    ['align_anat', 'anat aligned with orig EPI', 'FT_anat_al_junk+orig.HEAD'],
