@@ -1444,7 +1444,12 @@ class MyInterface:
       """
 
       vname = 'ss_review_dset'
-      if self.uvar_already_set(vname): return 0
+
+      # check if it is already set (possibly apply to dsets)
+      if self.uvar_already_set(vname):
+         if self.dsets.is_empty(vname):
+            self.dsets.set_var(vname, BASE.afni_name(self.uvars.val(vname)))
+         return 0
 
       glist = glob.glob('out.ss_review.*.txt')
       # if empty, fail
