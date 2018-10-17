@@ -850,12 +850,12 @@ g_history = """
         - added -show_computed_uvars, -write_uvars_json
         - set afni_ver, afni_package, template, final_epi_dset
    1.2  Oct 15, 2018: move g_ss_uvar_fields to lib_ss_review.py
-   1.3  Oct 16, 2018: added new uvar fields
-        - nt_applied, nt_orig, ss_review_dset,
+   1.3  Oct 17, 2018: added new uvar fields
+        - nt_applied, nt_orig, ss_review_dset, xmat_stim
           pre_ss_warn_dset, decon_err_dset, tent_warn_dset
 """
 
-g_version = "gen_ss_review_scripts.py version 1.3, October 16, 2018"
+g_version = "gen_ss_review_scripts.py version 1.3, October 17, 2018"
 
 g_todo_str = """
    - add @epi_review execution as a run-time choice (in the 'drive' script)?
@@ -1132,6 +1132,7 @@ class MyInterface:
 
       if self.guess_subject_id():       return -1
       if self.guess_xmat_nocen():       return -1
+      if self.guess_xmat_stim():        return -1
       if self.guess_nt():               return -1
       if self.guess_num_stim():         return -1
       if self.guess_rm_trs():           return -1
@@ -1235,7 +1236,8 @@ class MyInterface:
          return 0
 
       # get a list of file candidates
-      xfiles = glob.glob('X*.xmat.1D')
+      xfiles = glob.glob('X.xmat.1D')
+      if len(xfiles) == 0: xfiles = glob.glob('X*.xmat.1D')
       if len(xfiles) == 0: xfiles = glob.glob('X*.1D')
       if len(xfiles) == 0: xfiles = glob.glob('*.xmat.1D')
       if len(xfiles) == 0:
@@ -1332,6 +1334,22 @@ class MyInterface:
          if self.cvars.verb > 2: print('-- xmat_uncensored exists = %d' \
                                        % self.dsets.xmat_uncensored.exist())
       elif self.cvars.verb > 2: print('-- no uncensored X-matrix')
+
+      return 0  # success
+
+   def guess_xmat_stim(self):
+      """set uvars,dsets.xmat_stim (if possible)"""
+
+      # check if already set
+      label = 'xmat_stim'
+      fname = 'X.stim.xmat.1D'
+      if self.uvar_already_set(label): return 0
+
+      # now try to set them (cvar and dset)
+      if os.path.isfile(fname):
+         self.uvars.set_var(label, fname)
+         
+      if self.cvars.verb > 2: print('-- setting %s = %s' % (label, fname))
 
       return 0  # success
 
@@ -1435,6 +1453,10 @@ class MyInterface:
       else:
          self.uvars.nt_orig = self.dsets.xmat_ad.nt
 
+      if self.cvars.verb > 2:
+         print('-- setting nt_orig = %d, nt_applied = %d' \
+               % (self.uvars.nt_orig, self.uvars.nt_applied))
+
       return 0
 
    def guess_ss_review_dset(self):
@@ -1463,9 +1485,6 @@ class MyInterface:
 
       self.uvars.set_var(vname, glist[0])
       self.dsets.set_var(vname, BASE.afni_name(glist[0]))
-
-      # start with applied NT
-      self.uvars.nt_applied = self.dsets.xmat_ad.nt
 
       # if no_censor xmat exists, use that for orig, else same
       if self.dsets.is_not_empty('xmat_ad_nocen'):
