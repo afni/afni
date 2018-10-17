@@ -31,8 +31,8 @@ set dataset_path = './'
 # [PT: Oct 15, 3018] Update to allow for finding NIFTIs in this way
 set dir = "$ref_in:h"
 if ( "$dir" != "$ref_in" ) then
-    if ( `@CheckForAfniDset ${ref_in}` == 2 || \
-         `@CheckForAfniDset ${ref_in}` == 3 ) then
+    set result = `@CheckForAfniDset ${ref_in}`
+    if ( "$result" == 2 || "$result" == 3 ) then
         echo $dir
         exit 0
     endif
@@ -78,17 +78,12 @@ endif
 # + Updating this to be fine with finding NIFTI data sets via the
 #   above (using the '... == 3')!
 foreach dir ( ${dataset_path} )
-    if ( `@CheckForAfniDset ${dir}/${ref_in}` == 2 || \
-         `@CheckForAfniDset ${dir}/${ref_in}` == 3 ) then
+    set result = `@CheckForAfniDset ${ref_in}`
+    if ( "$result" == 2 || "$result" == 3 ) then
 
         # remove last character if "/"
-        set lc = `echo $dir | rev | cut -c -1`
-        if ( "$lc" == "/" ) then
-            set out = `echo $dir | rev | cut -c 2- | rev`
-            echo $out
-        else
-            echo $dir
-        endif
+        set out = `echo $dir | sed 's/\/$//'`
+        echo $out
 
         exit 0
     endif
