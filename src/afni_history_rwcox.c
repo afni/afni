@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 18 , OCT , 2018 , RWC , "1dplot" , MICRO , TYPE_MODIFY ,
+   "Add help explaining how to include TSV labels in plot" ,
+   "Also, change the -ynames plot label sizes to better fit on the default\n"
+   "page." } ,
+
  { 17 , OCT , 2018 , RWC , "TSV files" , MINOR , TYPE_MODIFY ,
    "Replace 'N/A' 'NaN' and 'Inf' with mean of other column values" ,
    "These strings will no longer stop a column from being marked as 'string'\n"
