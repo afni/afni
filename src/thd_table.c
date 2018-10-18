@@ -888,6 +888,7 @@ MRI_IMAGE * THD_niml_to_mri( NI_element *nel )
    int ncol , *icol , ii,jj , nx ;
    MRI_IMAGE *outim=NULL ;
    float *outar , *far ;
+   char *comlab=NULL ;
 
 ENTRY("THD_niml_to_mri") ;
 
@@ -909,8 +910,21 @@ ENTRY("THD_niml_to_mri") ;
      far = outar + jj*nx ;
      for( ii=0 ; ii < nx ; ii++ )
        far[ii] = NI_extract_float_value(nel,ii,icol[jj]) ;
+     /* extract label */
+     if( nel->vec_lab != NULL ){
+       char *ccc = nel->vec_lab[icol[jj]] ;
+       if( ccc == NULL || *ccc == '\0' ) ccc = "Fred" ;
+       if( comlab == NULL ){
+         comlab = (char *)calloc(16,sizeof(char)) ;
+         strcpy(comlab,"LABELS:\t") ;
+       }
+       comlab = (char *)realloc( comlab , sizeof(char)*(strlen(comlab)+strlen(ccc)+4) ) ;
+       if( jj > 0 ) strcat(comlab,"\t") ;
+       strcat(comlab,ccc) ;
+     }
    }
 
    free(icol) ;
+   if( comlab != NULL ) outim->comments = comlab ;
    RETURN(outim) ;
 }

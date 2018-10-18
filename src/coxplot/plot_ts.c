@@ -752,7 +752,7 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
       /* do name labels at right? */
 
       if( nam_yyy != NULL ){
-         float yv = yotop ; int sz ;
+         float yv = yotop ; int sz,yz ;
 
          for( jj=0 ; jj < ny ; jj++ ){
            if( STGOOD(nam_yyy[jj]) ){
@@ -772,7 +772,12 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
                 { plot_onebox(xotop+0.008,yv,jj ); plot_onebox(xotop+0.041,yv,jj ); }
              }
              set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
-             sz = (strlen(nam_yyy[jj]) <= 10) ? 12 : 9 ;
+             yz = strlen(nam_yyy[jj]) ;
+                  if( yz <  9 ) sz = 11 ;
+             else if( yz < 11 ) sz =  9 ;
+             else if( yz < 13 ) sz =  8 ;
+             else if( yz < 15 ) sz =  7 ;
+             else               sz =  6 ;
              set_thick_memplot( thik*sz/13.9f ) ;
              if( xflip )
                plotpak_pwritf( xobot-0.049 , yv , nam_yyy[jj] , sz , 0 ,  1 ) ;
@@ -928,7 +933,7 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
       /* name labels at right? */
 
       if( nam_yyy != NULL ){
-         float yv = yotop ; int sz ;
+         float yv = yotop ; int sz,yz ;
 
          for( jj=0 ; jj < ny ; jj++ ){
             yll = yobot + jj*(1.0+SY)*dyo ; yhh = yll + dyo ;
@@ -950,7 +955,12 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
                    { plot_onebox(xotop+0.008,yv,jj ); plot_onebox(xotop+0.041,yv,jj ); }
                }
                set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
-               sz = (strlen(nam_yyy[jj]) <= 10) ? 12 : 9 ;
+               yz = strlen(nam_yyy[jj]) ;
+                    if( yz <  9 ) sz = 11 ;
+               else if( yz < 11 ) sz =  9 ;
+               else if( yz < 13 ) sz =  8 ;
+               else if( yz < 15 ) sz =  7 ;
+               else               sz =  6 ;
                set_thick_memplot( thik*sz/13.9f ) ;
                if( xflip )
                  plotpak_pwritf( xobot-0.049 , yv , nam_yyy[jj] , sz , 0 ,  1 ) ;
