@@ -7390,12 +7390,18 @@ def db_cmd_gen_review(proc):
        else:              ename = '%s%s.HEAD' % (proc.errts_final, proc.view)
        lopts += ' \\\n    -errts_dset %s ' % ename
 
+    # generally include the review output file name as a uvar
+    if proc.ssr_b_out != '':
+       revstr = '    -ss_review_dset %s \\\n' % proc.ssr_b_out
+    else:
+       revstr = ''
+
     cmd += '# generate scripts to review single subject results\n'      \
            '# (try with defaults, but do not allow bad exit status)\n'  \
            'gen_ss_review_scripts.py%s-exit0 \\\n'                      \
-           '    -ss_review_dset %s \\\n'                                \
+           '%s'                                                         \
            '    -write_uvars_json out.ss_review_uvars.json\n\n'         \
-           % (lopts, proc.ssr_b_out)
+           % (lopts, revstr)
 
     return cmd
 
