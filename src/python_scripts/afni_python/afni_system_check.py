@@ -209,9 +209,10 @@ g_history = """
    1.00 Nov  7, 2017 - python3 compatible
    1.01 Nov 27, 2017 - warn user on python 3 (!= 2.7 even)
    1.02 Oct 11, 2018 - check for consistency between python and PyQt4 paths
+   1.03 Oct 16, 2018 - if no AFNI prog errors, skip library linking warnings
 """
 
-g_version = "afni_system_check.py version 1.02, October 11, 2018"
+g_version = "afni_system_check.py version 1.03, October 16, 2018"
 
 
 class CmdInterface:

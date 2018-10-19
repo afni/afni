@@ -2,6 +2,15 @@
 
 #
 # Change log:
+#
+# [PT: Oct 15, 2018]
+# + Use 'afni -get_processed_env' to see if AFNI env variables are
+#   set, for broader generality/utility.
+# + Also, allow NIFTI files to be found in more places.  At the
+#   moment, they can only be found in the `which afni` directory.
+#   That is now modernized.
+#
+
 
 # separate length check
 set retval = 0
@@ -15,43 +24,76 @@ if ( "$argv[1]" == "-help") goto HELP
 set ref_in = $1
 set dataset_path = './'
 
+# ------------------- search first with possible path -------------
 
 # if path to dset, test separately    31 Jul 2015 [rickr]
 # (differs from ./$ref_in if path is absolute)
+# [PT: Oct 15, 3018] Update to allow for finding NIFTIs in this way
 set dir = "$ref_in:h"
 if ( "$dir" != "$ref_in" ) then
-    if ( `@CheckForAfniDset ${ref_in}` == 2 ) then
-	echo $dir
+    set result = `@CheckForAfniDset ${ref_in}`
+    if ( "$result" == 2 || "$result" == 3 ) then
+        echo $dir
         exit 0
     endif
 endif
 
+# ------------------- search using `afni -get_processed_env` -------------
 
-if ( $?AFNI_GLOBAL_SESSION ) then
-    set dataset_path = (${dataset_path} `echo $AFNI_GLOBAL_SESSION | tr ':' ' '`)
-endif
+# Make a list of the possible variables
+set list_of_vars = ( "AFNI_GLOBAL_SESSION" \
+                     "AFNI_ATLAS_PATH"     \
+                     "AFNI_PLUGINPATH" )
 
-if ( $?AFNI_ATLAS_PATH ) then
-    set dataset_path = (${dataset_path} `echo $AFNI_ATLAS_PATH | tr ':' ' '`)
-endif
+# Loop through each of those to see if AFNI knows about any (and which)
+foreach vv ( $list_of_vars )
 
+    set aaa = `afni -get_processed_env  | grep "${vv}"`
+
+    if ( "$aaa" != "" ) then
+
+        # remove first occurence of the variable in the string (which
+        # should be the LHS of assignment
+        set bbb = `echo $aaa | sed -E "s/${vv}//"`
+
+        # then remove the equals sign
+        set ccc = `echo $bbb | sed -E "s/=//"`
+        # then remove any colon separating things, and throw in all
+        # vals to the dataset array
+        set dataset_path = ( ${dataset_path} \
+                             `echo $ccc | tr ':' ' '`)
+    endif
+end
+
+# ----------------------- search atlas dir --------------------------
+
+# As before, check about the atlas dir
 if ( -d $HOME/.afni/atlases ) then
     set dataset_path = (${dataset_path} $HOME/.afni/atlases)
 endif
 
-if ( $?AFNI_PLUGINPATH ) then
-    set dataset_path = (${dataset_path} `echo $AFNI_PLUGINPATH | tr ':' ' '`)
-endif
+# ----------------------- check the $dataset_path --------------------------
 
-foreach dir (${dataset_path})
-    if ( `@CheckForAfniDset ${dir}/${ref_in}` == 2 ) then
-	echo $dir
-	exit 0
+# [PT: Oct 15, 2018] 
+# + Updating this to be fine with finding NIFTI data sets via the
+#   above (using the '... == 3')!
+foreach dir ( ${dataset_path} )
+    set result = `@CheckForAfniDset ${ref_in}`
+    if ( "$result" == 2 || "$result" == 3 ) then
+
+        # remove last character if "/"
+        set out = `echo $dir | sed 's/\/$//'`
+        echo $out
+
+        exit 0
     endif
 end
 
+# ------------------- search (final): `which afni` ------------------------
+
 # Check afni bin directory, for compatibility with older installations
 # that installed atlas datasets there.
+### This can *already* find NIFTI sets
 set wa = `which afni`
 if ( $status != 0) then
    exit 1
@@ -79,6 +121,9 @@ Search AFNI_GLOBAL_SESSION, AFNI_PLUGINPATH, and afni bin directory
 discovered and return zero status.  If not found, return non-zero status.
 
    -help to get this message
+
++ [Oct 15, 2018] Updated to do a better job searching for NIFTIs and
+    to possibly use the environment variables set in ~/.afnirc.
 
 Jason W. Bacon
 Medical College of Wisconsin

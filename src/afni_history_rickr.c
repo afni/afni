@@ -49,6 +49,33 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17, Oct, 2018, RCR, "gen_ss_review_scritps.py", MICRO, TYPE_ENHANCE,
+   "add uvar xmat_stim",
+   NULL
+ } ,
+
+ { 17, Oct, 2018, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "pass -ss_review_dset to gen_ss_review_scripts.py",
+   NULL
+ } ,
+
+ { 16, Oct, 2018, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
+   "if no AFNI errors, skip homebrew library linking warnings",
+   NULL
+ } ,
+
+ { 16, Oct, 2018, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
+   "added new uvar fields",
+   "Move g_ss_uvar_fields to lib_ss_review.py.\n"
+   "Add uvar fields: nt_applied, nt_orig, ss_review_dset,\n"
+   "   pre_ss_warn_dset, decon_err_dset, tent_warn_dset."
+ } ,
+
+ { 16, Oct, 2018, RCR, "@update_afni_binaries", MICRO, TYPE_ENHANCE,
+   "darwin defaults to 10.12; newline before dotfile appends",
+   NULL
+ } ,
+
  { 11, Oct, 2018, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
    "check for consistency between python and PyQt4 ",
    NULL

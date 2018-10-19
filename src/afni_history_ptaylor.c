@@ -66,6 +66,46 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 16, Oct , 2018 , PT , "@FindAfniDsetPath" , MINOR , TYPE_BUG_FIX,
+   "Maybe not really a bug, but this program wasn't work as it should have.",
+   "It now should find NIFTI sets better, and use afnirc env vars.\n"
+},
+
+{ 15, Oct , 2018 , PT , "@djunct_edgy_align_check" , MINOR , TYPE_NEW_PROG,
+   "Helper program for @chauffeur_afni-- wrapper of it for QC stuff.",
+   "It's for alignment checking, and it's... edgy.\n"
+},
+
+{ 15, Oct , 2018 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
+   "New opt: '-box_focus_slices REF', to avoid looking at empty slices.",
+   "Can used a masked dset as REF to focus on certain slices only.\n"
+},
+
+{ 15, Oct , 2018 , PT , "@djunct_slice_space" , MINOR , TYPE_NEW_PROG,
+   "Helper program for @chauffeur_afni.",
+   "Calculate even spacing of slices for montaging.\n"
+},
+
+{ 15, Oct , 2018 , PT , "3dAutobox" , MINOR , TYPE_NEW_OPT,
+   "More new options",
+   "Also output midslices, more info to screen (on-demand), and xyz stuff.\n"
+},
+
+{ 15, Oct , 2018 , PT , "@xyz_to_ijk" , MICRO , TYPE_GENERAL,
+   "Fixed help file to list all opts.",
+   "Now '-prefix ...' appears with apsearch.\n"
+},
+
+{ 15, Oct , 2018 , PT , "3dAutobox" , MICRO , TYPE_GENERAL,
+   "Allow for subbrick selection of input",
+   "Tiny internal change-- moving where dset is loaded+checked.\n"
+},
+
+{ 15, Oct , 2018 , PT , "3dAutobox" , MINOR , TYPE_NEW_OPT,
+   "New opt: '-extent_ijk_to_file FF'.",
+   "Output IJK extents to a simple-formatted text file.\n"
+},
+
 { 28, Aug , 2018 , PT , "@xyz_to_ijk" , MINOR , TYPE_NEW_PROG,
    "Helper program to be able to convert xyz coors to ijk indices.",
    "Supplementary program.\n"
