@@ -1056,7 +1056,9 @@ if ( $do_dotfiles && -d $abin && $?USER ) then
       if ( $status ) then
          # finally, update .csrhc and our current path
          echo "++ adding $abin to path in $rcfile ..."
-         echo '\nset path = ( $path ' $abin ' ) ' >> $rcfile
+         # newline, in case they are missing one?
+         echo ''                                >> $rcfile
+         echo 'set path = ( $path ' $abin ' ) ' >> $rcfile
          set path = ( $path $abin )
       endif
 
@@ -1079,7 +1081,9 @@ if ( $do_dotfiles && -d $abin && $?USER ) then
       if ( $status ) then
          # not found, so append to file
          echo "++ adding $abin to PATH in $brcfile ..."
-         echo '\nexport PATH=$PATH:'$abin >> $brcfile
+         # add a newline, just in case
+         echo ''                        >> $brcfile
+         echo 'export PATH=$PATH:'$abin >> $brcfile
       endif
 
       # ---------------------------
@@ -1090,10 +1094,11 @@ if ( $do_dotfiles && -d $abin && $?USER ) then
          if ( $status ) then
             # $abin not found, so append to file
             echo "++ adding $abin to PATH in $brcfile ..."
-            echo '\nexport PATH=$PATH:'$abin >> $brcfile
+            echo 'export PATH=$PATH:'$abin >> $brcfile
          endif
       else if ( $sysname == Darwin ) then
          echo "++ will source .bashrc from newly created .bash_profile"
+         echo '' >> $brcfile
          echo '. $HOME/.bashrc' > $brcfile
       endif
 
@@ -1109,7 +1114,7 @@ if ( $do_apsearch && $cur_afni == $abin && $#prog_list == 0 ) then
    echo "++ running $cmd ..."
    $cmd
    
-   \grep afni_help_dir $rcfile >& /dev/null
+   \grep all_progs.COMP $rcfile >& /dev/null
    if ( $status && -f $rcfile ) then
       cat << EOF >> $rcfile
 
