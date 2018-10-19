@@ -615,9 +615,10 @@ g_history = """
     6.19 Sep 18, 2018:
         - show sample BIDS-like directory struct under DIRECTORY STRUCTURE NOTE
     6.20 Oct 11, 2018: have gen_ss_r_s always write out.gen_ss_uvars.json
+    6.21 Oct 17, 2018: pass -ss_review_dset to gen_ss_review_scripts.py
 """
 
-g_version = "version 6.20, October 11, 2018"
+g_version = "version 6.21, October 17, 2018"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -878,7 +879,8 @@ class SubjProcSream:
         self.have_reml_stats = 0        # do we have 3dREMLfit stats
         self.epi_review = '@epi_review.$subj' # filename for gen_epi_review.py
         self.made_ssr_scr = 0           # did we make subj review scripts
-        self.ssr_basic    = '@ss_review_basic' # basic review script
+        self.ssr_basic    = '@ss_review_basic'        # basic review script
+        self.ssr_b_out    = 'out.ss_review.$subj.txt' # text output from it
         self.test_stims   = 1           # test stim_files for appropriateness
         self.test_dsets   = 1           # test datasets for existence
 
@@ -2875,8 +2877,8 @@ class SubjProcSream:
         if self.epi_review:
            ss = '# if the basic subject review script is here, run it\n' \
                 '# (want this to be the last text output)\n'             \
-                'if ( -e %s ) ./%s |& tee out.ss_review.$subj.txt\n\n'   \
-                % (self.ssr_basic, self.ssr_basic)
+                'if ( -e %s ) ./%s |& tee %s\n\n'                        \
+                % (self.ssr_basic, self.ssr_basic, self.ssr_b_out)
            self.write_text(ss)
 
         cmd_str = self.script_final_error_checks()
