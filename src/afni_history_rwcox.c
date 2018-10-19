@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 19 , OCT , 2018 , RWC , "AFNI driver" , MINOR , TYPE_ENHANCE ,
+   "Add PBAR_SAVEIM command to the driver repertoire" ,
+   NULL } ,
+
  { 18 , OCT , 2018 , RWC , "1dplot" , MICRO , TYPE_MODIFY ,
    "Add help explaining how to include TSV labels in plot" ,
    "Also, change the -ynames plot label sizes to better fit on the default\n"
