@@ -1017,7 +1017,7 @@ ENTRY("AFNI_finalize_saveim_CB") ;
    ptr = getenv( "AFNI_PBAR_IMXY" );
    if( ptr != NULL ){
      ll = sscanf( ptr , "%dx%d" , &nx , &ny ) ;
-     if( ll < 2 || nx < 4 || ny < 32 ){ nx=40; ny=256; }
+     if( ll < 2 || nx < 4 || ny < 32 ){ nx=64; ny=512; }
      flip = (strcasestr(ptr,"F")!=NULL) || (strcasestr(ptr,"H")!=NULL) ;
    }
 
