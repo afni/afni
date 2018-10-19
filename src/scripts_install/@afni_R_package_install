@@ -31,7 +31,7 @@ set custom  = "boo"
 set circos  = "boo"
 
 ## list of packages
-set afniPkgs  = "c('afex','phia','snow','nlme','lme4','paran','psych')"
+set afniPkgs  = "c('afex','phia','snow','nlme','lme4','paran','psych','brms')"
 set discoPkgs = "c('shiny','shinydashboard','plotly','colourpicker','data.table','gplots','RColorBrewer')"
 set custList  = ""
 
@@ -67,19 +67,19 @@ end
 
 ## install afni basics
 if ( $afni == "yay") then
-    echo "Iinstalling: ${afniPkgs}" ; echo
+    echo "Installing: ${afniPkgs}" ; echo
     Rscript -e "install.packages(${afniPkgs},repos='https://cran.rstudio.com')"
 endif
 
 ## install disco shiny stuff
 if ( $shiny == "yay" ) then
-    echo "Iinstalling: ${discoPkgs}" ; echo
+    echo "Installing: ${discoPkgs}" ; echo
     Rscript -e "install.packages(${discoPkgs},repos='https://cran.rstudio.com')"
 endif
 
 ## install OmicCircos
 if ( $circos == "yay") then
-    echo "Iinstalling: OmicCircos" ; echo
+    echo "Installing: OmicCircos" ; echo
     Rscript "${OmicR}"
 endif
 
@@ -109,7 +109,7 @@ cat << EOF
       -afni   : Current list of packages for afni.
                 Similar to rPkgsInstall.
                 Installs:
-                afex phia snow nlme lme4 paran psych
+                afex phia snow nlme lme4 paran psych brms
 
       -shiny  : Current list of packages for afni based shiny apps.
                 May have trouble with openssl on some linux OS's.
