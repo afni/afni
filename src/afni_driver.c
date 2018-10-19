@@ -90,6 +90,7 @@ static int AFNI_drive_set_pbar_number  ( char *cmd ) ; /* 16 Jan 2003 */
 static int AFNI_drive_set_pbar_sign    ( char *cmd ) ; /* 17 Jan 2003 */
 static int AFNI_drive_set_pbar_all     ( char *cmd ) ; /* 17 Jan 2003 */
 static int AFNI_drive_pbar_rotate      ( char *cmd ) ; /* 17 Jan 2003 */
+static int AFNI_drive_pbar_saveim      ( char *cmd ) ; /* 19 Oct 2018 */
 static int AFNI_set_func_autorange     ( char *cmd ) ; /* 17 Jan 2003 */
 static int AFNI_set_func_range         ( char *cmd ) ; /* 21 Jan 2003 */
 static int AFNI_set_func_visible       ( char *cmd ) ; /* 21 Jan 2003 */
@@ -196,6 +197,7 @@ static AFNI_driver_pair dpair[] = {
  { "SET_PBAR_SIGN"      , AFNI_drive_set_pbar_sign     } ,
  { "SET_PBAR_ALL"       , AFNI_drive_set_pbar_all      } ,
  { "PBAR_ROTATE"        , AFNI_drive_pbar_rotate       } ,
+ { "PBAR_SAVEIM"        , AFNI_drive_pbar_saveim       } ,
  { "SET_FUNC_AUTORANGE" , AFNI_set_func_autorange      } ,
  { "SET_FUNC_RANGE"     , AFNI_set_func_range          } ,
  { "SET_FUNC_VISIBLE"   , AFNI_set_func_visible        } ,
@@ -2067,6 +2069,46 @@ ENTRY("AFNI_drive_set_threshnew") ;
    XmScaleSetValue( im3d->vwid->func->thr_scale , ival ) ;
 
    AFNI_thr_scale_CB( im3d->vwid->func->thr_scale, (XtPointer)im3d, NULL ) ;
+   RETURN(0) ;
+}
+
+/*------------------------------------------------------------------------*/
+/*! PBAR_SAVEIM [c] filename [dim=WxH[f]]   [19 Oct 2018] */
+
+static int AFNI_drive_pbar_saveim( char *cmd )
+{
+   int ic , dadd=2 ;
+   Three_D_View *im3d ;
+   char fname[256] , *cpt ;
+   MCW_choose_cbs cbs ;
+
+ENTRY("AFNI_drive_pbar_saveim") ;
+
+   if( cmd == NULL || strlen(cmd) < 1 ) RETURN(-1) ;
+
+   ic = AFNI_controller_code_to_index( cmd ) ;
+   if( ic < 0 ){ ic = 0 ; dadd = 0 ; }
+
+   im3d = GLOBAL_library.controllers[ic] ;
+   if( !IM3D_OPEN(im3d) ) RETURN(-1) ;
+
+   fname[0] = '\0' ;
+   sscanf( cmd+dadd , "%254s" , fname ) ;
+   if( fname[0] == '\0' ) RETURN(-1) ;
+
+   cbs.reason = mcwCR_string ;
+   cbs.cval   = fname ;
+
+   cpt = strcasestr(cmd+dadd+strlen(fname),"dim=") ;
+   if( cpt != NULL && strlen(cpt+4) > 0 ){
+     char dname[356] ;
+     strcpy(dname,"AFNI_PBAR_IMXY ") ;
+     sscanf( cpt+4 , "%254s" , dname+strlen(dname) ) ;
+     AFNI_drive_setenv( dname ) ;
+   }
+
+   AFNI_finalize_saveim_CB( NULL , (XtPointer)im3d , &cbs ) ;
+
    RETURN(0) ;
 }
 
