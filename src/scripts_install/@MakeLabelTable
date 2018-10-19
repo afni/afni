@@ -265,6 +265,12 @@ MAKE_ATLAS_TABLE:
          set ln =  ""
       endif
 
+      # index of region
+      # odd \r incomplete conversion with printf %d below unless convert 
+      #  these to integers here
+      set lli = `ccalc -int -expr "$llistmin[$cnt]"`
+      set llistmin[$cnt] = $lli
+
       set inds = `count -digits 1 $llistmin[$cnt] $llistmax[$cnt]`
       if ($#inds > 1) then
          set ci = 1
@@ -282,11 +288,18 @@ MAKE_ATLAS_TABLE:
             @ ci ++
          end
       else
-         printf '"%d" "%s" "%s"\n' $llistmin[$cnt] "$ll" "$ln" \
+         set ln_len = `echo $ln |wc -c`
+         if ("$ln_len" == "1") then
+             printf '"%d" "%s" ""\n' $llistmin[$cnt] "$ll" \
                >> /tmp/${RNS}.___lt.txt
+         else             
+            printf '"%d" "%s" "%s"\n' $llistmin[$cnt] "$ll" "$ln" \
+               >> /tmp/${RNS}.___lt.txt
+         endif
          if ($status) then
             echo "Error:"
             echo "printf command failed at: $llistmin[$cnt] $ll"
+            echo "longname is $ln"
             echo ""
             goto BEND
          endif   
@@ -337,9 +350,13 @@ MAKE_ATLAS_TABLE:
          if($lncol) then
             printf ' STRUCT="%s"\n VAL=%s\n' "`echo $lln[2]`" $lln[1] \
                               >> $labeltable
-
-            set lln[3] =  `echo $lln[3] | \tr -d \"` 
-            printf ' LONGNAME="%s"\n' $lln[3]  >> $labeltable
+            # remove tabs, carriage returns, line feeds
+            # these show up here if no long name 
+            set lln[3] =  `echo $lln[3] | \tr -d \"|tr -d '\011\012\015'`
+            set ln_len = `echo $lln[3] |wc -c`
+            if ("$ln_len" != "1") then
+               printf ' LONGNAME="%s"\n' "$lln[3-]"  >> $labeltable
+            endif
          else 
             printf ' STRUCT="%s"\n VAL=%s\n' "`echo $lln[2-]`" $lln[1] \
                               >> $labeltable
@@ -921,9 +938,13 @@ PARSE_LABEL_FILE:
 
     # get long names from label file
     if($lncol) then
-        awk -F "$delim" '{print $'$lncol'}' $flab | \
-             sed 's/^ *//g' | sed 's/ *$//g' | \
-             sed '/^ *$/d' > TMPLIST_${RNS}_ln_
+#old way        awk -F "$delim" '{print $'$lncol'}' $flab | \
+#          sed 's/^ *//g' | sed 's/ *$//g' | \
+#          sed '/^ *$/d' > TMPLIST_${RNS}_ln_
+# new way gets all columns after longname column to handle extra spaces
+       awk -v N=$lncol \
+          '{sep=""; for (i=N; i<=NF; i++) {printf("%s%s",sep,$i); sep=OFS}; printf("\n")}' $flab \
+          > TMPLIST_${RNS}_ln_ 
         set N_lnlist = `\wc -l TMPLIST_${RNS}_ln_` ; set N_lnlist = $N_lnlist[1]
     endif
 
@@ -1000,9 +1021,10 @@ HELP:
    echo "                          cLAB is the index of column containing labels"
    echo "                          vVAL is the index of column containing keys"
    echo "                          (1st column is indexed at 0)"
-   echo "   -longnames COL_DELIM: Additionally, allow for another column of long"
+   echo "   -longnames cLONGNAME: Additionally, allow for another column of long"
    echo "                names for regions, e.g. amygdala for AMY"
-
+   echo "                cLONGNAME is the starting column for the longname continuing"
+   echo "                to the last name of the output"
    echo "   -dset DSET: Attach the label table (or atlas point list) to "
    echo "               dataset DSET"
 #   echo "   -dset_autolab DSET SUFFIX: Create a labeltable from the unique"

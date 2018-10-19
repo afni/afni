@@ -28,10 +28,10 @@ CC_G5  = -O3 -funroll-loops -fstrict-aliasing -fsched-interblock               \
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
 CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE -no-cpp-precomp
-CCFAST = cc $(CC_G5) -DDARWIN $(CEXTRA)
-# CCFAST = cc -O2 -ffast-math -DDARWIN $(CEXTRA)
+#CCFAST = cc $(CC_G5) -DDARWIN $(CEXTRA)
+CCFAST = cc -O2 -ffast-math $(CEXTRA)
 CC     = $(CCFAST)
-CCVOL  = cc -O2 -ffast-math -DDARWIN $(CEXTRA)
+CCVOL  = cc -O2 -ffast-math $(CEXTRA)
 CCMIN  = cc
 CCD    = $(CC) $(CCDEBS)
 # IFLAGS = -I. -I/usr/include -I/usr/include/sys -I/usr/X11R6/include
