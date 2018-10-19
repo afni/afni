@@ -456,6 +456,7 @@ int wami_xform_xyz(float xi,float yi,float zi,
    char *srcspace, char *destspace);
 int wami_xform_coords_print(float *coords, int ncoords,
    char *srcspace, char *destspace, char *outfile);
+void set_atlas_name_code(int code);
 
 void set_wami_verb(int lev);
 int wami_verb(void);

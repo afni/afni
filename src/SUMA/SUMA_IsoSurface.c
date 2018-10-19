@@ -613,6 +613,7 @@ int main (int argc,char *argv[])
       char **labstr = NULL,  stmp[64], *oname=NULL;
       SUMA_DSET *dset=NULL;
       SUMA_COLOR_MAP *SM=NULL;
+      set_atlas_name_code(0);  /* only deal with short names for now */
       if (!SUMA_Get_isosurface_datasets (Opt)) {
            SUMA_SL_Err("Failed to get data.");
            exit(1);
