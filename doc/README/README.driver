@@ -164,6 +164,26 @@ PBAR_ROTATE [c.]{+|-}
   ++ You could use this to make fun movies, but otherwise it is hard to
      see what value this command has.
 
+PBAR_SAVEIM [c] filename [dim=dimstring]
+  Saves the current color pbar image into 'filename', which can end in
+  '.png', '.jpg', or '.ppm' for those 3 different formats. If you wish
+  to change the default size of the image (64 pixels wide, 512 tall),
+  you can add a 'dim=dimstring' value after the filename:
+  ++ This dimension changing string starts with 'dim='
+  ++ The 'dimstring' is of the format 'AxB', where
+       'A' is the number of pixels across the pbar
+       'B' is the number of pixels down the pbar
+     The default is '64x512'.
+  ++ If you append 'H' to the 'dimstring', then the image will be
+     flipped to be horizontal, so that the color scale runs from
+     left-to-right rather than bottom-to-top.
+  ++ To get the default 64x512 image but flipped to horizontal, you
+     can just use 'dim=H'.
+  ++ NOTE: once you change 'dimstring', that becomes the default for
+     future 'PBAR_SAVEIM' commands in the same AFNI run; in other words,
+     setting 'dimstring' once will affect any future pbar saves the
+     same way unless a new 'dimstring' is provided.
+
 DEFINE_COLORSCALE name number=color number=color ...
  or
 DEFINE_COLORSCALE name color color color
