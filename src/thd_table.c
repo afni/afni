@@ -684,7 +684,7 @@ NI_element * THD_read_tsv( char *fname )
    int ii,jj , vnum,vlen , nbad ;
    char **vec_lab , **cpt , *dpt ;
 
-ENTRY("mri_read_tsv") ;
+ENTRY("THD_read_tsv") ;
 
    /* try to read as a table of strings */
 
@@ -707,6 +707,12 @@ ENTRY("mri_read_tsv") ;
 
    fnel = NI_new_data_element( "tsv" , vlen ) ;
 
+#undef  FBAD
+#define FBAD(sss)                       \
+ ( strcasecmp ((sss),"N/A"  ) == 0 ||   \
+   strncasecmp((sss),"NAN",3) == 0 ||   \
+   strncasecmp((sss),"INF",3) == 0   )
+
 /* ININFO_message("---columns---")  ; */
    for( ii=0 ; ii < vnum ; ii++ ){
      cpt = (char **)tnel->vec[ii] ;
@@ -717,6 +723,20 @@ ENTRY("mri_read_tsv") ;
          far[jj] = (float)strtod(cpt[jj+1],NULL) ;
        }
        nbad = thd_floatscan( vlen , far ) ;
+
+       /* repair bad things [17 Oct 2018] */
+       { int ngood=0 ; float sgood=0.0f ;
+         for( jj=0 ; jj < vlen ; jj++ ){
+           if( !FBAD(cpt[jj+1]) ){ ngood++ ; sgood += far[jj]; }
+         }
+         if( ngood < vlen ){
+           if( ngood > 0 ) sgood /= ngood ;
+           for( jj=0 ; jj < vlen ; jj++ ){
+             if( FBAD(cpt[jj+1]) ) far[jj] = sgood ;
+           }
+         }
+       }
+
        NI_add_column( fnel , NI_FLOAT , far ) ;
        NI_set_column_label( fnel , ii , vec_lab[ii] ) ;
        free(far) ;
@@ -868,6 +888,7 @@ MRI_IMAGE * THD_niml_to_mri( NI_element *nel )
    int ncol , *icol , ii,jj , nx ;
    MRI_IMAGE *outim=NULL ;
    float *outar , *far ;
+   char *comlab=NULL ;
 
 ENTRY("THD_niml_to_mri") ;
 
@@ -889,8 +910,21 @@ ENTRY("THD_niml_to_mri") ;
      far = outar + jj*nx ;
      for( ii=0 ; ii < nx ; ii++ )
        far[ii] = NI_extract_float_value(nel,ii,icol[jj]) ;
+     /* extract label */
+     if( nel->vec_lab != NULL ){
+       char *ccc = nel->vec_lab[icol[jj]] ;
+       if( ccc == NULL || *ccc == '\0' ) ccc = "Fred" ;
+       if( comlab == NULL ){
+         comlab = (char *)calloc(16,sizeof(char)) ;
+         strcpy(comlab,"LABELS:\t") ;
+       }
+       comlab = (char *)realloc( comlab , sizeof(char)*(strlen(comlab)+strlen(ccc)+4) ) ;
+       if( jj > 0 ) strcat(comlab,"\t") ;
+       strcat(comlab,ccc) ;
+     }
    }
 
    free(icol) ;
+   if( comlab != NULL ) outim->comments = comlab ;
    RETURN(outim) ;
 }

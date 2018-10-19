@@ -1,5 +1,21 @@
 #include "mrilib.h"
 
+/*
+  [PT: Oct 15, 2018] 
+  + added '-extent_ijk_to_file FF' option to get slice numbers of
+    auto-bboxing in a nice text file.
+
+  [PT: Oct 15, 2018] 
+  + change where+how input dset check occurs, so subbrick selection is
+    possible
+
+  [PT: Oct 15, 2018] 
+  + added a couple other slice info things: 
+    '-extent_ijk' to put bounding box slices to screen
+    '-extent_ijk_midslice' to put midslice of bounding box to screen
+
+ */
+
 void help_autobox()
 {
    printf(
@@ -24,6 +40,31 @@ void help_autobox()
      "                 cropping box, and will clip off small isolated blobs.\n"
      "\n"
      "-extent: Write to standard out the spatial extent of the box\n"
+     "\n"
+     "-extent_ijk    = Write out the 6 auto bbox ijk slice numbers to\n"
+     "                 screen:\n"
+     "                     imin imax jmin jmax kmin kmax\n"
+     "                 Note that resampling would affect the ijk vals (but\n"
+     "                 not necessarily the xyz ones).\n"
+     "                 Also note that this value is calculated before\n"
+     "                 any '-npad ...' option, so it would ignore that.\n"
+     "\n"
+     "-extent_ijk_to_file FF = Write out the 6 auto bbox ijk slice numbers to\n"
+     "                 a simple-formatted text file FF (single row file):\n"
+     "                     imin imax jmin jmax kmin kmax\n"
+     "                 (same notes as above apply).\n"
+     "\n"
+     "-extent_ijk_midslice = Write out the 3 ijk midslices of the autobox to\n"
+     "                 the screen:\n"
+     "                     imid jmid kmid\n"
+     "                 These are obtained via: (imin + imax)/2, etc.\n"
+     "\n"
+     "-extent_xyz_midslice = Write out the 3 xyz midslices of the autobox to\n"
+     "                 the screen:\n"
+     "                     xmid ymid zmid\n"
+     "                 These are obtained via: (xmin + xmax)/2, etc.\n"
+     "                 These follow the same meaning as '-extent'.\n"
+     "\n"
      "-npad NNN      = Number of extra voxels to pad on each side of box,\n"
      "                 since some troublesome people (that's you, LRF) want\n"
      "                 this feature for no apparent reason.\n"
@@ -44,8 +85,16 @@ int main( int argc , char * argv[] )
    int iarg=1, npad = 0, extent=0;
    char *prefix=NULL, *iname=NULL;
 
-   /*-- startup bureaucracy --*/
+   char *oijkext = NULL;
+   FILE *fout_ijkext=NULL;
+   int extent_ijk=0;
+   int extent_ijk_midslice=0;
+   int imid=0, jmid=0, kmid=0;
+   int extent_xyz_midslice=0;
+   float xmid=0, ymid=0, zmid=0;
 
+
+   /*-- startup bureaucracy --*/
 
    mainENTRY("3dAutobox main"); machdep(); AFNI_logger("3dAutobox",argc,argv);
    PRINT_VERSION("3dAutobox") ;
@@ -63,16 +112,20 @@ int main( int argc , char * argv[] )
       if( strcmp(argv[iarg],"-prefix") == 0 ){
          prefix = argv[++iarg] ;
          if( !THD_filename_ok(prefix) ){
-            fprintf(stderr,"** 3dAutobox: Illegal string after -prefix!\n"); exit(1) ;
+            fprintf(stderr,"** 3dAutobox: Illegal string after -prefix!\n"); 
+            exit(1) ;
          }
          iarg++ ; continue ;
       }
 
       if( strcmp(argv[iarg],"-input") == 0 ){
          iname = argv[++iarg] ;
-         if( !THD_filename_ok(iname) ){
-            fprintf(stderr,"** 3dAutobox: Illegal string after -input!\n"); exit(1) ;
-         }
+         // This is a bad check, because it doesn't permit subbrick
+         // selection!  Will do check later.
+         /*if( !THD_filename_ok(iname) ){
+            fprintf(stderr,"** 3dAutobox: Illegal string after -input!\n"); 
+            exit(1) ;
+            }*/
          iarg++ ; continue ;
       }
 
@@ -84,6 +137,28 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[iarg],"-npad") == 0 ){
         npad = (int)strtod(argv[++iarg],NULL) ;
+        iarg++ ; continue ;
+      }
+
+      if( strcmp(argv[iarg],"-extent_ijk") == 0 ){
+        extent_ijk = 1 ;
+        iarg++ ; continue ;
+      }
+
+      if( strcmp(argv[iarg],"-extent_ijk_to_file") == 0 ){
+			if( ++iarg >= argc ) 
+				ERROR_exit("Need argument after '-extent_ijk_to_file'\n") ;
+         oijkext = argv[iarg];
+         iarg++ ; continue ;
+      }
+
+      if( strcmp(argv[iarg],"-extent_ijk_midslice") == 0 ){
+        extent_ijk_midslice = 1 ;
+        iarg++ ; continue ;
+      }
+
+      if( strcmp(argv[iarg],"-extent_xyz_midslice") == 0 ){
+        extent_xyz_midslice = 1 ;
         iarg++ ; continue ;
       }
 
@@ -116,11 +191,17 @@ int main( int argc , char * argv[] )
 
    /*-- read data --*/
 
-   dset = THD_open_dataset(iname); CHECK_OPEN_ERROR(dset,iname);
+   dset = THD_open_dataset(iname); 
+   // Check here instead of after -input.
+   if( dset == NULL )
+      ERROR_exit("Can't open time series dataset '%s'.",iname);
+   CHECK_OPEN_ERROR(dset,iname);
+
    if( DSET_BRICK_TYPE(dset,0) != MRI_short &&
        DSET_BRICK_TYPE(dset,0) != MRI_byte  &&
        DSET_BRICK_TYPE(dset,0) != MRI_float   )
-       ERROR_exit("** ILLEGAL dataset type: %s :-(",MRI_type_name[DSET_BRICK_TYPE(dset,0)]) ;
+       ERROR_exit("** ILLEGAL dataset type: %s :-(",
+                  MRI_type_name[DSET_BRICK_TYPE(dset,0)]) ;
 
    DSET_load(dset) ; CHECK_LOAD_ERROR(dset) ;
 
@@ -135,7 +216,33 @@ int main( int argc , char * argv[] )
       INFO_message("Auto bbox: x=%d..%d  y=%d..%d  z=%d..%d\n",
                    xm,xp,ym,yp,zm,zp ) ;
 
-      if (extent && !prefix) prefix = "EXTENT_ONLY";
+      // [PT: Oct 18, 2018] New output text file, if desired
+      if( oijkext ) {
+         if( (fout_ijkext = fopen(oijkext, "w")) == NULL ) {
+            fprintf(stderr, "\n\nError opening file %s.\n", oijkext);
+            exit(1);
+         }
+         fprintf( fout_ijkext, "%8d %8d %8d %8d %8d %8d\n",
+                  xm, xp, ym, yp, zm, zp );
+         fclose(fout_ijkext);
+         INFO_message("Wrote ijk extents file: %s", oijkext);
+      }
+
+      if( extent_ijk ) 
+         printf( "%8d %8d %8d %8d %8d %8d\n",
+                 xm, xp, ym, yp, zm, zp );
+
+      if( extent_ijk_midslice ) {
+         imid = (xm + xp) / 2;  // integer division fine, b/c we need ints
+         jmid = (ym + yp) / 2;
+         kmid = (zm + zp) / 2;
+         printf( "%8d %8d %8d\n", imid, jmid, kmid );
+      }
+
+
+      if ( (extent && !prefix) || (extent_xyz_midslice && !prefix) )
+         prefix = "EXTENT_ONLY";
+
       if( prefix ){
          outset = THD_zeropad( dset ,
                             -xm, xp-nx+1,
@@ -149,7 +256,7 @@ int main( int argc , char * argv[] )
          if( outset == NULL )
             ERROR_exit("3dAutobox: Some error occurred in processing :-(") ;
 
-         tross_Copy_History( dset , outset ) ;             /* 31 Jan 2001 - RWCox */
+         tross_Copy_History( dset , outset ) ;       /* 31 Jan 2001 - RWCox */
          tross_Make_History( "3dAutobox" , argc,argv , outset ) ;
 
          if (!strstr(prefix,"EXTENT_ONLY")) {
@@ -165,8 +272,16 @@ int main( int argc , char * argv[] )
                     RL_AP_IS[2],RL_AP_IS[3],
                     RL_AP_IS[4],RL_AP_IS[5] ) ;
          }
+         if( extent_xyz_midslice ) {
+            INFO_message("aaa" );
+            float RL_AP_IS2[6];
+            THD_dset_extent(outset, '-', RL_AP_IS2);
+            xmid = (RL_AP_IS2[0] + RL_AP_IS2[1]) / 2.;
+            ymid = (RL_AP_IS2[2] + RL_AP_IS2[3]) / 2.;
+            zmid = (RL_AP_IS2[4] + RL_AP_IS2[5]) / 2.;
+            printf( "%10.5f %10.5f %10.5f\n", xmid, ymid, zmid );
+         }
       }
-
    }
 
    exit(0) ;

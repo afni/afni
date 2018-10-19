@@ -16,7 +16,10 @@ void fir_blurz( int m, float *wt,int nx, int ny, int nz, float *f ) ;
 static void fir_gaussian_load( int m, float dx, float *ff ) ; /* 03 Apr 2007 */
 
 #undef  FIR_MAX
-#define FIR_MAX 15  /** max length of FIR filter to use instead of FFTs **/
+#define FIR_MAX 35  /** max length of FIR filter to use instead of FFTs **/
+
+#undef  DO_INFO
+#define DO_INFO 0   /** for debugging and timing **/
 
 /*! If set to 0, EDIT_blur_volume() will not use the fir_blur? functions. */
 
@@ -187,6 +190,8 @@ STATUS("start x FFTs") ;
    nup = nx + (int)(3.0 * sigmax / dx) ;      /* min FFT length */
    nup = csfft_nextup_one35(nup) ; nby2 = nup / 2 ;
 
+   if(DO_INFO) INFO_message("x FFT(%d)",nup) ;
+
    if( nup > ncg ){
      cx = (complex *)realloc(cx,sizeof(complex)*nup) ;
      gg = (float   *)realloc(gg,sizeof(float  )*nup) ; ncg = nup ;
@@ -322,6 +327,8 @@ STATUS("start y FFTs") ;
    nup = ny + (int)(3.0 * sigmay / dy) ;      /* min FFT length */
    nup = csfft_nextup_one35(nup) ; nby2 = nup / 2 ;
 
+   if(DO_INFO) INFO_message("y FFT(%d)",nup) ;
+
    if( nup > ncg ){
      cx = (complex *)realloc(cx,sizeof(complex)*nup) ;
      gg = (float   *)realloc(gg,sizeof(float  )*nup) ; ncg = nup ;
@@ -453,6 +460,8 @@ STATUS("start z FFTs") ;
    aa  = sigmaz * sigmaz * 0.5 ;
    nup = nz + (int)(3.0 * sigmaz / dz) ;      /* min FFT length */
    nup = csfft_nextup_one35(nup) ; nby2 = nup / 2 ;
+
+   if(DO_INFO) INFO_message("z FFT(%d)",nup) ;
 
    if( nup > ncg ){
      cx = (complex *)realloc(cx,sizeof(complex)*nup) ;
@@ -1505,6 +1514,8 @@ static void fir_gaussian_load( int m, float dx, float *ff )
    int ii ; float fac ; double xx ;
 
    if( m < 0 || dx <= 0.0f || ff == NULL ) return ;
+
+   if(DO_INFO) INFO_message("fir_gaussian_load(%d,%g)",m,dx) ;
 
    if( AFNI_yesenv("AFNI_BLUR_FIROLD") ){   /** the olde waye **/
      fac = ff[0] = 1.0f ;

@@ -15,6 +15,7 @@ import option_list as OL
 import afni_util as UTIL
 import lib_afni1D as LAD
 import lib_vars_object as VO
+import lib_ss_review as LSS
 
 # ----------------------------------------------------------------------
 # globals
@@ -718,52 +719,20 @@ g_eg_uvar = VO.VarsObject('sample user vars')
 g_uvar_dict = {}
 
 # ------------------------------------------------------------
-def AIF(fname, hint, egval):
-   """This is mostly to be sure g_uvar_dict and g_eg_uvar are synchronized.
+def init_globals():
+   """fill g_uvar_dict and g_eg_uvar via LSS.g_ss_uvar_fields
+      (new variables should be added in lib_ss_review.py)
 
-      to g_uvar_dict add fname=hint
-      to g_eg_uvar add field fname with value egval
+      fields 0, 1 and 2 represent: field_name, hint, example
+
+      Do them together to be more sure of synchronization.
    """
    global g_eg_uvar, g_uvar_dict
 
-   g_uvar_dict[fname] = hint
-   g_eg_uvar.set_var(fname, egval)
-   return 0
+   for field in LSS.g_ss_uvar_fields:
+      g_uvar_dict[field[0]] = field[1]      # hint
+      g_eg_uvar.set_var(field[0], field[2]) # example
 
-# ------------------------------------------------------------
-def init_globals():
-   """fill g_uvar_dict and g_eg_uvar via AIF()"""
-
-   AIF('subj',            'set subject ID', 'FT')
-   AIF('afni_ver',        'set AFNI version', 'AFNI_18.2.11')
-   AIF('afni_package',    'set AFNI package', 'macos_10.12_local')
-   AIF('rm_trs',          'set number of TRs removed per run', 2)
-   AIF('num_stim',        'set number of main stimulus classes', 2)
-   AIF('tcat_dset',       'set first tcat dataset','pb00.FT.r01.tcat+orig.HEAD')
-   AIF('censor_dset',     'set motion_censor file', 'motion_FT_censor.1D')
-   AIF('enorm_dset',      'set motion_enorm file', 'motion_FT_enorm.1D')
-   AIF('motion_dset',     'set motion parameter file', 'dfile_rall.1D')
-   AIF('volreg_dset','set first volreg dataset', 'pb02.FT.r01.volreg+tlrc.HEAD')
-   AIF('outlier_dset',    'set outcount_rall file', 'outcount_rall.1D')
-   AIF('gcor_dset',       'set gcor_dset file', 'out.gcor.1D')
-   AIF('mask_corr_dset','set anat/EPI correlation file', 'out.mask_ae_corr.txt')
-   AIF('mot_limit',       'set motion limit (maybe for censoring)', 0.3)
-   AIF('out_limit',       'set outlier limit (maybe for censoring)', 0.1)
-   AIF('xmat_regress',    'set X-matrix file used in regression', 'X.xmat.1D')
-   AIF('xmat_uncensored', 'if censoring, set un-censored X-matrix',
-                          'X.nocensor.xmat.1D')
-   AIF('stats_dset', 'set main output from 3dDeconvolve', 'stats.FT+tlrc.HEAD')
-   AIF('sum_ideal',       'set 1D file for ideal sum', 'sum_ideal.1D')
-   AIF('align_anat', 'anat aligned with orig EPI', 'FT_anat_al_junk+orig.HEAD')
-   AIF('final_anat','anat aligned with stats dataset','anat_final.FT+tlrc.HEAD')
-   AIF('final_epi_dset',  'set final EPI base dataset',
-                          'final_epi_vr_base_min_outlier+tlrc.HEAD')
-   AIF('final_view',      'set final view of data (orig/tlrc)', 'tlrc')
-   AIF('template',        'anatomical template', 'TT_N27+tlrc')
-   AIF('template_warp',   'affine or nonlinear', 'affine')
-   AIF('mask_dset',       'set EPI mask', 'full_mask.FT+tlrc.HEAD')
-   AIF('tsnr_dset', 'set temporal signal to noise dataset', 'TSNR.FT+tlrc.HEAD')
-   AIF('errts_dset',      'set residual dataset','errts.FT.fanaticor+tlrc.HEAD')
    return
 
 # ------------------------------------------------------------
@@ -880,9 +849,13 @@ g_history = """
    1.1  Aug 17, 2018:
         - added -show_computed_uvars, -write_uvars_json
         - set afni_ver, afni_package, template, final_epi_dset
+   1.2  Oct 15, 2018: move g_ss_uvar_fields to lib_ss_review.py
+   1.3  Oct 17, 2018: added new uvar fields
+        - nt_applied, nt_orig, ss_review_dset, xmat_stim
+          pre_ss_warn_dset, decon_err_dset, tent_warn_dset
 """
 
-g_version = "gen_ss_review_scripts.py version 1.1, August 17, 2018"
+g_version = "gen_ss_review_scripts.py version 1.3, October 17, 2018"
 
 g_todo_str = """
    - add @epi_review execution as a run-time choice (in the 'drive' script)?
@@ -1154,34 +1127,38 @@ class MyInterface:
                 -1 : fatal termination
       """
 
-      if self.find_tcat_dset():    return -1
-      if self.find_x_mat():        return -1
+      if self.find_tcat_dset():         return -1
+      if self.find_x_mat():             return -1
 
-      if self.guess_subject_id():  return -1
-      if self.guess_xmat_nocen():  return -1
-      if self.guess_num_stim():    return -1
-      if self.guess_rm_trs():      return -1
-      if self.guess_stats_dset():  return -1
-      if self.guess_sum_ideal():   return -1
-      if self.guess_volreg_dset(): return -1
-      if self.guess_final_view():  return -1
+      if self.guess_subject_id():       return -1
+      if self.guess_xmat_nocen():       return -1
+      if self.guess_xmat_stim():        return -1
+      if self.guess_nt():               return -1
+      if self.guess_num_stim():         return -1
+      if self.guess_rm_trs():           return -1
+      if self.guess_stats_dset():       return -1
+      if self.guess_sum_ideal():        return -1
+      if self.guess_volreg_dset():      return -1
+      if self.guess_final_view():       return -1
 
-      if self.guess_afni_ver():    return -1
+      if self.guess_afni_ver():         return -1
 
-      if self.guess_enorm_dset():  return -1
-      if self.guess_motion_dset(): return -1
-      if self.guess_outlier_dset():return -1
-      if self.guess_final_anat():  return -1
-      if self.guess_align_anat():  return -1
-      if self.guess_final_epi_dset(): return -1
-      if self.guess_template():    return -1
-      if self.guess_mask_dset():   return -1
-      if self.guess_tsnr_dset():   return -1
-      if self.guess_errts_dset():  return -1
-      if self.guess_gcor_dset():   return -1
-      if self.guess_mask_corr_dset(): return -1
+      if self.guess_enorm_dset():       return -1
+      if self.guess_motion_dset():      return -1
+      if self.guess_outlier_dset():     return -1
+      if self.guess_final_anat():       return -1
+      if self.guess_align_anat():       return -1
+      if self.guess_final_epi_dset():   return -1
+      if self.guess_template():         return -1
+      if self.guess_mask_dset():        return -1
+      if self.guess_tsnr_dset():        return -1
+      if self.guess_errts_dset():       return -1
+      if self.guess_gcor_dset():        return -1
+      if self.guess_mask_corr_dset():   return -1
 
-      if self.find_censor_file():  return -1
+      if self.find_censor_file():       return -1
+      if self.guess_warn_files():       return -1
+      if self.guess_ss_review_dset():   return -1
 
       if self.cvars.verb > 2:
          print('-' * 75)
@@ -1195,6 +1172,10 @@ class MyInterface:
                print('-- Afni1D %-16s : %s' % (datr, obj.fname))
          print('-' * 75)
 
+         # check whether applied keys match example
+         self.diff_key_lists(self.uvars.attributes(), g_eg_uvar.attributes(),
+                             self.cvars.verb)
+
       if self.cvars.udict_json != '':
          if self.cvars.verb > 1:
             print("++ writing uvars dictionary as JSON file '%s'" \
@@ -1207,6 +1188,33 @@ class MyInterface:
          return 1   # terminal, but not an error
 
       return 0
+
+   def diff_key_lists(self, list0, list1, verb=1):
+      """report differences in key lists
+
+         remove common elements, report the remains
+      """
+      list0.sort()
+      list1.sort()
+
+      # get unique entires
+      only0 = [key for key in list0 if key not in list1]
+      only1 = [key for key in list1 if key not in list0]
+
+      n0 = len(only0)
+      n1 = len(only1)
+
+      if n0 == 0 and n1 == 0:
+         if verb > 1: print("-- diff_key_lists: no diffs")
+         return 0
+
+      if n0 > 0:
+         print("-- extra keys in uvars: %s" % ', '.join(only0))
+      if n1 > 0:
+         print("-- extra keys in eg_uvar: %s" % ', '.join(only1))
+
+      return 0
+    
 
    def find_x_mat(self, verb=-1):
       """try to find the X-matrix files
@@ -1228,7 +1236,8 @@ class MyInterface:
          return 0
 
       # get a list of file candidates
-      xfiles = glob.glob('X*.xmat.1D')
+      xfiles = glob.glob('X.xmat.1D')
+      if len(xfiles) == 0: xfiles = glob.glob('X*.xmat.1D')
       if len(xfiles) == 0: xfiles = glob.glob('X*.1D')
       if len(xfiles) == 0: xfiles = glob.glob('*.xmat.1D')
       if len(xfiles) == 0:
@@ -1328,6 +1337,22 @@ class MyInterface:
 
       return 0  # success
 
+   def guess_xmat_stim(self):
+      """set uvars,dsets.xmat_stim (if possible)"""
+
+      # check if already set
+      label = 'xmat_stim'
+      fname = 'X.stim.xmat.1D'
+      if self.uvar_already_set(label): return 0
+
+      # now try to set them (cvar and dset)
+      if os.path.isfile(fname):
+         self.uvars.set_var(label, fname)
+         
+      if self.cvars.verb > 2: print('-- setting %s = %s' % (label, fname))
+
+      return 0  # success
+
    def find_tcat_dset(self):
       """set self.dsets.tcat_dset
 
@@ -1409,6 +1434,89 @@ class MyInterface:
       if self.cvars.verb > 1: print('++ guessing subject id = %s' % sid)
 
       self.uvars.subj = sid
+
+      return 0
+
+   def guess_nt(self):
+      """set uvars.nt_orig and uvars_nt_applied
+
+         return 0 on success
+      """
+
+      # start with applied NT
+      if self.dsets.is_empty('xmat_ad'): return 0
+      self.uvars.nt_applied = self.dsets.xmat_ad.nt
+
+      # if no_censor xmat exists, use that for orig, else same
+      if self.dsets.is_not_empty('xmat_ad_nocen'):
+         self.uvars.nt_orig = self.dsets.xmat_ad_nocen.nt
+      else:
+         self.uvars.nt_orig = self.dsets.xmat_ad.nt
+
+      if self.cvars.verb > 2:
+         print('-- setting nt_orig = %d, nt_applied = %d' \
+               % (self.uvars.nt_orig, self.uvars.nt_applied))
+
+      return 0
+
+   def guess_ss_review_dset(self):
+      """set uvars.ss_review_dset
+
+         return 0 on success
+      """
+
+      vname = 'ss_review_dset'
+
+      # check if it is already set (possibly apply to dsets)
+      if self.uvar_already_set(vname):
+         if self.dsets.is_empty(vname):
+            self.dsets.set_var(vname, BASE.afni_name(self.uvars.val(vname)))
+         return 0
+
+      glist = glob.glob('out.ss_review.*.txt')
+      # if empty, fail
+      if len(glist) == 0:
+         return 0
+
+      if len(glist) > 1:
+         if self.cvars.verb > 1:
+            print("** have multiple ss_review output files?\n   %s\n" \
+                  % ' '.join(glist))
+
+      self.uvars.set_var(vname, glist[0])
+      self.dsets.set_var(vname, BASE.afni_name(glist[0]))
+
+      # if no_censor xmat exists, use that for orig, else same
+      if self.dsets.is_not_empty('xmat_ad_nocen'):
+         self.uvars.nt_orig = self.dsets.xmat_ad_nocen.nt
+      else:
+         self.uvars.nt_orig = self.dsets.xmat_ad.nt
+
+      return 0
+
+   def guess_warn_files(self):
+      """check for any of the fixed text warning files
+            out.pre_ss_warn.txt  out.tent_warn.txt  3dDeconvolve.err
+      """
+
+      # get file names from g_eg_uvar
+      labels = ['pre_ss_warn_dset', 'tent_warn_dset', 'decon_err_dset']
+
+      for label in labels:
+         fname = g_eg_uvar.val(label)
+         if fname is None:
+            print("** guess_warn_files: missing %s in g_eg_uvar" % label)
+            continue
+
+         # if already set, skip
+         if self.uvar_already_set(label): continue
+
+         if os.path.isfile(fname):
+            if self.cvars.verb > 3:
+               print("++ found warn file for %s: %s" % (label, fname))
+            self.uvars.set_var(label, fname)
+         elif self.cvars.verb > 3:
+            print("++ missing warn file for %s: %s" % (label, fname))
 
       return 0
 

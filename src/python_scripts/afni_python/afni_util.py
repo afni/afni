@@ -129,7 +129,7 @@ def read_top_lines(fname='stdin', nlines=1, strip=0, verb=1):
    if nlines != 0: tdata = tdata[0:nlines]
    return tdata
 
-def write_data_as_json(data, fname='stdout', indent=3, newline=1):
+def write_data_as_json(data, fname='stdout', indent=3, sort=1, newline=1):
    """dump to json file; check for stdout or stderr
       return 0 on success
    """
@@ -152,7 +152,7 @@ def write_data_as_json(data, fname='stdout', indent=3, newline=1):
          return 1
 
    # actual write
-   json.dump(data, fp, indent=indent)
+   json.dump(data, fp, sort_keys=sort, indent=indent)
 
    if newline: fp.write('\n')
    if fp != sys.stdout and fp != sys.stderr:

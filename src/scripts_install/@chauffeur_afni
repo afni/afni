@@ -111,9 +111,18 @@
 #     + several small updates; renamed my_slicer, changed some help, 
 #     + default ulay now 0-98% in vol.
 #
-set version   = "4.0";   set rev_dat   = "July 27, 2018"
+#set version   = "4.0";   set rev_dat   = "July 27, 2018"
 #     + deal with percentile values if user entered 4D olay/ulay for
 #       non-4Dmode, but including subbrick selectors
+#
+#set version   = "4.1";   set rev_dat   = "Oct 18, 2018"
+#     + swap out gapord calc to separate prog: @djunct_slice_space.
+#       this was done because that calc is needed in other places
+#     + also new option to focus slices on box from desired set:
+#          -box_focus_slices REFBOX
+#
+set version   = "4.12";   set rev_dat   = "Oct 18, 2018"
+#     + add in '-pass' option, for other scripty reasons. Does nothing.
 #
 # =====================================================================
 
@@ -221,10 +230,13 @@ set BIGNEG = -100000001
 # -------------------------------------------------------------------
 # ----------------------------- ugh ---------------------------------
 
+#### [PT: Oct 18, 2018]: this stuff now moved to separate prog
+#### "@djunct_template_focuser" because it will be needed more than
+#### once.
 # needed to deal with orientation permutability : AIL, LAI, PSR, etc.
 
-set listori = ( 'R' 'L' 'A' 'P' 'I' 'S' )
-set listind = (  1   1   2   2   3   3  )
+#set listori = ( 'R' 'L' 'A' 'P' 'I' 'S' )
+#set listind = (  1   1   2   2   3   3  )
 
 # -------------------------------------------------------------------
 # ------------------- process options, a la rr ----------------------
@@ -414,6 +426,16 @@ while ( $ac <= $#argv )
         set coors[3] = "$argv[$ac]"
         set USER_COORS = 1
 
+    # [PT: Oct 18, 2018] takes a reference dataset to box
+    # in order to find new center and new # of slices.
+    # only applies in 3D case.
+    else if ( "$argv[$ac]" == "-box_focus_slices" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set refbox     = "$argv[$ac]"      # ref dset for box
+        set coor_type  = "SET_IJK"
+        set USER_COORS = 2
+
     else if ( "$argv[$ac]" == "-montx" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
@@ -549,6 +571,12 @@ while ( $ac <= $#argv )
     else if ( "$argv[$ac]" == "-do_clean" ) then
         set DO_CLEAN = 1
         set my_clean = "-pass" # for @djunct_4d_slices*
+
+    # [PT: Oct 18, 2018] this is to get around having "null args"
+    # entered, because some opts need to be wrapped in quotes because
+    # they might contain subbrickselectors
+    else if ( "$argv[$ac]" == "-pass" ) then
+        echo ""
 
     else
         echo "** unexpected option #$ac = '$argv[$ac]'"
@@ -1023,34 +1051,48 @@ foreach rrr ( `seq 1 1 $Nreps` )  ### the BIG loop starts
     # Calculate numbers of slices in each direction, if not given by user.
     # Take number of mont wins plus a couple to calculate.
     @  Nwin  = $mx * $my
+
     # silly stuff to deal with orientation
     set ori  = `3dinfo -orient "$ulay"`
     set ori0 = `echo $ori | awk '{print substr($0,1,1)}'`
     set ori1 = `echo $ori | awk '{print substr($0,2,1)}'`
     set ori2 = `echo $ori | awk '{print substr($0,3,1)}'`
     set all_ori = ( $ori0 $ori1 $ori2 )
-    set order  = ()
-    foreach oo ( $all_ori )
-        foreach i ( `seq 1 1 ${#listori}` )
-            if ( $oo == "$listori[${i}]" ) then
-                set order  = ( $order ${listind[$i]} )
-                break
-            endif
-        end
-    end
-    echo "++ Cryptic info: $ori -> $all_ori -> $order"
+
+    #### [PT: Oct 18, 2018] this stuff now moved to separate prog
+    #### "@djunct_template_focuser" because it will be needed more
+    #### than once.
+
+    #set order  = ()
+    #foreach oo ( $all_ori )
+    #    foreach i ( `seq 1 1 ${#listori}` )
+    #        if ( $oo == "$listori[${i}]" ) then
+    #            set order  = ( $order ${listind[$i]} )
+    #            break
+    #        endif
+    #    end
+    #end
+    #echo "++ Cryptic info: $ori -> $all_ori -> $order"
+    #
+    #echo "++ Dimensions (xyzt): $Dim"
+    #
+    #foreach i ( `seq 1 1 3` )
+    #    if( $gapord[$order[$i]] <= 0 ) then
+    #        @ gapord[$order[$i]] = $Dim[$i] / ( $Nwin )
+    #        if( $gapord[$order[$i]] <= 0 ) then
+    #            @ gapord[$order[$i]] = 1
+    #        endif
+    #    endif
+    #end
+    ## -----------------------------------------------------------------
+
+    # [PT: Oct 18, 2018] 
+    # + Now calculated in separate program;
+    # + also, if "-box_focus_slices" is on, then this gets
+    #   recalculated just below, for the refbox dset
+    set gapord = `@djunct_slice_space -nwin $Nwin -inset "$ulay"`
 
     echo "++ Dimensions (xyzt): $Dim"
-
-    foreach i ( `seq 1 1 3` )
-        if( $gapord[$order[$i]] <= 0 ) then
-            @ gapord[$order[$i]] = $Dim[$i] / ( $Nwin )
-            if( $gapord[$order[$i]] <= 0 ) then
-                @ gapord[$order[$i]] = 1
-            endif
-        endif
-    end
-
     echo "++ Slice spacing ordered (x,y,z) is:  $gapord"
 
     # get ceilings of 'montage number + 1', in each direction
@@ -1076,16 +1118,28 @@ foreach rrr ( `seq 1 1 $Nreps` )  ### the BIG loop starts
             echo "** ERROR: unknown coor_type somehow?: $coor_type"
             goto BAD_EXIT
         endif
+    else if ( $USER_COORS == 2 ) then
+        # make a box and get the coors from its center
+        set tfile = "${read_dir}/ulay_box_0.nii"
+        
+        set coors = `3dAutobox                            \
+                        -extent_ijk_midslice              \
+                        -prefix $tfile                    \
+                        -input "$refbox"`
+
+        # ... also use the refbox to redefine gapord
+        set gapord = `@djunct_slice_space -nwin $Nwin -inset "$tfile"`
+
+        echo "++ How many coors? $#coors"
+        echo "++ Will have the ref box central coors : $coor_type $coors"
+        echo "++ Will have the ref box central gapord: $gapord"
     else
         foreach i ( `seq 1 1 3` )
             set qfrac = `echo "scale=5; ( $pfrac ) " | bc` # frac to center
             set qsh   = ""#+ 1"                            # 0-base count offset
             if ( ( $all_ori[$i] == 'R' ) || ( $all_ori[$i] == 'P' )  \
                 || ( $all_ori[$i] == 'S' ) ) then
-                #echo "++ Coor calc:  $all_ori[$i] for $order[$i]"
                 set qfrac = `echo "scale=5; ( 1 - $pfrac ) " | bc`
-            #else
-            #    echo "++ Coor value: $all_ori[$i] for $order[$i]"
             endif
             set nn = `echo "scale=0; ( ( $Dim[$i] * $qfrac ) $qsh )" | bc`
             set coors[$i] = `echo $nn | perl -nl -MPOSIX -e 'print floor($_);'`
@@ -1457,6 +1511,19 @@ COMMAND OPTIONS ~1~
                     AFNI's favorite RAI DICOM notation.  (def: for
                     each coordinate, choose middle slice along axis).
 
+-box_focus_slices REF :Use a dset REF to define a narrow range of
+                    where slices cover. This is done by autoboxing the
+                    REF dset (so if it hasn't been masked already,
+                    it's not useful), and using the midpoint of the
+                    box's FOV as the new center; also, the montage
+                    slices are chosen to be evenly spread within the
+                    box FOV, though they *still* show the unboxed
+                    dataset!  This is different than cropping (see
+                    '-crop*' below for that); this is only to try to
+                    avoid showing empty slices and such. If the ulay
+                    is a template dset, you might make REF that template.
+                    Just for '3D' dset viewing
+
 -montx  MX         :in creating montage, the number of image panels in
                     a row, i.e., the number of columns (def: 3); the
                     total number of panels per axis is: MX*MY (see
@@ -1527,6 +1594,8 @@ COMMAND OPTIONS ~1~
                     be based on the slice index rather than the
                     spatial (mm) coordinate; thanks, Bob!
                     (see ENV: AFNI_IMAGE_LABEL_IJK)
+
+-pass              :does nothing (no, really).
 
 -do_clean          :by default, the temporary directory of copying
                     files and such is not removed;  using this option
