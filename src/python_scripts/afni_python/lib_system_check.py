@@ -904,9 +904,9 @@ class SysInfo:
       else:
          if se[1].startswith('++ Note:'): se = se[2:]
          okay = 1
-         # require every subsequent string to say verified
+         # do not require "verified", but fail on "not installed"
          for estr in se:
-            if estr != '' and estr.find('has been verified') < 0:
+            if estr != '' and estr.find('not installed') >= 0:
                okay = 0   # any failure is terminal
                break
       if okay:
