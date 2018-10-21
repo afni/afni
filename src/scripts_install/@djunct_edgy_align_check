@@ -17,9 +17,12 @@
 #set version   = "0.4";  set rev_dat   = "Oct 18, 2018"
 #   + optionify
 #
-set version   = "0.5";  set rev_dat   = "Oct 21, 2018"
+#set version   = "0.5";  set rev_dat   = "Oct 21, 2018"
 #   + single outline form only at the moment (non-alpha-line one)
 #   + new opt: -no_clean
+#
+set version   = "0.51";  set rev_dat   = "Oct 21, 2018"
+#   + set default cleaning to be *on* for @chauffeur_afni
 #
 # ----------------------------------------------------------------
 
@@ -57,7 +60,7 @@ set Nx             = 7                    # num of mont wins, b/c Ny=1
 set refbox_add     = ( "-pass" "-pass" )
 
 set DO_CLEAN       = 1                    # default: do remove
-set allclean       = "-pass"              # apply cleaning to @chauff cmd
+set allclean       = "-do_clean"          # apply cleaning to @chauff cmd
 
 # ------------------- process options, a la rr ----------------------
 
