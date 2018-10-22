@@ -6,6 +6,9 @@
 # ver : 1.4 || date: Oct 19, 2018 || auth: PA Taylor
 # + parse inp opts
 #
+# ver : 1.41 || date: Oct 21, 2018 || auth: PA Taylor
+# + nicer ending message, fewer prints
+#
 #########################################################################
 
 import os
@@ -41,7 +44,7 @@ if __name__ == "__main__":
     <style>
 
     h1 {
-        color: #00ff00;
+        color: #ccc;
         font-weight: bold;
         text-decoration: underline;
         font-size: 30px;
@@ -208,8 +211,8 @@ if __name__ == "__main__":
     list_txtglob2 = glob.glob(txtglob2)
 
     list_datglob.sort()
-    print('')
-    print(list_datglob)
+    #print('')
+    #print(list_datglob)
 
     for dat in list_datglob:
         dattxt = dat.replace('.dat', '.txt')
@@ -260,7 +263,7 @@ if __name__ == "__main__":
     fff = open(ohtml, 'w')
     fff.write(ht)
     fff.close()
-
+    print('\n++ Done! Wrote QC HTML: {}/{}\n'.format(iopts.qcdir, ohtml))
     os.chdir(my_cwd)
 
     # exit, pursued by a bear
