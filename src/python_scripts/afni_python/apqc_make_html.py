@@ -6,9 +6,6 @@
 # ver : 1.4 || date: Oct 19, 2018 || auth: PA Taylor
 # + parse inp opts
 #
-# ver : 1.41 || date: Oct 21, 2018 || auth: PA Taylor
-# + nicer ending message, fewer prints
-#
 #########################################################################
 
 import os
@@ -167,10 +164,15 @@ if __name__ == "__main__":
     txtglob      = lat.dir_img + '/IMG*txt'
     list_txtglob = glob.glob(txtglob)
 
-    # we don't want the 'cor' ones, for space considerations
+    # NB: The initial "list_imglob" above is a list of all *possible*
+    # images, but might contain ones we don't want; some we will
+    # discard, others we will use later.
+
+    # we don't want the 'cor' ones, for space considerations;
+    # and now, we don't want the colorbars *here*, either
     list_imgs = []
     for x in list_imglob:
-        if not(x.__contains__('.cor.jpg')):
+        if not(x.__contains__('.cor.jpg') or x.__contains__('.pbar.jpg')):
             list_imgs.append(x)
     list_imgs.sort()
 
@@ -180,11 +182,15 @@ if __name__ == "__main__":
     # in that text (if any), and then the image.
     for img in list_imgs:
 
+        # each new block of images gets a text header and a line that
+        # separates it from before; each block can contain more than
+        # one row of images/content
         imgtxt = img.replace('.jpg', '.txt')
         if list_txtglob.__contains__(imgtxt):
 
             # start with a line of separation
             ht+='''\n\n<hr/>\n'''   
+
             title, text = lah.read_descrip_txt(imgtxt)
             ht+= lah.wrap_image_title( title,
                                        vpad=1,
@@ -194,11 +200,25 @@ if __name__ == "__main__":
                                   addclass=" class='container' " )
                 #ht+= lah.wrap_image_txt( text,
                 #                  addclass=" class='centerbox_leftjust' " )
+
         if img.__contains__('_1D_'):
             ht+=lah.wrap_img( img, vpad=True,
                               addclass=" class='bordered' ")
         else:
             ht+=lah.wrap_img(img, vpad=True)
+
+        # and now check for possible colorbar; see if it existed in
+        # initial list
+        if img.__contains__('sag.jpg'):
+            imgpbar = img.replace('sag.jpg', 'pbar.jpg')
+            if list_imglob.__contains__(imgpbar):
+                # if that pbar image exists, it should have an associated
+                # txt file of ranges that we can get like this
+                txtpbar = imgpbar.replace('jpg', 'txt')
+                pbar_min, pbar_max, pbar_thr = lah.read_pbar_range(txtpbar)
+                pbar_line = lah.make_pbar_line( pbar_min, pbar_max, pbar_thr,imgpbar,
+                                                addclass=" class='container' " )
+                ht+= pbar_line
 
     # ---------------------------------------------------------------------
     #   get text warnings (at bottom because they can be variable length
@@ -217,8 +237,10 @@ if __name__ == "__main__":
     for dat in list_datglob:
         dattxt = dat.replace('.dat', '.txt')
         if list_txtglob2.__contains__(dattxt):
+
             # start with a line of separation
             ht+='''\n\n<hr/>\n'''   
+
             title, text = lah.read_descrip_txt(dattxt)
             ht+= lah.wrap_image_title( title,
                                        addclass=" class='padtop' " )
@@ -244,8 +266,10 @@ if __name__ == "__main__":
     for dat in list_datglob:
         dattxt = dat.replace('.dat', '.txt')
         if list_txtglob2.__contains__(dattxt):
+
             # start with a line of separation
             ht+='''\n\n<hr/>\n'''   
+
             title, text = lah.read_descrip_txt(dattxt)
             ht+= lah.wrap_image_title( title,
                                        addclass=" class='padtop' " )
@@ -259,7 +283,7 @@ if __name__ == "__main__":
     # -------------- done: wrap up and close body text ------------------
     ht+="""</body>\n\n</html>"""
 
-    # ------------- write ----------------
+    # ------------- write to file ----------------
     fff = open(ohtml, 'w')
     fff.write(ht)
     fff.close()

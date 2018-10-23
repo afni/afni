@@ -690,7 +690,8 @@ def apqc_vol_check_stats_anat( opref, focusbox ):
     -alpha_par Quadratic  
     -set_subbricks -1 ${pickbrick} ${pickbrick}
     -opacity 9  
-    -prefix   "${odir_img}/${opref}"
+    -pbar_saveim   "${odir_img}/${opref}.pbar.jpg"
+    -prefix        "${odir_img}/${opref}"
     -save_ftype JPEG
     -montx 7 -monty 1  
     -set_xhairs OFF 
@@ -701,8 +702,8 @@ def apqc_vol_check_stats_anat( opref, focusbox ):
     imtxt = '''Check: statistics
     ulay: ${ulay_name} (anat)
     olay: ${olay_name} (stat '${bricklabel}')
-    thr : ${thresh} (90%ile)
-    top : ${maxval} (99%ile)'''
+    vthr: ${thresh} (90%ile)
+    vtop: ${maxval} (99%ile)'''
 
     comm = commentize( comm )
     pre  = commandize( pre, cmdindent=0, 
