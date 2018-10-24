@@ -17,12 +17,9 @@
 #set version   = "0.4";  set rev_dat   = "Oct 18, 2018"
 #   + optionify
 #
-#set version   = "0.5";  set rev_dat   = "Oct 21, 2018"
+set version   = "0.5";  set rev_dat   = "Oct 21, 2018"
 #   + single outline form only at the moment (non-alpha-line one)
 #   + new opt: -no_clean
-#
-set version   = "0.51";  set rev_dat   = "Oct 21, 2018"
-#   + set default cleaning to be *on* for @chauffeur_afni
 #
 # ----------------------------------------------------------------
 
@@ -235,8 +232,6 @@ if ( 0 ) then
     -label_mode 1 -label_size 3             \
     $allclean
 endif
-
-echo "\n\n\n  TEST 1  \n\n\n"
 
 # other type
 @chauffeur_afni                             \
