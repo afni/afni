@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 25 , OCT , 2018 , RWC , "3dFWHMx" , MICRO , TYPE_MODIFY ,
+   "Small changes to improve processing of 2D images." ,
+   NULL } ,
+
  { 19 , OCT , 2018 , RWC , "AFNI driver" , MINOR , TYPE_ENHANCE ,
    "Add PBAR_SAVEIM command to the driver repertoire" ,
    NULL } ,
