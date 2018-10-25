@@ -2114,6 +2114,8 @@ extern float_quad ACF_cluster_to_modelE( MCW_cluster *acf, float dx, float dy, f
 extern MRI_IMAGE * ACF_get_1D(void) ;
 extern float mriarr_estimate_FWHM_acf( MRI_IMARR *imar, byte *mask, int unif, float radius ) ;
 
+void set_ACF_2D( int nn ) ; /* 25 Oct 2018 */
+
 void mri_fwhm_setfester( THD_fvec3 (*func)(MRI_IMAGE *, byte *) ) ;
 
 extern float mri_nstat  ( int , int , float * , float, MCW_cluster *) ;  /* 19 Aug 2005 */

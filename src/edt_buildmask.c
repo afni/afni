@@ -102,6 +102,7 @@ MCW_cluster * MCW_spheremask( float dx, float dy, float dz, float radius )
    nn = mask->num_pt ;
    for( ii=0 ; ii < nn ; ii++ ){
      x = mask->i[ii]*dx; y = mask->j[ii]*dy; z = mask->k[ii]*dz;
+
 /*     if((x==0.0)&&(y==0.0)&&(z==0.0)) 
          mask->mag[ii] = 1.0;
      else
