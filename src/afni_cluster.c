@@ -3067,7 +3067,7 @@ ENTRY("AFNI_clus_3dclust") ;
          sprintf(cmd+strlen(cmd)," -2sided %g %g",thb,tht) ;
      }
 
-     if( !im3d->vednomask )sprintf(cmd+strlen(cmd)," -mask_from_hdr") ;
+     if( !im3d->vednomask ) sprintf(cmd+strlen(cmd)," -mask_from_hdr") ;
 
 #if 0
      if( posfunc )
