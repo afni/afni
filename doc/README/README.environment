@@ -3435,6 +3435,21 @@ pressed.  Since the querying the diverse atlas datasets is slow,
 increasing this value much past its default value of 20 is not usually
 a good plan.
 
+-----------------------------
+Variable: AFNI_CLUSTERIZE_OLD
+-----------------------------
+As of Halloween 2018, the 'Clusterize' control panel in the AFNI GUI
+uses program 3dClusterize for outputting tables and masks. One good
+point of this program is that it can do bi-sided clustering, as the
+GUI does. The older program 3dclust cannot do this type of clustering.
+However, if for some bizarre deranged maniacal reason (e.g., testing)
+you want to use 3dclust for these reporting purposes, then set this
+variable to YES. Note that the internal clustering of the AFNI GUI
+does not use either program - the external program is used only for
+the purpose of mask saving. If you use bi-sided clustering, then
+to get the saved mask have the same results as the AFNI GUI, you
+should NOT set this variable to YES.
+
 ----------------------------
 Variable: AFNI_STRLIST_INDEX
 ----------------------------
