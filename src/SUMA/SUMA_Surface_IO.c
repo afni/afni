@@ -2392,9 +2392,9 @@ SUMA_Boolean SUMA_readFSannot (char *f_name,
                SUMA_S_Warnv("bad nbins (%d) or len (%d).\n"
                            "Color table will not be created, \n"
                            "and annotation values will be used instead \n"
-                           "of indices into a colormap.\n"
+                           "of indices into a colormap.\n\n"
                            "You can use -FScmap option to specify\n"
-                           "a colormap in an external file.\n",
+                           "a colormap in an external file.\n\n",
                            nbins, len);
                break;
             }
@@ -2428,18 +2428,21 @@ SUMA_Boolean SUMA_readFSannot (char *f_name,
       }
       lbl1=-1; lbl2=-1; /* use whole colormap */
       /* Hash the colormap */
-      for (i=0; i<ct->nbins; ++i) {
-         HASH_FIND_INT(ct->chd, &(ct->bins[i].i), hd);
-         if (hd) {
-            SUMA_S_Errv("iLabel %d already in hash table!\n",
-                        ct->bins[i].i);
-         } else {
-            hd = (SUMA_COLOR_MAP_HASH_DATUM *)
-                     SUMA_calloc(1, sizeof(SUMA_COLOR_MAP_HASH_DATUM));
-            hd->id = ct->bins[i].i;
-            hd->colmapindex = i;
+      /* check for ct  29 Oct 2018 [rickr] */
+      if( ct ) {
+         for (i=0; i<ct->nbins; ++i) {
+            HASH_FIND_INT(ct->chd, &(ct->bins[i].i), hd);
+            if (hd) {
+               SUMA_S_Errv("iLabel %d already in hash table!\n",
+                           ct->bins[i].i);
+            } else {
+               hd = (SUMA_COLOR_MAP_HASH_DATUM *)
+                        SUMA_calloc(1, sizeof(SUMA_COLOR_MAP_HASH_DATUM));
+               hd->id = ct->bins[i].i;
+               hd->colmapindex = i;
 
-            HASH_ADD_INT(ct->chd, id, hd);
+               HASH_ADD_INT(ct->chd, id, hd);
+            }
          }
       }
 

@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29, Oct, 2018, RCR, "FSread_annot", MICRO, TYPE_ENHANCE,
+   "fix crash and more clearly warn if missing FSColorLUT file",
+   NULL
+ } ,
+
  { 17, Oct, 2018, RCR, "gen_ss_review_scritps.py", MICRO, TYPE_ENHANCE,
    "add uvar xmat_stim",
    NULL
