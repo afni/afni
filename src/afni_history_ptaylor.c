@@ -66,6 +66,20 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 21, Oct , 2018 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
+   "New opt: '-pbar_saveim PBS' and '-pbar_dim PBD', to output color pbar.",
+   "Just add in new AFNI driving functionality from RWC, to save colorbar.\n"
+},
+{ 21, Oct , 2018 , PT , "apqc_make_html.py" , MINOR , TYPE_NEW_PROG,
+   "Helper program for afni_proc.py.",
+   "Run @ss_review_html, build QC dir with html file for ss review.\n"
+},
+
+{ 21, Oct , 2018 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_NEW_PROG,
+   "Helper program for afni_proc.py.",
+   "Make @ss_review_html script for HTML version of AP QC.\n"
+},
+
 { 16, Oct , 2018 , PT , "@FindAfniDsetPath" , MINOR , TYPE_BUG_FIX,
    "Maybe not really a bug, but this program wasn't work as it should have.",
    "It now should find NIFTI sets better, and use afnirc env vars.\n"
