@@ -748,29 +748,56 @@ THD_fvec3 mri_FWHM_1dif_mom12( MRI_IMAGE *im , byte *mask )
   LOAD_FVEC3(fw_xyz,sx,sy,sz) ;
   return fw_xyz ;
 }
+
 /*========================================================================*/
+/*========================================================================*/
+/* Return the cluster of points over which we estimage the ACF.
+   Use the central NCLU_BASE set of points, and then fill out
+   up to NCLU_GOAL from a selection of the outer points,
+   so that we don't end up with a vast cluster and slow estimation.
+*//*----------------------------------------------------------------------*/
 
 #undef  NCLU_GOAL
 #define NCLU_GOAL 666
 #undef  NCLU_BASE
 #define NCLU_BASE 111
 
+static int do_2D_ACF = 0 ;
+
+void set_ACF_2D( int nn ){ do_2D_ACF = nn ; }
+
 static MCW_cluster * get_ACF_cluster( float dx, float dy, float dz, float radius )
 {
    MCW_cluster *clout=NULL , *cltemp=NULL ;
    int pp , dp ;
 
+   /* a ball of desired radius */
+
    cltemp = MCW_spheremask( dx,dy,dz , radius ) ;
+
+   /* if not too big, just use this */
 
    if( cltemp->num_pt < NCLU_GOAL ) return cltemp ;
 
+   /* keep the central NCLU_BASE points */
+
    INIT_CLUSTER(clout) ;
-   for( pp=0 ; pp < NCLU_BASE ; pp++ )
+   for( pp=0 ; clout->num_pt < NCLU_BASE && pp < cltemp->num_pt ; pp++ ){
+     if( do_2D_ACF && cltemp->k[pp] != 0 ) continue ;
      ADDTO_CLUSTER(clout,cltemp->i[pp],cltemp->j[pp],cltemp->k[pp],0.0f) ;
+   }
+
+   /* keep a selection of the outer points, so we don't get too many */
 
    dp = (int)rintf( (cltemp->num_pt-NCLU_BASE) / (float)(NCLU_GOAL-NCLU_BASE) ) ;
-   for( pp=NCLU_BASE ; pp < cltemp->num_pt ; pp+=dp )
-     ADDTO_CLUSTER(clout,cltemp->i[pp],cltemp->j[pp],cltemp->k[pp],0.0f) ;
+   for( ; pp < cltemp->num_pt ; ){
+     if( do_2D_ACF && cltemp->k[pp] != 0 ){
+       pp++ ;
+     } else {
+       ADDTO_CLUSTER(clout,cltemp->i[pp],cltemp->j[pp],cltemp->k[pp],0.0f) ;
+       pp += dp ;
+     }
+   }
 
    KILL_CLUSTER(cltemp) ;
    MCW_radsort_cluster(clout,dx,dy,dz) ;
@@ -895,6 +922,8 @@ ENTRY("THD_estimate_ACF") ;
      medar = MRI_FLOAT_PTR(medim) ;
    }
 
+   set_ACF_2D( DSET_NZ(dset)==1 ) ;
+
    clout = get_ACF_cluster( fabsf(DSET_DX(dset)) , fabsf(DSET_DY(dset)) ,
                             fabsf(DSET_DZ(dset)) , radius ) ;
    if( clout == NULL ){
@@ -981,6 +1010,8 @@ ENTRY("mriarr_estimate_FWHM_acf") ;
      for( ii=0 ; ii < nvox ; ii++ )
        if( madar[ii] > 0.0f ) madar[ii] = 1.0f / madar[ii] ;
    }
+
+   set_ACF_2D( IMARR_SUBIM(imar,0)->nz == 1 ) ;
 
    clout = get_ACF_cluster( dx,dy,dz, radius ) ;
    if( clout == NULL ){
