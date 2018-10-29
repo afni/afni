@@ -323,9 +323,10 @@ int main (int argc,char *argv[])
    
    if (ver == 2009 && !ctfile) {
       char *eee = getenv("FREESURFER_HOME");
+      /* more obvious warning   29 Oct 2018 [rickr] */
       if (!eee) {
-         SUMA_S_Warn("Environment variable FREESURFER_HOME not set.\n"
-                    "Cannot locate FreeSurferColorLUT.txt\n");
+         SUMA_S_Warn("** Environment variable FREESURFER_HOME not set.\n"
+                     "** Cannot locate FreeSurferColorLUT.txt\n");
       } else {
          sprintf(sbuf, "%s/FreeSurferColorLUT.txt", eee);
          ctfile = sbuf;
