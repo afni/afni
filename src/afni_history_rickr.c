@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29, Oct, 2018, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
+   "zsh: check for .zshenv",
+   NULL
+ } ,
+
  { 29, Oct, 2018, RCR, "FSread_annot", MICRO, TYPE_ENHANCE,
    "fix crash and more clearly warn if missing FSColorLUT file",
    NULL
