@@ -107,6 +107,9 @@ class SysInfo:
       cc = []
       self.rc_file = 'NONE'
 
+      # ordered from esoteric to mainstream/preferred
+      # (self.rc_file might be overwritten by later calls)
+
       if 'sh' in slist:
          # non-login shell ref: NONE
          # login shell ref: .profile"
@@ -117,6 +120,18 @@ class SysInfo:
          else: 
             cc.append("shell sh  : MISSING login shell setup file %s" % fname)
          
+      if 'zsh' in slist:
+         # general env file: .zshenv
+         # interactive file: .zprofile
+         # order of files: .zshenv  .zprofile  .zshrc  .zlogin
+         fname = '.zshenv'
+         self.rc_file = fname
+         if os.path.isfile('%s/%s' % (self.home_dir,fname)):
+            cc.append("shell zsh : good: found env shell setup file %s" %fname)
+         else: 
+            cc.append("shell zsh : MISSING env shell setup file %s" % fname)
+         
+
       if 'bash' in slist:
          # non-login shell ref: .bashrc
          # login shell ref, first of: .bash_profile, .bash_login, .profile
