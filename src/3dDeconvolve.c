@@ -11079,6 +11079,7 @@ static float waveform_WAV( float t )
 }
 
 /*----------------------------------------------------------------*/
+/* WFUN convolution for various basis functions with durations. */
 
 #define WTYPE_SPMG1 1
 #define WTYPE_SPMG2 2
@@ -11113,6 +11114,7 @@ typedef struct {
 static int          nWFUNS = 0    ;
 static WFUN_storage *WFUNS = NULL ;
 
+/* "micro time" resolution for this convolution */
 #undef  WFUNDT
 #define WFUNDT 0.01f
 

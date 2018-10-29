@@ -1,4 +1,4 @@
-#!/bin/tcsh
+#!/bin/csh
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
@@ -14,8 +14,12 @@
 #set version   = "0.3";  set rev_dat   = "Oct 18, 2018"
 #   + flag to have ulay extents box, to tighten the window of slicing
 #
-set version   = "0.4";  set rev_dat   = "Oct 18, 2018"
+#set version   = "0.4";  set rev_dat   = "Oct 18, 2018"
 #   + optionify
+#
+set version   = "0.5";  set rev_dat   = "Oct 21, 2018"
+#   + single outline form only at the moment (non-alpha-line one)
+#   + new opt: -no_clean
 #
 # ----------------------------------------------------------------
 
@@ -53,7 +57,7 @@ set Nx             = 7                    # num of mont wins, b/c Ny=1
 set refbox_add     = ( "-pass" "-pass" )
 
 set DO_CLEAN       = 1                    # default: do remove
-
+set allclean       = "-do_clean"          # apply cleaning to @chauff cmd
 
 # ------------------- process options, a la rr ----------------------
 
@@ -99,7 +103,8 @@ while ( $ac <= $#argv )
 
     else if ( "$argv[$ac]" == "-no_clean" ) then
         set DO_CLEAN = 0
-        
+        set allclean = "-pass"
+
     else
         echo "\n\n** ERROR: unexpected option #$ac = '$argv[$ac]'\n\n"
         goto BAD_EXIT
@@ -150,7 +155,11 @@ set idx  = 0
 
 set uin  = "$ulay"
 set uout = "${tpref}_${idx}_cp.nii"
-3dcalc -a "$uin" -expr 'a' -prefix "$uout"
+3dcalc                                      \
+    -a "$uin"                               \
+    -expr 'a'                               \
+    -prefix "$uout"
+@ idx += 1
 
 set uin  = "$uout"
 set uout = "${tpref}_${idx}_ulay_shrp.nii"
@@ -202,6 +211,9 @@ set ethr = $vvv[2]
 ## set opacity = 9, because one can't really see under the lines
 ## usefully, anyways
 # Ulay isn't so dark to see more contrast in stuff
+
+if ( 0 ) then
+# one set
 @chauffeur_afni                             \
     -ulay  "${uout}"                        \
     "${refbox_add[1]}"  "$refbox_add[2]"    \
@@ -218,10 +230,10 @@ set ethr = $vvv[2]
     -save_ftype JPEG                        \
     -set_xhairs OFF                         \
     -label_mode 1 -label_size 3             \
-    -do_clean
+    $allclean
+endif
 
-#if ( 0 ) then
-# Another option: not presently used
+# other type
 @chauffeur_afni                             \
     -ulay  "${uout}"                        \
     "${refbox_add[1]}"  "$refbox_add[2]"    \
@@ -233,13 +245,12 @@ set ethr = $vvv[2]
     -alpha_par Off                          \
     -thr_olay $ethr                         \
     -opacity 9                              \
-    -prefix   "$odir/${opref}_B"            \
+    -prefix   "$odir/${opref}"              \
     -montx $Nx -monty 1                     \
     -save_ftype JPEG                        \
     -set_xhairs OFF                         \
     -label_mode 1 -label_size 3             \
-    -do_clean
-#endif
+    $allclean
 
 # ---------------------------------------------------------------------
 

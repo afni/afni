@@ -121,8 +121,20 @@
 #     + also new option to focus slices on box from desired set:
 #          -box_focus_slices REFBOX
 #
-set version   = "4.12";   set rev_dat   = "Oct 18, 2018"
+#set version   = "4.12";   set rev_dat   = "Oct 18, 2018"
 #     + add in '-pass' option, for other scripty reasons. Does nothing.
+#
+#set version   = "4.2";   set rev_dat   = "Oct 21, 2018"
+#     + echo variable defs and afni drive command to text file-- can
+#       be driven itself if "-no_clean" is used (but not with xvfb at
+#       the moment
+#
+set version   = "4.3";   set rev_dat   = "Oct 21, 2018"
+#     + add colorbar save capability, which is new to AFNI, courtesy
+#       of RWC-- thanks!
+#     + when outputting the pbar, a text file also gets made, with the
+#       max value of the cbar and the threshold for the olay, to help
+#       scripting
 #
 # =====================================================================
 
@@ -159,7 +171,7 @@ set my_cbar = "Plasma"           # colorbar, if necessary
 set bufac   = "2"                # blowup factor
 set frange  = "0"                # either this (autorange), or user puts in
 set USER_FRANGE = 0              # internal toggle only
-set thrnew  = "0."               # threshold value (zero default)
+set thrnew  = "0"                # threshold value (zero default)
 set p_thr_val = ""               # for p-to-stat capability in thr
 set p_thr_side = ""              # for p-to-stat capability in thr
 set thrflag = "*"                # threshold flags
@@ -181,6 +193,10 @@ set coor_type = "SET_IJK"        # default, can switch to SET_XYZ
 set pbar_sign = "-"              # + is pos. only, - is both (switch for both)
 set ncolors   = "99"             # default number of colors
 set topval    = 1                # upper scale value in colorbar
+
+set com_pbar_str = "DO_NOTHING"  # [PT: Oct 21, 2018] so we can save cbar 
+set com_pbar_str_dim = "dim=64x512H" # [PT: Oct 21, 2018] default size+orient
+set SAVE_PBAR = 0                # [PT: Oct 21, 2018] flag for assorted stuff
 
 set func_resam = "NN"            # def. no resample; opt: {NN|Li|Cu|Bk}
 
@@ -509,6 +525,20 @@ while ( $ac <= $#argv )
         @ ac += 1
         setenv AFNI_IMAGE_ZEROCOLOR  "$argv[$ac]"
 
+    # [PT: Oct 21, 2018] save colorbar (and range to text file)
+    else if ( "$argv[$ac]" == "-pbar_saveim" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set com_pbar_str = "PBAR_SAVEIM $argv[$ac]"
+        set pbar_fname = "$argv[$ac]"
+        set SAVE_PBAR = 1
+
+    # [PT: Oct 21, 2018] save colorbar (and range to text file)
+    else if ( "$argv[$ac]" == "-pbar_dim" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set com_pbar_str_dim = "dim=$argv[$ac]"
+
     # AFNI_IMAGE_LABEL_MODE    = 1     // draw labels in UL of Image windows
     # AFNI_IMAGE_LABEL_SIZE    = 3     // size of labels in Image windows
     # AFNI_IMAGE_LABEL_COLOR   = white // color of labels in Image windows
@@ -684,6 +714,19 @@ if ( ! -e $read_dir ) then
     echo "++ Making temporary work directory to copy vis files: $read_dir"
     mkdir $read_dir
 endif
+
+# ------------------- cbar saving stuff
+if ( $SAVE_PBAR == 1 ) then
+    if ( "$see_olay" == "-" ) then
+        echo "*+ WARNING: You asked to save the color pbar, but didn't input"
+        echo "   an olay, so, I'm not savin' one."
+        set com_pbar_str = "DO_NOTHING"
+        set SAVE_PBAR = 0   # unset this so we don't output text file of ranges
+    else
+        set com_pbar_str = "$com_pbar_str $com_pbar_str_dim"
+    endif
+endif
+
 
 # -------------------- 4D mode reslicing+assembling if necessary
 
@@ -1147,6 +1190,20 @@ foreach rrr ( `seq 1 1 $Nreps` )  ### the BIG loop starts
         echo "++ Will have: $coor_type $coors"
     endif
 
+    # [PT: Oct 21, 2018] output possible bar range (bot and top) and
+    # thr value
+    if ( $SAVE_PBAR == 1 ) then
+        set opbar_file = "${pbar_fname:r}.txt"
+
+        if ( "$pbar_sign" == "+" ) then
+            # Q: frange is never negative, itself??
+            set bot_frange = "0"
+        else
+            set bot_frange = "-$frange"
+        endif
+        echo "$bot_frange    $frange    $thrnew" > "${opbar_file}"
+    endif
+
     echo "\n------------------- end of optionizing -------------------\n" 
 
     # -------------------------------------------------------------------
@@ -1190,11 +1247,80 @@ foreach rrr ( `seq 1 1 $Nreps` )  ### the BIG loop starts
 
     if ( $MODE_4D ) then
 
+# commenting out for now
+if ( 0 ) then
+set oechocmd = chauffeur_echo_${rrr}.tcsh
+echo '#\!/bin/tcsh\n' > $oechocmd
+
+echo "# Define all variables used in AFNI drive command." >> $oechocmd
+echo "# NB: this is the [${rrr}]th image of the 4D viewer" >> $oechocmd
+
+echo "set rrr          = "\""${rrr}"\"""  >> $oechocmd
+echo "set read_ulay    = "\""${read_ulay}"\"""  >> $oechocmd
+echo "set read_olay    = "\""${read_olay}"\"""  >> $oechocmd
+echo "set see_olay     = "\""${see_olay}"\"""  >> $oechocmd
+echo "set pbar_sign    = "\""${pbar_sign}"\"""  >> $oechocmd
+echo "set ncolors      = "\""${ncolors}"\"""  >> $oechocmd
+echo "set topval       = "\""${topval}"\"""  >> $oechocmd
+echo "set my_cbar      = "\""${my_cbar}"\"""  >> $oechocmd
+echo "set com_pbar_str = "\""${com_pbar_str}"\"""  >> $oechocmd
+echo "set subbb        = ( ${subbb} )"  >> $oechocmd
+echo "set com_ulay_str = "\""${com_ulay_str}"\"""  >> $oechocmd
+echo "set frange       = "\""${frange}"\"""  >> $oechocmd
+echo "set thrnew       = "\""${thrnew}"\"""  >> $oechocmd
+echo "set thrflag      = "\""${thrflag}"\"""  >> $oechocmd
+echo "set alpha_par    = "\""${alpha_par}"\"""  >> $oechocmd
+echo "set alpha_floor  = "\""${alpha_floor}"\"""  >> $oechocmd
+echo "set func_resam   = "\""${func_resam}"\"""  >> $oechocmd
+echo "set crossh       = "\""${crossh}"\"""  >> $oechocmd
+echo "set OW           = "\""${OW}"\"""  >> $oechocmd
+echo "set ppord        = ( ${ppord} )"  >> $oechocmd
+echo "set pord         = ( ${pord} )"  >> $oechocmd
+echo "set acropx       = ( ${acropx} )"  >> $oechocmd
+echo "set acropy       = ( ${acropy} )"  >> $oechocmd
+echo "set coor_type    = "\""${coor_type}"\"""  >> $oechocmd
+echo "set coors        = ( ${coors} )"  >> $oechocmd
+echo "set ftype        = "\""${ftype}"\"""  >> $oechocmd
+echo "set odir         = "\""${odir}"\"""  >> $oechocmd
+echo "set impref       = "\""${impref}"\"""  >> $oechocmd
+echo "set bufac        = "\""${bufac}"\"""  >> $oechocmd
+echo "set do_quit      = "\""${do_quit}"\"""  >> $oechocmd
+echo "set read_dir     = "\""${read_dir}"\"""  >> $oechocmd
+
+echo '# the afni drive command itself' >> $oechocmd
+echo '\
+afni -noplugins -no_detach  -echo_edu                                 \\\
+     -com "SWITCH_UNDERLAY ${read_ulay}"                              \\\
+     -com "SWITCH_OVERLAY  ${read_olay}"                              \\\
+     -com "SEE_OVERLAY     ${see_olay}"                               \\\
+     -com "SET_PBAR_ALL    ${pbar_sign}${ncolors} $topval $my_cbar"   \\\
+     -com "$com_pbar_str"                                             \\\
+     -com "SET_SUBBRICKS   ${subbb}"                                  \\\
+     -com "$com_ulay_str"                                             \\\
+     -com "SET_FUNC_RANGE  ${frange}"                                 \\\
+     -com "SET_THRESHNEW   $thrnew $thrflag"                          \\\
+     -com "SET_FUNC_ALPHA  $alpha_par $alpha_floor"                   \\\
+     -com "SET_FUNC_RESAM  ${func_resam}.${func_resam}"               \\\
+     -com "SET_XHAIRS  ${crossh}"                                     \\\
+     -com "$OW ${ppord[$rrr]}image opacity=${opac}                    \\\
+            mont=${mx}x${my}:${gapord[3]}                             \\\
+            crop=${acropx[1]}:${acropx[2]},${acropy[1]}:${acropy[2]}" \\\
+     -com "$coor_type $coors"                                         \\\
+     -com "SAVE_${ftype} ${ppord[$rrr]}image                          \\\
+            ${odir}/${impref}.${pord[$rrr]}                           \\\
+            blowup=${bufac}"                                          \\\
+     -com "${do_quit}"                                                \\\
+     "${read_dir}"' >> $oechocmd
+endif
+
+# the command run with xvfb; same as above but different spacing; at
+# some point just run via the command script with xvfb
         afni -noplugins -no_detach  -echo_edu                               \
              -com "SWITCH_UNDERLAY ${read_ulay}"                            \
              -com "SWITCH_OVERLAY  ${read_olay}"                            \
              -com "SEE_OVERLAY     ${see_olay}"                             \
              -com "SET_PBAR_ALL    ${pbar_sign}${ncolors} $topval $my_cbar" \
+             -com "$com_pbar_str"                                           \
              -com "SET_SUBBRICKS   ${subbb}"                                \
              -com "$com_ulay_str"                                           \
              -com "SET_FUNC_RANGE  ${frange}"                               \
@@ -1211,42 +1337,111 @@ foreach rrr ( `seq 1 1 $Nreps` )  ### the BIG loop starts
                     blowup=${bufac}"                                        \
              -com "${do_quit}"                                              \
              "${read_dir}"
-
-
     else
-         #   "$com_ulay_str"                                                \
 
-        #xvfb-run -d --server-args="-screen 0 1024x768x24" -w 0  \
-        afni -noplugins -no_detach  -echo_edu                               \
-             -com "SWITCH_UNDERLAY ${read_ulay}"                            \
-             -com "SWITCH_OVERLAY  ${read_olay}"                            \
-             -com "SEE_OVERLAY     ${see_olay}"                             \
-             -com "SET_PBAR_ALL    ${pbar_sign}${ncolors} $topval $my_cbar" \
-             -com "SET_SUBBRICKS   ${subbb}"                                \
-             -com "$com_ulay_str"                                           \
-             -com "SET_FUNC_RANGE  ${frange}"                               \
-             -com "SET_THRESHNEW   $thrnew $thrflag"                        \
-             -com "SET_FUNC_ALPHA  $alpha_par $alpha_floor"                 \
-             -com "SET_FUNC_RESAM  ${func_resam}.${func_resam}"             \
-             -com "SET_XHAIRS  ${crossh}"                                   \
-             -com "$OW sagittalimage opacity=${opac}                        \
-                    mont=${mx}x${my}:${gapord[1]}                           \
-                    crop=${scropx[1]}:${scropx[2]},${scropy[1]}:${scropy[2]}" \
-             -com "$OW coronalimage  opacity=${opac}                        \
-                    mont=${mx}x${my}:${gapord[2]}                           \
-                    crop=${ccropx[1]}:${ccropx[2]},${ccropy[1]}:${ccropy[2]}" \
-             -com "$OW axialimage    opacity=${opac}                        \
-                    mont=${mx}x${my}:${gapord[3]}                           \
-                    crop=${acropx[1]}:${acropx[2]},${acropy[1]}:${acropy[2]}" \
-             -com "$coor_type $coors"                                       \
-             -com "SAVE_${ftype} sagittalimage ${odir}/${impref}.sag        \
-                    blowup=${bufac}"                                        \
-             -com "SAVE_${ftype} coronalimage  ${odir}/${impref}.cor        \
-                    blowup=${bufac}"                                        \
-             -com "SAVE_${ftype} axialimage    ${odir}/${impref}.axi        \
-                    blowup=${bufac}"                                        \
-             -com "${do_quit}"                                              \
-             "${read_dir}"
+# commenting out for now
+if ( 0 ) then
+set oechocmd = chauffeur_echo.tcsh
+echo '#\!/bin/tcsh\n' > $oechocmd
+
+echo "# define all variables used in AFNI drive command" >> $oechocmd
+
+echo "set read_ulay    = "\""${read_ulay}"\"""  >> $oechocmd
+echo "set read_olay    = "\""${read_olay}"\"""  >> $oechocmd
+echo "set see_olay     = "\""${see_olay}"\"""  >> $oechocmd
+echo "set pbar_sign    = "\""${pbar_sign}"\"""  >> $oechocmd
+echo "set ncolors      = "\""${ncolors}"\"""  >> $oechocmd
+echo "set topval       = "\""${topval}"\"""  >> $oechocmd
+echo "set my_cbar      = "\""${my_cbar}"\"""  >> $oechocmd
+echo "set com_pbar_str = "\""${com_pbar_str}"\"""  >> $oechocmd
+echo "set subbb        = ( ${subbb} )"  >> $oechocmd
+echo "set com_ulay_str = "\""${com_ulay_str}"\"""  >> $oechocmd
+echo "set frange       = "\""${frange}"\"""  >> $oechocmd
+echo "set thrnew       = "\""${thrnew}"\"""  >> $oechocmd
+echo "set thrflag      = "\""${thrflag}"\"""  >> $oechocmd
+echo "set alpha_par    = "\""${alpha_par}"\"""  >> $oechocmd
+echo "set alpha_floor  = "\""${alpha_floor}"\"""  >> $oechocmd
+echo "set func_resam   = "\""${func_resam}"\"""  >> $oechocmd
+echo "set crossh       = "\""${crossh}"\"""  >> $oechocmd
+echo "set OW           = "\""${OW}"\"""  >> $oechocmd
+echo "set opac         = "\""${opac}"\"""  >> $oechocmd
+echo "set mx           = "\""${mx}"\"""  >> $oechocmd
+echo "set my           = "\""${my}"\"""  >> $oechocmd
+echo "set gapord       = ( ${gapord} )"  >> $oechocmd
+echo "set scropx       = ( ${scropx} )"  >> $oechocmd
+echo "set scropy       = ( ${scropy} )"  >> $oechocmd
+echo "set ccropx       = ( ${ccropx} )"  >> $oechocmd
+echo "set ccropy       = ( ${ccropy} )"  >> $oechocmd
+echo "set acropx       = ( ${acropx} )"  >> $oechocmd
+echo "set acropy       = ( ${acropy} )"  >> $oechocmd
+echo "set coor_type    = "\""${coor_type}"\"""  >> $oechocmd
+echo "set coors        = ( ${coors} )"  >> $oechocmd
+echo "set ftype        = "\""${ftype}"\"""  >> $oechocmd
+echo "set odir         = "\""${odir}"\"""  >> $oechocmd
+echo "set impref       = "\""${impref}"\"""  >> $oechocmd
+echo "set bufac        = "\""${bufac}"\"""  >> $oechocmd
+echo "set do_quit      = "\""${do_quit}"\"""  >> $oechocmd
+echo "set read_dir     = "\""${read_dir}"\"""  >> $oechocmd
+
+echo '# the afni drive command itself' >> $oechocmd
+echo '\
+afni -noplugins -no_detach  -echo_edu                                \\\
+    -com "SWITCH_UNDERLAY ${read_ulay}"                              \\\
+    -com "SWITCH_OVERLAY  ${read_olay}"                              \\\
+    -com "SEE_OVERLAY     ${see_olay}"                               \\\
+    -com "SET_PBAR_ALL    ${pbar_sign}${ncolors} $topval $my_cbar"   \\\
+    -com "$com_pbar_str"                                             \\\
+    -com "SET_SUBBRICKS   ${subbb}"                                  \\\
+    -com "$com_ulay_str"                                             \\\
+    -com "SET_FUNC_RANGE  ${frange}"                                 \\\
+    -com "SET_THRESHNEW   $thrnew $thrflag"                          \\\
+    -com "SET_FUNC_ALPHA  $alpha_par $alpha_floor"                   \\\
+    -com "SET_FUNC_RESAM  ${func_resam}.${func_resam}"               \\\
+    -com "SET_XHAIRS  ${crossh}"                                     \\\
+    -com "$OW sagittalimage opacity=${opac}                          \\\
+           mont=${mx}x${my}:${gapord[1]}                             \\\
+           crop=${scropx[1]}:${scropx[2]},${scropy[1]}:${scropy[2]}" \\\
+    -com "$OW coronalimage  opacity=${opac}                          \\\
+           mont=${mx}x${my}:${gapord[2]}                             \\\
+           crop=${ccropx[1]}:${ccropx[2]},${ccropy[1]}:${ccropy[2]}" \\\
+    -com "$OW axialimage    opacity=${opac}                          \\\
+           mont=${mx}x${my}:${gapord[3]}                             \\\
+           crop=${acropx[1]}:${acropx[2]},${acropy[1]}:${acropy[2]}" \\\
+    -com "$coor_type $coors"                                         \\\
+    -com "SAVE_${ftype} sagittalimage ${odir}/${impref}.sag          \\\
+           blowup=${bufac}"                                          \\\
+    -com "SAVE_${ftype} coronalimage  ${odir}/${impref}.cor          \\\
+           blowup=${bufac}"                                          \\\
+    -com "SAVE_${ftype} axialimage    ${odir}/${impref}.axi          \\\
+           blowup=${bufac}"                                          \\\
+    -com "${do_quit}"                                                \\\
+    "${read_dir}"' >> $oechocmd
+endif
+
+# the command run with xvfb; same as above but different spacing; at
+# some point just run via the command script with xvfb
+afni -noplugins -no_detach  -echo_edu                                \
+    -com "SWITCH_UNDERLAY ${read_ulay}"                              \
+    -com "SWITCH_OVERLAY  ${read_olay}"                              \
+    -com "SEE_OVERLAY     ${see_olay}"                               \
+    -com "SET_PBAR_ALL    ${pbar_sign}${ncolors} $topval $my_cbar"   \
+    -com "$com_pbar_str"                                             \
+    -com "SET_SUBBRICKS   ${subbb}"                                  \
+    -com "$com_ulay_str"                                             \
+    -com "SET_FUNC_RANGE  ${frange}"                                 \
+    -com "SET_THRESHNEW   $thrnew $thrflag"                          \
+    -com "SET_FUNC_ALPHA  $alpha_par $alpha_floor"                   \
+    -com "SET_FUNC_RESAM  ${func_resam}.${func_resam}"               \
+    -com "SET_XHAIRS  ${crossh}"                                     \
+    -com "$OW sagittalimage opacity=${opac} mont=${mx}x${my}:${gapord[1]} crop=${scropx[1]}:${scropx[2]},${scropy[1]}:${scropy[2]}" \
+    -com "$OW coronalimage  opacity=${opac} mont=${mx}x${my}:${gapord[2]} crop=${ccropx[1]}:${ccropx[2]},${ccropy[1]}:${ccropy[2]}" \
+    -com "$OW axialimage    opacity=${opac} mont=${mx}x${my}:${gapord[3]} crop=${acropx[1]}:${acropx[2]},${acropy[1]}:${acropy[2]}" \
+    -com "$coor_type $coors"                                         \
+    -com "SAVE_${ftype} sagittalimage ${odir}/${impref}.sag blowup=${bufac}" \
+    -com "SAVE_${ftype} coronalimage  ${odir}/${impref}.cor blowup=${bufac}" \
+    -com "SAVE_${ftype} axialimage    ${odir}/${impref}.axi blowup=${bufac}" \
+    -com "${do_quit}"                                                \
+    "${read_dir}"
 
     endif
 
@@ -1448,6 +1643,29 @@ COMMAND OPTIONS ~1~
                     both positive and negative values; enter this flag
                     to use only the positive range. (See DR:
                     SET_PBAR_ALL)
+
+-pbar_saveim PBS   :if an olay is used, then you can save the color pbar
+                    (=colorbar) that is used in plotting.  PBS is the
+                    name of the file (including path), with allowed
+                    extensions jpg, png, or ppm.  
+                    When this option is used, a text file of the same
+                    name as PBS but with extension 'txt' will also be
+                    saved, containing three values: the bottom and top
+                    values of the functional range (i.e., of the
+                    colorbar), and the threshold value (if no thr is
+                    specified, then it is 0).  See also '-pbar_dim ..'
+                    for relation pbar optioning.  (See DR: PBAR_SAVEIM)
+
+-pbar_dim PBD      :if '-pbar_saveim ..' is used to save the color pbar
+                    of the olay, then this option can specify the
+                    orientation of the colorbar image and its pixel
+                    dimensions. This is done by specifying the
+                    'dimstring' part of the PBAR_SAVEIM input (see DR:
+                    PBAR_SAVEIM).  The default value is '64x512H',
+                    which means to have a vertical cbar that is 64
+                    pixels wide and 512 pixels tall which is then
+                    tipped horizontally on its side; to leave it vertical
+                    just don't put an 'H' at the end. 
 
 -cbar_ncolors NC   :set colorscale mode (def: 99) (See DR:
                     SET_PBAR_ALL, the 2nd usage case, description

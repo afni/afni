@@ -555,7 +555,7 @@ int main( int argc , char *argv[] )
 
      for(jj=0;jj<nref;jj++) free(ref[jj]) ;
      free(ref); DSET_delete(inset); inset=newset;
-     demed = unif = 0 ;
+     demed = 0 ; unif = 1 ;
      ININFO_message("detrending done (%.2f CPU s thus far)",COX_cpu_time()-ct) ;
 
      if( newprefix != NULL ){    /** for debugging **/
