@@ -152,7 +152,7 @@ typedef struct { int mon,day; char *label; } mday ;
 /*-----------------------------------------*/
 /*! max # trivia elements allowed per date */
 
-#define NTMAX 31
+#define NTMAX 99
 
 char * AFNI_get_date_trivia(void) ;
 
@@ -1565,6 +1565,20 @@ int AFNI_is_Eid( int yy , int mm , int dd )
 }
 
 /*------------------------------------------------------------------------------*/
+
+char * julian_date_string(void)  /* 29 Oct 2018 */
+{
+   double tt ;
+   struct tm *gt ;
+   static char jdate[128] ;
+
+   tt = (double)time(NULL) ;   /* seconds since 01 Jan 1970 */
+   tt = ( tt / 86400.0 ) + 2440587.5 ;
+   sprintf(jdate,"Julian Date:%14.5f",tt) ;
+   return jdate ;
+}
+
+/*------------------------------------------------------------------------------*/
 /*! Return one of today's date trivia string. */
 
 char * AFNI_get_date_trivia(void)
@@ -1649,6 +1663,9 @@ char * AFNI_get_date_trivia(void)
 
    if( ntar < NTMAX && AFNI_is_Eid(lt->tm_year+1900,lt->tm_mon+1,lt->tm_mday) )
       tar[ntar++] = "Eid al-Fitr" ;
+
+   if( ntar < NTMAX )
+      tar[ntar++] = julian_date_string() ;
 
    ncall++ ;
    if( ntar == 0 || (ntar < NTMAX && ncall > 3) ){  /* 04 Oct 2007 */
