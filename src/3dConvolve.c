@@ -31,6 +31,10 @@
 
 */
 
+#undef ALLOW_PROGRAM
+
+#ifdef ALLOW_PROGRAM
+
 /*---------------------------------------------------------------------------*/
 
 #define PROGRAM_NAME    "3dConvolve"                 /* name of this program */
@@ -296,11 +300,6 @@ void get_options
 
   /*----- does user request help menu? -----*/
   if (argc < 2 || strcmp(argv[1], "-help") == 0)  display_help_menu();  
-
-  
-  /*----- add to program log -----*/
-  mainENTRY("3dConvolve"); machdep(); PRINT_VERSION("3dConvolve");
-  AFNI_logger (PROGRAM_NAME,argc,argv); 
 
   
   /*----- initialize the input options -----*/
@@ -2005,6 +2004,7 @@ void terminate_program
 
 }
 
+#endif /* ALLOW_PROGRAM */
 
 /*---------------------------------------------------------------------------*/
 
@@ -2015,6 +2015,16 @@ int main
 )
 
 {
+#ifndef ALLOW_PROGRAM
+  ERROR_exit("\n"
+    "** :( :( :( :( :( :( :( :( :( :( :( :( :( :( :( :( :( :( :( **\n"
+    "**                                                          **\n"
+    "** This program, 3dConvolve, is no longer supported in AFNI **\n"
+    "**                                                          **\n"
+    "** :( :( :( :( :( :( :( :( :( :( :( :( :( :( :( :( :( :( :( **\n"
+  ) ;
+  exit(0) ;
+#else
   DC_options * option_data;             /* deconvolution algorithm options */
   THD_3dim_dataset * dset_time = NULL;  /* input 3d+time template data set */
   THD_3dim_dataset * mask_dset = NULL;  /* input mask data set */
@@ -2100,6 +2110,7 @@ int main
 		     &stimulus, &stim_length, &errts_data, &predts_vol);
 
   exit(0);
+#endif /* ALLOW_PROGRAM */
 }
 
 
