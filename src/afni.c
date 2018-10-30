@@ -776,7 +776,12 @@ void AFNI_syntax(void)
      "                many (random) goodbye messages.\n"
      "   -startup [n] Similar to '-goodbye', but for startup tips.\n"
      "                [If you want REAL fun, use '-startup ALL'.]\n"
-     "   -ver         Print the current AFNI version and exit.\n"
+     "   -julian      Print out the current Julian date and exit.\n"
+     "                + Julian dates are simply a continuous count of days and\n"
+     "                  fractions since noon Universal Time on 01 Jan 4713 BC\n"
+     "                  (on the Julian calendar).\n"
+     "   -ver         Print the current AFNI version and compile date, then exit.\n"
+     "                Useful to check how up-to-date you are (or aren't).\n"
      "\n"
      "N.B.: Many of these options, as well as the initial color set up,\n"
      "      can be controlled by appropriate X11 resources.  See the\n"
@@ -1926,6 +1931,11 @@ int main( int argc , char *argv[] )
        ii = (argc > 2 ) ? abs((int)rintf((strtod(argv[2],NULL)))) : 1 ;
        for( jj=0 ; jj < ii ; jj++ ) AFNI_print_startup_tip(-1) ;
      }
+     exit(0) ;
+   }
+
+   if( argc > 1 && strcasecmp(argv[1],"-julian") == 0 ){ /* 30 Oct 2018 */
+     printf("%s\n",julian_date_string()) ;
      exit(0) ;
    }
 
