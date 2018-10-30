@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <stdio.h>
+#include <cs.h>
 
 /*-------------------------------------------------------------------------*/
 /*! What we might thank people for. */
@@ -1568,13 +1569,15 @@ int AFNI_is_Eid( int yy , int mm , int dd )
 
 char * julian_date_string(void)  /* 29 Oct 2018 */
 {
-   double tt ;
-   struct tm *gt ;
-   static char jdate[128] ;
+   double tt ; int ii,jj ;
+   static char jdate[128] ; char *ss ;
 
    tt = (double)time(NULL) ;   /* seconds since 01 Jan 1970 */
    tt = ( tt / 86400.0 ) + 2440587.5 ;
-   sprintf(jdate,"Julian Date:%14.5f",tt) ;
+   ii = (int)tt ;
+   ss = commaized_integer_string(ii) ;
+   jj = (int)rint((tt-(double)ii)*100000.0) ;
+   sprintf(jdate,"Julian Date: %s.%0d" , ss , jj ) ;
    return jdate ;
 }
 
