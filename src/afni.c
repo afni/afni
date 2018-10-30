@@ -777,9 +777,6 @@ void AFNI_syntax(void)
      "   -startup [n] Similar to '-goodbye', but for startup tips.\n"
      "                [If you want REAL fun, use '-startup ALL'.]\n"
      "   -julian      Print out the current Julian date and exit.\n"
-     "                + Julian dates are simply a continuous count of days and\n"
-     "                  fractions since noon Universal Time on 01 Jan 4713 BC\n"
-     "                  (on the Julian calendar).\n"
      "   -ver         Print the current AFNI version and compile date, then exit.\n"
      "                Useful to check how up-to-date you are (or aren't).\n"
      "\n"
@@ -1935,7 +1932,7 @@ int main( int argc , char *argv[] )
    }
 
    if( argc > 1 && strcasecmp(argv[1],"-julian") == 0 ){ /* 30 Oct 2018 */
-     printf("%s\n",julian_date_string()) ;
+     printf("%s days since noon 01 Jan 4713 BC\n",julian_date_string()) ;
      exit(0) ;
    }
 
