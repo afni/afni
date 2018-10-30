@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 30 , OCT , 2018 , RWC , "AFNI" , MICRO , TYPE_NEW_OPT ,
+   "-julian to print out the Julian date (who doesn't want this?)" ,
+   NULL } ,
+
  { 29 , OCT , 2018 , RWC , "AFNI GUI Clusterize" , MICRO , TYPE_MODIFY ,
    "Switch to use 3dClusterize as external prog, instead of 3dclust" ,
    NULL } ,
