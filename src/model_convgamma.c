@@ -3,6 +3,28 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
+
+/*----------------------------------------------------------------------
+ * Fit parameters t0, k, r and b in the equation:
+ *
+ *    f(t) = k * (t-t0)^r * e^(-(t-t0)/b)
+ *
+ *       t0 : time offset before response begins
+ *       k  : amplitude
+ *       r  : rise parameter (exponent on polynomial component)
+ *       b  : fall parameter (exponent on decay component)
+ *
+ * The above reference function is then convolved with the time series
+ * specified by AFNI_CONVMODEL_REF, which might just be a TR-locked binary
+ * time series specifying onset events.  In such a case, the returned time
+ * series would be the sum of f(t), starting at each of the "events" in
+ * AFNI_CONVMODEL_REF.
+ *
+ * Convolving with AFNI_CONVMODEL_REF could also handle events of different
+ * durations (spanning multiple consecutive onset time points), as well as
+ * events with varying (but known) relative magnitudes, akin to ampiltude
+ * modulation.
+ *----------------------------------------------------------------------*/
    
 #include "NLfit_model.h"
 
@@ -188,6 +210,8 @@ MODEL_interface * initialize_model ()
 	 gs[1] = multiplicative constant (k)
 	 gs[2] = rise rate exponent (r)
 	 gs[3] = decay rate constant (b)
+
+  f(t) = k * t^r * e^(-t/b)
 
 */
 
