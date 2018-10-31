@@ -31,6 +31,9 @@
 
 */
 
+/* apply regardless of ALLOW_PROGRAM   31 Oct 2018 [rickr] */
+#include "mrilib.h"
+
 #undef ALLOW_PROGRAM
 
 #ifdef ALLOW_PROGRAM
@@ -48,7 +51,6 @@
 
 /*---------------------------------------------------------------------------*/
 
-#include "mrilib.h"
 #include "matrix.h"
 
 #include "Deconvolve.c"
@@ -2016,13 +2018,14 @@ int main
 
 {
 #ifndef ALLOW_PROGRAM
-  ERROR_exit("\n"
+  ERROR_message("\n"
     "** :( :( :( :( :( :( :( :( :( :( :( :( :( :( :( :( :( :( :( **\n"
     "**                                                          **\n"
     "** This program, 3dConvolve, is no longer supported in AFNI **\n"
     "**                                                          **\n"
     "** :( :( :( :( :( :( :( :( :( :( :( :( :( :( :( :( :( :( :( **\n"
   ) ;
+  fprintf(stderr,"** Program compile date = %s\n",__DATE__) ;
   exit(0) ;
 #else
   DC_options * option_data;             /* deconvolution algorithm options */
