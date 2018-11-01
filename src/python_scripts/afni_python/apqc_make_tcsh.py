@@ -180,7 +180,10 @@ if __name__ == "__main__":
 
         ban      = lat.bannerize('view some stats results')
         opref    = 'IMG_{:02d}_vol_check_stats_anat'.format(idx)
-        cmd      = lat.apqc_vol_check_stats_anat( opref, focusbox )
+        # in this case, we also specify the indices of the ulay and
+        # thr volumes in the stats dset-- we intend that this will
+        # generalize to viewing not just the F-stat (the default)
+        cmd      = lat.apqc_vol_check_stats_anat( opref, focusbox, 0, 0 )
 
         str_FULL+= ban
         str_FULL+= cmd
