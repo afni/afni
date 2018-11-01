@@ -7,6 +7,8 @@
 
 # mostly ways to read & wrap text & images.
 import sys
+import os
+import json
 
 def wrap_block_lab(x, vpad=0):
     y = """<h3><center>block: """+x+"""</center></h3>"""
@@ -40,23 +42,24 @@ def wrap_image_txt(x, vpad=0, addclass=""):
 
 # -------------------------------------------------------------------
 
-def make_pbar_line(pbar_min, pbar_max, pbar_thr, imgpbar, vpad=0, addclass=""):
-
-    y = """<div """
-    y+= '''{} >'''.format(addclass)
-    y+= """<pre>{} """.format(pbar_min)
-    y+= '''<img style="display: inline; margin: -5 -5px;" '''
-    y+= '''src="{}" '''.format(imgpbar)
-    y+= '''vertical-align="middle" height="20px"> '''
-#    y+= '''{} </pre></div>\n'''.format(pbar_max)
-    y+= '''{}\n'''.format(pbar_max)
-    y+= '''vthr: {} (90 %ile) </pre></div>\n'''.format(pbar_thr)
-    if vpad:
-        y= """\n"""+y
-        y+="""\n"""
-
-    #y = '''\n<div class=container><pre> {} <img style="display: inline; margin: 0 0px;" src="{}" align="middle" width="160px" height="25px"> {} </pre></div>\n'''.format(pbar_min, imgpbar, pbar_max)
-    return y
+##### old, pre-json
+#def make_pbar_line(pbar_min, pbar_max, pbar_thr, imgpbar, vpad=0, addclass=""):
+#
+#    y = """<div """
+#    y+= '''{} >'''.format(addclass)
+#    y+= """<pre>{} """.format(pbar_min)
+#    y+= '''<img style="display: inline; margin: -5 -5px;" '''
+#    y+= '''src="{}" '''.format(imgpbar)
+#    y+= '''vertical-align="middle" height="20px"> '''
+##    y+= '''{} </pre></div>\n'''.format(pbar_max)
+#    y+= '''{}\n'''.format(pbar_max)
+#    y+= '''vthr: {} (90 %ile) </pre></div>\n'''.format(pbar_thr)
+#    if vpad:
+#        y= """\n"""+y
+#        y+="""\n"""
+#
+#    #y = '''\n<div class=container><pre> {} <img style="display: inline; margin: 0 0px;" src="{}" align="middle" width="160px" height="25px"> {} </pre></div>\n'''.format(pbar_min, imgpbar, pbar_max)
+#    return y
 
 # -------------------------------------------------------------------
 
@@ -111,6 +114,7 @@ def read_descrip_txt(x):
         out = ''
     return title, out
 
+# ----------------------------------------------------------------------
 
 def read_dat(x):
 
@@ -120,6 +124,46 @@ def read_dat(x):
 
     out = ''.join(txt)
     return out
+
+# ----------------------------------------------------------------------
+
+# check if json exists- return full or null dict
+def read_pbar_json(x):
+
+    if os.path.isfile(x):
+        with open(x, 'r') as fff:
+            xdict = json.load(fff)
+    else:
+        xdict = {}
+
+    return xdict
+
+# ----------------------------------------------------------------------
+
+#!!!!!!!!!!!!!!!!!
+# "pbar_bot"
+# "pbar_top"
+# "pbar_reason"
+# "vthr"
+# "vthr_reason"
+
+def make_pbar_line(d, imgpbar, vpad=0, addclassdiv="", addclassimg=""):
+
+    y = """<div """
+    y+= '''{} >'''.format(addclassdiv)
+    y+= """<pre>olay:  {} """.format(d['pbar_bot'])
+    y+= '''<img {} '''.format(addclassimg)
+    y+= '''style="display: inline; margin: -5 -5px;" '''
+    y+= '''src="{}" > '''.format(imgpbar)
+    y+= '''{} ({})\n'''.format(d['pbar_top'], d['pbar_reason'])
+    y+= '''thr :  {} ({}) </pre></div>\n'''.format(d['vthr'], d['vthr_reason'])
+    if vpad:
+        y= """\n"""+y
+        y+="""\n"""
+
+    return y
+
+# ----------------------------------------------------------------------
 
 def read_pbar_range(x, dtype="NA"):
 

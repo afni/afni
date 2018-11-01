@@ -12,6 +12,10 @@
 # + new text, new output strings
 # + WARN type introduced
 #
+# ver : 1.4 || date: Oct 23, 2018 || auth: PA Taylor
+# + do stats differently: separate olay and thr
+# + also start a json for the pbar info
+#
 #########################################################################
 
 import sys
@@ -646,64 +650,106 @@ def apqc_1D_sum_ideal(jpgsize, opref):
 
 # ['stats_dset', 'mask_dset', 'final_anat']
 # ['template'] # secondary consideration
-def apqc_vol_check_stats_anat( opref, focusbox ):
+def apqc_vol_check_stats_anat( opref, focusbox, iolay, ithr, 
+                               olay_posonly=True ):
+
+    perc_thr_thr  = 90                    # %ile for thresholding thr vol
+    perc_olay_top = 99                    # %ile for top of pbar for olay
+
+    # what will minval of pbar be? 0, or -max?
+    if olay_posonly :
+        olay_minval_str = "-pbar_posonly"
+        pbar_min = "0"
+    else:
+        olay_minval_str = "-pass"
+        pbar_min = "-${olay_topval}" # $olay_topval gets defined below
 
     comm  = '''peruse statistical results: 
-    thresholding Full-Fstat at 90 percentile'''
+    {} %ile threshold of thr vol [{}]
+    {} %ile topval for olay vol [{}] for pbar'''.format( perc_thr_thr,
+                                                         ithr,
+                                                         perc_olay_top,
+                                                         iolay )
 
     pre = '''
     set opref = {}
     set focus_box = {}
     set ulay_name = `3dinfo -prefix_noext ${{final_anat}}`
     set olay_name = `3dinfo -prefix_noext ${{stats_dset}}`
-    set pickbrick = 0
-    set bricklabel = `3dinfo -label ${{stats_dset}}"[${{pickbrick}}]"`
-    '''.format( opref, focusbox )
+    set olaybrick = {}
+    set olaylabel = `3dinfo -label ${{stats_dset}}"[${{olaybrick}}]"`
+    set thrbrick = {}
+    set thrlabel = `3dinfo -label ${{stats_dset}}"[${{thrbrick}}]"`
+    set ojson  = ${{odir_img}}/${{opref}}.pbar.json
+    '''.format( opref, focusbox, iolay, ithr )
 
     # note the '.axi.txt', because of how @chauffeur_afni appends
     # slice plane in the name of each output image
     otxt  = "${odir_img}/${opref}" + ".axi.txt"
 
+    # threshold for stat dset, from %ile in mask
     cmd0 = '''
-    set pp = `3dBrickStat 
+    set tt = `3dBrickStat 
     -slow 
-    -percentile 90 9 99 
-    -mask "${mask_dset}" 
-    ${stats_dset}"[${pickbrick}]"` 
-    '''
+    -percentile {0} 1 {0}
+    -mask "${{mask_dset}}" 
+    ${{stats_dset}}"[${{thrbrick}}]"`
+    '''.format( perc_thr_thr )
 
     cmd1 = '''
-    set thresh = $pp[2]
-    set maxval = $pp[4]
+    set thr_thresh = ${tt[2]}
     '''
 
+    # top value for colorbar of olay, from %ile in mask
     cmd2 = '''
+    set pp = `3dBrickStat 
+    -slow 
+    -percentile {0} 1 {0}
+    -mask "${{mask_dset}}" 
+    ${{stats_dset}}"[${{olaybrick}}]"`
+    '''.format( perc_olay_top )
+
+    cmd3 = '''
+    set olay_topval = ${{pp[2]}}
+    set olay_botval = {}
+    '''.format( pbar_min )
+
+    cmd4 = '''
     @chauffeur_afni    
-    -ulay  ${final_anat}
-    -box_focus_slices ${focus_box}
-    -olay  ${stats_dset}  
+    -ulay  ${{final_anat}}
+    -box_focus_slices ${{focus_box}}
+    -olay  ${{stats_dset}}  
     -cbar Plasma 
-    -pbar_posonly
+    {}
     -ulay_range 0% 120%  
-    -func_range ${maxval}
-    -thr_olay ${thresh}    
+    -func_range ${{olay_topval}}
+    -thr_olay ${{thr_thresh}}    
     -alpha_par Quadratic  
-    -set_subbricks -1 ${pickbrick} ${pickbrick}
+    -set_subbricks -1 ${{olaybrick}} ${{thrbrick}}
     -opacity 9  
-    -pbar_saveim   "${odir_img}/${opref}.pbar.jpg"
-    -prefix        "${odir_img}/${opref}"
+    -pbar_saveim   "${{odir_img}}/${{opref}}.pbar.jpg"
+    -prefix        "${{odir_img}}/${{opref}}"
     -save_ftype JPEG
     -montx 7 -monty 1  
     -set_xhairs OFF 
     -label_mode 1 -label_size 3  
     -do_clean
-    '''
+    '''.format( olay_minval_str )
 
     imtxt = '''Check: statistics
     ulay: ${ulay_name} (anat)
-    olay: ${olay_name} (stat '${bricklabel}')
-    vthr: ${thresh} (90%ile)
-    vtop: ${maxval} (99%ile)'''
+    olay: ${olay_name} (stat '${olaylabel}')
+    thr : ${olay_name} (stat '${thrlabel}')'''
+
+    jsontxt = '''
+echo "{{"                                     > ${{ojson}}
+echo "    "\\""pbar_bot"\\"": ${{olay_botval}},"   >> ${{ojson}}
+echo "    "\\""pbar_top"\\"": ${{olay_topval}},"   >> ${{ojson}}
+echo "    "\\""pbar_reason"\\"": "\\""{}"\\"","       >> ${{ojson}}
+echo "    "\\""vthr"\\"": ${{thr_thresh}},"        >> ${{ojson}}
+echo "    "\\""vthr_reason"\\"": "\\""{}"\\"""                 >> ${{ojson}}
+echo "}}"                                    >> ${{ojson}}
+'''.format( '''99%ile, mskd''', '''90%ile, mskd''' )
 
     comm = commentize( comm )
     pre  = commandize( pre, cmdindent=0, 
@@ -711,9 +757,14 @@ def apqc_vol_check_stats_anat( opref, focusbox ):
     cmd0  = commandize( cmd0 )
     cmd1  = commandize( cmd1 )
     cmd2  = commandize( cmd2 )
-    imtxt = echoize(imtxt, efile=otxt, padpost=2)
+    cmd3  = commandize( cmd3, cmdindent=0, 
+                        ALIGNASSIGN=True, ALLEOL=False )
+    cmd4  = commandize( cmd4 )
+    imtxt = echoize(imtxt, efile=otxt)
+    jsontxt = commandize( jsontxt, cmdindent=0, 
+                          ALIGNASSIGN=True, ALLEOL=False )
 
-    lout = [comm, pre, cmd0, cmd1, cmd2, imtxt]
+    lout = [comm, pre, cmd0, cmd1, cmd2, cmd3, cmd4, jsontxt, imtxt]
     return '\n\n'.join(lout)
 
 # ----------------------------------------------------------------------
