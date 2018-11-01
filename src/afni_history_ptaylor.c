@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 1, Nov , 2018 , PT , "1dplotpy" , MAJOR , TYPE_NEW_PROG,
+   "New plotting program for 1D files.",
+   "Copies much of the fun 1dplot capability to some pythonic realm.\n"
+},
+
 { 21, Oct , 2018 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
    "New opt: '-pbar_saveim PBS' and '-pbar_dim PBD', to output color pbar.",
    "Just add in new AFNI driving functionality from RWC, to save colorbar.\n"
