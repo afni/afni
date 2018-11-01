@@ -1,9 +1,12 @@
-ver = '1.0' ; date = 'Oct 17, 2018' ; auth = 'PA Taylor'
+#ver = '1.0' ; date = 'Oct 17, 2018' ; auth = 'PA Taylor'
 # + birth
 #
-ver = '1.2' ; date = 'Nov 1, 2018' 
+#ver = '1.2' ; date = 'Nov 1, 2018' 
 # + [PT] working beta version
 # + now has help file, lots of options
+#
+ver = '1.21' ; date = 'Nov 1, 2018' 
+# + [PT] file help file (double backslash)
 #
 #########################################################################
 
@@ -231,30 +234,30 @@ EXAMPLES ~1~
 
 1) Plot Euclidean norm (enorm) profile, with the censor limit and
    related file of censoring:
-1dplotpy                                     \
-    -sepscl                                  \
-    -boxplot_on                              \
-    -infiles      motion_sub-10506_enorm.1D  \
-    -censor_files motion_sub-10506_censor.1D \
-    -censor_hline 0.2                        \
-    -title   "Motion censoring"              \
-    -ylabels enorm                           \
-    -xlabel  "vols"                          \
-    -title   "Motion censoring"              \
+1dplotpy                                     \\
+    -sepscl                                  \\
+    -boxplot_on                              \\
+    -infiles      motion_sub-10506_enorm.1D  \\
+    -censor_files motion_sub-10506_censor.1D \\
+    -censor_hline 0.2                        \\
+    -title   "Motion censoring"              \\
+    -ylabels enorm                           \\
+    -xlabel  "vols"                          \\
+    -title   "Motion censoring"              \\
     -prefix  mot_cen_plot.jpg
 
 2) Plot the 6 solid body parameters from 3dvolreg, along with
    the useful composite 'enorm' and outlier time series
-1dplotpy                                     \
-    -sepscl                                  \
-    -boxplot_on                              \
-    -reverse_order                           \
-    -infiles      dfile_rall.1D              \
-                  motion_sub-10506_enorm.1D  \
-                  outcount_rall.1D           \
-    -ylabels  VOLREG enorm outliers          \
-    -xlabel  "vols"                          \
-    -title   "Motion and outlier plots"      \
+1dplotpy                                     \\
+    -sepscl                                  \\
+    -boxplot_on                              \\
+    -reverse_order                           \\
+    -infiles      dfile_rall.1D              \\
+                  motion_sub-10506_enorm.1D  \\
+                  outcount_rall.1D           \\
+    -ylabels  VOLREG enorm outliers          \\
+    -xlabel  "vols"                          \\
+    -title   "Motion and outlier plots"      \\
     -prefix  mot_outlier_plot.png
 
 
