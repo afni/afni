@@ -3,6 +3,10 @@
 # + separate title and text strings
 # + new warn type
 #
+# ver : 1.3 || date: Nov 1, 2018 
+# + [PT] wrap_imag now includes href, so clicking on image opens it in
+#   new link
+#
 #########################################################################
 
 # mostly ways to read & wrap text & images.
@@ -30,11 +34,14 @@ def wrap_image_title(x, vpad=0, addclass=""):
 
 # -------------------------------------------------------------------
 
-def wrap_image_txt(x, vpad=0, addclass=""):
+def wrap_image_txt(x, vpad=0, addclass="", dobold=True):
     #y = """<h3><center>"""+x+"""</center></h3>"""
     y = """<div """
     y+= ''' {} >'''.format(addclass)
-    y+= """<pre><b>"""+x+"""</b></pre></div>"""
+    if dobold :
+        y+= """<pre><b>"""+x+"""</b></pre></div>"""
+    else:
+        y+= """<pre>"""+x+"""</pre></div>"""
     if vpad:
         y= """\n"""+y
         y+="""\n"""
@@ -63,10 +70,10 @@ def wrap_image_txt(x, vpad=0, addclass=""):
 
 # -------------------------------------------------------------------
 
-def wrap_img(x, wid=500, alt = "asdf", vpad=0, addclass=""):
-    y = """<img src=\""""+x+"""\" alt=\""""+alt+"""\""""
+def wrap_img(x, wid=500, vpad=0, addclass=""):
+    y = """<a  href=\""""+x+"""\"><img src=\""""+x+"""\" alt=\""""+x+"""\" """
     y+= ''' {} '''.format(addclass)
-    y+= """ width=\""""+str(wid)+"""\" > """
+    y+= """ width=\""""+str(wid)+"""\" ></a> """
     if vpad:
         y= """\n"""+y
         y+="""\n"""
@@ -75,7 +82,7 @@ def wrap_img(x, wid=500, alt = "asdf", vpad=0, addclass=""):
 # -------------------------------------------------------------------
 
 # string literal
-def wrap_dat(x, wid=500, alt = "asdf", vpad=0, addclass=""):
+def wrap_dat(x, wid=500, vpad=0, addclass=""):
     y = """<pre """
     y+= ''' {} '''.format(addclass)
     y+= """ width="80"><left><b>"""+x+"""</b></left></pre>"""
@@ -86,7 +93,7 @@ def wrap_dat(x, wid=500, alt = "asdf", vpad=0, addclass=""):
 
 # -------------------------------------------------------------------
 
-def read_descrip_txt(x):
+def read_descrip_txt(x, nline_title=1):
     '''Take the input text file 'x' and return two strings:
 
     the first line of 'x' by itself, which will be a title; and
@@ -106,10 +113,13 @@ def read_descrip_txt(x):
     if not(Nlines):
         sys.exit("** ERROR: no lines of text in {}?".format(x))
 
-    title = txt[0]
+    if nline_title : 
+        title = ''.join(txt[:nline_title])
+    else:
+        title = ''
 
-    if Nlines > 1 :
-        out = ''.join(txt[1:])
+    if Nlines-nline_title > 0 :
+        out = ''.join(txt[nline_title:])
     else:
         out = ''
     return title, out

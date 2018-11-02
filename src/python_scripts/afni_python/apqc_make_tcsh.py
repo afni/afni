@@ -42,6 +42,8 @@ all_uvars = []
 for x in lssr.g_ss_uvar_fields: 
     all_uvars.append(x[0])
 
+RUN_MODE = '05_pythonic' # '00_basic'
+
 # ===================================================================
 # ===================================================================
 
@@ -190,36 +192,34 @@ if __name__ == "__main__":
         idx     += 1
 
 
-    ldep = ['motion_dset', 'enorm_dset', 'outlier_dset', 
-            'xmat_regress', 'nt_orig']
+    # [PT: Nov 1, 2018] update list in ldep var-- much shorter now
+    ldep = ['motion_dset', 'nt_orig']  
     if lat.check_dep(ap_ssdict, ldep) :
         ban      = lat.bannerize('outliers and motion')
         opref    = 'IMG_{:02d}_1D_volreg'.format(idx)
-        cmd      = lat.apqc_1D_volreg(1600, opref)
+        cmd      = lat.apqc_1D_volreg( 1600, opref, RUN_MODE )
 
         str_FULL+= ban
         str_FULL+= cmd
         idx     += 1
 
 
-    ldep = ['censor_dset', 'outlier_dset', 'out_limit', 
-            'xmat_regress', 'nt_orig']
+    ldep = ['censor_dset', 'outlier_dset', 'out_limit', 'nt_orig']
     if lat.check_dep(ap_ssdict, ldep) :
         ban      = lat.bannerize('outlier fraction and censoring')
         opref    = 'IMG_{:02d}_1D_cen_out'.format(idx)
-        cmd      = lat.apqc_1D_cen_out( 1600, opref )
+        cmd      = lat.apqc_1D_cen_out( 1600, opref, RUN_MODE )
 
         str_FULL+= ban
         str_FULL+= cmd
         idx     += 1
 
 
-    ldep = ['censor_dset', 'enorm_dset', 'mot_limit', 
-            'xmat_regress', 'nt_orig']
+    ldep = ['censor_dset', 'enorm_dset', 'mot_limit', 'nt_orig']
     if lat.check_dep(ap_ssdict, ldep) :
         ban      = lat.bannerize('mot enorm and censoring')
         opref    = 'IMG_{:02d}_1D_enorm_mot'.format(idx)
-        cmd      = lat.apqc_1D_motenorm_cen( 1600, opref )
+        cmd      = lat.apqc_1D_motenorm_cen( 1600, opref, RUN_MODE )
 
         str_FULL+= ban
         str_FULL+= cmd
@@ -228,9 +228,10 @@ if __name__ == "__main__":
 
     ldep = ['xmat_stim']
     if lat.check_dep(ap_ssdict, ldep) :
-        ban      = lat.bannerize('plot X-matrix, but without baseline and motion')
+        ban      = lat.bannerize('plot X-matrix, but without '
+                                 'baseline and motion')
         opref    = 'IMG_{:02d}_1D_xmat_stim'.format(idx)
-        cmd      = lat.apqc_1D_xmat_stim(1600, opref)
+        cmd      = lat.apqc_1D_xmat_stim(1600, opref, RUN_MODE)
 
         str_FULL+= ban
         str_FULL+= cmd
@@ -241,7 +242,7 @@ if __name__ == "__main__":
     if lat.check_dep(ap_ssdict, ldep) :
         ban      = lat.bannerize('sum of non-baseline regressors in X-matrix')
         opref    = 'IMG_{:02d}_1D_sum_ideal'.format(idx)
-        cmd      = lat.apqc_1D_sum_ideal(1600, opref)
+        cmd      = lat.apqc_1D_sum_ideal(1600, opref, RUN_MODE)
 
         str_FULL+= ban
         str_FULL+= cmd
