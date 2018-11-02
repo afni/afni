@@ -282,6 +282,7 @@ typedef struct {
       int        thr_sign ;                     /* 08 Aug 2007 */
       int        thr_use_alpha ;                /* 08 Dec 2014 */
       float      thr_alpha_floor ;              /* 09 Dec 2014 */
+      int        thr_use_boxed ;                /* 02 Nov 2018 */
 
       /* 3/24/95: range data for conversion of pbar
                   values to thresholding values in the data */
@@ -324,6 +325,8 @@ typedef struct {
       float *th_sort;  /* sorted values of overlay threshold */
       int N_th_sort; /* number of values stored in th_sort */
       char  th_sortid[256]; /* indentifier of provenance of th_sort */
+
+      int clusterize_nnlev , clusterize_size , clusterize_bisid ;
 } AFNI_view_info ;
 
 #define AXIAL    1       /* 20 Feb 2003: view_setter codes */
@@ -715,6 +718,8 @@ typedef struct {
       Widget thr_rowcol , thr_label , thr_scale , thr_pval_label ;
       MCW_arrowval *thr_top_av ;
 
+      Widget thrtop_rowcol , thrtop_alpha_pb , thrtop_boxed_pb ; /* 02 Nov 2018 */
+
       Widget thr_menu ;
       MCW_bbox *thr_onoff_bbox ;
       MCW_bbox *thr_olayx_bbox ;
@@ -805,6 +810,7 @@ extern void AFNI_func_thrsign_CB( MCW_arrowval * , XtPointer ) ;  /* 08 Aug 2007
 extern void AFNI_func_alpha_CB  ( MCW_arrowval * , XtPointer ) ;  /* 08 Dec 2014 */
 extern void AFNI_func_floor_CB  ( MCW_arrowval * , XtPointer ) ;  /* 09 Dec 2014 */
 extern void AFNI_func_fdr_CB    (Widget,XtPointer,XtPointer) ;    /* 29 Jan 2008 */
+extern void AFNI_func_thrtop_CB (Widget,XtPointer,XtPointer) ;    /* 02 Nov 2018 */
 
 extern void AFNI_set_pval( struct Three_D_View * , float ) ;      /* 27 Feb 2014 */
 extern void AFNI_set_qval( struct Three_D_View * , float ) ;      /* 27 Feb 2014 */
