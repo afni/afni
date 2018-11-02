@@ -2707,7 +2707,7 @@ class MyInterface:
       txt += '\n'                                                        \
              'prompt_user -pause "                                 \\\n' \
              '   review: check for regression warnings             \\\n' \
-             '      - review any warnings from 3dDeconvolve        \\\n' \
+             '      - review any regressor correlation warnings    \\\n' \
              '      - review any TENT warnings from timing_tool.py \\\n' \
              '      - review any X-matrix warnings from 1d_tool.py \\\n' \
              '                                                     \\\n' \
