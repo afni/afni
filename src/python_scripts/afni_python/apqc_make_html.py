@@ -132,6 +132,12 @@ if __name__ == "__main__":
         color: #FFC310;
     }
 
+    img.pbar {
+        width: 20rem;
+        height: 1rem;
+        vertical-align: "middle";
+    }
+
     </style>
     '''
 
@@ -214,10 +220,12 @@ if __name__ == "__main__":
             if list_imglob.__contains__(imgpbar):
                 # if that pbar image exists, it should have an associated
                 # txt file of ranges that we can get like this
-                txtpbar = imgpbar.replace('jpg', 'txt')
-                pbar_min, pbar_max, pbar_thr = lah.read_pbar_range(txtpbar)
-                pbar_line = lah.make_pbar_line( pbar_min, pbar_max, pbar_thr,imgpbar,
-                                                addclass=" class='container' " )
+                jsonpbar = imgpbar.replace('jpg', 'json')
+                pbar_dict = lah.read_pbar_json(jsonpbar)
+                if pbar_dict:
+                    pbar_line = lah.make_pbar_line( pbar_dict, imgpbar,
+                                           addclassdiv=" class='container' ",
+                                           addclassimg=" class='pbar' " )
                 ht+= pbar_line
 
     # ---------------------------------------------------------------------
