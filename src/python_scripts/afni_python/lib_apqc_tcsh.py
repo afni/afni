@@ -1,20 +1,24 @@
 #
-# ver : 1.32 || date: Oct 15, 2018 || auth: PA Taylor
+auth = 'PA Taylor'
+# ver : 1.32 || date: Oct 15, 2018
 # + some level of written-ness
 #
-# ver : 1.33 || date: Oct 16, 2018 || auth: PA Taylor
+# ver : 1.33 || date: Oct 16, 2018
 # + new uvars
 # + new checks
 # + new QC dir and subdir defs
 #
-# ver : 1.34 || date: Oct 17, 2018 || auth: PA Taylor
+# ver : 1.34 || date: Oct 17, 2018
 # + new uvars
 # + new text, new output strings
 # + WARN type introduced
 #
-# ver : 1.4 || date: Oct 23, 2018 || auth: PA Taylor
+#ver = '1.4' ; date = 'Oct 23, 2018'
 # + do stats differently: separate olay and thr
 # + also start a json for the pbar info
+#
+ver = '1.5' ; date = 'Nov 1, 2018'
+# + update regression warning 
 #
 #########################################################################
 
@@ -450,8 +454,8 @@ endif
 
 # ========================== 1D files/plots ==============================
 
-# 'motion_dset', 'enorm_dset', 'outlier_dset'
-def apqc_1D_volreg(jpgsize, opref):
+# ['motion_dset', 'nt_orig']
+def apqc_1D_volreg(jpgsize, opref, run_mode):
 
     comm  = ''' review plots: 3dvolreg motion regressors, enorm profile, and
     outliers'''
@@ -464,21 +468,34 @@ def apqc_1D_volreg(jpgsize, opref):
     
     otxt  = "${odir_img}/${opref}" + ".txt"
 
-    cmd = '''
-    1dplot                                                     
-    -sepscl 
-    -volreg 
-    -ynames   enorm outliers - 
-    -xlabel   "vol"
-    -title    "outlier frac, mot enorm, mot params" 
-    -jpgs     ${jpgsize} "${odir_img}/${opref}" 
-    "${motion_dset}" 
-    "${enorm_dset}" 
-    "${outlier_dset}" 
-    '''
+    if run_mode == '00_basic' :
+        cmd = '''
+        1dplot                                                     
+        -sepscl 
+        -volreg 
+        -ynames   - 
+        -xlabel   "vol"
+        -title    "Estimated motion parameters (volreg)"
+        -jpgs     ${jpgsize} "${odir_img}/${opref}" 
+        "${motion_dset}" 
+        "${enorm_dset}" 
+        "${outlier_dset}" 
+        '''
+    elif run_mode == '05_pythonic' :
+        cmd = '''
+        1dplot.py                                                     
+        -sepscl 
+        -boxplot_on    
+        -reverse_order 
+        -infiles  "${motion_dset}"
+        -ylabels   VOLREG
+        -xlabel   "vol index"
+        -title    "Estimated motion parameters (volreg)" 
+        -prefix   "${odir_img}/${opref}.jpg" 
+        '''
 
     # text shown above image in the final HTML
-    imtxt = '''Check: subject outlier and motion profiles'''
+    imtxt = '''Check: motion profiles'''
 
     comm  = commentize( comm )
     pre   = commandize( pre, cmdindent=0, 
@@ -491,8 +508,8 @@ def apqc_1D_volreg(jpgsize, opref):
 
 # ----------------------------------------------------------------------
 
-# 'censor_dset', 'outlier_dset'
-def apqc_1D_cen_out(jpgsize, opref):
+# ['censor_dset', 'outlier_dset', 'out_limit', 'nt_orig']
+def apqc_1D_cen_out(jpgsize, opref, run_mode):
 
     comm  = ''' review plots (colored TRs are censored); outliers with 
     fraction limit'''
@@ -501,40 +518,67 @@ def apqc_1D_cen_out(jpgsize, opref):
     set jpgsize = {} 
     set opref = {}
     @ imax = ${{nt_orig}} - 1
+    set cstr = `1d_tool.py -show_trs_censored encoded -infile ${{censor_dset}}`
     '''.format(jpgsize, opref)
 
     otxt  = "${odir_img}/${opref}" + ".txt"
+    osubtxt  = "${odir_img}/${opref}" + "_SUB.txt"
 
-    cmd = '''
-    1dplot
-    -one 
-    -censor_RGB green 
-    -jpgs     $jpgsize "${odir_img}/${opref}"
-    -aspect   2
-    -xlabel   "vol"
-    -title    "outlier frac (with limit) and censored points"
-    -censor   ${censor_dset} 
-    ${outlier_dset} 
-    "1D: ${nt_orig}@${out_limit}"
-    '''
+    if run_mode == '00_basic' :
+        cmd = '''
+        1dplot
+        -one 
+        -censor_RGB green 
+        -jpgs     $jpgsize "${odir_img}/${opref}"
+        -aspect   2
+        -xlabel   "vol"
+        -title    "Outlier frac (with limit) and all censored points"
+        -censor   ${censor_dset} 
+        ${outlier_dset} 
+        "1D: ${nt_orig}@${out_limit}"
+        '''
 
-    # text shown above image in the final HTML
-    imtxt = '''Check: outliers
-    volume fraction (black), limit (red), censored (green)'''
+        # text shown above image in the final HTML
+        imtxt = '''Check: outliers
+        volume fraction (black), limit (red), censored (green)'''
+
+    elif run_mode == '05_pythonic' :
+        cmd = '''
+        1dplot.py                                                     
+        -boxplot_on    
+        -reverse_order 
+        -infiles  "${outlier_dset}"
+        -ylabels   "frac"
+        -censor_files ${censor_dset} 
+        -censor_hline ${out_limit}
+        -xlabel   "vol index"
+        -title    "Outlier frac (with limit) and all censored points"
+        -prefix   "${odir_img}/${opref}.jpg" 
+        '''
+
+        # text shown above image in the final HTML
+        imtxt = '''Check: outliers
+        volume fraction (black), limit (cyan), censored (red)'''
+
+    cmd2='''
+    echo "censored vols: ${{cstr}}"
+    > {}
+    '''.format(osubtxt)
 
     comm = commentize( comm )
     pre  = commandize( pre, cmdindent=0, 
                        ALIGNASSIGN=True, ALLEOL=False)
     cmd  = commandize( cmd )
+    cmd2 = commandize( cmd2 )
     imtxt = echoize(imtxt, efile=otxt, padpost=2)
 
-    lout = [comm, pre, cmd, imtxt]
+    lout = [comm, pre, cmd, cmd2, imtxt]
     return '\n\n'.join(lout)
 
 # ----------------------------------------------------------------------
 
-# 'censor_dset', 'outlier_dset'
-def apqc_1D_motenorm_cen(jpgsize, opref):
+# ['censor_dset', 'enorm_dset', 'mot_limit', 'nt_orig']
+def apqc_1D_motenorm_cen(jpgsize, opref, run_mode):
 
     comm  = ''' review plots (colored TRs are censored); outliers with 
     enorm motion limit'''
@@ -543,37 +587,63 @@ def apqc_1D_motenorm_cen(jpgsize, opref):
     set jpgsize = {} 
     set opref = {}
     @ imax = ${{nt_orig}} - 1
+    set cstr = `1d_tool.py -show_trs_censored encoded -infile ${{censor_dset}}`
     '''.format(jpgsize, opref)
 
-    otxt  = "${odir_img}/${opref}" + ".txt"
+    otxt     = "${odir_img}/${opref}" + ".txt"
+    osubtxt  = "${odir_img}/${opref}" + "_SUB.txt"
 
-    cmd = '''
-    1dplot 
-    -one 
-    -censor_RGB green
-    -jpgs     $jpgsize "${odir_img}/${opref}"
-    -aspect   2
-    -xlabel   "vol"
-    -title    "mot enorm (with limit) and censored points"
-    -censor   ${censor_dset}
-    ${enorm_dset}
-    "1D: ${nt_orig}@${mot_limit}" 
-    '''
+    if run_mode == '00_basic' :
+        cmd = '''
+        1dplot 
+        -one 
+        -censor_RGB green
+        -jpgs     $jpgsize "${odir_img}/${opref}"
+        -aspect   2
+        -xlabel   "vol"
+        -title    "Mot enorm (with limit) and all censored points"
+        -censor   ${censor_dset}
+        ${enorm_dset}
+        "1D: ${nt_orig}@${mot_limit}" 
+        '''
 
-    imtxt = '''Check: motion
-    enorm (black), mot limit (red), censored (green)'''
+        imtxt = '''Check: motion
+        enorm (black), mot limit (red), censored (green)'''
+
+    elif run_mode == '05_pythonic' :
+        cmd = '''
+        1dplot.py                                                     
+        -boxplot_on    
+        -reverse_order 
+        -infiles  "${enorm_dset}"
+        -ylabels   "enorm"
+        -censor_files ${censor_dset} 
+        -censor_hline ${mot_limit}
+        -xlabel   "vol index"
+        -title    "Mot enorm (with limit) and all censored points"
+        -prefix   "${odir_img}/${opref}.jpg" 
+        '''
+
+        imtxt = '''Check: motion
+        enorm (black), mot limit (cyan), censored (red)'''
+
+    cmd2='''
+    echo "censored vols: ${{cstr}}"
+    > {}
+    '''.format(osubtxt)
 
     comm = commentize( comm )
     pre  = commandize( pre, cmdindent=0, 
                        ALIGNASSIGN=True, ALLEOL=False )
     cmd  = commandize( cmd )
+    cmd2 = commandize( cmd2 )
     imtxt = echoize(imtxt, efile=otxt, padpost=2)
 
-    lout = [comm, pre, cmd, imtxt]
+    lout = [comm, pre, cmd, cmd2, imtxt]
     return '\n\n'.join(lout)
 
 # ['xmat_stim']
-def apqc_1D_xmat_stim(jpgsize, opref):
+def apqc_1D_xmat_stim(jpgsize, opref, run_mode ):
 
     comm  = ''' view xmatrix'''
 
@@ -585,15 +655,27 @@ def apqc_1D_xmat_stim(jpgsize, opref):
 
     otxt  = "${odir_img}/${opref}" + ".txt"
 
-    cmd = '''
-    1dplot 
-    -sepscl 
-    -jpgs     $jpgsize "${odir_img}/${opref}"
-    -aspect   2
-    -xlabel   "vol"
-    -title    "non-baseline regressors in X-matrix"
-    ${xmat_stim}
-    '''
+    if run_mode == '00_basic' :
+        cmd = '''
+        1dplot 
+        -sepscl 
+        -jpgs     $jpgsize "${odir_img}/${opref}"
+        -aspect   2
+        -xlabel   "vol"
+        -title    "Non-baseline regressors in X-matrix"
+        ${xmat_stim}
+        '''
+    elif run_mode == '05_pythonic' :
+        cmd = '''
+        1dplot.py 
+        -sepscl 
+        -boxplot_on
+        -reverse_order 
+        -infiles  ${xmat_stim}
+        -xlabel   "vol"
+        -title    "Non-baseline regressors in X-matrix"
+        -prefix   "${odir_img}/${opref}.jpg"
+        '''
 
     imtxt = '''Check: regressors (per stimulus)
     non-baseline regressors (in ${xmat_regress})'''
@@ -608,7 +690,7 @@ def apqc_1D_xmat_stim(jpgsize, opref):
     return '\n\n'.join(lout)
 
 # ['sum_ideal']
-def apqc_1D_sum_ideal(jpgsize, opref):
+def apqc_1D_sum_ideal(jpgsize, opref, run_mode):
 
     comm  = ''' view xmatrix'''
 
@@ -620,15 +702,29 @@ def apqc_1D_sum_ideal(jpgsize, opref):
 
     otxt  = "${odir_img}/${opref}" + ".txt"
 
-    cmd = '''
-    1dplot 
-    -sepscl 
-    -jpgs     $jpgsize "${odir_img}/${opref}"
-    -aspect   2
-    -xlabel   "vol"
-    -title    "sum of non-baseline regressors in X-matrix"
-    ${sum_ideal}
-    '''
+    if run_mode == '00_basic' :
+        cmd = '''
+        1dplot 
+        -sepscl 
+        -jpgs     $jpgsize "${odir_img}/${opref}"
+        -aspect   2
+        -xlabel   "vol"
+        -title    "Sum of non-baseline regressors in X-matrix"
+        ${sum_ideal}
+        '''
+    elif run_mode == '05_pythonic' :
+        cmd = '''
+        1dplot.py 
+        -boxplot_on
+        -sepscl 
+        -boxplot_on
+        -reverse_order 
+        -infiles  ${sum_ideal}
+        -xlabel   "vol"
+        -title    "Sum of non-baseline regressors in X-matrix"
+        -prefix   "${odir_img}/${opref}.jpg"
+        '''
+
 
     imtxt = '''Check: regressors (combined stimulus)
     sum of non-baseline regressors (in ${sum_ideal})'''
@@ -916,7 +1012,7 @@ def apqc_dat_cormat_warn( opref ):
 echo "++ Check for corr matrix warnings in: ${odir_dat}/${opref}.dat"
     '''
 
-    imtxt = '''Check: correlation warnings from 3dDeconvolve'''
+    imtxt = '''Check: regression matrix correlation warnings'''
 
     comm  = commentize( comm )
     pre   = commandize( pre, cmdindent=0, 
