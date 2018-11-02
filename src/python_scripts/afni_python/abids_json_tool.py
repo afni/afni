@@ -53,7 +53,8 @@ parser._action_groups.reverse()
 ## required
 required.add_argument('-input',type=str,metavar='FILE',required=True,
                       help=('One file to convert. '+
-                            '(either ":" separated or json formatted.'))
+                            '(either ":" separated or json formatted.) '+
+                            'Enter NULL with -add_json to create new json file.'))
 required.add_argument('-prefix',type=str,metavar='PREFIX',required=True,
                       help='Output file name.')
 
@@ -72,7 +73,7 @@ OnlyOne.add_argument('-add_json',type=str,nargs='+',metavar=('KEY','VALUE'),
                             'The KEY must not have spaces and must be only '+
                             'one word. If the VALUE is more than one item, it '+
                             'needs to be surrounded by single or double quotes '+
-                            'and be space separated (e.g. Fruit "Apple Orange")'))
+                            'and be comma separated (e.g. Fruit "Apple,Orange")'))
 OnlyOne.add_argument('-del_json',type=str,nargs=1,metavar='KEY',
                      help=('Remove attribute (KEY) from the -input json file.'))
 ## optional
