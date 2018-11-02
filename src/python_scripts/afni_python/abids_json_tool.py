@@ -64,7 +64,8 @@ OnlyOne.add_argument('-txt2json',action="store_true",default=False,
 OnlyOne.add_argument('-json2txt',action="store_true",default=False,
                      help=('Convert from json formatted file to '+
                            '":" separated text file.'))
-OnlyOne.add_argument('-add_json',type=str,nargs=2,metavar=('KEY','VALUE'),
+OnlyOne.add_argument('-add_json',type=str,nargs='+',metavar=('KEY','VALUE'),
+                     action="append",
                      help=('Add an attribute to the end of the specified '+
                             'json file. Needs exactly two arguments. '+
                             '(e.g. Fruit Apple) '+
@@ -101,10 +102,15 @@ overwrite = args.overwrite
 force = args.force_add
 
 ########################################################################
+## check stuff
+
 ## check input file
-if not os.path.isfile(input):
-    print("\nERROR: "+input+" not found!!\n")
-    sys.exit(1)
+if input == "NULL":
+    input = prefix
+else:
+    if not os.path.isfile(input):
+        print("\nERROR: "+input+" not found!!\n")
+        sys.exit(1)
 
 ## namey things
 infile = os.path.abspath(input)
@@ -179,31 +185,37 @@ if json2txt:
 ########################################################################
 ## add entry
 if new_entry is not None:
-    ## read in json from handy abids_lib function
-    json_data = abids_lib.json_import(infile)
+
+    if input is not prefix:
+        ## read in json from handy abids_lib function
+        json_data = abids_lib.json_import(infile)
+    else:
+        json_data = OrderedDict()   ## make empty one
 
     ## get the new stuff
-    key = new_entry[0]
-    value_list = new_entry[1].split()
+    for new in new_entry:
 
-    ## check to see if the attribute is already there
-    if key in json_data.keys() and not force:
-        print("\nERROR: The '"+key+"' attribute is already exists in "+
-              infile_base+"!!\n"+
-              "       Use the -force (-f) option to overwrite attribute.\n")
-        sys.exit(1)
+        key = new[0]
+        value_list = new[1].split(',')
 
-    ## make value list or entry and convert to float if number
-    value = []
-    for v in value_list:
-        try:
-            value.append(float(v))
-        except ValueError:
-            value.append(str(v))
+        ## check to see if the attribute is already there
+        if key in json_data.keys() and not force:
+            print("\nERROR: The '"+key+"' attribute is already exists in "+
+                  infile_base+"!!\n"+
+                  "       Use the -force (-f) option to overwrite attribute.\n")
+            sys.exit(1)
 
-    ## not a list if only 1 and add new entry
-    if len(value) == 1: value = value[0]
-    json_data.update({key:value})
+        ## make value list or entry and convert to float if number
+        value = []
+        for v in value_list:
+            try:
+                value.append(float(v))
+            except ValueError:
+                value.append(str(v))
+
+        ## not a list if only 1 and add new entry
+        if len(value) == 1: value = value[0]
+        json_data.update({key:value})
 
     ######################
     ## write out json file
