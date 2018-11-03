@@ -2701,8 +2701,7 @@ int AFNI_drive_setenv( char *cmd )
 
    /*-- display edges only of overlay blobs --*/
 
-   else if( strcmp(nam,"AFNI_EDGIZE_OVERLAY") == 0 ||
-            strcmp(nam,"AFNI_OVERLAY_ZERO")   == 0   ){
+   else if( strcmp(nam,"AFNI_OVERLAY_ZERO") == 0 ){
       PLUTO_force_redisplay() ;
    }
 
