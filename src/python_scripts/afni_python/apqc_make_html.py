@@ -3,8 +3,12 @@
 # ver : 1.3 || date: Oct 17, 2018 || auth: PA Taylor
 # + new container/div for centering text box (while left-ifying text)
 #
-# ver : 1.4 || date: Oct 19, 2018 || auth: PA Taylor
+# ver : 1.4 || date: Oct 19, 2018 
 # + parse inp opts
+#
+# ver : 1.5 || date: Nov 1, 2018 
+# + check for "subtext" files-- things to be put beneath IMG/TXT/WARN for
+#   extra info.
 #
 #########################################################################
 
@@ -192,6 +196,8 @@ if __name__ == "__main__":
         # separates it from before; each block can contain more than
         # one row of images/content
         imgtxt = img.replace('.jpg', '.txt')
+        # ... and also check for "subtext" info to add in
+        imgsubtxt = img.replace('.jpg', '_SUB.txt')
         if list_txtglob.__contains__(imgtxt):
 
             # start with a line of separation
@@ -203,21 +209,22 @@ if __name__ == "__main__":
                                        addclass=" class='padtop' " )
             if text :
                 ht+= lah.wrap_image_txt( text,
-                                  addclass=" class='container' " )
-                #ht+= lah.wrap_image_txt( text,
-                #                  addclass=" class='centerbox_leftjust' " )
+                                         addclass=" class='container' " )
 
+        # treat the echoing of 1D differently: put a border around
+        # (may not be necessary)
         if img.__contains__('_1D_'):
             ht+=lah.wrap_img( img, vpad=True,
                               addclass=" class='bordered' ")
         else:
-            ht+=lah.wrap_img(img, vpad=True)
+            ht+=lah.wrap_img( img, vpad=True )
 
         # and now check for possible colorbar; see if it existed in
         # initial list
         if img.__contains__('sag.jpg'):
             imgpbar = img.replace('sag.jpg', 'pbar.jpg')
             if list_imglob.__contains__(imgpbar):
+
                 # if that pbar image exists, it should have an associated
                 # txt file of ranges that we can get like this
                 jsonpbar = imgpbar.replace('jpg', 'json')
@@ -227,6 +234,15 @@ if __name__ == "__main__":
                                            addclassdiv=" class='container' ",
                                            addclassimg=" class='pbar' " )
                 ht+= pbar_line
+
+        if list_txtglob.__contains__(imgsubtxt):
+            # no title in this one
+            title, text = lah.read_descrip_txt(imgsubtxt, nline_title=0)
+            if text :
+                ht+= lah.wrap_image_txt( text,
+                                         addclass=" class='container' ",
+                                         dobold=False )
+
 
     # ---------------------------------------------------------------------
     #   get text warnings (at bottom because they can be variable length
@@ -239,11 +255,10 @@ if __name__ == "__main__":
     list_txtglob2 = glob.glob(txtglob2)
 
     list_datglob.sort()
-    #print('')
-    #print(list_datglob)
 
     for dat in list_datglob:
         dattxt = dat.replace('.dat', '.txt')
+        datsubtxt = img.replace('.dat', '_SUB.txt')
         if list_txtglob2.__contains__(dattxt):
 
             # start with a line of separation
@@ -259,6 +274,15 @@ if __name__ == "__main__":
             ht+=lah.wrap_dat( lah.read_dat(dat),
                               addclass=" class='warnbord' ")
 
+        if list_txtglob2.__contains__(datsubtxt):
+            # no title in this one
+            title, text = lah.read_descrip_txt(datsubtxt, nline_title=0)
+            if text :
+                ht+= lah.wrap_image_txt( text,
+                                         addclass=" class='container' ",
+                                         dobold=False )
+
+
     # --------------------------- text info -------------------------------
 
     # all dat/txt files
@@ -273,6 +297,7 @@ if __name__ == "__main__":
 
     for dat in list_datglob:
         dattxt = dat.replace('.dat', '.txt')
+        datsubtxt = dat.replace('.dat', '_SUB.txt')
         if list_txtglob2.__contains__(dattxt):
 
             # start with a line of separation
@@ -287,6 +312,15 @@ if __name__ == "__main__":
         if 1 :
             ht+=lah.wrap_dat( lah.read_dat(dat),
                               addclass=" class='datbord' ")
+
+        if list_txtglob2.__contains__(datsubtxt):
+            # no title in this one
+            title, text = lah.read_descrip_txt(datsubtxt, nline_title=0)
+            if text :
+                ht+= lah.wrap_image_txt( text,
+                                         addclass=" class='container' ",
+                                         dobold=False )
+
 
     # -------------- done: wrap up and close body text ------------------
     ht+="""</body>\n\n</html>"""
