@@ -2363,10 +2363,17 @@ STATUS("threshold-ization and alpha-ization") ;
      switch( im_thr->kind ){
 
        case MRI_short:{
-         register float thb=thbot , tht=thtop , aa ;
+         register float thb=thbot , tht=thtop , aa ; register int rej ;
          register short *ar_thr = MRI_SHORT_PTR(im_thr) ;
          for( ii=0 ; ii < npix ; ii++ ){
-           if( ar_thr[ii] == 0 ){
+                if( kf == MRI_byte  ) val = (float)bfim[ii] ;
+           else if( kf == MRI_short ) val = (float)sfim[ii] ;
+           else                       val =        ffim[ii] ;
+           rej =  ZREJ(val) || (zabove && val >  fimtop)
+                            || (zbelow && val <  fimbot)
+                            || (do_pos && val <= 0.0f  )
+                            || (ar_thr[ii]    == 0     ) ;
+           if( rej ){
                                         ovar[ii].a = 0 ;   /* exact zero ==> transparent */
            } else if( ar_thr[ii] > 0 && ar_thr[ii] < tht ){
              aa = ALFA(ar_thr[ii],ft) ; ovar[ii].a = BYTEIZE(aa) ;
@@ -2386,10 +2393,17 @@ STATUS("threshold-ization and alpha-ization") ;
        break ;
 
        case MRI_byte:{
-         register float thb=thbot , tht=thtop , aa ;
+         register float thb=thbot , tht=thtop , aa ; register int rej ;
          register byte *ar_thr = MRI_BYTE_PTR(im_thr) ;
-         for( ii=0 ; ii < npix ; ii++ )  /* assuming thb <= 0 always */
-           if( ar_thr[ii] == 0 ){
+         for( ii=0 ; ii < npix ; ii++ ){  /* assuming thb <= 0 always */
+                if( kf == MRI_byte  ) val = (float)bfim[ii] ;
+           else if( kf == MRI_short ) val = (float)sfim[ii] ;
+           else                       val =        ffim[ii] ;
+           rej =  ZREJ(val) || (zabove && val >  fimtop)
+                            || (zbelow && val <  fimbot)
+                            || (do_pos && val <= 0.0f  )
+                            || (ar_thr[ii]    == 0     ) ;
+           if( rej ){
                                         ovar[ii].a = 0 ;
            } else if( ar_thr[ii] < tht ){
              aa = ALFA(ar_thr[ii],ft) ; ovar[ii].a = BYTEIZE(aa) ;
@@ -2402,14 +2416,22 @@ STATUS("threshold-ization and alpha-ization") ;
              }
              ear[ii] = 1 ;  /* mark as not faded */
            }
+         }
        }
        break ;
 
        case MRI_float:{
-         register float thb=thbot , tht=thtop , aa ;
+         register float thb=thbot , tht=thtop , aa ; register int rej ;
          register float *ar_thr = MRI_FLOAT_PTR(im_thr) ;
-         for( ii=0 ; ii < npix ; ii++ )
-           if( ar_thr[ii] == 0 ){
+         for( ii=0 ; ii < npix ; ii++ ){
+                if( kf == MRI_byte  ) val = (float)bfim[ii] ;
+           else if( kf == MRI_short ) val = (float)sfim[ii] ;
+           else                       val =        ffim[ii] ;
+           rej =  ZREJ(val) || (zabove && val >  fimtop)
+                            || (zbelow && val <  fimbot)
+                            || (do_pos && val <= 0.0f  )
+                            || (ar_thr[ii]    == 0     ) ;
+           if( rej ){
                                         ovar[ii].a = 0 ;
            } else if( ar_thr[ii] > 0 && ar_thr[ii] < tht ){
              aa = ALFA(ar_thr[ii],ft) ; ovar[ii].a = BYTEIZE(aa) ;
@@ -2424,6 +2446,7 @@ STATUS("threshold-ization and alpha-ization") ;
              }
              ear[ii] = 1 ;  /* mark as not faded */
            }
+         }
        }
        break ;
      }
