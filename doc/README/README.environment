@@ -31,7 +31,7 @@ N.B.: Some variables below are described as being of "YES/NO" type.
 
 N.B.: You can now set environment variables on the 'afni' command
       line; for example:
-        afni -DAFNI_EDGIZE_OVERLAY=YES -DAFNI_SESSTRAIL=3
+        afni -DAFNI_SESSTRAIL=3 -DAFNI_FUNC_ALPHA=YES
       This may be useful for a 'one time' situation, or as an alias.
       You can also use this '-Dname=val' option in 1dplot and 3dDeconvolve.
       -- RWCox - 22 Mar 2005
@@ -2956,7 +2956,19 @@ the pixels immediately OUTSIDE the above-threshold regions, in the
 overlay image as interpolated to the underlay resolution. If the
 underlay is on a coarse matrix (e.g., native EPI), these outlines
 will look blocky -- you can alter the underlay display grid dimension
-in 'Define Datamode' using the control 'Warp ULay on Demand'.
+in 'Define Datamode' using the control 'Warp ULay on Demand', and then
+alter the way the datasets are interpolated to the underlay grid using
+'Resam Mode' menus. In this way, you can make blocky-looking EPI results
+fictionally look as if they are beautiful and high resolution.
+
+-------------------------------
+Variable: AFNI_FUNC_BOXED_COLOR (editable)
+-------------------------------
+Defines the color used for the boxed outline of above threshold
+regions, when Boxed ('B' button above threshold slided) is turned on.
+See AFNI_FUNC_BOXED for more information. The default color is
+sort-of black. This variable replaces the former AFNI_EDGIZE_COLOR.
+Colors can be set via X11 names (e.g., "yellow", "hotpink", "#1188ff").
 
 ----------------------------
 Variable: AFNI_SLAVE_THRTIME     *** THIS VARIABLE IS NO LONGER USED ***
@@ -3064,31 +3076,9 @@ N.B.: If AFNI_SHOW_SURF_POPUPS is YES, then it wins over
       messages are displayed to stderr.
 
 -----------------------------
-Variable: AFNI_EDGIZE_OVERLAY (editable)
+Variable: AFNI_EDGIZE_OVERLAY ** This variable is no longer used **
 -----------------------------
-If set to YES, then the color overlays in the image windows will only
-have their edge pixels displayed.  Edge-izing takes place in 2 slightly
-different ways, depending on the Alpha setting in the AFNI interface
-(cf. variable AFNI_FUNC_ALPHA, above):
-
- * If Alpha is off, then edges shown comprise the outermost
-   above-threshold voxels. The edge color is just the color that these
-   voxels normally get from the overlay sub-brick values. In this
-   mode, the 'blobs' are hollowed out, leaving only the edges.
-
- * If the Alpha is on, the edges shown comprise the voxels just
-   OUTSIDE the outermost above-threshold voxels -- so that all the
-   above-threshold voxels are visible. Also, the edge color is solid
-   black (or can be set via variable AFNI_EDGIZE_COLOR). The 'blobs'
-   are NOT hollowed out.
-
----------------------------
-Variable: AFNI_EDGIZE_COLOR (editable)
----------------------------
-Defines the color used for the edge outline of above threshold
-regions, when Alpha is turned on.  See AFNI_FUNC_ALPHA for more
-information.  This variable has no effect if Alpha is turned off.
-Colors can be set via X11 names (e.g., "yellow", "hotpink", "#1188ff").
+It has been replaced by AFNI_FUNC_BOXED.
 
 --------------------------
 Variable: AFNI_NIFTI_DEBUG (editable)
