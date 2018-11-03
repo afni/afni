@@ -1498,6 +1498,8 @@ if(aset >= 0 && PRINT_TRACING)
    EXRETURN ;
 }
 
+#undef ALLOW_OLD_EDGIZE
+#ifdef ALLOW_OLD_EDGIZE
 /*-----------------------------------------------------------------------*/
 /* Hollow out the overlay in place -- 21 Mar 2005 - RWCox.
    An interior pixel is defined as one whose 4 nearest neighbors are
@@ -1579,6 +1581,7 @@ static void mri_edgize( MRI_IMAGE *im )
 
    return ; /* default im->kind case ==> do nothing */
 }
+#endif
 
 /*-----------------------------------------------------------------------*/
 
@@ -1596,7 +1599,9 @@ static void mri_edgize_outer( MRI_IMAGE *im )
      case MRI_byte:{                             /* 09 Dec 2014 */
        byte *ajj , *ajm , *ajp , *atemp , *ar ;
        ar    = MRI_BYTE_PTR(im) ;
+#if 0
        (void)THD_mask_remove_isolas( im->nx , im->ny , 1 , ar ) ; /* 02 Nov 2018 */
+#endif
        atemp = (byte *)calloc(sizeof(byte),nxy); if( atemp == NULL ) return;
        for( jj=1 ; jj < ny-1 ; jj++ ){
          joff = jj * nx ;      /* offset into this row */
@@ -1922,17 +1927,17 @@ if( PRINT_TRACING && im_thr != NULL )
      }
      flags = zbelow * NFO_ZBELOW_MASK + zabove * NFO_ZABOVE_MASK ;
 
+     /* Always use AFNI_newnewfunc_overlay() [03 Nov 2018] */
 #if 0
-     if( ! im3d->vinfo->thr_use_alpha ){
-#else
      if( VEDIT_good(im3d->vedset) ){
-#endif
        im_ov = AFNI_newfunc_overlay( im_thr , thb,tht ,
                                      im_fim ,
                                      scale_factor*pbar->bigbot ,
                                      scale_factor*pbar->bigtop ,
                                      pbar->bigcolor , flags      ) ;
-     } else {
+     } else
+#endif
+     {
        if( im3d->vinfo->thr_use_alpha && !VEDIT_good(im3d->vedset) ) flags |= NFO_AQUA_MASK ;
        if( im3d->vinfo->use_posfunc                                ) flags |= NFO_POS_MASK  ;
        if( im3d->vinfo->thr_use_boxed                              ) flags |= NFO_USE_BOXED ;
@@ -2123,9 +2128,10 @@ CLEANUP:
    if( im_thr != NULL && im_thr != im_fim ) mri_free( im_thr ) ;
    mri_free( im_fim ) ;
 
+#ifdef ALLOW_OLD_EDGIZE
    /* 21 Mar 2005: Hollow out overlay? */
-
    if( AFNI_yesenv("AFNI_EDGIZE_OVERLAY") ) mri_edgize(im_ov) ;
+#endif
 
    RETURN(im_ov) ;
 }
@@ -2344,12 +2350,12 @@ STATUS("colorization") ;
 
    if( dothr ){
      MRI_IMAGE *eim=NULL ; byte *ear=NULL ;
-     int do_edge = do_box && !AFNI_noenv("AFNI_EDGIZE_OVERLAY") ;
+     int do_edge = do_box ;
      float ft,fb,af ;
      ft = (thtop > 0.0f) ? (1.0f-alpha_floor)/thtop : 0.0f ;  /* for positive thr */
      fb = (thbot < 0.0f) ? (1.0f-alpha_floor)/thbot : 0.0f ;  /* for negative thr */
      af = 255.0f*alpha_floor ;
-     if( do_edge ){  /* for mri_edgize */
+     if( do_edge ){  /* for mri_edgize_outer() use later */
        eim = mri_new_conforming( im_fim , MRI_byte ) ; ear = MRI_BYTE_PTR(eim) ;
      }
 
@@ -2427,14 +2433,14 @@ STATUS("threshold-ization and alpha-ization") ;
      if( do_edge ){
        char *cpt ; byte rb=1,gb=1,bb=1 ;
        mri_edgize_outer(eim) ;  /* mark the edges of the unfaded regions */
-       cpt = getenv("AFNI_EDGIZE_COLOR") ;
+       cpt = getenv("AFNI_FUNC_BOXED_COLOR") ;
        if( cpt != NULL ){
          float rf=0.005f, gf=0.005f, bf=0.005f ;
          DC_parse_color( dc , cpt , &rf,&gf,&bf ) ;
          rb = BYTEIZE(255.0f*rf); gb = BYTEIZE(255.0f*gf); bb = BYTEIZE(255.0f*bf);
        }
        for( ii=0 ; ii < npix ; ii++ ){
-        if( ear[ii] ){ ovar[ii].r=rb; ovar[ii].g=gb; ovar[ii].b=bb; ovar[ii].a=255; }
+        if( ear[ii] ){ ovar[ii].r=rb; ovar[ii].g=gb; ovar[ii].b=bb; ovar[ii].a=200; }
        }
        mri_free(eim) ;
      }

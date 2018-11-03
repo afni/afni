@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 3 , NOV , 2018 , RWC , "AFNI GUI" , MICRO , TYPE_ENHANCE ,
+   "Boxed now works with Clusterize" ,
+   "Next step: Alpha :) But that's harder :(" } ,
+
  { 2 , NOV , 2018 , RWC , "AFNI GUI" , MINOR , TYPE_ENHANCE ,
    "Add 'A' and 'B' buttons on top of threshold slider" ,
    "To control Alpha and Boxed." } ,

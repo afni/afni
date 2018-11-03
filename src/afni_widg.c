@@ -2846,7 +2846,7 @@ STATUS("making func->rowcol") ;
          NULL ) ;
    LABELIZE(func->thr_label) ;
 
-   /*--- A(lpha) and B(oxed) buttons atop threshold slider [02 Nov 2018] */
+   /*--- A(lpha) and B(oxed) buttons atop threshold slider [02 Nov 2018] ---*/
 
    func->thrtop_alpha_pb =
       XtVaCreateManagedWidget(
@@ -2894,7 +2894,7 @@ STATUS("making func->rowcol") ;
      im3d->vinfo->thr_use_boxed = 0 ;
    }
 
-   /*----------*/
+   /*-------------------------------------------------------------------------*/
 
 #ifdef FIX_SCALE_VALUE_PROBLEM
    MCW_register_help( func->thr_label ,

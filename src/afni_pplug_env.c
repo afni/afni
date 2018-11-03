@@ -460,14 +460,16 @@ PLUGIN_interface * ENV_init(void)
                    "Use 'label2' field for window titles?" ,
                    NUM_yesno_list , yesno_list , ENV_redraw_titles ) ;
 
+#if 0
    /* 21 Mar 2005 [RWCox] */
    ENV_add_string( "AFNI_EDGIZE_OVERLAY" ,
                    "Display color overlay as edges?" ,
                    NUM_yesno_list , yesno_list , ENV_redisplay ) ;
+#endif
 
    /* 11 Dec 2014 [RWCox] */
-   ENV_add_string( "AFNI_EDGIZE_COLOR" ,
-                   "Name of color for EDGIZE+Alpha overlays." , /* 21 Sep 2001 */
+   ENV_add_string( "AFNI_FUNC_BOXED_COLOR" ,
+                   "Name of color for Alpha+Boxed overlays." , /* 21 Sep 2001 */
                    0,NULL , NULL ) ;
 
    /* 08 Apr 2005 [rickr] */
