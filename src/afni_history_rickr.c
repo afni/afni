@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  5, Nov, 2018, RCR, "make_random_timing.py", MICRO, TYPE_ENHANCE,
+   "enhance insufficient time warnings",
+   NULL
+ } ,
+
  { 29, Oct, 2018, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
    "zsh: check for .zshenv",
    NULL
