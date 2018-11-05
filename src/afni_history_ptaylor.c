@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 5, Nov , 2018 , PT , "3dAllineate" , MICRO , TYPE_GENERAL,
+   "Help file update: move *the* useful cost funcs lpa and lpc into main part.",
+   "These are no longer listed as experimental!\n"
+},
+
 { 1, Nov , 2018 , PT , "1dplotpy" , MAJOR , TYPE_NEW_PROG,
    "New plotting program for 1D files.",
    "Copies much of the fun 1dplot capability to some pythonic realm.\n"

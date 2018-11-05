@@ -7,6 +7,12 @@
 
 /****** N.B.: See the note about coordinates at the end of this file! ******/
 
+/*
+  [PT: Nov 5, 2018] Don't know why this is only happening *now*, but
+  am moving the lpa/lpc cost functions into the main list under '-cost
+  ccc' in the help; they are no longer classified as "experimental"
+ */
+
 /*----------------------------------------------------------------------------*/
 #include "mrilib.h"
 #include "r_new_resam_dset.h"
@@ -98,7 +104,7 @@ MRI_IMAGE * mri_identity_params(void);                           /* prototype */
 #define NMETH GA_MATCH_METHNUM_SCALAR  /* cf. mrilib.h */
 
 static int meth_visible[NMETH] =       /* 1 = show in -help; 0 = don't show */
-  { 1 , 0 , 1 , 1 , 1 , 0 , 1 , 1 , 1 , 0 , 0 , 0 , 0  , 0 } ;
+  { 1 , 0 , 1 , 1 , 1 , 0 , 1 , 1 , 1 , 0 , 1 , 1 , 1  , 0 } ;
 /* ls  sp  mi  crM nmi je  hel crA crU lss lpc lpa lpc+ ncd */
 
 static int meth_noweight[NMETH] =      /* 1 = don't allow weights, just masks */
@@ -707,6 +713,11 @@ int main( int argc , char *argv[] )
 "               of the form '-mi' rather than '-cost mi', if you like\n"
 "               to keep things terse and cryptic (as I do).\n"
 "               [Default == '-hel' (for no good reason, but it sounds nice).]\n"
+"               **NB** See more below about lpa and lpc, which are typically\n"
+"                      what we would recommend as first-choice cost functions\n"
+"                      now:\n"
+"                        lpa if you have similar contrast vols to align;\n"
+"                        lpc if you have *non*similar contrast vols to align!\n"
 "\n"
 " -interp iii = Defines interpolation method to use during matching\n"
 "               process, where 'iii' is one of\n"
