@@ -2967,8 +2967,9 @@ Variable: AFNI_FUNC_BOXED_COLOR (editable)
 Defines the color used for the boxed outline of above threshold
 regions, when Boxed ('B' button above threshold slided) is turned on.
 See AFNI_FUNC_BOXED for more information. The default color is
-sort-of black. This variable replaces the former AFNI_EDGIZE_COLOR.
-Colors can be set via X11 names (e.g., "yellow", "hotpink", "#1188ff").
+black, which a few people find harsh. This variable replaces the former
+AFNI_EDGIZE_COLOR, which now has no effect. Colors can be set via X11
+names (e.g., "yellow", "hotpink", "#1188ff").
 
 ----------------------------
 Variable: AFNI_SLAVE_THRTIME     *** THIS VARIABLE IS NO LONGER USED ***

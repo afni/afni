@@ -2969,8 +2969,9 @@ static char *readme_env[] = {
    "Defines the color used for the boxed outline of above threshold\n" ,
    "regions, when Boxed ('B' button above threshold slided) is turned on.\n" ,
    "See AFNI_FUNC_BOXED for more information. The default color is\n" ,
-   "sort-of black. This variable replaces the former AFNI_EDGIZE_COLOR.\n" ,
-   "Colors can be set via X11 names (e.g., \"yellow\", \"hotpink\", \"#1188ff\").\n" ,
+   "black, which a few people find harsh. This variable replaces the former\n" ,
+   "AFNI_EDGIZE_COLOR, which now has no effect. Colors can be set via X11\n" ,
+   "names (e.g., \"yellow\", \"hotpink\", \"#1188ff\").\n" ,
    "\n" ,
    "----------------------------\n" ,
    "Variable: AFNI_SLAVE_THRTIME     *** THIS VARIABLE IS NO LONGER USED ***\n" ,
@@ -4336,4 +4337,4 @@ static char *readme_env[] = {
    "If set to YES, enable distance measures that are not ready for prime\n" ,
    "time in the instacorr interface.\n" ,
    NULL } ;
-#define NUM_readme_env 4335
+#define NUM_readme_env 4336
