@@ -44,6 +44,18 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 3 , NOV , 2018 , RWC , "AFNI GUI" , MICRO , TYPE_ENHANCE ,
+   "Boxed now works with Clusterize" ,
+   "Next step: Alpha :) But that's harder :(" } ,
+
+ { 2 , NOV , 2018 , RWC , "AFNI GUI" , MINOR , TYPE_ENHANCE ,
+   "Add 'A' and 'B' buttons on top of threshold slider" ,
+   "To control Alpha and Boxed." } ,
+
+ { 2 , NOV , 2018 , RWC , "AFNI GUI" , MICRO , TYPE_ENHANCE ,
+   "Clusterize menu now remembers previous settings" ,
+   "Part of the forthcoming changes for func overlay display et cetera." } ,
+
  { 30 , OCT , 2018 , RWC , "AFNI" , MICRO , TYPE_NEW_OPT ,
    "-julian to print out the Julian date (who doesn't want this?)" ,
    NULL } ,

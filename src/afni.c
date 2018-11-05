@@ -9660,6 +9660,7 @@ STATUS(" -- set threshold to zero for FIM (once only)") ;
       /** Nov 1997: the scale precision is now set by macro THR_top_expon,
                     and its settings are done in routine AFNI_set_thresh_top **/
 
+#if 0
       if( have_thr ){
         int iv = im3d->vinfo->thr_index , jj ;
 
@@ -9671,6 +9672,7 @@ STATUS(" -- set threshold to zero for FIM (once only)") ;
           MCW_set_widget_label( im3d->vwid->func->thr_label ,
                                 DSET_BRICK_LABEL(im3d->fim_now,iv) ) ;
       }
+#endif
 
       /* set the pval label at the bottom of the scale */
 
