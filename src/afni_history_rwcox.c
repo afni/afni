@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 5 , NOV , 2018 , RWC , "AFNI GUI" , MINOR , TYPE_ENHANCE ,
+   "Alpha and Boxed now work with Clusterize" ,
+   NULL } ,
+
  { 3 , NOV , 2018 , RWC , "AFNI GUI" , MICRO , TYPE_ENHANCE ,
    "Boxed now works with Clusterize" ,
    "Next step: Alpha :) But that's harder :(" } ,

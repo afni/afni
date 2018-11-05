@@ -106,6 +106,7 @@ static int AFNI_drive_quiet_plugouts   ( char *cmd ) ; /* 15 Oct 2008 */
 static int AFNI_drive_noisy_plugouts   ( char *cmd ) ; /* 15 Oct 2008 */
 static int AFNI_set_func_percentile    ( char *cmd ) ; /* 27 Apr 2012 */
 static int AFNI_set_func_alpha         ( char *cmd ) ; /* 10 Dec 2014 */
+static int AFNI_set_func_boxed         ( char *cmd ) ; /* 05 Nov 2018 */
 
 static int AFNI_trace                  ( char *cmd ) ; /* 04 Oct 2005 */
 
@@ -115,7 +116,7 @@ static int AFNI_trace                  ( char *cmd ) ; /* 04 Oct 2005 */
   compared means that you can't have 2 distinct commands like
   "XXX" and "XXXYYY", since when the "XXXYYY" command was given,
   it might instead be matched to "XXX", and then the wrong function
-  would be called, resulting in Galactic anarchy.
+  would be called, resulting in Galactic anarchy (at best).
 -------------------------------------------------------------------*/
 
 typedef int dfunc(char *) ;  /* action functions */
@@ -202,6 +203,7 @@ static AFNI_driver_pair dpair[] = {
  { "SET_FUNC_RANGE"     , AFNI_set_func_range          } ,
  { "SET_FUNC_VISIBLE"   , AFNI_set_func_visible        } ,
  { "SET_FUNC_ALPHA"     , AFNI_set_func_alpha          } ,
+ { "SET_FUNC_BOXED"     , AFNI_set_func_boxed          } ,
  { "SEE_OVERLAY"        , AFNI_set_func_visible        } ,
  { "SET_FUNC_RESAM"     , AFNI_set_func_resam          } ,
  { "SLEEP"              , AFNI_sleeper                 } ,
@@ -2558,18 +2560,18 @@ ENTRY("AFNI_set_func_resam") ;
 }
 
 /*-------------------------------------------------------------------------*/
-/*! SET_FUNC_ALPHA [c.]mode [floor]
-   "SET_FUNC_RESAM A.Linear 0.2"
+/*! SET_FUNC_ALPHA [c.]mode
+   "SET_FUNC_ALPHA A.Yes"
 ---------------------------------------------------------------------------*/
 
 static int AFNI_set_func_alpha( char *cmd )  /* 10 Dec 2014 */
 {
-   int ic , dadd=2 , mode=0 ; float floor=0.0f ; char *cpt ;
+   int ic , dadd=2 , mode=0 ; char *cpt ;
    Three_D_View *im3d ;
 
 ENTRY("AFNI_set_func_alpha") ;
 
-   if( cmd == NULL || strlen(cmd) < 2 ) RETURN(-1) ;
+   if( cmd == NULL || strlen(cmd) < 1 ) RETURN(-1) ;
 
    ic = AFNI_controller_code_to_index( cmd ) ;
    if( ic < 0 ){ ic = 0 ; dadd = 0 ; }
@@ -2577,35 +2579,46 @@ ENTRY("AFNI_set_func_alpha") ;
    im3d = GLOBAL_library.controllers[ic] ;
    if( !IM3D_OPEN(im3d) ) RETURN(-1) ;
 
-   cpt = strcasestr(cmd+dadd,"Linear") ;
-   if( cpt != NULL ){
-     mode = 1 ; cpt += 6 ;
-   } else {
-     cpt = strcasestr(cmd+dadd,"Quadratic") ;
-     if( cpt != NULL ){
-       mode = 2 ; cpt += 9 ;
-     } else {
-       cpt = strcasestr(cmd+dadd,"Off") ;
-       mode = 0 ;
-       if( cpt != NULL ){
-         cpt += 3 ;
-       } else {
-       }
-     }
+   for( cpt=cmd+dadd ; isspace(*cpt) ; cpt++ ) ; /*skip whitespace*/
+   if( *cpt == '\0' ) RETURN(-1) ;
+
+   mode = !( toupper(*cpt) == 'N' || strcasestr(cpt,"off") != NULL ) ;
+
+   if( im3d->vinfo->thr_use_alpha != mode ){
+     AFNI_func_thrtop_CB( im3d->vwid->func->thrtop_alpha_pb, im3d, NULL ) ;
    }
 
-   if( cpt != NULL && isspace(*cpt) ){
-     int kf ;
-     floor = (float)strtod(cpt+1,NULL) ;
-          if( floor < 0.0f ) floor = 0.0f ;
-     else if( floor > 0.8f ) floor = 0.8f ;
-     im3d->vinfo->thr_alpha_floor = floor ;
-     kf = (int)rintf(floor/0.2f) ;
-     if( kf >= 0 && kf <= 4 ) AV_assign_ival( im3d->vwid->func->thr_floor_av , kf) ;
-   }
+   RETURN(0) ;
+}
 
-   AV_assign_ival    ( im3d->vwid->func->thr_alpha_av , mode ) ;
-   AFNI_func_alpha_CB( im3d->vwid->func->thr_alpha_av , im3d ) ;
+/*-------------------------------------------------------------------------*/
+/*! SET_FUNC_BOXED [c.]mode
+   "SET_FUNC_BOXED A.Yes"
+---------------------------------------------------------------------------*/
+
+static int AFNI_set_func_boxed( char *cmd )  /* 10 Dec 2014 */
+{
+   int ic , dadd=2 , mode=0 ; char *cpt ;
+   Three_D_View *im3d ;
+
+ENTRY("AFNI_set_func_boxed") ;
+
+   if( cmd == NULL || strlen(cmd) < 1 ) RETURN(-1) ;
+
+   ic = AFNI_controller_code_to_index( cmd ) ;
+   if( ic < 0 ){ ic = 0 ; dadd = 0 ; }
+
+   im3d = GLOBAL_library.controllers[ic] ;
+   if( !IM3D_OPEN(im3d) ) RETURN(-1) ;
+
+   for( cpt=cmd+dadd ; isspace(*cpt) ; cpt++ ) ; /*skip whitespace*/
+   if( *cpt == '\0' ) RETURN(-1) ;
+
+   mode = !( toupper(*cpt) == 'N' || strcasestr(cpt,"off") != NULL ) ;
+
+   if( im3d->vinfo->thr_use_boxed != mode ){
+     AFNI_func_thrtop_CB( im3d->vwid->func->thrtop_boxed_pb, im3d, NULL ) ;
+   }
 
    RETURN(0) ;
 }
