@@ -31,7 +31,7 @@ N.B.: Some variables below are described as being of "YES/NO" type.
 
 N.B.: You can now set environment variables on the 'afni' command
       line; for example:
-        afni -DAFNI_EDGIZE_OVERLAY=YES -DAFNI_SESSTRAIL=3
+        afni -DAFNI_SESSTRAIL=3 -DAFNI_FUNC_ALPHA=YES
       This may be useful for a 'one time' situation, or as an alias.
       You can also use this '-Dname=val' option in 1dplot and 3dDeconvolve.
       -- RWCox - 22 Mar 2005
@@ -2926,18 +2926,14 @@ starts (e.g., from plugout_drive) will have little discernable effect.
 -------------------------
 Variable: AFNI_FUNC_ALPHA
 -------------------------
-You can set this variable to the string 'Linear' or 'Quadratic', which
-will set the initial state of the functional overlay Alpha control
-(which by default will start in the 'Off' mode). If you are naive to the
-hidden ways of the AFNI, this control is on the right-click popup menu
-attached to the label just above the 'Define Overlay' threshold slider.
+Setting this string to YES will turn on Alpha fading of the functional
+overlay -- it is the same as setting the 'A' button on top of the
+threshold slider to the on stated.
 
 If Alpha is turned on, then the opacity of the overlay ranges from 1
-for above-threshold pixels down to the 'Floor' value (default is 0) --
-however, pixels with the threshold variable exactly equal to zero will
-not get the Floor value of opacity, but will get alpha=0. Note that
-the alpha (opacity) level at the pixel-wise level is scaled by the
-global opacity '1-9' control on the right side of the image viewer,
+for above-threshold pixels down to 0.  Note that the alpha (opacity)
+level at the pixel-wise level also is scaled by the global
+opacity '1-9' control on the right side of the image viewer,
 where '9' means that above-threshold pixels will be 100% opaque, and
 '6' means they will be 6/9=67% opaque -- and lower opacity pixels will
 be have their opacity scaled down by the same factor.
@@ -2945,24 +2941,34 @@ be have their opacity scaled down by the same factor.
 The variable-opacity overlay usually looks better (less blocky) if you
 open 'Define Datamode' and set the resampling modes for the OLay and
 Stat to 'Li' (linear) rather than the default 'NN' (you can also do
-this via variables AFNI_resam_func and AFNI_resam_thr).  Also when
-Alpha is turned on, the above-threshold pixel regions are outlined in
-black, unless you set the AFNI_EDGIZE_OVERLAY environment variable to
-NO -- this variable can be set interactively via the 'EditEnv'
-pseudo-plugin.  You can alter the color used for the outline by
-setting the AFNI_EDGIZE_COLOR variable; for example, afni
--DAFNI_EDGIZE_COLOR=hotpink -DAFNI_FUNC_ALPHA=Linear
+this via variables AFNI_resam_func and AFNI_resam_thr).
 
-The outline is done over the pixels immediately OUTSIDE the
-above-threshold regions, in the overlay image as interpolated to the
-underlay resolution.  If the underlay is on a coarse matrix (e.g.,
-native EPI), these outlines will look terrible -- you can alter the
-underlay display grid dimension in 'Define Datamode' using the control
-'Warp ULay on Demand'.
-
-Please note that the ALpha features described above only apply if the
+Please note that the Alpha features described above only apply if the
 color scale is in the 'continuous' mode ('**'), not in the discrete
 panes mode. Sorry about this, but that's the situation for the nonce.
+
+-------------------------
+Variable: AFNI_FUNC_BOXED
+-------------------------
+Setting this string to YES will turn on outlining/boxing for the above
+threshold pixels in a functional image overlay. The outline is done over
+the pixels immediately OUTSIDE the above-threshold regions, in the
+overlay image as interpolated to the underlay resolution. If the
+underlay is on a coarse matrix (e.g., native EPI), these outlines
+will look blocky -- you can alter the underlay display grid dimension
+in 'Define Datamode' using the control 'Warp ULay on Demand', and then
+alter the way the datasets are interpolated to the underlay grid using
+'Resam Mode' menus. In this way, you can make blocky-looking EPI results
+fictionally look as if they are beautiful and high resolution.
+
+-------------------------------
+Variable: AFNI_FUNC_BOXED_COLOR (editable)
+-------------------------------
+Defines the color used for the boxed outline of above threshold
+regions, when Boxed ('B' button above threshold slided) is turned on.
+See AFNI_FUNC_BOXED for more information. The default color is
+sort-of black. This variable replaces the former AFNI_EDGIZE_COLOR.
+Colors can be set via X11 names (e.g., "yellow", "hotpink", "#1188ff").
 
 ----------------------------
 Variable: AFNI_SLAVE_THRTIME     *** THIS VARIABLE IS NO LONGER USED ***
@@ -3070,31 +3076,9 @@ N.B.: If AFNI_SHOW_SURF_POPUPS is YES, then it wins over
       messages are displayed to stderr.
 
 -----------------------------
-Variable: AFNI_EDGIZE_OVERLAY (editable)
+Variable: AFNI_EDGIZE_OVERLAY ** This variable is no longer used **
 -----------------------------
-If set to YES, then the color overlays in the image windows will only
-have their edge pixels displayed.  Edge-izing takes place in 2 slightly
-different ways, depending on the Alpha setting in the AFNI interface
-(cf. variable AFNI_FUNC_ALPHA, above):
-
- * If Alpha is off, then edges shown comprise the outermost
-   above-threshold voxels. The edge color is just the color that these
-   voxels normally get from the overlay sub-brick values. In this
-   mode, the 'blobs' are hollowed out, leaving only the edges.
-
- * If the Alpha is on, the edges shown comprise the voxels just
-   OUTSIDE the outermost above-threshold voxels -- so that all the
-   above-threshold voxels are visible. Also, the edge color is solid
-   black (or can be set via variable AFNI_EDGIZE_COLOR). The 'blobs'
-   are NOT hollowed out.
-
----------------------------
-Variable: AFNI_EDGIZE_COLOR (editable)
----------------------------
-Defines the color used for the edge outline of above threshold
-regions, when Alpha is turned on.  See AFNI_FUNC_ALPHA for more
-information.  This variable has no effect if Alpha is turned off.
-Colors can be set via X11 names (e.g., "yellow", "hotpink", "#1188ff").
+It has been replaced by AFNI_FUNC_BOXED.
 
 --------------------------
 Variable: AFNI_NIFTI_DEBUG (editable)
