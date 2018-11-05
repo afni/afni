@@ -820,7 +820,8 @@ def apqc_vol_check_stats_anat( opref, focusbox, iolay, ithr,
     -ulay_range 0% 120%  
     -func_range ${{olay_topval}}
     -thr_olay ${{thr_thresh}}    
-    -alpha_par Quadratic  
+    -olay_alpha Yes
+    -olay_boxed Yes
     -set_subbricks -1 ${{olaybrick}} ${{thrbrick}}
     -opacity 9  
     -pbar_saveim   "${{odir_img}}/${{opref}}.pbar.jpg"

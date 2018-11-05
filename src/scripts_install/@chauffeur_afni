@@ -129,12 +129,15 @@
 #       be driven itself if "-no_clean" is used (but not with xvfb at
 #       the moment
 #
-set version   = "4.3";   set rev_dat   = "Oct 21, 2018"
+#set version   = "4.3";   set rev_dat   = "Oct 21, 2018"
 #     + add colorbar save capability, which is new to AFNI, courtesy
 #       of RWC-- thanks!
 #     + when outputting the pbar, a text file also gets made, with the
 #       max value of the cbar and the threshold for the olay, to help
 #       scripting
+#
+set version   = "4.4";   set rev_dat   = "Nov 5, 2018"
+#     + update to match new alpha+boxed functionality and driving
 #
 # =====================================================================
 
@@ -218,10 +221,10 @@ set pord    = ( "sag"      "cor"     "axi"   )
 
 set subbb = ( -1 -1 -1 )
 
-# for SET_FUNC_ALPHA
-set alpha_par    = "Off"         # 
-set alpha_floor  = ""            # 
-set alpha_edgize_no = 0          # =1 -> SETENV AFNI_EDGIZE_OVERLAY NO
+# for SET_FUNC_ALPHA and SET_FUNC_BOXED
+set olay_alpha      = "No"         # 
+set olay_boxed      = "No"         # =1 -> SETENV AFNI_EDGIZE_OVERLAY NO
+#set alpha_floor  = ""            # !! Gone now [Nov 5, 2018]
 
 set do_quit = "QUITT"            # quick-quit; not subject to change
 
@@ -504,18 +507,15 @@ while ( $ac <= $#argv )
         @ ac += 1
         set ccropy[2] = "$argv[$ac]"
 
-    else if ( "$argv[$ac]" == "-alpha_par" ) then
+    else if ( "$argv[$ac]" == "-olay_alpha" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
-        set alpha_par = "$argv[$ac]"
-
-    else if ( "$argv[$ac]" == "-alpha_floor" ) then
-        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-        @ ac += 1
-        set alpha_floor = "$argv[$ac]"
+        set olay_alpha = "$argv[$ac]"
         
-    else if ( "$argv[$ac]" == "-alpha_edgize_no" ) then
-        setenv AFNI_EDGIZE_OVERLAY NO
+    else if ( "$argv[$ac]" == "-olay_boxed" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set olay_boxed = "$argv[$ac]"
 
     else if ( "$argv[$ac]" == "-image_zoom_nn_no" ) then
         setenv AFNI_IMAGE_ZOOM_NN NO
@@ -1269,8 +1269,8 @@ echo "set com_ulay_str = "\""${com_ulay_str}"\"""  >> $oechocmd
 echo "set frange       = "\""${frange}"\"""  >> $oechocmd
 echo "set thrnew       = "\""${thrnew}"\"""  >> $oechocmd
 echo "set thrflag      = "\""${thrflag}"\"""  >> $oechocmd
-echo "set alpha_par    = "\""${alpha_par}"\"""  >> $oechocmd
-echo "set alpha_floor  = "\""${alpha_floor}"\"""  >> $oechocmd
+echo "set olay_alpha   = "\""${olay_alpha}"\"""  >> $oechocmd
+echo "set olay_boxed   = "\""${olay_boxed}"\"""  >> $oechocmd
 echo "set func_resam   = "\""${func_resam}"\"""  >> $oechocmd
 echo "set crossh       = "\""${crossh}"\"""  >> $oechocmd
 echo "set OW           = "\""${OW}"\"""  >> $oechocmd
@@ -1299,7 +1299,8 @@ afni -noplugins -no_detach  -echo_edu                                 \\\
      -com "$com_ulay_str"                                             \\\
      -com "SET_FUNC_RANGE  ${frange}"                                 \\\
      -com "SET_THRESHNEW   $thrnew $thrflag"                          \\\
-     -com "SET_FUNC_ALPHA  $alpha_par $alpha_floor"                   \\\
+     -com "SET_FUNC_ALPHA  $olay_alpha"                               \\\
+     -com "SET_FUNC_BOXED  $olay_boxed"                               \\\
      -com "SET_FUNC_RESAM  ${func_resam}.${func_resam}"               \\\
      -com "SET_XHAIRS  ${crossh}"                                     \\\
      -com "$OW ${ppord[$rrr]}image opacity=${opac}                    \\\
@@ -1325,7 +1326,8 @@ endif
              -com "$com_ulay_str"                                           \
              -com "SET_FUNC_RANGE  ${frange}"                               \
              -com "SET_THRESHNEW   $thrnew $thrflag"                        \
-             -com "SET_FUNC_ALPHA  $alpha_par $alpha_floor"                 \
+             -com "SET_FUNC_ALPHA  $olay_alpha"                             \
+             -com "SET_FUNC_BOXED  $olay_boxed"                             \
              -com "SET_FUNC_RESAM  ${func_resam}.${func_resam}"             \
              -com "SET_XHAIRS  ${crossh}"                                   \
              -com "$OW ${ppord[$rrr]}image opacity=${opac}                  \
@@ -1359,8 +1361,8 @@ echo "set com_ulay_str = "\""${com_ulay_str}"\"""  >> $oechocmd
 echo "set frange       = "\""${frange}"\"""  >> $oechocmd
 echo "set thrnew       = "\""${thrnew}"\"""  >> $oechocmd
 echo "set thrflag      = "\""${thrflag}"\"""  >> $oechocmd
-echo "set alpha_par    = "\""${alpha_par}"\"""  >> $oechocmd
-echo "set alpha_floor  = "\""${alpha_floor}"\"""  >> $oechocmd
+echo "set olay_alpha   = "\""${olay_alpha}"\"""  >> $oechocmd
+echo "set olay_boxed   = "\""${olay_boxed}"\"""  >> $oechocmd
 echo "set func_resam   = "\""${func_resam}"\"""  >> $oechocmd
 echo "set crossh       = "\""${crossh}"\"""  >> $oechocmd
 echo "set OW           = "\""${OW}"\"""  >> $oechocmd
@@ -1395,7 +1397,8 @@ afni -noplugins -no_detach  -echo_edu                                \\\
     -com "$com_ulay_str"                                             \\\
     -com "SET_FUNC_RANGE  ${frange}"                                 \\\
     -com "SET_THRESHNEW   $thrnew $thrflag"                          \\\
-    -com "SET_FUNC_ALPHA  $alpha_par $alpha_floor"                   \\\
+    -com "SET_FUNC_ALPHA  $olay_alpha"                               \\\
+    -com "SET_FUNC_BOXED  $olay_boxed"                               \\\
     -com "SET_FUNC_RESAM  ${func_resam}.${func_resam}"               \\\
     -com "SET_XHAIRS  ${crossh}"                                     \\\
     -com "$OW sagittalimage opacity=${opac}                          \\\
@@ -1430,7 +1433,8 @@ afni -noplugins -no_detach  -echo_edu                                \
     -com "$com_ulay_str"                                             \
     -com "SET_FUNC_RANGE  ${frange}"                                 \
     -com "SET_THRESHNEW   $thrnew $thrflag"                          \
-    -com "SET_FUNC_ALPHA  $alpha_par $alpha_floor"                   \
+    -com "SET_FUNC_ALPHA  $olay_alpha"                             \
+    -com "SET_FUNC_BOXED  $olay_boxed"                             \
     -com "SET_FUNC_RESAM  ${func_resam}.${func_resam}"               \
     -com "SET_XHAIRS  ${crossh}"                                     \
     -com "$OW sagittalimage opacity=${opac} mont=${mx}x${my}:${gapord[1]} crop=${scropx[1]}:${scropx[2]},${scropy[1]}:${scropy[2]}" \
@@ -1754,22 +1758,16 @@ COMMAND OPTIONS ~1~
                     above "-montx ...").  (See DR: "mont=PxQ:R";
                     basically, MY is the 'Q' value).
 
--alpha_par  ALPHP  :In addition to representing olay values as colors
+-olay_alpha {Yes|No} :In addition to representing olay values as colors
                     with a threshold, one also apply opacity
                     information to 'soften' the effect of
                     thresholding; see DR: SET_FUNC_ALPHA for a
-                    description of this behavior (def: "Off", which is
+                    description of this behavior (def: "No", which is
                     just standard thresholding stuff).
--alpha_floor ALPHF :second parameter for more complicated olay 
-                    thresholding behavior.  Too complicated for simple
-                    me to explain-- see DR: SET_FUNC_ALPHA (def: ""; 
-                    this empty string means use default
-                    value, which at time of writing is 0) 
--alpha_edgize_no   :even *more* control over fancy alpha-based 
-                    thresholding; for this, see ENV: 
-                    AFNI_EDGIZE_OVERLAY, whose default value is "YES".
-                    Using this option changes that value to 'NO' 
-                    internally.
+-olay_boxed {Yes|No} :a partner parameter for the fancy alpha-based olay
+                    viewing; put a box around supra-threshold
+                    voxels/clusters. Default value is "No".  (see DR:
+                    SET_FUNC_BOXED)
 
 -image_zoom_nn_no  :the default zoom is set to NN mode, so no smoothing
                     occurs (see ENV: AFNI_IMAGE_ZOOM_NN).  This option
