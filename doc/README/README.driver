@@ -221,16 +221,23 @@ SET_FUNC_RESAM [c.]{NN|Li|Cu|Bk}[.{NN|Li|Cu|Bk}]
     SET_FUNC_RESAM A.Li.Li
   sets the func and threshold resampling modes both to Linear interpolation.
 
-SET_FUNC_ALPHA [c.]{Off|Linear|Quadratic} [floor]
-  Set the functional overlay Alpha mode, to Off, Linear, or Quadratic.
-  Optionally, you can include the floor value for Alpha after the mode.
+SET_FUNC_ALPHA [c.]{Off|On|No|Yes}
+  Set the functional overlay Alpha mode, to Off (or No), or On (or Yes).
   For example
-    SET_FUNC_ALPHA A.Linear 0.4
-  The floor value must be between 0.0 and 0.8 (inclusive).
-  If you do NOT want the black edges drawn around the supra-threshold
-  pixels (when Alpha mode is not Off), then you should also issue
-  the command
-    SETENV AFNI_EDGIZE_OVERLAY NO
+    SET_FUNC_ALPHA A.Yes
+  This command is equivalent to controlling Alpha with the 'A' button
+  on top of the threshold slider. You can also set the initial status
+  of Alpha by setting environment variable AFNI_FUNC_ALPHA to Yes or No.
+  Note that this command has changed [06 Nov 2018] from the previous
+  version.
+
+SET_FUNC_BOXED [c.]{Off|On|No|Yes}
+  Set the functional overlay Boxed mode, to Off (or No), or On (or Yes).
+  For example
+    SET_FUNC_BOXED A.Yes
+  This command is equivalent to controlling Boxed with the 'B' button
+  on top of the threshold slider. You can also set the initial status
+  of Boxed by setting environment variable AFNI_FUNC_BOXED to Yes or No.
 
 OPEN_PANEL [c.]Panel_Name
   Opens the specified controller panel, where 'Panel_Name' is one of
