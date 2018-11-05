@@ -3948,6 +3948,12 @@ class RandTiming:
              print("++ scaling mean up from %s to %s (by %s)" \
                    % (remain, tot_mean, 1/mean_scalar))
 
+       # possibly warn on rest reduction
+       if abs(mean_scalar-1) > 0.05 or tot_mean - remain > 10:
+          print('** warning: insufficient time for mean rest\n'
+                '            avail = %g, mean rest time = %g' \
+                % (remain, tot_mean))
+
        # possibly provide more details on scalar
        if abs(mean_scalar-1) > 0.05 or self.verb > 2:
           print('-- have %g of %g mean seconds available, scaling by %g' \
