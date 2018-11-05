@@ -203,6 +203,10 @@ ENTRY("AFNI_cluster_choose_CB") ;
 
    im3d->vwid->func->clu_nnlev = (int)(-rmm) ;
 
+   im3d->vinfo->clusterize_nnlev  = -rmm ;  /* 02 Nov 2018 */
+   im3d->vinfo->clusterize_size   = vmul ;  /* save for re-use */
+   im3d->vinfo->clusterize_bisid  = bsid ;
+
    IM3D_CLEAR_TMASK(im3d) ;      /* Mar 2013 */
    IM3D_CLEAR_THRSTAT(im3d) ; /* 12 Jun 2014 */
    if( im3d->vinfo->func_visible ) AFNI_redisplay_func( im3d ) ;
@@ -256,7 +260,9 @@ ENTRY("AFNI_clu_CB") ;
 
    if( w == im3d->vwid->func->clu_cluster_pb ){
      char *lvec[2] = { "NN level " , "Voxels   " } ;
-     int nnlev=1 , ccsiz=20 ;
+     int nnlev=im3d->vinfo->clusterize_nnlev ;
+     int ccsiz=im3d->vinfo->clusterize_size ;
+     int bisid=im3d->vinfo->clusterize_bisid ;
      MCW_arrowval **vav ; int nav ;
 
 #if 0
@@ -273,7 +279,7 @@ ENTRY("AFNI_clu_CB") ;
 
      if( im3d->vedset.code == VEDIT_CLUST ){
        nnlev = -im3d->vedset.param[2];
-       ccsiz =  im3d->vedset.param[3]; if( ccsiz < 2 ) ccsiz = 20 ;
+       ccsiz =  im3d->vedset.param[3]; if( ccsiz < 2 ) ccsiz = 40 ;
      }
      MCW_choose_stuff( im3d->vwid->func->thr_label ,
                         "------ Set Clusterize Parameters ------\n"
@@ -294,7 +300,7 @@ ENTRY("AFNI_clu_CB") ;
                       AFNI_cluster_choose_CB , (XtPointer)im3d ,
                         MSTUF_INT     , "NN level " , 1 ,     3 , nnlev ,
                         MSTUF_INT     , "Voxels   " , 2 , 99999 , ccsiz ,
-                        MSTUF_STRLIST , "Bi-sided?" , 2 ,     0 , yesno ,
+                        MSTUF_STRLIST , "Bi-sided?" , 2 , bisid , yesno ,
                       MSTUF_END ) ;
      EXRETURN ;
    }

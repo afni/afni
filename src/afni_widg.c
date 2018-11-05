@@ -2825,14 +2825,76 @@ STATUS("making func->rowcol") ;
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
+   func->thrtop_rowcol =
+      XtVaCreateWidget(
+         "dialog" , xmRowColumnWidgetClass , func->thr_rowcol ,
+            XmNorientation , XmHORIZONTAL ,
+            XmNpacking , XmPACK_TIGHT ,
+            XmNmarginHeight, 0 ,
+            XmNmarginWidth , 0 ,
+            XmNspacing     , 1 ,
+            XmNtraversalOn , True  ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+
    func->thr_label =
       XtVaCreateManagedWidget(
-         "dialog" , xmLabelWidgetClass , func->thr_rowcol ,
+         "dialog" , xmLabelWidgetClass , func->thrtop_rowcol ,
             LABEL_ARG("Thr") ,
             XmNrecomputeSize , False ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
    LABELIZE(func->thr_label) ;
+
+   /*--- A(lpha) and B(oxed) buttons atop threshold slider [02 Nov 2018] ---*/
+
+   func->thrtop_alpha_pb =
+      XtVaCreateManagedWidget(
+         "font8" , xmPushButtonWidgetClass , func->thrtop_rowcol ,
+            LABEL_ARG("A") ,
+            XmNmarginWidth  , 1 ,
+            XmNmarginHeight , 0 ,
+            XmNspacing      , 0 ,
+            XmNborderWidth  , 0 ,
+            XmNtraversalOn , True  ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+   XtAddCallback( func->thrtop_alpha_pb , XmNactivateCallback ,
+                  AFNI_func_thrtop_CB , im3d ) ;
+   MCW_register_hint( func->thrtop_alpha_pb ,
+                      "Turn on/off alpha fading for below threshold voxels" ) ;
+
+   if( AFNI_yesenv("AFNI_FUNC_ALPHA") ){
+     im3d->vinfo->thr_use_alpha = 1 ;
+     MCW_invert_widget(func->thrtop_alpha_pb) ;
+   } else {
+     im3d->vinfo->thr_use_alpha = 0 ;
+   }
+
+   func->thrtop_boxed_pb =
+      XtVaCreateManagedWidget(
+         "font8" , xmPushButtonWidgetClass , func->thrtop_rowcol ,
+            LABEL_ARG("B") ,
+            XmNmarginWidth  , 1 ,
+            XmNmarginHeight , 0 ,
+            XmNspacing      , 0 ,
+            XmNborderWidth  , 0 ,
+            XmNtraversalOn , True  ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+   XtAddCallback( func->thrtop_boxed_pb , XmNactivateCallback ,
+                  AFNI_func_thrtop_CB , im3d ) ;
+   MCW_register_hint( func->thrtop_boxed_pb ,
+                      "Turn on/off boxes around above threshold voxel clusters" ) ;
+
+   if( AFNI_yesenv("AFNI_FUNC_BOXED") ){
+     im3d->vinfo->thr_use_boxed = 1 ;
+     MCW_invert_widget(func->thrtop_boxed_pb) ;
+   } else {
+     im3d->vinfo->thr_use_boxed = 0 ;
+   }
+
+   /*-------------------------------------------------------------------------*/
 
 #ifdef FIX_SCALE_VALUE_PROBLEM
    MCW_register_help( func->thr_label ,
@@ -2842,6 +2904,7 @@ STATUS("making func->rowcol") ;
       "Motif library for this computer system."
    ) ;
 #else
+#if 0
    MCW_register_help( func->thr_label ,
       "Shows the type of threshold\n"
       "statistic that is available\n"
@@ -2858,6 +2921,7 @@ STATUS("making func->rowcol") ;
       FUNC_PT_LABEL  " = " FUNC_PT_DESCRIPTOR  "\n"
    ) ;
    MCW_register_hint( func->thr_label , "Type of threshold statistic" ) ;
+#endif
 #endif
 
    /**--------- 05 Sep 2006: create menu hidden on the thr_label ---------**/
@@ -3012,6 +3076,7 @@ STATUS("making func->rowcol") ;
                             "show Positives, Negatives, or Both?" ) ;
     }
 
+#if 0 /* disabled 02 Nov 2018 */
    /* Threshold use alpha arrowval [08 Dec 2014] */
 
    { static char *thr_alpha_label[3] = { "Off" , "Linear" , "Quadratic"} ;
@@ -3060,6 +3125,7 @@ STATUS("making func->rowcol") ;
       MCW_reghint_children( func->thr_floor_av->wrowcol ,
                             "Minimum value for Alpha (fading factor)" ) ;
     }
+#endif
 
    /* FDR button */
 
@@ -3872,6 +3938,10 @@ STATUS("making func->rowcol") ;
                         "    (e.g., is 'warp-on-demand' only)."
                      ) ;
 
+   im3d->vinfo->clusterize_nnlev = 2 ;  /* 02 Nov 2018 */
+   im3d->vinfo->clusterize_size  = 40 ; /* defaults for Clusterize */
+   im3d->vinfo->clusterize_bisid = 1 ;
+
    hrc = XtVaCreateWidget(
          "dialog" , xmRowColumnWidgetClass , func->clu_rowcol ,
             XmNorientation , XmHORIZONTAL ,
@@ -4540,6 +4610,7 @@ STATUS("making func->rowcol") ;
 
    /*-- manage the managers --*/
 
+   XtManageChild( func->thrtop_rowcol ) ;
    XtManageChild( func->thr_rowcol ) ;
    XtManageChild( func->inten_rowcol ) ;
    XtManageChild( func->range_rowcol ) ;
