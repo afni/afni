@@ -75,7 +75,7 @@ def make_1dplot_figure(bf):
                     width=bf.censor_width,
                     height=(ss.ylim[1] - ss.ylim[0]),
                     facecolor=bf.censor_RGB,
-                    lw=0, edgecolor=None, alpha=bf.censor_alpha) )
+                    lw=0, edgecolor=None, alpha=None) )
 
         if ss.censor_hline : 
             pp.axhline( y=ss.censor_hline, 
@@ -155,7 +155,7 @@ def make_1dplot_figure(bf):
                 line.set_markersize(MARKSIZE1)
             medlines = sq['medians']
             for line in medlines:
-                line.set_color('white')
+                line.set_color('0.8')
                 line.set_linewidth(SETLW*1.25 )
             boxlines = sq['boxes']
             for line in boxlines:
@@ -210,7 +210,6 @@ def populate_1dplot_fig(iopts):
     bigfig.set_censor_arr( iopts.censor_arr )
     bigfig.set_censor_width( iopts.censor_width )
     bigfig.set_censor_RGB( iopts.censor_RGB )
-    bigfig.set_censor_alpha( iopts.censor_alpha )
     bigfig.set_censor_hline( iopts.censor_hline )
     bigfig.set_boxplot( iopts.boxplot_on )
 
