@@ -3051,6 +3051,19 @@ STATUS("making func->rowcol") ;
    im3d->vinfo->fix_pval   = im3d->vinfo->fix_qval   = 0    ; /* 27 Feb 2014 */
    im3d->vinfo->fixed_pval = im3d->vinfo->fixed_qval = 0.0f ;
 
+   /*-- Set pval = 0.001 button [05 Nov 2018] --*/
+
+   func->thr_setpval_001_pb =
+      XtVaCreateManagedWidget(
+         "dialog" , xmPushButtonWidgetClass , func->thr_menu ,
+            LABEL_ARG("Set p=0.001") ,
+            XmNtraversalOn , True  ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+   XtAddCallback( func->thr_setpval_001_pb , XmNactivateCallback ,
+                  AFNI_func_setpval_001_CB , im3d ) ;
+   MCW_register_hint( func->thr_setpval_001_pb , "Set p-value to 0.001" ) ;
+
    /* Threshold sign arrowval [08 Aug 2007] */
 
    { static char *thr_sign_label[3] = { "Pos & Neg",
