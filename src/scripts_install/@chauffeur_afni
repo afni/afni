@@ -14,130 +14,137 @@
 # This function constructed by: PA Taylor (NIMH, NIH, USoA)
 # 
 # Dec, 2016:
-#     + conception and start.
+#     + [PT] conception and start.
 #
 # Jan, 2017:
-#     + add I/O.
+#     + [PT] add I/O.
 #
 # Jan, 2017b:
-#     + if ulay/olay are in different files, have tmp readdir.
-#     + default now to proceed if no olay given but also no 
+#     + [PT] if ulay/olay are in different files, have tmp readdir.
+#     + [PT] default now to proceed if no olay given but also no 
 #       '-olay_off' is used.
 #
 # Jan, 2017c:
-#     + better centering of slices.
+#     + [PT] better centering of slices.
 #
 # Jan, 2017d:
-#     + better slice selection/centering.
-#     + adjust for different orders of orientation
+#     + [PT] better slice selection/centering.
+#     + [PT] adjust for different orders of orientation
 #
 #set version   = "1.6";   set rev_dat   = "Feb 6, 2017"
-#     + olay quotes
+#     + [PT] olay quotes
 #
 #set version   = "2.1";   set rev_dat   = "Feb 27, 2017"
-#     + can have IJK labels -> DWImager
+#     + [PT] can have IJK labels -> DWImager
 #
 #set version   = "2.2";   set rev_dat   = "Mar 29, 2017"
-#     + xvfb-run introduced: should work better/more generally
+#     + [PT] xvfb-run introduced: should work better/more generally
 #       on biowulf? [thanks D. Godlove for suggesting this fix]
 #set version   = "2.3";   set rev_dat   = "May 3, 2017"
-#     + xvfb-run: new option to set colordepth to 24, so opacity works
+#     + [PT] xvfb-run: new option to set colordepth to 24, so opacity works
 #       in the AFNI commands
 # 
 #set version   = "2.4";   set rev_dat   = "May 20, 2017"
-#     + more unique naming of tempdir; safer for cluster runs
+#     + [PT] more unique naming of tempdir; safer for cluster runs
 # 
 #set version   = "2.5";   set rev_dat   = "June 1, 2017"
-#     + back to regular xvfb and Bob's search
+#     + [PT] back to regular xvfb and Bob's search
 # 
 #set version   = "2.6";   set rev_dat   = "June 1, 2017"
-#     + default interpolation to NN, but add in option to set
+#     + [PT] default interpolation to NN, but add in option to set
 # 
 #set version   = "2.7";   set rev_dat   = "June 20, 2017"
-#     + new opts, for SET_SUBBRICKS
+#     + [PT] new opts, for SET_SUBBRICKS
 # 
 #set version   = "2.8";   set rev_dat   = "Aug 17, 2017"
-#     + new opt, allow SET_XYZ
+#     + [PT] new opt, allow SET_XYZ
 # 
 #set version   = "2.9";   set rev_dat   = "Sep 04, 2017"
-#     + remove '-outdir ...' and have path set by '-prefix ...',
+#     + [PT] remove '-outdir ...' and have path set by '-prefix ...',
 #       like most other AFNI programs
-#     + set default zoom to NN, so no smoothing
+#     + [PT] set default zoom to NN, so no smoothing
 #       via -> AFNI_IMAGE_ZOOM_NN
 #
 #set version   = "3.0";   set rev_dat   = "Nov 24, 2017"
-#     + start helpifying
+#     + [PT] start helpifying
 #
 #set version   = "3.1";   set rev_dat   = "Nov 27, 2017"
-#     + improve/correct slice-width selection (thanks, J. Lee!)
+#     + [PT] improve/correct slice-width selection (thanks, J. Lee!)
 #
 #set version   = "3.2";   set rev_dat   = "Feb 21, 2018"
-#     + add in p-to-stat capability for thresholding, via 
+#     + [PT] add in p-to-stat capability for thresholding, via 
 #       "-thr_olay_p2stat .." opt
 #
 #set version   = "3.3";   set rev_dat   = "May 29, 2018"
-#     + add in cropping ability, via '-crop_*' options
+#     + [PT] add in cropping ability, via '-crop_*' options
 #        
 #set version   = "3.4";   set rev_dat   = "July 11, 2018"
-#     + start adding in the 4D options:  -mode_4D
+#     + [PT] start adding in the 4D options:  -mode_4D
 #        
 #set version   = "3.4";   set rev_dat   = "July 12, 2018"
-#     + mode_4d opts seem to be working now, at least some...
+#     + [PT] mode_4d opts seem to be working now, at least some...
 #        
 #set version   = "3.5";   set rev_dat   = "July 13, 2018"
-#     + need to require sidedness of test for -thr_olay_p2stat!
-#     + also switch to use p2dsetstat internally for getting that
+#     + [PT] need to require sidedness of test for -thr_olay_p2stat!
+#     + [PT] also switch to use p2dsetstat internally for getting that
 #       threshold
 #        
 #set version   = "3.6";   set rev_dat   = "July 20, 2018"
-#     + in 4D mode, want percentage values to be consistent across all
+#     + [PT] in 4D mode, want percentage values to be consistent across all
 #       slice montages.  this will be done by calculating a table for
 #       each of the reassembled volumes (= glued together slices from
 #       across time for a each plane), and then combining these
 #       percentile tables by taking the max at each percentile.
 #        
 #set version   = "3.7";   set rev_dat   = "July 23, 2018"
-#     + revising ulay percentiles-- of *whole* object, not just of
+#     + [PT] revising ulay percentiles-- of *whole* object, not just of
 #       non-zero values as before.  This should better match AFNI GUI
 #       behavior, and lead masks to not have a range [1,1]
-#     + now including the new drivability with: SET_ULAY_RANGE
+#     + [PT] now including the new drivability with: SET_ULAY_RANGE
 #       (Thanks, Emperor Zhark!)
 #        
 #set version   = "3.8";   set rev_dat   = "July 23, 2018"
-#     + updating olays for 4d and thresholding
-#     + no longer using pre-calc'ed tables
+#     + [PT] updating olays for 4d and thresholding
+#     + [PT] no longer using pre-calc'ed tables
 #
 #set version   = "3.9";   set rev_dat   = "July 25, 2018"
-#     + several small updates; renamed my_slicer, changed some help, 
-#     + default ulay now 0-98% in vol.
+#     + [PT] several small updates; renamed my_slicer, changed some help, 
+#     + [PT] default ulay now 0-98% in vol.
 #
 #set version   = "4.0";   set rev_dat   = "July 27, 2018"
-#     + deal with percentile values if user entered 4D olay/ulay for
+#     + [PT] deal with percentile values if user entered 4D olay/ulay for
 #       non-4Dmode, but including subbrick selectors
 #
 #set version   = "4.1";   set rev_dat   = "Oct 18, 2018"
-#     + swap out gapord calc to separate prog: @djunct_slice_space.
+#     + [PT] swap out gapord calc to separate prog: @djunct_slice_space.
 #       this was done because that calc is needed in other places
-#     + also new option to focus slices on box from desired set:
+#     + [PT] also new option to focus slices on box from desired set:
 #          -box_focus_slices REFBOX
 #
 #set version   = "4.12";   set rev_dat   = "Oct 18, 2018"
-#     + add in '-pass' option, for other scripty reasons. Does nothing.
+#     + [PT] add in '-pass' option, for other scripty reasons. Does nothing.
 #
 #set version   = "4.2";   set rev_dat   = "Oct 21, 2018"
-#     + echo variable defs and afni drive command to text file-- can
+#     + [PT] echo variable defs and afni drive command to text file-- can
 #       be driven itself if "-no_clean" is used (but not with xvfb at
 #       the moment
 #
 #set version   = "4.3";   set rev_dat   = "Oct 21, 2018"
-#     + add colorbar save capability, which is new to AFNI, courtesy
+#     + [PT] add colorbar save capability, which is new to AFNI, courtesy
 #       of RWC-- thanks!
-#     + when outputting the pbar, a text file also gets made, with the
+#     + [PT] when outputting the pbar, a text file also gets made, with the
 #       max value of the cbar and the threshold for the olay, to help
 #       scripting
 #
-set version   = "4.4";   set rev_dat   = "Nov 5, 2018"
-#     + update to match new alpha+boxed functionality and driving
+#set version   = "4.4";   set rev_dat   = "Nov 5, 2018"
+#     + [PT] update to match new alpha+boxed functionality and driving
+#
+set version   = "4.5";   set rev_dat   = "Nov 6, 2018"
+#     + [PT] fixed a recently induced bug in 4dmode gapord
+#       definitioning: in some cases, the delta slices would be
+#       incorrect (i.e., not uniformly 1) 
+#     + [PT] also put a check around AFNI_IMAGE_GLOBALRANGE because it
+#       can get reset, again for 4dmode considerations
 #
 # =====================================================================
 
@@ -761,6 +768,8 @@ if ( $MODE_4D == 1 ) then
         echo "   Will then just be something near central in vols."
     endif
 
+    # the program will add '_u' and '_o' to the output names for the
+    # ulay and olay, respectively
     echo "++ Start slicing ..."
     @djunct_4d_slices_to_3d_vol                        \
         -ulay "$ulay"                                  \
@@ -860,7 +869,15 @@ foreach rrr ( `seq 1 1 $Nreps` )  ### the BIG loop starts
 
     # for scaling ulay uniformly with reasonable values when brightness
     # range is the same across the volume
-    set urange = `echo $AFNI_IMAGE_GLOBALRANGE`
+    #####set urange = `echo $AFNI_IMAGE_GLOBALRANGE`
+    # [PT: Nov 6, 2018] Updated because of 4D mode,
+    # $AFNI_IMAGE_GLOBALRANGE might get unset after an iteration
+    # This should at least set on the first pass through; even if
+    # $AFNI_IMAGE_GLOBALRANGE gets unsetenv'ed in the loop, the value
+    # of urange is set.
+    if ( $?AFNI_IMAGE_GLOBALRANGE ) then
+        set urange = `echo $AFNI_IMAGE_GLOBALRANGE`
+    endif
 
     if ( ( $urange == "VOLUME" ) || ( $urange == "DSET" )  \
         || ( $urange == "YES" ) ) then
@@ -1007,6 +1024,9 @@ foreach rrr ( `seq 1 1 $Nreps` )  ### the BIG loop starts
                 -expr "a"                                 \
                 -prefix $read_dir/$read_ulay
         endif
+    else 
+        echo "** Var 'urange' not set somehow-- bad!"
+        goto BAD_EXIT
     endif
 
     # always determine dim from ulay, because that's how montaging works!
@@ -1129,11 +1149,15 @@ foreach rrr ( `seq 1 1 $Nreps` )  ### the BIG loop starts
     #end
     ## -----------------------------------------------------------------
 
-    # [PT: Oct 18, 2018] 
-    # + Now calculated in separate program;
-    # + also, if "-box_focus_slices" is on, then this gets
-    #   recalculated just below, for the refbox dset
-    set gapord = `@djunct_slice_space -nwin $Nwin -inset "$ulay"`
+    # [PT: Nov 6, 2018] we only want this set here for 3D; for 4D,
+    # this was set above to be 1 1 1!
+    if ( ! $MODE_4D ) then
+        # [PT: Oct 18, 2018] 
+        # + Now calculated in separate program;
+        # + also, if "-box_focus_slices" is on, then this gets
+        #   recalculated just below, for the refbox dset
+        set gapord = `@djunct_slice_space -nwin $Nwin -inset "$ulay"`
+    endif
 
     echo "++ Dimensions (xyzt): $Dim"
     echo "++ Slice spacing ordered (x,y,z) is:  $gapord"
