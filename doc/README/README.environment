@@ -161,6 +161,16 @@ print the 'WARNING' or 'ERROR' label using inverted colors, to aid in
 picking out these messages from other text on the screen.  To turn
 this feature off, set this environment variable to 'NO'.
 
+-----------------------
+Variable: AFNI_FONTSIZE   [06 Nov 2018]
+-----------------------
+This variable can be used to set the AFNI controller font sizes.
+It is a convenient way to avoid using the '-XXXfontsize' option.
+The values this variable can take are:
+   MINUS ==> smaller than normal fonts
+   PLUS  ==> larger than normal fonts
+   BIG   ==> much larger than normal fonts
+
 ------------------------------------
 Variable: AFNI_DONT_SORT_ENVIRONMENT
 ------------------------------------
