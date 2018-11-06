@@ -195,7 +195,7 @@ ENTRY("AFNI_func_setpval_final_CB") ;
        cbs->cval[0] == '\0'           ){ TFLASH(im3d); EXRETURN; }
 
    if( DSET_BRICK_STATCODE(im3d->fim_now,im3d->vinfo->thr_index) <= 0 ){
-    TFLASH(im3d) ; EXRETURN ;
+     TFLASH(im3d) ; EXRETURN ;
    }
 
    pval = (float)strtod(cbs->cval,&cpt) ;
@@ -220,6 +220,20 @@ ENTRY("AFNI_func_setpval_CB") ;
    if( !IM3D_OPEN(im3d) ) EXRETURN ;
 
    MCW_choose_string( w, "Enter p-value", NULL, AFNI_func_setpval_final_CB,cd ) ;
+   EXRETURN ;
+}
+
+/*-----------------------------------------------------------------------*/
+
+void AFNI_func_setpval_001_CB( Widget w, XtPointer cd, XtPointer cb )
+{
+   MCW_choose_cbs cbs ;
+
+ENTRY("AFNI_func_setpval_001_CB") ;
+
+   cbs.reason = mcwCR_string ;
+   cbs.cval   = "0.001" ;
+   AFNI_func_setpval_final_CB( w , cd , &cbs ) ;
    EXRETURN ;
 }
 
