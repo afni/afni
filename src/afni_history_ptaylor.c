@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 6, Nov , 2018 , PT , "@chauffeur_afni" , MINOR , TYPE_BUG_FIX,
+   "Fixed delta-slice definition for 4D mode of imaging (occasional probs).",
+   "Should have correct gapord values across all views now.\n"
+},
+
 { 5, Nov , 2018 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
    "New opt: '-olay_alpha' and '-olay_boxed' for new alpha/boxed driving.",
    "Keepin' up with changes to afni driving, via RWC work.\n"
