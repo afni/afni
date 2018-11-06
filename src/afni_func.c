@@ -2293,6 +2293,10 @@ STATUS("thresholdization") ;
 #define ALFA(th,fac) (alcode==1) ? 255.0f*ALIN(th,fac)+af          \
                     :(alcode==2) ? 255.0f*AQUA(th,fac)+af : 0.0f
 
+#define ALFABYTE(xx) (  ((xx) <   0.0) ? (byte)0                      \
+                      : ((xx) > 222.0) ? (byte)222 : (byte)rintf(xx) )
+
+
 void AFNI_alpha_fade_mri( Three_D_View *im3d , MRI_IMAGE *im )
 {
    float af,th,fi,aa,rf,bf,gf ; int ii,jj,kk,nx,ny ;
@@ -2449,9 +2453,9 @@ STATUS("threshold-ization and alpha-ization") ;
            if( rej ){
                                         ovar[ii].a = 0 ;     /* transparent */
            } else if( ar_thr[ii] > 0 && (ar_thr[ii] < tht || vvz) ){
-             aa = ALFA(ar_thr[ii],ft) ; ovar[ii].a = BYTEIZE(aa) ;
+             aa = ALFA(ar_thr[ii],ft) ; ovar[ii].a = ALFABYTE(aa) ;
            } else if( ar_thr[ii] < 0 && (ar_thr[ii] > thb || vvz) ){
-             aa = ALFA(ar_thr[ii],fb) ; ovar[ii].a = BYTEIZE(aa) ;
+             aa = ALFA(ar_thr[ii],fb) ; ovar[ii].a = ALFABYTE(aa) ;
            } else if( do_edge ){
              if( !(do_pos && val <= 0.0f) ) ear[ii] = 1 ; /* not faded or vedit-ed */
            }
@@ -2471,7 +2475,7 @@ STATUS("threshold-ization and alpha-ization") ;
            if( rej ){
                                         ovar[ii].a = 0 ;     /* transparent */
            } else if( ar_thr[ii] > 0 && (ar_thr[ii] < tht || vvz) ){
-             aa = ALFA(ar_thr[ii],ft) ; ovar[ii].a = BYTEIZE(aa) ;
+             aa = ALFA(ar_thr[ii],ft) ; ovar[ii].a = ALFABYTE(aa) ;
            } else if( do_edge ){
              if( !(do_pos && val <= 0.0f) ) ear[ii] = 1 ; /* not faded or vedit-ed */
            }
@@ -2491,9 +2495,9 @@ STATUS("threshold-ization and alpha-ization") ;
            if( rej ){
                                         ovar[ii].a = 0 ;     /* transparent */
            } else if( ar_thr[ii] > 0 && (ar_thr[ii] < tht || vvz) ){
-             aa = ALFA(ar_thr[ii],ft) ; ovar[ii].a = BYTEIZE(aa) ;
+             aa = ALFA(ar_thr[ii],ft) ; ovar[ii].a = ALFABYTE(aa) ;
            } else if( ar_thr[ii] < 0 && (ar_thr[ii] > thb || vvz) ){
-             aa = ALFA(ar_thr[ii],fb) ; ovar[ii].a = BYTEIZE(aa) ;
+             aa = ALFA(ar_thr[ii],fb) ; ovar[ii].a = ALFABYTE(aa) ;
            } else if( do_edge ){
              if( !(do_pos && val <= 0.0f) ) ear[ii] = 1 ; /* not faded or vedit-ed */
            }
