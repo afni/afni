@@ -74,6 +74,7 @@ ENTRY("AFNI_thrtop_CB") ;
 
      MCW_invert_widget(w) ;
      im3d->vinfo->thr_use_alpha = !im3d->vinfo->thr_use_alpha ;
+     PBAR_force_bigexpose(im3d->vwid->func->inten_pbar) ;
 
    } else if( w == im3d->vwid->func->thrtop_boxed_pb ){
 
@@ -358,6 +359,7 @@ ENTRY("AFNI_func_thrsign_CB") ;
    EXRETURN ;
 }
 
+#if 0 /*** old alpha stuff, now replaced by the 'A' button ***/
 /*-----------------------------------------------------------------------*/
 /*! 08 Dec 2014 */
 
@@ -405,6 +407,7 @@ ENTRY("AFNI_func_floor_CB") ;
    AFNI_set_window_titles( im3d ) ;
    EXRETURN ;
 }
+#endif
 
 /*-----------------------------------------------------------------------*/
 /*! Set the threshold and slider.  [05 Mar 2007]
