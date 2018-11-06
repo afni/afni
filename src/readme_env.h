@@ -163,6 +163,16 @@ static char *readme_env[] = {
    "picking out these messages from other text on the screen.  To turn\n" ,
    "this feature off, set this environment variable to 'NO'.\n" ,
    "\n" ,
+   "-----------------------\n" ,
+   "Variable: AFNI_FONTSIZE   [06 Nov 2018]\n" ,
+   "-----------------------\n" ,
+   "This variable can be used to set the AFNI controller font sizes.\n" ,
+   "It is a convenient way to avoid using the '-XXXfontsize' option.\n" ,
+   "The values this variable can take are:\n" ,
+   "   MINUS ==> smaller than normal fonts\n" ,
+   "   PLUS  ==> larger than normal fonts\n" ,
+   "   BIG   ==> much larger than normal fonts\n" ,
+   "\n" ,
    "------------------------------------\n" ,
    "Variable: AFNI_DONT_SORT_ENVIRONMENT\n" ,
    "------------------------------------\n" ,
@@ -4337,4 +4347,4 @@ static char *readme_env[] = {
    "If set to YES, enable distance measures that are not ready for prime\n" ,
    "time in the instacorr interface.\n" ,
    NULL } ;
-#define NUM_readme_env 4336
+#define NUM_readme_env 4346
