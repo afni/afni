@@ -2009,8 +2009,7 @@ STATUS("making view->rowcol") ;
      "session 3D datasets may be viewed." ) ;
    MCW_register_hint( view->choose_sess_pb ,
                       "Switch between session directories" ) ;
-   MCW_set_widget_bg( view->choose_sess_pb , "black"   , 0 ) ;
-   MCW_set_widget_fg( view->choose_sess_pb , "#ffddaa" ) ;
+   BLACK_AND_WHITE_WIDGET( view->choose_sess_pb ) ;
 
    hstr = (horz) ? "Read" : "Read New Directory" ;
    view->read_sess_pb =
@@ -2084,8 +2083,7 @@ STATUS("making view->rowcol") ;
    ) ;                                                              \
    MCW_register_hint( view->choose_anat_pb ,                        \
                       "Switch datasets for underlay/graphs" ) ;     \
-   MCW_set_widget_bg( view->choose_anat_pb , "black" , 0 ) ;        \
-   MCW_set_widget_fg( view->choose_anat_pb , "#ffddaa" ) ;          \
+   BLACK_AND_WHITE_WIDGET(view->choose_anat_pb) ;                   \
    view_count ++ ;                                                  \
  } while(0)
 
@@ -2852,7 +2850,7 @@ STATUS("making func->rowcol") ;
       XtVaCreateManagedWidget(
          "font8" , xmPushButtonWidgetClass , func->thrtop_rowcol ,
             LABEL_ARG("A") ,
-            XmNmarginWidth  , 1 ,
+            XmNmarginWidth  , 2 ,
             XmNmarginHeight , 0 ,
             XmNspacing      , 0 ,
             XmNborderWidth  , 0 ,
@@ -2863,6 +2861,7 @@ STATUS("making func->rowcol") ;
                   AFNI_func_thrtop_CB , im3d ) ;
    MCW_register_hint( func->thrtop_alpha_pb ,
                       "Turn on/off alpha fading for below threshold voxels" ) ;
+   BLACK_AND_WHITE_WIDGET(func->thrtop_alpha_pb) ;
 
    if( AFNI_yesenv("AFNI_FUNC_ALPHA") ){
      im3d->vinfo->thr_use_alpha = 1 ;
@@ -2875,7 +2874,7 @@ STATUS("making func->rowcol") ;
       XtVaCreateManagedWidget(
          "font8" , xmPushButtonWidgetClass , func->thrtop_rowcol ,
             LABEL_ARG("B") ,
-            XmNmarginWidth  , 1 ,
+            XmNmarginWidth  , 2 ,
             XmNmarginHeight , 0 ,
             XmNspacing      , 0 ,
             XmNborderWidth  , 0 ,
@@ -2886,6 +2885,7 @@ STATUS("making func->rowcol") ;
                   AFNI_func_thrtop_CB , im3d ) ;
    MCW_register_hint( func->thrtop_boxed_pb ,
                       "Turn on/off boxes around above threshold voxel clusters" ) ;
+   BLACK_AND_WHITE_WIDGET(func->thrtop_boxed_pb) ;
 
    if( AFNI_yesenv("AFNI_FUNC_BOXED") ){
      im3d->vinfo->thr_use_boxed = 1 ;

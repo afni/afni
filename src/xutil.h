@@ -60,6 +60,10 @@ extern void MCW_set_widget_bg( Widget , char * , Pixel ) ;
 extern void MCW_set_widget_fg( Widget , char * ) ;
 extern void MCW_scale_widget_bg( Widget w , float fac , MCW_DC *dc ) ;  /* 18 Feb 2014 */
 
+#define BLACK_AND_WHITE_WIDGET(www)                          \
+ do{ MCW_set_widget_bg( (www) , "black"   , 0 ) ;            \
+     MCW_set_widget_fg( (www) , "#ffddbb" ) ;     } while(0)
+
 #undef  LABELIZE
 #define LABELIZE(w)                                   \
  do{ char *eee ;                                      \
