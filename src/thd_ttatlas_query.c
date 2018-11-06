@@ -1155,6 +1155,7 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
    int LocalHead = wami_lh();
    int dec_places = 1;
    char histart[16],hiend[16], hmarkstart[16], hmarkend[16];
+   int biggg=0 ;
 
    ENTRY("genx_Atlas_Query_to_String") ;
    if (!wami) {
@@ -1162,12 +1163,23 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
       RETURN(rbuf);
    }
 
+   { char *eee ; /* 06 Nov 2018 [RWCox] */
+                       eee = getenv("AFNI_TTATLAS_FONTSIZE") ;
+     if( eee == NULL ) eee = getenv("AFNI_FONTSIZE") ;
+     biggg = ( eee != NULL && toupper(*eee) == 'B' ) ;
+   }
+
    /* indent with HTML encoding for web output */
    if(AFNI_wami_output_mode()){
-      sprintf(histart,"      <h5>");
+      if( biggg ){
+        sprintf(hmarkstart,"     <h3><b>");
+        sprintf(histart,"      <h4>");
+      } else {
+        sprintf(hmarkstart,"     <h4><b>");
+        sprintf(histart,"      <h5>");
+      }
       sprintf(hiend,"<br>");
       /* these strings go around the html fields for focus point and atlas lines */
-      sprintf(hmarkstart,"     <h4><b>");
       sprintf(hmarkend, "</b><br>");
   }
    else{
