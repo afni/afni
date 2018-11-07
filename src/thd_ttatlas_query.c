@@ -1155,7 +1155,10 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
    int LocalHead = wami_lh();
    int dec_places = 1;
    char histart[16],hiend[16], hmarkstart[16], hmarkend[16];
-   int biggg=0 ;
+
+   int biggg=0 ;                          /* flourishes by RWCox */
+   const char *nbsp = " &nbsp; " ;
+   const char *nbspp= " &nbsp;&nbsp; " ;
 
    ENTRY("genx_Atlas_Query_to_String") ;
    if (!wami) {
@@ -1260,11 +1263,11 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
           sumsdb_link_str[0] = '\0';
           neurosynth_link_str[0] = '\0';
           if(show_sumsdb_link()){
-              sprintf(sumsdb_link_str, "<a href=\"%s\">SumsDB</a>",
+              sprintf(sumsdb_link_str, "&nbsp; <a href=\"%s\">SumsDB</a>",
                    sumsdb_coords_link(-acl[i].x, -acl[i].y, acl[i].z));
           }
           if(show_neurosynth_link())
-              sprintf(neurosynth_link_str, "<a href=\"%s\">NeuroSynth</a>",
+              sprintf(neurosynth_link_str, "&nbsp; <a href=\"%s\">NeuroSynth</a>",
                    neurosynth_coords_link(-acl[i].x, -acl[i].y, acl[i].z));
 
           sprintf(clab[i],"{MNI} %s %s", neurosynth_link_str, sumsdb_link_str);
@@ -1348,7 +1351,7 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
                   for (il=0; il<wami->zone[iq]->N_label; ++il) {
                      if((wami->zone[iq]->connpage[il]) &&
                         (strcmp(wami->zone[iq]->connpage[il],"")!=0))
-                        sprintf(connbuf, "<a href=\"%s\">connections</a>",
+                        sprintf(connbuf, "&nbsp; <a href=\"%s\">connections</a>",
                             wami->zone[iq]->connpage[il]);
                      else
                         sprintf(connbuf," ");
@@ -1369,7 +1372,7 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
                                  (strcmp(wami->zone[iq]->webpage[il],"")!=0))
                               {
                                  sprintf(lbuf,
-                                 "%s      Focus point: <a href=\"%s\">%s</a>  %s%s",
+                                 "%s      Focus point: &nbsp; <a href=\"%s\">%s</a>  %s%s",
                                     histart,
                                     wami->zone[iq]->webpage[il],
                                     Clean_Atlas_Label(wami->zone[iq]->label[il]),
@@ -1389,7 +1392,7 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
                                  (strcmp(wami->zone[iq]->webpage[il],"")!=0))
                               {
                                  sprintf(lbuf,
-                                 "%s      Within %1d mm: <a href=\"%s\">%s</a>  %s%s",
+                                 "%s * Within %1d mm: &nbsp; <a href=\"%s\">%s</a>  %s%s",
                                     histart,
                                     (int)wami->zone[iq]->radius[il],
                                     wami->zone[iq]->webpage[il],
@@ -1398,7 +1401,7 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
                                     hiend);
                               }
                               else
-                                 sprintf(lbuf, "%s   Within %1d mm: %s%s",
+                                 sprintf(lbuf, "%s * Within %1d mm: %s%s",
                                     histart,
                                     (int)wami->zone[iq]->radius[il],
                                     Clean_Atlas_Label(wami->zone[iq]->label[il]),
@@ -1412,15 +1415,15 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
                               (strcmp(wami->zone[iq]->webpage[il],"")!=0))
                            {
                               sprintf(lbuf,
-                              "%s      -AND-: <a href=\"%s\">%s</a>  %s%s",
-                                 histart,
+                              "%s%s      -AND-%s &nbsp; <a href=\"%s\">%s</a>  %s%s",
+                                 histart,nbspp,nbsp,
                                  wami->zone[iq]->webpage[il],
                                  Clean_Atlas_Label(wami->zone[iq]->label[il]),
                                  connbuf,
                                  hiend);
                            }
                            else
-                              sprintf(lbuf, "%s          -AND- %s%s", histart,
+                              sprintf(lbuf, "%s%s          -AND-%s %s%s", histart,nbspp,nbsp,
                                  Clean_Atlas_Label(wami->zone[iq]->label[il]), hiend);
                         }
 
@@ -1453,7 +1456,7 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
                if (wami->zone[iq]->level == 0) {
                   SS('w');sprintf(lbuf, "%sFocus point:%s", histart, hiend);
                } else {
-                  SS('x');sprintf(lbuf, "%sWithin %1d mm:%s",histart,
+                  SS('x');sprintf(lbuf, "%s * Within %1d mm:%s",histart,
                                  (int)wami->zone[iq]->level, hiend);
                }
                ADDTO_SARR(sar,lbuf);
