@@ -920,6 +920,7 @@ class SysInfo:
          if se[1].startswith('++ Note:'): se = se[2:]
          okay = 1
          # do not require "verified", but fail on "not installed"
+         # (to avoid failing on 'unknown timezone' warnings)
          for estr in se:
             if estr != '' and estr.find('not installed') >= 0:
                okay = 0   # any failure is terminal
