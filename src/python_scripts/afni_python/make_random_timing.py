@@ -1318,9 +1318,10 @@ g_history = """
     3.3  Oct  9, 2018:
          - fixed decay rest with non-zero min
          - block unlimited decay stim dur
+    3.4  Nov  5, 2018: make some insufficient time failures more descriptive
 """
 
-g_version = "version 3.3 October 9, 2018"
+g_version = "version 3.4 November 5, 2018"
 
 g_todo = """
    - add -show_consec_stats option?
@@ -3790,7 +3791,9 @@ class RandTiming:
                 % (self.pre_stim_rest, self.post_stim_rest, randtime))
 
        if randtime < 0:
-          print('** unsolvable random timing for rest')
+          print('** no rest for the wicked!')
+          print('   - unsolvable random timing leaves no time for rest')
+          print('   - stim time + pre/post-rest time  >  run time')
           return 1, []
 
        rv, rcounts, rtypes = self.count_all_rest_types(events)
@@ -3873,6 +3876,7 @@ class RandTiming:
        # -----------------------------------------------------------------
        # compute and distribute min_time
        tot_min = 0
+       tot_mean = 0
        rtimes = [0] * ntypes
        for rind, rc in enumerate(rtypes):
           # compute min total, store it and accumuate
@@ -3880,10 +3884,17 @@ class RandTiming:
           rtimes[rind] = mt
           tot_min += mt
 
+          # track total mean here, too, temporarily just for error messages
+          mt = rc.mean_dur * rcounts[rind]
+          tot_mean += mt
+
        remain = rtot - tot_min
        if remain < 0:
-          print('** partition rest: insufficient space for even min rest')
+          print('** partition rest: insufficient time for minimum rest')
+          print('   (avail time = %g  <  min rest = %g, mean rest = %g)' \
+                % (rtot, tot_min, tot_mean))
           return 1, []
+
        if self.verb > 3:
           print("-- part rest: tot %s = min %s + remain %s" \
                 % (rtot, tot_min, remain))
@@ -3936,6 +3947,12 @@ class RandTiming:
           if self.verb > 2:
              print("++ scaling mean up from %s to %s (by %s)" \
                    % (remain, tot_mean, 1/mean_scalar))
+
+       # possibly warn on rest reduction
+       if abs(mean_scalar-1) > 0.05 or tot_mean - remain > 10:
+          print('** warning: insufficient time for mean rest\n'
+                '            avail = %g, mean rest time = %g' \
+                % (remain, tot_mean))
 
        # possibly provide more details on scalar
        if abs(mean_scalar-1) > 0.05 or self.verb > 2:

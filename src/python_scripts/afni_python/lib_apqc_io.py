@@ -5,8 +5,12 @@
 # + [PT] working beta version
 # + now has help file, lots of options
 #
-ver = '1.21' ; date = 'Nov 1, 2018' 
+#ver = '1.21' ; date = 'Nov 1, 2018' 
 # + [PT] file help file (double backslash)
+#
+ver = '1.22' ; date = 'Nov 5, 2018' 
+# + [PT] trying to get rid of all transparency/alphas, for simple
+#   jpg format
 #
 #########################################################################
 
@@ -30,8 +34,7 @@ DEF_fontsize   = 10
 DEF_fontfamily = "monospace"
 DEF_fontstyles = [] # empty by default, so comp would go through list
 DEF_layout     = "tight"  # good for single plots; 'nospace' good for multiplot
-DEF_censor_RGB = 'red' #'green'
-DEF_censor_alpha = 0.25
+DEF_censor_RGB = [1, 0.7, 0.7] #'red' #'green'
 DEF_censor_hline_RGB = 'c'
 DEF_bkgd_color = '0.93'
 DEF_boxplot_on = False
@@ -62,7 +65,6 @@ fill_in_help_vals = {                                              \
                       'def_imhei':DEF_figsize[1],                  \
                       'def_fontsz':DEF_fontsize,                   \
                       'def_fontfam':DEF_fontfamily,                \
-                      'def_cen_alph':DEF_censor_alpha,             \
                       'def_cen_RGB':DEF_censor_RGB,                \
                       'def_col_bkdg':DEF_bkgd_color,               \
                       'def_num_col':len(DEF_color_table)           \
@@ -224,9 +226,6 @@ COMMAND OPTIONS ~1~
 -censor_RGB COL :choose the color of the censoring background; default
                 is: {def_cen_RGB}.
 
--censor_alpha A :choose the alpha opacity of the censoring
-                background; default is: {def_cen_alph}.
-
 -bkgd_color BC :change the background color outside of the plot
                 windows.  Default is the Python color: {def_col_bkdg}.
 
@@ -292,7 +291,6 @@ class figplobj:
     see_xax  = True
     color_table = []
     censor_RGB = DEF_censor_RGB
-    censor_alpha = DEF_censor_alpha
     censor_width = 0
     censor_arr = []
     censor_hline = []
@@ -309,9 +307,6 @@ class figplobj:
 
     def set_bkgd_color(self, c):
         self.bkgd_color = c
-
-    def set_censor_alpha(self, a):
-        self.censor_alpha = a
 
     def set_censor_hline(self, hh):
         self.censor_hline = hh
@@ -488,7 +483,6 @@ class apqc_1dplot_opts:
     ncensor      = 0
     censor_width = 0
     censor_RGB   = DEF_censor_RGB
-    censor_alpha = DEF_censor_alpha
     censor_hline = []
 
     # derived vals
@@ -564,9 +558,6 @@ class apqc_1dplot_opts:
                      "must be either 0, 1, or match the "
                      "number of infiles {}".format(nhline, self.ndsets))
   
-    def set_censor_alpha(self, a):
-        self.censor_alpha = a
-
     def set_censor_arr(self):
         self.censor_width = self.all_x[1] - self.all_x[0]
 
@@ -998,12 +989,6 @@ def parse_1dplot_args(argv):
                     break
             if not(count):
                 ARG_missing_arg(argv[i])
-
-        elif argv[i] == "-censor_alpha":
-            if i >= Narg:
-                ARG_missing_arg(argv[i])
-            i+= 1
-            iopts.set_censor_alpha(argv[i])
 
         elif argv[i] == "-title":
             if i >= Narg:
