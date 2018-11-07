@@ -396,9 +396,12 @@ static char *tip[] = {
   "     ('pluck' sounds halfway between guitar and piano notes)\n"
   " - See README.environment for a few more details.\n"
   " - To find out if sox is on your system, type the command 'which sox'."
+ ,
+  "Want bigger fonts in AFNI, for a high resolution screen? Set environment\n"
+  "variable AFNI_FONTSIZE to BIG (preferably in your .afnirc setup file)."
 
 /*-- tips below here are for non-GUI programs --*/
-
+ ,
    "Questions about AFNI? Problems with a program? Try our Message Board at\n"
    "  https://afni.nimh.nih.gov/afni/community/board/\n"
    "Please be specific and focused, as generic questions without\n"
