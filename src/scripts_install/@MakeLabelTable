@@ -8,6 +8,8 @@ set log = /tmp/${RNS}.MLT.log
 set COG = ""
 set SKIPNOVOX = ""
 set lncol = ""
+set iL = 2
+set iV = 1
 
 if ("$1" == "") then
    goto HELP
@@ -925,60 +927,60 @@ PARSE:
 # parse the labels here
 #   add longname parsing
 PARSE_LABEL_FILE:
-
-    # get value indices from label file
-    set llistmin = (`awk -F "$delim" '{print $'$iV'}' $flab`)
-
-    # get labels from label file
-    awk -F "$delim" '{print $'$iL'}' $flab | \
-             sed 's/^ *//g' | sed 's/ *$//g' | \
-             sed '/^ *$/d' > TMPLIST_${RNS}_
-    set N_llist = `\wc -l TMPLIST_${RNS}_` ; set N_llist = $N_llist[1]
-    set llistmax = ($llistmin)
-
-    # get long names from label file
-    if($lncol) then
-#old way        awk -F "$delim" '{print $'$lncol'}' $flab | \
-#          sed 's/^ *//g' | sed 's/ *$//g' | \
-#          sed '/^ *$/d' > TMPLIST_${RNS}_ln_
-# new way gets all columns after longname column to handle extra spaces
-       awk -v N=$lncol \
-          '{sep=""; for (i=N; i<=NF; i++) {printf("%s%s",sep,$i); sep=OFS}; printf("\n")}' $flab \
-          > TMPLIST_${RNS}_ln_ 
-        set N_lnlist = `\wc -l TMPLIST_${RNS}_ln_` ; set N_lnlist = $N_lnlist[1]
-    endif
-
-    set llistmax = ($llistmin)
-    if ($N_llist < 1 || $#llistmin < 1) then
-       set jj = '$'
-       echo "Error:"
-       echo "Failed to parse label or key columns in $flab"
-       echo "Make sure column index and delimiters are correct"
-       echo ""
-       echo "When -lab_file, and -lab_file_delim are properly set,"
-       echo "this command should give you all the keys:"
-       echo "   awk -F '$delim' '{print $jj$iL}' $flab"
-       echo "and this command should give you all the labels:"
-       echo "   awk -F '$delim' '{print $jj$iV}' $flab"
-       echo ""
-       goto BEND
-    endif
-    if ($#llistmin != $N_llist) then
-       echo "Error:"
-       echo "Have $N_llist labels, but $#llistmin keys"
-       echo ""
-       goto BEND
-    endif
-    #More test for goodness
-    1dcat "1D:$llistmax" >& /dev/null
-    if ( $status ) then
-       echo "Failed to parse $flab columns make sure column"
-       echo "selectors and delimiters are OK."
-echo "Got '`sed -n $1p TMPLIST_${RNS}_`' for 1st label and '$llistmax[1]' for 1st key"
-       echo ""
-       goto BEND
-    endif
-
+    if ($flab) then
+	    # get value indices from label file
+	    set llistmin = (`awk -F "$delim" '{print $'$iV'}' $flab`)
+	
+	    # get labels from label file
+	    awk -F "$delim" '{print $'$iL'}' $flab | \
+	             sed 's/^ *//g' | sed 's/ *$//g' | \
+	             sed '/^ *$/d' > TMPLIST_${RNS}_
+	    set N_llist = `\wc -l TMPLIST_${RNS}_` ; set N_llist = $N_llist[1]
+	    set llistmax = ($llistmin)
+	
+	    # get long names from label file
+	    if($lncol) then
+	#old way        awk -F "$delim" '{print $'$lncol'}' $flab | \
+	#          sed 's/^ *//g' | sed 's/ *$//g' | \
+	#          sed '/^ *$/d' > TMPLIST_${RNS}_ln_
+	# new way gets all columns after longname column to handle extra spaces
+	       awk -v N=$lncol \
+	          '{sep=""; for (i=N; i<=NF; i++) {printf("%s%s",sep,$i); sep=OFS}; printf("\n")}' $flab \
+	          > TMPLIST_${RNS}_ln_ 
+	        set N_lnlist = `\wc -l TMPLIST_${RNS}_ln_` ; set N_lnlist = $N_lnlist[1]
+	    endif
+	
+	    set llistmax = ($llistmin)
+	    if ($N_llist < 1 || $#llistmin < 1) then
+	       set jj = '$'
+	       echo "Error:"
+	       echo "Failed to parse label or key columns in $flab"
+	       echo "Make sure column index and delimiters are correct"
+	       echo ""
+	       echo "When -lab_file, and -lab_file_delim are properly set,"
+	       echo "this command should give you all the keys:"
+	       echo "   awk -F '$delim' '{print $jj$iL}' $flab"
+	       echo "and this command should give you all the labels:"
+	       echo "   awk -F '$delim' '{print $jj$iV}' $flab"
+	       echo ""
+	       goto BEND
+	    endif
+	    if ($#llistmin != $N_llist) then
+	       echo "Error:"
+	       echo "Have $N_llist labels, but $#llistmin keys"
+	       echo ""
+	       goto BEND
+	    endif
+	    #More test for goodness
+	    1dcat "1D:$llistmax" >& /dev/null
+	    if ( $status ) then
+	       echo "Failed to parse $flab columns make sure column"
+	       echo "selectors and delimiters are OK."
+	echo "Got '`sed -n $1p TMPLIST_${RNS}_`' for 1st label and '$llistmax[1]' for 1st key"
+	       echo ""
+	       goto BEND
+	    endif
+   endif
    
    if (0) then
       echo "Have:"
