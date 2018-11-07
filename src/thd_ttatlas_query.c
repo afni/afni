@@ -1172,8 +1172,8 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
    /* indent with HTML encoding for web output */
    if(AFNI_wami_output_mode()){
       if( biggg ){
-        sprintf(hmarkstart,"     <h3><b>");
-        sprintf(histart,"      <h4>");
+        sprintf(hmarkstart,"     <h2><b>");
+        sprintf(histart,"      <h3>");
       } else {
         sprintf(hmarkstart,"     <h4><b>");
         sprintf(histart,"      <h5>");
@@ -1563,18 +1563,19 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
       }
    } else {
       /*- HTML -*/
+      char *hhh = biggg ? "h1" : "h3" ;
       rbuf =  THD_zzprintf(rbuf,"<head>\n"
-               "<h3><center><title>AFNI whereami</title></center>\n"
+               "<center><title><%s>AFNI whereami</%s></title></center>\n"
                "</head>\n"
                "<body>\n"
-               "<hr><p>\n"
+               "<hr><p>\n" , hhh,hhh
                );
 #if 0
                "<a name=\"top\"></a>\n"
-               "<center><h3>whereami report\n"
-               " </h3></center>\n"
+               "<center><%s>whereami report\n"
+               " </%s></center>\n"
                "<hr><p>\n"
-               "\n");
+               "\n"       , hhh,hhh );
 #endif
 
       /* render each line of the string array,sar, in HTML */
