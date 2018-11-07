@@ -2351,6 +2351,7 @@ int main( int argc , char *argv[] )
    PUTENV("AFNI_GRAPH_FADE","YES") ;          /* Apr 2013 */
    PUTENV("AFNI_MPEG_DATASETS","NO") ;        /* Feb 2015 */
    PUTENV("AFNI_FLASH_VIEWSWITCH","NO") ;  /* 14 Apr 2016 */
+   PUTENV("AFNI_DATASET_BROWSE","YES") ;   /* 07 Nov 2018 */
 #if 0
    PUTENV("AFNI_PBAR_FULLRANGE","YES") ;   /* 03 Jun 2014 */
 #endif
