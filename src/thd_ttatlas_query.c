@@ -1156,9 +1156,9 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
    int dec_places = 1;
    char histart[16],hiend[16], hmarkstart[16], hmarkend[16];
 
-   int biggg=0 ;                          /* flourishes by RWCox */
-   const char *nbsp = " &nbsp; " ;
-   const char *nbspp= " &nbsp;&nbsp; " ;
+   int biggg=0 ;                          /* HTML flourishes by RWCox */
+   const char *nbsp  = " &nbsp; " ;
+   const char *nbspp = " &nbsp;&nbsp; " ;
 
    ENTRY("genx_Atlas_Query_to_String") ;
    if (!wami) {
@@ -1263,12 +1263,12 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
           sumsdb_link_str[0] = '\0';
           neurosynth_link_str[0] = '\0';
           if(show_sumsdb_link()){
-              sprintf(sumsdb_link_str, "&nbsp; <a href=\"%s\">SumsDB</a>",
-                   sumsdb_coords_link(-acl[i].x, -acl[i].y, acl[i].z));
+              sprintf(sumsdb_link_str, "%s <a href=\"%s\">SumsDB</a>",
+                   nbsp,sumsdb_coords_link(-acl[i].x, -acl[i].y, acl[i].z));
           }
           if(show_neurosynth_link())
-              sprintf(neurosynth_link_str, "&nbsp; <a href=\"%s\">NeuroSynth</a>",
-                   neurosynth_coords_link(-acl[i].x, -acl[i].y, acl[i].z));
+              sprintf(neurosynth_link_str, "%s <a href=\"%s\">NeuroSynth</a>",
+                   nbsp,neurosynth_coords_link(-acl[i].x, -acl[i].y, acl[i].z));
 
           sprintf(clab[i],"{MNI} %s %s", neurosynth_link_str, sumsdb_link_str);
       }
@@ -1289,7 +1289,7 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
       case CLASSIC_WAMI_ZONE_SORT:
             SS('m');
             if(AFNI_wami_output_mode()){
-               sprintf(lbuf, "%s<b>Focus point (LPI)=%c</b>%s", hmarkstart,
+               sprintf(lbuf, "%s<b>Focus point (LPI) = %c</b>%s", hmarkstart,
                   lsep,hmarkend);
             }
             else
@@ -1351,8 +1351,8 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
                   for (il=0; il<wami->zone[iq]->N_label; ++il) {
                      if((wami->zone[iq]->connpage[il]) &&
                         (strcmp(wami->zone[iq]->connpage[il],"")!=0))
-                        sprintf(connbuf, "&nbsp; <a href=\"%s\">connections</a>",
-                            wami->zone[iq]->connpage[il]);
+                        sprintf(connbuf, "%s <a href=\"%s\">connections</a>",
+                            nbsp,wami->zone[iq]->connpage[il]);
                      else
                         sprintf(connbuf," ");
 
@@ -1372,8 +1372,8 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
                                  (strcmp(wami->zone[iq]->webpage[il],"")!=0))
                               {
                                  sprintf(lbuf,
-                                 "%s      Focus point: &nbsp; <a href=\"%s\">%s</a>  %s%s",
-                                    histart,
+                                 "%s      Focus point: %s <a href=\"%s\">%s</a>  %s%s",
+                                    histart,nbsp,
                                     wami->zone[iq]->webpage[il],
                                     Clean_Atlas_Label(wami->zone[iq]->label[il]),
                                     connbuf,
@@ -1381,8 +1381,8 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
                               }
                               else
                                  sprintf(lbuf,
-                                "%s   Focus point: %s%s",
-                                    histart,
+                                "%s   Focus point: %s%s%s",
+                                    histart,nbsp,
                                     Clean_Atlas_Label(wami->zone[iq]->label[il]),
                                     hiend);
                            } else {
@@ -1392,18 +1392,18 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
                                  (strcmp(wami->zone[iq]->webpage[il],"")!=0))
                               {
                                  sprintf(lbuf,
-                                 "%s * Within %1d mm: &nbsp; <a href=\"%s\">%s</a>  %s%s",
+                                 "%s * Within %1d mm: %s <a href=\"%s\">%s</a>  %s%s",
                                     histart,
-                                    (int)wami->zone[iq]->radius[il],
+                                    (int)wami->zone[iq]->radius[il], nbsp,
                                     wami->zone[iq]->webpage[il],
                                     Clean_Atlas_Label(wami->zone[iq]->label[il]),
                                     connbuf,
                                     hiend);
                               }
                               else
-                                 sprintf(lbuf, "%s * Within %1d mm: %s%s",
+                                 sprintf(lbuf, "%s * Within %1d mm: %s%s%s",
                                     histart,
-                                    (int)wami->zone[iq]->radius[il],
+                                    (int)wami->zone[iq]->radius[il], nbsp,
                                     Clean_Atlas_Label(wami->zone[iq]->label[il]),
                                     hiend);
                            }
@@ -1415,8 +1415,8 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
                               (strcmp(wami->zone[iq]->webpage[il],"")!=0))
                            {
                               sprintf(lbuf,
-                              "%s%s      -AND-%s &nbsp; <a href=\"%s\">%s</a>  %s%s",
-                                 histart,nbspp,nbsp,
+                              "%s%s      -AND-%s <a href=\"%s\">%s</a>  %s%s",
+                                 histart,nbspp,
                                  wami->zone[iq]->webpage[il],
                                  Clean_Atlas_Label(wami->zone[iq]->label[il]),
                                  connbuf,
@@ -1456,8 +1456,8 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
                if (wami->zone[iq]->level == 0) {
                   SS('w');sprintf(lbuf, "%sFocus point:%s", histart, hiend);
                } else {
-                  SS('x');sprintf(lbuf, "%s * Within %1d mm:%s",histart,
-                                 (int)wami->zone[iq]->level, hiend);
+                  SS('x');sprintf(lbuf, "%s * Within %1d mm:%s%s",histart,
+                                 (int)wami->zone[iq]->level,nbsp, hiend);
                }
                ADDTO_SARR(sar,lbuf);
                for (il=0; il<wami->zone[iq]->N_label; ++il) { /* il */
