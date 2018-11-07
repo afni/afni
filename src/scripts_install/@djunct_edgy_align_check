@@ -17,9 +17,12 @@
 #set version   = "0.4";  set rev_dat   = "Oct 18, 2018"
 #   + optionify
 #
-set version   = "0.5";  set rev_dat   = "Oct 21, 2018"
+#set version   = "0.5";  set rev_dat   = "Oct 21, 2018"
 #   + single outline form only at the moment (non-alpha-line one)
 #   + new opt: -no_clean
+#
+set version   = "0.6";  set rev_dat   = "Nov 5, 2018"
+#   + keep up with new alpha/boxed parameters for driving afni
 #
 # ----------------------------------------------------------------
 
@@ -222,7 +225,8 @@ if ( 0 ) then
     -func_range_perc_nz 33                  \
     -cbar "Reds_and_Blues_Inv"              \
     -set_subbricks 0 0 0                    \
-    -alpha_par Linear                       \
+    -olay_alpha Yes                         \
+    -olay_boxed Yes                         \
     -thr_olay $ethr                         \
     -opacity 9                              \
     -prefix   "$odir/${opref}"              \
@@ -242,7 +246,8 @@ endif
     -func_range_perc_nz 33                  \
     -cbar "Reds_and_Blues_Inv"              \
     -set_subbricks 0 0 0                    \
-    -alpha_par Off                          \
+    -olay_alpha No                          \
+    -olay_boxed No                          \
     -thr_olay $ethr                         \
     -opacity 9                              \
     -prefix   "$odir/${opref}"              \

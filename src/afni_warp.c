@@ -20,6 +20,8 @@ void AFNI_set_ignore_vedit( int ii ){ ignore_vedit = ii; return; }
 /* return pointer to the 3D image that would be displayed for the
    ival-th sub-brick of the dataset -- includes the possibility for
    vedit (on-the-fly volume editing; currently == clusterize-ation).
+     ** This function is used in afni.c to find the min/max **
+     ** of the OLay image at voxels that survived threshold **
 *//*----------------------------------------------------------------------*/
 
 MRI_IMAGE * AFNI_dataset_displayim( THD_3dim_dataset *dset , int ival )
@@ -49,6 +51,7 @@ MRI_IMAGE * AFNI_dataset_displayim( THD_3dim_dataset *dset , int ival )
    } else {
      im = DSET_BRICK(dset,ival) ;
      if( mri_data_pointer(im) == NULL ) DSET_load(dset) ;
+     if( mri_data_pointer(im) == NULL ) return NULL ;
    }
 
    return im ;
@@ -989,6 +992,8 @@ STATUS("scaling slice to floats") ;
    A version of FD_brick_to_mri that allows on-the-fly warping.
    25 Jul 2001 -- moved the flipping stuff to new function
    AFNI_slice_flip() -- RWCox
+     ** This function is how AFNI gets a slice for **
+     ** display, resampled to the underlay grid.   **
 ---------------------------------------------------------------*/
 
 MRI_IMAGE * FD_warp_to_mri( int kslice , int ival , FD_brick * br )
