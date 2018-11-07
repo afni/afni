@@ -66,6 +66,26 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 6, Nov , 2018 , PT , "@chauffeur_afni" , MINOR , TYPE_BUG_FIX,
+   "Fixed delta-slice definition for 4D mode of imaging (occasional probs).",
+   "Should have correct gapord values across all views now.\n"
+},
+
+{ 5, Nov , 2018 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
+   "New opt: '-olay_alpha' and '-olay_boxed' for new alpha/boxed driving.",
+   "Keepin' up with changes to afni driving, via RWC work.\n"
+},
+
+{ 5, Nov , 2018 , PT , "@djunct_edgy_align_check" , MINOR , TYPE_GENERAL,
+   "Adjust to keep up with new afni alpha/boxed behavior.",
+   "Update internal calls to @chauffeur_afni, which needed new opts for this.\n"
+},
+
+{ 5, Nov , 2018 , PT , "3dAllineate" , MICRO , TYPE_GENERAL,
+   "Help file update: move *the* useful cost funcs lpa and lpc into main part.",
+   "These are no longer listed as experimental!\n"
+},
+
 { 1, Nov , 2018 , PT , "1dplotpy" , MAJOR , TYPE_NEW_PROG,
    "New plotting program for 1D files.",
    "Copies much of the fun 1dplot capability to some pythonic realm.\n"
@@ -75,6 +95,7 @@ afni_history_struct ptaylor_history[] = {
    "New opt: '-pbar_saveim PBS' and '-pbar_dim PBD', to output color pbar.",
    "Just add in new AFNI driving functionality from RWC, to save colorbar.\n"
 },
+
 { 21, Oct , 2018 , PT , "apqc_make_html.py" , MINOR , TYPE_NEW_PROG,
    "Helper program for afni_proc.py.",
    "Run @ss_review_html, build QC dir with html file for ss review.\n"

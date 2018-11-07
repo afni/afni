@@ -142,6 +142,23 @@ char **bysub  = NULL ;
    (And would require sysadmin privileges to install.)
 -------------------------------------------------------------------------*/
 
+/*----- things to change the default font sizes -----*/
+
+static void AFNI_set_4fonts(char *AA,char *BB, char *CC, char *DD) ;
+
+#define XXX_PLUS_FONTS \
+   AFNI_set_4fonts("10x20","9x15","8x13","7x13")
+
+#define XXX_MINUS_FONTS \
+   AFNI_set_4fonts("8x13bold","7x13","6x10","5x8")
+
+#define XXX_BIG_FONTS                                                   \
+   AFNI_set_4fonts(                                                     \
+     "-adobe-courier-bold-r-normal--34-240-100-100-m-200-iso8859-1" ,   \
+     "-adobe-courier-bold-r-normal--24-240-75-75-m-150-iso8859-1"   ,   \
+     "-adobe-courier-bold-r-normal--20-140-100-100-m-110-iso8859-1" ,   \
+     "-adobe-courier-bold-r-normal--17-120-100-100-m-100-iso8859-1"  )
+
 static char *FALLback[] =
   {   "AFNI*fontList:              9x15bold=charset1"    , /* normal font */
       "AFNI*pbar*fontList:         6x10=charset1"        , /* next to pbar */
@@ -234,6 +251,23 @@ static int equiv_FALLback( char *n1 , char *n2 ) /* check if 2 strings */
 
 /*-----------------------------------------------------------------------*/
 
+static void AFNI_set_4fonts(char *AA,char *BB, char *CC, char *DD)
+{
+   ADDTO_FALLback_pair("AFNI*fontList"        , AA) ;
+   ADDTO_FALLback_pair("AFNI*help*fontList"   , AA) ;
+   ADDTO_FALLback_pair("AFNI*bigtext*fontList", AA) ;
+   ADDTO_FALLback_pair("AFNI*cluefont"        , BB) ;
+   ADDTO_FALLback_pair("AFNI*font8*fontList"  , BB) ;
+   ADDTO_FALLback_pair("AFNI*imseq*fontList"  , CC) ;
+   ADDTO_FALLback_pair("AFNI*font7*fontList"  , CC) ;
+   ADDTO_FALLback_pair("AFNI*font6*fontList"  , DD) ;
+   ADDTO_FALLback_pair("AFNI*pbar*fontList"   , DD) ;
+
+   /*** INFO_message("AFNI_set_4fonts: %s %s %s %s",AA,BB,CC,DD) ; ***/
+}
+
+/*-----------------------------------------------------------------------*/
+
 static int XXX_set_default = 0 ; /* 08 Apr 2016 */
 
 static void process_XXX_options( int argc , char *argv[] )
@@ -307,26 +341,20 @@ static void process_XXX_options( int argc , char *argv[] )
          break ;
        }
        if( strcasecmp(argv[nopt],"plus") == 0 || strcmp(argv[nopt],"+") == 0 ){
-         ADDTO_FALLback_pair("AFNI*fontList"        , "10x20") ;
-         ADDTO_FALLback_pair("AFNI*help*fontList"   , "10x20") ;
-         ADDTO_FALLback_pair("AFNI*bigtext*fontList", "10x20") ;
-         ADDTO_FALLback_pair("AFNI*cluefont"        , "10x20") ;
-         ADDTO_FALLback_pair("AFNI*font8*fontList"  ,  "9x15") ;
-         ADDTO_FALLback_pair("AFNI*imseq*fontList"  ,  "8x13") ;
-         ADDTO_FALLback_pair("AFNI*font7*fontList"  ,  "8x13") ;
-         ADDTO_FALLback_pair("AFNI*font6*fontList"  ,  "7x13") ;
-         ADDTO_FALLback_pair("AFNI*pbar*fontList"   ,  "7x13") ;
+         AFNI_set_4fonts("10x20","9x15","8x13","7x13") ;
        } else if( strcasecmp(argv[nopt],"minus") == 0 || strcmp(argv[nopt],"-") == 0 ){
-         ADDTO_FALLback_pair("AFNI*fontList"        , "8x13bold") ;
-         ADDTO_FALLback_pair("AFNI*help*fontList"   , "8x13bold") ;
-         ADDTO_FALLback_pair("AFNI*bigtext*fontList", "8x13bold") ;
-         ADDTO_FALLback_pair("AFNI*cluefont"        , "8x13bold") ;
-         ADDTO_FALLback_pair("AFNI*font8*fontList"  , "7x13") ;
-         ADDTO_FALLback_pair("AFNI*imseq*fontList"  , "6x10") ;
-         ADDTO_FALLback_pair("AFNI*font7*fontList"  , "6x10") ;
-         ADDTO_FALLback_pair("AFNI*font6*fontList"  , "5x8" ) ;
-         ADDTO_FALLback_pair("AFNI*pbar*fontList"   , "5x8" ) ;
+         AFNI_set_4fonts("8x13bold","7x13","6x10","5x8") ;
+       } else if( strcasecmp(argv[nopt],"big") == 0 || strcmp(argv[nopt],"++") == 0 ){
+         AFNI_set_4fonts(
+           "-adobe-courier-bold-r-normal--34-240-100-100-m-200-iso8859-1" ,
+           "-adobe-courier-bold-r-normal--24-240-75-75-m-150-iso8859-1"   ,
+           "-adobe-courier-bold-r-normal--20-140-100-100-m-110-iso8859-1" ,
+           "-adobe-courier-bold-r-normal--17-120-100-100-m-100-iso8859-1"  ) ;
+       } else {
+         WARNING_message("Don't understand '%s' after option '%s'",
+                         argv[nopt] , argv[nopt-1] ) ;
        }
+
        nopt++ ; continue ;
      }
 
@@ -835,13 +863,14 @@ void AFNI_syntax(void)
     " -XXXfontsize plus     = set all the X11 fonts used by AFNI to be one\n"
     "   *OR*                  size larger ('plus') or to be one size smaller\n"
     " -XXXfontsize minus      ('minus').  The 'plus' version I find useful for\n"
-    "                         a screen resolution of about 100 dots per inch\n"
-    "                         (39 dots per cm) -- you can find what the system\n"
+    "   *OR*                  a screen resolution of about 100 dots per inch\n"
+    " -XXXfontsize big        (39 dots per cm) -- you can find what the system\n"
     "                         thinks your screen resolution is by the command\n"
     "                           xdpyinfo | grep -i resolution\n"
     "                         ++ Applying 'plus' twice does NOT make the fonts\n"
     "                            bigger twice -- 'plus' just set each font to\n"
     "                            be one step bigger than the default sizes.\n"
+    "                         ++ Using 'big' will use large Adobe Courier fonts.\n"
     "                         ++ Alternatively, you can control each of the 4 fonts\n"
     "                            that AFNI uses, via the 4 following options ...\n"
     "\n"
@@ -2164,6 +2193,16 @@ int main( int argc , char *argv[] )
 
    REPORT_PROGRESS("Initializing: X11");
 
+   /*--- check for font size environment control [06 Nov 2018] ---*/
+
+   { char *ep = getenv("AFNI_FONTSIZE") ;
+     if( ep != NULL ){
+            if( strcasecmp(ep,"minus") == 0 ) XXX_MINUS_FONTS ;
+       else if( strcasecmp(ep,"plus")  == 0 ) XXX_PLUS_FONTS ;
+       else if( strcasecmp(ep,"big")   == 0 ) XXX_BIG_FONTS ;
+     }
+   }
+
    /*--- look for -XXX options before starting X11 [24 Mar 2016] ---*/
 
    process_XXX_options( argc , argv ) ;  /* will set new_FALLback */
@@ -2312,6 +2351,7 @@ int main( int argc , char *argv[] )
    PUTENV("AFNI_GRAPH_FADE","YES") ;          /* Apr 2013 */
    PUTENV("AFNI_MPEG_DATASETS","NO") ;        /* Feb 2015 */
    PUTENV("AFNI_FLASH_VIEWSWITCH","NO") ;  /* 14 Apr 2016 */
+   PUTENV("AFNI_DATASET_BROWSE","YES") ;   /* 07 Nov 2018 */
 #if 0
    PUTENV("AFNI_PBAR_FULLRANGE","YES") ;   /* 03 Jun 2014 */
 #endif
@@ -10681,7 +10721,6 @@ ENTRY("AFNI_imag_pop_CB") ;
       }
 
       /*- get TT atlas location, if any -*/
-
 
       /*- open a window to show it -*/
 

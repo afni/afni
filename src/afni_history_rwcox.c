@@ -44,6 +44,21 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 6 , NOV , 2018 , RWC , "AFNI WhereAmI" , MICRO , TYPE_ENHANCE ,
+   "Make HTML window use bigger font if requested" ,
+   "If AFNI_TTATLAS_FONTSIZE is 'BIG'; if it isn't set, then if\n"
+   "AFNI_FONTSIZE is 'BIG'. Implemented by changing which header-style tags\n"
+   "are used." } ,
+
+ { 6 , NOV , 2018 , RWC , "AFNI GUI" , MICRO , TYPE_NEW_ENV ,
+   "new environment variable AFNI_FONTSIZE" ,
+   "Can be 'MINUS' for small, 'PLUS' for bigger, and 'BIG' for\n"
+   "super-embiggened." } ,
+
+ { 5 , NOV , 2018 , RWC , "AFNI GUI" , MINOR , TYPE_ENHANCE ,
+   "Alpha and Boxed now work with Clusterize" ,
+   NULL } ,
+
  { 3 , NOV , 2018 , RWC , "AFNI GUI" , MICRO , TYPE_ENHANCE ,
    "Boxed now works with Clusterize" ,
    "Next step: Alpha :) But that's harder :(" } ,
