@@ -112,7 +112,11 @@ typedef struct {
 static char * UNDERLAY_typestr[] =
    { "bkgd:ULay" , "bkgd:OLay" , "ulay:O@Thr" } ;
 
+#if 0
 #define DEFAULT_FIM_SCALE 10000   /* change this and bad things will happen! */
+#else
+#define DEFAULT_FIM_SCALE 1       /* change this and bad things will happen! */
+#endif
 
 #define DMODE_BRICK      0
 #define DMODE_WOD        1
@@ -1623,8 +1627,8 @@ extern void process_NIML_textmessage( NI_element * ) ;            /* Apr 2013 */
 extern void ICALC_make_widgets( Three_D_View *im3d ) ;   /* 18 Sep 2009 */
 
 typedef struct {                /* windows and widgets */
-   XtPointer_array *windows ;   /* allowed to interrupt */
-   XtPointer_array *widgets ;   /* 'real-time' functions */
+   RwcPointer_array *windows ;   /* allowed to interrupt */
+   RwcPointer_array *widgets ;   /* 'real-time' functions */
 } MCW_interruptables ;
 
 #ifndef MAX_CONTROLLERS

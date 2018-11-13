@@ -18,7 +18,7 @@ ENTRY("EDIT_wod_copy") ;
    dset_out = EDIT_empty_copy( dset_in ) ;
    if( !ISVALID_3DIM_DATASET(dset_out) ) RETURN(NULL) ;
 
-   warp = myXtNew( THD_warp ) ; *warp = IDENTITY_WARP ;
+   warp = myRwcNew( THD_warp ) ; *warp = IDENTITY_WARP ;
 
    EDIT_dset_items( dset_out ,
                       ADN_prefix      , "dup" ,

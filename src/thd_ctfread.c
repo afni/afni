@@ -420,7 +420,7 @@ ENTRY("THD_open_ctfmri") ;
    /*-- for fun, add a set of tags for MEG fiducial points, if present --*/
 
    if( hh.headModel.LeftEar_Sag != hh.headModel.RightEar_Sag ){
-     THD_usertaglist *tagset = myXtNew(THD_usertaglist) ;
+     THD_usertaglist *tagset = myRwcNew(THD_usertaglist) ;
      int nas_ii,nas_jj,nas_kk=0 , lft_ii,lft_jj,lft_kk=0 , 
          rgt_ii,rgt_jj,rgt_kk=0 ;
      THD_fvec3 fv ; THD_ivec3 iv ;

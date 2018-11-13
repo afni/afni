@@ -13,6 +13,8 @@
     The pointers should be from XtMalloc, not malloc.
 *******/
 
+#include "replaceXt.h"  /* 09 Nov 2018 */
+
 /** to get mcw_malloc stuff **/
 
 #include "mcw_malloc.h"
@@ -35,7 +37,7 @@ typedef struct {
 #define ADDTO_KILL(kl,p)                                           \
  {  if( (kl).num == (kl).nalloc ){                                 \
        (kl).nalloc += KILL_INC ;                                   \
-       (kl).kill    = (char **) XtRealloc( (char *) (kl).kill ,    \
+       (kl).kill    = (char **) RwcRealloc( (char *) (kl).kill ,   \
                                   sizeof(char *) * (kl).nalloc ) ; \
     }                                                              \
     (kl).kill[(kl).num++] = (char *) p ;                           \
@@ -49,7 +51,7 @@ typedef struct {
       int qwer ;                                            \
       for( qwer=0 ; qwer < (kl).num ; qwer++ )              \
          if( cp == (kl).kill[qwer] ){                       \
-            myXtFree(cp) ; (kl).kill[qwer] = NULL ; break ; \
+            myRwcFree(cp); (kl).kill[qwer] = NULL; break;   \
          }                                                  \
    }
 
@@ -64,7 +66,7 @@ typedef struct {
          }                                     \
    }
 
-/** replace a pointer in the kill list (perhaps it was XtRealloc-ed).
+/** replace a pointer in the kill list (perhaps it was RwcRealloc-ed).
     If it doesn't exist, add it to the kill list.                     **/
 
 #define REPLACE_KILL(kl,pold,pnew)                   \
@@ -82,8 +84,8 @@ typedef struct {
 
 #define KILL_KILL(kl) {                                                    \
       int qwer ;                                                           \
-      for( qwer=0 ; qwer < (kl).num ; qwer++ ) myXtFree((kl).kill[qwer]) ; \
-      myXtFree( (kl).kill) ;                                               \
+      for( qwer=0 ; qwer < (kl).num ; qwer++ ) myRwcFree((kl).kill[qwer]); \
+      myRwcFree( (kl).kill) ;                                              \
       INIT_KILL(kl) ;                                                      \
    }
 
