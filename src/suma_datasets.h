@@ -1,6 +1,8 @@
 #ifndef SUMA_DATASETS_INCLUDED
 #define SUMA_DATASETS_INCLUDED
 
+#include "replaceXt.h"  /* 09 Nov 2018 */
+
 #include "matrix.h"
 #include "ptaylor/TrackIO.h"
 #include "suma_afni_surface.h"

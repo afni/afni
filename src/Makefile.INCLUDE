@@ -20,7 +20,7 @@ DOCS     = ../doc/ps/*.ps ../doc/README/README*                    \
            AFNI.changes.dglen
 MINDOCS  = rickr/AFNI.changes.rickr AFNI.changes.dglen
 
-IMOBJS  = display.o imseq.o bbox.o xim.o xutil.o LiteClue.o thd_xwebber.o
+IMOBJS  = display.o imseq.o bbox.o xim.o xutil.o LiteClue.o xutil_webber.o
 
 AFOBJS  = afni.o afni_func.o afni_widg.o afni_warp.o afni_fimmer.o \
             afni_slice_short.o afni_slice_float.o afni_filer.o     \
@@ -3043,8 +3043,8 @@ libXmHTML.a:
 	( cd XmHTML ; make lib 'CC=$(CC)' 'II=$(IFLAGS)' ; \
 		$(MV) lib/libXmHTML.a .. ; make clean   )
 
-thd_xwebber.o:thd_xwebber.c
-	$(CC) -c thd_xwebber.c -I./XmHTML/include $(INFLAGS)
+xutil_webber.o:xutil_webber.c
+	$(CC) -c xutil_webber.c -I./XmHTML/include $(INFLAGS)
 
 thd_selenium.o: thd_selenium.c
 	$(CC) -c thd_selenium.c -O1 $(IPYTHON) $(INFLAGS)

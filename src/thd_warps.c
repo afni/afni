@@ -24,7 +24,7 @@ THD_warp * AFNI_make_voxwarp( THD_warp * inwarp ,
    THD_linear_mapping * map ;
    THD_dataxes * new_daxes ;
 
-   newwarp       = myXtNew( THD_warp ) ;
+   newwarp       = myRwcNew( THD_warp ) ;
    newwarp->type = inwarp->type ;
    new_daxes     = CURRENT_DAXES(new_dset) ;
 
@@ -50,7 +50,7 @@ THD_warp * AFNI_make_voxwarp( THD_warp * inwarp ,
 
          newwarp->rig_bod.warp = *map ;
 
-         myXtFree( map ) ;
+         myRwcFree( map ) ;
       }
       break ;
 
@@ -68,7 +68,7 @@ THD_warp * AFNI_make_voxwarp( THD_warp * inwarp ,
 
             newwarp->tal_12.warp[iw] = *map ;
 
-            myXtFree( map ) ;
+            myRwcFree( map ) ;
          }
       }
       break ;
@@ -167,7 +167,7 @@ THD_linear_mapping * AFNI_make_voxmap( THD_linear_mapping * inmap ,
 
    /* make the output map */
 
-   newmap = myXtNew( THD_linear_mapping ) ;
+   newmap = myRwcNew( THD_linear_mapping ) ;
 
    newmap->type = MAPPING_LINEAR_TYPE ;
    newmap->mfor = mt ;
@@ -210,7 +210,7 @@ void AFNI_concatenate_warp( THD_warp * warp_in , THD_warp * warp_prior )
                       &(warp_in->rig_bod.warp) , prior_map ) ;
 
          warp_in->rig_bod.warp = *new_map ;  /* write over input warp */
-         myXtFree( new_map ) ;
+         myRwcFree( new_map ) ;
       }
       break ;
 
@@ -225,7 +225,7 @@ void AFNI_concatenate_warp( THD_warp * warp_in , THD_warp * warp_prior )
                          &(warp_in->tal_12.warp[iw]) , prior_map ) ;
 
             warp_in->tal_12.warp[iw] = *new_map ;  /* write over input warp */
-            myXtFree( new_map ) ;
+            myRwcFree( new_map ) ;
          }
       }
       break ;
@@ -237,7 +237,7 @@ void AFNI_concatenate_warp( THD_warp * warp_in , THD_warp * warp_prior )
 
       case WARP_AFFINE_TYPE + 100*WARP_TALAIRACH_12_TYPE:{
          int iw ;
-         THD_talairach_12_warp * new_warp = myXtNew( THD_talairach_12_warp ) ;
+         THD_talairach_12_warp * new_warp = myRwcNew( THD_talairach_12_warp ) ;
 
          new_warp->type = WARP_TALAIRACH_12_TYPE ;
          for( iw=0 ; iw < 12 ; iw++ ){
@@ -245,11 +245,11 @@ void AFNI_concatenate_warp( THD_warp * warp_in , THD_warp * warp_prior )
             new_map   = AFNI_concatenate_lmap(
                           &(warp_in->rig_bod.warp) , prior_map ) ;
             new_warp->warp[iw] = *new_map ;
-            myXtFree( new_map ) ;
+            myRwcFree( new_map ) ;
          }
 
          warp_in->tal_12 = *new_warp ;  /* write over input warp */
-         myXtFree( new_warp ) ;
+         myRwcFree( new_warp ) ;
       }
       break ;
 
@@ -270,7 +270,7 @@ THD_linear_mapping * AFNI_concatenate_lmap( THD_linear_mapping * map_2 ,
 
    /* make a new linear mapping */
 
-   map_out = myXtNew(THD_linear_mapping) ;
+   map_out = myRwcNew(THD_linear_mapping) ;
    map_out->type = MAPPING_LINEAR_TYPE ;
 
    /* matrix */
@@ -308,7 +308,7 @@ THD_warp * AFNI_make_affwarp_12( float a11, float a12, float a13,  float s1 ,
    THD_linear_mapping map ;
    float dd , nn ;
 
-   warp       = myXtNew( THD_warp ) ;
+   warp       = myRwcNew( THD_warp ) ;
    warp->type = WARP_AFFINE_TYPE ;
 
    ZZME(map) ;

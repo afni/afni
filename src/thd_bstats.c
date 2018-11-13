@@ -34,17 +34,17 @@ void THD_load_statistics( THD_3dim_dataset *dset )
      if( ! ISVALID_STATISTIC(dset->warp_parent->stats) ) return ; /* nothing */
 
      if( dset->stats == NULL ){                     /* create if not present */
-       dset->stats = myXtNew( THD_statistics ) ;
+       dset->stats = myRwcNew( THD_statistics ) ;
        ADDTO_KILL( dset->kl , dset->stats ) ;
        dset->stats->type   = STATISTICS_TYPE ;
-       dset->stats->parent = (XtPointer) dset ;
+       dset->stats->parent = (RwcPointer) dset ;
        dset->stats->bstat  = NULL ;
      }
 
      bsold               = dset->stats->bstat ;
      dset->stats->nbstat = dset->dblk->nvals ;
      dset->stats->bstat  = (THD_brick_stats *)
-                            XtRealloc( (char *) bsold ,
+                            RwcRealloc( (char *) bsold ,
                                 sizeof(THD_brick_stats) * dset->dblk->nvals ) ;
      if( bsold != dset->stats->bstat )
         REPLACE_KILL( dset->kl , bsold , dset->stats->bstat ) ;
@@ -64,17 +64,17 @@ void THD_load_statistics( THD_3dim_dataset *dset )
    /*-- if here, have good data in this dataset --*/
 
    if( dset->stats == NULL ){                  /* create if not present */
-     dset->stats = myXtNew( THD_statistics ) ;
+     dset->stats = myRwcNew( THD_statistics ) ;
      ADDTO_KILL( dset->kl , dset->stats ) ;
      dset->stats->type   = STATISTICS_TYPE ;
-     dset->stats->parent = (XtPointer) dset ;
+     dset->stats->parent = (RwcPointer) dset ;
      dset->stats->bstat  = NULL ;
    }
 
    bsold               = dset->stats->bstat ;
    dset->stats->nbstat = dset->dblk->nvals ;
    dset->stats->bstat  = (THD_brick_stats *)
-                          XtRealloc( (char *) bsold ,
+                          RwcRealloc( (char *) bsold ,
                               sizeof(THD_brick_stats) * dset->dblk->nvals ) ;
    if( bsold != dset->stats->bstat )
      REPLACE_KILL( dset->kl , bsold , dset->stats->bstat ) ;
@@ -225,10 +225,10 @@ void THD_update_statistics( THD_3dim_dataset *dset )
    /*-- if here, have good data in this dataset --*/
 
    if( dset->stats == NULL ){                  /* create if not present */
-     dset->stats = myXtNew( THD_statistics ) ;
+     dset->stats = myRwcNew( THD_statistics ) ;
      ADDTO_KILL( dset->kl , dset->stats ) ;
      dset->stats->type   = STATISTICS_TYPE ;
-     dset->stats->parent = (XtPointer) dset ;
+     dset->stats->parent = (RwcPointer) dset ;
      dset->stats->bstat  = NULL ;
      dset->stats->nbstat = 0 ;
      nbsold              = 0 ;
@@ -240,7 +240,7 @@ void THD_update_statistics( THD_3dim_dataset *dset )
      bsold               = dset->stats->bstat ;
      dset->stats->nbstat = dset->dblk->nvals ;
      dset->stats->bstat  = (THD_brick_stats *)
-                           XtRealloc( (char *) bsold ,
+                           RwcRealloc( (char *) bsold ,
                                 sizeof(THD_brick_stats) * dset->dblk->nvals ) ;
      if( bsold != dset->stats->bstat )
        REPLACE_KILL( dset->kl , bsold , dset->stats->bstat ) ;
@@ -284,10 +284,10 @@ void THD_update_one_bstat( THD_3dim_dataset *dset , int iv )
    /*-- if here, have good data in this dataset --*/
 
    if( dset->stats == NULL ){                  /* create if not present */
-     dset->stats = myXtNew( THD_statistics ) ;
+     dset->stats = myRwcNew( THD_statistics ) ;
      ADDTO_KILL( dset->kl , dset->stats ) ;
      dset->stats->type   = STATISTICS_TYPE ;
-     dset->stats->parent = (XtPointer) dset ;
+     dset->stats->parent = (RwcPointer) dset ;
      dset->stats->bstat  = NULL ;
      dset->stats->nbstat = 0 ;
      nbsold              = 0 ;
@@ -299,7 +299,7 @@ void THD_update_one_bstat( THD_3dim_dataset *dset , int iv )
      bsold               = dset->stats->bstat ;
      dset->stats->nbstat = dset->dblk->nvals ;
      dset->stats->bstat  = (THD_brick_stats *)
-                           XtRealloc( (char *) bsold ,
+                           RwcRealloc( (char *) bsold ,
                                 sizeof(THD_brick_stats) * dset->dblk->nvals ) ;
      if( bsold != dset->stats->bstat )
        REPLACE_KILL( dset->kl , bsold , dset->stats->bstat ) ;

@@ -20,21 +20,21 @@ ENTRY("THD_copy_datablock_auxdata") ;
    new_nvals = new_dblk->nvals ;
 
    if( new_dblk->brick_lab != NULL ){
-      for( ibr=0 ; ibr < new_nvals ; ibr++ ) myXtFree( new_dblk->brick_lab[ibr] ) ;
-      myXtFree( new_dblk->brick_lab ) ;
+      for( ibr=0 ; ibr < new_nvals ; ibr++ ) myRwcFree( new_dblk->brick_lab[ibr] ) ;
+      myRwcFree( new_dblk->brick_lab ) ;
    }
 
    if( new_dblk->brick_keywords != NULL ){
-      for( ibr=0 ; ibr < new_nvals ; ibr++ ) myXtFree( new_dblk->brick_keywords[ibr] ) ;
-      myXtFree( new_dblk->brick_keywords ) ;
+      for( ibr=0 ; ibr < new_nvals ; ibr++ ) myRwcFree( new_dblk->brick_keywords[ibr] ) ;
+      myRwcFree( new_dblk->brick_keywords ) ;
    }
 
    if( new_dblk->brick_statcode != NULL )
-      myXtFree( new_dblk->brick_statcode ) ;
+      myRwcFree( new_dblk->brick_statcode ) ;
 
    if( new_dblk->brick_stataux != NULL ){
-      for( ibr=0 ; ibr < new_nvals ; ibr++ ) myXtFree( new_dblk->brick_stataux[ibr] ) ;
-      myXtFree( new_dblk->brick_stataux ) ;
+      for( ibr=0 ; ibr < new_nvals ; ibr++ ) myRwcFree( new_dblk->brick_stataux[ibr] ) ;
+      myRwcFree( new_dblk->brick_stataux ) ;
    }
 
    new_dblk->brick_lab      = NULL ;
@@ -81,7 +81,7 @@ STATUS("copy statcode and stataux") ;
         old_dblk->nnodes > 0 && old_dblk->node_list ){
 STATUS("copy surface node_list") ;
       iv = old_dblk->nnodes * sizeof(int) ;
-      new_dblk->node_list = (int *)XtMalloc(iv) ;
+      new_dblk->node_list = (int *)RwcMalloc(iv) ;
       if( new_dblk->node_list ){
          new_dblk->nnodes = old_dblk->nnodes ;
          memcpy( new_dblk->node_list, old_dblk->node_list, iv ) ;
@@ -113,13 +113,13 @@ void THD_init_datablock_labels( THD_datablock *dblk )
    nvals = dblk->nvals ;
 
    if( dblk->brick_lab != NULL ){
-      for( ibr=0 ; ibr < nvals ; ibr++ ) myXtFree( dblk->brick_lab[ibr] ) ;
-      myXtFree( dblk->brick_lab ) ;
+      for( ibr=0 ; ibr < nvals ; ibr++ ) myRwcFree( dblk->brick_lab[ibr] ) ;
+      myRwcFree( dblk->brick_lab ) ;
    }
 
-   dblk->brick_lab = (char **) XtMalloc( sizeof(char *) * nvals ) ;
+   dblk->brick_lab = (char **) RwcMalloc( sizeof(char *) * nvals ) ;
    for( ibr=0 ; ibr < nvals ; ibr++ ){
-      dblk->brick_lab[ibr] = (char *) XtMalloc(sizeof(char)*8) ;
+      dblk->brick_lab[ibr] = (char *) RwcMalloc(sizeof(char)*8) ;
       sprintf( dblk->brick_lab[ibr] , "#%d" , ibr ) ;
    }
 
@@ -136,15 +136,15 @@ void THD_store_datablock_label( THD_datablock *dblk , int iv , char *str )
 
    if( dblk->brick_lab == NULL ) THD_init_datablock_labels( dblk ) ;
 
-   myXtFree( dblk->brick_lab[iv] ) ;
+   myRwcFree( dblk->brick_lab[iv] ) ;
    if( str != NULL && str[0] != '\0' ){
       sss = strdup(str) ;
       /* mod 10/27/2011 - drg */
       if( strlen(sss) >= THD_MAX_SBLABEL ) sss[THD_MAX_SBLABEL-1] = '\0' ;
-      dblk->brick_lab[iv] = XtNewString( sss ) ;
+      dblk->brick_lab[iv] = RwcNewString( sss ) ;
       free((void *)sss) ;
    } else {
-      dblk->brick_lab[iv] = (char *) XtMalloc(sizeof(char)*8) ;
+      dblk->brick_lab[iv] = (char *) RwcMalloc(sizeof(char)*8) ;
       sprintf( dblk->brick_lab[iv] , "#%d" , iv ) ;
    }
    return ;
@@ -161,13 +161,13 @@ void THD_init_datablock_keywords( THD_datablock *dblk )
    nvals = dblk->nvals ;
 
    if( dblk->brick_keywords != NULL ){
-      for( ibr=0 ; ibr < nvals ; ibr++ ) myXtFree( dblk->brick_keywords[ibr] ) ;
-      myXtFree( dblk->brick_keywords ) ;
+      for( ibr=0 ; ibr < nvals ; ibr++ ) myRwcFree( dblk->brick_keywords[ibr] ) ;
+      myRwcFree( dblk->brick_keywords ) ;
    }
 
-   dblk->brick_keywords = (char **) XtMalloc( sizeof(char *) * nvals ) ;
+   dblk->brick_keywords = (char **) RwcMalloc( sizeof(char *) * nvals ) ;
    for( ibr=0 ; ibr < nvals ; ibr++ ){
-      dblk->brick_keywords[ibr]    = (char *) XtMalloc(sizeof(char)*4) ;
+      dblk->brick_keywords[ibr]    = (char *) RwcMalloc(sizeof(char)*4) ;
       dblk->brick_keywords[ibr][0] = '\0' ;
    }
 
@@ -182,9 +182,9 @@ void THD_store_datablock_keywords( THD_datablock *dblk, int iv, char *str )
 
    if( dblk->brick_keywords == NULL ) THD_init_datablock_keywords( dblk ) ;
 
-   myXtFree( dblk->brick_keywords[iv] ) ;
+   myRwcFree( dblk->brick_keywords[iv] ) ;
    if( str != NULL && str[0] != '\0' )
-      dblk->brick_keywords[iv] = XtNewString( str ) ;
+      dblk->brick_keywords[iv] = RwcNewString( str ) ;
    return ;
 }
 
@@ -201,9 +201,9 @@ void THD_append_datablock_keywords( THD_datablock *dblk, int iv , char *str )
       THD_store_datablock_keywords( dblk , iv , str ) ;
    } else if( str[0] != '\0' ){
       int ll = strlen(dblk->brick_keywords[iv]) + strlen(str) + 6 ;
-      char *cc = (char*)XtMalloc( sizeof(char) * ll ) ;
+      char *cc = (char*)RwcMalloc( sizeof(char) * ll ) ;
       strcpy(cc,dblk->brick_keywords[iv]) ; strcat(cc," ; ") ; strcat(cc,str) ;
-      myXtFree( dblk->brick_keywords[iv] ) ;
+      myRwcFree( dblk->brick_keywords[iv] ) ;
       dblk->brick_keywords[iv] = cc ;
    }
    return ;
@@ -220,17 +220,17 @@ void THD_init_datablock_stataux( THD_datablock *dblk )
    nvals = dblk->nvals ;
 
    if( dblk->brick_statcode != NULL )
-      myXtFree( dblk->brick_statcode ) ;
+      myRwcFree( dblk->brick_statcode ) ;
 
    if( dblk->brick_stataux != NULL ){
-      for( ibr=0 ; ibr < nvals ; ibr++ ) myXtFree( dblk->brick_stataux[ibr] ) ;
-      myXtFree( dblk->brick_stataux ) ;
+      for( ibr=0 ; ibr < nvals ; ibr++ ) myRwcFree( dblk->brick_stataux[ibr] ) ;
+      myRwcFree( dblk->brick_stataux ) ;
    }
 
    /* initialize to emptinesss */
 
-   dblk->brick_statcode = (int *)    XtMalloc( sizeof(int)     * nvals ) ;
-   dblk->brick_stataux  = (float **) XtMalloc( sizeof(float *) * nvals ) ;
+   dblk->brick_statcode = (int *)    RwcMalloc( sizeof(int)     * nvals ) ;
+   dblk->brick_stataux  = (float **) RwcMalloc( sizeof(float *) * nvals ) ;
    for( ibr=0 ; ibr < nvals ; ibr++ ){
       dblk->brick_statcode[ibr] = 0 ;
       dblk->brick_stataux[ibr]  = NULL ;
@@ -260,10 +260,10 @@ void THD_store_datablock_stataux( THD_datablock *dblk ,
    kv = FUNC_need_stat_aux[scode] ;    /* how many params we need */
    if( npar > kv ) npar = kv ;         /* how many params we have */
 
-   myXtFree( dblk->brick_stataux[iv] ) ;  /* if any old stuff, toss it */
+   myRwcFree( dblk->brick_stataux[iv] ) ;  /* if any old stuff, toss it */
 
    if( kv > 0 ){
-     dblk->brick_stataux[iv] = (float *) XtMalloc( sizeof(float) * kv ) ;
+     dblk->brick_stataux[iv] = (float *) RwcMalloc( sizeof(float) * kv ) ;
      for( jv=0 ; jv < npar ; jv++ )
        dblk->brick_stataux[iv][jv] = par[jv] ; /* copy in */
      for( ; jv < kv ; jv++ )
@@ -289,9 +289,9 @@ void THD_store_dataset_keywords( THD_3dim_dataset *dset , char *str )
 {
    if( ! ISVALID_3DIM_DATASET(dset) ) return ;
 
-   myXtFree( dset->keywords ) ;
+   myRwcFree( dset->keywords ) ;
    if( str != NULL && str[0] != '\0' )
-      dset->keywords = XtNewString( str ) ;
+      dset->keywords = RwcNewString( str ) ;
    return ;
 }
 
@@ -305,9 +305,9 @@ void THD_append_dataset_keywords( THD_3dim_dataset *dset , char *str )
       THD_store_dataset_keywords( dset , str ) ;
    } else if( str[0] != '\0' ){
       int ll = strlen(dset->keywords) + strlen(str) + 6 ;
-      char *cc = (char*)XtMalloc( sizeof(char) * ll ) ;
+      char *cc = (char*)RwcMalloc( sizeof(char) * ll ) ;
       strcpy(cc,dset->keywords) ; strcat(cc," ; ") ; strcat(cc,str) ;
-      myXtFree( dset->keywords ) ;
+      myRwcFree( dset->keywords ) ;
       dset->keywords = cc ;
    }
    return ;

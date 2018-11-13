@@ -8,6 +8,8 @@
 #include <omp.h>
 #endif
 
+#include "replaceXt.h"  /* 09 Nov 2018 */
+
 #include "mcw_malloc.h"
 #include "Amalloc.h"
 /*--------------------------------------------------------------------------

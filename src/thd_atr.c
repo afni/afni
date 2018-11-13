@@ -176,7 +176,7 @@ ENTRY("THD_read_all_atr") ;
       if( blk->natr == blk->natr_alloc ){  /* make new space */
          blk->natr_alloc  += ATR_ALLINC ;
          blk->atr          = (ATR_any *)
-                             XtRealloc( (char *)blk->atr,
+                             RwcRealloc( (char *)blk->atr,
                                         sizeof(ATR_any) * blk->natr_alloc );
       }
       next_atr = &(blk->atr[blk->natr]) ;
@@ -189,9 +189,9 @@ ENTRY("THD_read_all_atr") ;
             char bbb[256] ;
 
             new_atr->type = ATR_FLOAT_TYPE ;
-            new_atr->name = XtNewString( aname ) ;
+            new_atr->name = RwcNewString( aname ) ;
             new_atr->nfl  = acount ;
-            new_atr->fl   = (float *) XtMalloc( sizeof(float) * acount ) ;
+            new_atr->fl   = (float *) RwcMalloc( sizeof(float) * acount ) ;
 
             code = 0 ;
             for( ii=0 ; ii < acount ; ii++ ){
@@ -216,9 +216,9 @@ ENTRY("THD_read_all_atr") ;
             ATR_int *new_atr = (ATR_int *) next_atr ;
 
             new_atr->type = ATR_INT_TYPE ;
-            new_atr->name = XtNewString( aname ) ;
+            new_atr->name = RwcNewString( aname ) ;
             new_atr->nin  = acount ;
-            new_atr->in   = (int *) XtMalloc( sizeof(int) * acount ) ;
+            new_atr->in   = (int *) RwcMalloc( sizeof(int) * acount ) ;
 
             code = 0 ;
             for( ii=0 ; ii < acount ; ii++ ){
@@ -235,9 +235,9 @@ ENTRY("THD_read_all_atr") ;
             ATR_string *new_atr = (ATR_string *) next_atr ;
 
             new_atr->type = ATR_STRING_TYPE ;
-            new_atr->name = XtNewString( aname ) ;
+            new_atr->name = RwcNewString( aname ) ;
             new_atr->nch  = acount ;
-            new_atr->ch   = (char *) XtMalloc( sizeof(char) * acount ) ;
+            new_atr->ch   = (char *) RwcMalloc( sizeof(char) * acount ) ;
 
             fscanf( header_file , " '" ) ;
 
@@ -552,7 +552,7 @@ ENTRY("THD_set_atr") ;
       if( ia == blk->natr_alloc ){            /* need to extend array */
          blk->natr_alloc  += ATR_ALLINC ;
          blk->atr          = (ATR_any *)
-                             XtRealloc( (char *)blk->atr,
+                             RwcRealloc( (char *)blk->atr,
                                         sizeof(ATR_any) * blk->natr_alloc );
       }
       atr = &(blk->atr[ia]) ;
@@ -568,9 +568,9 @@ ENTRY("THD_set_atr") ;
          ATR_float *new_atr = (ATR_float *) atr ;
 
          new_atr->type = ATR_FLOAT_TYPE ;
-         new_atr->name = XtNewString( aname ) ;
+         new_atr->name = RwcNewString( aname ) ;
          new_atr->nfl  = acount ;
-         new_atr->fl   = (float *) XtMalloc( sizeof(float) * acount ) ;
+         new_atr->fl   = (float *) RwcMalloc( sizeof(float) * acount ) ;
          memcpy( new_atr->fl , ar , sizeof(float)*acount ) ;
 
          ADDTO_KILL( blk->kl , new_atr->name ) ;
@@ -582,9 +582,9 @@ ENTRY("THD_set_atr") ;
          ATR_int *new_atr = (ATR_int *) atr ;
 
          new_atr->type = ATR_INT_TYPE ;
-         new_atr->name = XtNewString( aname ) ;
+         new_atr->name = RwcNewString( aname ) ;
          new_atr->nin  = acount ;
-         new_atr->in   = (int *) XtMalloc( sizeof(int) * acount ) ;
+         new_atr->in   = (int *) RwcMalloc( sizeof(int) * acount ) ;
          memcpy( new_atr->in , ar , sizeof(int)*acount ) ;
 
          ADDTO_KILL( blk->kl , new_atr->name ) ;
@@ -606,9 +606,9 @@ if(PRINT_TRACING){
          ATR_string *new_atr = (ATR_string *) atr ;
 
          new_atr->type = ATR_STRING_TYPE ;
-         new_atr->name = XtNewString( aname ) ;
+         new_atr->name = RwcNewString( aname ) ;
          new_atr->nch  = acount ;
-         new_atr->ch   = (char *) XtMalloc( sizeof(char) * acount ) ;
+         new_atr->ch   = (char *) RwcMalloc( sizeof(char) * acount ) ;
          memcpy( new_atr->ch , ar , sizeof(char)*acount ) ;
          new_atr->ch[acount-1] = '\0' ;
          /*** fprintf(stderr,"Have %d chars\n", acount);
@@ -726,11 +726,11 @@ ENTRY("THD_copy_atr") ;
 
      case ATR_FLOAT_TYPE:{
        ATR_float *aa = (ATR_float *)atr , *qq ;
-       qq = (ATR_float *)XtMalloc(sizeof(ATR_float)) ;
+       qq = (ATR_float *)RwcMalloc(sizeof(ATR_float)) ;
        qq->type = ATR_FLOAT_TYPE ;
-       qq->name = XtNewString( aa->name ) ;
+       qq->name = RwcNewString( aa->name ) ;
        qq->nfl  = aa->nfl ;
-       qq->fl   = (float *) XtMalloc( sizeof(float) * aa->nfl ) ;
+       qq->fl   = (float *) RwcMalloc( sizeof(float) * aa->nfl ) ;
        memcpy( qq->fl , aa->fl , sizeof(float) * aa->nfl ) ;
        atr_out = (ATR_any *)qq ;
      }
@@ -738,11 +738,11 @@ ENTRY("THD_copy_atr") ;
 
      case ATR_STRING_TYPE:{
        ATR_string *aa = (ATR_string *)atr , *qq ;
-       qq = (ATR_string *)XtMalloc(sizeof(ATR_string)) ;
+       qq = (ATR_string *)RwcMalloc(sizeof(ATR_string)) ;
        qq->type = ATR_STRING_TYPE ;
-       qq->name = XtNewString( aa->name ) ;
+       qq->name = RwcNewString( aa->name ) ;
        qq->nch  = aa->nch ;
-       qq->ch   = (char *) XtMalloc( sizeof(char) * aa->nch ) ;
+       qq->ch   = (char *) RwcMalloc( sizeof(char) * aa->nch ) ;
        memcpy( qq->ch , aa->ch , sizeof(char) * aa->nch ) ;
        atr_out = (ATR_any *)qq ;
      }
@@ -750,11 +750,11 @@ ENTRY("THD_copy_atr") ;
 
      case ATR_INT_TYPE:{
        ATR_int *aa = (ATR_int *)atr , *qq ;
-       qq = (ATR_int *)XtMalloc(sizeof(ATR_int)) ;
+       qq = (ATR_int *)RwcMalloc(sizeof(ATR_int)) ;
        qq->type = ATR_INT_TYPE ;
-       qq->name = XtNewString( aa->name ) ;
+       qq->name = RwcNewString( aa->name ) ;
        qq->nin  = aa->nin ;
-       qq->in   = (int *) XtMalloc( sizeof(int) * aa->nin ) ;
+       qq->in   = (int *) RwcMalloc( sizeof(int) * aa->nin ) ;
        memcpy( qq->in , aa->in , sizeof(int) * aa->nin ) ;
        atr_out = (ATR_any *)qq ;
      }

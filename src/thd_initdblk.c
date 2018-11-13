@@ -59,7 +59,7 @@ ENTRY("THD_init_one_datablock") ;
 #else
    /*-- create output datablock (the old way) --*/
 
-   dblk              = myXtNew( THD_datablock ) ;
+   dblk              = myRwcNew( THD_datablock ) ;
    dblk->type        = DATABLOCK_TYPE ;
    dblk->brick       = NULL ;  /* will be filled in below */
    dblk->brick_bytes = NULL ;  /* ditto */
@@ -91,7 +91,7 @@ ENTRY("THD_init_one_datablock") ;
 
    INIT_KILL(dblk->kl) ;
 
-   dblk->diskptr       = dkptr = myXtNew( THD_diskptr ) ;
+   dblk->diskptr       = dkptr = myRwcNew( THD_diskptr ) ;
    dkptr->type         = DISKPTR_TYPE ;
    dkptr->storage_mode = STORAGE_UNDEFINED ;
 #if 0
@@ -113,7 +113,7 @@ ENTRY("THD_init_one_datablock") ;
    ii = THD_datablock_from_atr( dblk, dirname, headname ) ;
    if( ii == 0 ){
      THD_delete_datablock( dblk ) ;
-     myXtFree(dblk) ;
+     myRwcFree(dblk) ;
      RETURN( NULL ) ;
    }
 
@@ -246,7 +246,7 @@ ENTRY("THD_datablock_from_atr") ;
 
    /*-- now set the memory allocation codes, etc. --*/
 
-   dblk->brick_fac = (float *) XtMalloc( sizeof(float) * nvals ) ;
+   dblk->brick_fac = (float *) RwcMalloc( sizeof(float) * nvals ) ;
    for( ibr=0 ; ibr < nvals ; ibr++ ) dblk->brick_fac[ibr] = 0.0 ;
 
    /* scaling factors from short type to float type, if nonzero */
@@ -346,10 +346,10 @@ ENTRY("THD_datablock_from_atr") ;
 
        ngood = ipos - ipold - 1 ;                   /* number of good chars */
        if( ngood > 0 ){
-         XtFree(dblk->brick_lab[ibr]) ;
+         RwcFree(dblk->brick_lab[ibr]) ;
          /* 27 Oct 2011 - increase to 64 */
          if( ngood > THD_MAX_SBLABEL ) ngood = THD_MAX_SBLABEL;  
-         dblk->brick_lab[ibr] = (char *) XtMalloc(sizeof(char)*(ngood+2)) ;
+         dblk->brick_lab[ibr] = (char *) RwcMalloc(sizeof(char)*(ngood+2)) ;
          memcpy( dblk->brick_lab[ibr] , atr_labs->ch+(ipold+1) , ngood ) ;
          dblk->brick_lab[ibr][ngood] = '\0' ;
 
@@ -376,8 +376,8 @@ ENTRY("THD_datablock_from_atr") ;
 
        ngood = ipos - ipold - 1 ;                   /* number of good chars */
        if( ngood > 0 ){
-         XtFree(dblk->brick_keywords[ibr]) ;
-         dblk->brick_keywords[ibr] = (char *) XtMalloc(sizeof(char)*(ngood+2)) ;
+         RwcFree(dblk->brick_keywords[ibr]) ;
+         dblk->brick_keywords[ibr] = (char *) RwcMalloc(sizeof(char)*(ngood+2)) ;
          memcpy( dblk->brick_keywords[ibr] , atr_labs->ch+(ipold+1) , ngood ) ;
          dblk->brick_keywords[ibr][ngood] = '\0' ;
        }
@@ -686,7 +686,7 @@ int THD_WarpData_From_3dWarpDrive(THD_3dim_dataset *dset, ATR_float *atr_flt)
                "I won't float your boat.\n");
       RETURN(0); 
    }
-   dset->warp = myXtNew( THD_warp ) ;
+   dset->warp = myRwcNew( THD_warp ) ;
    ADDTO_KILL( dset->kl , dset->warp ) ;
    {   
       THD_affine_warp *ww = (THD_affine_warp *) dset->warp ;
@@ -760,9 +760,9 @@ ENTRY("THD_datablock_apply_atr") ;
 
        ngood = ipos - ipold - 1 ;                 /* number of good chars */
        if( ngood > 0 ){
-         XtFree(blk->brick_lab[ibr]) ;
+         RwcFree(blk->brick_lab[ibr]) ;
          if( ngood > THD_MAX_SBLABEL ) ngood = THD_MAX_SBLABEL ;
-         blk->brick_lab[ibr] = (char *) XtMalloc(sizeof(char)*(ngood+2)) ;
+         blk->brick_lab[ibr] = (char *) RwcMalloc(sizeof(char)*(ngood+2)) ;
          memcpy( blk->brick_lab[ibr] , atr_str->ch+(ipold+1) , ngood ) ;
          blk->brick_lab[ibr][ngood] = '\0' ;
        }
@@ -775,7 +775,7 @@ ENTRY("THD_datablock_apply_atr") ;
 
    if( ATR_IS_STR(ATRNAME_KEYWORDS) ){
      STATUS("dataset keywords") ;
-     dset->keywords = XtNewString( atr_str->ch ) ;
+     dset->keywords = RwcNewString( atr_str->ch ) ;
    }
 
    /*-- keywords for sub-bricks --*/
@@ -794,8 +794,8 @@ ENTRY("THD_datablock_apply_atr") ;
 
        ngood = ipos - ipold - 1 ;                 /* number of good chars */
        if( ngood > 0 ){
-         XtFree(blk->brick_keywords[ibr]) ;
-         blk->brick_keywords[ibr] = (char *) XtMalloc(sizeof(char)*(ngood+2)) ;
+         RwcFree(blk->brick_keywords[ibr]) ;
+         blk->brick_keywords[ibr] = (char *) RwcMalloc(sizeof(char)*(ngood+2)) ;
          memcpy( blk->brick_keywords[ibr] , atr_str->ch+(ipold+1) , ngood ) ;
          blk->brick_keywords[ibr][ngood] = '\0' ;
        }
@@ -894,7 +894,7 @@ ENTRY("THD_datablock_apply_atr") ;
      STATUS("markers") ;
 
      if( dset->markers == NULL ){
-       dset->markers = myXtNew( THD_marker_set ) ;  /* new set */
+       dset->markers = myRwcNew( THD_marker_set ) ;  /* new set */
        ADDTO_KILL(dset->kl , dset->markers) ;
      }
 
@@ -965,7 +965,7 @@ ENTRY("THD_datablock_apply_atr") ;
 
      STATUS("warp") ;
 
-     dset->warp = myXtNew( THD_warp ) ;
+     dset->warp = myRwcNew( THD_warp ) ;
      ADDTO_KILL( dset->kl , dset->warp ) ;
      switch( wtype ){
        case WARP_AFFINE_TYPE:{
@@ -1033,12 +1033,12 @@ ENTRY("THD_datablock_apply_atr") ;
    if( ATR_IS_FLT(ATRNAME_BRICK_STATS) ){
      int qq ;
      STATUS("brick statistics") ;
-     dset->stats         = myXtNew( THD_statistics ) ;
+     dset->stats         = myRwcNew( THD_statistics ) ;
      dset->stats->type   = STATISTICS_TYPE ;
-     dset->stats->parent = (XtPointer) dset ;
+     dset->stats->parent = (RwcPointer) dset ;
      dset->stats->nbstat = blk->nvals ;
      dset->stats->bstat  = (THD_brick_stats *)
-                              XtMalloc( sizeof(THD_brick_stats) * blk->nvals ) ;
+                              RwcMalloc( sizeof(THD_brick_stats) * blk->nvals ) ;
      for( qq=0 ; qq < blk->nvals ; qq++ ){
        if( 2*qq+1 < atr_flt->nfl ){
            dset->stats->bstat[qq].min = atr_flt->fl[2*qq] ;
@@ -1066,7 +1066,7 @@ ENTRY("THD_datablock_apply_atr") ;
 
      if( ntag > MAX_TAG_NUM ) ntag = MAX_TAG_NUM ;
 
-     dset->tagset = myXtNew( THD_usertaglist ) ;  /* create tagset */
+     dset->tagset = myRwcNew( THD_usertaglist ) ;  /* create tagset */
      ADDTO_KILL( dset->kl , dset->tagset ) ;
 
      dset->tagset->num = ntag ;
@@ -1124,7 +1124,7 @@ ENTRY("THD_datablock_apply_atr") ;
    if( atr_int != NULL && atr_flt != NULL ){
      int isfunc , nvals ;
 
-     dset->taxis = myXtNew( THD_timeaxis ) ;
+     dset->taxis = myRwcNew( THD_timeaxis ) ;
 
      dset->taxis->type    = TIMEAXIS_TYPE ;
      dset->taxis->ntt     = atr_int->in[0] ;
@@ -1148,7 +1148,7 @@ ENTRY("THD_datablock_apply_atr") ;
          dset->taxis->dz_sl   = 0.0 ;
        } else {
          int ii ;
-         dset->taxis->toff_sl = (float *) XtMalloc(sizeof(float)*dset->taxis->nsl) ;
+         dset->taxis->toff_sl = (float *) RwcMalloc(sizeof(float)*dset->taxis->nsl) ;
          for( ii=0 ; ii < dset->taxis->nsl ; ii++ )
            dset->taxis->toff_sl[ii] = atr_flt->fl[ii] ;
        }
@@ -1225,12 +1225,12 @@ ENTRY("THD_init_datablock_brick") ;
 
    if( dblk->brick_bytes == NULL ){
 STATUS("making dblk->brick_bytes") ;
-     dblk->brick_bytes = (int64_t *) XtMalloc( sizeof(int64_t) * nvals ) ;
+     dblk->brick_bytes = (int64_t *) RwcMalloc( sizeof(int64_t) * nvals ) ;
    }
 
    if( dblk->brick_fac == NULL ){
 STATUS("making dblk->brick_fac") ;
-     dblk->brick_fac = (float *) XtMalloc( sizeof(float) * nvals ) ;
+     dblk->brick_fac = (float *) RwcMalloc( sizeof(float) * nvals ) ;
      for( ibr=0 ; ibr < nvals ; ibr++ )
        dblk->brick_fac[ibr] = (ntype < 0) ? pblk->brick_fac[ibr] : 0.0 ;
    }
