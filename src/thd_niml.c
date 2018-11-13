@@ -773,7 +773,7 @@ ENTRY("process_NSD_index_list");
 
     /* and copy the node list */
     dblk->nnodes = nel->vec_len;
-    dblk->node_list = (int *)XtMalloc(dblk->nnodes * sizeof(int));
+    dblk->node_list = (int *)RwcMalloc(dblk->nnodes * sizeof(int));
     memcpy(dblk->node_list, nel->vec[0], dblk->nnodes*sizeof(int));
     if( byte_order != mri_short_order() )
     {
@@ -1129,9 +1129,9 @@ ENTRY("THD_add_sparse_data");
     {
         mind = mlist ? mlist[ind] : ind;  /* maybe use master index */
         if (tpo==MRI_float) {
-         data = (float *)XtMalloc(len * sizeof(float));
+         data = (float *)RwcMalloc(len * sizeof(float));
         } else {
-         cdata = (complex *)XtMalloc(len * sizeof(complex));
+         cdata = (complex *)RwcMalloc(len * sizeof(complex));
         }
         if(!data && !cdata){
            fprintf(stderr,"**ASD alloc fail: %d values\n",len);
@@ -1142,7 +1142,7 @@ ENTRY("THD_add_sparse_data");
            if( swap ) nifti_swap_4bytes(len, data);
         } else if( nel->vec_typ[mind] == NI_INT ) {/* ZSS: Dec. 07. Note that*/
            int *idata=NULL, ii=0;                  /* int dsets become floats*/ 
-           idata = (int *)XtMalloc(len * sizeof(int));
+           idata = (int *)RwcMalloc(len * sizeof(int));
            if(!idata){
               fprintf(stderr,"**ASD alloc fail: %d bytes\n",len);
               RETURN(0);
@@ -1150,7 +1150,7 @@ ENTRY("THD_add_sparse_data");
            memcpy(idata, nel->vec[mind], len * sizeof(int));
            if( swap ) nifti_swap_4bytes(len, idata);
            for(ii=0; ii<len; ++ii) data[ii] = (float)idata[ii];
-           XtFree((char*)idata); idata=NULL;
+           RwcFree((char*)idata); idata=NULL;
         } else if( nel->vec_typ[mind] == NI_COMPLEX ) {
            memcpy(cdata, nel->vec[mind], len * sizeof(complex));
            /* in AFNI, complex is a float pair struct */

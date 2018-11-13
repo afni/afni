@@ -18,7 +18,7 @@
 /*-------------------------- global data --------------------------*/
 
 static THD_3dim_dataset_array *TCAT_dsar  = NULL ;  /* input datasets */
-static XtPointer_array        *TCAT_subv  = NULL ;  /* sub-brick selectors */
+static RwcPointer_array        *TCAT_subv  = NULL ;  /* sub-brick selectors */
 static int                     TCAT_nvox  = -1 ;    /* # voxels */
 static int                     TCAT_dry   = 0 ;     /* dry run? */
 static int                     TCAT_verb  = 0 ;     /* verbose? */

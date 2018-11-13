@@ -919,7 +919,7 @@ THD_fvec3 THD_mni__tta_N27( THD_fvec3 mv, int dir )
    /* Meth 2, xform in code, more fool proof*/
    if (!ww) {
       /* load the transform */
-      ww = myXtNew( THD_talairach_12_warp ) ;
+      ww = myRwcNew( THD_talairach_12_warp ) ;
       ww->type = WARP_TALAIRACH_12_TYPE;
       ww->resam_type = 0;
       for (iw=0; iw < 12; ++iw) {

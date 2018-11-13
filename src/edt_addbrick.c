@@ -46,10 +46,10 @@ ENTRY("EDIT_add_bricklist") ;
    /**-- reallocate the brick control information --**/
 
    new_nvals = nvals + nbr ;
-   dblk->brick_bytes = (int64_t *) XtRealloc( (char *) dblk->brick_bytes ,
+   dblk->brick_bytes = (int64_t *) RwcRealloc( (char *) dblk->brick_bytes ,
                                           sizeof(int64_t) * new_nvals ) ;
 
-   dblk->brick_fac = (float *) XtRealloc( (char *) dblk->brick_fac ,
+   dblk->brick_fac = (float *) RwcRealloc( (char *) dblk->brick_fac ,
                                           sizeof(float) * new_nvals ) ;
 
    dblk->nvals = dblk->diskptr->nvals = new_nvals ;
@@ -75,7 +75,7 @@ ENTRY("EDIT_add_bricklist") ;
    if( dblk->brick_lab == NULL )
       THD_init_datablock_labels( dblk ) ;
    else
-      dblk->brick_lab = (char **) XtRealloc( (char *) dblk->brick_lab ,
+      dblk->brick_lab = (char **) RwcRealloc( (char *) dblk->brick_lab ,
                                              sizeof(char *) * new_nvals ) ;
    for( ibr=0 ; ibr < nbr ; ibr++ ){
       sprintf( str , "#%d" , nvals+ibr ) ;
@@ -88,7 +88,7 @@ ENTRY("EDIT_add_bricklist") ;
    if( dblk->brick_keywords == NULL )
       THD_init_datablock_keywords( dblk ) ;
    else
-      dblk->brick_keywords = (char **) XtRealloc( (char *) dblk->brick_keywords ,
+      dblk->brick_keywords = (char **) RwcRealloc( (char *) dblk->brick_keywords ,
                                                   sizeof(char *) * new_nvals ) ;
    for( ibr=0 ; ibr < nbr ; ibr++ ){
       dblk->brick_keywords[nvals+ibr] = NULL ;
@@ -98,9 +98,9 @@ ENTRY("EDIT_add_bricklist") ;
    /** stataux **/
 
    if( dblk->brick_statcode != NULL ){
-      dblk->brick_statcode = (int *) XtRealloc( (char *) dblk->brick_statcode ,
+      dblk->brick_statcode = (int *) RwcRealloc( (char *) dblk->brick_statcode ,
                                                 sizeof(int) * new_nvals        ) ;
-      dblk->brick_stataux  = (float **) XtRealloc( (char *) dblk->brick_stataux ,
+      dblk->brick_stataux  = (float **) RwcRealloc( (char *) dblk->brick_stataux ,
                                                    sizeof(float *) * new_nvals ) ;
 
       for( ibr=0 ; ibr < nbr ; ibr++ ){

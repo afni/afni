@@ -15,7 +15,7 @@ int main( int argc , char *argv[] )
    THD_3dim_dataset *rhset=NULL ; char *rhsnam="?" ; int rhs1D=0 ;
    THD_3dim_dataset *lset ; MRI_IMAGE *lim ; int nlset=0 , nlhs=0 ;
    THD_3dim_dataset *fset=NULL ;
-   XtPointer_array *dsar ;
+   RwcPointer_array *dsar ;
    int ntime , nvar=0 , polort=-1,npol=0 ;
    char *prefix="Tfitter" ;
    int meth=2 , nbad=0,ngood=0,nskip=0 ;
