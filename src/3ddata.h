@@ -26,7 +26,9 @@
 #include <time.h>
 #include <sys/types.h>
 
-#include <X11/Intrinsic.h>
+#include "replaceXt.h"  /* 09 Nov 2018 */
+
+/*----------------------------------------------------------------------------*/
 
 #include "mcw_malloc.h"
 
@@ -39,16 +41,6 @@
 #include "thd_compress.h"
 
 #include "nifti2_io.h"   /* 06 Dec 2005 */
-
-#ifndef myXtFree
-/*! Macro to free a pointer and NULL-ize it as well. */
-#define myXtFree(xp) (XtFree((char *)(xp)) , (xp)=NULL)
-#endif
-
-#ifndef myXtNew
-/*! Macro to allocate memory and zero-ize it. */
-#define myXtNew(type) ((type *) XtCalloc(1,(unsigned) sizeof(type)))
-#endif
 
 /* cast int to pointer and vice-versa without warning messages */
 
@@ -233,7 +225,7 @@ typedef struct {
 /*! Copy n units of the given type "type * ptr", into a structure "str",
      starting at byte offset "off";
    N.B.: str is the structure itself, not a pointer to it
-         off is most easily computed with XtOffsetOf       */
+         off is most easily computed with RwcOffsetOf       */
 
 #define COPY_INTO_STRUCT(str,off,type,ptr,n) \
    AAmemcpy( (char *)(&(str))+(off), (char *)(ptr), (n)*sizeof(type) )
@@ -241,7 +233,7 @@ typedef struct {
 /*! Copy n units of the given type "type * ptr", from a structure "str",
      starting at byte offset "off";
    N.B.: str is the structure itself, not a pointer to it
-         off is most easily computed with XtOffsetOf       */
+         off is most easily computed with RwcOffsetOf       */
 
 #define COPY_FROM_STRUCT(str,off,type,ptr,n) \
    AAmemcpy( (char *)(ptr), (char *)(&(str))+(off), (n)*sizeof(type) )
@@ -258,69 +250,69 @@ typedef struct {
    ( (void) strncpy( (dest) , (src) , (n)-1 ) , (dest)[(n)-1] = '\0' )
 #endif
 
-/*********************** dynamic array of XtPointers **********************/
+/*********************** dynamic array of RwcPointers **********************/
 
 #define IC_DSET 44301
 #define IC_FLIM 55402
 
-/*! Dynamically extendable array of XtPointer. */
+/*! Dynamically extendable array of RwcPointer. */
 
 typedef struct {
       int num ;         /*!< Number currently in use */
       int nall ;        /*!< Number currently allocated */
-      XtPointer *ar ;   /*!< Array of pointers: [0..num-1] are valid */
+      RwcPointer *ar ;   /*!< Array of pointers: [0..num-1] are valid */
       int *ic ;         /*!< added 26 Mar 2001 */
-} XtPointer_array ;
+} RwcPointer_array ;
 
-/*! Increment for extending XtPointer_array allocation */
+/*! Increment for extending RwcPointer_array allocation */
 
 #define INC_XTARR 8
 
-/*! Initialize dynamic XtPointer array named "name".
+/*! Initialize dynamic RwcPointer array named "name".
 
-    You must declare "XtPointer_array *name;".
+    You must declare "RwcPointer_array *name;".
 */
 #define INIT_XTARR(name)               \
-   ( (name) = XtNew(XtPointer_array) , \
+   ( (name) = RwcNew(RwcPointer_array) , \
      (name)->num = (name)->nall = 0 ,  \
      (name)->ar  = NULL ,              \
      (name)->ic  = NULL   )
 
-/*! Add a pointer to a dynamic XtPointer array. */
+/*! Add a pointer to a dynamic RwcPointer array. */
 
 #define ADDTO_XTARR(name,bblk)                                 \
  do{ if( (name)->num == (name)->nall ){                        \
       (name)->nall += INC_XTARR + (name)->nall/8 ;             \
-      (name)->ar    = (XtPointer *)                            \
-                       XtRealloc( (char *) (name)->ar ,        \
-                          sizeof(XtPointer) * (name)->nall ) ; \
-      (name)->ic    = (int *) XtRealloc( (char *) (name)->ic , \
+      (name)->ar    = (RwcPointer *)                            \
+                       RwcRealloc( (char *) (name)->ar ,        \
+                          sizeof(RwcPointer) * (name)->nall ) ; \
+      (name)->ic    = (int *) RwcRealloc( (char *) (name)->ic , \
                           sizeof(int) * (name)->nall ) ;       \
      }                                                         \
-     (name)->ar[(name)->num] = (XtPointer)(bblk) ;             \
+     (name)->ar[(name)->num] = (RwcPointer)(bblk) ;             \
      (name)->ic[(name)->num] = 0 ;                             \
      ((name)->num)++ ;                                         \
    } while(0)
 
-/*! Number of good entries in a dynamic XtPointer array. */
+/*! Number of good entries in a dynamic RwcPointer array. */
 
 #define XTARR_NUM(name)  ((name)->num)
 
-/*! i-th entry in a dynamic XtPointer array. */
+/*! i-th entry in a dynamic RwcPointer array. */
 
 #define XTARR_XT(name,i) ((name)->ar[i])
 
 #define XTARR_IC(name,i) ((name)->ic[i])
 
-/*! Free a dynamic XtPointer array.
+/*! Free a dynamic RwcPointer array.
     But not what the pointers point to - that is a completely separate matter.
 */
 
 #define FREE_XTARR(name)      \
    if( (name) != NULL ){      \
-     myXtFree( (name)->ar ) ; \
-     myXtFree( (name)->ic ) ; \
-     myXtFree( (name) ) ;     \
+     myRwcFree( (name)->ar ) ; \
+     myRwcFree( (name)->ic ) ; \
+     myRwcFree( (name) ) ;     \
      (name) = NULL ; }
 
 /*! Duplicate definition for FREE_XTARR */
@@ -374,7 +366,7 @@ typedef struct {
 */
 
 #define INIT_SARR(name)                 \
-   ( (name) = XtNew(THD_string_array) , \
+   ( (name) = RwcNew(THD_string_array) , \
      (name)->num = (name)->nall = 0 ,   \
      (name)->ar  = NULL ,               \
      INIT_KILL((name)->kl) )
@@ -384,11 +376,11 @@ typedef struct {
 #define ADDTO_SARR(name,str)                                          \
  do{ if( (name)->num == (name)->nall ){                               \
       (name)->nall += INC_SARR + (name)->nall/8 ;                     \
-      (name)->ar    = (char **) XtRealloc( (char *) (name)->ar ,      \
+      (name)->ar    = (char **) RwcRealloc( (char *) (name)->ar ,      \
                                  sizeof(char *) * (name)->nall ) ;    \
      }                                                                \
      if( (str) != NULL ){                                             \
-      (name)->ar[(name)->num] = (char *) XtMalloc( strlen((str))+1 ); \
+      (name)->ar[(name)->num] = (char *) RwcMalloc( strlen((str))+1 ); \
       strcpy( (name)->ar[(name)->num] , (str) ) ;                     \
       ADDTO_KILL((name)->kl,(name)->ar[(name)->num]) ;                \
       ((name)->num)++ ;                                               \
@@ -410,8 +402,8 @@ typedef struct {
 #define DESTROY_SARR(name)    \
  do{ if( (name) != NULL ){    \
      KILL_KILL((name)->kl) ;  \
-     myXtFree( (name)->ar ) ; \
-     myXtFree( (name) ) ; } } while(0)
+     myRwcFree( (name)->ar ) ; \
+     myRwcFree( (name) ) ; } } while(0)
 
 /*! Print all entries in a dynamic string array */
 
@@ -457,7 +449,7 @@ typedef struct {
 /*! Initialize a dynamic array of xyz points, attached to datset ddd. */
 
 #define INIT_VLIST(name,ddd) \
-   ( (name) = XtNew(THD_vector_list) ,  \
+   ( (name) = RwcNew(THD_vector_list) ,  \
      (name)->num = (name)->nall = 0 ,   \
      (name)->xyz = NULL , (name)->ijk = NULL , \
      (name)->parent = (ddd) )
@@ -471,9 +463,9 @@ typedef struct {
 #define ADD_FVEC_TO_VLIST(name,vec) \
    { if( (name)->num == (name)->nall ){                                    \
       (name)->nall += INC_VLIST ;                                          \
-      (name)->xyz   = (THD_fvec3 * ) XtRealloc( (char *) (name)->xyz ,     \
+      (name)->xyz   = (THD_fvec3 * ) RwcRealloc( (char *) (name)->xyz ,     \
                                       sizeof(THD_fvec3) * (name)->nall ) ; \
-      (name)->ijk   = (THD_ivec3 * ) XtRealloc( (char *) (name)->ijk ,     \
+      (name)->ijk   = (THD_ivec3 * ) RwcRealloc( (char *) (name)->ijk ,     \
                                       sizeof(THD_ivec3) * (name)->nall ) ; \
      }                                                                     \
      (name)->xyz[(name)->num] = (vec);                                     \
@@ -489,9 +481,9 @@ typedef struct {
 #define ADD_IVEC_TO_VLIST(name,vec) \
    { if( (name)->num == (name)->nall ){                                    \
       (name)->nall += INC_VLIST ;                                          \
-      (name)->xyz   = (THD_fvec3 * ) XtRealloc( (char *) (name)->xyz ,     \
+      (name)->xyz   = (THD_fvec3 * ) RwcRealloc( (char *) (name)->xyz ,     \
                                       sizeof(THD_fvec3) * (name)->nall ) ; \
-      (name)->ijk   = (THD_ivec3 * ) XtRealloc( (char *) (name)->ijk ,     \
+      (name)->ijk   = (THD_ivec3 * ) RwcRealloc( (char *) (name)->ijk ,     \
                                       sizeof(THD_ivec3) * (name)->nall ) ; \
      }                                                                     \
      (name)->ijk[(name)->num] = (vec);                                     \
@@ -502,9 +494,9 @@ typedef struct {
 
 #define DESTROY_VLIST(name)      \
    { if( (name) != NULL ){       \
-       myXtFree( (name)->xyz ) ; \
-       myXtFree( (name)->ijk ) ; \
-       myXtFree( (name) ) ; } }
+       myRwcFree( (name)->xyz ) ; \
+       myRwcFree( (name)->ijk ) ; \
+       myRwcFree( (name) ) ; } }
 
 #endif /* ALLOW_DATASET_VLIST */
 
@@ -615,8 +607,8 @@ typedef struct {
      (map).svec = MATVEC((map).mbac,(map).bvec) ,\
      NEGATE_FVEC3((map).svec) )
 
-#define MAPPING_LINEAR_FSTART XtOffsetOf(THD_linear_mapping,mfor)
-#define MAPPING_LINEAR_FEND   (XtOffsetOf(THD_linear_mapping,top)+sizeof(THD_fvec3))
+#define MAPPING_LINEAR_FSTART RwcOffsetOf(THD_linear_mapping,mfor)
+#define MAPPING_LINEAR_FEND   (RwcOffsetOf(THD_linear_mapping,top)+sizeof(THD_fvec3))
 #define MAPPING_LINEAR_FSIZE  ((MAPPING_LINEAR_FEND-MAPPING_LINEAR_FSTART)/sizeof(float))
 
 /*! Debugging printout of a THD_linear_mapping struct. */
@@ -675,16 +667,16 @@ typedef struct {
 } THD_marker_set ;
 
 #define MARKS_FSIZE  (MARKS_MAXNUM*3)
-#define MARKS_FSTART XtOffsetOf(THD_marker_set,xyz)
+#define MARKS_FSTART RwcOffsetOf(THD_marker_set,xyz)
 
 #define MARKS_LSIZE  (MARKS_MAXNUM*MARKS_MAXLAB)
-#define MARKS_LSTART XtOffsetOf(THD_marker_set,label)
+#define MARKS_LSTART RwcOffsetOf(THD_marker_set,label)
 
 #define MARKS_HSIZE  (MARKS_MAXNUM*MARKS_MAXHELP)
-#define MARKS_HSTART XtOffsetOf(THD_marker_set,help)
+#define MARKS_HSTART RwcOffsetOf(THD_marker_set,help)
 
 #define MARKS_ASIZE  MARKS_MAXFLAG
-#define MARKS_ASTART XtOffsetOf(THD_marker_set,aflags)
+#define MARKS_ASTART RwcOffsetOf(THD_marker_set,aflags)
 
 /*--------------- definitions for markers I know about now ---------------*/
 
@@ -1227,7 +1219,7 @@ typedef struct {
    /* pointers to other stuff */
 
       KILL_list kl ;          /*!< Stuff to delete if this struct is deleted */
-      XtPointer parent ;      /*!< Somebody who "owns" me */
+      RwcPointer parent ;      /*!< Somebody who "owns" me */
 
       char shm_idcode[32] ;   /*!< Idcode for shared memory buffer, if any [02 May 2003]. */
       int  shm_idint ;        /*!< Integer id for shared memory buffer. */
@@ -1340,7 +1332,7 @@ typedef struct {
 /*! Initialize a THD_datablock_array. */
 
 #define INIT_DBARR(name)                  \
-   ( (name) = XtNew(THD_datablock_array) ,\
+   ( (name) = RwcNew(THD_datablock_array) ,\
      (name)->num = (name)->nall = 0 ,     \
      (name)->ar  = NULL )
 
@@ -1350,7 +1342,7 @@ typedef struct {
    { if( (name)->num == (name)->nall ){                            \
       (name)->nall += INC_DBARR + (name)->nall/8 ;                 \
       (name)->ar    = (THD_datablock **)                           \
-                       XtRealloc( (char *) (name)->ar ,            \
+                       RwcRealloc( (char *) (name)->ar ,            \
                         sizeof(THD_datablock *) * (name)->nall ) ; \
      }                                                             \
      if( (bblk) != NULL ){               \
@@ -1362,8 +1354,8 @@ typedef struct {
 
 #define FREE_DBARR(name)      \
    if( (name) != NULL ){      \
-     myXtFree( (name)->ar ) ; \
-     myXtFree( (name) ) ; }
+     myRwcFree( (name)->ar ) ; \
+     myRwcFree( (name) ) ; }
 
 /*--------------------------------------------------------------------*/
 /*---------- stuff to hold axes information for 3D dataset -----------*/
@@ -1471,7 +1463,7 @@ typedef struct {
       mat44 ijk_to_dicom_real ;  /* matrix to convert ijk to DICOM for obliquity*/
    /* pointers to other stuff */
 
-      XtPointer parent ;    /*!< Dataset that "owns" this struct */
+      RwcPointer parent ;    /*!< Dataset that "owns" this struct */
 } THD_dataxes ;
 
 #define DAXES_CMAT(dax,rrr)                               \
@@ -2274,7 +2266,7 @@ typedef struct {
    int type ;                    /*!< STATISTICS_TYPE */
    int             nbstat ;      /*!< Number of entries below */
    THD_brick_stats *bstat ;      /*!< Array of entries for all sub-bricks */
-   XtPointer parent ;            /*!< Owner of this object */
+   RwcPointer parent ;            /*!< Owner of this object */
 } THD_statistics ;
 
 /*! Check if st is a valid THD_statistics struct. */
@@ -2293,7 +2285,7 @@ typedef struct {
 
 #define KILL_STATISTIC(st)          \
   do{ if( ISVALID_STATISTIC(st) ){  \
-        XtFree((char *)(st)->bstat) ; XtFree((char *)(st)) ; } } while(0)
+        RwcFree((char *)(st)->bstat) ; RwcFree((char *)(st)) ; } } while(0)
 
 /*--------------------------------------------------------------------*/
 
@@ -2308,7 +2300,7 @@ typedef struct {
   int type ;
   int           nbhist ;
   THD_histogram *bhist ;
-  XtPointer parent ;
+  RwcPointer parent ;
 } THD_histogram_set ;
 
 /*--------------------------------------------------------------------*/
@@ -2885,7 +2877,7 @@ typedef struct THD_3dim_dataset {
    /* pointers to other stuff */
 
       KILL_list kl ;              /*!< Stuff to delete if this dataset is deleted (see killer.h) */
-      XtPointer parent ;          /*!< Somebody that "owns" this dataset */
+      RwcPointer parent ;          /*!< Somebody that "owns" this dataset */
 
    /* 26 Aug 2002: self warp (for w-o-d) */
 
@@ -3820,7 +3812,7 @@ extern float THD_fdrcurve_zqtot( THD_3dim_dataset *dset , int iv , float zval ) 
 #define DSET_delete(ds) THD_delete_3dim_dataset((ds),False)
 
 #define DSET_deletepp(ds) \
-  do{ THD_delete_3dim_dataset((ds),False); myXtFree((ds)); } while(0)
+  do{ THD_delete_3dim_dataset((ds),False); myRwcFree((ds)); } while(0)
 
 /*! Write dataset ds to disk.
     Also loads the sub-brick statistics
@@ -3985,7 +3977,7 @@ typedef struct THD_3dim_dataset_array {
     You should declare "THD_3dim_dataset_array *name;".
 */
 #define INIT_3DARR(name)                  \
-   ( (name) = XtNew(THD_3dim_dataset_array) ,\
+   ( (name) = RwcNew(THD_3dim_dataset_array) ,\
      (name)->num = (name)->nall = 0 ,     \
      (name)->ar  = NULL )
 
@@ -3995,7 +3987,7 @@ typedef struct THD_3dim_dataset_array {
    { if( (name)->num == (name)->nall ){                               \
       (name)->nall += INC_3DARR + (name)->nall/8 ;                    \
       (name)->ar    = (THD_3dim_dataset **)                           \
-                       XtRealloc( (char *) (name)->ar ,               \
+                       RwcRealloc( (char *) (name)->ar ,               \
                         sizeof(THD_3dim_dataset *) * (name)->nall ) ; \
      }                                                             \
      if( (ddset) != NULL ){               \
@@ -4011,8 +4003,8 @@ typedef struct THD_3dim_dataset_array {
 
 #define FREE_3DARR(name)      \
    if( (name) != NULL ){      \
-     myXtFree( (name)->ar ) ; \
-     myXtFree( (name) ) ; }
+     myRwcFree( (name)->ar ) ; \
+     myRwcFree( (name) ) ; }
 
 /*! Macro to access the nn-th dataset in AFNI dataset array name */
 
@@ -4087,7 +4079,7 @@ typedef struct {
 
       int is_collection ;       /*!< If a collection rather than a directory */
 
-      XtPointer parent ;        /*!< generic pointer to "owner" of session */
+      RwcPointer parent ;        /*!< generic pointer to "owner" of session */
 } THD_session ;
 
 extern char * THD_get_space(THD_3dim_dataset *dset);
@@ -4157,7 +4149,7 @@ extern int get_nspaces(void);
 typedef struct {
       int type , num_sess ;
       THD_session *ssar[THD_MAX_NUM_SESSION] ;
-      XtPointer parent ;
+      RwcPointer parent ;
 } THD_sessionlist ;
 
 /*! Determine if sl is a valid THD_sessionlist */
@@ -4499,7 +4491,7 @@ extern void THD_init_diskptr_names( THD_diskptr *, char *,char *,char * ,
 extern THD_datablock *       THD_init_one_datablock( char *,char * ) ;
 extern THD_datablock_array * THD_init_prefix_datablocks( char *, THD_string_array * ) ;
 
-extern XtPointer_array * THD_init_alldir_datablocks( char * ) ;
+extern RwcPointer_array * THD_init_alldir_datablocks( char * ) ;
 
 extern THD_session * THD_init_session( char * ) ;
 extern void          THD_order_session( THD_session * ) ;   /* 29 Jul 2003 */
@@ -4553,7 +4545,7 @@ char * without_afni_filename_view_and_extension( char * fname );
 extern void THD_datablock_apply_atr( THD_3dim_dataset * ) ; /* 09 May 2005 */
 
 extern THD_3dim_dataset * THD_fetch_dataset      (char *) ; /* 23 Mar 2001 */
-extern XtPointer_array *  THD_fetch_many_datasets(char *) ;
+extern RwcPointer_array *  THD_fetch_many_datasets(char *) ;
 extern MRI_IMAGE *        THD_fetch_1D           (char *) ; /* 26 Mar 2001 */
 
 extern void THD_set_storage_mode( THD_3dim_dataset *,int ); /* 21 Mar 2003 */
@@ -5003,8 +4995,8 @@ typedef struct FD_brick {
    int       ntmask ;           /*!< Mar 2013 */
    MRI_IMAGE *tmask ;           /*!< Mar 2013 */
 
-   XtPointer parent ;           /*!< struct owner */
-   XtPointer brother;
+   RwcPointer parent ;           /*!< struct owner */
+   RwcPointer brother;
 } FD_brick ;
 
 #define TMASK_INDEX(fdb) ((fdb)->ntmask)
@@ -5019,7 +5011,7 @@ typedef struct FD_brick {
 
 #define DESTROY_FD_BRICK(fdb)       \
  do{ FD_brick *_jj=(FD_brick *)fdb; \
-     if( _jj != NULL ){ mri_free(_jj->tmask); myXtFree(_jj); fdb=NULL; } } while(0)
+     if( _jj != NULL ){ mri_free(_jj->tmask); myRwcFree(_jj); fdb=NULL; } } while(0)
 
 /*! rotate the three numbers (a,b,c) to (b,c,a) into (na,nb,nc) */
 

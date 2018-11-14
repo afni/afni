@@ -465,7 +465,7 @@ fprintf(stderr,"EDIT_dset_items: iarg=%d flag_arg=%d\n",iarg,flag_arg) ;
             warp = va_arg( vararg_ptr , THD_warp * ) ;
             if( ISVALID_WARP(warp) ){
                new_warp = 1 ;
-               if( dset->warp == NULL ) dset->warp = myXtNew(THD_warp) ;
+               if( dset->warp == NULL ) dset->warp = myRwcNew(THD_warp) ;
                *(dset->warp) =* warp ;
             } else EDERR("illegal new warp") ;
          break ;
@@ -762,7 +762,7 @@ fprintf(stderr,"EDIT_dset_items: about to redo_bricks\n") ;
       /** make an array of data types, if one not provided **/
 
       if( ! new_datum_array ){
-         datum_array = (int *) XtMalloc( sizeof(int) * nvals ) ;
+         datum_array = (int *) RwcMalloc( sizeof(int) * nvals ) ;
 
 #if 0
 fprintf(stderr,"EDIT_dset_items: about to make datum_array\n") ;
@@ -777,15 +777,15 @@ fprintf(stderr,"EDIT_dset_items: about to make datum_array\n") ;
          if( dset->dblk->nvals != nvals )
             THD_copy_datablock_auxdata( NULL , dset->dblk ) ; /* 30 Nov 1997 */
 
-         myXtFree( dset->dblk->brick_bytes ) ;
-         myXtFree( dset->dblk->brick_fac   ) ;
+         myRwcFree( dset->dblk->brick_bytes ) ;
+         myRwcFree( dset->dblk->brick_fac   ) ;
 
          dset->dblk->nvals = dset->dblk->diskptr->nvals = nvals ;
       }
 
       THD_init_datablock_brick( dset->dblk , nvals , datum_array ) ;
 
-      if( ! new_datum_array ) myXtFree(datum_array) ;
+      if( ! new_datum_array ) myRwcFree(datum_array) ;
    }
 
    /**---------- Need to add new brick_fac values? ----------**/
@@ -884,8 +884,8 @@ fprintf(stderr,"stataux_one:  iv=%d bso[0]=%g bso[1]=%g bso[2]=%g\n",
    if( ! new_ntt ) ntt = ISVALID_TIMEAXIS(dset->taxis) ? dset->taxis->ntt : 0 ;
 
    if( ntt == 0 && dset->taxis != NULL ){
-      myXtFree( dset->taxis->toff_sl ) ;
-      myXtFree( dset->taxis ) ;
+      myRwcFree( dset->taxis->toff_sl ) ;
+      myRwcFree( dset->taxis ) ;
       dset->taxis = NULL ;
    }
 
@@ -900,7 +900,7 @@ fprintf(stderr,"stataux_one:  iv=%d bso[0]=%g bso[1]=%g bso[2]=%g\n",
       THD_timeaxis *taxis = dset->taxis ;
 
       if( taxis == NULL ){
-         taxis          = dset->taxis     = myXtNew( THD_timeaxis ) ;
+         taxis          = dset->taxis     = myRwcNew( THD_timeaxis ) ;
          taxis->type    = TIMEAXIS_TYPE ;
          taxis->toff_sl = NULL ;
          taxis->nsl     = 0 ;
@@ -918,10 +918,10 @@ fprintf(stderr,"stataux_one:  iv=%d bso[0]=%g bso[1]=%g bso[2]=%g\n",
       if( new_nsl ){
          taxis->nsl = nsl ;
          if( nsl > 0 )
-            taxis->toff_sl = (float *) XtRealloc( (char *) taxis->toff_sl ,
+            taxis->toff_sl = (float *) RwcRealloc( (char *) taxis->toff_sl ,
                                                   sizeof(float) * nsl      ) ;
          else
-            myXtFree(taxis->toff_sl) ;
+            myRwcFree(taxis->toff_sl) ;
       }
 
       if( new_toff_sl )

@@ -4918,9 +4918,7 @@ if(PRINT_TRACING)
          else
                  EXRETURN ;  /* something goofy happened? */
 
-#if 1
          myXtFree( seq->status ) ; /* 28 Sep 1998: via Purify */
-#endif
          myXtFree( seq ) ;
          MCW_invert_widget(w) ;  /* back to normal */
          NORMAL_cursorize(w) ;   /* 20 Jul 2005 */
@@ -6254,7 +6252,7 @@ STATUS("making descendant datasets") ;
       int nds = argc - GLOBAL_argopt.first_file_arg ;
       char str[256] ;
       THD_3dim_dataset *dset ;
-      XtPointer_array *dsar ;
+      RwcPointer_array *dsar ;
       MRI_IMARR *webtsar ;        /* 26 Mar 2001 */
       THD_session *new_ss ;
       int ii,nerr=0,vv,nn , dd ;

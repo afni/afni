@@ -71,7 +71,7 @@ ENTRY("THD_setup_bricks") ;
       in the axial and coronal views, left is left and right is right;
       the bottom options are the radiologists conventions, so sue me! */
 
-   br = (FD_brick **) XtMalloc( sizeof(FD_brick *) * 3 ) ;
+   br = (FD_brick **) RwcMalloc( sizeof(FD_brick *) * 3 ) ;
 
 #undef LEFT_IS_LEFT
 #ifdef LEFT_IS_LEFT
@@ -234,7 +234,7 @@ ENTRY("THD_3dim_dataset_to_brick") ;
 
    /*-- the inputs are good, so create a brick: --*/
 
-   br             = myXtNew(FD_brick) ;  /* new brick */
+   br             = myRwcNew(FD_brick) ;  /* new brick */
    br->dset       = dset ;               /* dataset */
    br->resam_code = RESAM_NN_TYPE ;      /* crudest type */
    br->parent     = NULL ;
