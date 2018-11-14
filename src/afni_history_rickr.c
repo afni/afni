@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14, Nov, 2018, RCR, "3dDeconvolve", MICRO, TYPE_ENHANCE,
+   "update 3dREMLfit command to handle surface data",
+   "Strip off the .niml.dset extension, if found in the bucket name.\n"
+   "Is it better to re-append it?  I am not sure."
+ } ,
+
  {  5, Nov, 2018, RCR, "make_random_timing.py", MICRO, TYPE_ENHANCE,
    "enhance insufficient time warnings",
    NULL

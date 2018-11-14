@@ -6866,6 +6866,7 @@ ENTRY("calculate_results") ;
       FILE *fp ;
       int iadd=0 , ilen , oneline=AFNI_yesenv("AFNI_3dDeconvolve_oneline") ;
       char *lbreak ;
+      char *mod_prefix; /* non-AFNI?, for surface datasets  14 Nov 2018 [rickr] */
 
       if( option_data->input_filename != NULL ){
         iname = calloc( sizeof(char) , strlen(option_data->input_filename)+9 ) ;
@@ -6905,6 +6906,11 @@ ENTRY("calculate_results") ;
         iadd += strlen(cname)-ilen ;
       }
       if( option_data->bucket_filename != NULL ){
+        /* handle non-AFNI dataset formats, like niml.dset for surface data */
+        mod_prefix = option_data->bucket_filename; /* init to current dset */
+        if( has_known_non_afni_extension(mod_prefix) )
+           mod_prefix = without_afni_filename_extension(mod_prefix); /* no free */
+
         if( iadd > 50 && !oneline ){ cname = THD_zzprintf(cname," \\\n"); iadd=0; }
         ilen  = strlen(cname) ;
         if( option_data->fout ) cname = THD_zzprintf( cname , " -fout") ;
@@ -6912,24 +6918,28 @@ ENTRY("calculate_results") ;
         if( option_data->rout ) cname = THD_zzprintf( cname , " -rout") ;
         iadd += strlen(cname)-ilen ; ilen = strlen(cname) ;
         if( iadd > 40 && !oneline ){ cname = THD_zzprintf(cname," \\\n"); iadd=0; }
-        cname = THD_zzprintf( cname ,
-                              " -Rbuck %s_REML" , option_data->bucket_filename);
-        cname = THD_zzprintf( cname ,
-                              " -Rvar %s_REMLvar",option_data->bucket_filename);
+        cname = THD_zzprintf( cname , " -Rbuck %s_REML" ,  mod_prefix );
+        cname = THD_zzprintf( cname , " -Rvar %s_REMLvar", mod_prefix );
         iadd += strlen(cname)-ilen ;
       }
       if( option_data->fitts_filename != NULL ){
+        mod_prefix = option_data->fitts_filename; /* handle non-AFNI formats */
+        if( has_known_non_afni_extension(mod_prefix) )
+           mod_prefix = without_afni_filename_extension(mod_prefix); /* no free */
+
         if( iadd > 50 && !oneline ){ cname = THD_zzprintf(cname," \\\n"); iadd=0; }
         ilen  = strlen(cname) ;
-        cname = THD_zzprintf( cname ,
-                              " -Rfitts %s_REML", option_data->fitts_filename );
+        cname = THD_zzprintf( cname , " -Rfitts %s_REML", mod_prefix );
         iadd += strlen(cname)-ilen ;
       }
       if( option_data->errts_filename != NULL ){
+        mod_prefix = option_data->errts_filename; /* handle non-AFNI formats */
+        if( has_known_non_afni_extension(mod_prefix) )
+           mod_prefix = without_afni_filename_extension(mod_prefix); /* no free */
+
         if( iadd > 50 && !oneline ){ cname = THD_zzprintf(cname," \\\n"); iadd=0; }
         ilen  = strlen(cname) ;
-        cname = THD_zzprintf( cname ,
-                              " -Rerrts %s_REML", option_data->errts_filename );
+        cname = THD_zzprintf( cname , " -Rerrts %s_REML", mod_prefix );
         iadd += strlen(cname)-ilen ;
       }
 #if 0
