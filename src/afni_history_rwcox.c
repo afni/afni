@@ -44,6 +44,13 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 13 , NOV , 2018 , RWC , "All" , MICRO , TYPE_MODIFY ,
+   "Baby steps towards removing use of XtMalloc etc" ,
+   "Replace XtPointer, XtMalloc, etc, with RwcPointer, RwcMalloc, etc,\n"
+   "everywhere in the code, using new header file replaceXt.h. Eventually\n"
+   "will try to eliminate the use of these functions entirely, in\n"
+   "mcw_malloc." } ,
+
  { 6 , NOV , 2018 , RWC , "AFNI WhereAmI" , MICRO , TYPE_ENHANCE ,
    "Make HTML window use bigger font if requested" ,
    "If AFNI_TTATLAS_FONTSIZE is 'BIG'; if it isn't set, then if\n"

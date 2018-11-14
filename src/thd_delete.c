@@ -65,25 +65,25 @@ STATUS("destroy imarr") ;
 
 STATUS("free brick_ stuff") ;
 
-   myXtFree( dblk->brick_fac ) ;
-   myXtFree( dblk->brick_bytes ) ;
+   myRwcFree( dblk->brick_fac ) ;
+   myRwcFree( dblk->brick_bytes ) ;
 
    /** 30 Nov 1997 **/
 
    if( dblk->brick_lab != NULL ){
-      for( ibr=0 ; ibr < dblk->nvals ; ibr++ ) myXtFree( dblk->brick_lab[ibr] ) ;
-      myXtFree( dblk->brick_lab ) ;
+      for( ibr=0 ; ibr < dblk->nvals ; ibr++ ) myRwcFree( dblk->brick_lab[ibr] ) ;
+      myRwcFree( dblk->brick_lab ) ;
    }
 
    if( dblk->brick_keywords != NULL ){
-      for( ibr=0 ; ibr < dblk->nvals ; ibr++ ) myXtFree( dblk->brick_keywords[ibr] ) ;
-      myXtFree( dblk->brick_keywords ) ;
+      for( ibr=0 ; ibr < dblk->nvals ; ibr++ ) myRwcFree( dblk->brick_keywords[ibr] ) ;
+      myRwcFree( dblk->brick_keywords ) ;
    }
 
-   if( dblk->brick_statcode != NULL ) myXtFree( dblk->brick_statcode ) ;
+   if( dblk->brick_statcode != NULL ) myRwcFree( dblk->brick_statcode ) ;
    if( dblk->brick_stataux  != NULL ){
-      for( ibr=0 ; ibr < dblk->nvals ; ibr++ ) myXtFree( dblk->brick_stataux[ibr] ) ;
-      myXtFree( dblk->brick_stataux ) ;
+      for( ibr=0 ; ibr < dblk->nvals ; ibr++ ) myRwcFree( dblk->brick_stataux[ibr] ) ;
+      myRwcFree( dblk->brick_stataux ) ;
    }
 
    if( dblk->brick_fdrcurve != NULL ){ /* 23 Jan 2008 */
@@ -102,14 +102,14 @@ STATUS("free brick_ stuff") ;
    }
 
    if( DBLK_IS_MASTERED(dblk) ){       /* 11 Jan 1999 */
-      myXtFree( dblk->master_ival ) ;
-      myXtFree( dblk->master_bytes ) ;
+      myRwcFree( dblk->master_ival ) ;
+      myRwcFree( dblk->master_bytes ) ;
    }
 
    THD_delete_diskptr( dblk->diskptr ) ;
 
    if( dblk->nnodes > 0 && dblk->node_list ){    /* Jul 12 2006 [rickr] */
-      myXtFree( dblk->node_list ) ;
+      myRwcFree( dblk->node_list ) ;
       dblk->nnodes = 0 ;
    }
 
@@ -117,7 +117,7 @@ STATUS("KILL_KILL") ;
    KILL_KILL( dblk->kl ) ;
 
 STATUS("free attributes") ;
-   myXtFree( dblk->atr ) ;    /* not on the kill list */
+   myRwcFree( dblk->atr ) ;    /* not on the kill list */
 
    EXRETURN ;
 }
@@ -159,15 +159,15 @@ STATUS("destroy vlist") ;
 
    if( ISVALID_TIMEAXIS(dset->taxis) ){
 STATUS("destroy taxis") ;
-      myXtFree( dset->taxis->toff_sl ) ;
-      myXtFree( dset->taxis ) ;
+      myRwcFree( dset->taxis->toff_sl ) ;
+      myRwcFree( dset->taxis ) ;
    }
 
    THD_delete_datablock( dset->dblk ) ;
 
    /* EDIT_empty_copy() is only vox_warp not in KILL_list, add it there */
    /*                                                5 Mar 2008 [rickr] */
-   /* myXtFree( dset->vox_warp ) ;  * 23 Sep 2008                       */
+   /* myRwcFree( dset->vox_warp ) ;  * 23 Sep 2008                       */
 
    if (dset->Label_Dtable) {  /* ZSS Feb 26 2010 */
       destroy_Dtable(dset->Label_Dtable); dset->Label_Dtable=NULL;

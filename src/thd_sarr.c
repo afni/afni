@@ -91,7 +91,7 @@ ENTRY("THD_get_all_filenames") ;
    if( dirname == NULL || (dlen=strlen(dirname)) == 0 ) RETURN( NULL );
    if( ! THD_is_directory(dirname) )                    RETURN( NULL );
 
-   total_dirname = (char*)XtMalloc( dlen+4 ) ;
+   total_dirname = (char*)RwcMalloc( dlen+4 ) ;
    strcpy( total_dirname , dirname ) ;
    if( total_dirname[dlen-1] != '/' ){
       total_dirname[dlen]   = '/' ;     /* add a slash */
@@ -114,7 +114,7 @@ if(PRINT_TRACING){
 #endif
 
    if( nfiles < 1 ){
-       myXtFree( total_dirname ) ;
+       myRwcFree( total_dirname ) ;
 #ifdef DONT_USE_SCANDIR
        if( gname != NULL ) free(gname) ;
 #else
@@ -127,7 +127,7 @@ if(PRINT_TRACING){
 
 #ifndef DONT_USE_SCANDIR
    max_fname   = dlen+64 ;
-   total_fname = (char*)XtMalloc( max_fname ) ;
+   total_fname = (char*)RwcMalloc( max_fname ) ;
 #endif
 
    for( ii=0 ; ii < nfiles ; ii++ ){
@@ -146,11 +146,11 @@ if(PRINT_TRACING){
 #endif
    }
 
-   myXtFree( total_dirname ) ;
+   myRwcFree( total_dirname ) ;
 #ifdef DONT_USE_SCANDIR
    MCW_free_expand( nfiles , gname ) ;
 #else
-   myXtFree( total_fname ) ;
+   myRwcFree( total_fname ) ;
    free( dplist ) ;
 #endif
    RETURN( star );
@@ -171,7 +171,7 @@ ENTRY("THD_get_all_subdirs") ;
 
    if( dirname == NULL || (dlen=strlen(dirname)) == 0 ) RETURN( NULL );
 
-   total_dirname = (char*)XtMalloc( dlen+2 ) ;
+   total_dirname = (char*)RwcMalloc( dlen+2 ) ;
    strcpy( total_dirname , dirname ) ;
    if( total_dirname[dlen-1] != '/' ){
       total_dirname[dlen]   = '/' ;
@@ -188,7 +188,7 @@ ENTRY("THD_get_all_subdirs") ;
    /** must want deeper levels **/
 
    flist = THD_get_all_filenames( total_dirname ) ;
-   myXtFree(total_dirname) ;
+   myRwcFree(total_dirname) ;
 
    if( flist == NULL ) RETURN( star );
    if( flist->num == 0 ){ DESTROY_SARR(flist) ; RETURN( star ); }

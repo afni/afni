@@ -32,10 +32,10 @@ ENTRY("EDIT_empty_copy") ; /* 29 Aug 2001 */
 
    /** make some new places to store stuff **/
 
-   new_dset                      = myXtNew( THD_3dim_dataset ) ;
-   new_dblk  = new_dset->dblk    = myXtNew( THD_datablock ) ;
-   new_daxes = new_dset->daxes   = myXtNew( THD_dataxes ) ;
-   new_dkptr = new_dblk->diskptr = myXtNew( THD_diskptr ) ;
+   new_dset                      = myRwcNew( THD_3dim_dataset ) ;
+   new_dblk  = new_dset->dblk    = myRwcNew( THD_datablock ) ;
+   new_daxes = new_dset->daxes   = myRwcNew( THD_dataxes ) ;
+   new_dkptr = new_dblk->diskptr = myRwcNew( THD_diskptr ) ;
    new_dset->Label_Dtable = NULL;                  /* ZSS Feb 26 2010 */
 
    INIT_KILL(new_dset->kl) ; INIT_KILL(new_dblk->kl) ;
@@ -43,8 +43,8 @@ ENTRY("EDIT_empty_copy") ; /* 29 Aug 2001 */
    ADDTO_KILL(new_dset->kl,new_daxes) ;
    ADDTO_KILL(new_dset->kl,new_dkptr) ;
 
-   new_dset->wod_daxes         = myXtNew(THD_dataxes) ;
-   new_dset->wod_daxes->parent = (XtPointer) new_dset ;
+   new_dset->wod_daxes         = myRwcNew(THD_dataxes) ;
+   new_dset->wod_daxes->parent = (RwcPointer) new_dset ;
    new_dset->wod_flag          = False ;
 
    ADDTO_KILL(new_dset->kl,new_dset->wod_daxes) ;
@@ -83,7 +83,7 @@ ENTRY("EDIT_empty_copy") ; /* 29 Aug 2001 */
 
    /*-- end of anat_parent copy --*/
 
-   new_dset->vox_warp       = myXtNew( THD_warp ) ;  /* create a voxel warp */
+   new_dset->vox_warp       = myRwcNew( THD_warp ) ;  /* create a voxel warp */
    new_dset->vox_warp->type = ILLEGAL_TYPE ;         /* but don't put anything in it */
    ADDTO_KILL(new_dset->kl, new_dset->vox_warp) ;    /* 3 Mar 2009 [rickr] */
    new_dset->self_warp      = NULL ;                 /* 26 Aug 2002 */
@@ -145,7 +145,7 @@ ENTRY("EDIT_empty_copy") ; /* 29 Aug 2001 */
    new_dblk->malloc_type = DATABLOCK_MEM_MALLOC ;
    new_dblk->natr        = new_dblk->natr_alloc = 0 ;
    new_dblk->atr         = NULL ;
-   new_dblk->parent      = (XtPointer) new_dset ;
+   new_dblk->parent      = (RwcPointer) new_dset ;
 
    new_dblk->vedim = NULL ; /* 05 Sep 2006 */
 
@@ -197,7 +197,7 @@ ENTRY("EDIT_empty_copy") ; /* 29 Aug 2001 */
      new_daxes->xxmax = new_daxes->yymax = new_daxes->zzmax =  0.5 ;
      THD_daxes_to_mat44(new_daxes) ;
    }
-   new_daxes->parent = (XtPointer) new_dset ;
+   new_daxes->parent = (RwcPointer) new_dset ;
 
    new_dset->stats   = NULL ;
    new_dset->parent  = NULL ;
@@ -208,13 +208,13 @@ ENTRY("EDIT_empty_copy") ; /* 29 Aug 2001 */
      ZERO_STAT_AUX( new_dset ) ;
 
    if( old_good && ISVALID_TIMEAXIS(old_dset->taxis) ){
-     new_taxis = new_dset->taxis = myXtNew( THD_timeaxis ) ;
+     new_taxis = new_dset->taxis = myRwcNew( THD_timeaxis ) ;
 
      *new_taxis = *old_dset->taxis ;  /* copy contents */
 
      if( new_taxis->nsl > 0 ){        /* copy toff_sl array, if present */
        int isl ;
-       new_taxis->toff_sl = (float *) XtMalloc( sizeof(float) * new_taxis->nsl ) ;
+       new_taxis->toff_sl = (float *) RwcMalloc( sizeof(float) * new_taxis->nsl ) ;
        for( isl = 0 ; isl < new_taxis->nsl ; isl++ )
          new_taxis->toff_sl[isl] = old_dset->taxis->toff_sl[isl] ;
      } else {
@@ -239,7 +239,7 @@ ENTRY("EDIT_empty_datablock") ;
 
    /** make some new places to store stuff **/
 
-   new_dblk                 = myXtNew( THD_datablock ) ;
+   new_dblk                 = myRwcNew( THD_datablock ) ;
    new_dblk->type           = DATABLOCK_TYPE ;
    new_dblk->brick          = NULL ;
    new_dblk->brick_bytes    = NULL ;
@@ -270,7 +270,7 @@ ENTRY("EDIT_empty_datablock") ;
    new_dblk->brick_fdrcurve = NULL ; /* 23 Jan 2008 */
    new_dblk->brick_mdfcurve = NULL ; /* 22 Oct 2008 */
 
-   new_dkptr = new_dblk->diskptr = myXtNew( THD_diskptr ) ;
+   new_dkptr = new_dblk->diskptr = myRwcNew( THD_diskptr ) ;
 
    new_dkptr->type         = DISKPTR_TYPE ;
    new_dkptr->rank         = 3 ;
@@ -304,7 +304,7 @@ STATUS("done") ;
 
 THD_marker_set * create_empty_marker_set(void)
 {
-   THD_marker_set * markers = myXtNew( THD_marker_set ) ;
+   THD_marker_set * markers = myRwcNew( THD_marker_set ) ;
    int              ii, jj ;
 
    if( !markers ) return NULL;

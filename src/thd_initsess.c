@@ -18,7 +18,7 @@
 THD_session * THD_init_session( char *sessname )
 {
    THD_session            *sess ;
-   XtPointer_array        *dblk_arrarr ;
+   RwcPointer_array        *dblk_arrarr ;
    THD_datablock_array    *dblk_arr ;
    THD_3dim_dataset       *dset=NULL , *temp_dset;
    THD_3dim_dataset_array *dset_arr ;
@@ -34,7 +34,7 @@ ENTRY("THD_init_session") ;
 
    /*-- initialize session --*/
 
-   sess         = myXtNew( THD_session ) ;
+   sess         = myRwcNew( THD_session ) ;
    sess->type   = SESSION_TYPE ;
    sess->parent = NULL ;
 #ifdef DEBUG_SESSIONS
@@ -408,7 +408,7 @@ printf("warp_exf_std BEFORE:") ; DUMP_LMAP(warp_exf_std->rig_bod.warp) ;
                to_std = AFNI_make_affwarp_mat( nnn ) ;
                AFNI_concatenate_warp( warp_exf_std , from_exf ) ;
                AFNI_concatenate_warp( to_std , warp_exf_std ) ;
-               myXtFree(warp_exf_std) ; myXtFree(from_exf) ;
+               myRwcFree(warp_exf_std) ; myRwcFree(from_exf) ;
                warp_exf_std = to_std ;
 
 #if 0
@@ -451,7 +451,7 @@ printf("warp_exf_hrs BEFORE:") ; DUMP_LMAP(warp_exf_hrs->rig_bod.warp) ;
              to_hrs = AFNI_make_affwarp_mat( nnn ) ;
              AFNI_concatenate_warp( warp_exf_hrs , from_exf ) ;
              AFNI_concatenate_warp( to_hrs , warp_exf_hrs ) ;
-             myXtFree(warp_exf_hrs) ; myXtFree(from_exf) ;
+             myRwcFree(warp_exf_hrs) ; myRwcFree(from_exf) ;
              warp_exf_hrs = to_hrs ;
 
 #if 0
@@ -492,7 +492,7 @@ printf("warp_std_hrs BEFORE:") ; DUMP_LMAP(warp_std_hrs->rig_bod.warp) ;
              to_hrs = AFNI_make_affwarp_mat( nnn ) ;
              AFNI_concatenate_warp( warp_std_hrs , from_std ) ;
              AFNI_concatenate_warp( to_hrs , warp_std_hrs ) ;
-             myXtFree(warp_std_hrs) ; myXtFree(from_std) ;
+             myRwcFree(warp_std_hrs) ; myRwcFree(from_std) ;
              warp_std_hrs = to_hrs ;
 
 #if 0
@@ -683,7 +683,7 @@ printf("warp_std_hrs AFTER:") ; DUMP_LMAP(warp_std_hrs->rig_bod.warp) ;
    /*-- done! --*/
 
    if( sess->num_dsset == 0 ){
-      myXtFree( sess ) ; RETURN( NULL ) ;
+      myRwcFree( sess ) ; RETURN( NULL ) ;
    }
 
    /*-- 29 Jul 2003: order dataset rows --*/

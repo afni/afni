@@ -58,9 +58,9 @@ ENTRY("THD_conformist") ;
      if( dx == NULL ){
        ERROR_message("3dConformist: '%s' is not compatible with others",
                      DSET_HEADNAME(dset[iset]) ) ;
-       myXtFree(cx) ; RETURN(-3) ;
+       myRwcFree(cx) ; RETURN(-3) ;
      }
-     myXtFree(cx) ; cx = dx ; dx = NULL ;
+     myRwcFree(cx) ; cx = dx ; dx = NULL ;
    }
 
    /* now, re-create and re-write all datasets */
@@ -173,7 +173,7 @@ THD_dataxes * THD_superset_dataxes( THD_dataxes *ax , THD_dataxes *bx )
 
    /* create new dataxes as copy of first one */
 
-   cx = myXtNew(THD_dataxes) ; *cx = *ax ;
+   cx = myRwcNew(THD_dataxes) ; *cx = *ax ;
    cx->parent = NULL ;
    /* if( EQUIV_DATAXES(ax,bx) ) return cx ; */
 

@@ -4544,6 +4544,8 @@ STATUS("making func->rowcol") ;
          NULL,NULL                         /* no special display */
       ) ;
 
+   XtVaSetValues( func->range_av->wtext, XmNcolumns, 7, NULL ); /* 13 Nov 2018 */
+
    func->range_av->parent = (XtPointer) im3d ;
 
    MCW_reghelp_children( func->range_av->wrowcol ,

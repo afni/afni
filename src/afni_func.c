@@ -4429,7 +4429,7 @@ void AFNI_finalize_read_Web_CB( Widget w , XtPointer cd , MCW_choose_cbs *cbs )
 {
    Three_D_View *im3d = (Three_D_View *) cd ;
    THD_3dim_dataset *dset, *temp_dset ;
-   XtPointer_array *dsar ;
+   RwcPointer_array *dsar ;
    THD_session *ss = GLOBAL_library.sslist->ssar[im3d->vinfo->sess_num] ;
    char str[256] ;
    int nds,dd,vv , nn, na=-1,nf=-1 ,nts ;
@@ -6250,10 +6250,10 @@ ENTRY("AFNI_autorange_label") ;
          s2  = fabsf(im3d->fim_now->stats->bstat[iv].max) ;
          rrr = (s1 < s2) ? s2 : s1 ;                    /* largest fim */
        } else {
-         rrr = DEFAULT_FIM_SCALE ;                      /* don't have stats */
+         rrr = DEFAULT_FIM_SCALE ;                      /* don't have brick stats */
        }
      } else {
-       rrr = DEFAULT_FIM_SCALE ;                        /* don't have stats */
+       rrr = DEFAULT_FIM_SCALE ;                        /* don't have brick stats */
      }
    }
    if( rrr > 1.0f && rrr < DEFAULT_FIM_SCALE ){

@@ -307,8 +307,8 @@ ENTRY("THD_setup_mastery") ;
 
    if( dset->taxis != NULL ){                /* must fix time axis */
       if( new_nvals == 1 ){                  /* no time dependence */
-         myXtFree( dset->taxis->toff_sl ) ;
-         myXtFree( dset->taxis ) ;
+         myRwcFree( dset->taxis->toff_sl ) ;
+         myRwcFree( dset->taxis ) ;
       } else {                               /* different number of times */
          dset->taxis->ntt = new_nvals ;
       }
@@ -323,7 +323,7 @@ ENTRY("THD_setup_mastery") ;
 
    /* redo brick_fac */
 
-   dblk->brick_fac = (float *) XtMalloc( sizeof(float) * new_nvals ) ;
+   dblk->brick_fac = (float *) RwcMalloc( sizeof(float) * new_nvals ) ;
    for( ibr=0 ; ibr < new_nvals ; ibr++ )
       dblk->brick_fac[ibr] = old_brick_fac[ivl[ibr]] ;
 
@@ -383,27 +383,27 @@ ENTRY("THD_setup_mastery") ;
 
    dblk->master_nvals = old_nvals ;
    dblk->master_bytes = old_brick_bytes ;
-   dblk->master_ival  = (int *) XtMalloc( sizeof(int) * new_nvals ) ;
+   dblk->master_ival  = (int *) RwcMalloc( sizeof(int) * new_nvals ) ;
    for( ibr=0 ; ibr < new_nvals ; ibr++ ) dblk->master_ival[ibr] = ivl[ibr] ;
 
    /** destroy old datablock stuff now **/
 
-   myXtFree( old_brick_fac ) ;
+   myRwcFree( old_brick_fac ) ;
 
    if( old_brick_lab != NULL ){
-     for( ibr=0 ; ibr < old_nvals ; ibr++ ) myXtFree( old_brick_lab[ibr] ) ;
-     myXtFree( old_brick_lab ) ;
+     for( ibr=0 ; ibr < old_nvals ; ibr++ ) myRwcFree( old_brick_lab[ibr] ) ;
+     myRwcFree( old_brick_lab ) ;
    }
 
    if( old_brick_keywords != NULL ){
-     for( ibr=0 ; ibr < old_nvals ; ibr++ ) myXtFree( old_brick_keywords[ibr] ) ;
-     myXtFree( old_brick_keywords ) ;
+     for( ibr=0 ; ibr < old_nvals ; ibr++ ) myRwcFree( old_brick_keywords[ibr] ) ;
+     myRwcFree( old_brick_keywords ) ;
    }
 
-   if( old_brick_statcode != NULL ) myXtFree( old_brick_statcode ) ;
+   if( old_brick_statcode != NULL ) myRwcFree( old_brick_statcode ) ;
    if( old_brick_stataux  != NULL ){
-      for( ibr=0 ; ibr < old_nvals ; ibr++ ) myXtFree( old_brick_stataux[ibr] ) ;
-      myXtFree( old_brick_stataux ) ;
+      for( ibr=0 ; ibr < old_nvals ; ibr++ ) myRwcFree( old_brick_stataux[ibr] ) ;
+      myRwcFree( old_brick_stataux ) ;
    }
 
    if( old_brick_fdrcurve != NULL ){               /* 24 Jan 2008 */
@@ -425,14 +425,14 @@ ENTRY("THD_setup_mastery") ;
       float bot,top ;
 
       old_stats = dset->stats ;
-      new_stats = myXtNew( THD_statistics ) ;
+      new_stats = myRwcNew( THD_statistics ) ;
       new_stats->type   = STATISTICS_TYPE ;
-      new_stats->parent = (XtPointer) dset ;
+      new_stats->parent = (RwcPointer) dset ;
       new_stats->bstat  = NULL ;
 
       bsold = old_stats->bstat ;
       bsnew = new_stats->bstat =
-         (THD_brick_stats *) XtCalloc( new_nvals , sizeof(THD_brick_stats) ) ;
+         (THD_brick_stats *) RwcCalloc( new_nvals , sizeof(THD_brick_stats) ) ;
 
       new_stats->nbstat = new_nvals ;
 
@@ -445,7 +445,7 @@ ENTRY("THD_setup_mastery") ;
       REPLACE_KILL( dset->kl , old_stats , new_stats ) ;
       dset->stats = new_stats ;
 
-      myXtFree(bsold) ; myXtFree(old_stats) ;
+      myRwcFree(bsold) ; myRwcFree(old_stats) ;
 
       /* 21 Feb 2001: mangle statistics if sub-ranging is used */
 
@@ -712,8 +712,8 @@ ENTRY("THD_copy_dset_subs");
     /* clear mastery information, since data is already stored */
     if( DBLK_IS_MASTERED(dout->dblk) ){
         dout->dblk->master_nvals = 0;
-        myXtFree( dout->dblk->master_ival );
-        myXtFree( dout->dblk->master_bytes );
+        myRwcFree( dout->dblk->master_ival );
+        myRwcFree( dout->dblk->master_bytes );
     }
 
     dout->dblk->malloc_type = DATABLOCK_MEM_MALLOC;

@@ -69,7 +69,7 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
 
    /*-- initialize a new 3D dataset --*/
 
-   dset       = myXtNew( THD_3dim_dataset ) ;  /* uses XtCalloc() */
+   dset       = myRwcNew( THD_3dim_dataset ) ;  /* uses RwcCalloc() */
    dset->dblk = blk  ;
    dkptr      = blk->diskptr ;
 
@@ -84,11 +84,11 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
    INIT_KILL(dset->kl) ;
    ADDTO_KILL(dset->kl,blk) ;
 
-   blk->parent  = (XtPointer) dset ;
+   blk->parent  = (RwcPointer) dset ;
    dset->parent = NULL ;
 
-   daxes = dset->daxes = myXtNew(THD_dataxes) ;
-   daxes->parent = (XtPointer) dset ;
+   daxes = dset->daxes = myRwcNew(THD_dataxes) ;
+   daxes->parent = (RwcPointer) dset ;
 
    dset->wod_daxes = NULL ;  /* 02 Nov 1996 */
 
@@ -201,7 +201,7 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
 #ifndef USE_APPLICATOR
    atr_str = THD_find_string_atr( blk , ATRNAME_KEYWORDS ) ;
    if( atr_str != NULL )
-      dset->keywords = XtNewString( atr_str->ch ) ;
+      dset->keywords = RwcNewString( atr_str->ch ) ;
 #endif
 
    /*---------------------------------*/
@@ -314,7 +314,7 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
    atr_flo = THD_find_float_atr( blk , ATRNAME_MARKSXYZ ) ;
 
    if( atr_flo != NULL ){
-      dset->markers = myXtNew( THD_marker_set ) ;  /* new set */
+      dset->markers = myRwcNew( THD_marker_set ) ;  /* new set */
       ADDTO_KILL(dset->kl , dset->markers) ;
 
       /*-- copy floating coordinates into marker struct --*/
@@ -434,7 +434,7 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
    if( atr_int != NULL ){  /* no warp */
       int wtype = atr_int->in[0] , rtype = atr_int->in[1]  ;
 
-      dset->warp = myXtNew( THD_warp ) ;
+      dset->warp = myRwcNew( THD_warp ) ;
       ADDTO_KILL( dset->kl , dset->warp ) ;
 
       atr_flo = THD_find_float_atr( blk , ATRNAME_WARP_DATA ) ;
@@ -506,12 +506,12 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
 
    if( atr_flo != NULL ){  /*** have new style statistics ***/
       int qq ;
-      dset->stats         = myXtNew( THD_statistics ) ;
+      dset->stats         = myRwcNew( THD_statistics ) ;
       dset->stats->type   = STATISTICS_TYPE ;
-      dset->stats->parent = (XtPointer) dset ;
+      dset->stats->parent = (RwcPointer) dset ;
       dset->stats->nbstat = blk->nvals ;
       dset->stats->bstat  = (THD_brick_stats *)
-                               XtMalloc( sizeof(THD_brick_stats) * blk->nvals ) ;
+                               RwcMalloc( sizeof(THD_brick_stats) * blk->nvals ) ;
       for( qq=0 ; qq < blk->nvals ; qq++ ){
          if( 2*qq+1 < atr_flo->nfl ){
             dset->stats->bstat[qq].min = atr_flo->fl[2*qq] ;
@@ -532,12 +532,12 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
 
       } else {                /*** have old style (integer) statistics ***/
          int qq ;
-         dset->stats         = myXtNew( THD_statistics ) ;
+         dset->stats         = myRwcNew( THD_statistics ) ;
          dset->stats->type   = STATISTICS_TYPE ;
-         dset->stats->parent = (XtPointer) dset ;
+         dset->stats->parent = (RwcPointer) dset ;
          dset->stats->nbstat = blk->nvals ;
          dset->stats->bstat  = (THD_brick_stats *)
-                                  XtMalloc( sizeof(THD_brick_stats) * blk->nvals ) ;
+                                  RwcMalloc( sizeof(THD_brick_stats) * blk->nvals ) ;
          for( qq=0 ; qq < blk->nvals ; qq++ ){
             if( 2*qq+1 < atr_int->nin ){
                dset->stats->bstat[qq].min = (float) atr_int->in[2*qq] ;
@@ -576,7 +576,7 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
    if( atr_int != NULL && atr_flo != NULL ){
      int isfunc , nvals ;
 
-     dset->taxis = myXtNew( THD_timeaxis ) ;
+     dset->taxis = myRwcNew( THD_timeaxis ) ;
 
      dset->taxis->type    = TIMEAXIS_TYPE ;
      dset->taxis->ntt     = atr_int->in[0] ;
@@ -600,7 +600,7 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
          dset->taxis->dz_sl   = 0.0 ;
        } else {
          int ii ;
-         dset->taxis->toff_sl = (float *) XtMalloc(sizeof(float)*dset->taxis->nsl) ;
+         dset->taxis->toff_sl = (float *) RwcMalloc(sizeof(float)*dset->taxis->nsl) ;
          for( ii=0 ; ii < dset->taxis->nsl ; ii++ )
            dset->taxis->toff_sl[ii] = atr_flo->fl[ii] ;
        }
@@ -618,8 +618,8 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
      if( nvals != 1 ){
        WARNING_message("Illegal 3D+time dataset & func_type combination: '%s'" ,
                        DSET_HEADNAME(dset) ) ;
-       if( dset->taxis->toff_sl != NULL ) myXtFree(dset->taxis->toff_sl) ;
-       myXtFree(dset->taxis) ;
+       if( dset->taxis->toff_sl != NULL ) myRwcFree(dset->taxis->toff_sl) ;
+       myRwcFree(dset->taxis) ;
      }
 
      /** 15 Aug 2005: don't allow milliseconds on input any more **/
@@ -643,7 +643,7 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
 
       if( ntag > MAX_TAG_NUM ) ntag = MAX_TAG_NUM ;
 
-      dset->tagset = myXtNew( THD_usertaglist ) ;  /* create tagset */
+      dset->tagset = myRwcNew( THD_usertaglist ) ;  /* create tagset */
       ADDTO_KILL( dset->kl , dset->tagset ) ;
 
       dset->tagset->num = ntag ;
