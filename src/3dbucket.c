@@ -43,7 +43,7 @@
 /*-------------------------- global data --------------------------*/
 
 static THD_3dim_dataset_array * BUCK_dsar  = NULL ;
-static XtPointer_array        * BUCK_subv  = NULL ;
+static RwcPointer_array        * BUCK_subv  = NULL ;
 static int                      BUCK_nvox  = -1 ;
 static int                      BUCK_dry   = 0 ;
 static int                      BUCK_verb  = 0 ;

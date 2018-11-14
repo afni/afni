@@ -12,9 +12,9 @@
    return an array of datablock arrays
 ------------------------------------------------------------------------*/
 
-XtPointer_array * THD_init_alldir_datablocks( char * dirname )
+RwcPointer_array * THD_init_alldir_datablocks( char * dirname )
 {
-   XtPointer_array     * super_array ;
+   RwcPointer_array     * super_array ;
    THD_datablock_array * dblk_arr ;
    THD_string_array    * flist , * rlist ;
    char prefix[THD_MAX_NAME] ;

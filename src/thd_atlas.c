@@ -2321,7 +2321,7 @@ apply_xform_12piece(ATLAS_XFORM *xf, float x, float y, float z, \
    LOAD_FVEC3( mv , x,y,z ) ;   
 
    /* load the transform */
-   ww = myXtNew( THD_talairach_12_warp ) ;
+   ww = myRwcNew( THD_talairach_12_warp ) ;
    ww->type = WARP_TALAIRACH_12_TYPE;
    ww->resam_type = 0;
 
