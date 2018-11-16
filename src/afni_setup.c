@@ -617,6 +617,15 @@ ENTRY("AFNI_pbar_CB") ;
       FIX_SCALE_SIZE(im3d) ;
    }
 
+   /*--- Set range = 1 ---*/
+
+   else if( w == im3d->vwid->func->pbar_setrange_1_pb ){
+     static char clabel[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" ;
+     char cmd[128] ;
+     sprintf(cmd,"SET_FUNC_RANGE %c.1.0",clabel[AFNI_controller_index(im3d)]) ;
+     (void)AFNI_driver(cmd) ;
+   }
+
    /*--- Set top value ---*/
 
    else if( w == im3d->vwid->func->pbar_settop_pb ){

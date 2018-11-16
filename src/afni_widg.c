@@ -3457,7 +3457,7 @@ STATUS("making func->rowcol") ;
 
    /*--- environment button in menu [10 Feb 2004] ---*/
 
-#ifdef ALLOW_PLUGINS
+#if 0 && defined(ALLOW_PLUGINS)
    func->pbar_environment_pb =
       XtVaCreateManagedWidget(
          "dialog" , xmPushButtonWidgetClass , func->pbar_menu ,
@@ -3474,7 +3474,22 @@ STATUS("making func->rowcol") ;
 
    /*---*/
 
-   func->pbar_equalize_pb =
+   func->pbar_setrange_1_pb =
+      XtVaCreateManagedWidget(
+         "dialog" , xmPushButtonWidgetClass , func->pbar_menu ,
+            LABEL_ARG("Set OLay range = 1") ,
+            XmNmarginHeight , 0 ,
+            XmNtraversalOn , True  ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+   XtAddCallback( func->pbar_setrange_1_pb , XmNactivateCallback ,
+                  AFNI_pbar_CB , im3d ) ;
+
+   MCW_register_hint( func->pbar_setrange_1_pb , "Set Overlay range to 1" ) ;
+
+   /*---*/
+
+   func->pbar_equalize_pb =      /* 16 Nov 2018 */
       XtVaCreateManagedWidget(
          "dialog" , xmPushButtonWidgetClass , func->pbar_menu ,
             LABEL_ARG("Equalize Spacing") ,
@@ -3484,23 +3499,26 @@ STATUS("making func->rowcol") ;
          NULL ) ;
    XtAddCallback( func->pbar_equalize_pb , XmNactivateCallback ,
                   AFNI_pbar_CB , im3d ) ;
-
    MCW_register_hint( func->pbar_equalize_pb , "Space separators equally" ) ;
 
    /*---*/
 
-   func->pbar_settop_pb =
-      XtVaCreateManagedWidget(
-         "dialog" , xmPushButtonWidgetClass , func->pbar_menu ,
-            LABEL_ARG("Set Top Value") ,
-            XmNmarginHeight , 0 ,
-            XmNtraversalOn , True  ,
-            XmNinitialResourcesPersistent , False ,
-         NULL ) ;
-   XtAddCallback( func->pbar_settop_pb , XmNactivateCallback ,
-                  AFNI_pbar_CB , im3d ) ;
-   MCW_register_hint( func->pbar_settop_pb , "Is scaled by 'range' controls" ) ;
-   XtSetSensitive( func->pbar_settop_pb , !PBAR_FULLRANGE ) ;
+   if( !PBAR_FULLRANGE ){
+     func->pbar_settop_pb =
+        XtVaCreateManagedWidget(
+           "dialog" , xmPushButtonWidgetClass , func->pbar_menu ,
+              LABEL_ARG("Set Top Value") ,
+              XmNmarginHeight , 0 ,
+              XmNtraversalOn , True  ,
+              XmNinitialResourcesPersistent , False ,
+           NULL ) ;
+     XtAddCallback( func->pbar_settop_pb , XmNactivateCallback ,
+                    AFNI_pbar_CB , im3d ) ;
+     MCW_register_hint( func->pbar_settop_pb , "Is scaled by 'range' controls" ) ;
+     /*** XtSetSensitive( func->pbar_settop_pb , !PBAR_FULLRANGE ) ; ***/
+   } else {
+     func->pbar_settop_pb = NULL ; /* 16 Nov 2018 */
+   }
 
    /*---*/
 
@@ -4543,8 +4561,7 @@ STATUS("making func->rowcol") ;
          (XtPointer) im3d ,                /* is pressed, and its data */
          NULL,NULL                         /* no special display */
       ) ;
-
-   XtVaSetValues( func->range_av->wtext, XmNcolumns, 7, NULL ); /* 13 Nov 2018 */
+   XtVaSetValues( func->range_av->wtext, XmNcolumns, 8, NULL ); /* 13 Nov 2018 */
 
    func->range_av->parent = (XtPointer) im3d ;
 

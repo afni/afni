@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 16 , NOV , 2018 , RWC , "AFNI GUI" , MICRO , TYPE_ENHANCE ,
+   "Add menu button to set func range = 1" ,
+   NULL } ,
+
  { 13 , NOV , 2018 , RWC , "All" , MICRO , TYPE_MODIFY ,
    "Baby steps towards removing use of XtMalloc etc" ,
    "Replace XtPointer, XtMalloc, etc, with RwcPointer, RwcMalloc, etc,\n"
