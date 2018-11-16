@@ -8,9 +8,10 @@
 #ver = '1.21' ; date = 'Nov 1, 2018' 
 # + [PT] file help file (double backslash)
 #
-ver = '1.22' ; date = 'Nov 5, 2018' 
+#ver = '1.22' ; date = 'Nov 5, 2018' 
 # + [PT] trying to get rid of all transparency/alphas, for simple
 #   jpg format
+#
 #
 #########################################################################
 
@@ -26,6 +27,10 @@ import afni_util  as au
 lvolreg        = [ 'roll\n(deg)', 'pitch\n(deg)', 'yaw\n(deg)', 
                    'dS\n(mm)',  'dL\n(mm)',  'dP\n(mm)' ]
 ok_ftypes      = [ '.jpg', '.png', '.tif' ]
+
+# these exact names are used in the functions in lib_apqc_tcsh.py to
+# determine what kind of images get made
+ok_review_styles = ["none", "basic", "pythonic", "java"]
 
 DEF_dpi        = 150
 DEF_prefix     = "PREFIX"
@@ -1048,8 +1053,9 @@ Help is here.
 
 -uvar_json
 -subj_dir
+-review_style {{{}}}
 
-'''
+'''.format( "|".join(ok_review_styles) )
 
 # -------------------------------------------------------------------
 
@@ -1057,14 +1063,18 @@ class apqc_tcsh_opts:
 
     # Each of these is required.  Might have other optional options in
     # the future
-    json    = ""
-    subjdir = ""
+    json     = ""
+    subjdir  = ""
+    revstyle = "basic"
 
     def set_json(self, json):
         self.json = json
 
     def set_subjdir(self, subjdir):
         self.subjdir = subjdir
+
+    def set_revstyle(self, revstyle):
+        self.revstyle = revstyle
 
     # check requirements
     def check_req(self):
@@ -1074,6 +1084,12 @@ class apqc_tcsh_opts:
             MISS+=1
         if self.subjdir == "":
             print("missing: subjdir")
+            MISS+=1
+        if self.revstyle == "":
+            print("missing: revstyle")
+            MISS+=1
+        elif not(ok_review_styles.__contains__(self.revstyle)) :
+            print("revstyle '{}' not in allowed list".format(self.revstyle))
             MISS+=1
         return MISS
 
@@ -1127,13 +1143,19 @@ def parse_tcsh_args(argv):
             i+= 1
             iopts.set_subjdir(argv[i])
 
+        elif argv[i] == "-review_style":
+            if i >= Narg:
+                ARG_missing_arg(argv[i])
+            i+= 1
+            iopts.set_revstyle(argv[i])
+
         else:
             print("** ERROR: unknown opt: '{}'".format(argv[i]))
             sys.exit(2)
         i+=1
 
     if iopts.check_req():
-        print("** ERROR: Missing input arguments")
+        print("** ERROR: with input arguments (missing or incorrect)")
         sys.exit(1)
         
     return iopts

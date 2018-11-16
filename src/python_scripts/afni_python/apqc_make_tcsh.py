@@ -24,8 +24,12 @@
 # + new I/O, renamed files, newer way of putting title
 # + will fail if template was used but can't be found
 #
-ver = '1.51' ; date = 'Oct 19, 2018' ; auth = 'PA Taylor'
+#ver = '1.51' ; date = 'Oct 19, 2018' ; auth = 'PA Taylor'
 # + 'exit 0' added
+#
+ver = '1.6' ; date = 'Nov , 2018' ; auth = 'PA Taylor'
+# + [PT] RUN_MODE now formalized through input name; default 'basic'
+# + [PT] end with @ss_review_basic echoed to terminal
 #
 #########################################################################
 
@@ -42,8 +46,6 @@ all_uvars = []
 for x in lssr.g_ss_uvar_fields: 
     all_uvars.append(x[0])
 
-RUN_MODE = '05_pythonic' # '00_basic'
-
 # ===================================================================
 # ===================================================================
 
@@ -53,6 +55,9 @@ if __name__ == "__main__":
 
     # define output tcsh script name
     otcsh = iopts.subjdir + '/' + lat.scriptname
+
+    # determines what functions/images are used.
+    RUN_MODE = iopts.revstyle
 
     # get dictionary form of json
     with open(iopts.json, 'r') as fff:
@@ -249,10 +254,7 @@ if __name__ == "__main__":
         idx     += 1
 
 
-
-
-
-    # out review basic info
+    # ------- out review basic info
     if 1 :
         ban      = lat.bannerize('ss review basic info')
         opref    = 'TXT_{:02d}_dat_ss_review_basic'.format(idx)
@@ -261,9 +263,6 @@ if __name__ == "__main__":
         str_FULL+= ban
         str_FULL+= cmd
         idx     += 1
-
-
-
 
 
     # ------- string warning: keep last in HTML converter because of
@@ -302,10 +301,18 @@ if __name__ == "__main__":
         idx     += 1
 
 
+    # -------------------- final steps -------------
 
+    # echo @ss_review_basic *to terminal*, and then exit with 0
+    if 1:
+        ban      = lat.bannerize('ss review basic info *to terminal*')
+        opref    = 'TXT_{:02d}_dat_ss_review_basic'.format(idx)
+        cmd      = lat.apqc_term_ss_review_basic( opref )
 
+        str_FULL+= ban
+        str_FULL+= cmd
+        idx     += 1
 
-    # -------------------- final string: exit 0 -------------
 
     if 1:
         ban      = lat.bannerize('Finish gracefully, if possible')
