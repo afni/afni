@@ -468,7 +468,7 @@ def apqc_1D_volreg(jpgsize, opref, run_mode):
     
     otxt  = "${odir_img}/${opref}" + ".txt"
 
-    if run_mode == '00_basic' :
+    if run_mode == 'basic' :
         cmd = '''
         1dplot                                                     
         -sepscl 
@@ -481,7 +481,7 @@ def apqc_1D_volreg(jpgsize, opref, run_mode):
         "${enorm_dset}" 
         "${outlier_dset}" 
         '''
-    elif run_mode == '05_pythonic' :
+    elif run_mode == 'pythonic' :
         cmd = '''
         1dplot.py                                                     
         -sepscl 
@@ -524,7 +524,7 @@ def apqc_1D_cen_out(jpgsize, opref, run_mode):
     otxt  = "${odir_img}/${opref}" + ".txt"
     osubtxt  = "${odir_img}/${opref}" + "_SUB.txt"
 
-    if run_mode == '00_basic' :
+    if run_mode == 'basic' :
         cmd = '''
         1dplot
         -one 
@@ -542,7 +542,7 @@ def apqc_1D_cen_out(jpgsize, opref, run_mode):
         imtxt = '''Check: outliers
         volume fraction (black), limit (red), censored (green)'''
 
-    elif run_mode == '05_pythonic' :
+    elif run_mode == 'pythonic' :
         cmd = '''
         1dplot.py                                                     
         -boxplot_on    
@@ -593,7 +593,7 @@ def apqc_1D_motenorm_cen(jpgsize, opref, run_mode):
     otxt     = "${odir_img}/${opref}" + ".txt"
     osubtxt  = "${odir_img}/${opref}" + "_SUB.txt"
 
-    if run_mode == '00_basic' :
+    if run_mode == 'basic' :
         cmd = '''
         1dplot 
         -one 
@@ -610,7 +610,7 @@ def apqc_1D_motenorm_cen(jpgsize, opref, run_mode):
         imtxt = '''Check: motion
         enorm (black), mot limit (red), censored (green)'''
 
-    elif run_mode == '05_pythonic' :
+    elif run_mode == 'pythonic' :
         cmd = '''
         1dplot.py                                                     
         -boxplot_on    
@@ -655,7 +655,7 @@ def apqc_1D_xmat_stim(jpgsize, opref, run_mode ):
 
     otxt  = "${odir_img}/${opref}" + ".txt"
 
-    if run_mode == '00_basic' :
+    if run_mode == 'basic' :
         cmd = '''
         1dplot 
         -sepscl 
@@ -665,7 +665,7 @@ def apqc_1D_xmat_stim(jpgsize, opref, run_mode ):
         -title    "Non-baseline regressors in X-matrix"
         ${xmat_stim}
         '''
-    elif run_mode == '05_pythonic' :
+    elif run_mode == 'pythonic' :
         cmd = '''
         1dplot.py 
         -sepscl 
@@ -702,7 +702,7 @@ def apqc_1D_sum_ideal(jpgsize, opref, run_mode):
 
     otxt  = "${odir_img}/${opref}" + ".txt"
 
-    if run_mode == '00_basic' :
+    if run_mode == 'basic' :
         cmd = '''
         1dplot 
         -sepscl 
@@ -712,7 +712,7 @@ def apqc_1D_sum_ideal(jpgsize, opref, run_mode):
         -title    "Sum of non-baseline regressors in X-matrix"
         ${sum_ideal}
         '''
-    elif run_mode == '05_pythonic' :
+    elif run_mode == 'pythonic' :
         cmd = '''
         1dplot.py 
         -boxplot_on
@@ -1090,6 +1090,35 @@ endif
 
     lout = [comm, pre, cmd, imtxt]
     return '\n\n'.join(lout)
+
+
+# ========================== term echo ==============================
+
+# @ss_review_basic dumped to text file
+# 1
+def apqc_term_ss_review_basic( opref ):
+
+    comm  = '''basic information from processing'''
+
+    pre = '''
+    echo ""
+    echo ""
+    echo "# +++++++++++ Check output of @ss_review_basic +++++++++++ #"
+    echo ""
+    '''
+
+    cmd0 = '''
+    cat out.ss_review.${subj}.txt
+    '''
+
+    comm  = commentize( comm )
+    pre   = commandize( pre, cmdindent=0, 
+                       ALIGNASSIGN=True, ALLEOL=False )
+    cmd0  = commandize( cmd0 )
+
+    lout = [comm, pre, cmd0]
+    return '\n\n'.join(lout)
+
 
 # ======================== html page title ============================
 
