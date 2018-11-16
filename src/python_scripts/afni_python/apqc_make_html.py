@@ -241,7 +241,7 @@ if __name__ == "__main__":
             if text :
                 ht+= lah.wrap_image_txt( text,
                                          addclass=" class='container' ",
-                                         dobold=False )
+                                         dobold=True )
 
 
     # ---------------------------------------------------------------------
@@ -280,7 +280,7 @@ if __name__ == "__main__":
             if text :
                 ht+= lah.wrap_image_txt( text,
                                          addclass=" class='container' ",
-                                         dobold=False )
+                                         dobold=True )
 
 
     # --------------------------- text info -------------------------------
@@ -319,7 +319,7 @@ if __name__ == "__main__":
             if text :
                 ht+= lah.wrap_image_txt( text,
                                          addclass=" class='container' ",
-                                         dobold=False )
+                                         dobold=True )
 
 
     # -------------- done: wrap up and close body text ------------------

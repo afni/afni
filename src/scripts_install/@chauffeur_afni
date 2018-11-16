@@ -146,6 +146,9 @@ set version   = "4.5";   set rev_dat   = "Nov 6, 2018"
 #     + [PT] also put a check around AFNI_IMAGE_GLOBALRANGE because it
 #       can get reset, again for 4dmode considerations
 #
+set version   = "4.51";   set rev_dat   = "Nov 16, 2018"
+#     + [PT] removed earlier testing echo 
+#
 # =====================================================================
 
 # For more info about opts/fields, see:
@@ -734,7 +737,6 @@ if ( $SAVE_PBAR == 1 ) then
     endif
 endif
 
-
 # -------------------- 4D mode reslicing+assembling if necessary
 
 if ( $MODE_4D == 1 ) then
@@ -1157,6 +1159,7 @@ foreach rrr ( `seq 1 1 $Nreps` )  ### the BIG loop starts
         # + also, if "-box_focus_slices" is on, then this gets
         #   recalculated just below, for the refbox dset
         set gapord = `@djunct_slice_space -nwin $Nwin -inset "$ulay"`
+        #echo "\n\n\n\n\n\n gapord : $gapord \n\n\n\n"
     endif
 
     echo "++ Dimensions (xyzt): $Dim"
