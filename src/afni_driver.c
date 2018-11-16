@@ -2456,7 +2456,7 @@ ENTRY("AFNI_set_func_range") ;
    if( val < 0.0f ) RETURN(-1) ;
 
    if( val == 0.0f ){
-     char clabel[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" ;
+     static char clabel[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" ;
      char str[8] ;
      sprintf(str,"%c.+",clabel[ic]) ;
      RETURN( AFNI_set_func_autorange(str) ) ;
