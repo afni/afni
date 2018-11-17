@@ -122,6 +122,8 @@ char * GetAfniWebBrowser(void)
    if( awb == NULL ) awb = THD_find_executable( "mozilla" )  ;
    if( awb == NULL ) awb = THD_find_executable( "netscape" ) ;
    if( awb == NULL ) awb = THD_find_executable( "opera" )    ;
+   if( awb == NULL ) awb = THD_find_executable( "epiphany" ) ;
+   if( awb == NULL ) awb = THD_find_executable( "midori" )   ;
    return(awb);
 }
 
