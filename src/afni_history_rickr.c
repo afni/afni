@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17, Nov, 2018, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "add epiphany and midori as browser candidates",
+   NULL
+ } ,
+
  { 14, Nov, 2018, RCR, "3dDeconvolve", MICRO, TYPE_ENHANCE,
    "update 3dREMLfit command to handle surface data",
    "Strip off the .niml.dset extension, if found in the bucket name.\n"
