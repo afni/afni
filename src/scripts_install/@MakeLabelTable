@@ -176,8 +176,16 @@ MAKE_TABLE:
       if ($#inds > 1) then
          set ci = 1
          foreach ind ($inds)
-            printf '"%d" "%s%02d %s"\n' $ind "$ll" $ci "$ln" \
+            # check for long names here and add these on if they exist
+            if ("$ln" != "") then
+               printf '"%d" "%s%02d %s"\n' $ind "$ll" $ci "$ln" \
                >> /tmp/${RNS}.___lt.txt
+            # the more usual case of no long names - just name and number
+            else
+               printf '"%d" "%s%02d"\n' $ind "$ll" $ci \
+               >> /tmp/${RNS}.___lt.txt
+
+            endif
             if ($status) then
                echo "Error:"
                echo "printf command failed at: $ind $ll"
@@ -189,8 +197,15 @@ MAKE_TABLE:
             @ ci ++
          end
       else
-         printf '"%d" "%s" "%s"\n' $llistmin[$cnt] "$ll" "$ln" \
+         # add long name if it exists to entry
+         if ("$ln" != "") then
+            printf '"%d" "%s" "%s"\n' $llistmin[$cnt] "$ll" "$ln" \
                >> /tmp/${RNS}.___lt.txt
+        else
+            # the more usual case of no long names - just name and number
+             printf '"%d" "%s"\n' $llistmin[$cnt] "$ll" \
+               >> /tmp/${RNS}.___lt.txt
+          endif
             if ($status) then
                echo "Error:"
                echo "printf command failed at: $llistmin[$cnt] $ll"
@@ -231,7 +246,7 @@ MAKE_TABLE:
       printf 'pbar_name="%s">\n' $pbar >> $labeltable
       uniq /tmp/${RNS}.___lt.txt >> $labeltable
       printf '</VALUE_LABEL_DTABLE>\n' >> $labeltable
-   
+
 PUT_TABLE:
    if ($target_dset != '') then
       3drefit -labeltable $labeltable $target_dset
@@ -927,7 +942,7 @@ PARSE:
 # parse the labels here
 #   add longname parsing
 PARSE_LABEL_FILE:
-    if ($flab) then
+    if ($flab != "") then
 	    # get value indices from label file
 	    set llistmin = (`awk -F "$delim" '{print $'$iV'}' $flab`)
 	
