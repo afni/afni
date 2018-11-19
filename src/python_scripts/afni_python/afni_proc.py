@@ -622,6 +622,7 @@ g_version = "version 6.21, October 17, 2018"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
+      [ "19 Nov 2018",  "apqc_make_tcsh.py" ],
       [ " 3 May 2018",  "@extract_meica_ortvec" ],
       [ "23 Mar 2018",  "tedana_wrapper.py" ],
       [ "23 Feb 2018",  "@compute_OC_weights -echo_times" ],
@@ -752,6 +753,8 @@ EPInomodLabs = ['postdata', 'align', 'tlrc', 'mask']
 
 default_roi_keys = ['brain', 'GM', 'WM', 'CSF', 'GMe', 'WMe', 'CSFe']
 stim_file_types  = ['times', 'AM1', 'AM2', 'IM', 'file']
+# apply to apqc_make_tcsh.py
+g_html_review_styles = ['none', 'basic', 'pythonic' ] # java?
 
 # --------------------------------------------------------------------------
 # data processing stream class
@@ -878,9 +881,11 @@ class SubjProcSream:
         self.have_3dd_stats = 1         # do we have 3dDeconvolve stats
         self.have_reml_stats = 0        # do we have 3dREMLfit stats
         self.epi_review = '@epi_review.$subj' # filename for gen_epi_review.py
+        self.html_rev_style = 'basic'   # html_review_style
         self.made_ssr_scr = 0           # did we make subj review scripts
-        self.ssr_basic    = '@ss_review_basic'        # basic review script
-        self.ssr_b_out    = 'out.ss_review.$subj.txt' # text output from it
+        self.ssr_basic    = '@ss_review_basic'         # basic review script
+        self.ssr_b_out    = 'out.ss_review.$subj.txt'  # text output from it
+        self.ssr_uvars    = 'out.ss_review_uvars.json' # uvars output from it
         self.test_stims   = 1           # test stim_files for appropriateness
         self.test_dsets   = 1           # test datasets for existence
 
@@ -1081,6 +1086,9 @@ class SubjProcSream:
                         helpstr='exit script on any command error')
         self.valid_opts.add_opt('-gen_epi_review', 1, [],
                         helpstr='generate a script to review orig EPI data')
+        self.valid_opts.add_opt('-html_review_style', 1, [],
+                        acplist=g_html_review_styles,
+                        helpstr='generate ss review HTML pages')
         self.valid_opts.add_opt('-no_epi_review', 0, [],
                         helpstr='do not generate an EPI review script')
         self.valid_opts.add_opt('-keep_rm_files', 0, [],
@@ -2862,6 +2870,11 @@ class SubjProcSream:
                 % (self.ssr_basic, self.ssr_basic, self.ssr_b_out)
            self.write_text(ss)
 
+           if self.html_rev_style in g_html_review_styles:
+              ss = self.run_html_review()
+              if ss:
+                 self.write_text(ss)
+
         cmd_str = self.script_final_error_checks()
         if cmd_str: 
            if self.out_wfile:
@@ -2915,6 +2928,22 @@ class SubjProcSream:
         cmd = ''
 
         # pre-steady state errors are checked in @ss_review_basic
+
+        return cmd
+
+    def run_html_review(self):
+        """run apqc_make_tcsh.py"""
+        if self.html_rev_style not in g_html_review_styles: return ''
+        if self.html_rev_style == 'none':                   return ''
+        if self.ssr_uvars == '':                            return ''
+
+        cmd = '# generate html ss review pages\n'                           \
+              '# (akin to static images from running @ss_review_driver)\n'  \
+              'apqc_make_tcsh.py -review_style %s -subj_dir . \\\n'         \
+              '    -uvar_json %s\n'                                         \
+              './@ss_review_html\n'                                         \
+              'apqc_make_html.py -qc_dir QC_$subj\n\n'                      \
+              % (self.html_rev_style, self.ssr_uvars)
 
         return cmd
 
