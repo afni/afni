@@ -17,8 +17,11 @@ auth = 'PA Taylor'
 # + do stats differently: separate olay and thr
 # + also start a json for the pbar info
 #
-ver = '1.5' ; date = 'Nov 1, 2018'
+#ver = '1.5' ; date = 'Nov 1, 2018'
 # + update regression warning 
+#
+ver = '1.51' ; date = 'Nov 19, 2018'
+# + update 1dplot string labels (add in "enorm" and "outliers")
 #
 #########################################################################
 
@@ -473,7 +476,7 @@ def apqc_1D_volreg(jpgsize, opref, run_mode):
         1dplot                                                     
         -sepscl 
         -volreg 
-        -ynames   - 
+        -ynames   enorm outliers - 
         -xlabel   "vol"
         -title    "Estimated motion parameters (volreg)"
         -jpgs     ${jpgsize} "${odir_img}/${opref}" 
