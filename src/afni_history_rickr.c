@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19, Nov, 2018, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "add opt -html_review_style and run apqc_make_html.py",
+   NULL
+ } ,
+
  { 19, Nov, 2018, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
    "run any review scripts before possibly [re-]moving preproc data",
    NULL
