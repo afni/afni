@@ -617,6 +617,7 @@ g_history = """
     6.20 Oct 11, 2018: have gen_ss_r_s always write out.gen_ss_uvars.json
     6.21 Oct 17, 2018: pass -ss_review_dset to gen_ss_review_scripts.py
     6.22 Nov 19, 2018: added opt -html_review_style and run apqc_make_html.py
+        - and check for respective dependencies
 """
 
 g_version = "version 6.22, November 19, 2018"
@@ -2940,6 +2941,18 @@ class SubjProcSream:
         if self.html_rev_style not in g_html_review_styles: return ''
         if self.html_rev_style == 'none':                   return ''
         if self.ssr_uvars == '':                            return ''
+
+        needed = [ 'Xvfb', 'djpeg', 'cjpeg', 'pnmcat', 'pbmtext', 
+                   'pamstretch', 'pbmtopgm' ]
+        missing = []
+        for prog in needed:
+           nfound = UTIL.num_found_in_path(prog, mtype=1)
+           if nfound < 1:
+              missing.append(prog)
+        if len(missing) > 0:
+           print("** will not run QC html program, apqc_make_tcsh.py\n" \
+                 "   (missing: %s)\n" % ', '.join(missing))
+           return ''
 
         cmd = '# generate html ss review pages\n'                           \
               '# (akin to static images from running @ss_review_driver)\n'  \
