@@ -616,9 +616,10 @@ g_history = """
         - show sample BIDS-like directory struct under DIRECTORY STRUCTURE NOTE
     6.20 Oct 11, 2018: have gen_ss_r_s always write out.gen_ss_uvars.json
     6.21 Oct 17, 2018: pass -ss_review_dset to gen_ss_review_scripts.py
+    6.22 Nov 19, 2018: added opt -html_review_style and run apqc_make_html.py
 """
 
-g_version = "version 6.21, October 17, 2018"
+g_version = "version 6.22, November 19, 2018"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -1629,6 +1630,9 @@ class SubjProcSream:
 
         opt = opt_list.find_opt('-no_epi_review') # no epi review script
         if opt != None: self.epi_review = None
+
+        opt = opt_list.find_opt('-html_review_style') # for apqc_make_tcsh.py
+        if opt != None: self.html_rev_style = opt.parlist[0]
 
         opt = opt_list.find_opt('-keep_rm_files')
         if opt != None: self.rm_rm = 0
@@ -2944,6 +2948,13 @@ class SubjProcSream:
               './@ss_review_html\n'                                         \
               'apqc_make_html.py -qc_dir QC_$subj\n\n'                      \
               % (self.html_rev_style, self.ssr_uvars)
+
+        if self.out_dir:
+           ocmd = 'afni_open -b %s/QC_$subj/index.html' % self.out_dir
+        else:
+           ocmd = 'afni_open -b QC_$subj/index.html'
+
+        cmd += 'echo "\\nconsider running: \\n\\n    %s\\n"\n\n' % ocmd
 
         return cmd
 
