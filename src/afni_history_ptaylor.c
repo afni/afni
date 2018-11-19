@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 21, Oct , 2018 , PT , "apqc_make_tcsh.py" , MICRO , TYPE_GENERAL,
+   "Include 'enorm' and 'outlier' string labels in basic 1dplot.",
+   "Clarify plot...\n"
+},
+
 { 6, Nov , 2018 , PT , "@chauffeur_afni" , MINOR , TYPE_BUG_FIX,
    "Fixed delta-slice definition for 4D mode of imaging (occasional probs).",
    "Should have correct gapord values across all views now.\n"
