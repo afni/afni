@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19, Nov, 2018, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "run any review scripts before possibly [re-]moving preproc data",
+   NULL
+ } ,
+
  { 14, Nov, 2018, RCR, "3dDeconvolve", MICRO, TYPE_ENHANCE,
    "update 3dREMLfit command to handle surface data",
    "Strip off the .niml.dset extension, if found in the bucket name.\n"

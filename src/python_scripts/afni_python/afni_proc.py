@@ -2854,8 +2854,22 @@ class SubjProcSream:
             self.write_text('# remove temporary files\n'
                             '\\rm -f%s %s\n\n' % (ropt, delstr))
 
+        # at the end, if the basic review script is here, run it
+        if self.epi_review:
+           ss = '# if the basic subject review script is here, run it\n' \
+                '# (want this to be the last text output)\n'             \
+                'if ( -e %s ) ./%s |& tee %s\n\n'                        \
+                % (self.ssr_basic, self.ssr_basic, self.ssr_b_out)
+           self.write_text(ss)
+
+        cmd_str = self.script_final_error_checks()
+        if cmd_str: 
+           if self.out_wfile:
+              self.write_text(cmd_str)
+
         # move or remove pre-processing files (but not rm files)
         # (2 sets: removal and move)
+        # ** this should happen after any 'review' scripts are run
         if self.surf_anat: proc_files = 'pb*.$subj.[lr]*'
         else:              proc_files = 'pb*.$subj.r*.*'
 
@@ -2873,20 +2887,8 @@ class SubjProcSream:
                       "\\rm %s\n\n" % rm_files
             self.write_text(add_line_wrappers(cmd_str))
 
-        # at the end, if the basic review script is here, run it
-        if self.epi_review:
-           ss = '# if the basic subject review script is here, run it\n' \
-                '# (want this to be the last text output)\n'             \
-                'if ( -e %s ) ./%s |& tee %s\n\n'                        \
-                % (self.ssr_basic, self.ssr_basic, self.ssr_b_out)
-           self.write_text(ss)
-
-        cmd_str = self.script_final_error_checks()
-        if cmd_str: 
-           if self.out_wfile:
-              self.write_text(cmd_str)
-
-        self.write_text('# return to parent directory\n'
+        # finished with all data processing
+        self.write_text('# return to parent directory (just in case...)\n'
                         'cd ..\n\n')
 
         self.write_text('echo "execution finished: `date`"\n\n')
