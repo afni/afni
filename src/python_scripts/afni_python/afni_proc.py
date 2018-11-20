@@ -616,12 +616,15 @@ g_history = """
         - show sample BIDS-like directory struct under DIRECTORY STRUCTURE NOTE
     6.20 Oct 11, 2018: have gen_ss_r_s always write out.gen_ss_uvars.json
     6.21 Oct 17, 2018: pass -ss_review_dset to gen_ss_review_scripts.py
+    6.22 Nov 19, 2018: added opt -html_review_style and run apqc_make_html.py
+        - and check for respective dependencies
 """
 
-g_version = "version 6.21, October 17, 2018"
+g_version = "version 6.22, November 19, 2018"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
+      [ "19 Nov 2018",  "apqc_make_tcsh.py" ],
       [ " 3 May 2018",  "@extract_meica_ortvec" ],
       [ "23 Mar 2018",  "tedana_wrapper.py" ],
       [ "23 Feb 2018",  "@compute_OC_weights -echo_times" ],
@@ -752,6 +755,8 @@ EPInomodLabs = ['postdata', 'align', 'tlrc', 'mask']
 
 default_roi_keys = ['brain', 'GM', 'WM', 'CSF', 'GMe', 'WMe', 'CSFe']
 stim_file_types  = ['times', 'AM1', 'AM2', 'IM', 'file']
+# apply to apqc_make_tcsh.py
+g_html_review_styles = ['none', 'basic', 'pythonic' ] # java?
 
 # --------------------------------------------------------------------------
 # data processing stream class
@@ -878,9 +883,11 @@ class SubjProcSream:
         self.have_3dd_stats = 1         # do we have 3dDeconvolve stats
         self.have_reml_stats = 0        # do we have 3dREMLfit stats
         self.epi_review = '@epi_review.$subj' # filename for gen_epi_review.py
+        self.html_rev_style = 'basic'   # html_review_style
         self.made_ssr_scr = 0           # did we make subj review scripts
-        self.ssr_basic    = '@ss_review_basic'        # basic review script
-        self.ssr_b_out    = 'out.ss_review.$subj.txt' # text output from it
+        self.ssr_basic    = '@ss_review_basic'         # basic review script
+        self.ssr_b_out    = 'out.ss_review.$subj.txt'  # text output from it
+        self.ssr_uvars    = 'out.ss_review_uvars.json' # uvars output from it
         self.test_stims   = 1           # test stim_files for appropriateness
         self.test_dsets   = 1           # test datasets for existence
 
@@ -1081,6 +1088,9 @@ class SubjProcSream:
                         helpstr='exit script on any command error')
         self.valid_opts.add_opt('-gen_epi_review', 1, [],
                         helpstr='generate a script to review orig EPI data')
+        self.valid_opts.add_opt('-html_review_style', 1, [],
+                        acplist=g_html_review_styles,
+                        helpstr='generate ss review HTML pages')
         self.valid_opts.add_opt('-no_epi_review', 0, [],
                         helpstr='do not generate an EPI review script')
         self.valid_opts.add_opt('-keep_rm_files', 0, [],
@@ -1621,6 +1631,9 @@ class SubjProcSream:
 
         opt = opt_list.find_opt('-no_epi_review') # no epi review script
         if opt != None: self.epi_review = None
+
+        opt = opt_list.find_opt('-html_review_style') # for apqc_make_tcsh.py
+        if opt != None: self.html_rev_style = opt.parlist[0]
 
         opt = opt_list.find_opt('-keep_rm_files')
         if opt != None: self.rm_rm = 0
@@ -2854,8 +2867,27 @@ class SubjProcSream:
             self.write_text('# remove temporary files\n'
                             '\\rm -f%s %s\n\n' % (ropt, delstr))
 
+        # at the end, if the basic review script is here, run it
+        if self.epi_review:
+           ss = '# if the basic subject review script is here, run it\n' \
+                '# (want this to be the last text output)\n'             \
+                'if ( -e %s ) ./%s |& tee %s\n\n'                        \
+                % (self.ssr_basic, self.ssr_basic, self.ssr_b_out)
+           self.write_text(ss)
+
+           if self.html_rev_style in g_html_review_styles:
+              ss = self.run_html_review()
+              if ss:
+                 self.write_text(ss)
+
+        cmd_str = self.script_final_error_checks()
+        if cmd_str: 
+           if self.out_wfile:
+              self.write_text(cmd_str)
+
         # move or remove pre-processing files (but not rm files)
         # (2 sets: removal and move)
+        # ** this should happen after any 'review' scripts are run
         if self.surf_anat: proc_files = 'pb*.$subj.[lr]*'
         else:              proc_files = 'pb*.$subj.r*.*'
 
@@ -2873,20 +2905,8 @@ class SubjProcSream:
                       "\\rm %s\n\n" % rm_files
             self.write_text(add_line_wrappers(cmd_str))
 
-        # at the end, if the basic review script is here, run it
-        if self.epi_review:
-           ss = '# if the basic subject review script is here, run it\n' \
-                '# (want this to be the last text output)\n'             \
-                'if ( -e %s ) ./%s |& tee %s\n\n'                        \
-                % (self.ssr_basic, self.ssr_basic, self.ssr_b_out)
-           self.write_text(ss)
-
-        cmd_str = self.script_final_error_checks()
-        if cmd_str: 
-           if self.out_wfile:
-              self.write_text(cmd_str)
-
-        self.write_text('# return to parent directory\n'
+        # finished with all data processing
+        self.write_text('# return to parent directory (just in case...)\n'
                         'cd ..\n\n')
 
         self.write_text('echo "execution finished: `date`"\n\n')
@@ -2913,6 +2933,41 @@ class SubjProcSream:
         cmd = ''
 
         # pre-steady state errors are checked in @ss_review_basic
+
+        return cmd
+
+    def run_html_review(self):
+        """run apqc_make_tcsh.py"""
+        if self.html_rev_style not in g_html_review_styles: return ''
+        if self.html_rev_style == 'none':                   return ''
+        if self.ssr_uvars == '':                            return ''
+
+        needed = [ 'Xvfb', 'djpeg', 'cjpeg', 'pnmcat', 'pbmtext', 
+                   'pamstretch', 'pbmtopgm' ]
+        missing = []
+        for prog in needed:
+           nfound = UTIL.num_found_in_path(prog, mtype=1)
+           if nfound < 1:
+              missing.append(prog)
+        if len(missing) > 0:
+           print("** will not run QC html program, apqc_make_tcsh.py\n" \
+                 "   (missing: %s)\n" % ', '.join(missing))
+           return ''
+
+        cmd = '# generate html ss review pages\n'                           \
+              '# (akin to static images from running @ss_review_driver)\n'  \
+              'apqc_make_tcsh.py -review_style %s -subj_dir . \\\n'         \
+              '    -uvar_json %s\n'                                         \
+              './@ss_review_html\n'                                         \
+              'apqc_make_html.py -qc_dir QC_$subj\n\n'                      \
+              % (self.html_rev_style, self.ssr_uvars)
+
+        if self.out_dir:
+           ocmd = 'afni_open -b %s/QC_$subj/index.html' % self.out_dir
+        else:
+           ocmd = 'afni_open -b QC_$subj/index.html'
+
+        cmd += 'echo "\\nconsider running: \\n\\n    %s\\n"\n\n' % ocmd
 
         return cmd
 
