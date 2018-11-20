@@ -7381,27 +7381,31 @@ def db_cmd_gen_review(proc):
           print('-- no regress block, skipping gen_ss_review_scripts.py')
        return cmd
 
-    lopts = ' '
-    if proc.mot_cen_lim > 0.0: lopts += '-mot_limit %s ' % proc.mot_cen_lim
-    if proc.out_cen_lim > 0.0: lopts += '-out_limit %s ' % proc.out_cen_lim
-    if proc.mot_extern != '' : lopts += '-motion_dset %s ' % proc.mot_file
+    lopts = ''
+    if proc.mot_cen_lim > 0.0: lopts += ' -mot_limit %s' % proc.mot_cen_lim
+    if proc.out_cen_lim > 0.0: lopts += ' -out_limit %s' % proc.out_cen_lim
+    if proc.mot_extern != '' : lopts += ' -motion_dset %s' % proc.mot_file
     if len(proc.stims) == 0 and proc.errts_final:       # 2 Sep, 2015
        if proc.surf_anat: ename = proc.errts_final
        else:              ename = '%s%s.HEAD' % (proc.errts_final, proc.view)
-       lopts += ' \\\n    -errts_dset %s ' % ename
+       lopts += ' \\\n    -errts_dset %s' % ename
 
     # generally include the review output file name as a uvar
     if proc.ssr_b_out != '':
-       revstr = '    -ss_review_dset %s \\\n' % proc.ssr_b_out
+       revstr = ' \\\n    -ss_review_dset %s' % proc.ssr_b_out
     else:
        revstr = ''
 
+    if proc.ssr_uvars:
+       uvopt = ' \\\n    -write_uvars_json %s' % proc.ssr_uvars
+    else:
+       uvopt = ''
+
     cmd += '# generate scripts to review single subject results\n'      \
            '# (try with defaults, but do not allow bad exit status)\n'  \
-           'gen_ss_review_scripts.py%s-exit0 \\\n'                      \
-           '%s'                                                         \
-           '    -write_uvars_json out.ss_review_uvars.json\n\n'         \
-           % (lopts, revstr)
+           'gen_ss_review_scripts.py%s -exit0'                          \
+           '%s%s\n\n'                                                   \
+           % (lopts, revstr, uvopt)
 
     return cmd
 
