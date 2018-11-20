@@ -261,19 +261,32 @@ else
   set doQfinal = " "
 endif
 
+# Run 3dQwarp in 2 segments, to avoid gcc OpenMP bug
+#  where it freezes sometimes with inter-thread conflicts;
+#  this happens only in long runs, so breaking the run
+#  into 2 pieces will (I hope) elide this annoyance - RWC :(
+
 3dQwarp \
     -base "${Basedset}[0]"               \
     -source "${pref}AffSS.nii"           \
     -iniwarp "${pref}TAL5_AWARP.nii"     \
-    -inilev 1                            \
+    -inilev 1 -maxlev 5                  \
+    -pblur                               \
+    -nodset -prefix "${pref}QQ5.nii"
+
+3dQwarp \
+    -base "${Basedset}[0]"               \
+    -source "${pref}AffSS.nii"           \
+    -iniwarp "${pref}QQ5_WARP.nii"       \
+    -inilev 6                            \
     -pblur -minpatch $minp               \
-    $doQfinal -workhard:5:8              \
+    $doQfinal -workhard:6:7              \
     -prefix $odir/anatQQ."${SubID}".nii
 
 ## Cleanup
 
 \mv -f "${pref}TAL5_Allin.aff12.1D" $odir/anatQQ."${SubID}".aff12.1D
-\rm -f ${pref}*
+\rm -f "${pref}"*
 
 ## Step #7: Make two pretty pictures, and scram
 
