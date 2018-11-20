@@ -66,6 +66,16 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 20, Nov , 2018 , PT , "@djunct_montage_coordinator" , MINOR , TYPE_NEW_PROG,
+   "For use with @chauffeur_afni: subroutine that used to be *in* it.",
+   "More modular and useful now, better selection of montage xhair loc, too.\n"
+},
+
+{ 20, Nov , 2018 , PT , "@chauffeur_afni" , MINOR , TYPE_BUG_FIX,
+   "Fixed the calc of the location of xhairs when box_focus_slices was used.",
+   "Should have correct focal location in montages now.\n"
+},
+
 { 21, Oct , 2018 , PT , "apqc_make_tcsh.py" , MICRO , TYPE_GENERAL,
    "Include 'enorm' and 'outlier' string labels in basic 1dplot.",
    "Clarify plot...\n"
@@ -91,7 +101,7 @@ afni_history_struct ptaylor_history[] = {
    "These are no longer listed as experimental!\n"
 },
 
-{ 1, Nov , 2018 , PT , "1dplotpy" , MAJOR , TYPE_NEW_PROG,
+{ 1, Nov , 2018 , PT , "1dplot.py" , MAJOR , TYPE_NEW_PROG,
    "New plotting program for 1D files.",
    "Copies much of the fun 1dplot capability to some pythonic realm.\n"
 },
