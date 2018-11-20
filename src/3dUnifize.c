@@ -821,6 +821,8 @@ int main( int argc , char *argv[] )
        "                  correct for very large shading artifacts.\n"
        "               ++ If the results of 3dUnifize have a lot of noise outside the head,\n"
        "                  then using '-clfrac 0.5' (or even larger) will probably help.\n"
+       "               ++ If the results have 'hot spots' in the WM, also try setting\n"
+       "                  '-clfrac 0.5', which should help with this problem.\n"
 #ifndef USE_ALL_VALS
        "\n"
        "  -useall    = The 'old' way of operating was to use all dataset values\n"
@@ -833,6 +835,7 @@ int main( int argc , char *argv[] )
        "            - can always be found at the Everest Bakery in Namche Bazaar,\n"
        "              if you have any questions about this program\n"
 #ifdef USE_OMP
+       "\n"
        "-- This code uses OpenMP to speed up the slowest part (voxel-wise histograms).\n"
 #endif
        , Uprad , Uprad , Upbot , Uptop ) ;
