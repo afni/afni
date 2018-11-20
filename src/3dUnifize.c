@@ -14,6 +14,19 @@ static int USE_ALL_VALS = 0 ;  /* 17 May 2016 */
 static int do_EPI    = 0 ;  /* 01 Mar 2017 */
 static int do_double = 1 ;  /* duplo? */
 
+static THD_3dim_dataset *inset=NULL , *outset=NULL ;
+
+static float Upbot = 70.0f ;  /* percentile bottom and top */
+static float Uptop = 80.0f ;
+static float Uprad = 18.3f ;  /* sphere radius */
+
+#define PKVAL 1000.0f
+#define PKMID  666.0f
+
+static MRI_IMAGE *sclim = NULL ;     /* 25 Jun 2013 */
+static char     *sspref = NULL ;
+static char     *ampref = NULL ;     /* 20 Nov 2018 */
+
 /*---------------------------------------------------------------------------*/
 
 void mri_invertcontrast_inplace( MRI_IMAGE *im , float uperc , byte *mask )
@@ -372,6 +385,18 @@ ENTRY("mri_local_percmean") ;
    for( ii=0 ; ii < aim->nvox ; ii++ ) if( ams[ii] == 0 ) aar[ii] = 0.0f ;
    free(ams) ;
 
+   if( ampref != NULL ){        /* 20 Nov 2018 */
+     STATUS("output -amsave") ;
+     outset = EDIT_empty_copy( inset )  ;
+     EDIT_dset_items( outset ,
+                         ADN_prefix , ampref ,
+                         ADN_nvals  , 1 ,
+                         ADN_ntt    , 0 ,
+                      ADN_none ) ;
+     EDIT_substitute_brick( outset , 0 , MRI_float , aar ) ;
+     DSET_write(outset) ; outset = NULL ;
+   }
+
    /* shrink image by 2 for speed */
 
    if( verb && do_double ) fprintf(stderr,"D") ;
@@ -512,16 +537,6 @@ ENTRY("mri_local_percmean") ;
 
 /*---------------------------------------------------------------------------*/
 
-static float Upbot = 70.0f ;  /* percentile bottom and top */
-static float Uptop = 80.0f ;
-static float Uprad = 18.3f ;  /* sphere radius */
-
-#define PKVAL 1000.0f
-#define PKMID  666.0f
-
-static MRI_IMAGE *sclim = NULL ;     /* 25 Jun 2013 */
-static char     *sspref = NULL ;
-
 /* White Matter uniformization */
 
 MRI_IMAGE * mri_WMunifize( MRI_IMAGE *fim )
@@ -631,7 +646,6 @@ int main( int argc , char *argv[] )
    int iarg , ct , do_GM=0 ;
    int do_T2=0 ; float T2_uperc=98.5f ; byte *T2_mask=NULL ;
    char *prefix = "Unifized" ;
-   THD_3dim_dataset *inset=NULL , *outset=NULL ;
    MRI_IMAGE *imin , *imout ;
    float clfrac=0.2f ;
    int do_mask = 1 ; /* 08 Aug 2018 = 8/8/18 */
@@ -729,6 +743,11 @@ int main( int argc , char *argv[] )
        "               ++ Another volume (with the same grid dimensions) could be\n"
        "                  scaled the same way using 3dcalc, if that is needed.\n"
        "               ++ This saved scaled factor does NOT include any GM scaling :(\n"
+       "\n"
+       "  -amsave aa = Save the automask-ed input dataset.\n"
+       "               ++ This option and the previous one are used mostly for\n"
+       "                  figuring out why something peculiar happened, and are\n"
+       "                  otherwise useless.\n"
        "\n"
        "  -quiet     = Don't print the fun fun fun progress messages (but whyyyy?).\n"
        "               ++ For the curious, the codes used are:\n"
@@ -926,6 +945,13 @@ int main( int argc , char *argv[] )
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
        sspref = strdup(argv[iarg]) ;
        if( !THD_filename_ok(sspref) ) ERROR_exit("Illegal value after -ssave!") ;
+       iarg++ ; continue ;
+     }
+
+     if( strcmp(argv[iarg],"-amsave") == 0 ){
+       if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
+       ampref = strdup(argv[iarg]) ;
+       if( !THD_filename_ok(ampref) ) ERROR_exit("Illegal value after -amsave!") ;
        iarg++ ; continue ;
      }
 
