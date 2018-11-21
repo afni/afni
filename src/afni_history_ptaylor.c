@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 20, Nov , 2018 , PT , "apqc_make_html.py" , MINOR , TYPE_GENERAL,
+   "Make subtxt fonts gray (oooh!) and uniformly bold.",
+   "Also, made image links not be whole line (much more convenient).\n"
+},
+
 { 20, Nov , 2018 , PT , "@djunct_montage_coordinator" , MINOR , TYPE_NEW_PROG,
    "For use with @chauffeur_afni: subroutine that used to be *in* it.",
    "More modular and useful now, better selection of montage xhair loc, too.\n"
