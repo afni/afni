@@ -1816,7 +1816,7 @@ class MyInterface:
          # if it has a path, try to remove it
          if template[0] == '/':
             s, o = UTIL.exec_tcsh_command('@FindAfniDsetPath %s' % template)
-            if len(o) > 0:
+            if s == 0 and len(o) > 0:
                template = an.pv()
                if self.cvars.verb > 1:
                   print('   %s' % template)
