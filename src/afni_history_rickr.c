@@ -60,7 +60,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 17, Nov, 2018, RCR, "afni-general", MICRO, TYPE_ENHANCE,
-   "add epiphany and midori as browser candidates",
+   "add epiphany and midori as browser candidates (11/21 google-chrome)",
    NULL
  } ,
 
