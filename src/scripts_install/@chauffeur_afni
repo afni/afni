@@ -139,15 +139,24 @@
 #set version   = "4.4";   set rev_dat   = "Nov 5, 2018"
 #     + [PT] update to match new alpha+boxed functionality and driving
 #
-set version   = "4.5";   set rev_dat   = "Nov 6, 2018"
+#set version   = "4.5";   set rev_dat   = "Nov 6, 2018"
 #     + [PT] fixed a recently induced bug in 4dmode gapord
 #       definitioning: in some cases, the delta slices would be
 #       incorrect (i.e., not uniformly 1) 
 #     + [PT] also put a check around AFNI_IMAGE_GLOBALRANGE because it
 #       can get reset, again for 4dmode considerations
 #
-set version   = "4.51";   set rev_dat   = "Nov 16, 2018"
+#set version   = "4.51";   set rev_dat   = "Nov 16, 2018"
 #     + [PT] removed earlier testing echo 
+#
+set version   = "4.6";   set rev_dat   = "Nov 20, 2018"
+#     + [PT] several changes
+#       - new @djunct_montage_coordinator program, to get the location
+#         of xhairs when montaging-- this takes the old pieces that were
+#         in @chauffeur_afni and put them in a better working method into
+#         a separate program, for modularity.
+#       - fixed how this program selects gapord and coors when using
+#         the focus refbox
 #
 # =====================================================================
 
@@ -846,7 +855,7 @@ foreach rrr ( `seq 1 1 $Nreps` )  ### the BIG loop starts
         set Ncol     = $padpars[3]
         set Nrow     = $padpars[4]
 
-        # override settings user migth set, for specific 4D case
+        # override settings user might set, for specific 4D case
         if ( ( "$ftype" == "AGIF" ) || ( "$ftype" == "MPEG" ) ) then
             set mx = 1
             set my = 1
@@ -1163,19 +1172,7 @@ foreach rrr ( `seq 1 1 $Nreps` )  ### the BIG loop starts
     endif
 
     echo "++ Dimensions (xyzt): $Dim"
-    echo "++ Slice spacing ordered (x,y,z) is:  $gapord"
-
-    # get ceilings of 'montage number + 1', in each direction
-    set xo2 = `echo "scale=2; ( $mx + 1 ) / 2." | bc`
-    set cmx = `echo $xo2 | perl -nl -MPOSIX -e 'print ceil($_);'`
-    set yo2 = `echo "scale=2; ( $my + 1 ) / 2." | bc`
-    set cmy = `echo $yo2 | perl -nl -MPOSIX -e 'print ceil($_);'`
-
-    @ tot     = $mx * $my 
-    @ hpan    = ( ( $cmy - 1 ) * $mx ) + $cmx    
-    #echo "$cmx $cmy $tot $hpan"
-    set pfrac = `echo "scale=5; ( $hpan / ( $tot + 1 ) ) " | bc` # ????
-    echo "++ pfrac = $pfrac"
+    echo "++ (initial) Slice spacing ordered (x,y,z) is:  $gapord"
 
     # These need to reflect the order of the original.  Ugh, annoying
     # conditions.
@@ -1189,32 +1186,42 @@ foreach rrr ( `seq 1 1 $Nreps` )  ### the BIG loop starts
             goto BAD_EXIT
         endif
     else if ( $USER_COORS == 2 ) then
-        # make a box and get the coors from its center
+
+        # [PT: Nov 20, 2018] Still make a box and get the coors from
+        # its center, but don't clusterize at all (in case vals are
+        # neg or something), and also don't get coordinates from
+        # here-- use the montage-considerate ones just below
         set tfile = "${read_dir}/ulay_box_0.nii"
-        
-        set coors = `3dAutobox                            \
-                        -extent_ijk_midslice              \
-                        -prefix $tfile                    \
-                        -input "$refbox"`
+        3dAutobox                 \
+            -prefix "$tfile"      \
+            -noclust              \
+            -input  "$refbox"
 
         # ... also use the refbox to redefine gapord
         set gapord = `@djunct_slice_space -nwin $Nwin -inset "$tfile"`
+
+        # [PT: Nov 20, 2018] Use refbox as smaller space within which
+        # to find coords value for montage crosshairs; to make info
+        # compatible with the possibly-different $ulay, have to use
+        # coor_type XYZ
+        set coors = `@djunct_montage_coordinator \
+                        -inset "$tfile"          \
+                        -montx $mx -monty $my    \
+                        -out_xyz`
+        set coor_type = "SET_DICOM_XYZ"
 
         echo "++ How many coors? $#coors"
         echo "++ Will have the ref box central coors : $coor_type $coors"
         echo "++ Will have the ref box central gapord: $gapord"
     else
-        foreach i ( `seq 1 1 3` )
-            set qfrac = `echo "scale=5; ( $pfrac ) " | bc` # frac to center
-            set qsh   = ""#+ 1"                            # 0-base count offset
-            if ( ( $all_ori[$i] == 'R' ) || ( $all_ori[$i] == 'P' )  \
-                || ( $all_ori[$i] == 'S' ) ) then
-                set qfrac = `echo "scale=5; ( 1 - $pfrac ) " | bc`
-            endif
-            set nn = `echo "scale=0; ( ( $Dim[$i] * $qfrac ) $qsh )" | bc`
-            set coors[$i] = `echo $nn | perl -nl -MPOSIX -e 'print floor($_);'`
-        end
+
+        set coors = `@djunct_montage_coordinator \
+                        -inset "$ulay"           \
+                        -montx $mx -monty $my    \
+                        -out_ijk`
+        set coor_type = "SET_IJK"
         echo "++ Will have: $coor_type $coors"
+
     endif
 
     # [PT: Oct 21, 2018] output possible bar range (bot and top) and
@@ -1762,16 +1769,17 @@ COMMAND OPTIONS ~1~
 
 -box_focus_slices REF :Use a dset REF to define a narrow range of
                     where slices cover. This is done by autoboxing the
-                    REF dset (so if it hasn't been masked already,
-                    it's not useful), and using the midpoint of the
-                    box's FOV as the new center; also, the montage
-                    slices are chosen to be evenly spread within the
-                    box FOV, though they *still* show the unboxed
-                    dataset!  This is different than cropping (see
-                    '-crop*' below for that); this is only to try to
-                    avoid showing empty slices and such. If the ulay
-                    is a template dset, you might make REF that template.
-                    Just for '3D' dset viewing
+                    REF dset (with '3dAutobox -noclust', so if it
+                    hasn't been masked already, it's not useful), and
+                    using the midpoint of the box's FOV as the new
+                    center; also, the montage slices are chosen to be
+                    evenly spread within the box FOV, though they
+                    *still* show the unboxed dataset!  This is
+                    different than cropping (see '-crop*' below for
+                    that); this is only to try to avoid showing empty
+                    slices and such. If the ulay is a template dset,
+                    you might make REF that template.  Just for '3D'
+                    dset viewing
 
 -montx  MX         :in creating montage, the number of image panels in
                     a row, i.e., the number of columns (def: 3); the
