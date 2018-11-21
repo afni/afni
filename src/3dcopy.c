@@ -203,6 +203,8 @@ int main( int argc , char *argv[] )
        if (!THD_copy_labeltable_atr( cset->dblk,  qset->dblk)) {
           WARNING_message("Failed trying to preserve labeltables");
        }
+       /* try to add to an existing history  21 Nov 2018 [rickr] */
+       tross_Copy_History( qset , cset ) ;
        tross_Make_History( "3dcopy" , argc,argv , cset ) ;
 
        DSET_mallocize(qset); DSET_load(qset); CHECK_LOAD_ERROR(qset);
