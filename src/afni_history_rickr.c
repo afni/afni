@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21, Nov, 2018, RCR, "3dcopy", MICRO, TYPE_ENHANCE,
+   "try to append HISTORY for non-AFNI datasets",
+   NULL
+ } ,
+
  { 19, Nov, 2018, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "add opt -html_review_style and run apqc_make_html.py",
    NULL
