@@ -49,31 +49,15 @@ def wrap_image_txt(x, vpad=0, addclass="", dobold=True):
 
 # -------------------------------------------------------------------
 
-##### old, pre-json
-#def make_pbar_line(pbar_min, pbar_max, pbar_thr, imgpbar, vpad=0, addclass=""):
-#
-#    y = """<div """
-#    y+= '''{} >'''.format(addclass)
-#    y+= """<pre>{} """.format(pbar_min)
-#    y+= '''<img style="display: inline; margin: -5 -5px;" '''
-#    y+= '''src="{}" '''.format(imgpbar)
-#    y+= '''vertical-align="middle" height="20px"> '''
-##    y+= '''{} </pre></div>\n'''.format(pbar_max)
-#    y+= '''{}\n'''.format(pbar_max)
-#    y+= '''vthr: {} (90 %ile) </pre></div>\n'''.format(pbar_thr)
-#    if vpad:
-#        y= """\n"""+y
-#        y+="""\n"""
-#
-#    #y = '''\n<div class=container><pre> {} <img style="display: inline; margin: 0 0px;" src="{}" align="middle" width="160px" height="25px"> {} </pre></div>\n'''.format(pbar_min, imgpbar, pbar_max)
-#    return y
-
-# -------------------------------------------------------------------
-
 def wrap_img(x, wid=500, vpad=0, addclass=""):
-    y = """<a  href=\""""+x+"""\"><img src=\""""+x+"""\" alt=\""""+x+"""\" """
+    # [PT: Nov 20, 2018] needed this next line to center the text, and
+    # needed "display: inline-block" in the img {} def to not have
+    # whole line be a link.
+    y = '''<div style="text-align: center">'''  
+    y+= """<a  href=\""""+x+"""\"><img src=\""""+x+"""\" alt=\""""+x+"""\" """
     y+= ''' {} '''.format(addclass)
-    y+= """ width=\""""+str(wid)+"""\" ></a> """
+    y+= """display: inline-block; text-align: center; width=\""""+str(wid)+"""\" ></a> """
+    y+= '''</div>'''
     if vpad:
         y= """\n"""+y
         y+="""\n"""
@@ -150,23 +134,30 @@ def read_pbar_json(x):
 
 # ----------------------------------------------------------------------
 
-#!!!!!!!!!!!!!!!!!
-# "pbar_bot"
-# "pbar_top"
-# "pbar_reason"
-# "vthr"
-# "vthr_reason"
+#    if dobold :
+#        y+= """<pre><b>"""+x+"""</b></pre></div>"""
+#    else:
+#        y+= """<pre>"""+x+"""</pre></div>"""
 
-def make_pbar_line(d, imgpbar, vpad=0, addclassdiv="", addclassimg=""):
+def make_pbar_line(d, imgpbar, vpad=0, addclassdiv="", addclassimg="",
+                   dobold=True):
 
     y = """<div """
     y+= '''{} >'''.format(addclassdiv)
-    y+= """<pre>olay:  {} """.format(d['pbar_bot'])
+    if dobold :
+        y+= """<pre><b>olay:  {} """.format(d['pbar_bot'])
+    else:
+        y+= """<pre>olay:  {} """.format(d['pbar_bot'])
     y+= '''<img {} '''.format(addclassimg)
     y+= '''style="display: inline; margin: -5 -5px;" '''
     y+= '''src="{}" > '''.format(imgpbar)
     y+= '''{} ({})\n'''.format(d['pbar_top'], d['pbar_reason'])
-    y+= '''thr :  {} ({}) </pre></div>\n'''.format(d['vthr'], d['vthr_reason'])
+    if dobold :
+        y+= '''thr :  {} ({}) </b></pre></div>\n'''.format(d['vthr'], 
+                                                           d['vthr_reason'])
+    else:
+        y+= '''thr :  {} ({}) </pre></div>\n'''.format(d['vthr'], 
+                                                       d['vthr_reason'])
     if vpad:
         y= """\n"""+y
         y+="""\n"""
