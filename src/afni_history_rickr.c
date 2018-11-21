@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21, Nov, 2018, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
+   "look for and parse 3dQwarp template name",
+   NULL
+ } ,
+
  { 21, Nov, 2018, RCR, "3dcopy", MICRO, TYPE_ENHANCE,
    "try to append HISTORY for non-AFNI datasets",
    NULL
