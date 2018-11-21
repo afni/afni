@@ -176,7 +176,7 @@ endif
 ## Step #1: Unifize the input T1
 
 if( ! -f $odir/anatU."${SubID}".nii ) then
-  3dUnifize -prefix $odir/anatU."$SubID".nii -GM -input "$Adataset"
+  3dUnifize -prefix $odir/anatU."$SubID".nii -GM -input "$Adataset" -clfrac 0.4
 endif
 
 # Step #2: Strip Skull (Ziad's way)
@@ -255,25 +255,63 @@ endif
 ## warp to template space (skull off),
 ## initializing using the previous 3dQwarp -awarp output
 
-if( "$minp" > "13" )then
-  set doQfinal = "-Qfinal"
-else
-  set doQfinal = " "
-endif
+# Run 3dQwarp in several segments, to avoid gcc OpenMP bug
+#  where it freezes sometimes with inter-thread conflicts;
+#  this happens only in long runs, so breaking the run
+#  into pieces will (I hope) elide this annoyance - RWC :(
 
-3dQwarp \
+# Piece number 1
+3dQwarp                                  \
     -base "${Basedset}[0]"               \
     -source "${pref}AffSS.nii"           \
     -iniwarp "${pref}TAL5_AWARP.nii"     \
-    -inilev 1                            \
-    -pblur -minpatch $minp               \
-    $doQfinal -workhard:5:8              \
-    -prefix $odir/anatQQ."${SubID}".nii
+    -inilev 1 -maxlev 5                  \
+    -pblur -workhard:5:5                 \
+    -nodset -prefix "${pref}QQ5.nii"
+
+# Piece number 2
+3dQwarp                                  \
+    -base "${Basedset}[0]"               \
+    -source "${pref}AffSS.nii"           \
+    -iniwarp "${pref}QQ5_WARP.nii"       \
+    -inilev 6 -maxlev 7 -workhard:6:7    \
+    -pblur                               \
+    -nodset -prefix "${pref}QQ7.nii"
+
+if( $minp > 13 )then
+# Final piece for coarse final patch size
+  3dQwarp                                  \
+      -base "${Basedset}[0]"               \
+      -source "${pref}AffSS.nii"           \
+      -iniwarp "${pref}QQ7_WARP.nii"       \
+      -inilev 8                            \
+      -pblur -minpatch $minp               \
+      -Qfinal                              \
+      -prefix $odir/anatQQ."${SubID}".nii
+else
+# Penultimate piece for refined final patch size
+  @ mpp = $minp + 6
+  3dQwarp                                  \
+      -base "${Basedset}[0]"               \
+      -source "${pref}AffSS.nii"           \
+      -iniwarp "${pref}QQ7_WARP.nii"       \
+      -inilev 8 -minpatch $mpp             \
+      -pblur                               \
+      -nodset -prefix "${pref}QQ9.nii"
+# Ultimate piece for refined final patch size
+  3dQwarp                                  \
+      -base "${Basedset}[0]"               \
+      -source "${pref}AffSS.nii"           \
+      -iniwarp "${pref}QQ9_WARP.nii"       \
+      -inilev 10                           \
+      -pblur -minpatch $minp               \
+      -prefix $odir/anatQQ."${SubID}".nii
+endif
 
 ## Cleanup
 
 \mv -f "${pref}TAL5_Allin.aff12.1D" $odir/anatQQ."${SubID}".aff12.1D
-\rm -f ${pref}*
+\rm -f "${pref}"*
 
 ## Step #7: Make two pretty pictures, and scram
 
