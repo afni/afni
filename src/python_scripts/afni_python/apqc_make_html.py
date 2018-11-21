@@ -10,6 +10,12 @@
 # + check for "subtext" files-- things to be put beneath IMG/TXT/WARN for
 #   extra info.
 #
+# ver : 1.5 || date: Nov 20, 2018 
+# + put in container2 to have gray subtext (differentiate from titles)
+# + make all subtxt be BOLD
+# + fixed making the whole image line *not* being a link, while also
+#   having it be centered
+#
 #########################################################################
 
 import os
@@ -60,8 +66,8 @@ if __name__ == "__main__":
     }
 
     img {
-        display: block;
         padding: 2px 1px;
+        display: inline-block;
         margin-left: auto;
         margin-right: auto;
         width:90%; 
@@ -125,15 +131,33 @@ if __name__ == "__main__":
         padding-top: 0px;
         margin: 3px;
     }
-    
+
     .container pre {
         margin: 3px;
         padding-top: 0px;
+        white-space: pre;
         display: inline-block;
         text-align: left;
         font-family: "courier new", courier, monospace;
         font-size: 20px;
         color: #FFC310;
+    }
+
+    .container2 {
+        text-align: center;
+        padding-top: 0px;
+        margin: 3px;
+    }
+
+    .container2 pre {
+        margin: 3px;
+        padding-top: 0px;
+        white-space: pre;
+        display: inline-block;
+        text-align: left;
+        font-family: "courier new", courier, monospace;
+        font-size: 20px;
+        color: #ccc;
     }
 
     img.pbar {
@@ -145,7 +169,22 @@ if __name__ == "__main__":
     </style>
     '''
 
-    # light gray background?    background-color: #DCDCDC;
+    # Notes on above:
+    #
+    # + need to use "display: inline-block" in the img { } def in
+    #   order to not have the whole line be a clickable link
+    #
+    # + .container and .container2 are the same except for the font
+    #   colors in each's "pre"; at this present time, that is to have
+    #   "subtxt" be gray, and header stuff be yellow.
+    # 
+    # + In the .container pre { } stuff, one could add the following
+    #   to have wrapping on long lines (though it won't help too much
+    #   with long censor lists):
+    #   white-space: pre;
+    # 
+    # + Move someday to light gray background?  background-color:
+    #   #DCDCDC;
 
     # ========================= HTML: title =========================== #
 
@@ -231,8 +270,9 @@ if __name__ == "__main__":
                 pbar_dict = lah.read_pbar_json(jsonpbar)
                 if pbar_dict:
                     pbar_line = lah.make_pbar_line( pbar_dict, imgpbar,
-                                           addclassdiv=" class='container' ",
-                                           addclassimg=" class='pbar' " )
+                                           addclassdiv=" class='container2' ",
+                                           addclassimg=" class='pbar' ",
+                                           dobold=True)
                 ht+= pbar_line
 
         if list_txtglob.__contains__(imgsubtxt):
@@ -240,7 +280,7 @@ if __name__ == "__main__":
             title, text = lah.read_descrip_txt(imgsubtxt, nline_title=0)
             if text :
                 ht+= lah.wrap_image_txt( text,
-                                         addclass=" class='container' ",
+                                         addclass=" class='container2' ",
                                          dobold=True )
 
 
@@ -279,7 +319,7 @@ if __name__ == "__main__":
             title, text = lah.read_descrip_txt(datsubtxt, nline_title=0)
             if text :
                 ht+= lah.wrap_image_txt( text,
-                                         addclass=" class='container' ",
+                                         addclass=" class='container2' ",
                                          dobold=True )
 
 
@@ -318,7 +358,7 @@ if __name__ == "__main__":
             title, text = lah.read_descrip_txt(datsubtxt, nline_title=0)
             if text :
                 ht+= lah.wrap_image_txt( text,
-                                         addclass=" class='container' ",
+                                         addclass=" class='container2' ",
                                          dobold=True )
 
 
