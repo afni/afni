@@ -1448,6 +1448,16 @@ static char *gby[] = {
      "\n  The combination of some data and an aching desire for an answer does not\n"
      "  ensure that a reasonable answer can be extracted from a given body of data"    ,
 
+     /* from the Count of Monte Cristo */
+
+     "All human wisdom is contained in these two words - Wait and Hope"                 ,
+     "It is necessary to have wished for death in order to know how good it is to live" ,
+     "The difference between treason and patriotism is only a matter of dates"          ,
+     "... Remember that what has once been done may be done again"                      ,
+
+     "\n In the shipwreck of life, for life is an eternal shipwreck of our hopes,\n"
+     "    I cast into the sea my useless encumbrances, and I remain with my own will"    ,
+
      /* from Crooked Timber */
 
      "\n The following contradictory statements are all DEEP and PROFOUND:\n"
