@@ -853,9 +853,10 @@ g_history = """
    1.3  Oct 17, 2018: added new uvar fields
         - nt_applied, nt_orig, ss_review_dset, xmat_stim
           pre_ss_warn_dset, decon_err_dset, tent_warn_dset
+   1.4  Nov 21, 2018: look for and parse 3dQwarp template name
 """
 
-g_version = "gen_ss_review_scripts.py version 1.3, October 17, 2018"
+g_version = "gen_ss_review_scripts.py version 1.4, November 21, 2018"
 
 g_todo_str = """
    - add @epi_review execution as a run-time choice (in the 'drive' script)?
@@ -1791,6 +1792,9 @@ class MyInterface:
       prog = 'auto_warp.py'
       warp_cmd = UTIL.get_last_history_command(afinal, prog)
       if warp_cmd == '':
+         prog = '3dQwarp'
+         warp_cmd = UTIL.get_last_history_command(afinal, prog)
+      if warp_cmd == '':
          prog = '@auto_tlrc'
          warp_cmd = UTIL.get_last_history_command(afinal, prog)
 
@@ -1799,7 +1803,25 @@ class MyInterface:
       clist = UTIL.find_opt_and_params(warp_cmd, '-base', 1)
       if len(clist) != 2: return 1
 
-      self.uvars.template = clist[1]
+      template = clist[1]
+      if template.find('[') > 0:
+         # @SSwarper has quotes and sub-brick selection
+         # there might be a path, too, but keep the view
+         template = template.replace("'", '')
+         an = BASE.afni_name(template)
+         template = an.ppv()
+         if self.cvars.verb > 1:
+            print('-- template name: convert:\n   %s\n   %s' \
+                  % (clist[1], template))
+         # if it has a path, try to remove it
+         if template[0] == '/':
+            s, o = UTIL.exec_tcsh_command('@FindAfniDsetPath %s' % template)
+            if len(o) > 0:
+               template = an.pv()
+               if self.cvars.verb > 1:
+                  print('   %s' % template)
+
+      self.uvars.template = template
 
       return 0
 
