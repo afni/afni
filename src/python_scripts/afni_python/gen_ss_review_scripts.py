@@ -1803,11 +1803,11 @@ class MyInterface:
       clist = UTIL.find_opt_and_params(warp_cmd, '-base', 1)
       if len(clist) != 2: return 1
 
+      # if template has quotes, a path, or sub-brick selection (e.g.,
+      # from 3dQwarp), try to get the basename
       template = clist[1]
-      if template.find('[') > 0:
-         # @SSwarper has quotes and sub-brick selection
-         # there might be a path, too, but keep the view
-         template = template.replace("'", '')
+      template = template.replace("'", '')
+      if template[0] == '/' or template.find('[') > 0:
          an = BASE.afni_name(template)
          template = an.ppv()
          if self.cvars.verb > 1:
@@ -1815,9 +1815,10 @@ class MyInterface:
                   % (clist[1], template))
          # if it has a path, try to remove it
          if template[0] == '/':
-            s, o = UTIL.exec_tcsh_command('@FindAfniDsetPath %s' % template)
-            if s == 0 and len(o) > 0:
-               template = an.pv()
+            basename = an.pv()
+            s, o = UTIL.exec_tcsh_command('@FindAfniDsetPath %s' % basename)
+            if len(o) > 0:
+               template = basename
                if self.cvars.verb > 1:
                   print('   %s' % template)
 
