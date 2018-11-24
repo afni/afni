@@ -35,6 +35,8 @@ qcbase     = 'QC'                    # full odir has subj ID concatenated
 dir_img    = 'media_img'
 dir_dat    = 'media_dat'
 
+page_title_json = '_page_title'
+
 # ----------------------------------------------------------------------
 
 def check_dep(D, lcheck):
@@ -466,6 +468,8 @@ def apqc_1D_volreg(jpgsize, opref, run_mode):
     pre = '''
     set jpgsize = {} 
     set opref = {}
+    set tjson  = _tmp.txt
+    set ojson  = ${{odir_img}}/${{opref}}.json
     @ imax = ${{nt_orig}} - 1
     '''.format(jpgsize, opref)
     
@@ -498,15 +502,33 @@ def apqc_1D_volreg(jpgsize, opref, run_mode):
         '''
 
     # text shown above image in the final HTML
-    imtxt = '''Check: motion profiles'''
+    jsontxt = '''
+    cat << EOF >! ${tjson}
+    title ::  Check: motion profiles (3dvolreg)
+    text  ::  ""
+    linkid :: VR
+    linkid_hov :: motion profiles (3dvolreg)
+    EOF
+    '''
+
+    jsontxt_cmd = '''
+    abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  ${tjson}
+    -prefix ${ojson}
+    '''
 
     comm  = commentize( comm )
     pre   = commandize( pre, cmdindent=0, 
-                       ALIGNASSIGN=True, ALLEOL=False )
+                        ALIGNASSIGN=True, ALLEOL=False )
     cmd   = commandize( cmd )
-    imtxt = echoize(imtxt, efile=otxt, padpost=2)
+    jsontxt = commandize( jsontxt, cmdindent=0, ALLEOL=False )
+    jsontxt_cmd  = commandize( jsontxt_cmd, padpost=2  )
 
-    lout  = [comm, pre, cmd, imtxt]
+    lout  = [comm, pre, cmd, jsontxt, jsontxt_cmd]
     return '\n\n'.join(lout)
 
 # ----------------------------------------------------------------------
@@ -520,12 +542,11 @@ def apqc_1D_cen_out(jpgsize, opref, run_mode):
     pre = '''
     set jpgsize = {} 
     set opref = {}
+    set tjson  = _tmp.txt
+    set ojson  = ${{odir_img}}/${{opref}}.json
     @ imax = ${{nt_orig}} - 1
     set cstr = `1d_tool.py -show_trs_censored encoded -infile ${{censor_dset}}`
     '''.format(jpgsize, opref)
-
-    otxt  = "${odir_img}/${opref}" + ".txt"
-    osubtxt  = "${odir_img}/${opref}" + "_SUB.txt"
 
     if run_mode == 'basic' :
         cmd = '''
@@ -542,8 +563,15 @@ def apqc_1D_cen_out(jpgsize, opref, run_mode):
         '''
 
         # text shown above image in the final HTML
-        imtxt = '''Check: outliers
-        volume fraction (black), limit (red), censored (green)'''
+        jsontxt = '''
+        cat << EOF >! ${tjson}
+        title ::  Check: outliers
+        text  ::  volume fraction (black), limit (red), censored (green)
+        subtext :: "censored vols: ${cstr}"
+        linkid :: out
+        linkid_hov :: outliers
+        EOF
+        '''
 
     elif run_mode == 'pythonic' :
         cmd = '''
@@ -560,22 +588,34 @@ def apqc_1D_cen_out(jpgsize, opref, run_mode):
         '''
 
         # text shown above image in the final HTML
-        imtxt = '''Check: outliers
-        volume fraction (black), limit (cyan), censored (red)'''
+        jsontxt = '''
+        cat << EOF >! ${tjson}
+        title ::  Check: outliers
+        text  ::  volume fraction (black), limit (cyan), censored (red)
+        subtext :: "censored vols: ${cstr}"
+        linkid :: out
+        linkid_hov :: outliers 
+        EOF
+        '''
 
-    cmd2='''
-    echo "censored vols: ${{cstr}}"
-    > {}
-    '''.format(osubtxt)
+    jsontxt_cmd = '''
+    abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  ${tjson}
+    -prefix ${ojson}
+    '''
 
     comm = commentize( comm )
     pre  = commandize( pre, cmdindent=0, 
                        ALIGNASSIGN=True, ALLEOL=False)
     cmd  = commandize( cmd )
-    cmd2 = commandize( cmd2 )
-    imtxt = echoize(imtxt, efile=otxt, padpost=2)
+    jsontxt = commandize( jsontxt, cmdindent=0, ALLEOL=False )
+    jsontxt_cmd  = commandize( jsontxt_cmd, padpost=2  )
 
-    lout = [comm, pre, cmd, cmd2, imtxt]
+    lout = [comm, pre, cmd, jsontxt, jsontxt_cmd]
     return '\n\n'.join(lout)
 
 # ----------------------------------------------------------------------
@@ -589,6 +629,8 @@ def apqc_1D_motenorm_cen(jpgsize, opref, run_mode):
     pre = '''
     set jpgsize = {} 
     set opref = {}
+    set tjson  = _tmp.txt
+    set ojson  = ${{odir_img}}/${{opref}}.json
     @ imax = ${{nt_orig}} - 1
     set cstr = `1d_tool.py -show_trs_censored encoded -infile ${{censor_dset}}`
     '''.format(jpgsize, opref)
@@ -610,8 +652,15 @@ def apqc_1D_motenorm_cen(jpgsize, opref, run_mode):
         "1D: ${nt_orig}@${mot_limit}" 
         '''
 
-        imtxt = '''Check: motion
-        enorm (black), mot limit (red), censored (green)'''
+        jsontxt = '''
+        cat << EOF >! ${tjson}
+        title ::  Check: motion (enorm)
+        text  ::  "enorm (black), mot limit (red), censored (green)"
+        subtext :: "censored vols: ${cstr}"
+        linkid :: mot
+        linkid_hov :: motion (enorm)
+        EOF
+        '''
 
     elif run_mode == 'pythonic' :
         cmd = '''
@@ -627,22 +676,36 @@ def apqc_1D_motenorm_cen(jpgsize, opref, run_mode):
         -prefix   "${odir_img}/${opref}.jpg" 
         '''
 
-        imtxt = '''Check: motion
-        enorm (black), mot limit (cyan), censored (red)'''
+        #imtxt = '''Check: motion
+        #enorm (black), mot limit (cyan), censored (red)'''
+        jsontxt = '''
+        cat << EOF >! ${tjson}
+        title ::  Check: motion
+        text  ::  "enorm (black), mot limit (cyan), censored (red)"
+        subtext :: "censored vols: ${cstr}"
+        linkid :: mot
+        linkid_hov :: motion (enorm)
+        EOF
+        '''
 
-    cmd2='''
-    echo "censored vols: ${{cstr}}"
-    > {}
-    '''.format(osubtxt)
+    jsontxt_cmd = '''
+    abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  ${tjson}
+    -prefix ${ojson}
+    '''
 
     comm = commentize( comm )
     pre  = commandize( pre, cmdindent=0, 
                        ALIGNASSIGN=True, ALLEOL=False )
     cmd  = commandize( cmd )
-    cmd2 = commandize( cmd2 )
-    imtxt = echoize(imtxt, efile=otxt, padpost=2)
+    jsontxt = commandize( jsontxt, cmdindent=0, ALLEOL=False )
+    jsontxt_cmd  = commandize( jsontxt_cmd, padpost=2  )
 
-    lout = [comm, pre, cmd, cmd2, imtxt]
+    lout = [comm, pre, cmd, jsontxt, jsontxt_cmd]
     return '\n\n'.join(lout)
 
 # ['xmat_stim']
@@ -653,10 +716,10 @@ def apqc_1D_xmat_stim(jpgsize, opref, run_mode ):
     pre = '''
     set jpgsize = {} 
     set opref = {}
+    set tjson  = _tmp.txt
+    set ojson  = ${{odir_img}}/${{opref}}.json
     #@ imax = ${{nt_orig}} - 1
     '''.format(jpgsize, opref)
-
-    otxt  = "${odir_img}/${opref}" + ".txt"
 
     if run_mode == 'basic' :
         cmd = '''
@@ -680,17 +743,35 @@ def apqc_1D_xmat_stim(jpgsize, opref, run_mode ):
         -prefix   "${odir_img}/${opref}.jpg"
         '''
 
-    imtxt = '''Check: regressors (per stimulus)
-    non-baseline regressors (in ${xmat_regress})'''
+    jsontxt = '''
+cat << EOF >! ${tjson}
+    title ::  Check: regressors (per stimulus)
+    text  ::  "non-baseline regressors (in ${xmat_regress})"
+    linkid :: regps
+    linkid_hov :: regressors (per stimulus)
+EOF
+'''
+
+    jsontxt_cmd = '''
+abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  ${tjson}
+    -prefix ${ojson}
+'''
 
     comm = commentize( comm )
     pre  = commandize( pre, cmdindent=0, 
                        ALIGNASSIGN=True, ALLEOL=False )
     cmd  = commandize( cmd )
-    imtxt = echoize(imtxt, efile=otxt, padpost=2)
+    jsontxt = commandize( jsontxt, cmdindent=0, ALLEOL=False )
+    jsontxt_cmd  = commandize( jsontxt_cmd, padpost=2  )
 
-    lout = [comm, pre, cmd, imtxt]
+    lout = [comm, pre, cmd, jsontxt, jsontxt_cmd]
     return '\n\n'.join(lout)
+
 
 # ['sum_ideal']
 def apqc_1D_sum_ideal(jpgsize, opref, run_mode):
@@ -700,10 +781,12 @@ def apqc_1D_sum_ideal(jpgsize, opref, run_mode):
     pre = '''
     set jpgsize = {} 
     set opref = {}
+    set tjson  = _tmp.txt
+    set ojson  = ${{odir_img}}/${{opref}}.json
     #@ imax = ${{nt_orig}} - 1
     '''.format(jpgsize, opref)
 
-    otxt  = "${odir_img}/${opref}" + ".txt"
+    #otxt  = "${odir_img}/${opref}" + ".txt"
 
     if run_mode == 'basic' :
         cmd = '''
@@ -728,21 +811,34 @@ def apqc_1D_sum_ideal(jpgsize, opref, run_mode):
         -prefix   "${odir_img}/${opref}.jpg"
         '''
 
+    jsontxt = '''
+cat << EOF >! ${tjson}
+    title ::  Check: regressors (combined stimulus)
+    text  ::  "sum of non-baseline regressors (in ${sum_ideal})"
+    linkid :: regcs
+    linkid_hov :: regressors (combined stimulus)
+EOF
+'''
 
-    imtxt = '''Check: regressors (combined stimulus)
-    sum of non-baseline regressors (in ${sum_ideal})'''
+    jsontxt_cmd = '''
+abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  ${tjson}
+    -prefix ${ojson}
+'''
 
     comm = commentize( comm )
     pre  = commandize( pre, cmdindent=0, 
                        ALIGNASSIGN=True, ALLEOL=False )
     cmd  = commandize( cmd )
-    imtxt = echoize(imtxt, efile=otxt, padpost=2)
+    jsontxt = commandize( jsontxt, cmdindent=0, ALLEOL=False )
+    jsontxt_cmd  = commandize( jsontxt_cmd, padpost=2  )
 
-    lout = [comm, pre, cmd, imtxt]
+    lout = [comm, pre, cmd, jsontxt, jsontxt_cmd]
     return '\n\n'.join(lout)
-
-
-
 
 
 # ========================== images ================================
@@ -770,6 +866,8 @@ def apqc_vol_check_stats_anat( opref, focusbox, iolay, ithr,
                                                          perc_olay_top,
                                                          iolay )
 
+    # NB: below, note the '.axi.json', because of how @chauffeur_afni
+    # appends slice plane in the name of each output image
     pre = '''
     set opref = {}
     set focus_box = {}
@@ -779,12 +877,11 @@ def apqc_vol_check_stats_anat( opref, focusbox, iolay, ithr,
     set olaylabel = `3dinfo -label ${{stats_dset}}"[${{olaybrick}}]"`
     set thrbrick = {}
     set thrlabel = `3dinfo -label ${{stats_dset}}"[${{thrbrick}}]"`
-    set ojson  = ${{odir_img}}/${{opref}}.pbar.json
+    set tjson  = _tmp.txt
+    set ojson  = ${{odir_img}}/${{opref}}.axi.json
+    set tpbarjson  = _tmppbar.txt
+    set opbarjson  = ${{odir_img}}/${{opref}}.pbar.json
     '''.format( opref, focusbox, iolay, ithr )
-
-    # note the '.axi.txt', because of how @chauffeur_afni appends
-    # slice plane in the name of each output image
-    otxt  = "${odir_img}/${opref}" + ".axi.txt"
 
     # threshold for stat dset, from %ile in mask
     cmd0 = '''
@@ -836,20 +933,49 @@ def apqc_vol_check_stats_anat( opref, focusbox, iolay, ithr,
     -do_clean
     '''.format( olay_minval_str )
 
-    imtxt = '''Check: statistics
-    ulay: ${ulay_name} (anat)
-    olay: ${olay_name} (stat '${olaylabel}')
-    thr : ${olay_name} (stat '${thrlabel}')'''
-
+    # As default, use :: and ,, as major and minor delimiters,
+    # respectively, because those should be useful in general.  
+    # NB: because we want the single apostrophe to appear as a text
+    # character, we have to wrap this with the double quotes
     jsontxt = '''
-echo "{{"                                     > ${{ojson}}
-echo "    "\\""pbar_bot"\\"": ${{olay_botval}},"   >> ${{ojson}}
-echo "    "\\""pbar_top"\\"": ${{olay_topval}},"   >> ${{ojson}}
-echo "    "\\""pbar_reason"\\"": "\\""{}"\\"","       >> ${{ojson}}
-echo "    "\\""vthr"\\"": ${{thr_thresh}},"        >> ${{ojson}}
-echo "    "\\""vthr_reason"\\"": "\\""{}"\\"""                 >> ${{ojson}}
-echo "}}"                                    >> ${{ojson}}
-'''.format( '''99%ile, mskd''', '''90%ile, mskd''' )
+cat << EOF >! ${tjson}
+    title ::  Check: statistics vol
+    text  ::  "olay: ${olay_name} (stat '${olaylabel}')",, "thr : ${olay_name} (stat '${thrlabel}')"
+    linkid :: vstat
+    linkid_hov :: statistics vol
+EOF
+'''
+
+    jsontxt_cmd = '''
+abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  ${tjson}
+    -prefix ${ojson}
+'''
+
+    pbarjsontxt = '''
+cat << EOF >! ${{tpbarjson}}
+    pbar_bot :: ${{olay_botval}}
+    pbar_top :: ${{olay_topval}}
+    pbar_reason :: {}{}
+    vthr :: ${{thr_thresh}}
+    vthr_reason :: {}{}
+EOF
+'''.format( perc_olay_top, '''%ile in mask''', 
+            perc_thr_thr,  '''%ile in mask''' )
+
+    pbarjsontxt_cmd = '''
+abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  ${tpbarjson}
+    -prefix ${opbarjson}
+'''
 
     comm = commentize( comm )
     pre  = commandize( pre, cmdindent=0, 
@@ -860,11 +986,16 @@ echo "}}"                                    >> ${{ojson}}
     cmd3  = commandize( cmd3, cmdindent=0, 
                         ALIGNASSIGN=True, ALLEOL=False )
     cmd4  = commandize( cmd4 )
-    imtxt = echoize(imtxt, efile=otxt)
-    jsontxt = commandize( jsontxt, cmdindent=0, 
-                          ALIGNASSIGN=True, ALLEOL=False )
 
-    lout = [comm, pre, cmd0, cmd1, cmd2, cmd3, cmd4, jsontxt, imtxt]
+    # NB: for commandizing the *jsontxt commands, one NEEDS
+    # 'cmdindent=0', bc 'EOF' cannot be indented to be detected
+    pbarjsontxt = commandize( pbarjsontxt, cmdindent=0, ALLEOL=False )
+    pbarjsontxt_cmd  = commandize( pbarjsontxt_cmd )
+    jsontxt = commandize( jsontxt, cmdindent=0, ALLEOL=False )
+    jsontxt_cmd  = commandize( jsontxt_cmd, padpost=2 )
+
+    lout = [comm, pre, cmd0, cmd1, cmd2, cmd3, cmd4, 
+            pbarjsontxt, pbarjsontxt_cmd, jsontxt, jsontxt_cmd]
     return '\n\n'.join(lout)
 
 # ----------------------------------------------------------------------
@@ -881,11 +1012,9 @@ def apqc_vol_align_epi_anat( opref, focusbox ):
     set focus_box = {}
     set ulay_name = `3dinfo -prefix_noext ${{final_anat}}`
     set olay_name = `3dinfo -prefix_noext ${{final_epi_dset}}`
+    set tjson  = _tmp.txt
+    set ojson  = ${{odir_img}}/${{opref}}.axi.json
     '''.format( opref, focusbox )
-
-    # note the '.axi.txt', because of how @chauffeur_afni appends
-    # slice plane in the name of each output image
-    otxt  = "${odir_img}/${opref}" + ".axi.txt"
 
     cmd = '''
     @djunct_edgy_align_check
@@ -896,17 +1025,33 @@ def apqc_vol_align_epi_anat( opref, focusbox ):
 
     '''
 
-    imtxt = '''Check: alignment (EPI-anat)
-    ulay: ${ulay_name} (anat)
-    olay: ${olay_name} (EPI edges)'''
+    jsontxt = '''
+cat << EOF >! ${tjson}
+    title ::  Check: vol alignment (EPI-anat)
+    text  ::  "ulay: ${ulay_name} (anat)",, "olay: ${olay_name} (EPI edges)"
+    linkid :: ve2a
+    linkid_hov :: vol alignment (EPI-anat)
+EOF
+'''
+
+    jsontxt_cmd = '''
+abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  ${tjson}
+    -prefix ${ojson}
+'''
 
     comm = commentize( comm )
     pre  = commandize( pre, cmdindent=0, 
                        ALIGNASSIGN=True, ALLEOL=False )
     cmd  = commandize( cmd )
-    imtxt = echoize(imtxt, efile=otxt, padpost=2)
+    jsontxt = commandize( jsontxt, cmdindent=0, ALLEOL=False )
+    jsontxt_cmd  = commandize( jsontxt_cmd, padpost=2 )
 
-    lout = [comm, pre, cmd, imtxt]
+    lout = [comm, pre, cmd, jsontxt, jsontxt_cmd]
     return '\n\n'.join(lout)
 
 # ----------------------------------------------------------------------
@@ -923,14 +1068,28 @@ def apqc_vol_align_anat_tlrc( opref, focusbox ):
     set focus_box = {}
     set ulay_name = `3dinfo -prefix_noext ${{templ_vol}}`
     set olay_name = `3dinfo -prefix_noext ${{final_anat}}`
+    set tjson  = _tmp.txt
+    set ojson  = ${{odir_img}}/${{opref}}.axi.json
     '''.format( opref, focusbox )
 
-    otxt  = "${odir_img}/${opref}" + ".axi.txt"
+    jsontxt = '''
+cat << EOF >! ${tjson}
+    title ::  Check: vol alignment (anat-template) 
+    text  ::  "ulay: ${ulay_name} (template)",, "olay: ${olay_name} (anat edges)"
+    linkid :: va2t
+    linkid_hov :: vol alignment (anat-template) 
+EOF
+'''
 
-    # the variable is already in quotes
-    imtxt = '''Check: alignment (anat-template) 
-    ulay: ${ulay_name} (template)
-    olay: ${olay_name} (anat edges)'''
+    jsontxt_cmd = '''
+abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  ${tjson}
+    -prefix ${ojson}
+'''
 
     # !!!! ? need '[0]' selector here because (multibrick) SSW reference
     # templates could be reference template 
@@ -943,17 +1102,14 @@ def apqc_vol_align_anat_tlrc( opref, focusbox ):
 
     '''
 
-#    cwrap1 = '''# full wrap, based on whether template was found
-#if ( "${templ_vol}" != "" ) then'''
-#    cwrap2 = '''\nendif\n'''
-
     comm = commentize( comm )
     pre  = commandize( pre, cmdindent=0, 
                        ALIGNASSIGN=True, ALLEOL=False )
     cmd  = commandize( cmd )
-    imtxt = echoize(imtxt, efile=otxt, indent=0, padpost=1)
+    jsontxt = commandize( jsontxt, cmdindent=0, ALLEOL=False )
+    jsontxt_cmd  = commandize( jsontxt_cmd, padpost=2 )
 
-    lout = [comm, pre, cmd, imtxt]
+    lout = [comm, pre, cmd, jsontxt, jsontxt_cmd]
     return '\n\n'.join(lout)
 
 # ========================== dat/txt ================================
@@ -966,9 +1122,9 @@ def apqc_dat_ss_review_basic( opref ):
 
     pre = '''
     set opref = {}
+    set tjson  = _tmp.txt
+    set ojson  = ${{odir_dat}}/${{opref}}.json
     '''.format( opref )
-
-    otxt  = "${odir_dat}/${opref}" + ".txt"
 
     cmd0 = '''
     cat out.ss_review.${subj}.txt
@@ -979,16 +1135,34 @@ def apqc_dat_ss_review_basic( opref ):
 echo "++ Check basic proc info in: ${odir_dat}/${opref}.dat"
     '''
 
-    imtxt = '''Check: basic processing information'''
+    jsontxt = '''
+cat << EOF >! ${tjson}
+    title ::  Check: basic processing information
+    text  ::  ""
+    linkid :: info
+    linkid_hov :: basic processing information
+EOF
+'''
+
+    jsontxt_cmd = '''
+abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  ${tjson}
+    -prefix ${ojson}
+'''
 
     comm  = commentize( comm )
     pre   = commandize( pre, cmdindent=0, 
                        ALIGNASSIGN=True, ALLEOL=False )
     cmd0  = commandize( cmd0 )
     cmd1  = commandize( cmd1, ALLEOL=False )
-    imtxt = echoize(imtxt, efile=otxt, padpost=2)
+    jsontxt = commandize( jsontxt, cmdindent=0, ALLEOL=False )
+    jsontxt_cmd  = commandize( jsontxt_cmd, padpost=2 )
 
-    lout = [comm, pre, cmd0, cmd1, imtxt]
+    lout = [comm, pre, cmd0, cmd1, jsontxt, jsontxt_cmd]
     return '\n\n'.join(lout)
 
 # ========================== warn/txt ================================
@@ -1001,9 +1175,9 @@ def apqc_dat_cormat_warn( opref ):
 
     pre = '''
     set opref = {}
+    set tjson  = _tmp.txt
+    set ojson  = ${{odir_dat}}/${{opref}}.json
     '''.format( opref )
-
-    otxt  = "${odir_dat}/${opref}" + ".txt"
 
     cmd0 = '''
     1d_tool.py 
@@ -1016,16 +1190,36 @@ def apqc_dat_cormat_warn( opref ):
 echo "++ Check for corr matrix warnings in: ${odir_dat}/${opref}.dat"
     '''
 
-    imtxt = '''Check: regression matrix correlation warnings'''
+    jsontxt = '''
+cat << EOF >! ${tjson}
+    title ::  Check: regression matrix correlation warnings
+    text  ::  ""
+    linkid :: wmat
+    linkid_hov :: reg matrix corr warnings
+EOF
+'''
+
+    jsontxt_cmd = '''
+abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  ${tjson}
+    -prefix ${ojson}
+'''
+
 
     comm  = commentize( comm )
     pre   = commandize( pre, cmdindent=0, 
                        ALIGNASSIGN=True, ALLEOL=False )
     cmd0  = commandize( cmd0 )
     cmd1  = commandize( cmd1, ALLEOL=False )
-    imtxt = echoize(imtxt, efile=otxt, padpost=2)
+    #imtxt = echoize(imtxt, efile=otxt, padpost=2)
+    jsontxt = commandize( jsontxt, cmdindent=0, ALLEOL=False )
+    jsontxt_cmd  = commandize( jsontxt_cmd, padpost=2 )
 
-    lout = [comm, pre, cmd0, cmd1, imtxt]
+    lout = [comm, pre, cmd0, cmd1, jsontxt, jsontxt_cmd]
     return '\n\n'.join(lout)
 
 # ----------------------------------------------------------------------
@@ -1038,6 +1232,8 @@ def apqc_dat_pre_ss_warn( opref ):
 
     pre = '''
     set opref = {}
+    set tjson  = _tmp.txt
+    set ojson  = ${{odir_dat}}/${{opref}}.json
     '''.format( opref )
 
     cmd = '''
@@ -1048,17 +1244,33 @@ else
 endif
     '''
 
-    otxt  = "${odir_dat}/${opref}" + ".txt"
+    jsontxt = '''
+cat << EOF >! ${tjson}
+    title ::  Check: pre-steady state warnings
+    text  ::  ""
+    linkid :: wpss
+    linkid_hov :: pre-steady state warnings
+EOF
+'''
 
-    imtxt = '''Check: pre-steady state warnings'''
+    jsontxt_cmd = '''
+abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  ${tjson}
+    -prefix ${ojson}
+'''
 
     comm = commentize( comm )
     pre  = commandize( pre, cmdindent=0, 
                        ALIGNASSIGN=True, ALLEOL=False )
     cmd  = commandize( cmd, cmdindent=0, ALLEOL=False )
-    imtxt = echoize(imtxt, efile=otxt, padpost=2)
+    jsontxt = commandize( jsontxt, cmdindent=0, ALLEOL=False )
+    jsontxt_cmd  = commandize( jsontxt_cmd, padpost=2 )
 
-    lout = [comm, pre, cmd, imtxt]
+    lout = [comm, pre, cmd, jsontxt, jsontxt_cmd]
     return '\n\n'.join(lout)
 
 # ----------------------------------------------------------------------
@@ -1071,6 +1283,8 @@ def apqc_dat_tent_warn( opref ):
 
     pre = '''
     set opref = {}
+    set tjson  = _tmp.txt
+    set ojson  = ${{odir_dat}}/${{opref}}.json
     '''.format( opref )
 
     cmd = '''
@@ -1081,17 +1295,34 @@ else
 endif
     '''
 
-    otxt  = "${odir_dat}/${opref}" + ".txt"
+    jsontxt = '''
+cat << EOF >! ${tjson}
+    title ::  Check: TENT warnings from timing_tool.py
+    text  ::  ""
+    linkid :: wTENT
+    linkid_hov :: TENT warnings from timing_tool.py
+EOF
+'''
 
-    imtxt = '''Check: TENT warnings from timing_tool.py'''
+    jsontxt_cmd = '''
+abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  ${tjson}
+    -prefix ${ojson}
+'''
 
     comm = commentize( comm )
     pre  = commandize( pre, cmdindent=0, 
                        ALIGNASSIGN=True, ALLEOL=False )
     cmd  = commandize( cmd, cmdindent=0, ALLEOL=False )
-    imtxt = echoize(imtxt, efile=otxt, padpost=2)
+    #imtxt = echoize(imtxt, efile=otxt, padpost=2)
+    jsontxt = commandize( jsontxt, cmdindent=0, ALLEOL=False )
+    jsontxt_cmd  = commandize( jsontxt_cmd, padpost=2 )
 
-    lout = [comm, pre, cmd, imtxt]
+    lout = [comm, pre, cmd, jsontxt, jsontxt_cmd]
     return '\n\n'.join(lout)
 
 
@@ -1125,30 +1356,52 @@ def apqc_term_ss_review_basic( opref ):
 
 # ======================== html page title ============================
 
-def apqc_dat_html_title( opref ):
+def apqc_dat_html_title( opref, task_name = '' ):
 
     comm  = '''subject ID for html page title'''
 
     pre = '''
     set opref = {}
+    set tjson  = _tmp.txt
+    set ojson  = ${{odir_dat}}/${{opref}}.json
     '''.format( opref )
 
-    otxt  = "${odir_dat}/${opref}" + ".txt"
+    #otxt  = "${odir_dat}/${opref}" + ".txt"
+    jsontxt = '''
+cat << EOF >! ${tjson}
+    title  ::  "afni_proc.py single subject report"
+    subj   ::  "${subj}"
+    linkid :: "${subj}"
+    linkid_hov :: top of page
+EOF
+'''
+## !! to be added at some point, from new uvar:
+##    taskname  ::  task
 
-    cmd = '''
-echo "afni_proc.py single subject report" > ${odir_dat}/${opref}.dat
-echo "${subj}" >> ${odir_dat}/${opref}.dat
-    '''
+    jsontxt_cmd = '''
+abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  ${tjson}
+    -prefix ${ojson}
+'''
 
-    #imtxt = '''Check: basic processing information'''
+
+#    cmd = '''
+#echo "afni_proc.py single subject report" > ${odir_dat}/${opref}.dat
+#echo "${subj}" >> ${odir_dat}/${opref}.dat
+#    '''
 
     comm  = commentize( comm )
     pre   = commandize( pre, cmdindent=0, 
                        ALIGNASSIGN=True, ALLEOL=False )
-    cmd1  = commandize( cmd, ALLEOL=False )
-    #imtxt = echoize(imtxt, efile=otxt, padpost=2)
+    #cmd  = commandize( cmd, ALLEOL=False )
+    jsontxt = commandize( jsontxt, cmdindent=0, ALLEOL=False )
+    jsontxt_cmd  = commandize( jsontxt_cmd, padpost=2 )
 
-    lout = [comm, pre, cmd]
+    lout = [comm, pre, jsontxt, jsontxt_cmd]
     return '\n\n'.join(lout)
 
 

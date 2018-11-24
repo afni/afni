@@ -14,6 +14,101 @@ import sys
 import os
 import json
 
+# -------------------------------------------------------------------
+
+# these are the properties/fields that the incoming text might have.
+# These define what fields the jsons created by @ss_review_html (and
+# therefore, ultimately in lib_apqc_tcsh.py) can have.
+class apqc_item_info:
+
+    title      = ""
+    text       = ""
+    subtext    = ""
+    linkid     = ""
+    linkid_hov = ""
+
+    def set_title(self, DICT):
+        if DICT.has_key('title') :
+            self.title = DICT['title']
+
+    def set_linkid(self, DICT):
+        if DICT.has_key('linkid') :
+            self.linkid = DICT['linkid']
+
+    def set_linkid_hov(self, DICT):
+        if DICT.has_key('linkid_hov') :
+            self.linkid_hov = DICT['linkid_hov']
+
+    def add_text(self, DICT):
+        if DICT.has_key('text') :
+            if type(DICT['text']) == list :
+                xx = '\n'.join(DICT['text'])
+                self.text+= xx
+            else:
+                self.text+= DICT['text']
+
+    def add_subtext(self, DICT):
+        if DICT.has_key('subtext') :
+            if type(DICT['subtext']) == list :
+                xx = '\n'.join(DICT['subtext'])
+                self.subtext+= xx
+            else:
+                self.subtext+= DICT['subtext']
+
+    # this just runs through all possible things above and fills in
+    # what it can
+    def set_all_from_dict(self, DICT):
+        self.set_title(DICT)
+        self.set_linkid(DICT)
+        self.set_linkid_hov(DICT)
+        self.add_text(DICT)
+        self.add_subtext(DICT)
+
+# -------------------------------------------------------------------
+
+# these are the properties/fields that the incoming *page-title* info
+# might have.  These define what fields the jsons created by
+# @ss_review_html (and therefore, ultimately in lib_apqc_tcsh.py) can
+# have.
+class apqc_title_info:
+
+    title      = ""
+    subj       = ""
+    taskname   = ""
+    linkid     = ""
+    linkid_hov = ""
+
+    def set_title(self, DICT):
+        if DICT.has_key('title') :
+            self.title = DICT['title']
+
+    def set_linkid(self, DICT):
+        if DICT.has_key('linkid') :
+            self.linkid = DICT['linkid']
+
+    def set_linkid_hov(self, DICT):
+        if DICT.has_key('linkid_hov') :
+            self.linkid_hov = DICT['linkid_hov']
+
+    def set_taskname(self, DICT):
+        if DICT.has_key('taskname') :
+            self.taskname = DICT['taskname']
+
+    def set_subj(self, DICT):
+        if DICT.has_key('subj') :
+            self.subj = DICT['subj']
+
+    # this just runs through all possible things above and fills in
+    # what it can
+    def set_all_from_dict(self, DICT):
+        self.set_title(DICT)
+        self.set_linkid(DICT)
+        self.set_linkid_hov(DICT)
+        self.set_taskname(DICT)
+        self.set_subj(DICT)
+
+# -------------------------------------------------------------------
+
 def wrap_block_lab(x, vpad=0):
     y = """<h3><center>block: """+x+"""</center></h3>"""
     if vpad:
@@ -23,10 +118,51 @@ def wrap_block_lab(x, vpad=0):
 
 # -------------------------------------------------------------------
 
-def wrap_image_title(x, vpad=0, addclass=""):
-    y = """<pre """
+#def make_nav_table(llinks):
+#
+#    N = len(llinks)
+#    idx = 0
+#
+#    y = '''<div>\n'''
+#
+#    for i in range(N):
+#        ll, hov = llinks[i][0], llinks[i][1]
+#        lname = ll #str(i)+ '.'+ll
+#        y+= '''<a href="#{}" title="{}">'''.format( ll, hov )
+#        y+= '''<b>{}</b></a>\n'''.format( lname )
+#    y+= '''</div>'''
+#    
+#    return y
+
+def make_nav_table(llinks):
+
+    N = len(llinks)
+    idx = 0
+
+    y = '''<div><nav><ul class="section">\n'''
+
+    for i in range(N):
+        ll, hov = llinks[i][0], llinks[i][1]
+        lname = ll #str(i)+ '.'+ll
+        y+= '''<li><a href="#{}" title="{}">'''.format( ll, hov )
+        y+= '''<b>{}</b></a></li>\n'''.format( lname )
+    y+= '''</ul></nav></div>'''
+    
+    return y
+
+# -------------------------------------------------------------------
+
+def wrap_image_title(x, vpad=0, addclass="", linkid=''):
+    y = '''<div'''
+    if linkid :
+        y+= ''' id="{}" '''.format(linkid)
+    # this line offsets the anchor location for the navigation bar to
+    # head to: the values here should be equal to the height of the
+    # navigation bar (plus the 2px line beneath it).
+    y+= ''' style="padding-top: 38px; margin-top: -38px;"'''
+    y+= """><pre """
     y+= ''' {} '''.format(addclass)
-    y+= """ width="80"><center><b>"""+x+"""</b></center></pre>"""
+    y+= """ width="80"><center><b>"""+x+"""</b></center></pre></div>"""
     if vpad:
         y= """\n"""+y
         y+="""\n"""
@@ -77,36 +213,35 @@ def wrap_dat(x, wid=500, vpad=0, addclass=""):
 
 # -------------------------------------------------------------------
 
-def read_descrip_txt(x, nline_title=1):
-    '''Take the input text file 'x' and return two strings:
+def read_descrip_json(x):
+    '''Take the input json file 'x' and return an instance of the
+apqc_item_info class.
+'''
 
-    the first line of 'x' by itself, which will be a title; and
+    # get json as dictionary
+    ddd       = read_json_to_dict(x)
+    # initialize object to hold info
+    apqc_info = apqc_item_info()
+    # set everything in this object that we can
+    apqc_info.set_all_from_dict(ddd)
 
-    the remaining lines of 'x', which will be centered block of
-    left-justified text in the output.
+    return apqc_info
 
-    If 'x' only has one line, then the second part is an empty string.
-    '''
+# -------------------------------------------------------------------
 
+def read_title_json(x):
+    '''Take the input json file 'x' and return an instance of the
+apqc_title_info class.
+'''
 
-    fff = open(x, 'r')
-    txt = fff.readlines()
-    fff.close()
+    # get json as dictionary
+    ddd       = read_json_to_dict(x)
+    # initialize object to hold info
+    apqc_info = apqc_title_info()
+    # set everything in this object that we can
+    apqc_info.set_all_from_dict(ddd)
 
-    Nlines = len(txt)
-    if not(Nlines):
-        sys.exit("** ERROR: no lines of text in {}?".format(x))
-
-    if nline_title : 
-        title = ''.join(txt[:nline_title])
-    else:
-        title = ''
-
-    if Nlines-nline_title > 0 :
-        out = ''.join(txt[nline_title:])
-    else:
-        out = ''
-    return title, out
+    return apqc_info
 
 # ----------------------------------------------------------------------
 
@@ -121,8 +256,21 @@ def read_dat(x):
 
 # ----------------------------------------------------------------------
 
+
+# !!!!!!!!!! just delete this- nothing particular to 'pbar'
 # check if json exists- return full or null dict
-def read_pbar_json(x):
+#def read_pbar_json(x):
+#
+#    if os.path.isfile(x):
+#        with open(x, 'r') as fff:
+#            xdict = json.load(fff)
+#    else:
+#        xdict = {}
+#
+#    return xdict
+
+# check if json exists- return full or null dict
+def read_json_to_dict(x):
 
     if os.path.isfile(x):
         with open(x, 'r') as fff:
