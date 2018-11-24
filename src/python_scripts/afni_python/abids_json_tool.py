@@ -4,11 +4,73 @@
 ## 08/2018 Justin Rajendra
 ## convert : sep txt to json or the other way around
 ## add stuff to json files
+##
+## Nov 23, 2018: PA Taylor
+## + expanding functionality for -txt2json stuff:
+##   - allow for strings inside double quotes to be treated as one value
+##     (will probably make string wrapping to be either " or ')
+##   - also make two new opts: '-delimiter_major ..' and
+##     '-delimiter_minor ..'  to allow for key-value and value-value
+##     separation to occur at  different chars.
+## 
+########################################################################
 
 ## system libraries
 import sys, os, glob, subprocess, csv, re, argparse, signal, textwrap, json
 import abids_lib
 from collections import OrderedDict
+
+# ---------------------------------------------------------------------
+
+# This function only applies to parsing the simple, colon-separated
+# text files entered with -txt2json
+def parse_txt_value(x, delmin):
+
+    # examples of chars that we look for to open+close strings 
+    str_symb = [ "'", '"' ]
+
+    y = x.rstrip().lstrip()
+    N = len(y) 
+
+    olist = []
+    KEEP_GOING = 1
+    Nleft = N
+    i = 0
+    while Nleft and i<N and KEEP_GOING :
+        mysymb = ''
+
+        # see if we find the start of an enclosed str
+        for ss in str_symb:
+            if y[i] == ss :
+                i0 = i
+                mysymb = ss
+
+        # if it starts, try to find its close
+        if mysymb:
+            # search for partner, starting from next ele
+            j0 = i0+1
+            i1 = y[j0:].find(mysymb)
+            if i1 >= 0 :
+                # if partner found, save that piece of string
+                j1 = j0+i1
+                olist.append(y[j0:j1])          # inside quotes
+                # then jump to partner loc plus one, and continue
+                i = j1+1
+                Nleft = len(y[i:])
+            else:
+                # if partner NOT found, that will be it for the loop
+                KEEP_GOING = 0
+        else:
+            i+=1
+        
+    # and attach the remainder as a final list, split by spaces (def)
+    # or by user-specified delimiter
+    if Nleft > 0 :
+        z = y.rstrip().lstrip().split(delmin)
+        for ele in z:
+            olist.append(ele.rstrip().lstrip())
+
+    return olist
 
 ########################################################################
 ## parse command line arguments / build help
@@ -84,6 +146,18 @@ parser.add_argument('-overwrite',action="store_true",default=False,
                     help=('Use caution as this will overwrite the -prefix '+
                           'file if it exists!!'))
 parser.add_argument('-help',action='help',help='Show this help and exit.')
+# [PT: Nov 21, 2018] new opts to adjust delims under -txt2json functionality
+parser.add_argument('-delimiter_major',type=str,metavar='DELIM_MAJ',
+                    default=': | =',
+                     help=('When using "-txt2json" opt, specify the '+
+                           'new (major) delimiter to separate keys and values.'))
+parser.add_argument('-delimiter_minor',type=str,metavar='DELIM_MIN',
+                    default=None,
+                     help=('When using "-txt2json" opt, specify the '+
+                           'new (minor) delimiter to separate value items. '+
+                           'NB: pairs of quotes take priority to define '+
+                           'a single item. The default delimiter '+
+                           '(outside of quotes) is whitespace.'))
 
 ## if nothing, show help
 if len(sys.argv) == 1:
@@ -101,6 +175,10 @@ del_entry = args.del_json
 prefix = args.prefix
 overwrite = args.overwrite
 force = args.force_add
+# [PT: Nov. 21, 2018] For '-txt2json': options on what separates what
+# keys and values (DELIM_MAJ) and different values (DELIM_MIN).
+DELIM_MAJ = args.delimiter_major
+DELIM_MIN = args.delimiter_minor
 
 ########################################################################
 ## check stuff
@@ -132,7 +210,7 @@ if txt2json:
         for line in f:
 
             ## split on : and skip if blank line
-            field = re.split(': | =',line)
+            field = re.split(DELIM_MAJ, line)
             # field = line.split(":")
             if len(field) == 1: continue
 
@@ -141,7 +219,11 @@ if txt2json:
             key = re.sub("[()]","",key)                 ## get rid of ()
 
             ## make value list or entry and convert to float if number
-            value_list = field[1].rstrip().lstrip().split()
+            # [PT: Nov 21, 2018] allow strings to be a single value
+            value_list = parse_txt_value( field[1], delmin=DELIM_MIN )
+            ## older form:
+            #value_list = field[1].rstrip().lstrip().split()
+
             value = []
             for v in value_list:
                 try:
