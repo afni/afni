@@ -66,6 +66,16 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 23, Nov , 2018 , PT , "apqc_make_html.py" , MAJOR , TYPE_GENERAL,
+   "Much better page formatting now, including navigation bar.",
+   "User can jump to sections.\n"
+},
+
+{ 23, Nov , 2018 , PT , "apqc_make_tcsh.py" , MAJOR , TYPE_GENERAL,
+   "Outputs JSON files now, for easier handling of information later.",
+   "These provide more comprehensive info, as well as href linknames.\n"
+},
+
 { 20, Nov , 2018 , PT , "apqc_make_html.py" , MINOR , TYPE_GENERAL,
    "Make subtxt fonts gray (oooh!) and uniformly bold.",
    "Also, made image links not be whole line (much more convenient).\n"

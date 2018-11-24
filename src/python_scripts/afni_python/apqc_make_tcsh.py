@@ -27,9 +27,16 @@
 #ver = '1.51' ; date = 'Oct 19, 2018' ; auth = 'PA Taylor'
 # + 'exit 0' added
 #
-ver = '1.6' ; date = 'Nov , 2018' ; auth = 'PA Taylor'
+#ver = '1.6' ; date = 'Nov 20, 2018' ; auth = 'PA Taylor'
 # + [PT] RUN_MODE now formalized through input name; default 'basic'
 # + [PT] end with @ss_review_basic echoed to terminal
+#
+ver = '1.7' ; date = 'Nov 23, 2018' ; auth = 'PA Taylor'
+# + [PT] Now each section outputs a JSON file of info.
+#        This replaces the *txt files for each image-- more versatile
+#        with info handling
+# + [PT] Each output includes link-ID and hovering text for each
+# + [PT] title info is now handled with a JSON, too
 #
 #########################################################################
 
@@ -136,7 +143,7 @@ if __name__ == "__main__":
     ldep  = ['subj']
     if lat.check_dep(ap_ssdict, ldep) :
         ban      = lat.bannerize('title of html page: subj')
-        opref    = '_page_title'
+        opref    = lat.page_title_json
         cmd      = lat.apqc_dat_html_title( opref )
 
         str_FULL+= ban
