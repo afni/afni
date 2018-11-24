@@ -155,7 +155,7 @@ def make_1dplot_figure(bf):
                 line.set_markersize(MARKSIZE1)
             medlines = sq['medians']
             for line in medlines:
-                line.set_color('0.8')
+                line.set_color('0.7')
                 line.set_linewidth(SETLW*1.25 )
             boxlines = sq['boxes']
             for line in boxlines:
