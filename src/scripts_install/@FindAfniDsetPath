@@ -10,6 +10,9 @@
 #   moment, they can only be found in the `which afni` directory.
 #   That is now modernized.
 #
+# [PT: Nov 25, 2018]
+# + Bug fix: dsets weren't being found in places specified by env vars
+#   like AFNI_GLOBAL_SESSION, etc.
 
 
 # separate length check
@@ -62,6 +65,7 @@ foreach vv ( $list_of_vars )
         # vals to the dataset array
         set dataset_path = ( ${dataset_path} \
                              `echo $ccc | tr ':' ' '`)
+         #echo $dataset_path
     endif
 end
 
@@ -78,7 +82,7 @@ endif
 # + Updating this to be fine with finding NIFTI data sets via the
 #   above (using the '... == 3')!
 foreach dir ( ${dataset_path} )
-    set result = `@CheckForAfniDset ${ref_in}`
+    set result = `@CheckForAfniDset ${dir}/${ref_in}`
     if ( "$result" == 2 || "$result" == 3 ) then
 
         # remove last character if "/"
