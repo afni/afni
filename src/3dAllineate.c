@@ -316,6 +316,27 @@ char * INTERP_methname( int iii )
    return "MYSTERIOUS" ; /* unreachable */
 }
 
+int INTERP_code( char *name )
+{
+   if( name == NULL ) return -1 ;
+   if( strcmp(name,"NN") == 0 || strncmp(name,"nearest",5) == 0 )
+     return MRI_NN ;
+   else
+   if( strncmp(name,"linear",3) == 0 || strncmp(name,"trilinear",5) == 0 )
+     return MRI_LINEAR ;
+   else
+   if( strncmp(name,"cubic",3) == 0 || strncmp(name,"tricubic",5) == 0 )
+     return MRI_CUBIC ;
+   else
+   if( strncmp(name,"quintic",3)==0 || strncmp(name,"triquintic",5)==0 )
+     return MRI_QUINTIC ;
+   else
+   if( strncasecmp(name,"WSINC",5)==0 )
+     return MRI_WSINC5 ;
+
+   return -1 ;
+}
+
 /*---------------------------------------------------------------------------*/
 
 int main( int argc , char *argv[] )
@@ -1751,6 +1772,11 @@ int main( int argc , char *argv[] )
    THD_check_AFNI_version("3dAllineate");
    (void)COX_clock_time() ;
 
+   /*-- initialize -final interp from environment? [25 Nov 2018] --*/
+
+   ii = INTERP_code(my_getenv("AFNI_3dAllineate_final")) ;
+   if( ii >= 0 ){ final_interp = ii ; got_final = 1 ; }
+
    /**--- process command line options ---**/
 
    iarg = 1 ;
@@ -2520,9 +2546,6 @@ int main( int argc , char *argv[] )
        interp_code = MRI_QUINTIC ; iarg++ ; got_interp = 1 ;continue ;
      }
 #if 0
-     if( strcasecmp(argv[iarg],"-VARP1") == 0 ){
-       interp_code = MRI_VARP1 ; iarg++ ; got_interp = 1 ;continue ;
-     }
      if( strncasecmp(argv[iarg],"-WSINC") == 0 ){
        interp_code = MRI_WSINC5 ; iarg++ ; got_interp = 1 ;continue ;
      }
@@ -2541,9 +2564,6 @@ int main( int argc , char *argv[] )
        if( strncmp(argv[iarg],"quintic",3)==0 || strncmp(argv[iarg],"triquintic",5)==0 )
          interp_code = MRI_QUINTIC ;
 #if 0
-       else
-       if( strcasecmp(argv[iarg],"VARP1")==0 )
-         interp_code = MRI_VARP1 ;
        else
        if( strncasecmp(argv[iarg],"WSINC",5)==0 )
          interp_code = MRI_WSINC5 ;
@@ -2566,11 +2586,6 @@ int main( int argc , char *argv[] )
        else
        if( strncmp(argv[iarg],"quintic",3)==0 || strncmp(argv[iarg],"triquintic",5)==0 )
          final_interp = MRI_QUINTIC ;
-#if 0
-       else
-       if( strcasecmp(argv[iarg],"VARP1")==0 )
-         final_interp = MRI_VARP1 ;
-#endif
        else
        if( strncasecmp(argv[iarg],"WSINC",5)==0 )
          final_interp = MRI_WSINC5 ;
