@@ -504,10 +504,10 @@ def apqc_1D_volreg(jpgsize, opref, run_mode):
     # text shown above image in the final HTML
     jsontxt = '''
     cat << EOF >! ${tjson}
-    title ::  Check: motion profiles (3dvolreg)
+    title ::  Check: volume registration motion parameters
     text  ::  ""
-    linkid :: VR
-    linkid_hov :: motion profiles (3dvolreg)
+    linkid :: VR6
+    linkid_hov :: volume registration motion parameters
     EOF
     '''
 
