@@ -82,7 +82,6 @@ endif
 # + Updating this to be fine with finding NIFTI data sets via the
 #   above (using the '... == 3')!
 foreach dir ( ${dataset_path} )
-    echo "TEST:" $dir
     set result = `@CheckForAfniDset ${dir}/${ref_in}`
     if ( "$result" == 2 || "$result" == 3 ) then
 
