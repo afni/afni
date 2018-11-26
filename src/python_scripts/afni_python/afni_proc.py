@@ -618,9 +618,10 @@ g_history = """
     6.21 Oct 17, 2018: pass -ss_review_dset to gen_ss_review_scripts.py
     6.22 Nov 19, 2018: added opt -html_review_style and run apqc_make_html.py
         - and check for respective dependencies
+    6.23 Nov 26, 2018: added opt -volreg_warp_final_interp
 """
 
-g_version = "version 6.22, November 19, 2018"
+g_version = "version 6.23, November 26, 2018"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -660,7 +661,10 @@ More detailed changes, starting May, 2018.
 
 g_todo_str = """todo:
   - ME:
-     - add help for new combine methods
+     - detrend (project others?) execute across runs
+        - then break either data or regressors across runs
+     - motion params?  censoring?
+     x add help for new combine methods
      x add tedana orthogonalization combine methods
      x for LA: run all tedana steps before 3dcopy ones
      x update for (f)ANATICOR 
@@ -807,6 +811,7 @@ class SubjProcSream:
         self.vr_ext_pre = 'external_volreg_base' # copied volreg base prefix
         self.vr_int_name= ''            # other internal volreg dset name
         self.vr_base_dset = None        # afni_name for applied volreg base
+        self.vr_warp_fint = ''          # final interpolation for warped dsets
         self.epi_final  = None          # vr_base_dset or warped version of it
         self.volreg_prefix = ''         # prefix for volreg dataset ($run)
                                         #   (using $subj and $run)
@@ -1226,6 +1231,8 @@ class SubjProcSream:
                         helpstr='compute all final EPI/anat alignment costs')
         self.valid_opts.add_opt('-volreg_interp', 1, [],
                         helpstr='interpolation method used in volreg')
+        self.valid_opts.add_opt('-volreg_warp_final_interp', 1, [],
+                        helpstr='final interpolation used when apply warps')
         # rcr - antiquate old motsim options
         self.valid_opts.add_opt('-volreg_motsim', 0, [],
                         helpstr='create a motion simulated time series')
