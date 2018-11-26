@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 25, Nov , 2018 , PT , "@FindAfniDsetPath" , MINOR , TYPE_BUG_FIX,
+   "Dsets weren't found in places specified by env var.",
+   "Fixed now.\n"
+},
+
 { 23, Nov , 2018 , PT , "apqc_make_html.py" , MAJOR , TYPE_GENERAL,
    "Much better page formatting now, including navigation bar.",
    "User can jump to sections.\n"
