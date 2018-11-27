@@ -443,12 +443,21 @@ static int recursed_ondot = 0 ;  /* 18 Feb 2007 */
 /* ---------------------------------------------------------------------- */
 /* just display the AFNI version                      26 Oct 2015 [rickr] */
 /* (since writing to stdout, do not interfere with print-and-exit funcs)  */
+
+#include "RomanImperator.h"  /* RWC Nov 2018 */
+
 void show_AFNI_version(void)
 {
+  char *rimp = AFNI_VERSION_RomanImperator ;
+  char vvvv[512] ;
+
+  if( rimp != NULL && *rimp != '\0' ){ sprintf(vvvv,"%s '%s'",AVERZHN,rimp); }
+  else                               { strcpy(vvvv,AVERZHN) ; }
+
 #ifdef SHSTRING
-     printf( "Precompiled binary " SHSTRING ": " __DATE__ " (Version " AVERZHN ")\n" ) ;
+     printf( "Precompiled binary " SHSTRING ": " __DATE__ " (Version %s)\n",vvvv ) ;
 #else
-     printf( "Compile date = " __DATE__ " " __TIME__ " (Version " AVERZHN ")\n") ;
+     printf( "Compile date = " __DATE__ " " __TIME__ " (Version %s)\n",vvvv) ;
 #endif
 }
 
