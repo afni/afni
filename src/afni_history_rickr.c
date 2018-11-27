@@ -49,9 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
- { 21, Nov, 2018, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
-   "look for and parse 3dQwarp template name",
-   NULL
+ { 26, Nov, 2018, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "add opt -volreg_warp_final_interp",
+   "This controls final interpolation for all non-NN warps, including\n"
+   "catenated EPI transforms (affine and non-linear), final EPI,\n"
+   "and anatomical followers."
  } ,
 
  { 21, Nov, 2018, RCR, "3dcopy", MICRO, TYPE_ENHANCE,
