@@ -53,7 +53,8 @@ afni_history_struct rickr_history[] = {
    "add opt -volreg_warp_final_interp",
    "This controls final interpolation for all non-NN warps, including\n"
    "catenated EPI transforms (affine and non-linear), final EPI,\n"
-   "and anatomical followers."
+   "and anatomical followers.\n"
+   "Done for \"the boss\"."
  } ,
 
  { 21, Nov, 2018, RCR, "3dcopy", MICRO, TYPE_ENHANCE,

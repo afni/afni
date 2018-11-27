@@ -11316,6 +11316,41 @@ g_help_options = """
                 0.375  ...  0.4374 --> 0.375
                 ...
 
+        -volreg_warp_final_interp METHOD : set final interpolation method
+
+                e.g. -volreg_warp_final_interp wsinc5
+                default: none (use defaults of called programs)
+
+            This option allows the user to specify the final interpolation
+            method used when warping data or concatenating warps.  This applies
+            to computation of a final/output volume, after any transformations
+            are already known.  Examples include:
+
+                - all combined non-NN warp cases, such as for the main EPI
+                  datasets from concatenated transformations
+                  (both affine and non-linear)
+                  (NN warps are where nearest neighbor is not automatic)
+                - final EPI (warped vr base)
+                - anatomical followers
+
+            These options are currently applied via:
+
+                3dAllineate -final
+                3dNwarpApply -ainterp
+
+            Common choices:
+
+                NN          : nearest neighbor
+                linear      : \\
+                cubic       : as stated, or "tri" versions, e.g. trilinear
+                              (these apply to 3dAllineate and 3dNwarpApply)
+                quintic     : /
+              * wsinc5      : nice interpolation, less blur, sharper edges
+                              ==> the likely use case
+
+            Please see '3dAllineate -help' for more details.
+            Please see '3dNwarpApply -help' for more details.
+
         -volreg_zpad N_SLICES   : specify number of slices for -zpad
 
                 e.g. -volreg_zpad 4
