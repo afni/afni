@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, Nov, 2018, RCR, "apqc_make_tcsh.py", MICRO, TYPE_ENHANCE,
+   "python3 update for chmod code",
+   "Thanks to L Dowdle for noting the issue."
+ } ,
+
  { 26, Nov, 2018, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "add opt -volreg_warp_final_interp",
    "This controls final interpolation for all non-NN warps, including\n"
