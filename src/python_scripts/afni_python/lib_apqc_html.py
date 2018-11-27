@@ -7,6 +7,10 @@
 # + [PT] wrap_imag now includes href, so clicking on image opens it in
 #   new link
 #
+# ver : 1.4 || date: Nov 1, 2018 
+# + [PT] Making py3 compatible: 
+#        from 2to3, updating DICT.has_key(x) -> x in DICT
+#
 #########################################################################
 
 # mostly ways to read & wrap text & images.
@@ -28,19 +32,19 @@ class apqc_item_info:
     linkid_hov = ""
 
     def set_title(self, DICT):
-        if DICT.has_key('title') :
+        if 'title' in DICT :
             self.title = DICT['title']
 
     def set_linkid(self, DICT):
-        if DICT.has_key('linkid') :
+        if 'linkid' in DICT :
             self.linkid = DICT['linkid']
 
     def set_linkid_hov(self, DICT):
-        if DICT.has_key('linkid_hov') :
+        if 'linkid_hov' in DICT :
             self.linkid_hov = DICT['linkid_hov']
 
     def add_text(self, DICT):
-        if DICT.has_key('text') :
+        if 'text' in DICT :
             if type(DICT['text']) == list :
                 xx = '\n'.join(DICT['text'])
                 self.text+= xx
@@ -48,7 +52,7 @@ class apqc_item_info:
                 self.text+= DICT['text']
 
     def add_subtext(self, DICT):
-        if DICT.has_key('subtext') :
+        if 'subtext' in DICT :
             if type(DICT['subtext']) == list :
                 xx = '\n'.join(DICT['subtext'])
                 self.subtext+= xx
@@ -79,23 +83,23 @@ class apqc_title_info:
     linkid_hov = ""
 
     def set_title(self, DICT):
-        if DICT.has_key('title') :
+        if 'title' in DICT :
             self.title = DICT['title']
 
     def set_linkid(self, DICT):
-        if DICT.has_key('linkid') :
+        if 'linkid' in DICT :
             self.linkid = DICT['linkid']
 
     def set_linkid_hov(self, DICT):
-        if DICT.has_key('linkid_hov') :
+        if 'linkid_hov' in DICT :
             self.linkid_hov = DICT['linkid_hov']
 
     def set_taskname(self, DICT):
-        if DICT.has_key('taskname') :
+        if 'taskname' in DICT :
             self.taskname = DICT['taskname']
 
     def set_subj(self, DICT):
-        if DICT.has_key('subj') :
+        if 'subj' in DICT :
             self.subj = DICT['subj']
 
     # this just runs through all possible things above and fills in
