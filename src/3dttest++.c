@@ -4785,7 +4785,7 @@ LABELS_ARE_DONE:  /* target for goto above */
          /* let only job #0 print progress to the screen */
          if( pp > 0 ) strcat(cmd," &> /dev/null") ;
 
-         if( pp == 0 && (1||dryrun) )
+         if( pp == 0 && dryrun )
            ININFO_message("#0 jobs command:\n   %s",cmd) ;
 
          if( pp == 0 && bmd != NULL ){
