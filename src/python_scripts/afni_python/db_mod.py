@@ -155,7 +155,7 @@ def apply_catenated_warps(proc, warp_list, base='', source='', prefix='',
       # final interpolation
       if NN:       clist.append('             -ainterp NN -quiet \\\n')
       elif finterp:
-                   clist.append('             -ainterp %s -quiet \\\n',finterp)
+                   clist.append('             -ainterp %s \\\n'%finterp)
 
       clist.append('             -prefix %s\n' % prefix)
 
@@ -8249,8 +8249,9 @@ g_help_examples = """
          AFNI currently does not have a good program to extract ventricles.
          But it can make a CSF mask that includes them.  So without FreeSurfer,
          one could import a ventricle mask from the template (e.g. for TT space,
-         using TT_desai_dd_mpm+tlrc).  For example, assume Talairach space for
-         the analysis, create a ventricle mask as follows:
+         using TT_desai_dd_mpm+tlrc).  For example, assuming Talairach space
+         (and a 2.5 mm^3 final voxel grid) for the analysis, one could create a
+         ventricle mask as follows:
 
                 3dcalc -a ~/abin/TT_desai_dd_mpm+tlrc                       \\
                        -expr 'amongst(a,152,170)' -prefix template_ventricle
