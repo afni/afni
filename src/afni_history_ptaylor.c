@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 27, Nov , 2018 , PT , "@chauffeur_afni" , MINOR , TYPE_BUG_FIX,
+   "Wasn't using user's specified delta_slices-- but now is!.",
+   "Grazie, S. Torrisi!\n"
+},
+
 { 27, Nov , 2018 , PT , "apqc_make_html.py" , MINOR , TYPE_GENERAL,
    "Make python3 compatible.",
    "updated.\n"

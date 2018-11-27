@@ -208,6 +208,7 @@ set delaxi = -1                  # (int) slice space in axi orient
 set delcor = -1                  # (int) slice space in cor orient
 set USER_COORS = 0               # switch to let user pick IJK
 set coors  = ( 0 0 0 )
+set USER_GAPORD = 0
 set gapord = ( 0 0 0 )
 set coor_type = "SET_IJK"        # default, can switch to SET_XYZ
 
@@ -347,6 +348,7 @@ while ( $ac <= $#argv )
         @ gapord[2] = "$argv[$ac]"
         @ ac += 1
         @ gapord[3] = "$argv[$ac]"
+        set USER_GAPORD = 1
 
     else if ( "$argv[$ac]" == "-thr_olay" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
@@ -1162,13 +1164,13 @@ foreach rrr ( `seq 1 1 $Nreps` )  ### the BIG loop starts
 
     # [PT: Nov 6, 2018] we only want this set here for 3D; for 4D,
     # this was set above to be 1 1 1!
-    if ( ! $MODE_4D ) then
-        # [PT: Oct 18, 2018] 
-        # + Now calculated in separate program;
-        # + also, if "-box_focus_slices" is on, then this gets
-        #   recalculated just below, for the refbox dset
-        set gapord = `@djunct_slice_space -nwin $Nwin -inset "$ulay"`
-        #echo "\n\n\n\n\n\n gapord : $gapord \n\n\n\n"
+    if ( $MODE_4D == 0 ) then
+
+        if ( $USER_GAPORD == 0 ) then
+            # + also, if "-box_focus_slices" is on, then this gets
+            #   recalculated just below, for the refbox dset
+            set gapord = `@djunct_slice_space -nwin $Nwin -inset "$ulay"`
+        endif
     endif
 
     echo "++ Dimensions (xyzt): $Dim"
