@@ -120,6 +120,8 @@ def apply_catenated_warps(proc, warp_list, base='', source='', prefix='',
       if NLinterp: apply corresponding interp option to NL case
                    (speed-up for computing warps of all-1 dsets)
 
+      allow for proc.vr_warp_fint to alter final interpolation
+
       return: status and a single command, indented by istr
    """
 
@@ -135,6 +137,9 @@ def apply_catenated_warps(proc, warp_list, base='', source='', prefix='',
       print('** ACW: not ready for sequence of affine warps')
       return 1, ''
 
+   # make note of any final interpolation
+   finterp = proc.vr_warp_fint
+
    if NL:
       if base: mstr = ' -master %s' % base
       else:    mstr = ''
@@ -145,8 +150,13 @@ def apply_catenated_warps(proc, warp_list, base='', source='', prefix='',
                '             -source %s \\\n'   % source,
                '             -nwarp %s \\\n'    % wstr]
 
+      # initial interpolation
       if NLinterp: clist.append('             -interp %s \\\n' % NLinterp)
+      # final interpolation
       if NN:       clist.append('             -ainterp NN -quiet \\\n')
+      elif finterp:
+                   clist.append('             -ainterp %s -quiet \\\n',finterp)
+
       clist.append('             -prefix %s\n' % prefix)
 
    else: # affine
@@ -154,8 +164,11 @@ def apply_catenated_warps(proc, warp_list, base='', source='', prefix='',
       else:    mstr = ''
       if dim > 0: dimstr = ' -mast_dxyz %g' % dim
       else:       dimstr = ''
-      if NN: nstr = ' -final NN -quiet'
-      else:  nstr = ''
+
+      # final interpolation
+      if NN:        nstr = ' -final NN -quiet'
+      elif finterp: nstr = ' -final %s' % finterp
+      else:         nstr = ''
 
       if dimstr or nstr:
          mastline = '            -mast_dxyz %g%s \\\n' % (dim, nstr)
@@ -1780,6 +1793,7 @@ def db_mod_volreg(block, proc, user_opts):
             return 1
 
     apply_uopt_to_block('-volreg_interp', user_opts, block)
+    apply_uopt_to_block('-volreg_warp_final_interp', user_opts, block)
     apply_uopt_to_block('-volreg_motsim', user_opts, block)
     apply_uopt_to_block('-volreg_get_allcostX', user_opts, block)
 
@@ -1893,6 +1907,11 @@ def db_cmd_volreg(proc, block):
     # get the interpolation value
     opt = block.opts.find_opt('-volreg_interp')
     resam = ' '.join(opt.parlist)     # maybe '-cubic'
+
+    # make note of any final interpolation, as well
+    finterp, rv = block.opts.get_string_opt('-volreg_warp_final_interp',
+                                            default='')
+    if not rv: proc.vr_warp_fint = finterp
 
     # get the zpad value
     opt = block.opts.find_opt('-volreg_zpad')
@@ -2486,8 +2505,9 @@ def warp_anat_followers(proc, block, anat_aname, epi_aname=None, prevepi=0):
       if afobj.final_prefix: prefix = afobj.final_prefix
       else:                  prefix = 'afwarp_%s' % afobj.label
 
-      if afobj.NN: istr = 'NN'
-      else:        istr = 'wsinc5'
+      if   afobj.NN:          istr = 'NN'
+      elif proc.vr_warp_fint: istr = proc.vr_warp_fint
+      else:                   istr = 'wsinc5'
 
       if xform == identity_warp and afobj.dgrid != 'epi':
          if proc.verb > 1:
