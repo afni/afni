@@ -215,7 +215,7 @@ static Xclu_opt **opt_Xclu = NULL ;
 static char *Xclu_arg      = NULL ; /* 10 Sep 2016 */
 
 static int do_global_etac  = 1 ;    /* Sep 2018 */
-static int do_local_etac   = 1 ;
+static int do_local_etac   = 0 ;
 
 static char *clustsim_prog = NULL ; /* 30 Aug 2016 */
 static char *clustsim_opt  = NULL ;
@@ -1351,7 +1351,7 @@ void display_help_menu(void)
       "  * use of multiple per-voxel p-value thresholds simultaneously\n"
       "  * use of cluster-size and/or cluster-square-sum as threshold parameters\n"
       "  * use of multiple amounts of blurring simultaneously\n"
-      "  * use of spatially variable cluster sizes.\n"
+      "  * use of spatially variable cluster sizes ['local ETAC'].\n"
       "\n"
       "'Equitable' means that each combination of the above choices is treated\n"
       "to contribute approximately the same to the False Positive Rate (FPR).\n"
@@ -1421,9 +1421,9 @@ void display_help_menu(void)
       "\n"
       " -ETAC_local          = Do the ETAC calculations 'locally' - that is, produce\n"
       "                        3D datasets with voxelwise cluster multi-threshold.\n"
-      "                       ++ At the present time, the default is to do BOTH\n"
-      "                          local and global calculations, but in the future\n"
-      "                          this default may change unpredictably!\n"
+      "                       ++ At the present time, the default is to do only global\n"
+      "                          ETAC calculations, but in the future this default may\n"
+      "                          change unpredictably or erratically!\n"
       "\n"
       " -noETAC_global       = Turn off the 'global' ETAC calculations.\n"
       " -noETAC_local        = Turn off the 'local' ETAC calculations.\n"
@@ -2443,10 +2443,10 @@ int main( int argc , char *argv[] )
      /*-----  local and global ETAC [Sep 2018]  -----*/
 
      if( strcasecmp(argv[nopt],"-ETAC_local") == 0 ){
-       do_local_etac = 1 ; nopt++ ; continue ;
+       do_Xclustsim = do_local_etac = 1 ; nopt++ ; continue ;
      }
      if( strcasecmp(argv[nopt],"-ETAC_global") == 0 ){
-       do_global_etac = 1 ; nopt++ ; continue ;
+       do_Xclustsim = do_global_etac = 1 ; nopt++ ; continue ;
      }
      if( strcasecmp(argv[nopt],"-noETAC_local") == 0 ){
        do_local_etac = 0 ; nopt++ ; continue ;
@@ -3285,11 +3285,11 @@ int main( int argc , char *argv[] )
    if( name_mask == NULL && do_Xclustsim )
      ERROR_exit("%s requires -mask /:(",clustsim_opt) ;
 
-   if( do_randomsign && num_randomsign > 1 && do_5percent ){ /* 02 Feb 2016 */
+   if( do_randomsign && num_randomsign > 1 ){ /* 02 Feb 2016 */
      char *cpt ;
      brickwise_num = num_randomsign ;
 
-     do_minmax     = 1 ;
+     do_minmax     = do_5percent ;
      prefix_minmax = (char *)malloc(sizeof(char)*(strlen(prefix)+32)) ;
      strcpy(prefix_minmax,prefix) ;
      cpt = strstr(prefix_minmax,".nii")  ; if( cpt != NULL ) *cpt = '\0' ;
@@ -3563,7 +3563,7 @@ int main( int argc , char *argv[] )
 
    if( do_Xclustsim ){
      int64_t nsdat , nsysmem ;
-     int ncsim , ncase , ncmin=40000 ;
+     int ncsim , ncase , ncmin = (do_local_etac) ? 40000 : 10000 ;
 
      ncsim = (int)AFNI_numenv("AFNI_TTEST_NUMCSIM") ;
           if( ncsim <     1000 ) ncsim =  ncmin ;
@@ -4785,7 +4785,7 @@ LABELS_ARE_DONE:  /* target for goto above */
          /* let only job #0 print progress to the screen */
          if( pp > 0 ) strcat(cmd," &> /dev/null") ;
 
-         if( pp == 0 && dryrun )
+         if( pp == 0 && (1||dryrun) )
            ININFO_message("#0 jobs command:\n   %s",cmd) ;
 
          if( pp == 0 && bmd != NULL ){
@@ -4825,7 +4825,7 @@ LABELS_ARE_DONE:  /* target for goto above */
      if( dryrun ){
        if( do_5percent )
          ININFO_message("(Would now compute .5percent.txt file(s) from minmax.1D files)") ;
-     } else if( do_5percent ){
+     } else if( do_5percent && do_minmax ){
        MRI_IMAGE *inim , *allim ; MRI_IMARR *inar ; int nbad=0 ;
        INIT_IMARR(inar) ;
        for( pp=0 ; pp < num_clustsim*ncase ; pp++ ){ /* read one from each simulation */
