@@ -337,10 +337,13 @@ if __name__ == "__main__":
     fff.write(str_FULL)
     fff.close()
 
+    # deal with python 2/3   27 Nov 2018 [rickr]
+    try: code = eval('0o755')
+    except: code = eval('0755')
     try:
-        os.chmod(otcsh, 0755)
-    except OSError, e:
-        print e
+        os.chmod(otcsh, code)
+    except:
+        print("failed: chmod %s %s" % (code, otcsh))
 
     bye_msg = '''
     ++ Done making (executable) script to generate HTML QC:
