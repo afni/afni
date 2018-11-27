@@ -149,7 +149,7 @@
 #set version   = "4.51";   set rev_dat   = "Nov 16, 2018"
 #     + [PT] removed earlier testing echo 
 #
-set version   = "4.6";   set rev_dat   = "Nov 20, 2018"
+#set version   = "4.6";   set rev_dat   = "Nov 20, 2018"
 #     + [PT] several changes
 #       - new @djunct_montage_coordinator program, to get the location
 #         of xhairs when montaging-- this takes the old pieces that were
@@ -157,6 +157,10 @@ set version   = "4.6";   set rev_dat   = "Nov 20, 2018"
 #         a separate program, for modularity.
 #       - fixed how this program selects gapord and coors when using
 #         the focus refbox
+#
+set version   = "4.7";   set rev_dat   = "Nov 27, 2018"
+#     + [PT] fixed delta_slices problem (were ignored)
+#            --> Grazie, S. Torrisi!
 #
 # =====================================================================
 
