@@ -1846,7 +1846,7 @@ extern void mri_metrics( MRI_IMAGE *, MRI_IMAGE *, float * ) ;
 
 #define GA_MATCH_PEARCLP_SCALAR    16
 
-#define GA_MATCH_METHNUM_SCALAR    14  /* Largest value in sequence above */
+#define GA_MATCH_METHNUM_SCALAR    14  /* Largest useful value in sequence above */
 
  /* methods for smoothing images */
 
