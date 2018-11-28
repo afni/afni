@@ -462,8 +462,7 @@ endif
 # ['motion_dset', 'nt_orig']
 def apqc_1D_volreg(jpgsize, opref, run_mode):
 
-    comm  = ''' review plots: 3dvolreg motion regressors, enorm profile, and
-    outliers'''
+    comm  = ''' review plots: 3dvolreg motion regressors'''
 
     pre = '''
     set jpgsize = {} 
@@ -480,13 +479,10 @@ def apqc_1D_volreg(jpgsize, opref, run_mode):
         1dplot                                                     
         -sepscl 
         -volreg 
-        -ynames   enorm outliers - 
         -xlabel   "vol"
         -title    "Estimated motion parameters (volreg)"
         -jpgs     ${jpgsize} "${odir_img}/${opref}" 
         "${motion_dset}" 
-        "${enorm_dset}" 
-        "${outlier_dset}" 
         '''
     elif run_mode == 'pythonic' :
         cmd = '''
@@ -533,8 +529,25 @@ def apqc_1D_volreg(jpgsize, opref, run_mode):
 
 # ----------------------------------------------------------------------
 
-# ['censor_dset', 'outlier_dset', 'out_limit', 'nt_orig']
-def apqc_1D_cen_out(jpgsize, opref, run_mode):
+# **NB**: it is likely that any changes in this function should mirror
+# those of apqc_1D_motenorm_cen
+
+# ['outlier_dset', 'nt_orig'], also use 'censor_dset' and 'out_limit'
+def apqc_1D_cen_out( jpgsize, opref, run_mode,
+                     has_cen_dset=False,
+                     has_lim=False ):
+
+    STR_CEN_pre   = '''set cstr = "(no censoring applied)"'''
+    STR_CL_title  = ''
+    STR_CEN_json2 = ''
+    if has_cen_dset : 
+        STR_CEN_pre = '''set cstr = `1d_tool.py -show_trs_censored encoded -infile ${censor_dset}`
+        set Ncstr = `1d_tool.py -verb 0 -show_censor_count -infile ${censor_dset}`
+        set Pcstr = `echo "scale=0; ${Ncstr} * 100 / ${nt_orig}" | bc`'''
+        STR_CEN_json2+= ''' (${Pcstr}%)'''
+        if has_lim : 
+            STR_CL_title+= ''' (with limit)'''
+        STR_CL_title+= ''' and all censored points'''
 
     comm  = ''' review plots (colored TRs are censored); outliers with 
     fraction limit'''
@@ -545,58 +558,76 @@ def apqc_1D_cen_out(jpgsize, opref, run_mode):
     set tjson  = _tmp.txt
     set ojson  = ${{odir_img}}/${{opref}}.json
     @ imax = ${{nt_orig}} - 1
-    set cstr = `1d_tool.py -show_trs_censored encoded -infile ${{censor_dset}}`
-    '''.format(jpgsize, opref)
+    {}
+    '''.format(jpgsize, opref, STR_CEN_pre)
 
     if run_mode == 'basic' :
+
+        # extra uvars may or may not be used
+        STR_CEN_cmd = ''
+        STR_LIM_cmd = ''
+        STR_CEN_json = ''
+        STR_LIM_json = ''
+        if has_cen_dset : 
+            STR_CEN_cmd+= '''-censor_RGB green 
+                             -censor   ${censor_dset}'''
+            STR_CEN_json+=''', total censoring (green)'''
+            # think one only has a censor limit if one has a censor file??
+            if has_lim : 
+                STR_LIM_cmd+= '''"1D: ${nt_orig}@${out_limit}"'''
+                STR_LIM_json+=''', limit (red)'''
+
         cmd = '''
         1dplot
         -one 
-        -censor_RGB green 
-        -jpgs     $jpgsize "${odir_img}/${opref}"
+        {}
+        -jpgs     ${{jpgsize}} "${{odir_img}}/${{opref}}"
         -aspect   2
         -xlabel   "vol"
-        -title    "Outlier frac (with limit) and all censored points"
-        -censor   ${censor_dset} 
-        ${outlier_dset} 
-        "1D: ${nt_orig}@${out_limit}"
-        '''
-
-        # text shown above image in the final HTML
-        jsontxt = '''
-        cat << EOF >! ${tjson}
-        title ::  Check: outliers
-        text  ::  volume fraction (black), limit (red), censored (green)
-        subtext :: "censored vols: ${cstr}"
-        linkid :: out
-        linkid_hov :: outliers
-        EOF
-        '''
+        -title    "Outlier frac{}"
+        ${{outlier_dset}}
+        {}
+        '''.format( STR_CEN_cmd, STR_CL_title, STR_LIM_cmd )
 
     elif run_mode == 'pythonic' :
+
+        # extra uvars may or may not be used
+        STR_CEN_cmd  = ''
+        STR_LIM_cmd  = ''
+        STR_CEN_json = ''
+        STR_LIM_json = ''
+        if has_cen_dset : 
+            STR_CEN_cmd+= '''-censor_files ${censor_dset}'''
+            STR_CEN_json+=''', total censoring (red)'''
+            # think one only has a censor limit if one has a censor file??
+            if has_lim : 
+                STR_LIM_cmd+= '''-censor_hline ${out_limit}'''
+                STR_LIM_json+=''', limit (cyan)'''
+
         cmd = '''
         1dplot.py                                                     
         -boxplot_on    
         -reverse_order 
-        -infiles  "${outlier_dset}"
+        -infiles  "${{outlier_dset}}"
         -ylabels   "frac"
-        -censor_files ${censor_dset} 
-        -censor_hline ${out_limit}
+        {}
+        {}
         -xlabel   "vol index"
-        -title    "Outlier frac (with limit) and all censored points"
-        -prefix   "${odir_img}/${opref}.jpg" 
-        '''
+        -title    "Outlier frac{}"
+        -prefix   "${{odir_img}}/${{opref}}.jpg" 
+        '''.format( STR_CEN_cmd, STR_LIM_cmd, STR_CL_title)
 
-        # text shown above image in the final HTML
-        jsontxt = '''
-        cat << EOF >! ${tjson}
-        title ::  Check: outliers
-        text  ::  volume fraction (black), limit (cyan), censored (red)
-        subtext :: "censored vols: ${cstr}"
-        linkid :: out
-        linkid_hov :: outliers 
-        EOF
-        '''
+    # text shown above image in the final HTML; same for basic and
+    # pythonic, b/c just the format strings hold differences now
+    jsontxt = '''
+    cat << EOF >! ${{tjson}}
+    title ::  Check: outliers
+    text  ::  volume fraction (black){}{}
+    subtext :: "censored vols{}: ${{cstr}}"
+    linkid :: out
+    linkid_hov :: outliers 
+    EOF
+    '''.format( STR_LIM_json, STR_CEN_json, STR_CEN_json2 )
 
     jsontxt_cmd = '''
     abids_json_tool.py   
@@ -620,8 +651,25 @@ def apqc_1D_cen_out(jpgsize, opref, run_mode):
 
 # ----------------------------------------------------------------------
 
+# **NB**: it is likely that any changes in this function should mirror
+# those of apqc_1D_cen_out
+
 # ['censor_dset', 'enorm_dset', 'mot_limit', 'nt_orig']
-def apqc_1D_motenorm_cen(jpgsize, opref, run_mode):
+def apqc_1D_motenorm_cen( jpgsize, opref, run_mode,
+                          has_cen_dset=False,
+                          has_lim=False ):
+
+    STR_CEN_pre   = '''set cstr = "(no censoring applied)"'''
+    STR_CL_title  = ''
+    STR_CEN_json2 = ''
+    if has_cen_dset : 
+        STR_CEN_pre = '''set cstr = `1d_tool.py -show_trs_censored encoded -infile ${censor_dset}`
+        set Ncstr = `1d_tool.py -verb 0 -show_censor_count -infile ${censor_dset}`
+        set Pcstr = `echo "scale=0; ${Ncstr} * 100 / ${nt_orig}" | bc`'''
+        STR_CEN_json2+= ''' (${Pcstr}%)'''
+        if has_lim : 
+            STR_CL_title+= ''' (with limit)'''
+        STR_CL_title+= ''' and all censored points'''
 
     comm  = ''' review plots (colored TRs are censored); outliers with 
     enorm motion limit'''
@@ -632,61 +680,77 @@ def apqc_1D_motenorm_cen(jpgsize, opref, run_mode):
     set tjson  = _tmp.txt
     set ojson  = ${{odir_img}}/${{opref}}.json
     @ imax = ${{nt_orig}} - 1
-    set cstr = `1d_tool.py -show_trs_censored encoded -infile ${{censor_dset}}`
-    '''.format(jpgsize, opref)
+    {}
+    '''.format( jpgsize, opref, STR_CEN_pre )
 
     otxt     = "${odir_img}/${opref}" + ".txt"
     osubtxt  = "${odir_img}/${opref}" + "_SUB.txt"
 
     if run_mode == 'basic' :
+
+        # extra uvars may or may not be used
+        STR_CEN_cmd  = ''
+        STR_LIM_cmd  = ''
+        STR_CEN_json = ''
+        STR_LIM_json = ''
+        if has_cen_dset : 
+            STR_CEN_cmd+= '''-censor_RGB green 
+                             -censor   ${censor_dset}'''
+            STR_CEN_json+=''', total censoring (green)'''
+            # think one only has a censor limit if one has a censor file??
+            if has_lim : 
+                STR_LIM_cmd+= '''"1D: ${nt_orig}@${mot_limit}"'''
+                STR_LIM_json+=''', mot limit (red)'''
+
         cmd = '''
         1dplot 
         -one 
-        -censor_RGB green
-        -jpgs     $jpgsize "${odir_img}/${opref}"
+        {}
+        -jpgs     ${{jpgsize}} "${{odir_img}}/${{opref}}"
         -aspect   2
         -xlabel   "vol"
-        -title    "Mot enorm (with limit) and all censored points"
-        -censor   ${censor_dset}
-        ${enorm_dset}
-        "1D: ${nt_orig}@${mot_limit}" 
-        '''
-
-        jsontxt = '''
-        cat << EOF >! ${tjson}
-        title ::  Check: motion (enorm)
-        text  ::  "enorm (black), mot limit (red), censored (green)"
-        subtext :: "censored vols: ${cstr}"
-        linkid :: mot
-        linkid_hov :: motion (enorm)
-        EOF
-        '''
+        -title    "Mot enorm{}"
+        ${{enorm_dset}}
+        {}
+        '''.format( STR_CEN_cmd, STR_CL_title, STR_LIM_cmd )
 
     elif run_mode == 'pythonic' :
+
+        # extra uvars may or may not be used
+        STR_CEN_cmd = ''
+        STR_LIM_cmd = ''
+        STR_CEN_json = ''
+        STR_LIM_json = ''
+        if has_cen_dset : 
+            STR_CEN_cmd+= '''-censor_files ${censor_dset}'''
+            STR_CEN_json+=''', total censoring (red)'''
+            # think one only has a censor limit if one has a censor file??
+            if has_lim : 
+                STR_LIM_cmd+= '''-censor_hline ${mot_limit}'''
+                STR_LIM_json+=''', mot limit (cyan)'''
+
         cmd = '''
         1dplot.py                                                     
         -boxplot_on    
         -reverse_order 
-        -infiles  "${enorm_dset}"
+        -infiles  "${{enorm_dset}}"
         -ylabels   "enorm"
-        -censor_files ${censor_dset} 
-        -censor_hline ${mot_limit}
+        {}
+        {}
         -xlabel   "vol index"
-        -title    "Mot enorm (with limit) and all censored points"
-        -prefix   "${odir_img}/${opref}.jpg" 
-        '''
+        -title    "Mot enorm{}"
+        -prefix   "${{odir_img}}/${{opref}}.jpg" 
+        '''.format( STR_CEN_cmd, STR_LIM_cmd, STR_CL_title)
 
-        #imtxt = '''Check: motion
-        #enorm (black), mot limit (cyan), censored (red)'''
-        jsontxt = '''
-        cat << EOF >! ${tjson}
-        title ::  Check: motion
-        text  ::  "enorm (black), mot limit (cyan), censored (red)"
-        subtext :: "censored vols: ${cstr}"
-        linkid :: mot
-        linkid_hov :: motion (enorm)
-        EOF
-        '''
+    jsontxt = '''
+    cat << EOF >! ${{tjson}}
+    title ::  Check: motion
+    text  ::  "enorm (black){}{}"
+    subtext :: "censored vols{}: ${{cstr}}"
+    linkid :: mot
+    linkid_hov :: motion (enorm)
+    EOF
+    '''.format( STR_LIM_json, STR_CEN_json, STR_CEN_json2 )
 
     jsontxt_cmd = '''
     abids_json_tool.py   

@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 27, Nov , 2018 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
+   "Now make enorm and outlier plots even if no censor_dsets are in uvars.",
+   "Also, on a more fun note, output censor frac below mot/outlier plots.\n"
+},
+
 { 27, Nov , 2018 , PT , "@chauffeur_afni" , MINOR , TYPE_BUG_FIX,
    "Wasn't using user's specified delta_slices-- but now is!.",
    "Grazie, S. Torrisi!\n"
