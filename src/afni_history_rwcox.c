@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 28 , NOV , 2018 , RWC , "3dAllineate" , MINOR , TYPE_ENHANCE ,
+   "Add lpa+ cost functional" ,
+   "Like lpc+, with extra stuff added in for robustness. Per the suggestion\n"
+   "of Daniel Glen, the master of allineation and punulation." } ,
+
  { 16 , NOV , 2018 , RWC , "AFNI GUI" , MICRO , TYPE_ENHANCE ,
    "Add menu button to set func range = 1" ,
    NULL } ,
