@@ -105,17 +105,17 @@ MRI_IMAGE * mri_identity_params(void);                           /* prototype */
 
 static int meth_visible[NMETH] =       /* 1 = show in -help; 0 = don't show */
   { 1 , 0 , 1 , 1 , 1 , 0 , 1 , 1 , 1 , 0 , 1 , 1 , 1  , 0 } ;
-/* ls  sp  mi  crM nmi je  hel crA crU lss lpc lpa lpc+ ncd */
+/* ls  sp  mi  crM nmi je  hel crA crU lss lpc lpa lpc+ lpa+ */
 
 static int meth_noweight[NMETH] =      /* 1 = don't allow weights, just masks */
-  { 0 , 1 , 1 , 0 , 1 , 1 , 1 , 0 , 0 , 0 , 0 , 0 , 0  , 1 } ;
-/* ls  sp  mi  crM nmi je  hel crA crU lss lpc lpa lpc+ ncd */
+  { 0 , 1 , 1 , 0 , 1 , 1 , 1 , 0 , 0 , 0 , 0 , 0 , 0  , 0 } ;
+/* ls  sp  mi  crM nmi je  hel crA crU lss lpc lpa lpc+ lpa+ */
 
 static int visible_noweights ;
 
 static char *meth_shortname[NMETH] =   /* short names for terse cryptic users */
   { "ls" , "sp" , "mi" , "crM", "nmi", "je"   , "hel",
-    "crA", "crU", "lss", "lpc", "lpa", "lpc+" , "ncd"  } ;
+    "crA", "crU", "lss", "lpc", "lpa", "lpc+" , "lpa+"  } ;
 
 static char *meth_longname[NMETH] =    /* long names for prolix users */
   { "leastsq"         , "spearman"     ,
@@ -123,7 +123,7 @@ static char *meth_longname[NMETH] =    /* long names for prolix users */
     "norm_mutualinfo" , "jointentropy" ,
     "hellinger"       ,
     "corratio_add"    , "corratio_uns" , "signedPcor" ,
-    "localPcorSigned" , "localPcorAbs" , "localPcor+Others" , "NormCompDist" } ;
+    "localPcorSigned" , "localPcorAbs" , "localPcor+Others" , "localPcorAbs+Others" } ;
 
 static char *meth_username[NMETH] =    /* descriptive names */
   { "Least Squares [Pearson Correlation]"   ,
@@ -139,7 +139,7 @@ static char *meth_username[NMETH] =    /* descriptive names */
     "Local Pearson Correlation Signed"      ,  /* hidden */
     "Local Pearson Correlation Abs"         ,  /* hidden */
     "Local Pearson Signed + Others"         ,  /* hidden */
-    "Normalized Compression Distance"     } ;  /* hidden */
+    "Local Pearson Abs + Others"          } ;  /* hidden */
 
 static char *meth_costfunctional[NMETH] =  /* describe cost functional */
   { "1 - abs(Pearson correlation coefficient)"                 ,
@@ -155,7 +155,7 @@ static char *meth_costfunctional[NMETH] =  /* describe cost functional */
     "nonlinear average of Pearson cc over local neighborhoods" ,
     "1 - abs(lpc)"                                             ,
     "lpc + hel + mi + nmi + crA + overlap"                     ,
-    "mutual compressibility (via zlib) -- doesn't work yet"
+    "lpa + hel + mi + nmi + crA + overlap"
   } ;
 
 /*---------------------------------------------------------------------------*/
@@ -1499,6 +1499,10 @@ int main( int argc , char *argv[] )
               " * In addition, if you want the initial alignments to be with '-lpc+' and\n"
               "   then finish the Final alignment with pure '-lpc', you can indicate this\n"
               "   by putting 'ZZ' somewhere in the option string, as in '-lpc+ZZ'.\n"
+              "\n"
+              " * [28 Nov 2018]\n"
+              "   All of the above now applies to the 'lpa+' cost functional,\n"
+              "   which can be used as a robust method for like-to-like alignment.\n"
              , micho_hel , micho_crA , micho_nmi , micho_mi , micho_ov
              ) ;
 
@@ -2267,7 +2271,9 @@ int main( int argc , char *argv[] )
 
        /* fail here, UNLESS the method is 'lpc+something' */
 
-       if( ! (strlen(argv[iarg]) > 5 && strncasecmp(argv[iarg],"lpc+",4) == 0) )
+       if( ! (strlen(argv[iarg]) > 5 &&
+               (   strncasecmp(argv[iarg],"lpc+",4) == 0
+                || strncasecmp(argv[iarg],"lpa+",4) == 0 ) ) )
          ERROR_exit("Unknown code '%s' after -cost :-(",argv[iarg]) ;
 
        /* fall through to lpc+ code */
@@ -2275,13 +2281,16 @@ int main( int argc , char *argv[] )
        micho_fallthru = 1 ;
      }
 
-     /* 24 Feb 2010: special option for -lpc+stuff */
+     /* 24 Feb 2010: special option for -lpc+stuff or -lpa+stuff */
 
      if( micho_fallthru ||
-         (strlen(argv[iarg]) > 6 && strncasecmp(argv[iarg],"-lpc+",5) == 0) ){
+         (strlen(argv[iarg]) > 6 && 
+           (   strncasecmp(argv[iarg],"-lpc+",5) == 0
+            || strncasecmp(argv[iarg],"-lpa+",5) == 0 ) ) ){
        char *cpt ;
+       meth_code = (toupper(argv[iarg][3])=='C') ? GA_MATCH_LPC_MICHO_SCALAR
+                                                 : GA_MATCH_LPA_MICHO_SCALAR ;
        micho_fallthru = 0 ;
-       meth_code = GA_MATCH_LPC_MICHO_SCALAR ;
        cpt = strcasestr(argv[iarg],"+hel*"); if( cpt != NULL ) micho_hel = strtod(cpt+5,NULL);
        cpt = strcasestr(argv[iarg],"+hel:"); if( cpt != NULL ) micho_hel = strtod(cpt+5,NULL);
        cpt = strcasestr(argv[iarg],"+mi*" ); if( cpt != NULL ) micho_mi  = strtod(cpt+4,NULL);
@@ -2294,7 +2303,8 @@ int main( int argc , char *argv[] )
        cpt = strcasestr(argv[iarg],"+ov:" ); if( cpt != NULL ) micho_ov  = strtod(cpt+4,NULL);
        cpt = strcasestr(argv[iarg],"ZZ")   ; micho_zfinal = (cpt != NULL) ;
 
-       INFO_message("lpc+ parameters: hel=%.2f mi=%.2f nmi=%.2f crA=%.2f ov=%.2f %s",
+       INFO_message("%s parameters: hel=%.2f mi=%.2f nmi=%.2f crA=%.2f ov=%.2f %s",
+                    meth_shortname[meth_code-1] ,
                     micho_hel , micho_mi , micho_nmi , micho_crA , micho_ov ,
                     micho_zfinal ? "[to be zeroed at Final iteration]" : "\0" ) ;
        iarg++ ; continue ;
@@ -3040,10 +3050,11 @@ int main( int argc , char *argv[] )
    /* [changed from pure warning to current status 23 Jan 2017] */
 
    if( !wtspecified &&
-       ( meth_code == GA_MATCH_PEARSON_SCALAR  ||
-         meth_code == GA_MATCH_PEARSON_LOCALS  ||
-         meth_code == GA_MATCH_PEARSON_LOCALA  ||
-         meth_code == GA_MATCH_LPC_MICHO_SCALAR  ) ){
+       ( meth_code == GA_MATCH_PEARSON_SCALAR   ||
+         meth_code == GA_MATCH_PEARSON_LOCALS   ||
+         meth_code == GA_MATCH_PEARSON_LOCALA   ||
+         meth_code == GA_MATCH_LPC_MICHO_SCALAR ||
+         meth_code == GA_MATCH_LPA_MICHO_SCALAR   ) ){
      auto_weight = 1 ;
      WARNING_message(
        "Cost 'ls' or 'lpc' or 'lpa' ==> turning '-autoweight' on\n"
@@ -3052,9 +3063,10 @@ int main( int argc , char *argv[] )
    }
 
    if( im_tmask == NULL && !auto_tmask &&
-       ( meth_code == GA_MATCH_PEARSON_LOCALS  ||
-         meth_code == GA_MATCH_PEARSON_LOCALA  ||
-         meth_code == GA_MATCH_LPC_MICHO_SCALAR  ) ){
+       ( meth_code == GA_MATCH_PEARSON_LOCALS   ||
+         meth_code == GA_MATCH_PEARSON_LOCALA   ||
+         meth_code == GA_MATCH_LPC_MICHO_SCALAR ||
+         meth_code == GA_MATCH_LPA_MICHO_SCALAR   ) ){
        WARNING_message(
         "'-source_automask' is strongly recommended when using -lpc or -lpa") ;
    }
@@ -3700,6 +3712,7 @@ STATUS("zeropad weight dataset") ;
    stup.blokset = NULL ;
    if( meth_code == GA_MATCH_PEARSON_LOCALS   ||
        meth_code == GA_MATCH_LPC_MICHO_SCALAR ||
+       meth_code == GA_MATCH_LPA_MICHO_SCALAR ||
        meth_code == GA_MATCH_PEARSON_LOCALA   || do_allcost  ){
      float mr = 1.23f * ( MAT44_COLNORM(stup.base_cmat,0)
                          +MAT44_COLNORM(stup.base_cmat,1)
@@ -3710,9 +3723,11 @@ STATUS("zeropad weight dataset") ;
                              GA_BLOK_STRING(bloktype) , blokrad        ) ;
    }
 
-   if( meth_code == GA_MATCH_LPC_MICHO_SCALAR ){
+   if( meth_code == GA_MATCH_LPC_MICHO_SCALAR ||
+       meth_code == GA_MATCH_LPA_MICHO_SCALAR   ){
      if( verb )
-       INFO_message("-lpc+ parameters: hel=%.2f mi=%.2f nmi=%.2f crA=%.2f ov=%.2f %s",
+       INFO_message("%s parameters: hel=%.2f mi=%.2f nmi=%.2f crA=%.2f ov=%.2f %s",
+                    meth_shortname[meth_code-1] ,
                     micho_hel , micho_mi , micho_nmi , micho_crA , micho_ov ,
                     micho_zfinal ? "[to be zeroed at Final iteration]" : "\0" ) ;
      GA_setup_micho( micho_hel , micho_mi , micho_nmi , micho_crA , micho_ov ) ;
@@ -4288,6 +4303,7 @@ STATUS("zeropad weight dataset") ;
    if( sm_rad == 0.0f &&
        ( meth_code == GA_MATCH_PEARSON_LOCALS   ||
          meth_code == GA_MATCH_LPC_MICHO_SCALAR ||
+         meth_code == GA_MATCH_LPA_MICHO_SCALAR ||
          meth_code == GA_MATCH_PEARSON_LOCALA     ) ) sm_rad = MAX(2.222f,dxyz_top) ;
 
    for( kk=0 ; kk < DSET_NVALS(dset_targ) ; kk++ ){  /** the sub-brick loop **/
@@ -4835,10 +4851,12 @@ STATUS("zeropad weight dataset") ;
        for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
          stup.wfunc_param[jj].val_init = stup.wfunc_param[jj].val_out;
        stup.need_hist_setup = 1 ;
-       if( meth_code == GA_MATCH_LPC_MICHO_SCALAR && micho_zfinal ){
+       if( (meth_code == GA_MATCH_LPC_MICHO_SCALAR ||
+            meth_code == GA_MATCH_LPA_MICHO_SCALAR   ) && micho_zfinal ){
          GA_setup_micho( 0.0 , 0.0 , 0.0 , 0.0 , 0.0 ) ;
          if( verb > 1 )
-           ININFO_message(" - Set lpc+ parameters back to pure lpc before Final") ;
+           ININFO_message(" - Set %s parameters back to pure lpc before Final",
+                          meth_shortname[meth_code-1] ) ;
          rad *= 1.666f ;
        } else {
          rad *= 0.666f ;
@@ -4857,7 +4875,8 @@ STATUS("zeropad weight dataset") ;
 
      if( save_hist != NULL ) SAVEHIST("final",1) ;
 
-     if( meth_code == GA_MATCH_LPC_MICHO_SCALAR && micho_zfinal )  /* set them back */
+     if( (meth_code == GA_MATCH_LPC_MICHO_SCALAR ||
+          meth_code == GA_MATCH_LPA_MICHO_SCALAR   ) && micho_zfinal )  /* set them back */
        GA_setup_micho( micho_hel , micho_mi , micho_nmi , micho_crA , micho_ov ) ;
 
      if( do_allcost != 0 ){  /*-- all costs at final affine solution? --*/
@@ -5663,9 +5682,10 @@ mri_genalign_set_pgmat(1) ;
     INFO_message(  "###########################################################");
     INFO_message(  "#   Please check results visually for alignment quality   #");
 
-    if( (meth_code == GA_MATCH_PEARSON_LOCALS  ||
-         meth_code == GA_MATCH_PEARSON_LOCALA  ||
-         meth_code == GA_MATCH_LPC_MICHO_SCALAR  ) &&
+    if( (meth_code == GA_MATCH_PEARSON_LOCALS   ||
+         meth_code == GA_MATCH_PEARSON_LOCALA   ||
+         meth_code == GA_MATCH_LPC_MICHO_SCALAR ||
+         meth_code == GA_MATCH_LPA_MICHO_SCALAR   ) &&
         auto_weight != 1                              ){
       INFO_message("###########################################################");
       INFO_message("#   '-autoweight' is recommended when using -lpc or -lpa  #");
