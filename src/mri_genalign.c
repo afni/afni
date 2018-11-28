@@ -629,6 +629,31 @@ ENTRY("GA_scalar_costfun") ;
       }
     }
     break ;
+
+    /* 28 Nov 2018: combined method, but for lpa instead of lpc [RWC] */
+
+    case GA_MATCH_LPA_MICHO_SCALAR:{
+      val = (double)GA_pearson_local( gstup->npt_match, avm, bvm,wvm ) ;
+      val = 1.0 - fabs(val) ;
+
+      if( micho_hel != 0.0 || micho_mi  != 0.0 ||
+          micho_nmi != 0.0 || micho_crA != 0.0   ){
+        float_quad hmc ; float ovv ;
+        hmc = THD_helmicra_scl( gstup->npt_match ,
+                                gstup->ajbot , gstup->ajclip , avm ,
+                                gstup->bsbot , gstup->bsclip , bvm , wvm ) ;
+        val += -micho_hel * hmc.a - micho_mi  * hmc.b
+               +micho_nmi * hmc.c + micho_crA * (1.0-fabs(hmc.d)) ;
+
+        if( micho_ov != 0.0 && gstup->bsmask != NULL && gstup->ajmask != NULL ){
+          ovv = GA_get_warped_overlap_fraction() ;
+          ovv = MAX(0.0f,9.95f-10.0f*ovv) ;
+          val += micho_ov * ovv*ovv ;
+        }
+      }
+    }
+    break ;
+
   }
 
   if( !isfinite(val) ) val = BIGVAL ;

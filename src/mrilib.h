@@ -1839,11 +1839,12 @@ extern void mri_metrics( MRI_IMAGE *, MRI_IMAGE *, float * ) ;
 #define GA_MATCH_PEARSON_LOCALS    11  /* experimental */
 #define GA_MATCH_PEARSON_LOCALA    12  /* experimental */
 
-#define GA_MATCH_LPC_MICHO_SCALAR  13  /* experimental [24 Feb 2010] */
+#define GA_MATCH_LPC_MICHO_SCALAR  13  /* 24 Feb 2010 */
+#define GA_MATCH_LPA_MICHO_SCALAR  14  /* 28 Nov 2018 */
 
-#define GA_MATCH_NCDZLIB           14  /* very experimental */
+#define GA_MATCH_NCDZLIB           15  /* very experimental */
 
-#define GA_MATCH_PEARCLP_SCALAR    15
+#define GA_MATCH_PEARCLP_SCALAR    16
 
 #define GA_MATCH_METHNUM_SCALAR    14  /* Largest value in sequence above */
 
