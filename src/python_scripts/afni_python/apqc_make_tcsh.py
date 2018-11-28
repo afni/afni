@@ -1,42 +1,56 @@
 #!/usr/bin/env python
 #
-# ver : 1.33 || date: Oct 15, 2018 || auth: PA Taylor
+auth = 'PA Taylor'
+# ver : 1.33 || date: Oct 15, 2018 
 # + add in new uvar vars (nt_orig, etc.)
 #
-# ver : 1.34 || date: Oct 16, 2018 || auth: PA Taylor
+# ver : 1.34 || date: Oct 16, 2018 
 # + all the new template checks and considerations, for new @Find*
 # + define "top level"
 # + put in $templ_vol checks
 #
-# ver : 1.34 || date: Oct 17, 2018 || auth: PA Taylor
+# ver : 1.34 || date: Oct 17, 2018
 # + add in more images
 # + introduce WARN
 # + add header text/descrip
 #
-#ver = '1.35' ; date = 'Oct 17, 2018' ; auth = 'PA Taylor'
+#ver = '1.35' ; date = 'Oct 17, 2018'
 # + add @ss_review_basic output
 # + rename dependencies
 #
-#ver = '1.4' ; date = 'Oct 18, 2018' ; auth = 'PA Taylor'
+#ver = '1.4' ; date = 'Oct 18, 2018' 
 # + io by argv
 #
 #ver = '1.5' ; date = 'Oct 18, 2018' ; auth = 'PA Taylor'
 # + new I/O, renamed files, newer way of putting title
 # + will fail if template was used but can't be found
 #
-#ver = '1.51' ; date = 'Oct 19, 2018' ; auth = 'PA Taylor'
+#ver = '1.51' ; date = 'Oct 19, 2018' 
 # + 'exit 0' added
 #
-#ver = '1.6' ; date = 'Nov 20, 2018' ; auth = 'PA Taylor'
+#ver = '1.6' ; date = 'Nov 20, 2018' 
 # + [PT] RUN_MODE now formalized through input name; default 'basic'
 # + [PT] end with @ss_review_basic echoed to terminal
 #
-ver = '1.7' ; date = 'Nov 23, 2018' ; auth = 'PA Taylor'
+#ver = '1.7' ; date = 'Nov 23, 2018' 
 # + [PT] Now each section outputs a JSON file of info.
 #        This replaces the *txt files for each image-- more versatile
 #        with info handling
 # + [PT] Each output includes link-ID and hovering text for each
 # + [PT] title info is now handled with a JSON, too
+#
+# ver = '1.8' ; date = 'Nov 27, 2018' 
+# + [RCR] fixed py 2/3 compatability
+#
+ver = '1.9' ; date = 'Nov 27, 2018' 
+# + [PT] changed the conditions for 1dplotting programs
+#        -> now can still have enorm and outlier plots even without 
+#           censor_dset being in uvar json
+#        -> text and subtext strings change depending on what sets are
+#           available for those
+# + [PT] also, in 'basic' html mode, 1dplot in 'VR6' is now just
+#        showing the 6 volreg params without enorm and outlier frac
+# + [PT] output %age of vols censored with the enorm and outlier plots
 #
 #########################################################################
 
@@ -207,7 +221,7 @@ if __name__ == "__main__":
     # [PT: Nov 1, 2018] update list in ldep var-- much shorter now
     ldep = ['motion_dset', 'nt_orig']  
     if lat.check_dep(ap_ssdict, ldep) :
-        ban      = lat.bannerize('outliers and motion')
+        ban      = lat.bannerize(' volreg motion pars')
         opref    = 'IMG_{:02d}_1D_volreg'.format(idx)
         cmd      = lat.apqc_1D_volreg( 1600, opref, RUN_MODE )
 
@@ -216,22 +230,36 @@ if __name__ == "__main__":
         idx     += 1
 
 
-    ldep = ['censor_dset', 'outlier_dset', 'out_limit', 'nt_orig']
+    # [PT] no longer checks for 'censor_dset' or 'out_limit' *here*,
+    #just later
+    ldep = ['outlier_dset', 'nt_orig']
     if lat.check_dep(ap_ssdict, ldep) :
+        # additional checks here for possible other uvars to use
+        HAS_censor_dset = lat.check_dep(ap_ssdict, ['censor_dset'])
+        HAS_out_limit   = lat.check_dep(ap_ssdict, ['out_limit'])
         ban      = lat.bannerize('outlier fraction and censoring')
         opref    = 'IMG_{:02d}_1D_cen_out'.format(idx)
-        cmd      = lat.apqc_1D_cen_out( 1600, opref, RUN_MODE )
+        cmd      = lat.apqc_1D_cen_out( 1600, opref, RUN_MODE,
+                                        has_cen_dset=HAS_censor_dset,
+                                        has_lim=HAS_out_limit )
 
         str_FULL+= ban
         str_FULL+= cmd
         idx     += 1
 
 
-    ldep = ['censor_dset', 'enorm_dset', 'mot_limit', 'nt_orig']
+    # [PT] no longer checking for 'censor_dset' or 'mot_limit' *here*,
+    # just later
+    ldep = ['enorm_dset', 'nt_orig']
     if lat.check_dep(ap_ssdict, ldep) :
+        # additional checks here for possible other uvars to use
+        HAS_censor_dset = lat.check_dep(ap_ssdict, ['censor_dset'])
+        HAS_mot_limit   = lat.check_dep(ap_ssdict, ['mot_limit'])
         ban      = lat.bannerize('mot enorm and censoring')
         opref    = 'IMG_{:02d}_1D_enorm_mot'.format(idx)
-        cmd      = lat.apqc_1D_motenorm_cen( 1600, opref, RUN_MODE )
+        cmd      = lat.apqc_1D_motenorm_cen( 1600, opref, RUN_MODE,
+                                        has_cen_dset=HAS_censor_dset,
+                                        has_lim=HAS_mot_limit )
 
         str_FULL+= ban
         str_FULL+= cmd
@@ -343,13 +371,15 @@ if __name__ == "__main__":
     try:
         os.chmod(otcsh, code)
     except:
-        print("failed: chmod %s %s" % (code, otcsh))
+        omsg = "failed: chmod {} {}".format(code, otcsh)
+        print(osmg)
 
     bye_msg = '''
     ++ Done making (executable) script to generate HTML QC:
     {}
     '''.format(otcsh)
 
-    print( lat.commandize(bye_msg, ALLEOL=False) )
+    bye_msg = lat.commandize(bye_msg, ALLEOL=False)
+    print( bye_msg )
 
     sys.exit(0)
