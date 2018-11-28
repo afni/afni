@@ -104,7 +104,7 @@ MRI_IMAGE * mri_identity_params(void);                           /* prototype */
 #define NMETH GA_MATCH_METHNUM_SCALAR  /* cf. mrilib.h */
 
 static int meth_visible[NMETH] =       /* 1 = show in -help; 0 = don't show */
-  { 1 , 0 , 1 , 1 , 1 , 0 , 1 , 1 , 1 , 0 , 1 , 1 , 1  , 0 } ;
+  { 1 , 0 , 1 , 1 , 1 , 0 , 1 , 1 , 1 , 0 , 1 , 1 , 1  , 1 } ;
 /* ls  sp  mi  crM nmi je  hel crA crU lss lpc lpa lpc+ lpa+ */
 
 static int meth_noweight[NMETH] =      /* 1 = don't allow weights, just masks */
