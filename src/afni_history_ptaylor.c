@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 28, Nov , 2018 , PT , "1dplot.py" , MINOR , TYPE_BUG_FIX,
+   "In py3, having a censor line caused graphing issues.",
+   "Those issues have been resolved.\n"
+},
+
 { 27, Nov , 2018 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
    "Now make enorm and outlier plots even if no censor_dsets are in uvars.",
    "Also, on a more fun note, output censor frac below mot/outlier plots.\n"
