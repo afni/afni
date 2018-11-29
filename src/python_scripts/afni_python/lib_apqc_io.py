@@ -181,7 +181,7 @@ COMMAND OPTIONS ~1~
                 font gets used depends on what is installed on your
                 comp.
 
--colors C1 C2 C3
+-colors C1 C2 C3 ...
                :you can decide what color(s) to cycle through in plots
                 (enter one or more); if there are more infile columns
                 than entered colors, the program just keeps cycling
@@ -191,7 +191,7 @@ COMMAND OPTIONS ~1~
                 colors, chosen for their mutual-distinguishable-ness,
                 will be cycled through.
 
--censor_trs CS1 CS2 CS3 
+-censor_trs CS1 CS2 CS3 ...
                :specify time points where censoring has occured (e.g.,
                 due to a motion or outlier criterion).  With this
                 option, the values are entered using AFNI index
@@ -204,7 +204,7 @@ COMMAND OPTIONS ~1~
                 In order to highlight censored points, a translucent
                 background color will be added to all plots of width 1.
 
--censor_files CF1 CF2 CF3 
+-censor_files CF1 CF2 CF3 ...
                :specify time points where censoring has occured (e.g.,
                 due to a motion or outlier criterion).  With this
                 option, the values are entered as 1D files, columns
@@ -216,7 +216,7 @@ COMMAND OPTIONS ~1~
                 In order to highlight censored points, a translucent
                 background color will be added to all plots of width 1.
 
--censor_hline CH1 CH2 CH3
+-censor_hline CH1 CH2 CH3 ...
                :one can add a dotted horizontal line to the plot, with
                 the intention that it represents the relevant threshold
                 (for example, motion limit or outlier fraction limit).
@@ -313,8 +313,11 @@ class figplobj:
     def set_bkgd_color(self, c):
         self.bkgd_color = c
 
-    def set_censor_hline(self, hh):
-        self.censor_hline = hh
+#    def set_censor_hline(self, hh):
+#        self.censor_hline = float(hh)
+    def set_censor_hline(self, listhh):
+        for hh in listhh:
+            self.censor_hline.append(hh)
 
     def set_censor_width(self, w):
         self.censor_width = w
@@ -390,7 +393,7 @@ class subplobj:
     color  = ""
     ymin   = 0.
     ymax   = 0.
-    censor_hline  = []
+    censor_hline  = [] # will just be a single number
 
     def set_x(self, x):
         self.x = x
@@ -408,7 +411,7 @@ class subplobj:
         self.ylabel = ylabel
 
     def set_censor_hline(self, hh):
-        self.censor_hline = hh
+        self.censor_hline = float(hh)
 
     def set_xlim(self, xlim=[]):
         if xlim :
@@ -540,7 +543,7 @@ class apqc_1dplot_opts:
         self.censor_RGB = c
 
     def add_censor_hline(self, hh):
-        self.censor_hline.append(hh)
+        self.censor_hline.append(float(hh))
 
     def count_censor_hline(self):
         return len(self.censor_hline)
