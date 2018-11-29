@@ -5,6 +5,10 @@ author    = "PA Taylor (NIMH, NIH)"
 version   = "1.2345"; date  = "Nov 1, 2018"
 # + [PT] now a working beta version, including boxplots
 #
+version   = "1.3"; date  = "Nov 28, 2018"
+# + [PT] fixed censor_hline stuff- now is list of floats, except
+#        at single plot level, when is just a float
+#
 # =================================================================
 
 import sys
