@@ -1059,8 +1059,9 @@ ENTRY("THD_mask_erode") ;
    nnn = (byte *)calloc(sizeof(byte),nxyz) ;  /* mask of eroded voxels */
    if( nnn == NULL ) EXRETURN ;               /* WTF? */
 
-   /* mark interior voxels that don't have 17 out of 18 nonzero nbhrs */
-
+   /* mark for erosion interior voxels that do not have sufficient nonzero  */
+   /* nbhrs (the default case would erode if even 1 neighbor is not masked, */
+   /* i.e., if <= 17 neighbors are masked)                                  */ 
    STATUS("marking to erode") ;
    for( kk=0 ; kk < nz ; kk++ ){
     kz = kk*nxy ; km = kz-nxy ; kp = kz+nxy ;
@@ -1077,12 +1078,18 @@ ENTRY("THD_mask_erode") ;
          im = ii-1 ; ip = ii+1 ;
          if( ii == 0    ) im = 0 ;
          if( ii == nx-1 ) ip = ii ;
+         /* NN1 count of 18 neighbors */
+              /* in plane below (km), include shared face and 4 shared edges,
+               * which means im and ip @ jy, plus jm,jy,jp @ ii */
          num =  mmm[im+jy+km]
               + mmm[ii+jm+km] + mmm[ii+jy+km] + mmm[ii+jp+km]
               + mmm[ip+jy+km]
+              /* in main plane (kz), include all 8 neighbors in 3x3 grid, which
+               * means all i and j pairs (9), except for ii,jy (center) */
               + mmm[im+jm+kz] + mmm[im+jy+kz] + mmm[im+jp+kz]
               + mmm[ii+jm+kz]                 + mmm[ii+jp+kz]
               + mmm[ip+jm+kz] + mmm[ip+jy+kz] + mmm[ip+jp+kz]
+              /* plane above (kp), should match km, in section above */
               + mmm[im+jy+kp]
               + mmm[ii+jm+kp] + mmm[ii+jy+kp] + mmm[ii+jp+kp]
               + mmm[ip+jy+kp] ;
