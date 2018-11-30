@@ -82,10 +82,11 @@ class VarsObject(object):
       """
       return len(self.attributes(getall=getall))
 
-   def attributes(self, getall=0):
+   def attributes(self, getall=0, name=1):
       """same as dir(), but return only those with:
             - a name not starting with '_'
             - a simple type
+            - if not name, not 'name'
          if getall: will be more like dir()
       """
       dlist = dir(self)
@@ -93,6 +94,7 @@ class VarsObject(object):
       for atr in dlist:
          if atr[0] == '_': continue
          if self.get_atomic_type(atr) == None and not getall: continue
+         if atr == 'name' and not name: continue
          retlist.append(atr)
       retlist.sort()
       return retlist
@@ -501,7 +503,7 @@ class VarsObject(object):
       sstr = "-- %s values in var '%s'%s\n" % (mesg, self.name, pstr)
 
       # start with atomic only, though loop is almost identical
-      for atr in self.attributes(getall=all):
+      for atr in self.attributes(getall=all, name=name):
          if not name and atr == 'name': continue
          match = (prefix == None and pattern == None)
          if prefix:
@@ -514,7 +516,7 @@ class VarsObject(object):
       if all:
          imtype = type(self.make_show_str)
          # non-instancemethods
-         for atr in self.attributes(getall=all):
+         for atr in self.attributes(getall=all, name=name):
             match = (prefix == None and pattern == None)
             if prefix:
                if atr.startswith(prefix): match = 1
@@ -525,7 +527,7 @@ class VarsObject(object):
                if self.get_atomic_type(atr) == None and atype != imtype:
                   sstr += "      %-20s : %s\n" % (atr, atype)
          # instancemethods
-         for atr in self.attributes(getall=all):
+         for atr in self.attributes(getall=all, name=name):
             match = (prefix == None and pattern == None)
             if prefix:
                if atr.startswith(prefix): match = 1
@@ -537,3 +539,4 @@ class VarsObject(object):
                   sstr += "      %-20s : %s\n" % (atr, atype)
 
       return sstr
+
