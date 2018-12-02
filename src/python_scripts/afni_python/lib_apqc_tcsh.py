@@ -20,8 +20,13 @@ auth = 'PA Taylor'
 #ver = '1.5' ; date = 'Nov 1, 2018'
 # + update regression warning 
 #
-ver = '1.51' ; date = 'Nov 19, 2018'
+#ver = '1.51' ; date = 'Nov 19, 2018'
 # + update 1dplot string labels (add in "enorm" and "outliers")
+#
+ver = '1.6' ; date = 'Dec 2, 2018'
+# + check_dep() now has more conditions, because of some specific
+#   vars+values that may or may not be there
+#   - first one: for stats_dsets, check about "NO_STATS" value
 #
 #########################################################################
 
@@ -44,9 +49,17 @@ def check_dep(D, lcheck):
 
     HAS_ALL = 1
     for x in lcheck:
+        # general check: based on existence
         if not(D.__contains__(x)) :
             HAS_ALL = 0
             break
+
+        # specific check(s), based on known values:
+        elif x == "stats_dset" :
+            if D[x] == "NO_STATS" :
+                HAS_ALL = 0
+                break
+
     return HAS_ALL
 
 # ----------------------------------------------------------------------
