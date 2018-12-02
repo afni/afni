@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 2, Dec , 2018 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_BUG_FIX,
+   "Will work with resting state analyses now.",
+   "Fixed minor issue when no stat dset (just NO_STATS str) was present.\n"
+},
+
 { 28, Nov , 2018 , PT , "1dplot.py" , MINOR , TYPE_BUG_FIX,
    "In py3, having a censor line caused graphing issues.",
    "Those issues have been resolved.\n"
