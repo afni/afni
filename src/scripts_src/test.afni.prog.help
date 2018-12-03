@@ -1,0 +1,81 @@
+
+# if the prog list comes from a build dir, set this
+set src_dir = ~/afni/src
+
+# ======================================================================
+# get a program list
+
+# --------------------------------------------------
+# option 1, get progs from src
+
+if ( 1 ) then
+
+   if ( ! -f $src_dir/Makefile.INCLUDE ) then
+      echo "** missing: $src_dir/Makefile.INCLUDE"
+      exit 1
+   endif
+
+   cd $src_dir
+   make prog_list
+   set progs = ( `grep -v '#' prog_list.txt` )
+   cd -
+
+else
+
+   # --------------------------------------------------
+   # option 2, get progs from help dir
+   set progs = (`\ls ~/.afni/help | grep '\.complete$' | sed 's/\.complete//'`)
+
+endif
+
+
+# ======================================================================
+# make a working directory
+if ( -d help.out ) \rm -fr help.out
+mkdir help.out
+
+
+# ======================================================================
+# get to work
+set bad_progs = ( testGL qdelaunay qhull scan_niml_vals.csh )
+
+echo ""
+echo "testing possibly $#progs programs, minus $#bad_progs to skip"
+echo ""
+
+set good_stats = ()
+set bad_stats = ()
+foreach prog ( $progs )
+  # skip bad stuff, fix such things
+  if ( $prog =~ *.do ) continue
+  if ( $prog =~ *.txt ) continue
+
+  # and skip any bad_progs, fix these, too
+  set bad = 0
+  foreach bp ( $bad_progs )
+     if ( $prog == $bp ) then
+        set bad = 1
+        break
+     endif
+  end
+  if ( $bad ) continue
+
+  printf "%-30s" $prog
+  $prog -help >& help.out/$prog.help
+
+  if ( $status ) then
+     echo "                 BAD_STAT"
+     set bad_stats = ( $bad_stats $prog )
+  else
+     echo GOOD
+     set good_stats = ( $good_stats $prog )
+  endif
+end
+
+echo ""
+echo "found $#good_stats good progs and $#bad_stats issues out of $#progs"
+echo ""
+echo bad stats for: $bad_stats
+
+
+##### consider writing $good_stats to a file, or even with $bad_stats
