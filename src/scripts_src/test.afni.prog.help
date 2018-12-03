@@ -1,6 +1,36 @@
+#!/bin/tcsh
 
 # if the prog list comes from a build dir, set this
 set src_dir = ~/afni/src
+set out_dir = help.out
+
+# initialize bin_dir to the location of afni, or else the current directory
+set bin_dir = `which afni`
+if ( $status ) set bin_dir = .
+
+set ac = 1
+while ( $ac <= $#argv )
+   if ( "$argv[$ac]" == "-help" ) then
+      echo "help me help you"
+      exit
+   else if ( "$argv[$ac]" == "-bin_dir" ) then
+      @ ac += 1
+      set bin_dir = $argv[$ac]
+   else if ( "$argv[$ac]" == "-src_dir" ) then
+      @ ac += 1
+      set src_dir = $argv[$ac]
+   else
+      echo "** unknown opt: $argv[$ac]"
+      exit 1
+   endif
+
+   @ ac += 1
+end
+
+echo "-- running programs out of binary directory $bin_dir"
+echo "-- using source code from $src_dir"
+echo "-- writing help output under $out_dir"
+echo ""
 
 # ======================================================================
 # get a program list
@@ -31,37 +61,19 @@ endif
 
 # ======================================================================
 # make a working directory
-if ( -d help.out ) \rm -fr help.out
-mkdir help.out
+if ( -d $out_dir ) \rm -fr $out_dir
+mkdir $out_dir
 
 
 # ======================================================================
 # get to work
-set bad_progs = ( testGL qdelaunay qhull scan_niml_vals.csh )
-
-echo ""
-echo "testing possibly $#progs programs, minus $#bad_progs to skip"
-echo ""
 
 set good_stats = ()
 set bad_stats = ()
 foreach prog ( $progs )
-  # skip bad stuff, fix such things
-  if ( $prog =~ *.do ) continue
-  if ( $prog =~ *.txt ) continue
-
-  # and skip any bad_progs, fix these, too
-  set bad = 0
-  foreach bp ( $bad_progs )
-     if ( $prog == $bp ) then
-        set bad = 1
-        break
-     endif
-  end
-  if ( $bad ) continue
 
   printf "%-30s" $prog
-  $prog -help >& help.out/$prog.help
+  $bin_dir/$prog -help >& $out_dir/$prog.help
 
   if ( $status ) then
      echo "                 BAD_STAT"
