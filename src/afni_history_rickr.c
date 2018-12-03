@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3, Dec, 2018, RCR, "Makefile.INCLUDE", MICRO, TYPE_MODIFY,
+   "use LIBMRI_OBJ = libmri.a, for future evil",
+   NULL
+ } ,
+
  { 27, Nov, 2018, RCR, "apqc_make_tcsh.py", MICRO, TYPE_ENHANCE,
    "python3 update for chmod code",
    "Thanks to L Dowdle for noting the issue."
