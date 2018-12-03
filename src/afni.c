@@ -1825,7 +1825,9 @@ void AFNI_sigfunc(int sig)
      if( dfp != NULL ){
        fprintf(dfp,"\n*********-----------------------------------------------*********") ;
        fprintf(dfp,"\nFatal Signal %d (%s) received\n",sig,sname); fflush(stderr);
+#ifdef USE_TRACING
        DBG_tfp = dfp ; DBG_traceback() ; DBG_tfp = stderr ;
+#endif
        fprintf(dfp,"** AFNI version = " AVERZHN "  Compile date = " __DATE__ "\n" );
 #ifdef SHSTRING
        fprintf(dfp,"** [[Precompiled binary " SHSTRING ": " __DATE__ "]]\n") ;
@@ -2338,10 +2340,12 @@ int main( int argc , char *argv[] )
      free(xpg) ;
    }
 
+#ifdef USE_TRACING
    if( DBG_trace == 2 ){                           /* 01 Dec 1999 */
      XSynchronize(XtDisplay(MAIN_shell),TRUE) ;
      STATUS("XSynchronize is enabled") ;
    }
+#endif
    XtVaSetValues( MAIN_shell, XmNkeyboardFocusPolicy,XmEXPLICIT , NULL ) ;
 
    MAIN_argc = argc ; MAIN_argv = argv ;  /* what's left after XtVaAppInit */
@@ -3334,7 +3338,9 @@ INFO_message("AFNI controller xroot=%d yroot=%d",(int)xroot,(int)yroot) ;
 
    { char *eee = getenv("USER") ;
      set_program_name("afni") ;
+#ifdef USE_TRACING
      if( eee != NULL && strcmp(eee,"rwcox") == 0 ) atexit(clock_time_atexit) ;
+#endif
    }
 
    /*--- and AWAY WE GO (how sweet it is!) ---*/
