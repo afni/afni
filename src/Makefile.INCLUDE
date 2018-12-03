@@ -43,6 +43,8 @@ SOMEAFOBJS = parser_int.o afni_warp.o afni_slice_byte.o afni_slice_short.o \
              afni_slice_float.o afni_slice_complex.o afni_slice_rgbyte.o   \
              parser.o pbar_color_defs.o afni_ports.o
 
+LIBMRI_OBJ = libmri.a
+
 T3OBJS  = to3d.o
 
 MISC    = AFNI_atlas_spaces.niml AFNI.Xdefaults AFNI.afnirc AFNI.sumarc \
@@ -250,7 +252,7 @@ vastness:all plugins install install_plugins install_lib
 
 ### Make many things
 
-all:$(LIBDL) libmri.a libmrix.a libcoxplot.a libvolpack.a libtracktools.a \
+all:$(LIBDL) $(LIBMRI_OBJ) libmrix.a libcoxplot.a libvolpack.a libtracktools.a \
              R_io.so programs ptaylor_all AFNI_version
 
 ### Make afni binaries
@@ -268,9 +270,9 @@ $(INSTALLDIR):
 
 ### for those on crippled systems
 
-all_noplug:libmri.a libmrix.a libcoxplot.a programs_noplug
+all_noplug:$(LIBMRI_OBJ) libmrix.a libcoxplot.a programs_noplug
 
-totality_noplug:libmri.a libmrix.a libcoxplot.a programs_noplug install_noplug clean
+totality_noplug:$(LIBMRI_OBJ) libmrix.a libcoxplot.a programs_noplug install_noplug clean
 
 # Create program list
 echo_progs:
@@ -318,8 +320,8 @@ gitignore: prog_list
 
 # CYGWIN: variations on totality and vastness above
 
-totality_exe:libmri.a libmrix.a libcoxplot.a programs_exe install_exe clean_exe
-vastness_exe:libmri.a libmrix.a libcoxplot.a programs_exe install_exe
+totality_exe:$(LIBMRI_OBJ) libmrix.a libcoxplot.a programs_exe install_exe clean_exe
+vastness_exe:$(LIBMRI_OBJ) libmrix.a libcoxplot.a programs_exe install_exe
 
 programs:$(PROGRAMS)
 
@@ -327,7 +329,7 @@ programs_noplug:$(PROGRAMS_NOPLUG)
 
 programs_exe:$(PROGRAMS_EXE)
 
-libraries:libmri.a libmrix.a libcoxplot.a libvolpack.a libf2c.a
+libraries:$(LIBMRI_OBJ) libmrix.a libcoxplot.a libvolpack.a libf2c.a
 
 ### rules for individual programs
 
@@ -695,23 +697,23 @@ csfft_cache:csfft_cache.o
 	$(RM) $@
 	$(CC) -o 3dRetinoPhase 3dRetinoPhase.o $(LFLAGS) $(LLIBS)
 
-3dDTeig:3dDTeig.o libmri.a
+3dDTeig:3dDTeig.o $(LIBMRI_OBJ)
 	$(RM) $@
 	$(CC) -o 3dDTeig 3dDTeig.o $(LFLAGS) $(LLIBS)
 
-3dDWItoDT:3dDWItoDT.o libmri.a
+3dDWItoDT:3dDWItoDT.o $(LIBMRI_OBJ)
 	$(RM) $@
 	$(CC) -o 3dDWItoDT 3dDWItoDT.o $(LFLAGS) $(LLIBS)
 
-1dSEM:1dSEM.o libmri.a sqrmat.o matrix.c matrix.h
+1dSEM:1dSEM.o $(LIBMRI_OBJ) sqrmat.o matrix.c matrix.h
 	$(RM) $@
 	$(CC) -o 1dSEM 1dSEM.o sqrmat.o $(LFLAGS) $(LLIBS)
 
-3dDTtoDWI:3dDTtoDWI.o libmri.a
+3dDTtoDWI:3dDTtoDWI.o $(LIBMRI_OBJ)
 	$(RM) $@
 	$(CC) -o 3dDTtoDWI 3dDTtoDWI.o $(LFLAGS) $(LLIBS)
 
-3danisosmooth:3danisosmooth.o DWIstructtensor.o libmri.a
+3danisosmooth:3danisosmooth.o DWIstructtensor.o $(LIBMRI_OBJ)
 	$(RM) $@
 	$(CCFAST) -o 3danisosmooth 3danisosmooth.o DWIstructtensor.o \
           $(LFLAGS) $(LLIBS)
@@ -1260,7 +1262,7 @@ mri_nstats.o:mri_nstats.c
 QWARP    = 3dNwarpAdjust 3dNwarpApply 3dNwarpCalc 3dNwarpCat 3dNwarpFuncs 3dNwarpXYZ 3dQwarp
 QWARPOBJ = 3dNwarpAdjust.o 3dNwarpApply.o 3dNwarpCalc.o 3dNwarpCat.o 3dNwarpFuncs.o 3dNwarpXYZ.o 3dQwarp.o
 
-qwarp:    libmri.a libf2c.a $(QWARP)
+qwarp:    $(LIBMRI_OBJ) libf2c.a $(QWARP)
 
 qwarpobj: $(QWARPOBJ)
 
@@ -1358,7 +1360,7 @@ qqqOMP:qqqOMP.o
 	$(RM) $@
 	$(CCOMP) -c 3dLocalstat.c $(INFLAGS)
 
-3dLocalstat:3dLocalstat.o libmri.a
+3dLocalstat:3dLocalstat.o $(LIBMRI_OBJ)
 	$(RM) $@
 	$(CCOMP) -o 3dLocalstat 3dLocalstat.o $(LFLAGS) $(LLIBS)
 
@@ -1374,7 +1376,7 @@ AlphaSim:AlphaSim.o
 	$(RM) $@
 	$(CCOMP) -c 3dClustSim.c $(INFLAGS)
 
-3dClustSim:3dClustSim.o libmri.a
+3dClustSim:3dClustSim.o $(LIBMRI_OBJ)
 	$(RM) $@
 	$(CCOMP) -o 3dClustSim 3dClustSim.o $(LFLAGS) $(LLIBS)
 
@@ -1382,7 +1384,7 @@ AlphaSim:AlphaSim.o
 	$(RM) $@
 	$(CCOMP) -c 3dXClustSim.c $(INFLAGS)
 
-3dXClustSim:3dXClustSim.o libmri.a
+3dXClustSim:3dXClustSim.o $(LIBMRI_OBJ)
 	$(RM) $@
 	$(CCOMP) -o 3dXClustSim 3dXClustSim.o $(LFLAGS) $(LLIBS)
 
@@ -1408,15 +1410,15 @@ AlphaSim:AlphaSim.o
 	$(RM) $@
 	$(CCOMP) -o 3dTcorrMap 3dTcorrMap.o $(LFLAGS) $(LLIBS)
 
-3dTmatch:3dTmatch.o libmri.a
+3dTmatch:3dTmatch.o $(LIBMRI_OBJ)
 	$(RM) $@
 	$(CCOMP) -o 3dTmatch 3dTmatch.o $(LFLAGS) $(LLIBS)
 
-3dTcorr1D:3dTcorr1D.o libmri.a
+3dTcorr1D:3dTcorr1D.o $(LIBMRI_OBJ)
 	$(RM) $@
 	$(CCOMP) -o 3dTcorr1D 3dTcorr1D.o $(LFLAGS) $(LLIBS)
 
-3dBlurInMask:3dBlurInMask.o libmri.a
+3dBlurInMask:3dBlurInMask.o $(LIBMRI_OBJ)
 	$(RM) $@
 	$(CCOMP) -o 3dBlurInMask 3dBlurInMask.o $(LFLAGS) $(LLIBS)
 
@@ -1424,7 +1426,7 @@ AlphaSim:AlphaSim.o
 	$(RM) $@
 	$(CCOMP) -c 3dTproject.c $(INFLAGS)
 
-3dTproject:3dTproject.o libmri.a
+3dTproject:3dTproject.o $(LIBMRI_OBJ)
 	$(RM) $@
 	$(CCOMP) -o 3dTproject 3dTproject.o $(LFLAGS) $(LLIBS)
 
@@ -1432,15 +1434,15 @@ AlphaSim:AlphaSim.o
 	$(RM) $@
 	$(CCOMP) -c 3dDespike.c $(INFLAGS)
 
-3dDespike:3dDespike.o libmri.a
+3dDespike:3dDespike.o $(LIBMRI_OBJ)
 	$(RM) $@
 	$(CCOMP) -o 3dDespike 3dDespike.o $(LFLAGS) $(LLIBS)
 
-3dAllineate:3dAllineate.o mri_genalign.c mri_genalign_util.c thd_correlate.c libmri.a
+3dAllineate:3dAllineate.o mri_genalign.c mri_genalign_util.c thd_correlate.c $(LIBMRI_OBJ)
 	$(RM) $@
 	$(CCOMP) -o 3dAllineate 3dAllineate.o $(LFLAGS) $(LLIBS)
 
-3dQwarp:3dQwarp.o libmri.a lib3DEdge.a
+3dQwarp:3dQwarp.o $(LIBMRI_OBJ) lib3DEdge.a
 	$(RM) $@
 	$(CCOMP) -o 3dQwarp 3dQwarp.o $(LFLAGS) $(LLIBS) -l3DEdge
 
@@ -1456,7 +1458,7 @@ AlphaSim:AlphaSim.o
 	$(RM) $@
 	$(CCOMP) -c 3dQwarp_new.c $(INFLAGS)
 
-3dNwarpApply:3dNwarpApply.o libmri.a
+3dNwarpApply:3dNwarpApply.o $(LIBMRI_OBJ)
 	$(RM) $@
 	$(CCOMP) -o 3dNwarpApply 3dNwarpApply.o $(LFLAGS) $(LLIBS)
 
@@ -1670,11 +1672,11 @@ afni_version.o:afni_version.c
 	$(RM) $@
 	$(CC) -c afni_version.c $(INFLAGS) $(SHOWOFF)
 
-afni: libmri.a libcoxplot.a libmrix.a libvolpack.a libjpeg.a libXmHTML.a volpack.h coxplot.h niml.h $(AFOBJS)
+afni: $(LIBMRI_OBJ) libcoxplot.a libmrix.a libvolpack.a libjpeg.a libXmHTML.a volpack.h coxplot.h niml.h $(AFOBJS)
 	$(RM) $@
 	$(CC) -o afni $(AFOBJS) $(PLFLAGS) -lmrix -lcoxplot -lmri -lvolpack libXmHTML.a libjpeg.a $(LLIBS) -lm -lc
 
-afni+:$(AFOBJS) libcoxplot.a libmri.a libmrix.a coxplot.h niml.h
+afni+:$(AFOBJS) libcoxplot.a $(LIBMRI_OBJ) libmrix.a coxplot.h niml.h
 	$(RM) $@
 	$(CC) -o afni+ $(AFOBJS) $(PLFLAGS) -lmrix -lcoxplot $(LLIBS) -lm -lc
 
@@ -1684,7 +1686,7 @@ motiftoy: afni motiftoy.c
 
 # CYGWIN: must compile afni.exe with fixed plugins (see PLUGIN_FIXED, far below)
 
-afni.exe:$(AFOBJS) plugin_fixed libcoxplot.a libvolpack.a libmri.a libmrix.a volpack.h coxplot.h niml.h
+afni.exe:$(AFOBJS) plugin_fixed libcoxplot.a libvolpack.a $(LIBMRI_OBJ) libmrix.a volpack.h coxplot.h niml.h
 	$(RM) $@
 	$(CC) -o afni $(AFOBJS) $(PLUGIN_FIXED) $(LFLAGS) -lmrix -lcoxplot -lmri -lvolpack $(LLIBS)
 
@@ -1770,7 +1772,7 @@ afni_vcheck:afni_vcheck.o
 	$(RM) $@
 	$(CC) -o afni_vcheck afni_vcheck.o $(LFLAGS) $(LLIBS)
 
-1dfft:1dfft.o libmri.a
+1dfft:1dfft.o $(LIBMRI_OBJ)
 	$(RM) $@
 	$(CC) -o 1dfft 1dfft.o $(LFLAGS) $(LLIBS)
 
@@ -2069,7 +2071,7 @@ install_noplug: $(INSTALLDIR)
 	$(CP) -r $(SHINY_DIR) $(INSTALLDIR)
 
 install_lib: $(LIBDIR)
-	$(CP) libmri.a libmrix.a libf2c.a libcoxplot.a libvolpack.a $(LIBHEADERS) $(LIBDIR)
+	$(CP) $(LIBMRI_OBJ) libmrix.a libf2c.a libcoxplot.a libvolpack.a $(LIBHEADERS) $(LIBDIR)
 
 # CYGWIN: must put the .exe suffix on the "mv" command for some reason
 
@@ -2807,7 +2809,7 @@ r_misc.o: rickr/r_misc.c rickr/r_misc.h
 #######
 # Peter Molfese programs
 
-3dTsplit4D: 3dTsplit4D.o libmri.a
+3dTsplit4D: 3dTsplit4D.o $(LIBMRI_OBJ)
 	$(RM) $@
 	$(CC) -o 3dTsplit4D 3dTsplit4D.o $(LFLAGS) $(LLIBS)
 
@@ -2823,11 +2825,11 @@ dcm2niix_afni:
 #######
 # rickr programs
 
-3dmaxima: 3dmaxima.o maxima.o libmri.a
+3dmaxima: 3dmaxima.o maxima.o $(LIBMRI_OBJ)
 	$(RM) $@
 	$(CC) -o 3dmaxima 3dmaxima.o maxima.o $(LFLAGS) $(LLIBS)
 
-3dresample: 3dresample.o libmri.a
+3dresample: 3dresample.o $(LIBMRI_OBJ)
 	$(RM) $@
 	$(CC) -o 3dresample 3dresample.o $(LFLAGS) $(LLIBS)
 
@@ -2873,11 +2875,11 @@ gtest:
 	                'LFLAGS=$(LFLAGS)' ;                            \
 	$(MV) gtest .. ; )
 
-3dmatmult: 3dmatmult.o libmri.a
+3dmatmult: 3dmatmult.o $(LIBMRI_OBJ)
 	$(RM) $@
 	$(CC) -o 3dmatmult 3dmatmult.o $(LFLAGS) $(LLIBS)
 
-3dmask_tool: 3dmask_tool.o libmri.a
+3dmask_tool: 3dmask_tool.o $(LIBMRI_OBJ)
 	$(RM) $@
 	$(CC) -o 3dmask_tool 3dmask_tool.o $(LFLAGS) $(LLIBS)
 
@@ -2885,7 +2887,7 @@ column_cat: rickr/column_cat.c
 	$(RM) $@
 	$(CC) -o column_cat rickr/column_cat.c
 
-3dexample1: 3dexample1.o libmri.a
+3dexample1: 3dexample1.o $(LIBMRI_OBJ)
 	$(RM) $@
 	$(CC) -o 3dexample1 3dexample1.o $(LFLAGS) $(LLIBS)
 
@@ -2895,25 +2897,25 @@ tokens: rickr/tokens.c
 			'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' ;           \
 	$(MV) tokens .. ; )
 
-3dTto1D: 3dTto1D.o libmri.a
+3dTto1D: 3dTto1D.o $(LIBMRI_OBJ)
 	$(RM) $@
 	$(CC) -o 3dTto1D 3dTto1D.o $(LFLAGS) $(LLIBS)
 
 get_afni_model_PRF.o: get_afni_model_PRF.c model_conv_PRF.c
 
-get_afni_model_PRF: get_afni_model_PRF.o model_conv_PRF.c libmri.a
+get_afni_model_PRF: get_afni_model_PRF.o model_conv_PRF.c $(LIBMRI_OBJ)
 	$(RM) $@
 	$(CC) -o get_afni_model_PRF get_afni_model_PRF.o $(LFLAGS) $(LLIBS)
 
 get_afni_model_PRF_6.o: get_afni_model_PRF_6.c model_conv_PRF_6.c
 
-get_afni_model_PRF_6: get_afni_model_PRF_6.o model_conv_PRF_6.c libmri.a
+get_afni_model_PRF_6: get_afni_model_PRF_6.o model_conv_PRF_6.c $(LIBMRI_OBJ)
 	$(RM) $@
 	$(CC) -o get_afni_model_PRF_6 get_afni_model_PRF_6.o $(LFLAGS) $(LLIBS)
 
 get_afni_model_PRF_6_BAD.o: get_afni_model_PRF_6_BAD.c model_conv_PRF_6_BAD.c
 
-get_afni_model_PRF_6_BAD: get_afni_model_PRF_6_BAD.o model_conv_PRF_6_BAD.c libmri.a
+get_afni_model_PRF_6_BAD: get_afni_model_PRF_6_BAD.o model_conv_PRF_6_BAD.c $(LIBMRI_OBJ)
 	$(RM) $@
 	$(CC) -o get_afni_model_PRF_6_BAD get_afni_model_PRF_6_BAD.o $(LFLAGS) $(LLIBS)
 
@@ -3497,7 +3499,7 @@ jzosky_install:
 #############
 #SUMA
 
-libSUMA.a: libmri.a libmrix.a libcoxplot.a libf2c.a libtracktools.a
+libSUMA.a: $(LIBMRI_OBJ) libmrix.a libcoxplot.a libf2c.a libtracktools.a
 	( cd SUMA ;	\
 	rm -f libSUMA.a	;\
 	$(MAKE) -f $(SUMA_MAKEFILE_NAME) clean MarchingCubes.o libSUMA.a 'INSTALLDIR=$(INSTALLDIR)' \
@@ -3565,7 +3567,7 @@ SUMA_MAKE_LIST = testGL $(SUMA_PROGS)
 
 ###
 #link executables but check for libraries first and create them if needed
-suma_exec:libGLws.a libSUMA.a libtracktools.a libmri.a xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.a libf2c.a
+suma_exec:libGLws.a libSUMA.a libtracktools.a $(LIBMRI_OBJ) xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.a libf2c.a
 	( cd SUMA ;	\
 	$(MAKE) -f $(SUMA_MAKEFILE_NAME) $(SUMA_MAKE_LIST) \
    'INSTALLDIR=$(INSTALLDIR)' \
@@ -3600,7 +3602,7 @@ suma_gts_progs: libgts.a
 
 ###
 #run make all in SUMA directory, USE FOR DEVELOPMENT ONLY
-suma_all:libmri.a libtracktools.a xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.a libf2c.a
+suma_all:$(LIBMRI_OBJ) libtracktools.a xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.a libf2c.a
 	( cd SUMA ;	\
 	$(MAKE) -f $(SUMA_MAKEFILE_NAME) all 'INSTALLDIR=$(INSTALLDIR)' 'INSTALLDIR_SUMA=$(INSTALLDIR)' \
 	'SUMA_MDEFS=$(SUMA_MDEFS)' \
@@ -3617,7 +3619,7 @@ suma_all:libmri.a libtracktools.a xutil.o LiteClue.o parser.o parser_int.o libmr
 
 ###
 #run make anew in SUMA directory, USE FOR DEVELOPMENT ONLY
-suma_anew:libmri.a xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.a libf2c.a libtracktools.a
+suma_anew:$(LIBMRI_OBJ) xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.a libf2c.a libtracktools.a
 	( cd SUMA ;	\
 	$(MAKE) -f $(SUMA_MAKEFILE_NAME) anew 'INSTALLDIR=$(INSTALLDIR)' 'INSTALLDIR_SUMA=$(INSTALLDIR)' \
 	'SUMA_MDEFS=$(SUMA_MDEFS)' \
@@ -3751,7 +3753,7 @@ suma_link:
 	( cd SUMA ;	\
 	tar -xf $(SUMA_BIN_ARCHIVE)	;\
 	touch *.a	;\
-	$(CP) libmri.a libtractools.a libmrix.a libcoxplot.a libf2c.a ../ ;\
+	$(CP) $(LIBMRI_OBJ) libtractools.a libmrix.a libcoxplot.a libf2c.a ../ ;\
 	$(RM) suma MakeColorMap ROI2dataset 3dVol2Surf 3dSurf2Vol 	\
    SurfMeasures  SurfFWHM ScaleToMap MapIcosahedron CreateIcosahedron 	\
    CompareSurfaces ConvertSurface ConvertDset SurfClust IsoSurface 	\
@@ -3839,7 +3841,7 @@ toyR: toyR.c AFNI_embeddedRCall.o
          $(LLIBS) $(RccCOMlfl) AFNI_embeddedRCall.o
 
 ####
-R_io.so:R_io.c libmri.a
+R_io.so:R_io.c $(LIBMRI_OBJ)
 	( if which R >/dev/null ; then \
 	echo PKG_CPPFLAGS = $(INFLAGS)  > Makevars ;\
 	echo PKG_LIBS =  $(LFLAGS) $(LLIBS) $(RLIB_CONVERT) >> Makevars ;\
