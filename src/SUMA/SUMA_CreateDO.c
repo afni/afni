@@ -18424,7 +18424,7 @@ void SUMA_SimpleDrawMesh(SUMA_SurfaceObject *SurfObj,
          switch (RENDER_METHOD) {
             case TRIANGLES:
                if (NP == 3) glBegin (GL_TRIANGLES);
-               else if (NP == 4) glBeing (GL_QUADS);
+               else if (NP == 4) glBegin (GL_QUADS);
                else {
                   SUMA_S_Err("Badness"); SUMA_RETURNe;
                }
