@@ -13941,7 +13941,9 @@ void SUMA_sigfunc(int sig)   /** signal handler for fatal errors **/
          "\n*********-----------------------------------------------*********") ;
        fprintf(dfp,"\nFatal Signal %d (%s) received\n",sig,sname); 
        fflush(stderr);
+#ifdef USE_TRACING
        DBG_tfp = dfp ; DBG_traceback() ; DBG_tfp = stderr ;
+#endif
        fprintf(stderr,"*** SUMA Abort ***\nCompile Date: %s\n",
                           __DATE__) ; fflush(stderr) ;
 #ifdef SHSTRING
