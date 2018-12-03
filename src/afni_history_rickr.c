@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3, Dec, 2018, RCR, "test.afni.prog.help", MINOR, TYPE_NEW_PROG,
+   "test running -help on AFNI programs",
+   "This is a build tool, not for the distribution."
+ } ,
+
  {  3, Dec, 2018, RCR, "Makefile.INCLUDE", MICRO, TYPE_MODIFY,
    "use LIBMRI_OBJ = libmri.a, for future evil",
    NULL
