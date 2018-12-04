@@ -1,4 +1,9 @@
 
+# for using libmri.so   4 Dec 2018 [rickr]
+ifdef MRI_SHARED
+R_SHARED_LOPTS = -Wl,-rpath='$$ORIGIN'
+endif
+
 IMON_OBJS  = l_mcw_glob.o realtime.o
 
 WARN_OPT = 
@@ -21,11 +26,13 @@ Imon: Imon.o $(IMON_OBJS) Imon.h realtime.h
 
 Dimon: Dimon.o realtime.o
 	$(RM) $@
-	$(CC) -o Dimon Dimon.o realtime.o $(LFLAGS) -L.. $(LLIBS)
+	$(CC) -o Dimon Dimon.o realtime.o $(LFLAGS) -L.. \
+                 $(LLIBS) $(R_SHARED_LOPTS)
 
 Dimon1: Dimon1.o realtime1.o
 	$(RM) $@
-	$(CC) -o Dimon1 Dimon1.o realtime1.o $(LFLAGS) -L.. $(LLIBS)
+	$(CC) -o Dimon1 Dimon1.o realtime1.o $(LFLAGS) -L.. \
+                 $(LLIBS) $(R_SHARED_LOPTS)
 
 serial_helper: serial_helper.o
 	$(RM) $@
