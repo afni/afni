@@ -3724,6 +3724,8 @@ suma_clean:
 	if [ -f SUMA/SpharmDeco ]; then $(RM) SUMA/SpharmDeco; fi;
 	if [ -f prompt_user ]; then $(RM) prompt_user; fi;
 	if [ -f SUMA/prompt_user ]; then $(RM) SUMA/prompt_user; fi;
+	if [ -f prompt_popup ]; then $(RM) prompt_popup; fi;
+	if [ -f SUMA/prompt_popup ]; then $(RM) SUMA/prompt_popup; fi;
 	if [ -f SurfRetinoMap ]; then $(RM) SurfRetinoMap; fi;
 	if [ -f SUMA/SurfRetinoMap ]; then $(RM) SUMA/SurfRetinoMap; fi;
 	if [ -f ParseName ]; then $(RM) ParseName; fi;
