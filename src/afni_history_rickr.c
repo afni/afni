@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  4, Dec, 2018, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "Makefiles: working towards using libmri.so",
+   "Pass MRI_SHARED, and apply with SUMA_SHARED_LOPTS in SUMA."
+ } ,
+
  {  3, Dec, 2018, RCR, "test.afni.prog.help", MINOR, TYPE_NEW_PROG,
    "test running -help on AFNI programs",
    "This is a build tool, not for the distribution."

@@ -3570,7 +3570,8 @@ SUMA_MAKE_LIST = testGL $(SUMA_PROGS)
 suma_exec:libGLws.a libSUMA.a libtracktools.a $(LIBMRI_OBJ) xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.a libf2c.a
 	( cd SUMA ;	\
 	$(MAKE) -f $(SUMA_MAKEFILE_NAME) $(SUMA_MAKE_LIST) \
-   'INSTALLDIR=$(INSTALLDIR)' \
+	'INSTALLDIR=$(INSTALLDIR)' \
+	'MRI_SHARED=$(MRI_SHARED)' \
 	'SUMA_MDEFS=$(SUMA_MDEFS)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
 	'SUMA_LINK_PATH=$(SUMA_LINK_PATH)' \
