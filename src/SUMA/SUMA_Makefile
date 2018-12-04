@@ -71,6 +71,11 @@ ifndef SUMA_LINK_LIB
 SUMA_LINK_LIB = -lXm -lGLw -lGLU -lGL -lXmu -lXp -lXt -lXext -lX11 -lmri $(LZLIB) -lm -lmx -lglib -bind_at_load
 endif
 
+# for using libmri.so
+ifdef MRI_SHARED
+SUMA_SHARED_LOPTS = -Wl,-rpath='$$ORIGIN'
+endif
+
 ifndef SUMA_BIN_ARCHIVE
 SUMA_BIN_ARCHIVE = SUMA_Local.tar
 endif
