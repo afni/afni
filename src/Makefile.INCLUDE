@@ -43,7 +43,11 @@ SOMEAFOBJS = parser_int.o afni_warp.o afni_slice_byte.o afni_slice_short.o \
              afni_slice_float.o afni_slice_complex.o afni_slice_rgbyte.o   \
              parser.o pbar_color_defs.o afni_ports.o
 
+ifdef MRI_SHARED
+LIBMRI_OBJ = libmri.so
+else
 LIBMRI_OBJ = libmri.a
+endif
 
 T3OBJS  = to3d.o
 
@@ -2851,7 +2855,7 @@ dcm2niix_afni:
 	$(RM) $@
 	$(CC) -o 3dmaxima 3dmaxima.o maxima.o $(LFLAGS) $(LLIBS)
 
-3dresample: 3dresample.o $(LIBMRI_OBJ)
+3dresample: $(LIBMRI_OBJ) 3dresample.o
 	$(RM) $@
 	$(CC) -o 3dresample 3dresample.o $(LFLAGS) $(LLIBS)
 
