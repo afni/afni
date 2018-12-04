@@ -2834,35 +2834,35 @@ dcm2niix_afni:
 	$(CC) -o 3dresample 3dresample.o $(LFLAGS) $(LLIBS)
 
 file_tool: ge4_header.o rickr/file_tool.c
-	( cd rickr ;                                                    \
-	$(MAKE) file_tool 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(ISFLAGS)'      \
-			'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' ;           \
+	( cd rickr ;                                                        \
+	$(MAKE) file_tool 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(ISFLAGS)'         \
+	   'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' 'MRI_SHARED=$(MRI_SHARED)' ; \
 	$(MV) file_tool .. ; )
 
 Dimon: rickr/Dimon.c rickr/Dimon.h rickr/realtime.c rickr/realtime.h
 	( cd rickr ; 							\
 	$(MAKE) Dimon 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(ISFLAGS)'        	\
-		  'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)'           	\
-		  'LGIFTI=$(LGIFTI)' ;					\
+	  'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' 'LGIFTI=$(LGIFTI)'        \
+	  'MRI_SHARED=$(MRI_SHARED)' ;                                  \
 	$(MV) Dimon .. ; )
 
 Dimon1: rickr/Dimon1.c rickr/Imon.h rickr/realtime1.c rickr/realtime.h
-	( cd rickr ; 							\
+	( cd rickr ; 							    \
 	$(MAKE) Dimon1 'RM=$(RM)' 'CC=$(CC)' 'MV=$(MV)' 'IFLAGS=$(ISFLAGS)' \
-		  'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)'                   \
-		  'LGIFTI=$(LGIFTI)' ;					\
+	  'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' 'LGIFTI=$(LGIFTI)'  	    \
+	  'MRI_SHARED=$(MRI_SHARED)' ;                                      \
 	$(MV) Dimon1 .. ; )
 
 Imon: rickr/Imon.c rickr/Imon.h rickr/realtime.c rickr/realtime.h thd_iochan.o
-	( cd rickr ; 							\
-	$(MAKE) Imon 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(ISFLAGS)'        	\
-		  'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' ;			\
+	( cd rickr ; 							     \
+	$(MAKE) Imon 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(ISFLAGS)'        	     \
+	    'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' 'MRI_SHARED=$(MRI_SHARED)' ; \
 	$(MV) Imon .. ; )
 
 serial_helper: rickr/serial_helper.c
-	( cd rickr ;                                                    \
-	$(MAKE) serial_helper 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(ISFLAGS)' \
-		  'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' ; 		\
+	( cd rickr ;                                                         \
+	$(MAKE) serial_helper 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(ISFLAGS)'      \
+	    'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' 'MRI_SHARED=$(MRI_SHARED)' ; \
 	$(MV) serial_helper .. ; )
 
 serial_writer: rickr/serial_writer.c
@@ -2892,9 +2892,9 @@ column_cat: rickr/column_cat.c
 	$(CC) -o 3dexample1 3dexample1.o $(LFLAGS) $(LLIBS)
 
 tokens: rickr/tokens.c
-	( cd rickr ;                                                    \
-	$(MAKE) tokens 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(ISFLAGS)'      	\
-			'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' ;           \
+	( cd rickr ;                                                         \
+	$(MAKE) tokens 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(ISFLAGS)'      	     \
+	    'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' 'MRI_SHARED=$(MRI_SHARED)' ; \
 	$(MV) tokens .. ; )
 
 3dTto1D: 3dTto1D.o $(LIBMRI_OBJ)
