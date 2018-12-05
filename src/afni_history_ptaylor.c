@@ -66,6 +66,16 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 5, Dec , 2018 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
+   "Have removed numpy dependency.",
+   "Now, default afni_proc.py will output APQC HTML without numpy on comp.\n"
+},
+
+{ 5, Dec , 2018 , PT , "1dplot.py" , MINOR , TYPE_GENERAL,
+   "Have removed numpy dependency.",
+   "Lighter installation/usage dependencies.\n"
+},
+
 { 2, Dec , 2018 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_BUG_FIX,
    "Will work with resting state analyses now.",
    "Fixed minor issue when no stat dset (just NO_STATS str) was present.\n"
