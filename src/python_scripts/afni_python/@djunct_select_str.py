@@ -8,18 +8,18 @@ AUTHOR    = "PA Taylor (NIMH, NIH)"
 #VER_DATE  = "March 30, 2017"
 # + [PT] birth, in current form
 #
-#VERSION   = "1.1"
-#VER_DATE  = "June 26, 2018"
+#VERSION   = "1.1"; #VER_DATE  = "June 26, 2018"
 # + [PT] fixed issue when NO bads were selected
 #
-VERSION   = "1.2"
-VER_DATE  = "July 17, 2018"
+#VERSION   = "1.2"; VER_DATE  = "July 17, 2018"
 # + [PT] CONVERTED__python__2to3
+#
+VERSION   = "1.21"; VER_DATE  = "Dec 5, 2018"
+# + [PT] remove dependency on numpy
 #
 # --------------------------------------------------------------------
 
 import sys       as sys
-import numpy     as np
 import afni_util as au     # they are gold, indeed!
 
 THIS_PROG = '@djunct_select_str.py'
@@ -93,7 +93,8 @@ def Invert_BadInd_List(LL, NMAX=-1):
         sys.exit("** ERROR: `bad list` max (%d) is greater than\n"
                  "   the apparent max subrick index (%d).\n" %
                  (Lmax, NMAX))
-    GG = list(np.arange(NMAX))
+    # [PT: Dec 5, 2018] remove dependency on numpy
+    GG = [i for i in range(NMAX)] #list(np.arange(NMAX))
     for ll in LL:
         try:
             GG.remove(ll)

@@ -1317,7 +1317,7 @@ def apqc_dat_pre_ss_warn( opref ):
 if ( -f ${pre_ss_warn_dset} && ! -z ${pre_ss_warn_dset} ) then
 ~~~~cat ${pre_ss_warn_dset} > ${odir_dat}/${opref}.dat
 else
-~~~~echo "\\nnone\\n"  > ${odir_dat}/${opref}.dat
+~~~~echo " none "  > ${odir_dat}/${opref}.dat
 endif
     '''
 
@@ -1368,7 +1368,7 @@ def apqc_dat_tent_warn( opref ):
 if ( -f ${tent_warn_dset} ) then
 ~~~~cat ${tent_warn_dset} > ${odir_dat}/${opref}.dat
 else
-~~~~echo "\\nnone\\n"  > ${odir_dat}/${opref}.dat
+~~~~echo " none "  > ${odir_dat}/${opref}.dat
 endif
     '''
 
