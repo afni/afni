@@ -619,9 +619,10 @@ g_history = """
     6.22 Nov 19, 2018: added opt -html_review_style and run apqc_make_html.py
         - and check for respective dependencies
     6.23 Nov 26, 2018: added opt -volreg_warp_final_interp
+    6.24 Dec  5, 2018: reduced dependency list for apqc HTML to just Xvfb
 """
 
-g_version = "version 6.23, November 26, 2018"
+g_version = "version 6.24, December 5, 2018"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -2949,8 +2950,7 @@ class SubjProcSream:
         if self.html_rev_style == 'none':                   return ''
         if self.ssr_uvars == '':                            return ''
 
-        needed = [ 'Xvfb', 'djpeg', 'cjpeg', 'pnmcat', 'pbmtext', 
-                   'pamstretch', 'pbmtopgm' ]
+        needed = [ 'Xvfb' ]
         missing = []
         for prog in needed:
            nfound = UTIL.num_found_in_path(prog, mtype=1)
