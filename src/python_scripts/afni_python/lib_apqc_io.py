@@ -12,6 +12,8 @@
 # + [PT] trying to get rid of all transparency/alphas, for simple
 #   jpg format
 #
+#ver = '1.3' ; date = 'Dec 5, 2018' 
+# + [PT] have removed numpy dependency for 'basic' APQC HTML functionality
 #
 #########################################################################
 
@@ -19,7 +21,6 @@
 
 import sys
 import lib_afni1D as LAD
-import numpy      as np
 import afni_util  as au
 
 # -------------------------------------------------------------------
@@ -82,7 +83,8 @@ OVERVIEW ~1~
 This program is for making images to visualize columns of numbers from
 "1D" text files.  It is based heavily on RWCox's 1dplot program, just
 using Python (particularly matplotlib).  To use this program, Python
-version >=2.7 is required, with both numpy and matplotlib modules.
+version >=2.7 is required, as well as matplotlib modules (someday numpy 
+might be needed, as well).
 
 This program takes very few required options-- mainly, file names and
 an output prefix-- but it allows the user to control/add many
@@ -297,7 +299,7 @@ class figplobj:
     color_table = []
     censor_RGB = DEF_censor_RGB
     censor_width = 0
-    censor_arr = []
+    censor_arr = []              # NB: really stays a list
     censor_hline = []
     ncensor = 0
     bkgd_color = DEF_bkgd_color
@@ -399,9 +401,12 @@ class subplobj:
         self.x = x
 
     def set_y(self, y):
+        ymin, ymean, ymax, ystdev = au.min_mean_max_stdev(y)
         self.y = y
-        self.ymin = np.min(self.y)
-        self.ymax = np.max(self.y)
+        #self.ymin = np.min(self.y)
+        #self.ymax = np.max(self.y)
+        self.ymin = ymin
+        self.ymax = ymax
         self.npts = len(y)
 
     def set_xlabel(self, xlabel):
@@ -418,9 +423,12 @@ class subplobj:
             self.xlim = xlim
         else:
             deltax = self.x[1] - self.x[0]
-            self.xlim = [ np.min(self.x) - 0.5*deltax, 
-                          np.max(self.x) + 0.5*deltax ]
-            
+            xmin, xmean, xmax, xstdev = au.min_mean_max_stdev(self.x)
+            self.xlim = [ xmin - 0.5*deltax, 
+                          xmax + 0.5*deltax ]
+            #self.xlim = [ np.min(self.x) - 0.5*deltax, 
+            #              np.max(self.x) + 0.5*deltax ]
+
     def set_ylim(self, ylim=[]):
         if ylim :
             self.ylim = ylim
@@ -566,6 +574,44 @@ class apqc_1dplot_opts:
                      "must be either 0, 1, or match the "
                      "number of infiles {}".format(nhline, self.ndsets))
   
+    # [PT: Dec 5, 2018] Much updated, removing numpy and
+    # simultaneously simplifying in parts (Munch-scream emoji!)
+    def set_censor_arr(self):
+        self.censor_width = self.all_x[1] - self.all_x[0]
+
+        # add to this in different forms, where True values mean
+        # censoring is flagged to have occured
+        cen_arr = [False] * self.npts
+
+        # combine all strings of censor lists:
+        # ... from user-entered strings
+        if self.censor_in_trs:
+            maxind = self.npts - 1
+            for ttt in self.censor_in_trs:
+                ll = au.decode_1D_ints(ttt, imax=maxind)
+                for ii in ll:
+                    cen_arr[ii] = True
+
+        # ... from user-entered files
+        if self.censor_in_files:
+            for fff in self.censor_in_files:
+                x = LAD.Afni1D(fff)
+                if x.nt != self.npts :
+                    sys.exit("** ERROR: len of censor file {} ({}) does not "
+                             "match Npts={}".format(fff, x.nt, self.npts))
+                for i in range(self.npts):
+                    val = x.mat[0][i]
+                    if not(val):
+                        cen_arr[i] = True
+
+        # And finally store the list of xvals to censor
+        self.ncensor = cen_arr.count(True)
+        if self.ncensor :
+            for i in range(self.npts):
+                if cen_arr[i]:
+                    self.censor_arr.append(self.all_x[i])
+
+    '''
     def set_censor_arr(self):
         self.censor_width = self.all_x[1] - self.all_x[0]
 
@@ -600,6 +646,7 @@ class apqc_1dplot_opts:
         if self.ncensor :
             xarr = np.array(self.all_x)
             self.censor_arr = xarr[cen_arr]
+'''
                 
     def add_ylabel(self, ylabel):
         self.ylabels.append(ylabel)
@@ -1245,3 +1292,4 @@ def parse_html_args(argv):
         sys.exit(1)
         
     return iopts
+
