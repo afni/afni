@@ -2,12 +2,16 @@ author    = "PA Taylor (NIMH, NIH)"
 #version   = "1.0"; date  = "Oct 24, 2018"
 # + birth
 #
-version   = "1.2345"; date  = "Nov 1, 2018"
+#version   = "1.2345"; date  = "Nov 1, 2018"
 # + [PT] now a working beta version, including boxplots
 #
-version   = "1.3"; date  = "Nov 28, 2018"
+#version   = "1.3"; date  = "Nov 28, 2018"
 # + [PT] fixed censor_hline stuff- now is list of floats, except
 #        at single plot level, when is just a float
+#
+version   = "1.31"; date  = "Dec 5, 2018"
+# + [PT] at the moment, numpy isn't actually used here, so removing
+#        that import-- I would expect it to return *someday*, though.
 #
 # =================================================================
 
@@ -17,7 +21,6 @@ import matplotlib.pyplot  as plt
 from   matplotlib         import rcParams, gridspec
 from   matplotlib.ticker  import AutoMinorLocator
 import matplotlib.patches as matpat
-import numpy              as np
 import lib_afni1D         as LAD
 import lib_apqc_io        as laio
 import afni_util          as au
@@ -336,6 +339,8 @@ class apqc_1dplot_plopts:
 
 ########################### not used (and broken) #############################
 ####################### maybe will revisit this, if necessary #################
+#
+#import numpy as np
 #
 #def make_locations_ticks(N, lims):
 #    '''N is number of (major) ticks to have, and lims is an array of upper
