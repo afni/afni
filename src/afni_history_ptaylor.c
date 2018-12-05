@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 5, Dec , 2018 , PT , "@chauffeur_afni" , MICRO , TYPE_GENERAL,
+   "Reduce list of program dependencies to more accurate one.",
+   "List is muuuuch shorter now; had just been relic of @snapshot_volreg.\n"
+},
+
 { 5, Dec , 2018 , PT , "apqc_make_tcsh.py" , MICRO , TYPE_GENERAL,
    "When there is no warning message in a category, just say 'none'.",
    "Before, 'none' was padded with newline chars, but Mac doesn't like :(.\n"

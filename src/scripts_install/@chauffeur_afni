@@ -158,10 +158,14 @@
 #       - fixed how this program selects gapord and coors when using
 #         the focus refbox
 #
-set version   = "4.7";   set rev_dat   = "Nov 27, 2018"
+#set version   = "4.7";   set rev_dat   = "Nov 27, 2018"
 #     + [PT] fixed delta_slices problem (were ignored)
 #            --> Grazie, S. Torrisi!
 #
+set version   = "4.71";   set rev_dat   = "Dec 5, 2018"
+#     + [PT] fewer dependencies actually needed than listed-- at the
+#            moment, just xvfb
+#        
 # =====================================================================
 
 # For more info about opts/fields, see:
@@ -666,8 +670,10 @@ set nerr = 0
 set errm = "** ERROR:"
 
 # (Ubuntu hassle ->) not using: pamcomp
-set plist = ( Xvfb djpeg cjpeg pnmcat pbmtext  \
-                pamstretch pbmtopgm )
+#set plist = ( Xvfb djpeg cjpeg pnmcat pbmtext  \
+#                pamstretch pbmtopgm )
+# [PT: Dec 5, 2018] just need this dependency, at the moment
+set plist = ( Xvfb  )
 foreach pppp ( $plist )
   set wwww = `which $pppp`
   if( $status != 0 )then
