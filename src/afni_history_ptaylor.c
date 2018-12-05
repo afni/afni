@@ -66,6 +66,26 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 5, Dec , 2018 , PT , "apqc_make_tcsh.py" , MICRO , TYPE_GENERAL,
+   "When there is no warning message in a category, just say 'none'.",
+   "Before, 'none' was padded with newline chars, but Mac doesn't like :(.\n"
+},
+
+{ 5, Dec , 2018 , PT , "@djunct_select_str.py" , MINOR , TYPE_GENERAL,
+   "Have removed numpy dependency.",
+   "Lighter installation/usage dependencies.\n"
+},
+
+{ 5, Dec , 2018 , PT , "@djunct_combine_str.py" , MINOR , TYPE_GENERAL,
+   "Have removed numpy dependency.",
+   "Lighter installation/usage dependencies.\n"
+},
+
+{ 5, Dec , 2018 , PT , "@djunct_calc_mont_dims.py" , MINOR , TYPE_GENERAL,
+   "Have removed numpy dependency.",
+   "Lighter installation/usage dependencies.\n"
+},
+
 { 5, Dec , 2018 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
    "Have removed numpy dependency.",
    "Now, default afni_proc.py will output APQC HTML without numpy on comp.\n"
