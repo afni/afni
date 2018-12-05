@@ -11,11 +11,12 @@
 ### [PT: July 25, 2018] 
 # + fixed upper limit to allow square values to be found.
 #
+### [PT: Dec 5, 2018] 
+# + reduce depencies:  no scipy or numpy needed anymore
+#
 # --------------------------------------------------------------------
 
-import numpy as np
 import sys as sys
-import scipy.constants as spc
 
 help_string = '''
 Just a simple helper function for the fat_proc* scripts.  
@@ -23,7 +24,7 @@ Just a simple helper function for the fat_proc* scripts.
 Nuthin' to see here, folks!
 '''
 
-GOLD = spc.golden_ratio
+GOLD = 1.618033988749895 # golden_ratio
 
 #MAX_NCOL = 8
 
@@ -53,10 +54,10 @@ def get_arg(aa):
 def get_facs(AA):
     AA_facs1 = []
     AA_facs2 = []
-    fac_ceil = int(np.ceil(np.sqrt(AA)))
-    # [PT: July 25, 2018] need a +1 at the upper range because of how
-    # Python works. Duh.
-    for i in range(1, fac_ceil+1):
+    # [PT: Dec 5, 2018] new def of this val, no numpy used; also
+    # adjust upper limit of fac_ceil bc of this
+    fac_ceil = int(AA**0.5) + 1 
+    for i in range(1, fac_ceil):
         if not(AA % i): 
             AA_facs1.append(i)
             AA_facs2.append(AA // i)
@@ -90,6 +91,41 @@ def find_best_rat( AA_rat ):
 
     return i, dist
 
+# now use lists instead of arrays
+def get_best_rat(AA):
+
+    idx_fin = -1
+    min_dist = 10.**10
+    all_rats = [0] * check_dist  # np.zeros(check_dist)
+    all_vals = []                # np.zeros((check_dist,3), dtype=int)
+    for i in range(check_dist):
+        all_vals.append([0]*3) 
+
+    for j in range(check_dist):
+        (AA_l, AA_h) = get_facs(AA+j)
+        (idx, dist) = find_best_rat( calc_ratios(AA_h, AA_l) )
+        print(AA_l)
+        print(AA_h)
+        print(idx, AA_h[idx], AA_l[idx], dist)
+        all_rats[j] = dist
+        all_vals[j][0] = idx
+        all_vals[j][1] = AA_h[idx]
+        all_vals[j][2] = AA_l[idx]
+        if all_rats[j] < min_dist:
+            idx_fin = j
+            min_dist = all_rats[j]
+        # put this in as a "good enough" ratio, even if not ideal
+        # within dist, so we don't needlessly add vols
+        if min_dist < OKOK_dist:
+            print("++ OK! Good enough")
+            break
+
+    if idx < 0:
+        sys.exit("**ERROR! negative index in find_best_rat()")
+
+    return AA+idx_fin, all_vals[idx_fin]
+
+''' # old version: used numpy/arrays
 def get_best_rat(AA):
 
     idx_fin = -1
@@ -120,6 +156,7 @@ def get_best_rat(AA):
         sys.exit("**ERROR! negative index in find_best_rat()")
 
     return AA+idx_fin, all_vals[idx_fin, :]
+'''
 
 if __name__=="__main__":
 

@@ -11,14 +11,17 @@ AUTHOR    = "PA Taylor (NIMH, NIH)"
 #VER_DATE  = "May 22, 2018"
 # + change "union" -> intersection of lists
 #
-VERSION   = "1.2"
-VER_DATE  = "July 17, 2018"
+#VERSION   = "1.2"
+#VER_DATE  = "July 17, 2018"
 # + [PT] CONVERTED__python__2to3
+#
+VERSION   = "1.21"
+VER_DATE  = "Dec 5, 2018"
+# + [PT] doesn't need numpy so no longer importing it
 #
 # =================================================================
 
 import sys       as sys
-import numpy     as np
 import afni_util as au     # they are gold, indeed!
 
 THIS_PROG = '@djunct_combine_str.py'
