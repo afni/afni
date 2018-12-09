@@ -1,17 +1,17 @@
 ## Rudimentary cmake setup for now just to run tests
 
-PROJECT(AFNI)
+project(AFNI)
 
 ##
 ## Define options to customize the build-process
 ##
 
-OPTION(AFNI_BUILD_TESTS
+option(AFNI_BUILD_TESTS
        "Enable testing and build available tests"
        OFF)
 
-IF(AFNI_BUILD_TESTS)
-  ENABLE_TESTING()
-  ADD_SUBDIRECTORY(tests)
-ENDIF(AFNI_BUILD_TESTS)
+if(AFNI_BUILD_TESTS)
+  enable_testing()
+  add_subdirectory(tests)
+endif(AFNI_BUILD_TESTS)
 

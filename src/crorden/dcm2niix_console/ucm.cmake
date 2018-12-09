@@ -306,7 +306,7 @@ macro(ucm_dir_list thedir result)
     foreach(dir ${sub-dir})
         if(IS_DIRECTORY ${dir})
             get_filename_component(DIRNAME ${dir} NAME)
-            LIST(APPEND list_of_dirs ${DIRNAME})
+            list(APPEND list_of_dirs ${DIRNAME})
         endif()
     endforeach()
     set(${result} ${list_of_dirs})
@@ -319,7 +319,7 @@ macro(ucm_trim_front_words source out num_filter_trims)
     set(result "${source}")
     set(counter 0)
     while(${counter} LESS ${num_filter_trims})
-        MATH(EXPR counter "${counter} + 1")
+        math(EXPR counter "${counter} + 1")
         # removes everything at the front up to a "/" character
         string(REGEX REPLACE "^([^/]+)" "" result "${result}")
         # removes all consecutive "/" characters from the front
@@ -380,12 +380,12 @@ endmacro()
 # ucm_add_files_impl
 macro(ucm_add_files_impl result trim files)
     foreach(cur_file ${files})
-        SET(${result} ${${result}} ${cur_file})
+        set(${result} ${${result}} ${cur_file})
         get_filename_component(FILEPATH ${cur_file} PATH)
         ucm_trim_front_words("${FILEPATH}" FILEPATH "${trim}")
         # replacing forward slashes with back slashes so filters can be generated (back slash used in parsing...)
-        STRING(REPLACE "/" "\\" FILTERS "${FILEPATH}")
-        SOURCE_GROUP("${FILTERS}" FILES ${cur_file})
+        string(REPLACE "/" "\\" FILTERS "${FILEPATH}")
+        source_group("${FILTERS}" FILES ${cur_file})
     endforeach()
 endmacro()
 
@@ -444,7 +444,7 @@ macro(ucm_add_dir_impl result rec trim dirs_in additional_ext)
         endforeach()
 
         # find all sources and set them as result
-        FILE(GLOB found_sources RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
+        file(GLOB found_sources RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
         # https://gcc.gnu.org/onlinedocs/gcc-4.4.1/gcc/Overall-Options.html#index-file-name-suffix-71
         # sources
             "${cur_dir}*.cpp"
@@ -470,13 +470,13 @@ macro(ucm_add_dir_impl result rec trim dirs_in additional_ext)
             "${cur_dir}*.tcc"
             "${cur_dir}*.tpl"
             ${additional_file_extensions})
-        SET(${result} ${${result}} ${found_sources})
+        set(${result} ${${result}} ${found_sources})
 
         # set the proper filters
         ucm_trim_front_words("${cur_dir}" cur_dir "${trim}")
         # replacing forward slashes with back slashes so filters can be generated (back slash used in parsing...)
-        STRING(REPLACE "/" "\\" FILTERS "${cur_dir}")
-        SOURCE_GROUP("${FILTERS}" FILES ${found_sources})
+        string(REPLACE "/" "\\" FILTERS "${cur_dir}")
+        source_group("${FILTERS}" FILES ${found_sources})
     endforeach()
 
     if(${rec})
