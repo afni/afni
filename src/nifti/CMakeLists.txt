@@ -4,7 +4,7 @@ project(NIFTI)
 cmake_minimum_required(VERSION 2.6)
 if(COMMAND cmake_policy)
     cmake_policy(SET CMP0003 NEW)
-endif(COMMAND cmake_policy)
+endif()
 
 subdirs(znzlib niftilib)
 add_definitions(-DHAVE_ZLIB)
@@ -30,15 +30,15 @@ if("${ITK_VERSION_MAJOR}" GREATER 0.0)
 
   if(ITK_USE_FLAT_DIRECTORY_INSTALL)
     set(NIFTI_INSTALL_INCLUDE_DIR "${ITK_INSTALL_INCLUDE_DIR_CM24}")
-  else(ITK_USE_FLAT_DIRECTORY_INSTALL)
+  else()
     set(NIFTI_INSTALL_INCLUDE_DIR "${ITK_INSTALL_INCLUDE_DIR_CM24}/Utilities")
-  endif(ITK_USE_FLAT_DIRECTORY_INSTALL)
+  endif()
 
   set(NIFTI_ZLIB_LIBRARIES ${ITK_ZLIB_LIBRARIES})
   set(NIFTI_INSTALL_NO_DEVELOPMENT ${ITK_INSTALL_NO_DEVELOPMENT})
   set(NIFTI_INSTALL_NO_LIBRARIES ${ITK_INSTALL_NO_LIBRARIES})
 
-else("${ITK_VERSION_MAJOR}" GREATER 0.0)
+else()
   set(CPACK_PACKAGE_VERSION_MAJOR "2")
   set(CPACK_PACKAGE_VERSION_MINOR "0")
   set(CPACK_PACKAGE_VERSION_PATCH "0")
@@ -73,7 +73,7 @@ else("${ITK_VERSION_MAJOR}" GREATER 0.0)
   if(USE_FSL_CODE)
     subdirs(fsliolib)
     subdirs(examples)
-  endif(USE_FSL_CODE)
+  endif()
   enable_testing()
   include(CTest)
 
@@ -118,27 +118,27 @@ Project")
   set(CPACK_NSIS_URL_INFO_ABOUT "http:\\\\\\\\www.nitrc.org")
   set(CPACK_NSIS_CONTACT "xyz@domain.edu")
   set(CPACK_NSIS_MODIFY_PATH ON)
-else(WIN32 AND NOT UNIX)
+else()
   set(CPACK_STRIP_FILES OFF)
   set(CPACK_SOURCE_STRIP_FILES OFF)
-endif(WIN32 AND NOT UNIX)
+endif()
 
 include(CPack)
 
 
-endif("${ITK_VERSION_MAJOR}" GREATER 0.0)
+endif()
 
 
 
 if(NOT DEFINED NIFTI_INSTALL_LIB_DIR)
   message(FATAL_ERROR "Must set NIFTI_INSTALL_LIB_DIR.")
-endif(NOT DEFINED NIFTI_INSTALL_LIB_DIR)
+endif()
 if(NOT DEFINED NIFTI_INSTALL_BIN_DIR)
   message(FATAL_ERROR "Must set NIFTI_INSTALL_BIN_DIR.")
-endif(NOT DEFINED NIFTI_INSTALL_BIN_DIR)
+endif()
 if(NOT DEFINED NIFTI_INSTALL_INCLUDE_DIR)
   message(FATAL_ERROR "Must set NIFTI_INSTALL_INCLUDE_DIR.")
-endif(NOT DEFINED NIFTI_INSTALL_INCLUDE_DIR)
+endif()
 
 
 
